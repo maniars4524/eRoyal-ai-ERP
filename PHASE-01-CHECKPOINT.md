@@ -46,11 +46,15 @@ none share a database.
 | Environment | URL | Role | Username | Password |
 |---|---|---|---|---|
 | DEV (Super Admin / software company) | http://127.0.0.1:5173 | Super Admin | `Admin` | `LocalDev-SuperAdmin-2026` |
-| DEV (Super Admin / software company) | http://127.0.0.1:5173 | ERP User (NRS FREIGHT) | `mani` | `mani` |
 | DEMO (sales demo tenant) | http://127.0.0.1:5174 | Super Admin | `Admin` | `DemoEnv-SuperAdmin-2026` |
-| DEMO (sales demo tenant) | http://127.0.0.1:5174 | ERP User (Demo Freight Co) | `demo` | `DemoEnv-User-2026` |
 | QA (testing / implementation) | http://127.0.0.1:5175 | Super Admin | `Admin` | `QaEnv-SuperAdmin-2026` |
-| QA (testing / implementation) | http://127.0.0.1:5175 | ERP User (QA Test Freight) | `qauser` | `QaEnv-User-2026` |
+
+**2026-08-25 update:** all seeded/test organizations were cleared from all three
+databases at the user's request (`DELETE FROM organizations`, cascading to their
+org-scoped users, roles, and shipments). The Super Admin account in each environment
+was preserved (not organization-scoped). The previously-documented tenant logins
+(`mani`, `demo`, `qauser`) no longer exist as a result — log in as `Admin` and use the
+organization-create flow to provision a fresh organization and its ERP Admin.
 
 Backend APIs: DEV `http://127.0.0.1:8000`, DEMO `http://127.0.0.1:8001`, QA `http://127.0.0.1:8002`.
 Config files: `.env` (DEV), `.env.demo`, `.env.qa` — all gitignored (local secrets only).
