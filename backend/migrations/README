@@ -1,0 +1,7 @@
+Alembic migration directory for the eRoyal Freight ERP foundation.
+
+Commands from backend:
+  alembic current
+  alembic upgrade head
+  alembic downgrade -1
+  alembic revision --autogenerate -m "description"

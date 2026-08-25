@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ERP: Start PostgreSQL",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File \"${workspaceFolder}/scripts/start-postgres.ps1\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "ERP: Start FastAPI",
+      "type": "shell",
+      "command": "python -m uvicorn app.main:app --reload --port 8000",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "ERP: Start React",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "ERP: Apply Migrations",
+      "type": "shell",
+      "command": "python -m alembic upgrade head",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "ERP: Seed Super Admin",
+      "type": "shell",
+      "command": "python -m app.seed",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    }
+  ]
+}
