@@ -4,7 +4,7 @@ from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_dotenv(Path(__file__).resolve().parents[2] / os.getenv("ENV_FILE", ".env"))
 
 
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")

@@ -33,9 +33,11 @@ def seed_super_admin() -> None:
         if not user:
             user = User(email=email, username=username, password_hash=hash_password(password), first_name="Platform", last_name="Administrator", is_super_admin=True)
             db.add(user)
-        demo_org = db.scalar(select(Organization).where(Organization.code == "DEMO-RGC"))
+        demo_org_code = os.getenv("DEMO_ORG_CODE", "NRS-FREIGHT")
+        demo_org_name = os.getenv("DEMO_ORG_NAME", "NRS FREIGHT")
+        demo_org = db.scalar(select(Organization).where(Organization.code == demo_org_code))
         if not demo_org:
-            demo_org = Organization(code="NRS-FREIGHT", name="NRS FREIGHT", legal_name="NRS FREIGHT", country="India", status="ACTIVE")
+            demo_org = Organization(code=demo_org_code, name=demo_org_name, legal_name=demo_org_name, country="India", status="ACTIVE")
             db.add(demo_org)
             db.flush()
         erp_role = db.scalar(select(Role).where(Role.organization_id == demo_org.id, Role.name == "ERP_ADMIN"))

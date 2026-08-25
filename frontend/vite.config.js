@@ -29,14 +29,18 @@ function prototypeRoute() {
   };
 }
 
+const devPort = Number(process.env.VITE_DEV_PORT || 5173);
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000';
+const previewPort = Number(process.env.VITE_PREVIEW_PORT || 4173);
+
 export default defineConfig({
   plugins: [react(), prototypeRoute()],
   server: {
-    port: 5173,
+    port: devPort,
     host: '127.0.0.1',
     proxy: {
-      '/api': 'http://127.0.0.1:8000'
+      '/api': apiProxyTarget
     }
   },
-  preview: { port: 4173, host: '127.0.0.1' }
+  preview: { port: previewPort, host: '127.0.0.1' }
 });

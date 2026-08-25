@@ -1,5 +1,7 @@
 # Environment secrets
 .env
+.env.demo
+.env.qa
 .env.local
 .env.*.local
 

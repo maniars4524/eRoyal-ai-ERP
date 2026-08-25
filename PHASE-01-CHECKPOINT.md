@@ -29,16 +29,42 @@ READY_FOR_NEXT_PHASE
 - Existing prototype rendering: previously PASS
 - PostgreSQL migration: PASS (`0001_foundation` applied cleanly to a fresh database)
 - Real database authentication: PASS (`/api/health` reports `database: healthy`; seeded accounts created)
-- Tenant isolation integration tests: NOT VERIFIED
+- Tenant isolation integration tests: PASS (`backend/tests/test_tenant_isolation.py`; cross-tenant read/update/list all return 403 or are filtered server-side)
+- Three local environments (DEV/DEMO/QA), each with its own database, backend port, and frontend port: PASS — see "Local Environments" below
 
 ## Blocker
 Resolved 2026-08-25. Docker Desktop previously could not start its daemon because WSL was not installed; the user installed WSL and Docker Desktop's daemon now starts and responds normally. A separate, pre-existing config gap was found and fixed while unblocking this: `backend/app/config.py` read `DATABASE_URL`/`DB_*` purely from process environment variables and never loaded the repo's `.env` file, so the FastAPI app and Alembic silently fell back to default credentials that didn't match the `docker-compose.yml`-provisioned Postgres password. Fixed by calling `python-dotenv`'s `load_dotenv()` against the repo-root `.env` in `app/config.py` (added `python-dotenv` to `backend/requirements.txt`), and by aligning the placeholder `DATABASE_URL` password in `.env`/`.env.example` with `DB_PASSWORD`.
 
+## Local Environments
+
+Real internet-hosted DEV/QA/DEMO/PRODUCTION (per `ERP_PROMPT.md` §4) requires a domain
+and hosting account this machine does not have, so per the user's direction these are
+simulated locally instead: same Postgres server, three separate databases, three
+separate backend ports, three separate frontend ports. Each is fully isolated data —
+none share a database.
+
+| Environment | URL | Role | Username | Password |
+|---|---|---|---|---|
+| DEV (Super Admin / software company) | http://127.0.0.1:5173 | Super Admin | `Admin` | `LocalDev-SuperAdmin-2026` |
+| DEV (Super Admin / software company) | http://127.0.0.1:5173 | ERP User (NRS FREIGHT) | `mani` | `mani` |
+| DEMO (sales demo tenant) | http://127.0.0.1:5174 | Super Admin | `Admin` | `DemoEnv-SuperAdmin-2026` |
+| DEMO (sales demo tenant) | http://127.0.0.1:5174 | ERP User (Demo Freight Co) | `demo` | `DemoEnv-User-2026` |
+| QA (testing / implementation) | http://127.0.0.1:5175 | Super Admin | `Admin` | `QaEnv-SuperAdmin-2026` |
+| QA (testing / implementation) | http://127.0.0.1:5175 | ERP User (QA Test Freight) | `qauser` | `QaEnv-User-2026` |
+
+Backend APIs: DEV `http://127.0.0.1:8000`, DEMO `http://127.0.0.1:8001`, QA `http://127.0.0.1:8002`.
+Config files: `.env` (DEV), `.env.demo`, `.env.qa` — all gitignored (local secrets only).
+To (re)start an environment's backend: `ENV_FILE=.env.demo python -m uvicorn app.main:app --port 8001` (from `backend`).
+To (re)start an environment's frontend: `VITE_DEV_PORT=5174 VITE_API_PROXY_TARGET=http://127.0.0.1:8001 npm run dev -- --port 5174` (from `frontend`).
+
+These are local-only convenience ports for now, not a real deployment — Phases 17-19
+(actual DEV/QA/DEMO hosting with a real domain) are still ahead in the roadmap.
+
 ## Next Safe Action
-PostgreSQL, migration, seed, and auth are verified locally. Continue with:
-- Tenant-isolation integration tests (create Tenant A/B, verify cross-tenant access fails server-side, per `ERP_PROMPT.md` §34).
+PostgreSQL, migration, seed, auth, and tenant isolation are verified locally across
+all three environments. Continue with:
 - Wire the existing organization list/create UI controls to the real organization API.
-- Initialize git version control for this repo and push to GitHub — the repo currently has zero commits and no remote configured, so nothing from this build exists on GitHub yet.
+- Push this repo to GitHub (repo has an initial commit; a remote still needs to be added — see project memory / ask the user for the repo URL).
 
 Local reference commands (from `backend`, once Postgres is already running):
 
