@@ -2138,15 +2138,12 @@ tbody tr:hover{background:var(--g0)}
   </div>
 </div>
 <div class="tw"><table id="orgTable"><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Roles</th><th>GSTIN</th><th>Country</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="orgTableBody">
-<tr data-type="Client"><td><span class="chip">TATACHEM</span></td><td>Tata Chemicals Ltd</td><td><span class="b b-bl">Business</span></td><td><span class="b b-gr">Shipper</span> <span class="b b-tl">AR</span></td><td class="mono">27AAACT2727Q1ZN</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Tata Chemicals Ltd">View →</button></td></tr>
+<tr id="customerRowsAnchor" style="display:none"></tr>
+<tr id="noCustomersRow" style="display:none"><td colspan="8" style="text-align:center;color:var(--g5);padding:14px">No customers yet — click "New Org" to add your first customer.</td></tr>
 <tr data-type="Carrier"><td><span class="chip">MSCCHN</span></td><td>MSC Mediterranean</td><td><span class="b b-bl">Business</span></td><td><span class="b b-pu">Carrier</span> <span class="b b-gy">AP</span></td><td class="mono">—</td><td>🇨🇭 CH</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="MSC Mediterranean">View →</button></td></tr>
-<tr data-type="Client"><td><span class="chip">GEAWES</span></td><td>GEA Westfalia Sep (I)</td><td><span class="b b-bl">Business</span></td><td><span class="b b-am">Consignee</span> <span class="b b-tl">AR</span></td><td class="mono">06AAACW0197M1Z1</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="GEA Westfalia Sep (I)">View →</button></td></tr>
 <tr data-type="CHA"><td><span class="chip">SEAAIRMA</span></td><td>Sea Air Marine Surveyors</td><td><span class="b b-gy">Individual</span></td><td><span class="b b-rd">CHA</span> <span class="b b-gy">Services</span></td><td class="mono">33ABLPS6818C1ZL</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Sea Air Marine Surveyors">View →</button></td></tr>
-<tr data-type="Client"><td><span class="chip">TVSMOT</span></td><td>TVS Motor Company</td><td><span class="b b-bl">Business</span></td><td><span class="b b-gr">Shipper</span> <span class="b b-tl">AR</span></td><td class="mono">33AAACT3965R1Z5</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="TVS Motor Company">View →</button></td></tr>
-<tr data-type="Client"><td><span class="chip">INFOBPO</span></td><td>Infosys BPO Ltd</td><td><span class="b b-bl">Business</span></td><td><span class="b b-gr">Shipper</span> <span class="b b-tl">AR</span></td><td class="mono">29AABCI3517D1ZH</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Infosys BPO Ltd">View →</button></td></tr>
 <tr data-type="Carrier"><td><span class="chip">HAPAGIN</span></td><td>Hapag-Lloyd India</td><td><span class="b b-bl">Business</span></td><td><span class="b b-pu">Carrier</span> <span class="b b-gy">AP</span></td><td class="mono">—</td><td>🇩🇪 DE</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Hapag-Lloyd India">View →</button></td></tr>
 <tr data-type="Agent"><td><span class="chip">PANBEL</span></td><td>Panalpina Belgium</td><td><span class="b b-bl">Business</span></td><td><span class="b b-am">Overseas Agent</span></td><td class="mono">—</td><td>🇧🇪 BE</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Panalpina Belgium">View →</button></td></tr>
-<tr data-type="Client"><td><span class="chip">ASHLEY</span></td><td>Ashok Leyland Ltd</td><td><span class="b b-bl">Business</span></td><td><span class="b b-gr">Importer</span> <span class="b b-tl">AR</span></td><td class="mono">33AAACA8732B1ZQ</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Ashok Leyland Ltd">View →</button></td></tr>
 <tr data-type="Carrier"><td><span class="chip">AIRIND</span></td><td>Air India Cargo</td><td><span class="b b-bl">Business</span></td><td><span class="b b-pu">Carrier</span> <span class="b b-gy">AP</span></td><td class="mono">07AAACA0080P1Z2</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Air India Cargo">View →</button></td></tr>
 </tbody></table></div>
 <div class="cf">Showing 10 of 342 organizations</div></div></div>
@@ -2298,7 +2295,7 @@ tbody tr:hover{background:var(--g0)}
 <div id="ot6" class="tp"><div class="card"><div class="ch"><div class="ct">AR / AP &amp; COA Linking</div></div><div class="cb">
 <div class="ib ib-bl"><strong>Receivable (AR)</strong> → links to Sundry Debtors COA 1100. <strong>Payable (AP)</strong> → links to Sundry Creditors COA 2100. Auto-creates sub-ledger per org on Save.</div>
 <div class="fr"><div class="fg"><label class="fl">AR/AP Type</label><select class="fc"><option>Receivable (AR)</option><option>Payable (AP)</option><option>Both</option></select></div><div class="fg"><label class="fl">COA AR Account</label><select class="fc"><option>1101 - Customer Receivables</option><option>1102 - Agent Receivables</option></select></div><div class="fg"><label class="fl">COA AP Account</label><select class="fc"><option>2101 - Vendor Payables</option><option>2102 - CHA Payables</option></select></div><div class="fg"><label class="fl">Default Currency</label><select class="fc"><option>INR</option><option>USD</option><option>EUR</option></select></div></div>
-<div class="fr"><div class="fg"><label class="fl">Credit Limit (₹)</label><input class="fc" placeholder="500000"></div><div class="fg"><label class="fl">Credit Days</label><input class="fc" placeholder="30"></div><div class="fg"><label class="fl">Payment Terms</label><select class="fc"><option>30 Days Net</option><option>45 Days Net</option><option>Advance</option><option>LC</option></select></div><div class="fg"><label class="fl">Currency Uplift %</label><input class="fc" placeholder="0.00"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Credit Limit (₹)</label><input class="fc" id="org_credit_limit" placeholder="500000"></div><div class="fg"><label class="fl">Credit Days</label><input class="fc" placeholder="30"></div><div class="fg"><label class="fl">Payment Terms</label><select class="fc" id="org_payment_terms"><option>30 Days Net</option><option>45 Days Net</option><option>Advance</option><option>LC</option></select></div><div class="fg"><label class="fl">Currency Uplift %</label><input class="fc" placeholder="0.00"></div></div>
 </div></div></div>
 
 <!-- OT7: STAFF & DOCS -->
@@ -7942,6 +7939,7 @@ function go(screen, opts){
   if(screen==="invoice-new" && opts.invNo) populateInvoiceDetail(opts.invNo);
   if(screen==="rate-sheet-detail" && opts.rateNo) populateRateSheetDetail(opts.rateNo);
   if(screen==="dashboard") renderDashChart("volume");
+  if(screen==="org-list" && window.renderCustomerRows) renderCustomerRows();
   if(screen==="crm-lead" && window.renderCrmLead) renderCrmLead();
   if(screen==="crm-enquiry" && window.renderCrmEnquiry) renderCrmEnquiry();
   if(screen==="crm-opportunity" && window.renderCrmOpportunity) renderCrmOpportunity();
@@ -8870,6 +8868,29 @@ function populateOrgDetail(name){
   $("#orgDetailSub").textContent = rec ? rec.sub : "Organization profile";
 }
 
+/* Customer Master — real backend-driven rows, injected alongside the
+   remaining static Carrier/Agent/CHA demo rows in the same table. */
+function renderCustomerRows(){
+  const anchor = document.getElementById("customerRowsAnchor");
+  const emptyRow = document.getElementById("noCustomersRow");
+  if(!anchor) return;
+  document.querySelectorAll("#orgTableBody tr[data-type='CustomerLive']").forEach(tr=>tr.remove());
+  const token = sessionStorage.getItem("eroyal_access_token");
+  if(!token){ if(emptyRow) emptyRow.style.display = "none"; return; }
+  fetch("/api/customers", {headers:{Authorization:"Bearer "+token}})
+    .then(response=> response.ok ? response.json() : (response.status===403 ? [] : Promise.reject(new Error("failed"))))
+    .then(customers=>{
+      if(emptyRow) emptyRow.style.display = customers.length ? "none" : "";
+      customers.slice().reverse().forEach(c=>{
+        const tr = document.createElement("tr");
+        tr.dataset.type = "CustomerLive";
+        tr.innerHTML = `<td><span class="chip">${esc(c.code)}</span></td><td>${esc(c.name)}</td><td><span class="b b-bl">${esc(c.category)}</span></td><td><span class="b b-gr">Customer</span></td><td class="mono">${esc(c.gstin || "—")}</td><td>${esc(c.country)}</td><td><span class="b ${c.status==='ACTIVE' ? 'b-gr dot' : 'b-gy dot'}">${esc(c.status==='ACTIVE' ? 'Active' : 'Inactive')}</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="${esc(c.name)}">View →</button></td>`;
+        anchor.insertAdjacentElement("afterend", tr);
+      });
+    })
+    .catch(()=>{ /* customer fetch is best-effort; static rows still render */ });
+}
+
 /* ============================================================
    6b. JOB DETAIL — dynamic header population by job no (demo dataset)
    ============================================================ */
@@ -9010,6 +9031,11 @@ function wireAction(id, title, msg, type){
   if(!node) return;
   node.addEventListener("click", ()=> toast(title, msg, type||"success"));
 }
+/* Role flag chips (Shipper/Consignee/Carrier/...) — toggle on click, matching the .fi/.fi.on pattern used elsewhere */
+$("#orgRoleFlags") && $all(".fi", $("#orgRoleFlags")).forEach(fi=>{
+  fi.addEventListener("click", ()=> fi.classList.toggle("on"));
+});
+
 $("#orgSaveBtn") && $("#orgSaveBtn").addEventListener("click", ()=>{
   const country = $("#org_country") ? $("#org_country").value : "";
   const isIndia = country.indexOf("India")===0;
@@ -9017,7 +9043,54 @@ $("#orgSaveBtn") && $("#orgSaveBtn").addEventListener("click", ()=>{
     const state = $("#org_state") ? $("#org_state").value : "";
     if(!state){ toast("State is required","Select the State so the GST State Code can be applied","error"); return; }
   }
-  toast("Organization saved","New organization created and added to master");
+
+  const isCustomer = $("#orgRoleFlags .fi[data-role='shipper']").classList.contains("on")
+    || $("#orgRoleFlags .fi[data-role='consignee']").classList.contains("on");
+
+  if(!isCustomer){
+    /* Carrier / Agent / CHA / Transporter creation is not yet backend-wired — unchanged prototype behavior */
+    toast("Organization saved","New organization created and added to master");
+    return;
+  }
+
+  const code = ($("#org_code").value || "").trim();
+  const name = ($("#org_name").value || "").trim();
+  if(!code || !name){ toast("Code and Name are required","Fill in Org Code and Full Legal Name","error"); return; }
+
+  const token = sessionStorage.getItem("eroyal_access_token");
+  if(!token){ toast("Not signed in","Please sign in again","error"); return; }
+
+  const categorySelect = $("#org_category");
+  const category = categorySelect ? categorySelect.value.replace(/\s*\(.*\)/,"") : "Business";
+  const creditLimitRaw = $("#org_credit_limit") ? $("#org_credit_limit").value : "";
+
+  fetch("/api/customers", {
+    method: "POST",
+    headers: {"Content-Type":"application/json", Authorization:"Bearer "+token},
+    body: JSON.stringify({
+      code: code,
+      name: name,
+      short_name: ($("#org_shortname").value || "").trim() || null,
+      category: category,
+      country: country.replace(/\s*\(.*\)/,"") || "India",
+      gstin: ($("#org_gstin").value || "").trim() || null,
+      pan: ($("#org_pan").value || "").trim() || null,
+      credit_limit: creditLimitRaw ? Number(creditLimitRaw) : 0,
+      payment_terms: $("#org_payment_terms") ? $("#org_payment_terms").value : null
+    })
+  })
+    .then(async response=>{
+      const data = await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(data.detail || "Could not save customer");
+      return data;
+    })
+    .then(()=>{
+      toast("Customer saved","New customer created and added to Customer Master");
+      go("org-list");
+    })
+    .catch(error=>{
+      toast("Save failed", error.message || "Could not save customer", "error");
+    });
 });
 wireAction("jobSaveDraftBtn","Draft saved","Job saved as draft — continue later from Jobs list");
 wireAction("jobSendDocsBtn","Documents sent","Shipment documents emailed to consignee and agent");
