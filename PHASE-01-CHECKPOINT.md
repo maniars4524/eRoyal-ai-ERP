@@ -124,7 +124,20 @@ backend-driven, initially-empty data with proper empty states. Explicit constrai
 keep existing menus/navigation/toolbar/layout; do not invent replacement dummy data.
 User confirmed sequencing: finish Customer Master (done above) + do Dashboard, then
 continue through the remaining masters one at a time without re-confirming each one.
-Status per module tracked here as each is completed — Customer done; Dashboard next.
+
+Status: **Customer Master done. Dashboard done.** Remaining: Port, Country, Currency,
+Branch, User, Carrier masters — not started yet.
+
+Dashboard cleanup notes: KPI cards/drill-down panel/alerts/notifications/sidebar had
+their hardcoded data arrays emptied and now render clean "No data yet" empty states.
+The 26-slide report-preview carousel (`DASH_SLIDES` in `eRoyal-ai-ERP.html`) still
+contains its original hardcoded per-slide numbers in source, but a single guard in
+`dashRenderActive()` makes all 26 slides render "No data yet" regardless — those
+per-slide datasets are provably unreachable, left in place rather than deleted
+(deleting ~150 lines of inert data across 26 slide definitions added risk without
+behavioral benefit). Elsewhere in the app (invoices, jobs, CRM, reports, other
+masters), unrelated mock data is still present — untouched, out of scope until each
+of those modules is worked in turn.
 
 ## Next Safe Action
 PostgreSQL, migration, seed, auth, and tenant isolation are verified locally across
