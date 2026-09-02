@@ -6387,10 +6387,10 @@ Select rate lines to see summary.
 <div id="s-port-master" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="anchor" style="color:var(--bl)"></svg>Port Master</div><div class="ps">Sea Ports, Airports, ICDs, CFS, Rail Terminals &amp; Border Check Posts</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="ports"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="port-detail"><svg class="ic" data-icon="plus"></svg> Add Port</button></div></div>
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Ports</div><div class="kpi-val">186</div><div class="kpi-sub">All types</div></div>
-  <div class="kpi"><div class="kpi-lbl">Sea Ports</div><div class="kpi-val">68</div><div class="kpi-sub">Active worldwide</div></div>
-  <div class="kpi"><div class="kpi-lbl">Airports</div><div class="kpi-val">54</div><div class="kpi-sub">IATA codes</div></div>
-  <div class="kpi"><div class="kpi-lbl">ICD / CFS</div><div class="kpi-val">42</div><div class="kpi-sub">Inland facilities</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Ports</div><div class="kpi-val" id="portKpiTotal">0</div><div class="kpi-sub">All types</div></div>
+  <div class="kpi"><div class="kpi-lbl">Sea Ports</div><div class="kpi-val" id="portKpiSea">0</div><div class="kpi-sub">Active worldwide</div></div>
+  <div class="kpi"><div class="kpi-lbl">Airports</div><div class="kpi-val" id="portKpiAir">0</div><div class="kpi-sub">IATA codes</div></div>
+  <div class="kpi"><div class="kpi-lbl">ICD / CFS</div><div class="kpi-val" id="portKpiIcdCfs">0</div><div class="kpi-sub">Inland facilities</div></div>
 </div>
 <div class="card"><div class="ch"><div class="ct">Port Directory</div>
 <div style="display:flex;gap:8px">
@@ -6398,43 +6398,34 @@ Select rate lines to see summary.
   <select class="fc" style="width:140px"><option>All Countries</option><option>India</option><option>UAE</option><option>Singapore</option></select>
   <input class="fc" placeholder="Search port / code…" style="width:180px">
 </div></div>
-<div class="tw"><table><thead><tr><th>Type</th><th>Port Code</th><th>UNLOCODE</th><th>Port Name</th><th>City</th><th>Country</th><th>Time Zone</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td><span class="b b-bl">Sea</span></td><td class="mono ta" data-go="port-detail" style="color:var(--bl)">INMAA</td><td class="mono">INMAA</td><td style="font-weight:600">Chennai Sea Port</td><td>Chennai</td><td>🇮🇳 India</td><td>IST +5:30</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td></tr>
-<tr><td><span class="b b-bl">Sea</span></td><td class="mono ta" data-go="port-detail" style="color:var(--bl)">INBOM</td><td class="mono">INBOM</td><td style="font-weight:600">Nhava Sheva (JNPT)</td><td>Mumbai</td><td>🇮🇳 India</td><td>IST +5:30</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td></tr>
-<tr><td><span class="b b-tl">Air</span></td><td class="mono ta" data-go="port-detail" style="color:var(--bl)">MAA</td><td class="mono">—</td><td style="font-weight:600">Chennai International Airport</td><td>Chennai</td><td>🇮🇳 India</td><td>IST +5:30</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td></tr>
-<tr><td><span class="b b-tl">Air</span></td><td class="mono ta" data-go="port-detail" style="color:var(--bl)">BOM</td><td class="mono">—</td><td style="font-weight:600">Chhatrapati Shivaji Airport</td><td>Mumbai</td><td>🇮🇳 India</td><td>IST +5:30</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td></tr>
-<tr><td><span class="b b-am">ICD</span></td><td class="mono ta" data-go="port-detail" style="color:var(--bl)">INICDTVP</td><td class="mono">INICDTVP</td><td style="font-weight:600">ICD Irugur (Tiruppur)</td><td>Tiruppur</td><td>🇮🇳 India</td><td>IST +5:30</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td></tr>
-<tr><td><span class="b b-gy">CFS</span></td><td class="mono">INCFSCHN</td><td class="mono">—</td><td style="font-weight:600">CFS Chennai Gateway Terminal</td><td>Chennai</td><td>🇮🇳 India</td><td>IST +5:30</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td><span class="b b-bl">Sea</span></td><td class="mono ta" data-go="port-detail" style="color:var(--bl)">AEJEA</td><td class="mono">AEJEA</td><td style="font-weight:600">Jebel Ali Port</td><td>Dubai</td><td>🇦🇪 UAE</td><td>GST +4:00</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td></tr>
-<tr><td><span class="b b-bl">Sea</span></td><td class="mono ta" data-go="port-detail" style="color:var(--bl)">SGSIN</td><td class="mono">SGSIN</td><td style="font-weight:600">Port of Singapore</td><td>Singapore</td><td>🇸🇬 Singapore</td><td>+8:00</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td></tr>
-<tr><td><span class="b b-pu">Rail</span></td><td class="mono">INRAILTKD</td><td class="mono">—</td><td style="font-weight:600">Tughlakabad Rail Terminal</td><td>Delhi</td><td>🇮🇳 India</td><td>IST +5:30</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td><span class="b b-rd">Border</span></td><td class="mono">INATTBP</td><td class="mono">—</td><td style="font-weight:600">Attari Border Check Post</td><td>Amritsar</td><td>🇮🇳 India</td><td>IST +5:30</td><td><span class="b b-gy dot">Inactive</span></td><td class="no-print"><button class="ta">Activate</button></td></tr>
+<div class="tw"><table><thead><tr><th>Type</th><th>Port Code</th><th>UNLOCODE</th><th>Port Name</th><th>City</th><th>Country</th><th>Time Zone</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="portTableBody">
+<tr id="noPortsRow"><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No ports yet — click "Add Port" to create the first one.</td></tr>
 </tbody></table></div>
-<div class="cf">Showing 10 of 186 ports</div>
+<div class="cf" id="portCountLabel">Showing 0 of 0 ports</div>
 </div>
 </div>
 
 <!-- ====== PORT MASTER DETAIL ====== -->
 <div id="s-port-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="anchor" style="color:var(--bl)"></svg>Port Detail — Chennai Sea Port</div><div class="ps">Port Code: INMAA · UNLOCODE: INMAA · Sea Port · India</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="port-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save Port</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="anchor" style="color:var(--bl)"></svg>Port Detail</div><div class="ps">Add or edit a port, airport, ICD, CFS, rail terminal or border check post</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="port-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-suc btn-sm" id="portSaveBtn"><svg class="ic" data-icon="check"></svg> Save Port</button></div></div>
 
 <div class="card"><div class="ch"><div class="ct">Port Information</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Port Type <span class="r">*</span></label><select class="fc"><option>Sea Port</option><option>Airport</option><option>ICD (Dry Port)</option><option>CFS</option><option>Rail Terminal</option><option>Border Check Post</option></select></div>
-  <div class="fg"><label class="fl">Port Code <span class="r">*</span></label><input class="fc" value="INMAA" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">UNLOCODE</label><input class="fc" value="INMAA" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Port Type <span class="r">*</span></label><select class="fc" id="port_type"><option>Sea Port</option><option>Airport</option><option>ICD (Dry Port)</option><option>CFS</option><option>Rail Terminal</option><option>Border Check Post</option></select></div>
+  <div class="fg"><label class="fl">Port Code <span class="r">*</span></label><input class="fc" id="port_code" placeholder="e.g. INMAA" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">UNLOCODE</label><input class="fc" id="port_unlocode" placeholder="e.g. INMAA" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">IATA Code (if airport)</label><input class="fc" placeholder="N/A" style="font-family:var(--font-mono)"></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 2"><label class="fl">Port Name <span class="r">*</span></label><input class="fc" value="Chennai Sea Port"></div>
-  <div class="fg"><label class="fl">Country</label><select class="fc"><option>India</option><option>UAE</option><option>Singapore</option></select></div>
+  <div class="fg" style="grid-column:span 2"><label class="fl">Port Name <span class="r">*</span></label><input class="fc" id="port_name" placeholder="Full port name"></div>
+  <div class="fg"><label class="fl">Country</label><select class="fc" id="port_country"><option>India</option><option>UAE</option><option>Singapore</option></select></div>
   <div class="fg"><label class="fl">State / Province</label><select class="fc"><option>Tamil Nadu</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">City</label><input class="fc" value="Chennai"></div>
+  <div class="fg"><label class="fl">City</label><input class="fc" id="port_city" placeholder="City"></div>
   <div class="fg"><label class="fl">Latitude</label><input class="fc" value="13.0827" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">Longitude</label><input class="fc" value="80.2707" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Time Zone</label><select class="fc"><option>Asia/Kolkata (IST +5:30)</option></select></div>
+  <div class="fg"><label class="fl">Time Zone</label><select class="fc" id="port_timezone"><option>Asia/Kolkata (IST +5:30)</option></select></div>
 </div>
 <div class="fsec">Port Capabilities</div>
 <div class="fr">
