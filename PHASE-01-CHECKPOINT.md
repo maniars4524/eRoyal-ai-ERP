@@ -83,6 +83,17 @@ client-side — storing a plaintext password in `localStorage` is a real securit
 (readable by any extension or XSS on the origin); the user confirmed this scope before
 implementation.
 
+## Login Card Reorder + License Number Requirement (2026-09-02)
+
+Login now requires three fields in this order: License Number, Username, Password,
+then Branch Location + Country (side by side, UI-only for now), Financial Year, Sign In.
+`POST /api/auth/login` requires `license_number` in the payload and returns 401 if it
+doesn't match the identified user's organization's `license_number` (or the platform's
+`RTS0001` for Super Admin). Branch Location and Financial Year are not backend-validated
+yet — no Branch model exists (Phase 07 territory). Current per-environment license
+numbers to log in with: DEV `RTS0001` (mani) / `RTS0002` (nrs_admin), DEMO `RTS0001`,
+QA `RTS0001` — see the license table below.
+
 ## Next Safe Action
 PostgreSQL, migration, seed, auth, and tenant isolation are verified locally across
 all three environments. Continue with:
