@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .api import router
 from .auth_api import platform_router, router as auth_router
+from .customers_api import router as customers_router
 from .config import CORS_ORIGINS
 from .db import Base, engine
 from . import models
@@ -22,6 +23,7 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(platform_router)
+app.include_router(customers_router)
 
 
 @app.get("/api/health")

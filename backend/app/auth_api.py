@@ -66,8 +66,10 @@ def create_organization(payload: OrganizationAdminCreate, user: User = Depends(p
     if db.scalar(select(Organization).where(Organization.code == payload.code)) or db.scalar(select(User).where((User.email == payload.admin_email) | (User.username == payload.admin_username))):
         raise HTTPException(status_code=409, detail="Organization code or administrator identity already exists")
     organization = Organization(code=payload.code, license_number=next_license_number(db), name=payload.name, legal_name=payload.legal_name, country=payload.country, status="ACTIVE")
-    admin_role = Role(name="ERP_ADMIN", description="Organization administrator", status="ACTIVE")
-    foundation_codes = ["organization.read", "organization.update", "user.read", "user.create"]
+    db.add(organization)
+    db.flush()
+    admin_role = Role(name="ERP_ADMIN", organization_id=organization.id, description="Organization administrator", status="ACTIVE")
+    foundation_codes = ["organization.read", "organization.update", "user.read", "user.create", "customer.read", "customer.create", "customer.update", "customer.delete"]
     admin_role.permissions = db.scalars(select(Permission).where(Permission.code.in_(foundation_codes))).all()
     if len(admin_role.permissions) != len(foundation_codes):
         raise HTTPException(status_code=500, detail="Foundation permissions have not been seeded")
@@ -75,7 +77,6 @@ def create_organization(payload: OrganizationAdminCreate, user: User = Depends(p
     organization.users.append(admin)
     organization.created_by = user.id
     admin.roles.append(admin_role)
-    db.add(organization)
     try:
         db.flush()
         record_audit(db, "ORGANIZATION_CREATED", "ORGANIZATION", user, organization.id, "Organization", str(organization.id), {"code": organization.code, "name": organization.name})

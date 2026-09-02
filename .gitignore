@@ -2,6 +2,7 @@
 .env
 .env.demo
 .env.qa
+.env.test
 .env.local
 .env.*.local
 

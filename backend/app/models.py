@@ -93,6 +93,27 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
+class Customer(Base):
+    __tablename__ = "customers"
+    __table_args__ = (UniqueConstraint("organization_id", "code", name="uq_customer_org_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(160))
+    short_name: Mapped[str | None] = mapped_column(String(60))
+    category: Mapped[str] = mapped_column(String(40), default="Business")
+    country: Mapped[str] = mapped_column(String(80), default="India")
+    gstin: Mapped[str | None] = mapped_column(String(15))
+    pan: Mapped[str | None] = mapped_column(String(10))
+    credit_limit: Mapped[float] = mapped_column(Numeric(14, 2), default=0)
+    payment_terms: Mapped[str | None] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class Shipment(Base):
     __tablename__ = "shipments"
 
