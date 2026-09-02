@@ -64,6 +64,25 @@ To (re)start an environment's frontend: `VITE_DEV_PORT=5174 VITE_API_PROXY_TARGE
 These are local-only convenience ports for now, not a real deployment — Phases 17-19
 (actual DEV/QA/DEMO hosting with a real domain) are still ahead in the roadmap.
 
+## License Numbers
+
+**2026-09-02:** organizations now carry a `license_number` (e.g. `RTS0001`), auto-assigned
+sequentially per environment (`backend/app/licensing.py::next_license_number`). `RTS0001`
+is reserved for the platform organization "eRoyal" (created by `python -m app.seed`, not
+tied to any login). Every organization created afterward — via the Super Admin
+organization-create flow or by seed — gets the next number. Currently: DEV has RTS0001
+(eRoyal) and RTS0002 (NRS FREIGHT); DEMO and QA each have RTS0001 (eRoyal) with no client
+orgs yet. Migration: `0002_license_number`.
+
+## Remember Me
+
+**2026-09-02:** the login screen's "Remember me" checkbox was previously present in the
+HTML but not wired to anything. It now saves/restores the **username only** in
+`localStorage` (`eroyal_remembered_username`). The password is intentionally never stored
+client-side — storing a plaintext password in `localStorage` is a real security risk
+(readable by any extension or XSS on the origin); the user confirmed this scope before
+implementation.
+
 ## Next Safe Action
 PostgreSQL, migration, seed, auth, and tenant isolation are verified locally across
 all three environments. Continue with:
