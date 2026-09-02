@@ -94,6 +94,38 @@ yet — no Branch model exists (Phase 07 territory). Current per-environment lic
 numbers to log in with: DEV `RTS0001` (mani) / `RTS0002` (nrs_admin), DEMO `RTS0001`,
 QA `RTS0001` — see the license table below.
 
+## Customer Master (2026-09-02)
+
+First real Phase 08 (Common Masters) module: `Customer` entity (tenant-scoped), full
+CRUD at `/api/customers`, gated by new `customer.read/create/update/delete`
+permissions. Frontend: Organizations screen's 5 hardcoded Client-type rows removed
+(Carrier/CHA/Agent rows untouched — explicit user scope decision); `renderCustomerRows()`
+fetches real customers on entering `org-list` with an empty state. The "New
+Organization" form's role-flag chips (previously dead, zero JS wiring) are now
+interactive; Save creates a real Customer when Shipper/Consignee is checked, otherwise
+keeps the pre-existing (already non-functional) toast-only behavior for
+Carrier/Agent/CHA. Detail view (`org-detail`) is not yet wired for real customers —
+known gap for a future pass. Mock customer references elsewhere (invoices, dashboard,
+jobs, CRM) are untouched — separate, larger prototype-cleanup task, in progress.
+
+Also fixed while building this: `create_organization` never set `Role.organization_id`
+on the tenant ERP_ADMIN role it creates (every tenant admin role was left unscoped) —
+fixed, and the already-affected NRS FREIGHT role repaired directly in the DEV database.
+`backend/tests/test_tenant_isolation.py` was polluting whatever DB `.env` pointed at
+(previously DEV) on every run — fixed via `backend/tests/conftest.py` forcing
+`ENV_FILE=.env.test` so pytest always targets a dedicated `eroyal_erp_test` database.
+
+## Prototype Dummy-Data Cleanup (in progress, 2026-09-02)
+
+User requested removing ALL hardcoded/mock data across the whole app — Dashboard
+(cards, charts, totals, recent activity) and every Master module (Port, Country,
+Currency, Branch, User, Carrier, plus Customer above) — replacing each with real,
+backend-driven, initially-empty data with proper empty states. Explicit constraint:
+keep existing menus/navigation/toolbar/layout; do not invent replacement dummy data.
+User confirmed sequencing: finish Customer Master (done above) + do Dashboard, then
+continue through the remaining masters one at a time without re-confirming each one.
+Status per module tracked here as each is completed — Customer done; Dashboard next.
+
 ## Next Safe Action
 PostgreSQL, migration, seed, auth, and tenant isolation are verified locally across
 all three environments. Continue with:
