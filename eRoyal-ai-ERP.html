@@ -8557,6 +8557,7 @@ document.addEventListener("click", e=>{
   const token = sessionStorage.getItem("eroyal_access_token");
   if(token) fetch("/api/auth/logout", {method:"POST", headers:{Authorization:"Bearer "+token}}).catch(()=>{});
   sessionStorage.removeItem("eroyal_access_token");
+  try{ localStorage.removeItem("eroyal_persistent_token"); }catch(e){ /* localStorage unavailable — ignore */ }
   $("#userPop").classList.remove("on");
   if($("#loginOverlay")){ $("#loginOverlay").style.display="flex"; $("#loginOverlay").classList.remove("hidden"); }
 });
@@ -14588,6 +14589,7 @@ if(document.readyState !== "loading") initChatWidget();
   const eyeBtn   = document.getElementById("loginEyeBtn");
   const rememberChk = document.getElementById("loginRemember");
   const REMEMBER_KEY = "eroyal_remembered_username";
+  const PERSIST_TOKEN_KEY = "eroyal_persistent_token";
 
   /* Remember me: restores the username only — passwords are never stored client-side */
   (function restoreRememberedUsername(){
@@ -14598,6 +14600,42 @@ if(document.readyState !== "loading") initChatWidget();
         if(rememberChk) rememberChk.checked = true;
       }
     }catch(e){ /* localStorage unavailable — ignore */ }
+  })();
+
+  /* Applies a successful session (fresh login or restored) to the app chrome and hides the overlay */
+  function applySession(user, opts){
+    const silent = opts && opts.silent;
+    const av    = document.querySelector(".hdr-avatar");
+    const uname = document.querySelector(".hdr-uname");
+    const urole = document.getElementById("userRoleLbl");
+    const company = user.organization_name || "eRoyal";
+    const companyLabel = document.querySelector(".hdr-logo-text");
+    const companySub = document.querySelector(".hdr-logo-sub");
+    const initials = ((user.first_name || "") + " " + (user.last_name || "")).trim().split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
+    if(av)    av.textContent  = initials || "ER";
+    if(uname) uname.textContent = [user.first_name,user.last_name].filter(Boolean).join(" ");
+    if(urole) urole.textContent = user.is_super_admin ? "Super Admin" : ((user.roles && user.roles[0]) || "ERP User");
+    if(companyLabel) companyLabel.textContent = company;
+    if(companySub) companySub.textContent = user.is_super_admin ? "Platform Administration · eRoyal" : company + " · ERP Workspace";
+    if(overlay){ overlay.classList.add("hidden"); }
+    setTimeout(()=>{ if(overlay) overlay.style.display="none"; }, silent ? 0 : 600);
+    if(!silent && typeof toast === "function") toast("Welcome, " + (user.first_name || "User") + "!", "eRoyal Freight workspace loaded");
+  }
+
+  /* Restore a persisted session (Remember me) on page load / browser restart, without re-prompting for credentials */
+  (function restorePersistedSession(){
+    let persisted;
+    try{ persisted = localStorage.getItem(PERSIST_TOKEN_KEY); }catch(e){ return; }
+    if(!persisted) return;
+    fetch("/api/auth/me", {headers:{Authorization:"Bearer "+persisted}})
+      .then(response=>{ if(!response.ok) throw new Error("expired"); return response.json(); })
+      .then(user=>{
+        sessionStorage.setItem("eroyal_access_token", persisted);
+        applySession(user, {silent:true});
+      })
+      .catch(()=>{
+        try{ localStorage.removeItem(PERSIST_TOKEN_KEY); }catch(e){ /* ignore */ }
+      });
   })();
 
   /* Show/hide password */
@@ -14646,31 +14684,16 @@ if(document.readyState !== "loading") initChatWidget();
         const user = data.user;
         sessionStorage.setItem("eroyal_access_token", data.access_token);
         try{
-          if(rememberChk && rememberChk.checked) localStorage.setItem(REMEMBER_KEY, u);
-          else localStorage.removeItem(REMEMBER_KEY);
+          if(rememberChk && rememberChk.checked){
+            localStorage.setItem(REMEMBER_KEY, u);
+            localStorage.setItem(PERSIST_TOKEN_KEY, data.access_token);
+          }else{
+            localStorage.removeItem(REMEMBER_KEY);
+            localStorage.removeItem(PERSIST_TOKEN_KEY);
+          }
         }catch(e){ /* localStorage unavailable — ignore */ }
-        /* Update header avatar / name */
-        const av    = document.querySelector(".hdr-avatar");
-        const uname = document.querySelector(".hdr-uname");
-        const urole = document.getElementById("userRoleLbl");
-        const company = user.organization_name || "eRoyal";
-        const companyLabel = document.querySelector(".hdr-logo-text");
-        const companySub = document.querySelector(".hdr-logo-sub");
-        const initials = ((user.first_name || "") + " " + (user.last_name || "")).trim().split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
-        if(av)    av.textContent  = initials || "ER";
-        if(uname) uname.textContent = [user.first_name,user.last_name].filter(Boolean).join(" ");
-        if(urole) urole.textContent = user.is_super_admin ? "Super Admin" : ((user.roles && user.roles[0]) || "ERP User");
-        if(companyLabel) companyLabel.textContent = company;
-        if(companySub) companySub.textContent = user.is_super_admin ? "Platform Administration · eRoyal" : company + " · ERP Workspace";
-
-        /* Fade out overlay */
-        if(overlay){ overlay.classList.add("hidden"); }
-        setTimeout(()=>{ if(overlay) overlay.style.display="none"; }, 600);
-
-        /* Welcome toast */
-        if(typeof toast === "function")
-            toast("Welcome, " + (user.first_name || "User") + "!", "eRoyal Freight workspace loaded");
-          })
+        applySession(user);
+      })
           .catch(error=>{
         /* Failed — reset button and show error */
         if(loginBtn) loginBtn.disabled = false;
