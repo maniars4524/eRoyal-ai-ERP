@@ -125,8 +125,41 @@ keep existing menus/navigation/toolbar/layout; do not invent replacement dummy d
 User confirmed sequencing: finish Customer Master (done above) + do Dashboard, then
 continue through the remaining masters one at a time without re-confirming each one.
 
-Status: **Customer Master done. Dashboard done.** Remaining: Port, Country, Currency,
-Branch, User, Carrier masters — not started yet.
+Status: **Customer Master done. Dashboard done. Port Master IN PROGRESS (paused
+2026-09-02, resume here).** Remaining after Port: Country, Currency, Branch, User,
+Carrier masters — not started yet.
+
+### Port Master — exact resume point
+
+Backend fully done and verified: `Port` model (global/platform reference data, NOT
+tenant-scoped — ports are shared across all tenants, unlike Customer), migration
+`0004_ports`, full CRUD at `/api/ports` (any authenticated user can read; only Super
+Admin can create/update/delete), applied to all 4 databases (DEV/DEMO/QA/test).
+
+Frontend is half-wired (commit `8710c8f`):
+- Done: Add Port form fields have ids (`port_type`, `port_code`, `port_unlocode`,
+  `port_name`, `port_country`, `port_city`, `port_timezone`); Save button has
+  `id="portSaveBtn"`; the 10 hardcoded port rows and fake KPI numbers
+  (186/68/54/42) are replaced with an empty table (`#portTableBody`, `#noPortsRow`)
+  and zeroed KPI spans (`#portKpiTotal`, `#portKpiSea`, `#portKpiAir`,
+  `#portKpiIcdCfs`, `#portCountLabel`).
+- **Not done yet** — do these three things next, following the exact pattern already
+  used for Customer Master (`renderCustomerRows()` in `eRoyal-ai-ERP.html`, search for
+  that function name to copy the shape):
+  1. Write `renderPortRows()`: fetch `GET /api/ports`, compute the 4 KPI counts from
+     the response (total / port_type==Sea / port_type==Air / port_type in ICD,CFS),
+     inject `<tr>`s into `#portTableBody` (toggle `#noPortsRow` display), update
+     `#portCountLabel`.
+  2. Hook it into `go()`: add `if(screen==="port-master" && window.renderPortRows) renderPortRows();`
+     next to the existing `if(screen==="org-list" && window.renderCustomerRows)...` line.
+  3. Wire `#portSaveBtn` click: read the `port_*` field ids, POST to `/api/ports` with
+     header `Authorization: Bearer ` + `sessionStorage.getItem("eroyal_access_token")`,
+     on success `go("port-master")`, on failure show a real error via `toast(...)`.
+     Note Save Port currently does nothing when clicked (no handler attached yet) —
+     that's expected mid-work state, not a bug.
+
+Until this JS lands, Port Master's UI is a safe empty state (no fake data shown), it
+just isn't live yet.
 
 Dashboard cleanup notes: KPI cards/drill-down panel/alerts/notifications/sidebar had
 their hardcoded data arrays emptied and now render clean "No data yet" empty states.
