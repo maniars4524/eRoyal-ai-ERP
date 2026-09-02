@@ -81,11 +81,20 @@ $env:SUPER_ADMIN_PASSWORD = 'use-a-local-password-of-12-or-more-characters'
 
 ## Local Login Contract
 
-- Browser URL for both roles: `http://127.0.0.1:5173`
-- Super Admin: `Admin` / `admin`
-- ERP User: `mani` / `mani`
-- ERP User company: `NRS FREIGHT`
-- Super Admin platform company: `eRoyal`
-- FastAPI remains internal at port 8000 through the Vite proxy.
+**2026-09-02 update:** at the user's request, the DEV Super Admin's own username/password
+were changed from `Admin`/`LocalDev-SuperAdmin-2026` to `mani`/`mani`, and the NRS FREIGHT
+organization was restored (its ERP Admin login is `nrs_admin`/`NrsFreight-Admin-2026` —
+`mani` could not be reused for it since it now belongs to the Super Admin account). The
+plaintext "Demo credentials" hint that was previously shown on the login card in
+`eRoyal-ai-ERP.html` has been removed.
 
-After those pass, run tenant-isolation integration tests and connect the existing organization list/create controls to the organization API.
+DEV (`http://127.0.0.1:5173`):
+- Super Admin (platform, company "eRoyal"): `mani` / `mani`
+- ERP Admin (NRS FREIGHT): `nrs_admin` / `NrsFreight-Admin-2026`
+
+DEMO (`http://127.0.0.1:5174`) and QA (`http://127.0.0.1:5175`) were **not** touched by
+this change — their Super Admin logins are still `Admin` / `DemoEnv-SuperAdmin-2026` and
+`Admin` / `QaEnv-SuperAdmin-2026` respectively, with no organizations (cleared earlier,
+not yet recreated).
+
+FastAPI remains internal (DEV: 8000, DEMO: 8001, QA: 8002) behind each environment's Vite proxy.
