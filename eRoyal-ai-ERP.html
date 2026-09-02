@@ -837,6 +837,8 @@ tbody tr:hover{background:var(--g0)}
 }
 .login-select:focus{border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,111,191,.12)}
 .login-select-arrow{position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--g4);width:13px;height:13px}
+.login-row-2{display:flex;gap:10px;margin-bottom:10px}
+.login-row-2 .login-field{flex:1;margin-bottom:0}
 .login-remember{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
 .login-remember-lbl{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--g6);cursor:pointer;user-select:none}
 .login-remember-lbl input[type=checkbox]{width:14px;height:14px;accent-color:var(--bl);cursor:pointer}
@@ -1021,6 +1023,11 @@ tbody tr:hover{background:var(--g0)}
     <div class="login-sub">Sign in to your workspace</div>
 
     <div class="login-field">
+      <label class="login-label" for="loginLicense">License Number</label>
+      <input class="login-input" id="loginLicense" type="text" placeholder="e.g. RTS0001" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="login-field">
       <label class="login-label" for="loginUser">Username</label>
       <input class="login-input" id="loginUser" type="text" placeholder="Enter your username" autocomplete="username" spellcheck="false">
     </div>
@@ -1035,23 +1042,36 @@ tbody tr:hover{background:var(--g0)}
       </div>
       <div class="login-err" id="loginErr">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Invalid username or password. Please try again.
+        Invalid license number, username, or password. Please try again.
       </div>
     </div>
 
-    <div class="login-field">
-      <label class="login-label" for="loginCountry">Country</label>
-      <div class="login-select-wrap">
-        <svg class="sel-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>
-        <select class="login-select" id="loginCountry">
-          <option value="IN" selected>India</option>
-          <option value="AE">United Arab Emirates</option>
-          <option value="SG">Singapore</option>
-          <option value="US">United States</option>
-          <option value="GB">United Kingdom</option>
-          <option value="CN">China</option>
-        </select>
-        <svg class="login-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    <div class="login-row-2">
+      <div class="login-field">
+        <label class="login-label" for="loginBranch">Branch Location</label>
+        <div class="login-select-wrap">
+          <svg class="sel-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <select class="login-select" id="loginBranch">
+            <option value="HO" selected>Head Office</option>
+          </select>
+          <svg class="login-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+
+      <div class="login-field">
+        <label class="login-label" for="loginCountry">Country</label>
+        <div class="login-select-wrap">
+          <svg class="sel-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>
+          <select class="login-select" id="loginCountry">
+            <option value="IN" selected>India</option>
+            <option value="AE">United Arab Emirates</option>
+            <option value="SG">Singapore</option>
+            <option value="US">United States</option>
+            <option value="GB">United Kingdom</option>
+            <option value="CN">China</option>
+          </select>
+          <svg class="login-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
       </div>
     </div>
 
@@ -14557,6 +14577,7 @@ if(document.readyState !== "loading") initChatWidget();
   ============================================================ */
 (function(){
   const overlay  = document.getElementById("loginOverlay");
+  const licenseInp = document.getElementById("loginLicense");
   const userInp  = document.getElementById("loginUser");
   const passInp  = document.getElementById("loginPass");
   const loginBtn = document.getElementById("loginBtn");
@@ -14591,17 +14612,21 @@ if(document.readyState !== "loading") initChatWidget();
 
   function clearErr(){
     if(loginErr) loginErr.classList.remove("show");
+    if(licenseInp) licenseInp.classList.remove("err");
     if(userInp)  userInp.classList.remove("err");
     if(passInp)  passInp.classList.remove("err");
   }
 
+  if(licenseInp) licenseInp.addEventListener("input", clearErr);
   if(userInp) userInp.addEventListener("input", clearErr);
   if(passInp) passInp.addEventListener("input", clearErr);
 
   function doLogin(){
+    const lic = (licenseInp ? licenseInp.value : "").trim().toUpperCase();
     const u = (userInp ? userInp.value : "").trim().toLowerCase();
     const p = (passInp ? passInp.value : "").trim();
     clearErr();
+    if(!lic){ if(licenseInp){ licenseInp.classList.add("err"); licenseInp.focus(); } return; }
     if(!u){ if(userInp){ userInp.classList.add("err"); userInp.focus(); } return; }
     if(!p){ if(passInp){ passInp.classList.add("err"); passInp.focus(); } return; }
 
@@ -14611,7 +14636,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(spinner)  spinner.style.display = "block";
     if(arrow)    arrow.style.display = "none";
 
-    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p})})
+    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, license_number:lic})})
       .then(async response=>{
         const data = await response.json().catch(()=>({}));
         if(!response.ok){ const error = new Error(data.detail || "Invalid credentials"); error.status = response.status; throw error; }
@@ -14652,7 +14677,7 @@ if(document.readyState !== "loading") initChatWidget();
         if(btnText)  btnText.textContent = "Sign In";
         if(spinner)  spinner.style.display = "none";
         if(arrow)    arrow.style.display = "";
-        if(loginErr){ loginErr.textContent = error.status === 503 ? "Authentication service unavailable. Start PostgreSQL and try again." : (error.message || "Invalid username or password. Please try again."); loginErr.classList.add("show"); }
+        if(loginErr){ loginErr.textContent = error.status === 503 ? "Authentication service unavailable. Start PostgreSQL and try again." : (error.message || "Invalid license number, username, or password. Please try again."); loginErr.classList.add("show"); }
         if(userInp)  userInp.classList.add("err");
         if(passInp){ passInp.classList.add("err"); passInp.value = ""; passInp.focus(); }
       });

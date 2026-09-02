@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 class LoginRequest(BaseModel):
     identifier: str = Field(min_length=1, max_length=254)
     password: str = Field(min_length=1, max_length=256)
+    license_number: str = Field(min_length=1, max_length=20)
 
 
 class OrganizationAdminCreate(BaseModel):

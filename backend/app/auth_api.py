@@ -31,6 +31,9 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=503, detail="Authentication service unavailable: PostgreSQL is not connected")
     if not user or user.status != "ACTIVE" or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    expected_license = user.organization.license_number if user.organization else db.scalar(select(Organization.license_number).where(Organization.code == "RTS-PLATFORM"))
+    if expected_license and payload.license_number.strip().upper() != expected_license.upper():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     user.last_login_at = datetime.now(timezone.utc)
     record_audit(db, "LOGIN", "AUTHENTICATION", user, user.organization_id, "User", str(user.id))
     db.commit()

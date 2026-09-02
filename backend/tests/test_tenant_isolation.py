@@ -6,8 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import SessionLocal
+from app.licensing import next_license_number
 from app.main import app
-from app.models import Permission, User
+from app.models import Organization, Permission, User
 from app.security import hash_password
 from app.seed import PERMISSIONS
 
@@ -41,8 +42,17 @@ def _make_super_admin(db, suffix):
     return email, password
 
 
-def _login(identifier, password):
-    response = client.post("/api/auth/login", json={"identifier": identifier, "password": password})
+def _platform_license_number(db):
+    platform = db.scalar(select(Organization).where(Organization.code == "RTS-PLATFORM"))
+    if not platform:
+        platform = Organization(code="RTS-PLATFORM", license_number=next_license_number(db), name="eRoyal", legal_name="eRoyal", country="India", status="ACTIVE")
+        db.add(platform)
+        db.commit()
+    return platform.license_number
+
+
+def _login(identifier, password, license_number):
+    response = client.post("/api/auth/login", json={"identifier": identifier, "password": password, "license_number": license_number})
     assert response.status_code == 200, response.text
     return response.json()["access_token"]
 
@@ -61,8 +71,8 @@ def _create_tenant(super_token, label):
     }
     response = client.post("/api/organizations", json=payload, headers={"Authorization": f"Bearer {super_token}"})
     assert response.status_code == 201, response.text
-    organization_id = response.json()["organization"]["id"]
-    return organization_id, payload["admin_username"], payload["admin_password"]
+    organization = response.json()["organization"]
+    return organization["id"], payload["admin_username"], payload["admin_password"], organization["license_number"]
 
 
 def test_tenant_admin_cannot_read_update_or_list_other_tenants():
@@ -73,16 +83,17 @@ def test_tenant_admin_cannot_read_update_or_list_other_tenants():
     try:
         _ensure_permissions_seeded(db)
         super_email, super_password = _make_super_admin(db, suffix)
+        platform_license = _platform_license_number(db)
     finally:
         db.close()
 
-    super_token = _login(super_email, super_password)
+    super_token = _login(super_email, super_password, platform_license)
 
-    org_a_id, admin_a_username, admin_a_password = _create_tenant(super_token, f"A{suffix}")
-    org_b_id, admin_b_username, admin_b_password = _create_tenant(super_token, f"B{suffix}")
+    org_a_id, admin_a_username, admin_a_password, license_a = _create_tenant(super_token, f"A{suffix}")
+    org_b_id, admin_b_username, admin_b_password, license_b = _create_tenant(super_token, f"B{suffix}")
 
-    token_a = _login(admin_a_username, admin_a_password)
-    token_b = _login(admin_b_username, admin_b_password)
+    token_a = _login(admin_a_username, admin_a_password, license_a)
+    token_b = _login(admin_b_username, admin_b_password, license_b)
 
     own_read = client.get(f"/api/organizations/{org_a_id}", headers={"Authorization": f"Bearer {token_a}"})
     assert own_read.status_code == 200
