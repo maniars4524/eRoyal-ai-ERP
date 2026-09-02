@@ -50,6 +50,26 @@ class CustomerUpdate(BaseModel):
     status: str | None = Field(default=None, pattern="^(ACTIVE|INACTIVE)$")
 
 
+class PortCreate(BaseModel):
+    code: str = Field(min_length=2, max_length=20)
+    unlocode: str | None = Field(default=None, max_length=10)
+    port_type: str = Field(min_length=2, max_length=20)
+    name: str = Field(min_length=2, max_length=160)
+    city: str | None = Field(default=None, max_length=80)
+    country: str = Field(min_length=2, max_length=80)
+    timezone: str | None = Field(default=None, max_length=60)
+
+
+class PortUpdate(BaseModel):
+    unlocode: str | None = Field(default=None, max_length=10)
+    port_type: str | None = Field(default=None, max_length=20)
+    name: str | None = Field(default=None, min_length=2, max_length=160)
+    city: str | None = Field(default=None, max_length=80)
+    country: str | None = Field(default=None, max_length=80)
+    timezone: str | None = Field(default=None, max_length=60)
+    status: str | None = Field(default=None, pattern="^(ACTIVE|INACTIVE)$")
+
+
 class SafeUser(BaseModel):
     id: int
     email: str

@@ -114,6 +114,23 @@ class Customer(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class Port(Base):
+    __tablename__ = "ports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    unlocode: Mapped[str | None] = mapped_column(String(10))
+    port_type: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(160))
+    city: Mapped[str | None] = mapped_column(String(80))
+    country: Mapped[str] = mapped_column(String(80))
+    timezone: Mapped[str | None] = mapped_column(String(60))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class Shipment(Base):
     __tablename__ = "shipments"
 
