@@ -3,6 +3,7 @@ import os
 from sqlalchemy import select
 
 from .db import SessionLocal
+from .licensing import next_license_number
 from .models import Organization, Permission, Role, User
 from .security import hash_password
 
@@ -33,11 +34,16 @@ def seed_super_admin() -> None:
         if not user:
             user = User(email=email, username=username, password_hash=hash_password(password), first_name="Platform", last_name="Administrator", is_super_admin=True)
             db.add(user)
+        platform_org = db.scalar(select(Organization).where(Organization.code == "RTS-PLATFORM"))
+        if not platform_org:
+            platform_org = Organization(code="RTS-PLATFORM", license_number="RTS0001", name="eRoyal", legal_name="eRoyal", country="India", status="ACTIVE")
+            db.add(platform_org)
+            db.flush()
         demo_org_code = os.getenv("DEMO_ORG_CODE", "NRS-FREIGHT")
         demo_org_name = os.getenv("DEMO_ORG_NAME", "NRS FREIGHT")
         demo_org = db.scalar(select(Organization).where(Organization.code == demo_org_code))
         if not demo_org:
-            demo_org = Organization(code=demo_org_code, name=demo_org_name, legal_name=demo_org_name, country="India", status="ACTIVE")
+            demo_org = Organization(code=demo_org_code, license_number=next_license_number(db), name=demo_org_name, legal_name=demo_org_name, country="India", status="ACTIVE")
             db.add(demo_org)
             db.flush()
         erp_role = db.scalar(select(Role).where(Role.organization_id == demo_org.id, Role.name == "ERP_ADMIN"))

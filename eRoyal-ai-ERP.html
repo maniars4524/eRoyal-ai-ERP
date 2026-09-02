@@ -14565,6 +14565,19 @@ if(document.readyState !== "loading") initChatWidget();
   const btnText  = document.getElementById("loginBtnText");
   const arrow    = document.getElementById("loginArrow");
   const eyeBtn   = document.getElementById("loginEyeBtn");
+  const rememberChk = document.getElementById("loginRemember");
+  const REMEMBER_KEY = "eroyal_remembered_username";
+
+  /* Remember me: restores the username only — passwords are never stored client-side */
+  (function restoreRememberedUsername(){
+    try{
+      const saved = localStorage.getItem(REMEMBER_KEY);
+      if(saved && userInp){
+        userInp.value = saved;
+        if(rememberChk) rememberChk.checked = true;
+      }
+    }catch(e){ /* localStorage unavailable — ignore */ }
+  })();
 
   /* Show/hide password */
   if(eyeBtn) eyeBtn.addEventListener("click", ()=>{
@@ -14607,6 +14620,10 @@ if(document.readyState !== "loading") initChatWidget();
       .then(data=>{
         const user = data.user;
         sessionStorage.setItem("eroyal_access_token", data.access_token);
+        try{
+          if(rememberChk && rememberChk.checked) localStorage.setItem(REMEMBER_KEY, u);
+          else localStorage.removeItem(REMEMBER_KEY);
+        }catch(e){ /* localStorage unavailable — ignore */ }
         /* Update header avatar / name */
         const av    = document.querySelector(".hdr-avatar");
         const uname = document.querySelector(".hdr-uname");

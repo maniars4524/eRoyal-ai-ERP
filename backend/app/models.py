@@ -22,6 +22,7 @@ class Organization(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    license_number: Mapped[str | None] = mapped_column(String(20), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(160))
     legal_name: Mapped[str | None] = mapped_column(String(200))
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)

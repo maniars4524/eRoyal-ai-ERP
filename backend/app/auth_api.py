@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from .auth import get_current_user, permission_required, safe_user
 from .db import get_db
+from .licensing import next_license_number
 from .models import AuditLog, Organization, Permission, Role, User
 from .schemas_auth import LoginRequest, LoginResponse, OrganizationAdminCreate, OrganizationUpdate, SafeUser
 from .security import create_token, hash_password, verify_password
@@ -17,6 +18,8 @@ platform_router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 
 def record_audit(db: Session, action: str, module: str, user: User | None = None, organization_id: int | None = None, entity_type: str | None = None, entity_id: str | None = None, new_value: dict | None = None):
     db.add(AuditLog(action=action, module=module, user_id=user.id if user else None, organization_id=organization_id, entity_type=entity_type, entity_id=entity_id, new_value=new_value))
+
+
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -59,7 +62,7 @@ def list_organizations(user: User = Depends(permission_required("organization.re
 def create_organization(payload: OrganizationAdminCreate, user: User = Depends(permission_required("organization.create")), db: Session = Depends(get_db)):
     if db.scalar(select(Organization).where(Organization.code == payload.code)) or db.scalar(select(User).where((User.email == payload.admin_email) | (User.username == payload.admin_username))):
         raise HTTPException(status_code=409, detail="Organization code or administrator identity already exists")
-    organization = Organization(code=payload.code, name=payload.name, legal_name=payload.legal_name, country=payload.country, status="ACTIVE")
+    organization = Organization(code=payload.code, license_number=next_license_number(db), name=payload.name, legal_name=payload.legal_name, country=payload.country, status="ACTIVE")
     admin_role = Role(name="ERP_ADMIN", description="Organization administrator", status="ACTIVE")
     foundation_codes = ["organization.read", "organization.update", "user.read", "user.create"]
     admin_role.permissions = db.scalars(select(Permission).where(Permission.code.in_(foundation_codes))).all()
