@@ -7845,6 +7845,7 @@ function go(screen, opts){
   if(screen==="rate-sheet-detail" && opts.rateNo) populateRateSheetDetail(opts.rateNo);
   if(screen==="dashboard") renderDashChart("volume");
   if(screen==="org-list" && window.renderCustomerRows) renderCustomerRows();
+  if(screen==="port-master" && window.renderPortRows) renderPortRows();
   if(screen==="crm-lead" && window.renderCrmLead) renderCrmLead();
   if(screen==="crm-enquiry" && window.renderCrmEnquiry) renderCrmEnquiry();
   if(screen==="crm-opportunity" && window.renderCrmOpportunity) renderCrmOpportunity();
@@ -8785,6 +8786,43 @@ function renderCustomerRows(){
     .catch(()=>{ /* customer fetch is best-effort; static rows still render */ });
 }
 
+/* Port Master — real backend-driven rows (global reference data, not tenant-scoped) */
+const PORT_TYPE_BADGE = {"Sea Port":"b-bl","Airport":"b-tl","ICD (Dry Port)":"b-am","CFS":"b-gy","Rail Terminal":"b-pu","Border Check Post":"b-rd"};
+const PORT_TYPE_SHORT = {"Sea Port":"Sea","Airport":"Air","ICD (Dry Port)":"ICD","CFS":"CFS","Rail Terminal":"Rail","Border Check Post":"Border"};
+function renderPortRows(){
+  const body = document.getElementById("portTableBody");
+  const emptyRow = document.getElementById("noPortsRow");
+  const countLabel = document.getElementById("portCountLabel");
+  if(!body) return;
+  const token = sessionStorage.getItem("eroyal_access_token");
+  if(!token) return;
+  fetch("/api/ports", {headers:{Authorization:"Bearer "+token}})
+    .then(response=> response.ok ? response.json() : Promise.reject(new Error("failed")))
+    .then(ports=>{
+      document.querySelectorAll("#portTableBody tr[data-port-row]").forEach(tr=>tr.remove());
+      if(emptyRow) emptyRow.style.display = ports.length ? "none" : "";
+      ports.forEach(p=>{
+        const tr = document.createElement("tr");
+        tr.dataset.portRow = "1";
+        const badge = PORT_TYPE_BADGE[p.port_type] || "b-gy";
+        const short = PORT_TYPE_SHORT[p.port_type] || p.port_type;
+        tr.innerHTML = `<td><span class="b ${badge}">${esc(short)}</span></td><td class="mono">${esc(p.code)}</td><td class="mono">${esc(p.unlocode || "—")}</td><td style="font-weight:600">${esc(p.name)}</td><td>${esc(p.city || "—")}</td><td>${esc(p.country)}</td><td>${esc(p.timezone || "—")}</td><td><span class="b ${p.status==='ACTIVE' ? 'b-gr dot' : 'b-gy dot'}">${esc(p.status==='ACTIVE' ? 'Active' : 'Inactive')}</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td>`;
+        body.appendChild(tr);
+      });
+      const total = ports.length;
+      const sea = ports.filter(p=>p.port_type==="Sea Port").length;
+      const air = ports.filter(p=>p.port_type==="Airport").length;
+      const icdCfs = ports.filter(p=>p.port_type==="ICD (Dry Port)"||p.port_type==="CFS").length;
+      const setTxt = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent = v; };
+      setTxt("portKpiTotal", total);
+      setTxt("portKpiSea", sea);
+      setTxt("portKpiAir", air);
+      setTxt("portKpiIcdCfs", icdCfs);
+      if(countLabel) countLabel.textContent = `Showing ${total} of ${total} ports`;
+    })
+    .catch(()=>{ /* best-effort; empty state stays as-is */ });
+}
+
 /* ============================================================
    6b. JOB DETAIL — dynamic header population by job no (demo dataset)
    ============================================================ */
@@ -8986,6 +9024,47 @@ $("#orgSaveBtn") && $("#orgSaveBtn").addEventListener("click", ()=>{
       toast("Save failed", error.message || "Could not save customer", "error");
     });
 });
+
+$("#portSaveBtn") && $("#portSaveBtn").addEventListener("click", ()=>{
+  const code = ($("#port_code").value || "").trim();
+  const name = ($("#port_name").value || "").trim();
+  if(!code || !name){ toast("Port Code and Name are required","Fill in both fields","error"); return; }
+
+  const token = sessionStorage.getItem("eroyal_access_token");
+  if(!token){ toast("Not signed in","Please sign in again","error"); return; }
+
+  const countrySelect = $("#port_country");
+  const country = countrySelect ? countrySelect.value.replace(/\s*\(.*\)/,"") : "India";
+  const timezoneSelect = $("#port_timezone");
+  const timezone = timezoneSelect ? timezoneSelect.value.replace(/^.*\(|\)$/g,"") : null;
+
+  fetch("/api/ports", {
+    method: "POST",
+    headers: {"Content-Type":"application/json", Authorization:"Bearer "+token},
+    body: JSON.stringify({
+      code: code,
+      unlocode: ($("#port_unlocode").value || "").trim() || null,
+      port_type: $("#port_type") ? $("#port_type").value : "Sea Port",
+      name: name,
+      city: ($("#port_city").value || "").trim() || null,
+      country: country || "India",
+      timezone: timezone || null
+    })
+  })
+    .then(async response=>{
+      const data = await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(data.detail || "Could not save port");
+      return data;
+    })
+    .then(()=>{
+      toast("Port saved","New port added to Port Master");
+      go("port-master");
+    })
+    .catch(error=>{
+      toast("Save failed", error.message || "Could not save port", "error");
+    });
+});
+
 wireAction("jobSaveDraftBtn","Draft saved","Job saved as draft — continue later from Jobs list");
 wireAction("jobSendDocsBtn","Documents sent","Shipment documents emailed to consignee and agent");
 wireAction("invPrintBtn","Preparing print view","Opening print-ready invoice layout");
