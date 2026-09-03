@@ -134,11 +134,41 @@ now defaults to checked, and two more stale hardcoded counts found by the user
 are now computed from real data.
 
 Remaining: Country, Currency, Branch, User, Carrier masters (full backend+frontend,
-same pattern as Customer/Port) — not started. Also still present as static/mock
-content, not yet touched: Department/Employee master counts, Currency master's
-"All (170)" ISO list, various report/print screens, CRM screens, and the job/quote/
-booking creation wizards' internal reference data (dropdown options etc.) — these
-still have prototype defaults since only list-view sample data was in scope so far.
+same pattern as Customer/Port) — not started.
+
+## 2026-09-03 session: broader mock-data sweep (paused here, resume tomorrow)
+
+User is doing a full app walkthrough finding remaining old-prototype data one screen
+at a time. Fixed today, in order: Organization Master (removed the last 5 static
+Carrier/Agent/CHA rows + fake "(342)" header count + fake "Showing 10 of 342" footer),
+login-card flash on refresh (now pre-hidden synchronously via `#loginOverlayPreHide`,
+with a cyan-glow pulse loading effect while the persisted session is being validated —
+see `restorePersistedSession()`), Remember-me now defaults to checked, a whole second
+Dashboard section that was missed in the original cleanup pass (Recent Jobs, AR
+Ageing, Job P&L Summary, Pending Tasks & Follow-ups — the "BOTTOM 3-COLUMN SECTION"),
+the "Operations" nav badge (was hardcoded "3", now hidden since 0 jobs exist), the
+Job/Quotation/Booking creation forms' customer dropdowns (`nj_shipper`, `qn_client`,
+`bk_customer`) and the Dashboard customer filter (`dfCustomer`) — all now populated
+live from `GET /api/customers` via the new `populateCustomerSelect(selectId)` function
+(hooked into `go()` for job-new/quotation-new/booking-new/dashboard) instead of a
+fixed old-company list, Invoice List, Customs/CHA, Shipment Tracking, Transport, and
+Warehouse/CFS (all list-view sample data cleared to proper empty states).
+
+**A full audit (`grep` for the old demo company names) still shows old data in these
+screens, not yet touched — resume here tomorrow, same list-view cleanup pattern:**
+Job Detail (low priority — not reachable in normal nav right now since Jobs list is
+empty), Job P&L Report, Rate Master Hub (client column + rate sheets list), Rate
+Sheet Detail, Route Master List, Vendor Bills, Purchase Invoices (list/new/detail),
+Payments, Tax Invoice print template, Freight Certificate, Branch Detail. Also still
+present: Department/Employee master counts, Currency master's "All (170)" ISO
+placeholder, and various print/report screens and CRM screens not yet audited.
+
+User's stated end goal (2026-09-03): "this should be actual ERP software with complete
+functionality globally" — i.e. the direction is to keep converting every module from
+prototype/mock to real backend-driven behavior, not just cosmetic cleanup. Treat the
+ongoing list-view cleanups as the frontend half of that; backend module builds
+(Country/Currency/Branch/User/Carrier masters, then eventually Jobs/Quotes/Bookings
+themselves) are the other half, still queued.
 
 ### Port Master — completed 2026-09-03 (reference for the pattern used)
 
