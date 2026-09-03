@@ -125,10 +125,20 @@ keep existing menus/navigation/toolbar/layout; do not invent replacement dummy d
 User confirmed sequencing: finish Customer Master (done above) + do Dashboard, then
 continue through the remaining masters one at a time without re-confirming each one.
 
-Status: **Customer Master done. Dashboard done. Port Master done (2026-09-03).**
-Remaining: Country, Currency, Branch, User, Carrier masters — not started yet, same
-pattern to follow for each (backend model tenant-scoped-or-global as appropriate +
-migration + CRUD API + frontend wiring following renderCustomerRows/renderPortRows).
+Status: **Customer Master done. Dashboard done. Port Master done. Jobs/Quotations/
+Bookings sample data cleared (frontend-only, no backend yet — user will build these
+manually) (2026-09-03).** Also fixed 2026-09-03: login-card flash on refresh (overlay
+now pre-hidden synchronously when a persisted session might be valid), Remember-me
+now defaults to checked, and two more stale hardcoded counts found by the user
+("Organization Master (342)" header count, "Showing 10 of 342 organizations" footer)
+are now computed from real data.
+
+Remaining: Country, Currency, Branch, User, Carrier masters (full backend+frontend,
+same pattern as Customer/Port) — not started. Also still present as static/mock
+content, not yet touched: Department/Employee master counts, Currency master's
+"All (170)" ISO list, various report/print screens, CRM screens, and the job/quote/
+booking creation wizards' internal reference data (dropdown options etc.) — these
+still have prototype defaults since only list-view sample data was in scope so far.
 
 ### Port Master — completed 2026-09-03 (reference for the pattern used)
 
