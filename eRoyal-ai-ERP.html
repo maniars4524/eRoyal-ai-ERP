@@ -984,6 +984,13 @@ tbody tr:hover{background:var(--g0)}
   try{
     if(localStorage.getItem("eroyal_persistent_token")){
       document.write('<style id="loginOverlayPreHide">#loginOverlay{display:none!important}</style>');
+      document.write('<style>' +
+        '@keyframes sessionPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.55),inset 0 2px 6px rgba(0,0,0,.35),inset 0 -2px 6px rgba(0,229,255,.25);}50%{box-shadow:0 0 26px 10px rgba(0,229,255,.45),inset 0 2px 6px rgba(0,0,0,.35),inset 0 -2px 6px rgba(0,229,255,.4);}}' +
+        '#sessionLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#0B1F3A;}' +
+        '#sessionLoader .sl-orb{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3EE6FF,#0B7A94 70%,#062B36);animation:sessionPulse 1.35s ease-in-out infinite;}' +
+        '</style>'
+      );
+      document.write('<div id="sessionLoader"><div class="sl-orb"></div></div>');
     }
   }catch(e){ /* localStorage unavailable — overlay shows normally */ }
 })();
@@ -3902,12 +3909,9 @@ Select rate lines to see summary.
 <!-- ====== CUSTOMS / CHA ====== -->
 <div id="s-customs" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="license" style="color:var(--pu)"></svg>Customs / CHA</div><div class="ps">Bill of Entry, Shipping Bill, ICEGATE filing, duty, examination<div class="pa"><button class="btn btn-out btn-sm" data-go="job-detail" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div></div></div>
-<div class="kpi-row"><div class="kpi"><div class="kpi-lbl">Active CHA Jobs</div><div class="kpi-val">6</div></div><div class="kpi"><div class="kpi-lbl">Pending Duty</div><div class="kpi-val">2</div><div class="kpi-sub dn">Action needed</div></div><div class="kpi"><div class="kpi-lbl">Exam Pending</div><div class="kpi-val">1</div><div class="kpi-sub dn">Physical</div></div><div class="kpi"><div class="kpi-lbl">Cleared MTD</div><div class="kpi-val">18</div><div class="kpi-sub up">BE + SB</div></div></div>
+<div class="kpi-row"><div class="kpi"><div class="kpi-lbl">Active CHA Jobs</div><div class="kpi-val">0</div></div><div class="kpi"><div class="kpi-lbl">Pending Duty</div><div class="kpi-val">0</div><div class="kpi-sub">—</div></div><div class="kpi"><div class="kpi-lbl">Exam Pending</div><div class="kpi-val">0</div><div class="kpi-sub">—</div></div><div class="kpi"><div class="kpi-lbl">Cleared MTD</div><div class="kpi-val">0</div><div class="kpi-sub">BE + SB</div></div></div>
 <div class="card"><div class="tw"><table><thead><tr><th>Job No</th><th>Type</th><th>Importer / Exporter</th><th>CHA</th><th>BE / SB No</th><th>Duty</th><th>Exam</th><th>OOC Date</th><th>Status</th></tr></thead><tbody>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SIM-25-000045">SIM-25-000045</td><td><span class="b b-pu">Bill of Entry</span></td><td>GEA Westfalia</td><td>Sea Air Marine</td><td class="mono">BE 2245999</td><td>₹2,34,500</td><td><span class="b b-am">RMS Check</span></td><td>—</td><td><span class="b b-am dot">Duty Pending</span></td></tr>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SEX-25-000047">SEX-25-000047</td><td><span class="b b-bl">Shipping Bill</span></td><td>Tata Chemicals</td><td>Sea Air Marine</td><td class="mono">SB 2245881</td><td>—</td><td><span class="b b-gr">No Exam</span></td><td>—</td><td><span class="b b-gr dot">LEO Received</span></td></tr>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="CUS-25-000044">CUS-25-000044</td><td><span class="b b-pu">Bill of Entry</span></td><td>Ashok Leyland</td><td>Sea Air Marine</td><td class="mono">BE 2245881</td><td>₹33,040</td><td><span class="b b-gr">No Exam</span></td><td>16 Jun</td><td><span class="b b-gr dot">OOC</span></td></tr>
-<tr><td class="mono" style="font-size:10px">SIM-25-000041</td><td><span class="b b-pu">Bill of Entry</span></td><td>GEA Westfalia</td><td>Sea Air Marine</td><td class="mono">BE 2241007</td><td>₹1,02,300</td><td><span class="b b-rd">Physical</span></td><td>—</td><td><span class="b b-rd dot">Exam Pending</span></td></tr>
+<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No customs filings yet</td></tr>
 </tbody></table></div></div></div>
 <!-- ====== TRACKING ====== -->
 <div id="s-tracking" class="scr">
@@ -3915,29 +3919,23 @@ Select rate lines to see summary.
 <div class="card">
 <div class="ch"><div class="ct">Active Shipments</div><input class="fc" id="trackingSearch" placeholder="Search job / BL…" style="width:200px"></div>
 <div class="tw"><table id="trackingTable"><thead><tr><th>Job No</th><th>BL / AWB</th><th>Shipper</th><th>Mode</th><th>Last Event</th><th>Event Date</th><th>Location</th><th>ETA</th></tr></thead><tbody>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SEX-25-000047">SEX-25-000047</td><td class="mono">MSCU9988776</td><td>Tata Chemicals</td><td><span class="b b-bl">Sea EXP</span></td><td>Loaded on Vessel</td><td>22 Jun 25</td><td>INMAA</td><td><span class="b b-am">12 Jul 25</span></td></tr>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="AEX-25-000046">AEX-25-000046</td><td class="mono">176-98765432</td><td>Infosys BPO</td><td><span class="b b-tl">Air EXP</span></td><td>Departed MAA</td><td>19 Jun 25</td><td>In Air</td><td><span class="b b-gr">20 Jun 25</span></td></tr>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SIM-25-000045">SIM-25-000045</td><td class="mono">HLCUHAM2405</td><td>GEA Westfalia</td><td><span class="b b-bl">Sea IMP</span></td><td>Discharged at Port</td><td>14 Jun 25</td><td>INMAA</td><td><span class="b b-gr">Arrived</span></td></tr>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="TRP-25-000043">TRP-25-000043</td><td class="mono">RGC-LR-25-0089</td><td>TVS Motor</td><td><span class="b b-am">Road</span></td><td>Delivered · ePOD</td><td>15 Jun 25</td><td>Hosur Plant</td><td><span class="b b-gr">Delivered</span></td></tr>
+<tr><td colspan="8" style="text-align:center;color:var(--g5);padding:14px">No active shipments to track yet</td></tr>
 </tbody></table></div></div></div>
 
 <!-- ====== TRANSPORT ====== -->
 <div id="s-transport" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="truck" style="color:var(--am)"></svg>Transport Module</div><div class="ps">Road and rail — vehicle allocation, LR/GR, POD tracking</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="newTransportBtn"><svg class="ic" data-icon="plus"></svg> New Transport Job</button></div></div>
-<div class="kpi-row"><div class="kpi"><div class="kpi-lbl">Active Trips</div><div class="kpi-val">3</div></div><div class="kpi"><div class="kpi-lbl">Delivered MTD</div><div class="kpi-val">22</div><div class="kpi-sub up">ePOD: 19</div></div><div class="kpi"><div class="kpi-lbl">Vehicles On Road</div><div class="kpi-val">3</div></div><div class="kpi"><div class="kpi-lbl">Avg Transit Time</div><div class="kpi-val">1.2 days</div></div></div>
+<div class="kpi-row"><div class="kpi"><div class="kpi-lbl">Active Trips</div><div class="kpi-val">0</div></div><div class="kpi"><div class="kpi-lbl">Delivered MTD</div><div class="kpi-val">0</div><div class="kpi-sub">ePOD: 0</div></div><div class="kpi"><div class="kpi-lbl">Vehicles On Road</div><div class="kpi-val">0</div></div><div class="kpi"><div class="kpi-lbl">Avg Transit Time</div><div class="kpi-val">—</div></div></div>
 <div class="card"><div class="tw"><table><thead><tr><th>Job No</th><th>LR No</th><th>Client</th><th>From</th><th>To</th><th>Vehicle</th><th>Pickup</th><th>Delivery</th><th>POD</th><th>Status</th></tr></thead><tbody>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="TRP-25-000043">TRP-25-000043</td><td class="mono">RGC-LR-25-0089</td><td>TVS Motor</td><td>Chennai Port</td><td>Hosur Plant</td><td>TN09AQ1234</td><td>14 Jun</td><td>15 Jun</td><td><span class="b b-gr">ePOD ✓</span></td><td><span class="b b-gr dot">Delivered</span></td></tr>
-<tr><td class="mono" style="font-size:10px">TRP-25-000039</td><td class="mono">RGC-LR-25-0085</td><td>Ashok Leyland</td><td>Ennore Port</td><td>Hosur Plant</td><td>TN07BZ5678</td><td>10 Jun</td><td>11 Jun</td><td><span class="b b-gr">ePOD ✓</span></td><td><span class="b b-gr dot">Delivered</span></td></tr>
-<tr><td class="mono" style="font-size:10px">TRP-25-000041</td><td class="mono">RGC-LR-25-0087</td><td>GEA Westfalia</td><td>Chennai ICD</td><td>Pune Plant</td><td>MH12CD9012</td><td>16 Jun</td><td>—</td><td><span class="b b-am">Pending</span></td><td><span class="b b-bl dot">In Transit</span></td></tr>
+<tr><td colspan="10" style="text-align:center;color:var(--g5);padding:14px">No transport trips yet — click "New Transport Job" to create one.</td></tr>
 </tbody></table></div></div></div>
 
 <!-- ====== WAREHOUSE ====== -->
 <div id="s-warehouse" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="warehouse" style="color:var(--tl)"></svg>Warehouse / CFS</div><div class="ps">Inbound, outbound, stuffing, destuffing, bonded warehouse</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="newWhsBtn"><svg class="ic" data-icon="plus"></svg> New WHS Order</button></div></div>
-<div class="kpi-row"><div class="kpi"><div class="kpi-lbl">Active Cargo</div><div class="kpi-val">284 CBM</div></div><div class="kpi"><div class="kpi-lbl">Inbound MTD</div><div class="kpi-val">48</div></div><div class="kpi"><div class="kpi-lbl">Pending Stuffing</div><div class="kpi-val">6</div><div class="kpi-sub dn">Action needed</div></div><div class="kpi"><div class="kpi-lbl">Storage Revenue MTD</div><div class="kpi-val">₹2.1L</div></div></div>
+<div class="kpi-row"><div class="kpi"><div class="kpi-lbl">Active Cargo</div><div class="kpi-val">0 CBM</div></div><div class="kpi"><div class="kpi-lbl">Inbound MTD</div><div class="kpi-val">0</div></div><div class="kpi"><div class="kpi-lbl">Pending Stuffing</div><div class="kpi-val">0</div><div class="kpi-sub">—</div></div><div class="kpi"><div class="kpi-lbl">Storage Revenue MTD</div><div class="kpi-val">₹0</div></div></div>
 <div class="card"><div class="tw"><table><thead><tr><th>Ref</th><th>Client</th><th>Commodity</th><th>Pkgs</th><th>Weight (KG)</th><th>CBM</th><th>In Date</th><th>Storage Days</th><th>Status</th></tr></thead><tbody>
-<tr><td class="mono" style="font-size:10px">SIM-25-000041</td><td>GEA Westfalia</td><td>Machinery Parts</td><td>24 crates</td><td>3,480</td><td>28.5</td><td>08 Jun 25</td><td>12 days</td><td><span class="b b-am">Pending DO</span></td></tr>
-<tr><td class="mono" style="font-size:10px">SIM-25-000038</td><td>Ashok Leyland</td><td>CKD Components</td><td>180 boxes</td><td>9,200</td><td>62.0</td><td>02 Jun 25</td><td>18 days</td><td><span class="b b-gr">Cleared, Pending Pickup</span></td></tr>
+<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No warehouse orders yet — click "New WHS Order" to create one.</td></tr>
 </tbody></table></div></div></div>
 <!-- ====== CHARGE MASTER ====== -->
 <div id="s-charge-master" class="scr">
@@ -4052,18 +4050,14 @@ Select rate lines to see summary.
 <div id="s-invoice-list" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="receipt" style="color:var(--bl)"></svg>Invoices (AR) — Tax Invoice Register</div><div class="ps">Customer invoices — freight, CHA, transport, warehouse · Click <strong>Tax Inv</strong> on any row to view the print-ready Tax Invoice</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-voucher-export="excel" data-voucher-ctx="Tax Invoices" title="Download Excel"><svg class="ic" data-icon="download"></svg> Excel</button><button class="btn btn-out btn-sm" data-voucher-export="pdf" data-voucher-ctx="Tax Invoices" title="Download PDF"><svg class="ic" data-icon="file-text"></svg> PDF</button><button class="btn btn-out btn-sm" data-voucher-export="gst-portal" data-voucher-ctx="Tax Invoices" title="Upload to GST Portal / Tally"><svg class="ic" data-icon="upload"></svg> GST/Tally</button><button class="btn btn-out btn-sm" data-go="tax-invoice-print"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg> Tax Invoice View</button><button class="btn btn-pri btn-sm" data-go="invoice-new"><svg class="ic" data-icon="plus"></svg> New Invoice</button></div></div>
 <div class="kpi-row">
-<div class="kpi"><div class="kpi-lbl">Issued This Month</div><div class="kpi-val">₹42.6L</div><div class="kpi-sub">28 invoices</div></div>
-<div class="kpi"><div class="kpi-lbl">Outstanding</div><div class="kpi-val">₹18.4L</div><div class="kpi-sub dn">5 overdue</div></div>
-<div class="kpi"><div class="kpi-lbl">Collected MTD</div><div class="kpi-val">₹24.2L</div><div class="kpi-sub up">↑ On track</div></div>
-<div class="kpi"><div class="kpi-lbl">Avg Days Outstanding</div><div class="kpi-val">34</div><div class="kpi-sub">Credit: 30 days</div></div>
+<div class="kpi"><div class="kpi-lbl">Issued This Month</div><div class="kpi-val">₹0</div><div class="kpi-sub">0 invoices</div></div>
+<div class="kpi"><div class="kpi-lbl">Outstanding</div><div class="kpi-val">₹0</div><div class="kpi-sub">0 overdue</div></div>
+<div class="kpi"><div class="kpi-lbl">Collected MTD</div><div class="kpi-val">₹0</div><div class="kpi-sub">—</div></div>
+<div class="kpi"><div class="kpi-lbl">Avg Days Outstanding</div><div class="kpi-val">—</div><div class="kpi-sub">Credit: 30 days</div></div>
 </div>
 <div class="card"><div class="ch"><div class="ct">All Invoices</div><input class="fc" id="invoiceSearch" placeholder="Search invoice / customer…" style="width:200px"></div>
 <div class="tw"><table id="invoiceTable"><thead><tr><th>Invoice No</th><th>Date</th><th>Customer</th><th>Job</th><th>Type</th><th>Total</th><th>Due Date</th><th>Balance</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono ta" data-go="invoice-new" data-inv="RGC-INV-25-00847">RGC-INV-25-00847</td><td>18 Jun</td><td>Tata Chemicals</td><td class="mono" style="font-size:10px">SEX-000047</td><td><span class="b b-bl">Freight</span></td><td style="font-weight:600">₹1,85,496</td><td>18 Jul 25</td><td style="color:var(--rd);font-weight:600">₹1,85,496</td><td><span class="b b-am dot">Unpaid</span></td><td class="no-print"><button class="ta" data-go="invoice-new" data-inv="RGC-INV-25-00847">View →</button></td></tr>
-<tr><td class="mono ta" data-go="invoice-new" data-inv="RGC-INV-25-00846">RGC-INV-25-00846</td><td>17 Jun</td><td>Infosys BPO</td><td class="mono" style="font-size:10px">AEX-000046</td><td><span class="b b-tl">Freight</span></td><td style="font-weight:600">₹56,876</td><td>17 Jul 25</td><td style="color:var(--rd);font-weight:600">₹56,876</td><td><span class="b b-am dot">Unpaid</span></td><td class="no-print"><button class="ta" data-go="invoice-new" data-inv="RGC-INV-25-00846">View →</button></td></tr>
-<tr><td class="mono ta" data-go="invoice-new" data-inv="RGC-INV-25-00844">RGC-INV-25-00844</td><td>10 Jun</td><td>TVS Motor</td><td class="mono" style="font-size:10px">SEX-000043</td><td><span class="b b-bl">Freight</span></td><td style="font-weight:600">₹85,550</td><td>10 Jul 25</td><td style="color:var(--am);font-weight:600">₹34,220</td><td><span class="b b-bl dot">Partial</span></td><td class="no-print"><button class="ta" data-go="invoice-new" data-inv="RGC-INV-25-00844">View →</button></td></tr>
-<tr><td class="mono ta" data-go="invoice-new" data-inv="RGC-INV-25-00842">RGC-INV-25-00842</td><td>05 Jun</td><td>Ashok Leyland</td><td class="mono" style="font-size:10px">CUS-000044</td><td><span class="b b-pu">CHA</span></td><td style="font-weight:600">₹33,040</td><td>05 Jul 25</td><td style="color:var(--rd);font-weight:600">₹33,040</td><td><span class="b b-rd dot">Overdue</span></td><td class="no-print"><button class="ta" data-go="invoice-new" data-inv="RGC-INV-25-00842">View →</button></td></tr>
-<tr><td class="mono">RGC-INV-25-00838</td><td>28 May</td><td>GEA Westfalia</td><td class="mono" style="font-size:10px">SIM-000041</td><td><span class="b b-bl">Freight</span></td><td style="font-weight:600">₹1,24,018</td><td>28 Jun 25</td><td style="color:var(--gr);font-weight:600">₹0</td><td><span class="b b-gr dot">Paid</span></td><td class="no-print"><button class="ta">View →</button></td></tr>
+<tr><td colspan="10" style="text-align:center;color:var(--g5);padding:14px">No invoices yet — click "New Invoice" to create the first one.</td></tr>
 </tbody></table></div></div></div>
 
 <!-- ====== INVOICE DETAIL ====== -->
@@ -14471,21 +14465,33 @@ if(document.readyState !== "loading") initChatWidget();
   }
 
   /* Restore a persisted session (Remember me) on page load / browser restart, without re-prompting for credentials */
+  function removeSessionLoader(){
+    const loader = document.getElementById("sessionLoader");
+    if(loader) loader.remove();
+  }
+
   (function restorePersistedSession(){
     let persisted;
     try{ persisted = localStorage.getItem(PERSIST_TOKEN_KEY); }catch(e){ return; }
     if(!persisted) return;
+    /* Safety net: never leave the loader stuck if the network hangs */
+    setTimeout(()=>{
+      const preHide = document.getElementById("loginOverlayPreHide");
+      if(preHide){ preHide.remove(); removeSessionLoader(); }
+    }, 8000);
     fetch("/api/auth/me", {headers:{Authorization:"Bearer "+persisted}})
       .then(response=>{ if(!response.ok) throw new Error("expired"); return response.json(); })
       .then(user=>{
         sessionStorage.setItem("eroyal_access_token", persisted);
         applySession(user, {silent:true});
+        removeSessionLoader();
       })
       .catch(()=>{
         try{ localStorage.removeItem(PERSIST_TOKEN_KEY); }catch(e){ /* ignore */ }
         /* Token turned out invalid/expired — reveal the login card we pre-hid */
         const preHide = document.getElementById("loginOverlayPreHide");
         if(preHide) preHide.remove();
+        removeSessionLoader();
       });
   })();
 
