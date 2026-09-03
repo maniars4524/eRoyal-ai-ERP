@@ -1230,7 +1230,7 @@ tbody tr:hover{background:var(--g0)}
     <div class="mn-item mn-has-drop" data-group="ops">
       <svg class="ic" data-icon="clipboard"></svg>Operations
       <svg class="ic mn-arr" data-icon="chevron-down"></svg>
-      <span class="mn-badge" id="badgeJobs">3</span>
+      <span class="mn-badge" id="badgeJobs" style="display:none">0</span>
     </div>
     <div class="mn-submenu" id="subOps">
       <div class="mn-sub-section">All Job List</div>
@@ -1635,7 +1635,7 @@ tbody tr:hover{background:var(--g0)}
   <select class="fc" id="dfBranch" style="width:auto"><option>All Branches</option><option>Chennai HO</option><option>Mumbai Branch</option><option>Delhi Branch</option></select>
   <select class="fc" id="dfFY" style="width:auto"><option>FY 2025–26</option><option>FY 2024–25</option></select>
   <select class="fc" id="dfMonth" style="width:auto"><option>All Months</option><option>Jun 2026</option><option>May 2026</option><option>Apr 2026</option></select>
-  <select class="fc" id="dfCustomer" style="width:auto"><option>All Customers</option><option>Tata Chemicals</option><option>TVS Motor</option><option>Infosys BPO</option></select>
+  <select class="fc" id="dfCustomer" style="width:auto"><option>All Customers</option></select>
   <select class="fc" id="dfSalesExec" style="width:auto"><option>All Sales Executives</option><option>Arun Kumar</option><option>Priya S</option><option>Rahul M</option></select>
   <select class="fc" id="dfShipType" style="width:auto"><option>All Shipment Types</option><option>Sea Export</option><option>Sea Import</option><option>Air Export</option><option>Air Import</option><option>Road</option></select>
 </div>
@@ -1727,63 +1727,10 @@ tbody tr:hover{background:var(--g0)}
       <div class="ct"><svg class="ic" data-icon="clipboard" style="color:var(--bl)"></svg>Recent Jobs</div>
       <button class="btn btn-out btn-sm" data-go="job-list" style="font-size:11px">View All →</button>
     </div>
-    <div style="padding:0 0 8px">
-      <!-- job row -->
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-job-row" data-go="job-detail">
-        <div style="width:36px;height:36px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg class="ic" data-icon="ship" style="color:var(--bl);width:16px;height:16px"></svg></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-family:var(--font-mono);font-weight:700;color:var(--bl)">SEX-25-000047</div>
-          <div style="font-size:11px;color:var(--g6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tata Chemicals · Chennai → Antwerp</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div><span class="b b-am dot" style="font-size:10px">Booked</span></div>
-          <div style="font-size:10px;color:var(--g5);margin-top:2px">ETD: 22 Jun</div>
-        </div>
-      </div>
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-job-row">
-        <div style="width:36px;height:36px;background:var(--tlt);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg class="ic" data-icon="plane" style="color:var(--tl);width:16px;height:16px"></svg></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-family:var(--font-mono);font-weight:700;color:var(--tl)">AEX-25-000046</div>
-          <div style="font-size:11px;color:var(--g6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Infosys BPO · MAA → LHR</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div><span class="b b-bl dot" style="font-size:10px">In Transit</span></div>
-          <div style="font-size:10px;color:var(--g5);margin-top:2px">ETD: 19 Jun</div>
-        </div>
-      </div>
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-job-row">
-        <div style="width:36px;height:36px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg class="ic" data-icon="anchor" style="color:var(--bl);width:16px;height:16px"></svg></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-family:var(--font-mono);font-weight:700;color:var(--bl)">SIM-25-000045</div>
-          <div style="font-size:11px;color:var(--g6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">GEA Westfalia · Hamburg → Chennai</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div><span class="b b-pu dot" style="font-size:10px">Customs</span></div>
-          <div style="font-size:10px;color:var(--g5);margin-top:2px">ETA: 15 Jun</div>
-        </div>
-      </div>
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-job-row">
-        <div style="width:36px;height:36px;background:var(--grt);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg class="ic" data-icon="truck" style="color:var(--gr);width:16px;height:16px"></svg></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-family:var(--font-mono);font-weight:700;color:var(--gr)">TRP-25-000043</div>
-          <div style="font-size:11px;color:var(--g6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">TVS Motor · Chennai Local</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div><span class="b b-gr dot" style="font-size:10px">Delivered</span></div>
-          <div style="font-size:10px;color:var(--g5);margin-top:2px">14 Jun</div>
-        </div>
-      </div>
-      <div style="padding:9px 14px;display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-job-row">
-        <div style="width:36px;height:36px;background:var(--rdt);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg class="ic" data-icon="alert" style="color:var(--rd);width:16px;height:16px"></svg></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-family:var(--font-mono);font-weight:700;color:var(--rd)">RLPL/FI/J0191</div>
-          <div style="font-size:11px;color:var(--g6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Raghav Granites · Halifax → Chennai</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div><span class="b b-rd dot" style="font-size:10px">Detention</span></div>
-          <div style="font-size:10px;color:var(--rd);margin-top:2px;font-weight:600">⚠ Overdue</div>
-        </div>
-      </div>
+    <div style="padding:28px 14px;text-align:center;color:var(--g5)">
+      <svg class="ic" data-icon="clipboard" style="width:24px;height:24px;color:var(--g3);margin-bottom:6px"></svg>
+      <div style="font-size:12px;font-weight:600;color:var(--g6)">No jobs yet</div>
+      <div style="font-size:11px;margin-top:2px">Recent shipment jobs will appear here once created.</div>
     </div>
   </div>
 
@@ -1793,57 +1740,10 @@ tbody tr:hover{background:var(--g0)}
       <div class="ct"><svg class="ic" data-icon="chart-bar" style="color:var(--am)"></svg>AR Ageing</div>
       <button class="btn btn-out btn-sm" data-go="invoice-list" style="font-size:11px">Invoices</button>
     </div>
-    <div class="cb" style="padding:12px 14px">
-      <div style="font-size:11px;color:var(--g5);margin-bottom:12px">Total Outstanding: <strong style="color:var(--bl);font-size:13px">₹18,73,500</strong></div>
-
-      <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:11px;color:var(--g6)">0 – 30 days</span>
-          <span style="font-size:12px;font-weight:700;color:var(--gr)">₹7,42,500</span>
-        </div>
-        <div style="height:8px;background:var(--g1);border-radius:4px">
-          <div style="width:40%;height:100%;background:var(--gr);border-radius:4px"></div>
-        </div>
-        <div style="font-size:10px;color:var(--g4);margin-top:2px">11 invoices · 40%</div>
-      </div>
-
-      <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:11px;color:var(--g6)">31 – 60 days</span>
-          <span style="font-size:12px;font-weight:700;color:var(--am)">₹6,18,000</span>
-        </div>
-        <div style="height:8px;background:var(--g1);border-radius:4px">
-          <div style="width:33%;height:100%;background:var(--am);border-radius:4px"></div>
-        </div>
-        <div style="font-size:10px;color:var(--g4);margin-top:2px">7 invoices · 33%</div>
-      </div>
-
-      <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:11px;color:var(--g6)">61 – 90 days</span>
-          <span style="font-size:12px;font-weight:700;color:var(--rd)">₹3,24,800</span>
-        </div>
-        <div style="height:8px;background:var(--g1);border-radius:4px">
-          <div style="width:17%;height:100%;background:var(--rd);border-radius:4px"></div>
-        </div>
-        <div style="font-size:10px;color:var(--g4);margin-top:2px">4 invoices · 17%</div>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:11px;color:var(--g6)">&gt; 90 days</span>
-          <span style="font-size:12px;font-weight:700;color:#791F1F">₹1,88,200</span>
-        </div>
-        <div style="height:8px;background:var(--g1);border-radius:4px">
-          <div style="width:10%;height:100%;background:#791F1F;border-radius:4px"></div>
-        </div>
-        <div style="font-size:10px;color:var(--g4);margin-top:2px">2 invoices · 10%</div>
-      </div>
-
-      <div style="background:var(--rdt);border-radius:7px;padding:9px 11px;display:flex;align-items:center;gap:8px">
-        <svg class="ic" data-icon="alert" style="color:var(--rd);width:16px;height:16px;flex-shrink:0"></svg>
-        <div style="font-size:11px;color:var(--rd);font-weight:600">₹5,13,000 overdue &gt;60 days<br><span style="font-weight:400;color:var(--g6)">Escalate to collections team</span></div>
-      </div>
+    <div class="cb" style="padding:28px 14px;text-align:center;color:var(--g5)">
+      <svg class="ic" data-icon="chart-bar" style="width:24px;height:24px;color:var(--g3);margin-bottom:6px"></svg>
+      <div style="font-size:12px;font-weight:600;color:var(--g6)">No outstanding receivables</div>
+      <div style="font-size:11px;margin-top:2px">AR ageing will appear here once invoices are posted.</div>
     </div>
   </div>
 
@@ -1876,80 +1776,21 @@ tbody tr:hover{background:var(--g0)}
       <div class="ct"><svg class="ic" data-icon="trending-up" style="color:var(--gr)"></svg>Job P&amp;L Summary (MTD)</div>
       <button class="btn btn-out btn-sm" data-go="job-pl-report" style="font-size:11px">Full Report →</button>
     </div>
-    <div class="tw">
-      <table>
-        <thead><tr><th>Job No</th><th>Customer</th><th>Mode</th><th>AR (₹)</th><th>AP (₹)</th><th>GP (₹)</th><th>GP%</th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="mono" style="font-size:10px;color:var(--bl)">SEX-000043</td><td style="font-size:11px">Tata Chemicals</td>
-            <td><span class="b b-bl" style="font-size:9.5px">SEA EXP</span></td>
-            <td>₹85,550</td><td>₹67,200</td>
-            <td style="font-weight:700;color:var(--gr)">₹18,350</td>
-            <td><span class="b b-gr" style="font-size:10px">21.4%</span></td>
-          </tr>
-          <tr>
-            <td class="mono" style="font-size:10px;color:var(--tl)">AEX-000042</td><td style="font-size:11px">Infosys BPO</td>
-            <td><span class="b b-tl" style="font-size:9.5px">AIR EXP</span></td>
-            <td>₹42,800</td><td>₹36,100</td>
-            <td style="font-weight:700;color:var(--am)">₹6,700</td>
-            <td><span class="b b-am" style="font-size:10px">15.6%</span></td>
-          </tr>
-          <tr>
-            <td class="mono" style="font-size:10px;color:var(--bl)">SIM-000041</td><td style="font-size:11px">GEA Westfalia</td>
-            <td><span class="b b-bl" style="font-size:9.5px">SEA IMP</span></td>
-            <td>₹1,24,000</td><td>₹96,500</td>
-            <td style="font-weight:700;color:var(--gr)">₹27,500</td>
-            <td><span class="b b-gr" style="font-size:10px">22.2%</span></td>
-          </tr>
-          <tr>
-            <td class="mono" style="font-size:10px;color:var(--pu)">CUS-000040</td><td style="font-size:11px">Ashok Leyland</td>
-            <td><span class="b b-gy" style="font-size:9.5px">CHA</span></td>
-            <td>₹33,040</td><td>₹24,800</td>
-            <td style="font-weight:700;color:var(--gr)">₹8,240</td>
-            <td><span class="b b-gr" style="font-size:10px">24.9%</span></td>
-          </tr>
-        </tbody>
-      </table>
+    <div style="padding:28px 14px;text-align:center;color:var(--g5)">
+      <svg class="ic" data-icon="trending-up" style="width:24px;height:24px;color:var(--g3);margin-bottom:6px"></svg>
+      <div style="font-size:12px;font-weight:600;color:var(--g6)">No data yet</div>
+      <div style="font-size:11px;margin-top:2px">Job-level P&amp;L will appear here once jobs and invoices exist.</div>
     </div>
-    <div class="cf">MTD Gross Profit: <strong style="color:var(--gr)">₹12.6L (20.2%)</strong> &nbsp;·&nbsp; Target: 18% &nbsp;·&nbsp; <span style="color:var(--gr);font-weight:600">✓ On Track</span></div>
   </div>
 
   <div class="card" style="margin:0">
     <div class="ch">
       <div class="ct"><svg class="ic" data-icon="check-circle" style="color:var(--bl)"></svg>Pending Tasks &amp; Follow-ups</div>
-      <span class="mn-badge" style="background:var(--am)">8</span>
     </div>
-    <div style="padding:4px 0 8px">
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-task-row" data-go="bl-draft">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--rd);flex-shrink:0"></div>
-        <div style="flex:1"><div style="font-size:11.5px;font-weight:600;color:var(--g8)">BL Release — SEX-25-000047</div><div style="font-size:10.5px;color:var(--g5)">Awaiting full payment from Tata Chemicals</div></div>
-        <span class="b b-rd" style="font-size:9.5px;flex-shrink:0">Urgent</span>
-      </div>
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-task-row" data-go="job-detail">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--rd);flex-shrink:0"></div>
-        <div style="flex:1"><div style="font-size:11.5px;font-weight:600;color:var(--g8)">Detention Charges — RLPL/FI/J0191</div><div style="font-size:10.5px;color:var(--g5)">Raghav Granites · ₹3,12,208 storage pending</div></div>
-        <span class="b b-rd" style="font-size:9.5px;flex-shrink:0">Overdue</span>
-      </div>
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-task-row" data-go="customs">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--am);flex-shrink:0"></div>
-        <div style="flex:1"><div style="font-size:11.5px;font-weight:600;color:var(--g8)">Customs OOC — SIM-25-000045</div><div style="font-size:10.5px;color:var(--g5)">GEA Westfalia · Exam scheduled 26 Jun</div></div>
-        <span class="b b-am" style="font-size:9.5px;flex-shrink:0">Today</span>
-      </div>
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-task-row" data-go="quotation">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--am);flex-shrink:0"></div>
-        <div style="flex:1"><div style="font-size:11.5px;font-weight:600;color:var(--g8)">Quote Follow-up — Natural Remedies</div><div style="font-size:10.5px;color:var(--g5)">QTN/CHN/25-26/000124 · Valid until 15 Sep</div></div>
-        <span class="b b-am" style="font-size:9.5px;flex-shrink:0">This week</span>
-      </div>
-      <div style="padding:9px 14px;border-bottom:1px solid var(--g1);display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-task-row" data-go="purchase-invoice-list">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--bl);flex-shrink:0"></div>
-        <div style="flex:1"><div style="font-size:11.5px;font-weight:600;color:var(--g8)">PI Approval — MSC Mediterranean</div><div style="font-size:10.5px;color:var(--g5)">PI-0003 · ₹1,12,560 · Due 22 Jul</div></div>
-        <span class="b b-bl" style="font-size:9.5px;flex-shrink:0">Pending</span>
-      </div>
-      <div style="padding:9px 14px;display:flex;align-items:center;gap:10px;cursor:pointer" class="dash-task-row" data-go="tracking">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--gr);flex-shrink:0"></div>
-        <div style="flex:1"><div style="font-size:11.5px;font-weight:600;color:var(--g8)">DO Collection — PASFE0225-J0728</div><div style="font-size:10.5px;color:var(--g5)">Sigma Jones · Mombasa port · ETA 26 Feb</div></div>
-        <span class="b b-gr" style="font-size:9.5px;flex-shrink:0">Schedule</span>
-      </div>
+    <div style="padding:28px 14px;text-align:center;color:var(--g5)">
+      <svg class="ic" data-icon="check-circle" style="width:24px;height:24px;color:var(--g3);margin-bottom:6px"></svg>
+      <div style="font-size:12px;font-weight:600;color:var(--g6)">Nothing pending</div>
+      <div style="font-size:11px;margin-top:2px">Follow-ups will appear here once real jobs, quotes and invoices exist.</div>
     </div>
   </div>
 </div>
@@ -2949,7 +2790,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <div>
 <div class="card"><div class="ch"><div class="ct">Parties</div></div><div class="cb">
-<div class="fg" style="margin-bottom:7px"><label class="fl">Shipper / Exporter <span class="r">*</span></label><select class="fc" id="nj_shipper"><option value="">— Search or select —</option><option>Tata Chemicals Ltd</option><option>TVS Motor Company</option><option>Infosys BPO</option></select><span class="ferr">Shipper is required</span></div>
+<div class="fg" style="margin-bottom:7px"><label class="fl">Shipper / Exporter <span class="r">*</span></label><select class="fc" id="nj_shipper"><option value="">— Search or select —</option></select><span class="ferr">Shipper is required</span></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Consignee / Importer <span class="r">*</span></label><select class="fc" id="nj_consignee"><option value="">— Search or select —</option><option>Solvay SA (Belgium)</option><option>Honda Japan</option></select><span class="ferr">Consignee is required</span></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Notify Party</label><select class="fc"><option>Same as Consignee</option></select></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Overseas Agent</label><select class="fc"><option>— None —</option><option>Panalpina Belgium</option></select></div>
@@ -3837,7 +3678,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="g2">
 <div>
 <div class="card"><div class="ch"><div class="ct">Client &amp; Route</div></div><div class="cb">
-<div class="fg" style="margin-bottom:7px"><label class="fl">Client <span class="r">*</span></label><select class="fc" id="qn_client"><option value="">— Search or select —</option><option>Tata Chemicals Ltd</option><option>TVS Motor Company</option><option>Infosys BPO</option><option>Ashok Leyland</option></select></div>
+<div class="fg" style="margin-bottom:7px"><label class="fl">Client <span class="r">*</span></label><select class="fc" id="qn_client"><option value="">— Search or select —</option></select></div>
 <div class="fr"><div class="fg"><label class="fl">Port / Place of Loading <span class="r">*</span></label><input class="fc" id="qn_pol" placeholder="INMAA - Chennai"></div><div class="fg"><label class="fl">Port / Place of Discharge <span class="r">*</span></label><input class="fc" id="qn_pod" placeholder="BEANR - Antwerp"></div></div>
 <div class="fr"><div class="fg"><label class="fl">Quote Date</label><input class="fc" type="date" id="qn_date"></div><div class="fg"><label class="fl">Valid Until</label><input class="fc" type="date" id="qn_valid"></div></div>
 </div></div>
@@ -3981,7 +3822,7 @@ Select rate lines to see summary.
 <div id="bpStep2" class="bstep-pane">
 <div class="g2">
   <div class="card" style="margin:0"><div class="ch" style="background:#17A6C4;color:#fff"><div class="ct" style="color:#fff">Customer</div></div><div class="cb">
-    <div class="fg" style="margin-bottom:8px"><label class="fl">Customer <span class="r">*</span></label><select class="fc" id="bk_customer"><option value="">--Select Customer--</option><option>Tata Chemicals Ltd</option><option>GEA Westfalia</option><option>Ashok Leyland</option><option>Infosys BPO</option></select></div>
+    <div class="fg" style="margin-bottom:8px"><label class="fl">Customer <span class="r">*</span></label><select class="fc" id="bk_customer"><option value="">--Select Customer--</option></select></div>
     <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_customerAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
   </div></div>
   <div class="card" style="margin:0"><div class="ch" style="background:#1FB6A8;color:#fff"><div class="ct" style="color:#fff">Shipper</div></div><div class="cb">
@@ -7842,6 +7683,10 @@ function go(screen, opts){
   if(screen==="dashboard") renderDashChart("volume");
   if(screen==="org-list" && window.renderCustomerRows) renderCustomerRows();
   if(screen==="port-master" && window.renderPortRows) renderPortRows();
+  if(screen==="job-new" && window.populateCustomerSelect) populateCustomerSelect("nj_shipper");
+  if(screen==="quotation-new" && window.populateCustomerSelect) populateCustomerSelect("qn_client");
+  if(screen==="booking-new" && window.populateCustomerSelect) populateCustomerSelect("bk_customer");
+  if(screen==="dashboard" && window.populateCustomerSelect) populateCustomerSelect("dfCustomer");
   if(screen==="crm-lead" && window.renderCrmLead) renderCrmLead();
   if(screen==="crm-enquiry" && window.renderCrmEnquiry) renderCrmEnquiry();
   if(screen==="crm-opportunity" && window.renderCrmOpportunity) renderCrmOpportunity();
@@ -8821,6 +8666,36 @@ function renderPortRows(){
       if(countLabel) countLabel.textContent = `Showing ${total} of ${total} ports`;
     })
     .catch(()=>{ /* best-effort; empty state stays as-is */ });
+}
+
+/* Populates a <select> with real customers from Customer Master (used by the
+   Job/Quotation/Booking creation forms, replacing the old hardcoded company lists) */
+function populateCustomerSelect(selectId){
+  const select = document.getElementById(selectId);
+  if(!select) return;
+  const token = sessionStorage.getItem("eroyal_access_token");
+  if(!token) return;
+  fetch("/api/customers", {headers:{Authorization:"Bearer "+token}})
+    .then(response=> response.ok ? response.json() : (response.status===403 ? [] : Promise.reject(new Error("failed"))))
+    .then(customers=>{
+      const placeholder = select.options[0];
+      select.innerHTML = "";
+      if(placeholder) select.appendChild(placeholder);
+      if(customers.length===0){
+        const opt = document.createElement("option");
+        opt.value = ""; opt.disabled = true;
+        opt.textContent = "No customers yet — add one in Customer Master";
+        select.appendChild(opt);
+        return;
+      }
+      customers.forEach(c=>{
+        const opt = document.createElement("option");
+        opt.value = c.name;
+        opt.textContent = c.name + (c.code ? ` (${c.code})` : "");
+        select.appendChild(opt);
+      });
+    })
+    .catch(()=>{ /* best-effort; select stays with just the placeholder */ });
 }
 
 /* ============================================================
