@@ -2819,12 +2819,12 @@ tbody tr:hover{background:var(--g0)}
   <button class="btn btn-out btn-sm" id="jobFilterClearBtn" style="font-size:11px;padding:3px 10px">✕ Clear Filter</button>
 </div>
 <div class="kpi-row">
-<div class="kpi"><div class="kpi-lbl">Total Active</div><div class="kpi-val">47</div><div class="kpi-sub">All modes</div></div>
-<div class="kpi"><div class="kpi-lbl">Sea Export</div><div class="kpi-val">18</div><div class="kpi-sub">FCL 12 · LCL 6</div></div>
-<div class="kpi"><div class="kpi-lbl">Sea Import</div><div class="kpi-val">11</div><div class="kpi-sub">FCL 8 · LCL 3</div></div>
-<div class="kpi"><div class="kpi-lbl">Air Export</div><div class="kpi-val">9</div><div class="kpi-sub">AWB + HAWB</div></div>
-<div class="kpi"><div class="kpi-lbl">Customs CHA</div><div class="kpi-val">6</div><div class="kpi-sub">Pending OOC: 3</div></div>
-<div class="kpi"><div class="kpi-lbl">Transport</div><div class="kpi-val">3</div><div class="kpi-sub">Road delivery</div></div>
+<div class="kpi"><div class="kpi-lbl">Total Active</div><div class="kpi-val">0</div><div class="kpi-sub">All modes</div></div>
+<div class="kpi"><div class="kpi-lbl">Sea Export</div><div class="kpi-val">0</div><div class="kpi-sub">FCL · LCL</div></div>
+<div class="kpi"><div class="kpi-lbl">Sea Import</div><div class="kpi-val">0</div><div class="kpi-sub">FCL · LCL</div></div>
+<div class="kpi"><div class="kpi-lbl">Air Export</div><div class="kpi-val">0</div><div class="kpi-sub">AWB + HAWB</div></div>
+<div class="kpi"><div class="kpi-lbl">Customs CHA</div><div class="kpi-val">0</div><div class="kpi-sub">Pending OOC: 0</div></div>
+<div class="kpi"><div class="kpi-lbl">Transport</div><div class="kpi-val">0</div><div class="kpi-sub">Road delivery</div></div>
 </div>
 <div class="card"><div class="ch">
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -2835,15 +2835,9 @@ tbody tr:hover{background:var(--g0)}
   </div>
 </div>
 <div class="tw"><table id="jobTable"><thead><tr><th>Job No</th><th>Shipper</th><th>Consignee</th><th>Mode</th><th>POL → POD</th><th>ETD / ETA</th><th>BL / AWB</th><th>Status</th><th>AR</th><th class="no-print"></th></tr></thead><tbody id="jobTableBody">
-<tr data-mode="Sea" data-dir="Export" data-status="Booked"><td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SEX-25-000047">IN-RGC-MAA-SEX-25-000047</span></td><td>Tata Chemicals</td><td>Solvay SA</td><td><span class="b b-bl">SEA EXP FCL</span></td><td>INMAA→BEANR</td><td>22Jun/12Jul</td><td class="mono" style="font-size:10px">MSCU9988776</td><td><span class="b b-am dot">Booked</span></td><td class="ap">₹1,85,400</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="SEX-25-000047">Open →</button></td></tr>
-<tr data-mode="Air" data-dir="Export" data-status="In Transit"><td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="AEX-25-000046">IN-RGC-MAA-AEX-25-000046</span></td><td>Infosys BPO</td><td>Capgemini UK</td><td><span class="b b-tl">AIR EXP</span></td><td>MAA→LHR</td><td>19Jun/20Jun</td><td class="mono" style="font-size:10px">176-98765432</td><td><span class="b b-bl dot">In Transit</span></td><td class="ap">₹56,876</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="AEX-25-000046">Open →</button></td></tr>
-<tr data-mode="Sea" data-dir="Import" data-status="Customs"><td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SIM-25-000045">IN-RGC-MAA-SIM-25-000045</span></td><td>GEA Westfalia</td><td>GEA (India)</td><td><span class="b b-bl">SEA IMP FCL</span></td><td>DEHAM→INMAA</td><td>01Jun/14Jun</td><td class="mono" style="font-size:10px">HLCUHAM2405</td><td><span class="b b-pu dot">Customs</span></td><td class="ap">₹1,24,000</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="SIM-25-000045">Open →</button></td></tr>
-<tr data-mode="Air" data-dir="Import" data-status="Customs"><td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="AIM-25-000029">IN-RGC-MAA-AIM-25-000029</span></td><td>Lufthansa Cargo AG</td><td>Infosys BPO</td><td><span class="b b-tl">AIR IMP</span></td><td>DEFRA→INMAA</td><td>03Aug/05Aug</td><td class="mono" style="font-size:10px">020-44561278</td><td><span class="b b-pu dot">Customs</span></td><td class="ap">₹68,200</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="AIM-25-000029">Open →</button></td></tr>
-<tr data-mode="Road" data-dir="Domestic" data-status="OOC"><td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="CUS-25-000044">IN-RGC-MAA-CUS-25-000044</span></td><td>Ashok Leyland</td><td>Ashok Leyland</td><td><span class="b b-gy">CHA</span></td><td>INMAA Domestic</td><td>—</td><td class="mono" style="font-size:10px">BE 2245881</td><td><span class="b b-gr dot">OOC</span></td><td class="ap">₹33,040</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="CUS-25-000044">Open →</button></td></tr>
-<tr data-mode="Road" data-dir="Domestic" data-status="Delivered"><td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="TRP-25-000043">IN-RGC-MAA-TRP-25-000043</span></td><td>TVS Motor</td><td>TVS Hosur Plant</td><td><span class="b b-am">ROAD</span></td><td>Chennai→Hosur</td><td>14Jun/15Jun</td><td class="mono" style="font-size:10px">RGC-LR-25-0089</td><td><span class="b b-gr dot">Delivered</span></td><td class="ap">₹18,500</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="TRP-25-000043">Open →</button></td></tr>
-<tr data-mode="Sea" data-dir="Export" data-status="Open"><td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SEX-25-000048">IN-RGC-MAA-SEX-25-000048</span></td><td>TVS Motor</td><td>Honda Japan</td><td><span class="b b-bl">SEA EXP LCL</span></td><td>INMAA→JPYOK</td><td>28Jun/18Jul</td><td class="mono" style="font-size:10px">—</td><td><span class="b b-gy dot">Open</span></td><td class="ap">₹62,400</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="SEX-25-000048">Open →</button></td></tr>
+<tr id="noJobsRow"><td colspan="10" style="text-align:center;color:var(--g5);padding:14px">No jobs yet — click "New Job" to create the first shipment job.</td></tr>
 </tbody></table></div>
-<div class="cf" id="jobListFooter">Showing 6 of 47 active jobs</div></div></div>
+<div class="cf" id="jobListFooter">Showing 0 of 0 active jobs</div></div></div>
 <!-- ====== JOB NEW ====== -->
 <div id="s-job-new" class="scr">
 <div class="ph"><div><div class="pt" id="jobNewTitle"><svg class="ic" data-icon="clipboard-plus" style="color:var(--bl)"></svg>New Shipment Job</div><div class="ps" id="jobNewSub">Create forwarding / CHA / transport / warehouse job</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-go="job-list">Cancel</button><button class="btn btn-out btn-sm" id="jobSaveDraftBtn">Save Draft</button><button class="btn btn-pri btn-sm" id="jobCreateBtn">Create Job →</button></div></div>
@@ -3780,18 +3774,15 @@ tbody tr:hover{background:var(--g0)}
 <div id="s-quotation" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Quotations</div><div class="ps">Freight quotations — pull from rate master, send to clients, convert to job</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="newQuoteBtn"><svg class="ic" data-icon="plus"></svg> New Quotation</button></div></div>
 <div class="kpi-row">
-<div class="kpi"><div class="kpi-lbl">Open Quotes</div><div class="kpi-val">12</div><div class="kpi-sub">Awaiting response</div></div>
-<div class="kpi"><div class="kpi-lbl">Accepted MTD</div><div class="kpi-val">8</div><div class="kpi-sub up">↑ 60% win rate</div></div>
-<div class="kpi"><div class="kpi-lbl">Converted to Jobs</div><div class="kpi-val">6</div><div class="kpi-sub">This month</div></div>
-<div class="kpi"><div class="kpi-lbl">Avg Turnaround</div><div class="kpi-val">1.4 days</div><div class="kpi-sub">Quote to response</div></div>
+<div class="kpi"><div class="kpi-lbl">Open Quotes</div><div class="kpi-val">0</div><div class="kpi-sub">Awaiting response</div></div>
+<div class="kpi"><div class="kpi-lbl">Accepted MTD</div><div class="kpi-val">0</div><div class="kpi-sub">This month</div></div>
+<div class="kpi"><div class="kpi-lbl">Converted to Jobs</div><div class="kpi-val">0</div><div class="kpi-sub">This month</div></div>
+<div class="kpi"><div class="kpi-lbl">Avg Turnaround</div><div class="kpi-val">—</div><div class="kpi-sub">Quote to response</div></div>
 </div>
 <div class="card"><div class="tw"><table><thead><tr><th>Quote No</th><th>Date</th><th>Client</th><th>Mode</th><th>Route</th><th>Valid Until</th><th>Quoted Amount</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono">RGC-QT-25-00112</td><td>15 Jun 25</td><td>Tata Chemicals</td><td><span class="b b-bl">Sea EXP FCL</span></td><td>INMAA → NLRTM</td><td>30 Jun 25</td><td>USD 950/40GP</td><td><span class="b b-gr dot">Accepted</span></td><td class="no-print"><button class="ta" data-go="job-new">Create Job →</button></td></tr>
-<tr><td class="mono">RGC-QT-25-00111</td><td>14 Jun 25</td><td>Infosys BPO</td><td><span class="b b-tl">Air EXP</span></td><td>MAA → FRA</td><td>25 Jun 25</td><td>INR 350/KG</td><td><span class="b b-am dot">Sent</span></td><td class="no-print"><button class="ta">Follow Up</button></td></tr>
-<tr><td class="mono">RGC-QT-25-00110</td><td>12 Jun 25</td><td>TVS Motor</td><td><span class="b b-bl">Sea EXP LCL</span></td><td>INMAA → JPYOK</td><td>22 Jun 25</td><td>USD 45/CBM</td><td><span class="b b-gy dot">Draft</span></td><td class="no-print"><button class="ta">Edit</button></td></tr>
-<tr><td class="mono">RGC-QT-25-00108</td><td>08 Jun 25</td><td>Ashok Leyland</td><td><span class="b b-gy">CHA</span></td><td>INMAA Domestic</td><td>20 Jun 25</td><td>₹0.5L Flat</td><td><span class="b b-rd dot">Rejected</span></td><td class="no-print"><button class="ta">View</button></td></tr>
+<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No quotations yet — click "New Quotation" to create the first one.</td></tr>
 </tbody></table></div>
-<div class="cf">Showing 4 of 26 quotations</div></div></div>
+<div class="cf">Showing 0 of 0 quotations</div></div></div>
 
 <!-- ====== NEW QUOTATION (advanced wizard) ====== -->
 <div id="s-quotation-new" class="scr">
@@ -3884,15 +3875,13 @@ Select rate lines to see summary.
 <div id="s-booking" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="calendar-check" style="color:var(--bl)"></svg>Bookings</div><div class="ps">Vessel and flight bookings with shipping lines and airlines</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="newBookingBtn"><svg class="ic" data-icon="plus"></svg> New Booking</button></div></div>
 <div class="kpi-row">
-<div class="kpi"><div class="kpi-lbl">Confirmed Bookings</div><div class="kpi-val">21</div><div class="kpi-sub">This week</div></div>
-<div class="kpi"><div class="kpi-lbl">SI Cutoff in 48h</div><div class="kpi-val">3</div><div class="kpi-sub dn">Action needed</div></div>
-<div class="kpi"><div class="kpi-lbl">VGM Pending</div><div class="kpi-val">2</div><div class="kpi-sub dn">Submit before cutoff</div></div>
-<div class="kpi"><div class="kpi-lbl">Space Released</div><div class="kpi-val">1</div><div class="kpi-sub">Re-book required</div></div>
+<div class="kpi"><div class="kpi-lbl">Confirmed Bookings</div><div class="kpi-val">0</div><div class="kpi-sub">This week</div></div>
+<div class="kpi"><div class="kpi-lbl">SI Cutoff in 48h</div><div class="kpi-val">0</div><div class="kpi-sub">Action needed</div></div>
+<div class="kpi"><div class="kpi-lbl">VGM Pending</div><div class="kpi-val">0</div><div class="kpi-sub">Submit before cutoff</div></div>
+<div class="kpi"><div class="kpi-lbl">Space Released</div><div class="kpi-val">0</div><div class="kpi-sub">Re-book required</div></div>
 </div>
 <div class="card"><div class="tw"><table><thead><tr><th>Job No</th><th>Carrier</th><th>Booking No</th><th>Vessel / Flight</th><th>ETD</th><th>SI Cutoff</th><th>VGM Cutoff</th><th>Status</th><th class="no-print">Action</th></tr></thead><tbody>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SEX-25-000047">SEX-25-000047</td><td>MSC Mediterranean</td><td class="mono">MSC2025CHN001</td><td>MSC ROMA / 254W</td><td>22 Jun 25</td><td>20 Jun 25</td><td>19 Jun 25</td><td><span class="b b-gr dot">Confirmed</span></td><td class="no-print" style="white-space:nowrap"><button class="btn btn-out btn-sm" data-book-report="MSC2025CHN001">Reports</button><button class="btn btn-out btn-sm" data-book-dup="MSC2025CHN001">Duplicate</button><button class="btn btn-pri btn-sm" data-go="job-detail" data-job="SEX-25-000047">Generate Shipment</button></td></tr>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="AEX-25-000046">AEX-25-000046</td><td>Air India</td><td class="mono">AI2025MAA046</td><td>AI-131 / 19 Jun</td><td>19 Jun 25</td><td>18 Jun 25</td><td>—</td><td><span class="b b-gr dot">Confirmed</span></td><td class="no-print" style="white-space:nowrap"><button class="btn btn-out btn-sm" data-book-report="AI2025MAA046">Reports</button><button class="btn btn-out btn-sm" data-book-dup="AI2025MAA046">Duplicate</button><button class="btn btn-pri btn-sm" data-go="job-detail" data-job="AEX-25-000046">Generate Shipment</button></td></tr>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SEX-25-000048">SEX-25-000048</td><td>ONE Line</td><td class="mono">ONE2025CHN088</td><td>ONE COMMITMENT / 12W</td><td>28 Jun 25</td><td>26 Jun 25</td><td>25 Jun 25</td><td><span class="b b-am dot">Requested</span></td><td class="no-print" style="white-space:nowrap"><button class="btn btn-out btn-sm" data-book-report="ONE2025CHN088">Reports</button><button class="btn btn-out btn-sm" data-book-dup="ONE2025CHN088">Duplicate</button><button class="btn btn-pri btn-sm" data-go="job-detail" data-job="SEX-25-000048">Generate Shipment</button></td></tr>
+<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No bookings yet — click "New Booking" to create the first one.</td></tr>
 </tbody></table></div></div></div>
 
 <!-- ====== NEW BOOKING (shared wizard) ====== -->
