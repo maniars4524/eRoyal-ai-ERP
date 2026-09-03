@@ -976,6 +976,18 @@ tbody tr:hover{background:var(--g0)}
 <body>
 
 <!-- ====== LOGIN OVERLAY ====== -->
+<script>
+/* Prevent a flash of the login card: if a Remember-me session might still be
+   valid, hide the overlay synchronously (before first paint) and let the
+   async restorePersistedSession() below either confirm it or reveal it again. */
+(function(){
+  try{
+    if(localStorage.getItem("eroyal_persistent_token")){
+      document.write('<style id="loginOverlayPreHide">#loginOverlay{display:none!important}</style>');
+    }
+  }catch(e){ /* localStorage unavailable — overlay shows normally */ }
+})();
+</script>
 <div id="loginOverlay">
 
   <!-- Fullscreen logistics background: animated GIF (ship / truck / train),
@@ -1086,7 +1098,7 @@ tbody tr:hover{background:var(--g0)}
 
     <div class="login-remember">
       <label class="login-remember-lbl" for="loginRemember">
-        <input type="checkbox" id="loginRemember">
+        <input type="checkbox" id="loginRemember" checked>
         Remember me
       </label>
       <span class="login-fy-badge" id="loginFYBadge">Current FY</span>
@@ -2045,7 +2057,7 @@ tbody tr:hover{background:var(--g0)}
 <div id="s-org-list" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="building" style="color:var(--bl)"></svg>Organizations</div><div class="ps">All parties: clients, carriers, agents, CHA, transporters</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="filter"></svg> Filter</button><button class="btn btn-pri btn-sm" data-go="org-new"><svg class="ic" data-icon="plus"></svg> New Org</button></div></div>
 <div class="card">
-<div class="ch"><div class="ct">Organization Master (342)</div>
+<div class="ch"><div class="ct">Organization Master (<span id="orgMasterCount">0</span>)</div>
   <div style="display:flex;gap:7px">
     <input class="fc" id="orgSearch" placeholder="Search…" style="width:180px">
     <select class="fc" id="orgTypeFilter" style="width:120px"><option value="">All Types</option><option>Client</option><option>Carrier</option><option>CHA</option><option>Agent</option></select>
@@ -8779,6 +8791,8 @@ function renderCustomerRows(){
         anchor.insertAdjacentElement("afterend", tr);
       });
       if(countLabel) countLabel.textContent = `Showing ${customers.length} of ${customers.length} organizations`;
+      const headerCount = document.getElementById("orgMasterCount");
+      if(headerCount) headerCount.textContent = customers.length;
     })
     .catch(()=>{ /* customer fetch is best-effort; static rows still render */ });
 }
@@ -14605,6 +14619,9 @@ if(document.readyState !== "loading") initChatWidget();
       })
       .catch(()=>{
         try{ localStorage.removeItem(PERSIST_TOKEN_KEY); }catch(e){ /* ignore */ }
+        /* Token turned out invalid/expired — reveal the login card we pre-hid */
+        const preHide = document.getElementById("loginOverlayPreHide");
+        if(preHide) preHide.remove();
       });
   })();
 
