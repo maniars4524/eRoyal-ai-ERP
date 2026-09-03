@@ -2054,13 +2054,8 @@ tbody tr:hover{background:var(--g0)}
 <div class="tw"><table id="orgTable"><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Roles</th><th>GSTIN</th><th>Country</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="orgTableBody">
 <tr id="customerRowsAnchor" style="display:none"></tr>
 <tr id="noCustomersRow" style="display:none"><td colspan="8" style="text-align:center;color:var(--g5);padding:14px">No customers yet — click "New Org" to add your first customer.</td></tr>
-<tr data-type="Carrier"><td><span class="chip">MSCCHN</span></td><td>MSC Mediterranean</td><td><span class="b b-bl">Business</span></td><td><span class="b b-pu">Carrier</span> <span class="b b-gy">AP</span></td><td class="mono">—</td><td>🇨🇭 CH</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="MSC Mediterranean">View →</button></td></tr>
-<tr data-type="CHA"><td><span class="chip">SEAAIRMA</span></td><td>Sea Air Marine Surveyors</td><td><span class="b b-gy">Individual</span></td><td><span class="b b-rd">CHA</span> <span class="b b-gy">Services</span></td><td class="mono">33ABLPS6818C1ZL</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Sea Air Marine Surveyors">View →</button></td></tr>
-<tr data-type="Carrier"><td><span class="chip">HAPAGIN</span></td><td>Hapag-Lloyd India</td><td><span class="b b-bl">Business</span></td><td><span class="b b-pu">Carrier</span> <span class="b b-gy">AP</span></td><td class="mono">—</td><td>🇩🇪 DE</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Hapag-Lloyd India">View →</button></td></tr>
-<tr data-type="Agent"><td><span class="chip">PANBEL</span></td><td>Panalpina Belgium</td><td><span class="b b-bl">Business</span></td><td><span class="b b-am">Overseas Agent</span></td><td class="mono">—</td><td>🇧🇪 BE</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Panalpina Belgium">View →</button></td></tr>
-<tr data-type="Carrier"><td><span class="chip">AIRIND</span></td><td>Air India Cargo</td><td><span class="b b-bl">Business</span></td><td><span class="b b-pu">Carrier</span> <span class="b b-gy">AP</span></td><td class="mono">07AAACA0080P1Z2</td><td>🇮🇳 IN</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="Air India Cargo">View →</button></td></tr>
 </tbody></table></div>
-<div class="cf">Showing 10 of 342 organizations</div></div></div>
+<div class="cf" id="orgCountLabel">Showing 0 of 0 organizations</div></div></div>
 <!-- ====== ORG NEW ====== -->
 <div id="s-org-new" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="building-plus" style="color:var(--bl)"></svg>New Organization</div><div class="ps">Create a new party — client, vendor, carrier, CHA, agent or transporter</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-go="org-list">Cancel</button><button class="btn btn-suc btn-sm" id="orgSaveBtn"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
@@ -8768,6 +8763,7 @@ function populateOrgDetail(name){
 function renderCustomerRows(){
   const anchor = document.getElementById("customerRowsAnchor");
   const emptyRow = document.getElementById("noCustomersRow");
+  const countLabel = document.getElementById("orgCountLabel");
   if(!anchor) return;
   document.querySelectorAll("#orgTableBody tr[data-type='CustomerLive']").forEach(tr=>tr.remove());
   const token = sessionStorage.getItem("eroyal_access_token");
@@ -8782,6 +8778,7 @@ function renderCustomerRows(){
         tr.innerHTML = `<td><span class="chip">${esc(c.code)}</span></td><td>${esc(c.name)}</td><td><span class="b b-bl">${esc(c.category)}</span></td><td><span class="b b-gr">Customer</span></td><td class="mono">${esc(c.gstin || "—")}</td><td>${esc(c.country)}</td><td><span class="b ${c.status==='ACTIVE' ? 'b-gr dot' : 'b-gy dot'}">${esc(c.status==='ACTIVE' ? 'Active' : 'Inactive')}</span></td><td class="no-print"><button class="ta" data-go="org-detail" data-org="${esc(c.name)}">View →</button></td>`;
         anchor.insertAdjacentElement("afterend", tr);
       });
+      if(countLabel) countLabel.textContent = `Showing ${customers.length} of ${customers.length} organizations`;
     })
     .catch(()=>{ /* customer fetch is best-effort; static rows still render */ });
 }
