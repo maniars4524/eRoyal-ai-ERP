@@ -125,11 +125,12 @@ keep existing menus/navigation/toolbar/layout; do not invent replacement dummy d
 User confirmed sequencing: finish Customer Master (done above) + do Dashboard, then
 continue through the remaining masters one at a time without re-confirming each one.
 
-Status: **Customer Master done. Dashboard done. Port Master IN PROGRESS (paused
-2026-09-02, resume here).** Remaining after Port: Country, Currency, Branch, User,
-Carrier masters — not started yet.
+Status: **Customer Master done. Dashboard done. Port Master done (2026-09-03).**
+Remaining: Country, Currency, Branch, User, Carrier masters — not started yet, same
+pattern to follow for each (backend model tenant-scoped-or-global as appropriate +
+migration + CRUD API + frontend wiring following renderCustomerRows/renderPortRows).
 
-### Port Master — exact resume point
+### Port Master — completed 2026-09-03 (reference for the pattern used)
 
 Backend fully done and verified: `Port` model (global/platform reference data, NOT
 tenant-scoped — ports are shared across all tenants, unlike Customer), migration
