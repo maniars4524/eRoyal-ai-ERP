@@ -163,12 +163,59 @@ Payments, Tax Invoice print template, Freight Certificate, Branch Detail. Also s
 present: Department/Employee master counts, Currency master's "All (170)" ISO
 placeholder, and various print/report screens and CRM screens not yet audited.
 
-User's stated end goal (2026-09-03): "this should be actual ERP software with complete
-functionality globally" — i.e. the direction is to keep converting every module from
-prototype/mock to real backend-driven behavior, not just cosmetic cleanup. Treat the
-ongoing list-view cleanups as the frontend half of that; backend module builds
-(Country/Currency/Branch/User/Carrier masters, then eventually Jobs/Quotes/Bookings
-themselves) are the other half, still queued.
+User's stated end goal (2026-09-03, reaffirmed 2026-09-16): "this should be actual ERP
+software with complete functionality globally" — i.e. the direction is to keep
+converting every module from prototype/mock to real backend-driven behavior, not just
+cosmetic cleanup, AND eventually deploy publicly (user has no hosting/domain yet;
+recommended Render.com or Railway.app as simplest fit for this FastAPI+Postgres stack
+when ready — not set up yet, no action taken).
+
+## 2026-09-16 session (paused here, resume next)
+
+Continued Vendor Bills/Payments/Purchase Invoices/Rate Master/Routes/Debit
+Notes/Branch Master/Department Master cleanup (all done, committed). Deprioritized
+Branch Detail (11-tab form, really part of unbuilt Branch Master backend), Cargo
+Arrival and other print-only templates (unreachable — only reachable from empty
+lists).
+
+**Built real backend for Shipments/Jobs** (tenant-scoped, like Customer Master):
+`Shipment` model extended with job_type/container_mode/department/POL/POD/ETD/ETA/
+customer_id (FK to Customer)/consignee/packages/weight/volume/commodity/bl_awb;
+migration `0005_shipment_fields`; full CRUD at `/api/shipments` with auto-generated
+job numbers (e.g. `SEAEXP-26-000001`); new `shipment.*` permissions. Removed the old
+superseded `backend/app/api.py` (had a simpler, non-tenant-scoped version of the same
+route). Verified end-to-end via curl; all 4 DBs migrated.
+
+**Frontend WIP, resume here:** `job-new` form's Create button now POSTs real data to
+`/api/shipments` (done, commit `3945707`). **Job-list screen is NOT wired yet** — still
+shows the static "No jobs yet" empty state regardless of real data. Next steps:
+1. Add ids to the job-list KPI value `<div>`s (`kpi-row` near the top of `s-job-list`
+   — currently no ids, e.g. add `id="jobKpiTotal"` etc.).
+2. Write `renderJobRows()` following the exact `renderPortRows()`/
+   `renderCustomerRows()` pattern (search those names to copy the shape): fetch
+   `GET /api/shipments`, populate `#jobTableBody` (toggle `#noJobsRow`), update the
+   KPI counts and `#jobListFooter`.
+3. Hook into `go()`: add `if(screen==="job-list" && window.renderJobRows) renderJobRows();`
+   next to the existing job/quotation/booking/dashboard `populateCustomerSelect` hooks.
+
+**Dashboard visual redesign — tried and reverted:** user asked to restyle the Dashboard
+KPI cards to match a Vantus ERP dashboard reference (shared as video; frames extracted
+via ffmpeg since Dribbble/video can't be read as text) with a radiant glow accent.
+Implemented (`#s-dashboard`-scoped `.kpiv-*` classes, gradient glow icon badges,
+extended soft-card style to all dashboard cards) — user then said "revoke the
+dashboard, keep it old one." **Reverted via `git revert` (commits `f7aad71`,
+`4d7b88a`)** — Dashboard is back to its pre-redesign state. Do not redo this without
+being asked again.
+
+**Kept:** replaced the session-restore loading indicator (the cyan pulsing orb) with a
+blue circular progress spinner (SVG stroke-dasharray ring, rotating, white embossed
+disc backdrop) per explicit request — this was NOT reverted, still active.
+
+Also: `populateCustomerSelect()` (used by job-new/quotation-new/booking-new/dashboard
+customer dropdowns) now stores the customer's **id** as the option value (was
+previously the name) so `nj_shipper`'s selection maps directly to `customer_id` for
+the new Shipments API — if wiring Quotation/Booking to real backends later, read
+`.value` as an id, not a name, and use `.selectedOptions[0].dataset.name` for display.
 
 ### Port Master — completed 2026-09-03 (reference for the pattern used)
 
