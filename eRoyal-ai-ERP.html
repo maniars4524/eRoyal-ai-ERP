@@ -8652,7 +8652,8 @@ function populateCustomerSelect(selectId){
       }
       customers.forEach(c=>{
         const opt = document.createElement("option");
-        opt.value = c.name;
+        opt.value = c.id;
+        opt.dataset.name = c.name;
         opt.textContent = c.name + (c.code ? ` (${c.code})` : "");
         select.appendChild(opt);
       });
@@ -9065,8 +9066,47 @@ $("#jobCreateBtn") && $("#jobCreateBtn").addEventListener("click", ()=>{
     if(firstInvalid) firstInvalid.focus();
     return;
   }
-  toast("Job created","New job IN-RGC-MAA-XXX-25-000049 created successfully");
-  setTimeout(()=> go("job-detail", {jobNo:"SEX-25-000047"}), 700);
+
+  const token = sessionStorage.getItem("eroyal_access_token");
+  if(!token){ toast("Not signed in","Please sign in again","error"); return; }
+
+  const shipperSelect = $("#nj_shipper");
+  const consigneeSelect = $("#nj_consignee");
+  const num = id => { const v = $("#"+id) ? $("#"+id).value : ""; return v ? Number(v) : null; };
+  const val = id => $("#"+id) ? $("#"+id).value : null;
+
+  fetch("/api/shipments", {
+    method: "POST",
+    headers: {"Content-Type":"application/json", Authorization:"Bearer "+token},
+    body: JSON.stringify({
+      job_type: (val("nj_type") || "Forwarding").replace(/\s*\(.*\)/, ""),
+      mode: val("nj_mode"),
+      direction: val("nj_dir"),
+      container_mode: val("nj_contmode"),
+      department: (val("nj_dept") || "").split(" - ")[0] || null,
+      pol: val("nj_pol"),
+      pod: val("nj_pod"),
+      etd: val("nj_etd") || null,
+      eta: val("nj_eta") || null,
+      customer_id: num("nj_shipper"),
+      consignee: consigneeSelect ? (consigneeSelect.options[consigneeSelect.selectedIndex]?.text || null) : null,
+      packages: num("nj_pkgs"),
+      gross_weight: num("nj_wt"),
+      commodity: val("nj_commodity")
+    })
+  })
+    .then(async response=>{
+      const data = await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(data.detail || "Could not create job");
+      return data;
+    })
+    .then(shipment=>{
+      toast("Job created", `New job ${shipment.job_number} created successfully`);
+      setTimeout(()=> go("job-list"), 700);
+    })
+    .catch(error=>{
+      toast("Save failed", error.message || "Could not create job", "error");
+    });
 });
 $all(".fc").forEach(f=> f.addEventListener("input", ()=> f.closest(".fg")?.classList.remove("invalid")));
 
