@@ -1011,12 +1011,13 @@ tbody tr:hover{background:var(--g0)}
     if(localStorage.getItem("eroyal_persistent_token")){
       document.write('<style id="loginOverlayPreHide">#loginOverlay{display:none!important}</style>');
       document.write('<style>' +
-        '@keyframes sessionPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.55),inset 0 2px 6px rgba(0,0,0,.35),inset 0 -2px 6px rgba(0,229,255,.25);}50%{box-shadow:0 0 26px 10px rgba(0,229,255,.45),inset 0 2px 6px rgba(0,0,0,.35),inset 0 -2px 6px rgba(0,229,255,.4);}}' +
-        '#sessionLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#0B1F3A;}' +
-        '#sessionLoader .sl-orb{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3EE6FF,#0B7A94 70%,#062B36);animation:sessionPulse 1.35s ease-in-out infinite;}' +
+        '@keyframes sessionSpin{to{transform:rotate(360deg);}}' +
+        '#sessionLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#fff;}' +
+        '#sessionLoader .sl-disc{width:78px;height:78px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(15,23,42,.08),0 14px 28px -8px rgba(15,23,42,.18),inset 0 -2px 5px rgba(15,23,42,.06),inset 0 2px 4px rgba(255,255,255,.9);}' +
+        '#sessionLoader .sl-ring{width:56px;height:56px;animation:sessionSpin .9s linear infinite;}' +
         '</style>'
       );
-      document.write('<div id="sessionLoader"><div class="sl-orb"></div></div>');
+      document.write('<div id="sessionLoader"><div class="sl-disc"><svg class="sl-ring" viewBox="0 0 50 50"><defs><linearGradient id="slGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#BFE1FF"/><stop offset="100%" stop-color="#1A6FBF"/></linearGradient></defs><circle cx="25" cy="25" r="20" fill="none" stroke="#E2E8F0" stroke-width="5"/><circle cx="25" cy="25" r="20" fill="none" stroke="url(#slGrad)" stroke-width="5" stroke-linecap="round" stroke-dasharray="94 126"/></svg></div></div>');
     }
   }catch(e){ /* localStorage unavailable — overlay shows normally */ }
 })();
