@@ -340,27 +340,6 @@ svg{display:block}
 
 /* ---------- CARD ---------- */
 .card{background:#fff;border:0.5px solid var(--g2);border-radius:10px;margin-bottom:12px;overflow:hidden}
-
-/* ── Dashboard-only KPI card restyle (Vantus-inspired) + radiant glow accent.
-     Scoped under #s-dashboard so no other screen's .card is affected. ── */
-#s-dashboard .kpiv-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
-#s-dashboard .kpiv-card{background:#fff;border-radius:16px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -12px rgba(15,23,42,.10);border:1px solid var(--g1);transition:transform .18s ease,box-shadow .18s ease}
-#s-dashboard .kpiv-card:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(15,23,42,.06),0 16px 32px -14px rgba(15,23,42,.16)}
-#s-dashboard .kpiv-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-#s-dashboard .kpiv-label{font-size:12px;font-weight:700;color:var(--g6)}
-#s-dashboard .kpiv-dots{color:var(--g4);font-size:14px;line-height:1}
-#s-dashboard .kpiv-glow-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
-#s-dashboard .kpiv-glow-ic svg{width:17px;height:17px;position:relative;z-index:1}
-#s-dashboard .kpiv-glow-ic.gc-bl{background:linear-gradient(150deg,#3EE6FF,var(--bl) 75%);box-shadow:0 0 0 4px rgba(62,230,255,.12),0 4px 14px -2px rgba(26,111,191,.55)}
-#s-dashboard .kpiv-glow-ic.gc-gr{background:linear-gradient(150deg,#5CE8A0,var(--gr) 75%);box-shadow:0 0 0 4px rgba(92,232,160,.14),0 4px 14px -2px rgba(29,122,69,.5)}
-#s-dashboard .kpiv-glow-ic.gc-pu{background:linear-gradient(150deg,#C39CFF,#7A3AE0 75%);box-shadow:0 0 0 4px rgba(195,156,255,.14),0 4px 14px -2px rgba(122,58,224,.5)}
-#s-dashboard .kpiv-glow-ic.gc-am{background:linear-gradient(150deg,#FFD08A,#D97706 75%);box-shadow:0 0 0 4px rgba(255,208,138,.16),0 4px 14px -2px rgba(217,119,6,.5)}
-#s-dashboard .kpiv-value{font-size:26px;font-weight:800;color:var(--n);line-height:1.1;letter-spacing:-.3px}
-#s-dashboard .kpiv-sub{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--g5)}
-#s-dashboard .kpiv-badge{display:inline-flex;align-items:center;gap:3px;background:var(--g0);color:var(--g5);border:1px solid var(--g2);padding:2px 8px;border-radius:20px;font-weight:700;font-size:10.5px}
-#s-dashboard .dash-glow-wash{position:relative}
-#s-dashboard .dash-glow-wash::before{content:"";position:absolute;top:-60px;left:-40px;width:380px;height:220px;background:radial-gradient(circle,rgba(62,230,255,.16),transparent 70%);pointer-events:none;z-index:0;filter:blur(4px)}
-
 .ch{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--g2);gap:10px;flex-wrap:wrap}
 .ct{font-size:13px;font-weight:600;color:var(--g8);display:flex;align-items:center}
 .ct .ic{margin-right:6px}
@@ -1494,24 +1473,27 @@ tbody tr:hover{background:var(--g0)}
 <div style="display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start" class="dash-body-grid">
 <div class="dash-main-col" style="min-width:0">
 
-<!-- ── TOP KPI ROW (Vantus-inspired card style + radiant glow accent) ── -->
-<div class="kpiv-row">
+<!-- ── TOP KPI ROW ── -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
 
-  <div class="kpiv-card kpi-clickable kpi-flip dash-glow-wash" data-kpi-select="jobs" title="Show Active Jobs breakdown below">
+  <div class="card kpi-clickable kpi-flip" data-kpi-select="jobs" style="border-left:4px solid var(--bl);margin:0;background:linear-gradient(150deg,#fff 45%,var(--blt) 165%)" title="Show Active Jobs breakdown below">
     <button class="kpi-flip-btn" type="button" data-flip title="Flip for breakdown"><svg class="ic" data-icon="refresh-cw"></svg></button>
     <div class="kpi-flip-inner">
     <div class="kpi-face kpi-face-f">
-      <div class="kpiv-head">
-        <span class="kpiv-label">Active Jobs</span>
-        <span class="kpiv-dots">⋮</span>
-      </div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+    <div class="cb" style="padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
-          <div class="kpiv-value">—</div>
-          <div class="kpiv-sub"><span class="kpiv-badge">No data yet</span></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--g5);text-transform:uppercase">Active Jobs</div>
+          <div style="font-size:32px;font-weight:800;color:var(--g4);line-height:1.1;margin-top:4px">—</div>
+          <div style="font-size:11px;color:var(--g5);margin-top:4px">No data yet</div>
         </div>
-        <div class="kpiv-glow-ic gc-bl"><svg class="ic" data-icon="package"></svg></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+          <div class="kpi-icon-3d" style="background:linear-gradient(150deg,#3D9BE9,var(--bl));box-shadow:0 6px 16px -4px rgba(26,111,191,.55)">
+            <svg class="ic" data-icon="package" style="width:22px;height:22px"></svg>
+          </div>
+        </div>
       </div>
+    </div>
     </div>
     <div class="kpi-face kpi-face-b">
     <div class="cb" style="padding:14px 16px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--g5)">
@@ -1521,21 +1503,24 @@ tbody tr:hover{background:var(--g0)}
     </div>
     </div>
   </div>
-  <div class="kpiv-card kpi-clickable kpi-flip dash-glow-wash" data-kpi-select="revenue" title="Show Revenue MTD breakdown below">
+  <div class="card kpi-clickable kpi-flip" data-kpi-select="revenue" style="border-left:4px solid var(--gr);margin:0;background:linear-gradient(150deg,#fff 45%,var(--grt) 165%)" title="Show Revenue MTD breakdown below">
     <button class="kpi-flip-btn" type="button" data-flip title="Flip for breakdown"><svg class="ic" data-icon="refresh-cw"></svg></button>
     <div class="kpi-flip-inner">
     <div class="kpi-face kpi-face-f">
-      <div class="kpiv-head">
-        <span class="kpiv-label">Revenue MTD</span>
-        <span class="kpiv-dots">⋮</span>
-      </div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+    <div class="cb" style="padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
-          <div class="kpiv-value">—</div>
-          <div class="kpiv-sub"><span class="kpiv-badge">No data yet</span></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--g5);text-transform:uppercase">Revenue MTD</div>
+          <div style="font-size:32px;font-weight:800;color:var(--g4);line-height:1.1;margin-top:4px">—</div>
+          <div style="font-size:11px;color:var(--g5);margin-top:4px">No data yet</div>
         </div>
-        <div class="kpiv-glow-ic gc-gr"><svg class="ic" data-icon="rupee"></svg></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+          <div class="kpi-icon-3d" style="background:linear-gradient(150deg,#3FBF7F,var(--gr));box-shadow:0 6px 16px -4px rgba(30,138,79,.5)">
+            <svg class="ic" data-icon="rupee" style="width:22px;height:22px"></svg>
+          </div>
+        </div>
       </div>
+    </div>
     </div>
     <div class="kpi-face kpi-face-b">
     <div class="cb" style="padding:14px 16px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--g5)">
@@ -1545,21 +1530,24 @@ tbody tr:hover{background:var(--g0)}
     </div>
     </div>
   </div>
-  <div class="kpiv-card kpi-clickable kpi-flip dash-glow-wash" data-kpi-select="gp" title="Show Gross Profit MTD breakdown below">
+  <div class="card kpi-clickable kpi-flip" data-kpi-select="gp" style="border-left:4px solid var(--pu);margin:0;background:linear-gradient(150deg,#fff 45%,var(--put) 165%)" title="Show Gross Profit MTD breakdown below">
     <button class="kpi-flip-btn" type="button" data-flip title="Flip for breakdown"><svg class="ic" data-icon="refresh-cw"></svg></button>
     <div class="kpi-flip-inner">
     <div class="kpi-face kpi-face-f">
-      <div class="kpiv-head">
-        <span class="kpiv-label">Gross Profit MTD</span>
-        <span class="kpiv-dots">⋮</span>
-      </div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+    <div class="cb" style="padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
-          <div class="kpiv-value">—</div>
-          <div class="kpiv-sub"><span class="kpiv-badge">No data yet</span></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--g5);text-transform:uppercase">Gross Profit MTD</div>
+          <div style="font-size:32px;font-weight:800;color:var(--g4);line-height:1.1;margin-top:4px">—</div>
+          <div style="font-size:11px;color:var(--g5);margin-top:4px">No data yet</div>
         </div>
-        <div class="kpiv-glow-ic gc-pu"><svg class="ic" data-icon="trending-up"></svg></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+          <div class="kpi-icon-3d" style="background:linear-gradient(150deg,#B084F0,var(--pu));box-shadow:0 6px 16px -4px rgba(122,58,224,.5)">
+            <svg class="ic" data-icon="trending-up" style="width:22px;height:22px"></svg>
+          </div>
+        </div>
       </div>
+    </div>
     </div>
     <div class="kpi-face kpi-face-b">
     <div class="cb" style="padding:14px 16px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--g5)">
@@ -1569,21 +1557,24 @@ tbody tr:hover{background:var(--g0)}
     </div>
     </div>
   </div>
-  <div class="kpiv-card kpi-clickable kpi-flip dash-glow-wash" data-kpi-select="ar" title="Show AR Outstanding breakdown below">
+  <div class="card kpi-clickable kpi-flip" data-kpi-select="ar" style="border-left:4px solid var(--rd);margin:0;background:linear-gradient(150deg,#fff 45%,var(--rdt) 165%)" title="Show AR Outstanding breakdown below">
     <button class="kpi-flip-btn" type="button" data-flip title="Flip for breakdown"><svg class="ic" data-icon="refresh-cw"></svg></button>
     <div class="kpi-flip-inner">
     <div class="kpi-face kpi-face-f">
-      <div class="kpiv-head">
-        <span class="kpiv-label">AR Outstanding</span>
-        <span class="kpiv-dots">⋮</span>
-      </div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+    <div class="cb" style="padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
-          <div class="kpiv-value">—</div>
-          <div class="kpiv-sub"><span class="kpiv-badge">No data yet</span></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--g5);text-transform:uppercase">AR Outstanding</div>
+          <div style="font-size:32px;font-weight:800;color:var(--g4);line-height:1.1;margin-top:4px">—</div>
+          <div style="font-size:11px;color:var(--g5);margin-top:4px">No data yet</div>
         </div>
-        <div class="kpiv-glow-ic gc-am"><svg class="ic" data-icon="alert"></svg></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+          <div class="kpi-icon-3d" style="background:linear-gradient(150deg,#F0847A,var(--rd));box-shadow:0 6px 16px -4px rgba(192,57,43,.5)">
+            <svg class="ic" data-icon="alert" style="width:22px;height:22px"></svg>
+          </div>
+        </div>
       </div>
+    </div>
     </div>
     <div class="kpi-face kpi-face-b">
     <div class="cb" style="padding:14px 16px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--g5)">
