@@ -360,6 +360,11 @@ svg{display:block}
 #s-dashboard .kpiv-badge{display:inline-flex;align-items:center;gap:3px;background:var(--g0);color:var(--g5);border:1px solid var(--g2);padding:2px 8px;border-radius:20px;font-weight:700;font-size:10.5px}
 #s-dashboard .dash-glow-wash{position:relative}
 #s-dashboard .dash-glow-wash::before{content:"";position:absolute;top:-60px;left:-40px;width:380px;height:220px;background:radial-gradient(circle,rgba(62,230,255,.16),transparent 70%);pointer-events:none;z-index:0;filter:blur(4px)}
+/* Extend the same soft-card language to every other Dashboard card (Recent Jobs,
+   AR Ageing, Alerts, P&L, Pending Tasks, sidebar) -- scoped, doesn't touch .card elsewhere */
+#s-dashboard .card{border-radius:16px;border:1px solid var(--g1);box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px -14px rgba(15,23,42,.10);transition:box-shadow .18s ease,transform .18s ease}
+#s-dashboard .card:hover{box-shadow:0 4px 10px rgba(15,23,42,.06),0 16px 30px -16px rgba(15,23,42,.16)}
+#s-dashboard .ch{border-bottom:1px solid var(--g1)}
 
 .ch{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--g2);gap:10px;flex-wrap:wrap}
 .ct{font-size:13px;font-weight:600;color:var(--g8);display:flex;align-items:center}
