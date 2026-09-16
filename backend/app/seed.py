@@ -18,6 +18,10 @@ PERMISSIONS = [
     ("customer.create", "Create customers", "customer", "create"),
     ("customer.update", "Update customers", "customer", "update"),
     ("customer.delete", "Delete customers", "customer", "delete"),
+    ("shipment.read", "Read shipment jobs", "shipment", "read"),
+    ("shipment.create", "Create shipment jobs", "shipment", "create"),
+    ("shipment.update", "Update shipment jobs", "shipment", "update"),
+    ("shipment.delete", "Delete shipment jobs", "shipment", "delete"),
 ]
 
 
@@ -52,11 +56,11 @@ def seed_super_admin() -> None:
             db.flush()
         erp_role = db.scalar(select(Role).where(Role.organization_id == demo_org.id, Role.name == "ERP_ADMIN"))
         if not erp_role:
-            erp_role = Role(name="ERP_ADMIN", organization_id=demo_org.id, description="Demo ERP administrator", status="ACTIVE", permissions=[permissions[code] for code in ("organization.read", "organization.update", "user.read", "user.create", "customer.read", "customer.create", "customer.update", "customer.delete")])
+            erp_role = Role(name="ERP_ADMIN", organization_id=demo_org.id, description="Demo ERP administrator", status="ACTIVE", permissions=[permissions[code] for code in ("organization.read", "organization.update", "user.read", "user.create", "customer.read", "customer.create", "customer.update", "customer.delete", "shipment.read", "shipment.create", "shipment.update", "shipment.delete")])
             db.add(erp_role)
         else:
             existing_codes = {p.code for p in erp_role.permissions}
-            for code in ("customer.read", "customer.create", "customer.update", "customer.delete"):
+            for code in ("customer.read", "customer.create", "customer.update", "customer.delete", "shipment.read", "shipment.create", "shipment.update", "shipment.delete"):
                 if code not in existing_codes:
                     erp_role.permissions.append(permissions[code])
         demo_username = os.getenv("DEMO_USER_USERNAME", "mani")

@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel, Field
 
 
@@ -68,6 +70,49 @@ class PortUpdate(BaseModel):
     country: str | None = Field(default=None, max_length=80)
     timezone: str | None = Field(default=None, max_length=60)
     status: str | None = Field(default=None, pattern="^(ACTIVE|INACTIVE)$")
+
+
+class ShipmentCreate(BaseModel):
+    job_type: str = Field(default="Forwarding", max_length=20)
+    mode: str = Field(min_length=2, max_length=20)
+    direction: str = Field(min_length=2, max_length=20)
+    container_mode: str | None = Field(default=None, max_length=20)
+    department: str | None = Field(default=None, max_length=20)
+    pol: str | None = Field(default=None, max_length=80)
+    pod: str | None = Field(default=None, max_length=80)
+    etd: date | None = None
+    eta: date | None = None
+    customer_id: int | None = None
+    consignee: str | None = Field(default=None, max_length=160)
+    packages: int | None = Field(default=None, ge=0)
+    package_type: str | None = Field(default=None, max_length=40)
+    gross_weight: float | None = Field(default=None, ge=0)
+    volume: float | None = Field(default=None, ge=0)
+    commodity: str | None = Field(default=None, max_length=160)
+    bl_awb: str | None = Field(default=None, max_length=60)
+    revenue: float = Field(default=0, ge=0)
+
+
+class ShipmentUpdate(BaseModel):
+    job_type: str | None = Field(default=None, max_length=20)
+    mode: str | None = Field(default=None, max_length=20)
+    direction: str | None = Field(default=None, max_length=20)
+    container_mode: str | None = Field(default=None, max_length=20)
+    department: str | None = Field(default=None, max_length=20)
+    pol: str | None = Field(default=None, max_length=80)
+    pod: str | None = Field(default=None, max_length=80)
+    etd: date | None = None
+    eta: date | None = None
+    customer_id: int | None = None
+    consignee: str | None = Field(default=None, max_length=160)
+    packages: int | None = Field(default=None, ge=0)
+    package_type: str | None = Field(default=None, max_length=40)
+    gross_weight: float | None = Field(default=None, ge=0)
+    volume: float | None = Field(default=None, ge=0)
+    commodity: str | None = Field(default=None, max_length=160)
+    bl_awb: str | None = Field(default=None, max_length=60)
+    revenue: float | None = Field(default=None, ge=0)
+    status: str | None = Field(default=None, max_length=30)
 
 
 class SafeUser(BaseModel):

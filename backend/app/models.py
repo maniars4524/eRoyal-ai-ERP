@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, Numeric, String, Table, UniqueConstraint, func
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Table, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -137,8 +137,25 @@ class Shipment(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
     job_number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    job_type: Mapped[str] = mapped_column(String(20), default="Forwarding")
     mode: Mapped[str] = mapped_column(String(20))
     direction: Mapped[str] = mapped_column(String(20))
+    container_mode: Mapped[str | None] = mapped_column(String(20))
+    department: Mapped[str | None] = mapped_column(String(20))
+    pol: Mapped[str | None] = mapped_column(String(80))
+    pod: Mapped[str | None] = mapped_column(String(80))
+    etd: Mapped[date | None] = mapped_column(Date)
+    eta: Mapped[date | None] = mapped_column(Date)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    consignee: Mapped[str | None] = mapped_column(String(160))
+    packages: Mapped[int | None] = mapped_column(Integer)
+    package_type: Mapped[str | None] = mapped_column(String(40))
+    gross_weight: Mapped[float | None] = mapped_column(Numeric(12, 3))
+    volume: Mapped[float | None] = mapped_column(Numeric(12, 3))
+    commodity: Mapped[str | None] = mapped_column(String(160))
+    bl_awb: Mapped[str | None] = mapped_column(String(60))
     status: Mapped[str] = mapped_column(String(30), default="Draft")
     revenue: Mapped[float] = mapped_column(Numeric(14, 2), default=0)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
