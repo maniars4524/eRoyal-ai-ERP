@@ -186,17 +186,19 @@ job numbers (e.g. `SEAEXP-26-000001`); new `shipment.*` permissions. Removed the
 superseded `backend/app/api.py` (had a simpler, non-tenant-scoped version of the same
 route). Verified end-to-end via curl; all 4 DBs migrated.
 
-**Frontend WIP, resume here:** `job-new` form's Create button now POSTs real data to
-`/api/shipments` (done, commit `3945707`). **Job-list screen is NOT wired yet** — still
-shows the static "No jobs yet" empty state regardless of real data. Next steps:
-1. Add ids to the job-list KPI value `<div>`s (`kpi-row` near the top of `s-job-list`
-   — currently no ids, e.g. add `id="jobKpiTotal"` etc.).
-2. Write `renderJobRows()` following the exact `renderPortRows()`/
-   `renderCustomerRows()` pattern (search those names to copy the shape): fetch
-   `GET /api/shipments`, populate `#jobTableBody` (toggle `#noJobsRow`), update the
-   KPI counts and `#jobListFooter`.
-3. Hook into `go()`: add `if(screen==="job-list" && window.renderJobRows) renderJobRows();`
-   next to the existing job/quotation/booking/dashboard `populateCustomerSelect` hooks.
+**Shipments/Jobs module: DONE (2026-10-01).** `job-new` POSTs real data; `job-list` now
+has `renderJobRows()` (commit `b6d243a`) fetching `GET /api/shipments` + `GET
+/api/customers` (client-side id→name map, since the shipments list doesn't join
+customer data), populating the table and all 6 KPI counts from real `mode`/
+`direction`/`job_type`. Verified end-to-end via the API (create → list → cleanup).
+This closes out Jobs as a fully real module, backend + frontend — same status as
+Customer/Port Master now.
+
+**Next module to build (not started):** pick up the remaining queue — Quotations,
+Bookings, Invoices, or one of Country/Currency/Branch/User/Carrier masters. No
+specific one chosen yet; ask the user or default to whichever is next in the
+Rate-Master-Hub tile order (Carrier → Route → Charge → Currency) since those are the
+tiles already visible on a reachable screen.
 
 **Dashboard visual redesign — tried and reverted:** user asked to restyle the Dashboard
 KPI cards to match a Vantus ERP dashboard reference (shared as video; frames extracted
