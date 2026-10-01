@@ -2661,12 +2661,12 @@ tbody tr:hover{background:var(--g0)}
   <button class="btn btn-out btn-sm" id="jobFilterClearBtn" style="font-size:11px;padding:3px 10px">✕ Clear Filter</button>
 </div>
 <div class="kpi-row">
-<div class="kpi"><div class="kpi-lbl">Total Active</div><div class="kpi-val">0</div><div class="kpi-sub">All modes</div></div>
-<div class="kpi"><div class="kpi-lbl">Sea Export</div><div class="kpi-val">0</div><div class="kpi-sub">FCL · LCL</div></div>
-<div class="kpi"><div class="kpi-lbl">Sea Import</div><div class="kpi-val">0</div><div class="kpi-sub">FCL · LCL</div></div>
-<div class="kpi"><div class="kpi-lbl">Air Export</div><div class="kpi-val">0</div><div class="kpi-sub">AWB + HAWB</div></div>
-<div class="kpi"><div class="kpi-lbl">Customs CHA</div><div class="kpi-val">0</div><div class="kpi-sub">Pending OOC: 0</div></div>
-<div class="kpi"><div class="kpi-lbl">Transport</div><div class="kpi-val">0</div><div class="kpi-sub">Road delivery</div></div>
+<div class="kpi"><div class="kpi-lbl">Total Active</div><div class="kpi-val" id="jobKpiTotal">0</div><div class="kpi-sub">All modes</div></div>
+<div class="kpi"><div class="kpi-lbl">Sea Export</div><div class="kpi-val" id="jobKpiSeaExp">0</div><div class="kpi-sub">FCL · LCL</div></div>
+<div class="kpi"><div class="kpi-lbl">Sea Import</div><div class="kpi-val" id="jobKpiSeaImp">0</div><div class="kpi-sub">FCL · LCL</div></div>
+<div class="kpi"><div class="kpi-lbl">Air Export</div><div class="kpi-val" id="jobKpiAirExp">0</div><div class="kpi-sub">AWB + HAWB</div></div>
+<div class="kpi"><div class="kpi-lbl">Customs CHA</div><div class="kpi-val" id="jobKpiCha">0</div><div class="kpi-sub">Pending OOC: <span id="jobKpiChaPending">0</span></div></div>
+<div class="kpi"><div class="kpi-lbl">Transport</div><div class="kpi-val" id="jobKpiTransport">0</div><div class="kpi-sub">Road delivery</div></div>
 </div>
 <div class="card"><div class="ch">
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -7645,6 +7645,7 @@ function go(screen, opts){
   if(screen==="dashboard") renderDashChart("volume");
   if(screen==="org-list" && window.renderCustomerRows) renderCustomerRows();
   if(screen==="port-master" && window.renderPortRows) renderPortRows();
+  if(screen==="job-list" && window.renderJobRows) renderJobRows();
   if(screen==="job-new" && window.populateCustomerSelect) populateCustomerSelect("nj_shipper");
   if(screen==="quotation-new" && window.populateCustomerSelect) populateCustomerSelect("qn_client");
   if(screen==="booking-new" && window.populateCustomerSelect) populateCustomerSelect("bk_customer");
@@ -8628,6 +8629,48 @@ function renderPortRows(){
       if(countLabel) countLabel.textContent = `Showing ${total} of ${total} ports`;
     })
     .catch(()=>{ /* best-effort; empty state stays as-is */ });
+}
+
+const MODE_BADGE = {Sea:"b-bl", Air:"b-tl", Road:"b-am", Rail:"b-pu"};
+function renderJobRows(){
+  const body = document.getElementById("jobTableBody");
+  const emptyRow = document.getElementById("noJobsRow");
+  const footer = document.getElementById("jobListFooter");
+  if(!body) return;
+  const token = sessionStorage.getItem("eroyal_access_token");
+  if(!token) return;
+  Promise.all([
+    fetch("/api/shipments", {headers:{Authorization:"Bearer "+token}}).then(r=> r.ok ? r.json() : Promise.reject(new Error("failed"))),
+    fetch("/api/customers", {headers:{Authorization:"Bearer "+token}}).then(r=> r.ok ? r.json() : [])
+  ]).then(([jobs, customers])=>{
+    const customerName = {};
+    customers.forEach(c=> customerName[c.id] = c.name);
+    document.querySelectorAll("#jobTableBody tr[data-job-row]").forEach(tr=>tr.remove());
+    if(emptyRow) emptyRow.style.display = jobs.length ? "none" : "";
+    jobs.forEach(j=>{
+      const tr = document.createElement("tr");
+      tr.dataset.jobRow = "1";
+      tr.dataset.mode = j.mode; tr.dataset.dir = j.direction; tr.dataset.status = j.status;
+      const badge = MODE_BADGE[j.mode] || "b-gy";
+      const modeLabel = [j.mode, j.direction, j.container_mode].filter(Boolean).join(" ").toUpperCase();
+      const shipper = j.customer_id && customerName[j.customer_id] ? customerName[j.customer_id] : "—";
+      const route = [j.pol, j.pod].filter(Boolean).join(" → ") || "—";
+      const dates = [j.etd, j.eta].filter(Boolean).join(" / ") || "—";
+      const ar = j.revenue ? `₹${Number(j.revenue).toLocaleString("en-IN")}` : "—";
+      tr.innerHTML = `<td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="${esc(j.job_number)}">${esc(j.job_number)}</span></td><td>${esc(shipper)}</td><td>${esc(j.consignee || "—")}</td><td><span class="b ${badge}">${esc(modeLabel)}</span></td><td>${esc(route)}</td><td>${esc(dates)}</td><td class="mono" style="font-size:10px">${esc(j.bl_awb || "—")}</td><td><span class="b b-gy dot">${esc(j.status)}</span></td><td class="ap">${ar}</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="${esc(j.job_number)}">Open →</button></td>`;
+      body.appendChild(tr);
+    });
+    const total = jobs.length;
+    const setTxt = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent = v; };
+    setTxt("jobKpiTotal", total);
+    setTxt("jobKpiSeaExp", jobs.filter(j=>j.mode==="Sea" && j.direction==="Export").length);
+    setTxt("jobKpiSeaImp", jobs.filter(j=>j.mode==="Sea" && j.direction==="Import").length);
+    setTxt("jobKpiAirExp", jobs.filter(j=>j.mode==="Air" && j.direction==="Export").length);
+    setTxt("jobKpiCha", jobs.filter(j=>j.job_type==="Customs").length);
+    setTxt("jobKpiChaPending", jobs.filter(j=>j.job_type==="Customs" && j.status!=="Delivered" && j.status!=="Closed").length);
+    setTxt("jobKpiTransport", jobs.filter(j=>j.mode==="Road").length);
+    if(footer) footer.textContent = `Showing ${total} of ${total} active jobs`;
+  }).catch(()=>{ /* best-effort; empty state stays as-is */ });
 }
 
 /* Populates a <select> with real customers from Customer Master (used by the
