@@ -1,4 +1,4 @@
-Alembic migration directory for the eRoyal Freight ERP foundation.
+Alembic migration directory for the eSway ERP 2.0 ERP foundation.
 
 Commands from backend:
   alembic current

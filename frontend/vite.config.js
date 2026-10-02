@@ -5,11 +5,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
-const prototypePath = path.resolve(rootDir, '..', 'eRoyal-ai-ERP.html');
+const prototypePath = path.resolve(rootDir, '..', 'esway-erp.html');
 
 function prototypeRoute() {
   return {
-    name: 'eroyal-prototype-route',
+    name: 'esway-prototype-route',
     configureServer(server) {
       server.middlewares.use('/prototype', (_req, res) => {
         res.statusCode = 200;

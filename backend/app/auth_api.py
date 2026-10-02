@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
-from .auth import get_current_user, permission_required, safe_user
+from .auth import get_current_user, permission_required, portal_for, safe_user
 from .db import get_db
 from .licensing import next_license_number
 from .models import AuditLog, Organization, Permission, Role, User
@@ -22,22 +22,55 @@ def record_audit(db: Session, action: str, module: str, user: User | None = None
 
 
 
+MAX_FAILED_LOGINS = 5
+LOCKOUT_MINUTES = 15
+PORTAL_LABELS = {"developer": "Developer / System Administrator", "erp": "ERP", "demo": "Demo"}
+
+
+def _request_meta(request: Request) -> dict:
+    return {"ip": request.client.host if request.client else None, "user_agent": (request.headers.get("user-agent") or "")[:200]}
+
+
 @router.post("/login", response_model=LoginResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    meta = _request_meta(request)
     try:
         identifier = payload.identifier.strip()
         user = db.scalar(select(User).options(selectinload(User.organization), selectinload(User.roles).selectinload(Role.permissions)).where((func.lower(User.email) == identifier.lower()) | (func.lower(User.username) == identifier.lower())))
     except SQLAlchemyError:
         raise HTTPException(status_code=503, detail="Authentication service unavailable: PostgreSQL is not connected")
-    if not user or user.status != "ACTIVE" or not verify_password(payload.password, user.password_hash):
+    now = datetime.now(timezone.utc)
+    if user and user.locked_until and user.locked_until > now:
+        record_audit(db, "LOGIN_BLOCKED_LOCKED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Account temporarily locked after repeated failed sign-ins. Try again later.")
+    portal = portal_for(user) if user else None
+    expected_license = None
+    if user:
+        expected_license = user.organization.license_number if user.organization else db.scalar(select(Organization.license_number).where(Organization.code == "RTS-PLATFORM"))
+    license_ok = True
+    if user and expected_license and portal == "erp":
+        license_ok = (payload.license_number or "").strip().upper() == expected_license.upper()
+    if not user or user.status != "ACTIVE" or not verify_password(payload.password, user.password_hash) or not license_ok:
+        if user:
+            user.failed_login_count = (user.failed_login_count or 0) + 1
+            if user.failed_login_count >= MAX_FAILED_LOGINS:
+                user.locked_until = now + timedelta(minutes=LOCKOUT_MINUTES)
+                user.failed_login_count = 0
+                record_audit(db, "ACCOUNT_LOCKED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
+            record_audit(db, "LOGIN_FAILED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
+            db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    expected_license = user.organization.license_number if user.organization else db.scalar(select(Organization.license_number).where(Organization.code == "RTS-PLATFORM"))
-    if expected_license and payload.license_number.strip().upper() != expected_license.upper():
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    user.last_login_at = datetime.now(timezone.utc)
-    record_audit(db, "LOGIN", "AUTHENTICATION", user, user.organization_id, "User", str(user.id))
+    if payload.portal and payload.portal != portal:
+        record_audit(db, "LOGIN_WRONG_PORTAL", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "requested": payload.portal, "allowed": portal})
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"This account cannot sign in to the {PORTAL_LABELS[payload.portal]} portal. Use the {PORTAL_LABELS[portal]} portal instead.")
+    user.failed_login_count = 0
+    user.locked_until = None
+    user.last_login_at = now
+    record_audit(db, "LOGIN", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "portal": portal})
     db.commit()
-    return {"access_token": create_token(user.id, user.is_super_admin, user.organization_id), "user": safe_user(user)}
+    return {"access_token": create_token(user.id, user.is_super_admin, user.organization_id, portal), "user": safe_user(user)}
 
 
 @router.get("/me", response_model=SafeUser)
@@ -69,7 +102,7 @@ def create_organization(payload: OrganizationAdminCreate, user: User = Depends(p
     db.add(organization)
     db.flush()
     admin_role = Role(name="ERP_ADMIN", organization_id=organization.id, description="Organization administrator", status="ACTIVE")
-    foundation_codes = ["organization.read", "organization.update", "user.read", "user.create", "customer.read", "customer.create", "customer.update", "customer.delete"]
+    foundation_codes = ["organization.read", "organization.update", "user.read", "user.create", "customer.read", "customer.create", "customer.update", "customer.delete", "shipment.read", "shipment.create", "shipment.update", "shipment.delete"]
     admin_role.permissions = db.scalars(select(Permission).where(Permission.code.in_(foundation_codes))).all()
     if len(admin_role.permissions) != len(foundation_codes):
         raise HTTPException(status_code=500, detail="Foundation permissions have not been seeded")

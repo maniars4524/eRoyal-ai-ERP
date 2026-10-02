@@ -1,8 +1,8 @@
-# eRoyal Freight ERP
+# eSway ERP 2.0 ERP
 
-Local full-stack conversion of the eRoyal Freight prototype.
+Local full-stack conversion of the eSway ERP 2.0 prototype.
 
-The original `eRoyal-ai-ERP.html` remains the complete UI reference and is served by the React/Vite shell at `/prototype`. This preserves every existing screen, navigation flow, chart, wizard, modal, drawer, chat panel, and self-contained asset while the backend APIs and database are introduced incrementally behind it.
+The original `esway-erp.html` remains the complete UI reference and is served by the React/Vite shell at `/prototype`. This preserves every existing screen, navigation flow, chart, wizard, modal, drawer, chat panel, and self-contained asset while the backend APIs and database are introduced incrementally behind it.
 
 ## Stack
 
@@ -18,7 +18,7 @@ Prerequisites: Node.js 20+, Python 3.11+, Docker Desktop with the WSL 2 backend 
 If Docker Desktop cannot start and Windows reports that WSL is not installed, open **PowerShell as Administrator** and run `wsl --install`, then restart Windows and Docker Desktop. This is a machine prerequisite; the project will not switch away from PostgreSQL.
 
 ```powershell
-cd e:\eRoyal-ai-ERP
+cd e:\eSway-ai-ERP
 Copy-Item .env.example .env
 docker compose up -d postgres
 
@@ -32,7 +32,7 @@ python -m uvicorn app.main:app --reload --port 8000
 Apply the foundation migration and seed a platform administrator after PostgreSQL is healthy:
 
 ```powershell
-cd e:\eRoyal-ai-ERP\backend
+cd e:\eSway-ai-ERP\backend
 python -m alembic upgrade head
 $env:SUPER_ADMIN_PASSWORD = "use-a-local-password-of-12-or-more-characters"
 python -m app.seed
@@ -41,7 +41,7 @@ python -m app.seed
 In a second terminal:
 
 ```powershell
-cd e:\eRoyal-ai-ERP\frontend
+cd e:\eSway-ai-ERP\frontend
 npm install
 npm run dev
 ```

@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 class LoginRequest(BaseModel):
     identifier: str = Field(min_length=1, max_length=254)
     password: str = Field(min_length=1, max_length=256)
-    license_number: str = Field(min_length=1, max_length=20)
+    license_number: str | None = Field(default=None, max_length=20)
+    portal: str | None = Field(default=None, pattern="^(developer|erp|demo)$")
 
 
 class OrganizationAdminCreate(BaseModel):
@@ -126,6 +127,7 @@ class SafeUser(BaseModel):
     is_super_admin: bool
     roles: list[str]
     permissions: list[str]
+    portal: str
 
 
 class LoginResponse(BaseModel):

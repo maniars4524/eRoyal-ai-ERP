@@ -1,16 +1,16 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: eroyal-postgres
+    container_name: esway-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-eroyal}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-eroyal}
-      POSTGRES_DB: ${DB_NAME:-eroyal_erp}
+      POSTGRES_USER: ${DB_USER:-esway}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-esway}
+      POSTGRES_DB: ${DB_NAME:-esway_erp}
     ports:
       - "5432:5432"
     volumes:
-      - eroyal-postgres-data:/var/lib/postgresql/data
+      - esway-postgres-data:/var/lib/postgresql/data
 
 volumes:
-  eroyal-postgres-data:
+  esway-postgres-data:

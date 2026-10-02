@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,7 +16,7 @@ from .config import CORS_ORIGINS, IS_PRODUCTION
 from .db import Base, engine
 from . import models
 
-UI_FILE = Path(__file__).resolve().parents[2] / "eRoyal-ai-ERP.html"
+UI_FILE = Path(__file__).resolve().parents[2] / "esway-erp.html"
 
 app = FastAPI(title="eSway ERP 2.0 API", version="2.0.0")
 
@@ -68,8 +68,33 @@ def dashboard_summary() -> dict[str, object]:
     }
 
 
+LANDING_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>eSway ERP 2.0</title><style>
+:root{--bg:#0b1f3a;--card:#fff;--ink:#0b1f3a;--mut:#5b6b82;--acc:#1a6fbf}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);font-family:system-ui,Segoe UI,Arial,sans-serif;padding:16px}
+main{width:100%;max-width:880px}h1{color:#fff;text-align:center;margin:0 0 4px;font-size:28px}p.s{color:#a9bbd3;text-align:center;margin:0 0 24px}
+.g{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+a{background:var(--card);color:var(--ink);border-radius:12px;padding:20px;text-decoration:none;display:block}
+a:hover{outline:3px solid var(--acc)}b{font-size:17px;display:block;margin-bottom:6px}span{color:var(--mut);font-size:13.5px;line-height:1.4}
+</style></head><body><main><h1>eSway ERP 2.0</h1><p class="s">Choose your portal</p><div class="g">
+<a href="/erp/login"><b>ERP</b><span>Employees and business users. Operations, finance and reports.</span></a>
+<a href="/demo/login"><b>Demo</b><span>Explore the system with sample data. No production data.</span></a>
+<a href="/developer/login"><b>Developer / Admin</b><span>System administration, companies, users and security.</span></a>
+</div></main></body></html>"""
+
+
 @app.get("/", include_in_schema=False)
+def landing() -> HTMLResponse:
+    return HTMLResponse(LANDING_HTML, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/prototype", include_in_schema=False)
+@app.get("/developer", include_in_schema=False)
+@app.get("/developer/login", include_in_schema=False)
+@app.get("/erp", include_in_schema=False)
+@app.get("/erp/login", include_in_schema=False)
+@app.get("/demo", include_in_schema=False)
+@app.get("/demo/login", include_in_schema=False)
 def ui() -> FileResponse:
-    """Serve the single-page ERP UI (in development Vite serves it instead)."""
+    """Serve the single-page ERP UI; the page picks its portal (developer/erp/demo) from the URL path."""
     return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-store"})

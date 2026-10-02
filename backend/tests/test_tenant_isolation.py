@@ -34,7 +34,7 @@ def _ensure_permissions_seeded(db):
 
 
 def _make_super_admin(db, suffix):
-    email = f"tenant-test-super-{suffix}@eroyal.local"
+    email = f"tenant-test-super-{suffix}@esway.local"
     password = "Sup3r-Admin-Test-Pass!"
     user = User(email=email, username=f"super{suffix}", password_hash=hash_password(password), first_name="Test", last_name="SuperAdmin", is_super_admin=True)
     db.add(user)
@@ -45,7 +45,7 @@ def _make_super_admin(db, suffix):
 def _platform_license_number(db):
     platform = db.scalar(select(Organization).where(Organization.code == "RTS-PLATFORM"))
     if not platform:
-        platform = Organization(code="RTS-PLATFORM", license_number=next_license_number(db), name="eRoyal", legal_name="eRoyal", country="India", status="ACTIVE")
+        platform = Organization(code="RTS-PLATFORM", license_number=next_license_number(db), name="eSway", legal_name="eSway", country="India", status="ACTIVE")
         db.add(platform)
         db.commit()
     return platform.license_number

@@ -9,9 +9,9 @@ load_dotenv(Path(__file__).resolve().parents[2] / os.getenv("ENV_FILE", ".env"))
 
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "eroyal_erp")
-DB_USER = os.getenv("DB_USER", "eroyal")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "eroyal")
+DB_NAME = os.getenv("DB_NAME", "esway_erp")
+DB_USER = os.getenv("DB_USER", "esway")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "esway")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
 IS_PRODUCTION = APP_ENV == "production"
 

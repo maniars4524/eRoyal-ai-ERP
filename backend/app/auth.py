@@ -26,13 +26,30 @@ def get_current_user(
     user = db.scalar(select(User).options(selectinload(User.organization), selectinload(User.roles).selectinload(Role.permissions)).where(User.id == user_id))
     if not user or user.status != "ACTIVE":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive or unavailable")
+    token_portal = claims.get("portal")
+    if token_portal and token_portal != portal_for(user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Session is not valid for this account")
     return user
+
+
+DEMO_BLOCKED_PERMISSIONS = {"organization.update", "organization.create", "user.create"}
+
+
+def portal_for(user: User) -> str:
+    """The one portal an account may use, derived from the account itself (never from the client)."""
+    if user.is_super_admin:
+        return "developer"
+    if user.organization and user.organization.is_demo:
+        return "demo"
+    return "erp"
 
 
 def permission_required(code: str):
     def dependency(user: User = Depends(get_current_user)) -> User:
         if user.is_super_admin:
             return user
+        if portal_for(user) == "demo" and (code.endswith(".delete") or code in DEMO_BLOCKED_PERMISSIONS):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This action is not available in the demo environment")
         permissions = {permission.code for role in user.roles for permission in role.permissions}
         if code not in permissions:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
@@ -48,8 +65,9 @@ def safe_user(user: User) -> dict:
         "first_name": user.first_name,
         "last_name": user.last_name,
         "organization_id": user.organization_id,
-        "organization_name": user.organization.name if user.organization else "eRoyal",
+        "organization_name": user.organization.name if user.organization else "eSway ERP 2.0",
         "is_super_admin": user.is_super_admin,
         "roles": [role.name for role in user.roles],
         "permissions": sorted({permission.code for role in user.roles for permission in role.permissions}),
+        "portal": portal_for(user),
     }
