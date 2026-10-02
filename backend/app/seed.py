@@ -19,6 +19,10 @@ PERMISSIONS = [
     ("customer.create", "Create customers", "customer", "create"),
     ("customer.update", "Update customers", "customer", "update"),
     ("customer.delete", "Delete customers", "customer", "delete"),
+    ("master.read", "Read master data", "master", "read"),
+    ("master.create", "Create master data", "master", "create"),
+    ("master.update", "Update master data", "master", "update"),
+    ("master.delete", "Delete master data", "master", "delete"),
     ("shipment.read", "Read shipment jobs", "shipment", "read"),
     ("shipment.create", "Create shipment jobs", "shipment", "create"),
     ("shipment.update", "Update shipment jobs", "shipment", "update"),
@@ -87,7 +91,7 @@ def seed_demo_portal() -> None:
         if not role:
             role = Role(name="DEMO_USER", organization_id=org.id, description="Demo evaluator (no destructive actions)", status="ACTIVE")
             db.add(role)
-        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
+        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "master.read", "master.create", "master.update", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
         email = os.getenv("DEMO_PORTAL_EMAIL", "demo@esway.local")
         username = os.getenv("DEMO_PORTAL_USERNAME", "demo")
         if not db.scalar(select(User).where((User.email == email) | (User.username == username))):

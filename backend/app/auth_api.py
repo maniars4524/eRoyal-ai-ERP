@@ -102,7 +102,7 @@ def create_organization(payload: OrganizationAdminCreate, user: User = Depends(p
     db.add(organization)
     db.flush()
     admin_role = Role(name="ERP_ADMIN", organization_id=organization.id, description="Organization administrator", status="ACTIVE")
-    foundation_codes = ["organization.read", "organization.update", "user.read", "user.create", "customer.read", "customer.create", "customer.update", "customer.delete", "shipment.read", "shipment.create", "shipment.update", "shipment.delete"]
+    foundation_codes = ["organization.read", "organization.update", "user.read", "user.create", "customer.read", "customer.create", "customer.update", "customer.delete", "shipment.read", "shipment.create", "shipment.update", "shipment.delete", "master.read", "master.create", "master.update", "master.delete"]
     admin_role.permissions = db.scalars(select(Permission).where(Permission.code.in_(foundation_codes))).all()
     if len(admin_role.permissions) != len(foundation_codes):
         raise HTTPException(status_code=500, detail="Foundation permissions have not been seeded")
