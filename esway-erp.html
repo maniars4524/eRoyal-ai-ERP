@@ -2219,9 +2219,7 @@ tbody tr:hover{background:var(--g0)}
     <input class="fc" id="deptSearch" placeholder="Search department…" style="width:200px">
   </div>
 </div>
-<div class="tw"><table id="deptTable"><thead><tr><th>Code</th><th>Department Name</th><th>Department Head</th><th>Email</th><th>Phone</th><th>Employees</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="deptTableBody">
-<tr><td colspan="8" style="text-align:center;color:var(--g5);padding:14px">No departments yet — click "New Department" to add the first one.</td></tr>
-</tbody></table></div>
+<div class="tw"><table id="deptTable"><thead><tr><th>Code</th><th>Department Name</th><th>Department Head</th><th>Email</th><th>Phone</th><th>Employees</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="deptTableBody"></tbody></table></div>
 <div class="cf">Showing 0 of 0 departments</div></div></div>
 
 <!-- ====== DEPARTMENT NEW ====== -->
@@ -2255,18 +2253,7 @@ tbody tr:hover{background:var(--g0)}
     <select class="fc" id="desigDeptFilter" style="width:170px"><option value="">All Departments</option><option>Operations</option><option>Sales &amp; Marketing</option><option>Customs &amp; Documentation</option><option>Finance &amp; Accounts</option><option>Human Resources</option><option>Warehouse &amp; Transport</option></select>
   </div>
 </div>
-<div class="tw"><table id="desigTable"><thead><tr><th>Code</th><th>Designation</th><th>Department</th><th>Grade</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="desigTableBody">
-<tr data-dept="Operations"><td><span class="chip">OPS-MGR</span></td><td>Operations Manager</td><td>Operations</td><td><span class="b b-tl">Grade 4</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Operations"><td><span class="chip">OPS-EXE</span></td><td>Operations Executive</td><td>Operations</td><td><span class="b b-tl">Grade 2</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Sales &amp; Marketing"><td><span class="chip">SLS-MGR</span></td><td>Sales Manager</td><td>Sales &amp; Marketing</td><td><span class="b b-tl">Grade 4</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Sales &amp; Marketing"><td><span class="chip">SLS-EXE</span></td><td>Sales Executive</td><td>Sales &amp; Marketing</td><td><span class="b b-tl">Grade 2</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Customs &amp; Documentation"><td><span class="chip">CUS-OFF</span></td><td>Customs Officer</td><td>Customs &amp; Documentation</td><td><span class="b b-tl">Grade 3</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Customs &amp; Documentation"><td><span class="chip">DOC-EXE</span></td><td>Documentation Executive</td><td>Customs &amp; Documentation</td><td><span class="b b-tl">Grade 2</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Finance &amp; Accounts"><td><span class="chip">FIN-MGR</span></td><td>Finance Manager</td><td>Finance &amp; Accounts</td><td><span class="b b-tl">Grade 4</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Finance &amp; Accounts"><td><span class="chip">ACC-EXE</span></td><td>Accounts Executive</td><td>Finance &amp; Accounts</td><td><span class="b b-tl">Grade 2</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Human Resources"><td><span class="chip">HR-EXE</span></td><td>HR Executive</td><td>Human Resources</td><td><span class="b b-tl">Grade 2</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-<tr data-dept="Warehouse &amp; Transport"><td><span class="chip">WHS-SUP</span></td><td>Warehouse Supervisor</td><td>Warehouse &amp; Transport</td><td><span class="b b-tl">Grade 3</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="emp-list">View →</button></td></tr>
-</tbody></table></div>
+<div class="tw"><table id="desigTable"><thead><tr><th>Code</th><th>Designation</th><th>Department</th><th>Grade</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="desigTableBody"></tbody></table></div>
 <div class="cf">Showing 10 of 10 designations</div></div></div>
 
 <!-- ====== DESIGNATION NEW ====== -->
@@ -5572,15 +5559,13 @@ Select rate lines to see summary.
 <div id="s-branch-master" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="building" style="color:var(--bl)"></svg>Branch Master</div><div class="ps">Manage all branch offices — freight, CHA, transport, warehouse configuration per branch</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="branches"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="branch-detail"><svg class="ic" data-icon="plus"></svg> New Branch</button></div></div>
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Branches</div><div class="kpi-val">0</div><div class="kpi-sub">—</div></div>
-  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val">0</div><div class="kpi-sub">—</div></div>
-  <div class="kpi"><div class="kpi-lbl">Inactive</div><div class="kpi-val">0</div><div class="kpi-sub">—</div></div>
-  <div class="kpi"><div class="kpi-lbl">Countries</div><div class="kpi-val">0</div><div class="kpi-sub">—</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Branches</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Inactive</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Countries</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 <div class="card"><div class="ch"><div class="ct">All Branches</div><input class="fc" placeholder="Search branch…" style="width:180px"></div>
-<div class="tw"><table><thead><tr><th>Branch Code</th><th>Branch Name</th><th>Country</th><th>City</th><th>Currency</th><th>Services</th><th>Manager</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No branches yet — click "New Branch" to add the first one.</td></tr>
-</tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Branch Code</th><th>Branch Name</th><th>Country</th><th>City</th><th>Currency</th><th>Services</th><th>Manager</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 <!-- ====== BRANCH MASTER DETAIL ====== -->
@@ -5606,8 +5591,8 @@ Select rate lines to see summary.
 <div id="br1" class="tp on">
 <div class="card"><div class="ch"><div class="ct">Basic Information</div><span class="b b-gr dot">Active Branch</span></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Branch Code <span class="r">*</span></label><input class="fc" value="CHN-001" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Branch Name <span class="r">*</span></label><input class="fc" value="Chennai HQ"></div>
+  <div class="fg"><label class="fl">Branch Code <span class="r">*</span></label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Branch Name <span class="r">*</span></label><input class="fc"></div>
   <div class="fg"><label class="fl">Branch Type</label><select class="fc"><option>Head Office</option><option>Regional Office</option><option>Branch Office</option><option>Representative Office</option></select></div>
   <div class="fg"><label class="fl">Status</label><select class="fc"><option>Active</option><option>Inactive</option><option>Suspended</option></select></div>
 </div>
@@ -5618,11 +5603,11 @@ Select rate lines to see summary.
   <div class="fg"><label class="fl">Branch Locality <span class="r">*</span></label><select class="fc" id="br_locality"><option value="local">Local Branch</option><option value="overseas">Overseas Branch</option></select></div>
   <div class="fg"><label class="fl" id="br_country_lbl">Country</label><select class="fc" id="br_country" disabled><option>India</option></select></div>
   <div class="fg"><label class="fl" id="br_state_lbl">State</label><select class="fc" id="br_state"><option>Tamil Nadu</option><option>Karnataka</option><option>Maharashtra</option><option>Delhi</option><option>Gujarat</option></select></div>
-  <div class="fg"><label class="fl" id="br_city_lbl">City</label><input class="fc" id="br_city" value="Chennai"></div>
+  <div class="fg"><label class="fl" id="br_city_lbl">City</label><input class="fc" id="br_city"></div>
 </div>
 <div class="fr" id="br_subbranch_wrap">
   <div class="fg" style="grid-column:span 2"><label class="fl">Sub Branch <span style="color:var(--g4);font-weight:400">(optional — Local Branch only)</span></label><input class="fc" id="br_subbranch" placeholder="e.g. Chennai — Ambattur Depot"></div>
-  <div class="fg" style="grid-column:span 2"><label class="fl">Hierarchy Path</label><input class="fc" id="br_hierarchy_path" value="India → Tamil Nadu → Chennai" readonly style="color:var(--g5)"></div>
+  <div class="fg" style="grid-column:span 2"><label class="fl">Hierarchy Path</label><input class="fc" id="br_hierarchy_path" readonly style="color:var(--g5)"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Local Currency</label><select class="fc"><option>INR — Indian Rupee</option><option>USD — US Dollar</option><option>AED — UAE Dirham</option></select></div>
@@ -5631,9 +5616,9 @@ Select rate lines to see summary.
   <div class="fg"><label class="fl">Financial Year Start</label><select class="fc"><option>April 1</option><option>January 1</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 2"><label class="fl">IATA Agent Code</label><input class="fc" value="14-3-1234" style="font-family:var(--font-mono)"></div>
+  <div class="fg" style="grid-column:span 2"><label class="fl">IATA Agent Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">FIATA Member No.</label><input class="fc" placeholder="FIATA-XXXX" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Established Date</label><input class="fc" type="date" value="2018-06-01"></div>
+  <div class="fg"><label class="fl">Established Date</label><input class="fc" type="date"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Services Offered</label>
@@ -5655,33 +5640,33 @@ Select rate lines to see summary.
 <div class="card"><div class="ch"><div class="ct">Address &amp; Contact Details</div></div><div class="cb">
 <div class="fsec">Registered Address</div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 2"><label class="fl">Address Line 1</label><input class="fc" value="No.8, Old 19, 1st Main Road, Second Cross Street"></div>
-  <div class="fg" style="grid-column:span 2"><label class="fl">Address Line 2</label><input class="fc" value="Kalaimagal Nagar"></div>
+  <div class="fg" style="grid-column:span 2"><label class="fl">Address Line 1</label><input class="fc"></div>
+  <div class="fg" style="grid-column:span 2"><label class="fl">Address Line 2</label><input class="fc"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">City</label><input class="fc" value="Chennai"></div>
-  <div class="fg"><label class="fl">State</label><input class="fc" value="Tamil Nadu"></div>
-  <div class="fg"><label class="fl">PIN / ZIP</label><input class="fc" value="600032"></div>
+  <div class="fg"><label class="fl">City</label><input class="fc"></div>
+  <div class="fg"><label class="fl">State</label><input class="fc"></div>
+  <div class="fg"><label class="fl">PIN / ZIP</label><input class="fc"></div>
   <div class="fg"><label class="fl">Country</label><select class="fc"><option>India</option></select></div>
 </div>
 <div class="fsec">Contact Information</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Primary Phone</label><input class="fc" value="044-4266 9886"></div>
-  <div class="fg"><label class="fl">Secondary Phone</label><input class="fc" value="93854 13685"></div>
+  <div class="fg"><label class="fl">Primary Phone</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Secondary Phone</label><input class="fc"></div>
   <div class="fg"><label class="fl">Fax</label><input class="fc" placeholder="Fax number"></div>
   <div class="fg"><label class="fl">Emergency No.</label><input class="fc" placeholder="24/7 emergency"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Primary Email</label><input class="fc" value="admin@royaltechsystems.co.in"></div>
-  <div class="fg"><label class="fl">Operations Email</label><input class="fc" value="ops@royaltechsystems.co.in"></div>
-  <div class="fg"><label class="fl">Accounts Email</label><input class="fc" value="accounts@royaltechsystems.co.in"></div>
-  <div class="fg"><label class="fl">Website</label><input class="fc" value="www.royaltechsystems.co.in"></div>
+  <div class="fg"><label class="fl">Primary Email</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Operations Email</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Accounts Email</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Website</label><input class="fc"></div>
 </div>
 <div class="fsec">Branch Manager</div>
 <div class="fr">
   <div class="fg"><label class="fl">Branch Manager</label><select class="fc"><option>Rajan Kumar</option><option>Suresh Nair</option><option>Priya Menon</option></select></div>
-  <div class="fg"><label class="fl">Manager Mobile</label><input class="fc" value="+91 98400 12345"></div>
-  <div class="fg"><label class="fl">Manager Email</label><input class="fc" value="rajan@royaltechsystems.co.in"></div>
+  <div class="fg"><label class="fl">Manager Mobile</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Manager Email</label><input class="fc"></div>
   <div class="fg"><label class="fl">Alt. Contact</label><input class="fc" placeholder="Alternate contact person"></div>
 </div>
 </div></div>
@@ -5692,23 +5677,23 @@ Select rate lines to see summary.
 <div class="card"><div class="ch"><div class="ct">Tax &amp; Registrations</div></div><div class="cb">
 <div class="fsec">GST / VAT Registration</div>
 <div class="fr">
-  <div class="fg"><label class="fl">GSTIN (India)</label><input class="fc" value="33AALCR6369P1ZI" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">GST Registration Date</label><input class="fc" type="date" value="2018-07-01"></div>
+  <div class="fg"><label class="fl">GSTIN (India)</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">GST Registration Date</label><input class="fc" type="date"></div>
   <div class="fg"><label class="fl">GST Type</label><select class="fc"><option>Regular</option><option>Composition</option><option>SEZ Unit</option></select></div>
-  <div class="fg"><label class="fl">TAN No.</label><input class="fc" value="CHEN12345D" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">TAN No.</label><input class="fc" style="font-family:var(--font-mono)"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">PAN Number</label><input class="fc" value="AALCR6369P" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">CIN No.</label><input class="fc" value="U63030TN2022PTC" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">IEC Code</label><input class="fc" value="AABCR1234F" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">PAN Number</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">CIN No.</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">IEC Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">DPIIT / MSME No.</label><input class="fc" placeholder="MSME / Udyam No."></div>
 </div>
 <div class="fsec">Freight &amp; Customs Licences</div>
 <div class="fr">
-  <div class="fg"><label class="fl">CHA Licence No.</label><input class="fc" value="1/CH/99/16854" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">CHA Licence Expiry</label><input class="fc" type="date" value="2026-12-31"></div>
-  <div class="fg"><label class="fl">IATA Agent Code</label><input class="fc" value="14-3-1234" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">IATA Expiry</label><input class="fc" type="date" value="2026-06-30"></div>
+  <div class="fg"><label class="fl">CHA Licence No.</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">CHA Licence Expiry</label><input class="fc" type="date"></div>
+  <div class="fg"><label class="fl">IATA Agent Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">IATA Expiry</label><input class="fc" type="date"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">FIATA Membership</label><input class="fc" placeholder="FIATA Membership No."></div>
@@ -5731,15 +5716,15 @@ Select rate lines to see summary.
     <div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" style="font-size:11px">Edit</button><button class="btn btn-out btn-sm" style="font-size:11px;color:var(--rd)">Remove</button></div>
   </div>
   <div class="fr">
-    <div class="fg"><label class="fl">Bank Name</label><input class="fc" value="HDFC Bank Ltd"></div>
-    <div class="fg"><label class="fl">Account Name</label><input class="fc" value="eSway ERP 2.0 Pvt Ltd"></div>
-    <div class="fg"><label class="fl">Account No.</label><input class="fc" value="50200012345678" style="font-family:var(--font-mono)"></div>
+    <div class="fg"><label class="fl">Bank Name</label><input class="fc"></div>
+    <div class="fg"><label class="fl">Account Name</label><input class="fc"></div>
+    <div class="fg"><label class="fl">Account No.</label><input class="fc" style="font-family:var(--font-mono)"></div>
     <div class="fg"><label class="fl">Currency</label><select class="fc"><option>INR ₹</option><option>USD $</option></select></div>
   </div>
   <div class="fr">
-    <div class="fg"><label class="fl">IFSC Code</label><input class="fc" value="HDFC0001234" style="font-family:var(--font-mono)"></div>
+    <div class="fg"><label class="fl">IFSC Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
     <div class="fg"><label class="fl">Account Type</label><select class="fc"><option>Current</option><option>Savings</option><option>OD / CC</option></select></div>
-    <div class="fg"><label class="fl">Branch</label><input class="fc" value="George Town, Chennai"></div>
+    <div class="fg"><label class="fl">Branch</label><input class="fc"></div>
     <div class="fg"><label class="fl">MICR Code</label><input class="fc" placeholder="MICR" style="font-family:var(--font-mono)"></div>
   </div>
 </div>
@@ -5750,10 +5735,10 @@ Select rate lines to see summary.
     <div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" style="font-size:11px">Edit</button><button class="btn btn-out btn-sm" style="font-size:11px;color:var(--rd)">Remove</button></div>
   </div>
   <div class="fr">
-    <div class="fg"><label class="fl">Bank Name</label><input class="fc" value="Standard Chartered Bank"></div>
-    <div class="fg"><label class="fl">Account No.</label><input class="fc" value="428101234567" style="font-family:var(--font-mono)"></div>
+    <div class="fg"><label class="fl">Bank Name</label><input class="fc"></div>
+    <div class="fg"><label class="fl">Account No.</label><input class="fc" style="font-family:var(--font-mono)"></div>
     <div class="fg"><label class="fl">Currency</label><select class="fc"><option>USD $</option><option>INR ₹</option></select></div>
-    <div class="fg"><label class="fl">SWIFT Code</label><input class="fc" value="SCBLUS33XXX" style="font-family:var(--font-mono)"></div>
+    <div class="fg"><label class="fl">SWIFT Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
   </div>
 </div>
 </div>
@@ -5772,9 +5757,9 @@ Select rate lines to see summary.
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Default Carrier</label><select class="fc"><option>MSC Mediterranean</option><option>CMA CGM</option><option>Hapag-Lloyd</option><option>ONE Line</option></select></div>
-  <div class="fg"><label class="fl">Free Days (Detention)</label><input class="fc" value="14"></div>
-  <div class="fg"><label class="fl">Free Days (Demurrage)</label><input class="fc" value="7"></div>
-  <div class="fg"><label class="fl">BL Signing Agent</label><input class="fc" value="MSC Agency India"></div>
+  <div class="fg"><label class="fl">Free Days (Detention)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Free Days (Demurrage)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">BL Signing Agent</label><input class="fc"></div>
 </div>
 <div class="fsec">Air Freight</div>
 <div class="fr">
@@ -5785,16 +5770,16 @@ Select rate lines to see summary.
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">CASS Participant</label><select class="fc"><option>Yes</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">AWB Stock Prefix</label><input class="fc" value="176" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">HAWB Prefix</label><input class="fc" value="ERTL" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Vol. Wt Divisor</label><input class="fc" value="6000"></div>
+  <div class="fg"><label class="fl">AWB Stock Prefix</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">HAWB Prefix</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Vol. Wt Divisor</label><input class="fc"></div>
 </div>
 <div class="fsec">Documentation</div>
 <div class="fr">
-  <div class="fg"><label class="fl">HBL Prefix</label><input class="fc" value="RLHBL" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Job No. Prefix</label><input class="fc" value="CHN" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Invoice Prefix</label><input class="fc" value="RLPL/INV" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Quote Prefix</label><input class="fc" value="QTN/CHN" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">HBL Prefix</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Job No. Prefix</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Invoice Prefix</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Quote Prefix</label><input class="fc" style="font-family:var(--font-mono)"></div>
 </div>
 </div></div>
 </div>
@@ -5805,9 +5790,9 @@ Select rate lines to see summary.
 <div class="fsec">Customs Operations</div>
 <div class="fr">
   <div class="fg"><label class="fl">CHA Service Enabled</label><select class="fc"><option>Yes</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">CHA Licence No.</label><input class="fc" value="1/CH/99/16854" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">CHA Licence No.</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">Default Customs Station</label><select class="fc"><option>Chennai Sea Port</option><option>Chennai Air Cargo</option><option>ICD Irugur</option></select></div>
-  <div class="fg"><label class="fl">ICEGATE User ID</label><input class="fc" value="RLPL_CHN_001" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">ICEGATE User ID</label><input class="fc" style="font-family:var(--font-mono)"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Export Customs</label><select class="fc"><option>Enabled</option><option>Disabled</option></select></div>
@@ -5832,19 +5817,19 @@ Select rate lines to see summary.
 <div class="fr">
   <div class="fg"><label class="fl">Transport Enabled</label><select class="fc"><option>Yes</option><option>No</option></select></div>
   <div class="fg"><label class="fl">Own Fleet</label><select class="fc"><option>Yes</option><option>No — Outsourced</option></select></div>
-  <div class="fg"><label class="fl">No. of Vehicles</label><input class="fc" value="8"></div>
-  <div class="fg"><label class="fl">Truck Prefix</label><input class="fc" value="CHN-TRK" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">No. of Vehicles</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Truck Prefix</label><input class="fc" style="font-family:var(--font-mono)"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Max Load (Tons)</label><input class="fc" value="25"></div>
+  <div class="fg"><label class="fl">Max Load (Tons)</label><input class="fc"></div>
   <div class="fg"><label class="fl">GPS Tracking</label><select class="fc"><option>Enabled</option><option>Disabled</option></select></div>
-  <div class="fg"><label class="fl">GPS Provider</label><input class="fc" value="TrackPlus India"></div>
+  <div class="fg"><label class="fl">GPS Provider</label><input class="fc"></div>
   <div class="fg"><label class="fl">24/7 Operations</label><select class="fc"><option>Yes</option><option>No</option></select></div>
 </div>
 <div class="fsec">Delivery Routes</div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 2"><label class="fl">Primary Service Routes</label><textarea class="fc" rows="2">Chennai Port → Krishnagiri | Chennai Air → Bangalore | Chennai → Mumbai (Long Haul)</textarea></div>
-  <div class="fg"><label class="fl">Delivery SLA (Hours)</label><input class="fc" value="24"></div>
+  <div class="fg" style="grid-column:span 2"><label class="fl">Primary Service Routes</label><textarea class="fc" rows="2"></textarea></div>
+  <div class="fg"><label class="fl">Delivery SLA (Hours)</label><input class="fc"></div>
   <div class="fg"><label class="fl">Same-day Delivery</label><select class="fc"><option>Available</option><option>Not Available</option></select></div>
 </div>
 </div></div>
@@ -5856,21 +5841,21 @@ Select rate lines to see summary.
 <div class="fsec">Warehouse Configuration</div>
 <div class="fr">
   <div class="fg"><label class="fl">Warehouse Enabled</label><select class="fc"><option>Yes</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">Warehouse Code</label><input class="fc" value="CHN-WH-01" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Total Area (sq.ft)</label><input class="fc" value="25000"></div>
-  <div class="fg"><label class="fl">Usable Area (sq.ft)</label><input class="fc" value="22000"></div>
+  <div class="fg"><label class="fl">Warehouse Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Total Area (sq.ft)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Usable Area (sq.ft)</label><input class="fc"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Warehouse Type</label><select class="fc"><option>CFS (Container Freight Station)</option><option>ICD</option><option>Bonded</option><option>General</option><option>Cold Storage</option></select></div>
   <div class="fg"><label class="fl">Bonded Warehouse</label><select class="fc"><option>Yes — Licence: BOND-2024-001</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">Free Period (Days)</label><input class="fc" value="5"></div>
+  <div class="fg"><label class="fl">Free Period (Days)</label><input class="fc"></div>
   <div class="fg"><label class="fl">Overtime Charges</label><select class="fc"><option>Yes</option><option>No</option></select></div>
 </div>
 <div class="fsec">Inventory Controls</div>
 <div class="fr">
   <div class="fg"><label class="fl">WMS Integration</label><select class="fc"><option>Built-in WMS</option><option>External WMS</option><option>Manual</option></select></div>
   <div class="fg"><label class="fl">Barcode / RFID</label><select class="fc"><option>Barcode</option><option>RFID</option><option>Both</option><option>None</option></select></div>
-  <div class="fg"><label class="fl">Pallets Available</label><input class="fc" value="500"></div>
+  <div class="fg"><label class="fl">Pallets Available</label><input class="fc"></div>
   <div class="fg"><label class="fl">Racking System</label><select class="fc"><option>Drive-in Racking</option><option>Selective Racking</option><option>Cantilever</option></select></div>
 </div>
 </div></div>
@@ -5880,14 +5865,14 @@ Select rate lines to see summary.
 <div id="br9" class="tp">
 <div class="card"><div class="ch"><div class="ct">Financial Controls</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Credit Limit (Default)</label><input class="fc" value="500000"></div>
-  <div class="fg"><label class="fl">Credit Days (Default)</label><input class="fc" value="30"></div>
+  <div class="fg"><label class="fl">Credit Limit (Default)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Credit Days (Default)</label><input class="fc"></div>
   <div class="fg"><label class="fl">Invoice Approval Required</label><select class="fc"><option>Yes — Manager</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">Min Invoice Amount</label><input class="fc" value="1000"></div>
+  <div class="fg"><label class="fl">Min Invoice Amount</label><input class="fc"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Auto-post Invoices</label><select class="fc"><option>No — Manual Approval</option><option>Yes</option></select></div>
-  <div class="fg"><label class="fl">Late Payment Fee %</label><input class="fc" value="1.5"></div>
+  <div class="fg"><label class="fl">Late Payment Fee %</label><input class="fc"></div>
   <div class="fg"><label class="fl">TDS Deduction</label><select class="fc"><option>Applicable — 2%</option><option>Not Applicable</option></select></div>
   <div class="fg"><label class="fl">COD Allowed</label><select class="fc"><option>Yes</option><option>No</option></select></div>
 </div>
@@ -5917,11 +5902,7 @@ Select rate lines to see summary.
 <!-- BR11: Audit Log -->
 <div id="br11" class="tp">
 <div class="card"><div class="ch"><div class="ct">Audit &amp; System Log</div><button class="btn btn-out btn-sm" data-export="branch-audit"><svg class="ic" data-icon="download"></svg> Export Log</button></div>
-<div class="tw"><table><thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Field Changed</th><th>Old Value</th><th>New Value</th><th>IP Address</th></tr></thead><tbody>
-<tr><td>25 Jun 2026 14:32</td><td>Mani Kumar</td><td><span class="b b-bl">Updated</span></td><td>Credit Days</td><td>45</td><td>30</td><td class="mono">192.168.1.10</td></tr>
-<tr><td>22 Jun 2026 11:15</td><td>Rajan Kumar</td><td><span class="b b-gr">Created</span></td><td>Bank Account</td><td>—</td><td>SCB USD Account</td><td class="mono">192.168.1.14</td></tr>
-<tr><td>18 Jun 2026 09:40</td><td>Mani Kumar</td><td><span class="b b-am">Updated</span></td><td>IATA Expiry</td><td>2025-06-30</td><td>2026-06-30</td><td class="mono">192.168.1.10</td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Field Changed</th><th>Old Value</th><th>New Value</th><th>IP Address</th></tr></thead><tbody></tbody></table></div>
 </div>
 </div>
 
@@ -6104,10 +6085,10 @@ Select rate lines to see summary.
 <div id="s-country-master" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="globe" style="color:var(--bl)"></svg>Country Master</div><div class="ps">Global country configuration — trade compliance, ports, customs, freight &amp; finance settings</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="countries"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="country-detail"><svg class="ic" data-icon="plus"></svg> Add Country</button></div></div>
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Countries</div><div class="kpi-val">249</div><div class="kpi-sub">ISO 3166 loaded</div></div>
-  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val up">42</div><div class="kpi-sub">Operational</div></div>
-  <div class="kpi"><div class="kpi-lbl">Trade Lanes</div><div class="kpi-val">18</div><div class="kpi-sub">Active corridors</div></div>
-  <div class="kpi"><div class="kpi-lbl">Currencies</div><div class="kpi-val">28</div><div class="kpi-sub">Active currencies</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Countries</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val up">42</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Trade Lanes</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Currencies</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 <div class="card"><div class="ch"><div class="ct">Country List</div>
 <div style="display:flex;gap:8px">
@@ -6115,16 +6096,7 @@ Select rate lines to see summary.
   <select class="fc" style="width:130px"><option>All Status</option><option>Active</option><option>Inactive</option></select>
   <input class="fc" placeholder="Search country / code…" style="width:180px">
 </div></div>
-<div class="tw"><table><thead><tr><th>Flag</th><th>Country Name</th><th>ISO Code</th><th>Numeric</th><th>Currency</th><th>Region</th><th>Ports</th><th>Trade Lane</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td style="font-size:18px">🇮🇳</td><td class="ta" data-go="country-detail" style="font-weight:600;color:var(--bl)">India</td><td class="mono">IN / IND</td><td class="mono">356</td><td>INR ₹</td><td>South Asia</td><td><span class="b b-bl" style="font-size:9.5px">12 Sea</span> <span class="b b-tl" style="font-size:9.5px">8 Air</span></td><td><span class="b b-gr dot">Active</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="country-detail">Edit →</button></td></tr>
-<tr><td style="font-size:18px">🇦🇪</td><td class="ta" data-go="country-detail" style="font-weight:600;color:var(--bl)">United Arab Emirates</td><td class="mono">AE / ARE</td><td class="mono">784</td><td>AED د.إ</td><td>Middle East</td><td><span class="b b-bl" style="font-size:9.5px">5 Sea</span> <span class="b b-tl" style="font-size:9.5px">3 Air</span></td><td><span class="b b-gr dot">Active</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="country-detail">Edit →</button></td></tr>
-<tr><td style="font-size:18px">🇸🇬</td><td class="ta" data-go="country-detail" style="font-weight:600;color:var(--bl)">Singapore</td><td class="mono">SG / SGP</td><td class="mono">702</td><td>SGD $</td><td>Southeast Asia</td><td><span class="b b-bl" style="font-size:9.5px">2 Sea</span> <span class="b b-tl" style="font-size:9.5px">1 Air</span></td><td><span class="b b-gr dot">Active</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="country-detail">Edit →</button></td></tr>
-<tr><td style="font-size:18px">🇩🇪</td><td class="ta" data-go="country-detail" style="font-weight:600;color:var(--bl)">Germany</td><td class="mono">DE / DEU</td><td class="mono">276</td><td>EUR €</td><td>Europe</td><td><span class="b b-bl" style="font-size:9.5px">8 Sea</span> <span class="b b-tl" style="font-size:9.5px">5 Air</span></td><td><span class="b b-gr dot">Active</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="country-detail">Edit →</button></td></tr>
-<tr><td style="font-size:18px">🇺🇸</td><td class="ta" data-go="country-detail" style="font-weight:600;color:var(--bl)">United States</td><td class="mono">US / USA</td><td class="mono">840</td><td>USD $</td><td>North America</td><td><span class="b b-bl" style="font-size:9.5px">22 Sea</span> <span class="b b-tl" style="font-size:9.5px">18 Air</span></td><td><span class="b b-gr dot">Active</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="country-detail">Edit →</button></td></tr>
-<tr><td style="font-size:18px">🇨🇳</td><td class="ta" data-go="country-detail" style="font-weight:600;color:var(--bl)">China</td><td class="mono">CN / CHN</td><td class="mono">156</td><td>CNY ¥</td><td>East Asia</td><td><span class="b b-bl" style="font-size:9.5px">30 Sea</span> <span class="b b-tl" style="font-size:9.5px">12 Air</span></td><td><span class="b b-gr dot">Active</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="country-detail">Edit →</button></td></tr>
-<tr><td style="font-size:18px">🇬🇧</td><td class="ta" data-go="country-detail" style="font-weight:600;color:var(--bl)">United Kingdom</td><td class="mono">GB / GBR</td><td class="mono">826</td><td>GBP £</td><td>Europe</td><td><span class="b b-bl" style="font-size:9.5px">10 Sea</span> <span class="b b-tl" style="font-size:9.5px">8 Air</span></td><td><span class="b b-gr dot">Active</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="country-detail">Edit →</button></td></tr>
-<tr><td style="font-size:18px">🇰🇪</td><td class="ta" data-go="country-detail" style="font-weight:600;color:var(--bl)">Kenya</td><td class="mono">KE / KEN</td><td class="mono">404</td><td>KES KSh</td><td>East Africa</td><td><span class="b b-bl" style="font-size:9.5px">2 Sea</span> <span class="b b-tl" style="font-size:9.5px">1 Air</span></td><td><span class="b b-gr dot">Active</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="country-detail">Edit →</button></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Flag</th><th>Country Name</th><th>ISO Code</th><th>Numeric</th><th>Currency</th><th>Region</th><th>Ports</th><th>Trade Lane</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
 <div class="cf">Showing 8 active countries of 249 loaded · <button class="ta" style="color:var(--bl)">Show All 249</button></div>
 </div>
 </div>
@@ -6148,22 +6120,22 @@ Select rate lines to see summary.
 <div id="ct1" class="tp on">
 <div class="card"><div class="ch"><div class="ct">General Information</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Country Name <span class="r">*</span></label><input class="fc" value="India"></div>
-  <div class="fg"><label class="fl">Official Name</label><input class="fc" value="Republic of India"></div>
-  <div class="fg"><label class="fl">ISO Alpha-2 <span class="r">*</span></label><input class="fc" value="IN" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">ISO Alpha-3</label><input class="fc" value="IND" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Country Name <span class="r">*</span></label><input class="fc"></div>
+  <div class="fg"><label class="fl">Official Name</label><input class="fc"></div>
+  <div class="fg"><label class="fl">ISO Alpha-2 <span class="r">*</span></label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">ISO Alpha-3</label><input class="fc" style="font-family:var(--font-mono)"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">ISO Numeric Code</label><input class="fc" value="356" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">ISO Numeric Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">Region</label><select class="fc"><option>South Asia</option><option>Middle East</option><option>Europe</option><option>East Asia</option><option>Africa</option><option>Americas</option></select></div>
-  <div class="fg"><label class="fl">Sub-Region</label><input class="fc" value="South Asia"></div>
-  <div class="fg"><label class="fl">Capital City</label><input class="fc" value="New Delhi"></div>
+  <div class="fg"><label class="fl">Sub-Region</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Capital City</label><input class="fc"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Country Flag (Emoji)</label><input class="fc" value="🇮🇳"></div>
-  <div class="fg"><label class="fl">Nationality</label><input class="fc" value="Indian"></div>
-  <div class="fg"><label class="fl">IDD Code</label><input class="fc" value="+91" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">TLD</label><input class="fc" value=".in" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Country Flag (Emoji)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Nationality</label><input class="fc"></div>
+  <div class="fg"><label class="fl">IDD Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">TLD</label><input class="fc" style="font-family:var(--font-mono)"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Active Status</label><select class="fc"><option>Active</option><option>Inactive</option><option>Sanctioned</option></select></div>
@@ -6178,7 +6150,7 @@ Select rate lines to see summary.
 <div id="ct2" class="tp">
 <div class="card"><div class="ch"><div class="ct">Localization Settings</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Official Language</label><input class="fc" value="Hindi, English (22 scheduled languages)"></div>
+  <div class="fg"><label class="fl">Official Language</label><input class="fc"></div>
   <div class="fg"><label class="fl">ERP Language</label><select class="fc"><option>English</option><option>Hindi</option><option>Tamil</option></select></div>
   <div class="fg"><label class="fl">Date Format</label><select class="fc"><option>DD-MM-YYYY</option><option>MM/DD/YYYY</option><option>YYYY-MM-DD</option></select></div>
   <div class="fg"><label class="fl">Time Format</label><select class="fc"><option>12 Hour (AM/PM)</option><option>24 Hour</option></select></div>
@@ -6191,8 +6163,8 @@ Select rate lines to see summary.
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Address Format</label><select class="fc"><option>Street, City, State, PIN, Country</option><option>Custom</option></select></div>
-  <div class="fg"><label class="fl">Phone Format</label><input class="fc" value="+91 XXXXX XXXXX"></div>
-  <div class="fg"><label class="fl">PIN / ZIP Format</label><input class="fc" value="6 digits (XXXXXX)" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Phone Format</label><input class="fc"></div>
+  <div class="fg"><label class="fl">PIN / ZIP Format</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">Measurement System</label><select class="fc"><option>Metric (kg, cm, m)</option><option>Imperial</option></select></div>
 </div>
 </div></div>
@@ -6204,15 +6176,15 @@ Select rate lines to see summary.
 <div class="fsec">Currency</div>
 <div class="fr">
   <div class="fg"><label class="fl">Primary Currency</label><select class="fc"><option>INR — Indian Rupee</option></select></div>
-  <div class="fg"><label class="fl">Currency Symbol</label><input class="fc" value="₹"></div>
-  <div class="fg"><label class="fl">Decimal Places</label><input class="fc" value="2"></div>
-  <div class="fg"><label class="fl">Sub Currency</label><input class="fc" value="Paisa (1/100)"></div>
+  <div class="fg"><label class="fl">Currency Symbol</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Decimal Places</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Sub Currency</label><input class="fc"></div>
 </div>
 <div class="fsec">Tax Framework</div>
 <div class="fr">
   <div class="fg"><label class="fl">Tax System</label><select class="fc"><option>GST (India)</option><option>VAT</option><option>Sales Tax</option><option>None</option></select></div>
-  <div class="fg"><label class="fl">Standard GST Rate</label><input class="fc" value="18%"></div>
-  <div class="fg"><label class="fl">Freight SAC Code</label><input class="fc" value="996511" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Standard GST Rate</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Freight SAC Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">IGST Applicable</label><select class="fc"><option>Yes — Interstate</option><option>No</option></select></div>
 </div>
 <div class="fr">
@@ -6228,16 +6200,16 @@ Select rate lines to see summary.
 <div id="ct4" class="tp">
 <div class="card"><div class="ch"><div class="ct">Customs &amp; Trade Compliance</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Customs Authority</label><input class="fc" value="Central Board of Indirect Taxes &amp; Customs (CBIC)"></div>
-  <div class="fg"><label class="fl">Customs System</label><input class="fc" value="ICEGATE (EDI)" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Customs Authority</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Customs System</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">HS Code Version</label><select class="fc"><option>HS 2022 (8-digit ITC-HS)</option><option>HS 2017</option></select></div>
   <div class="fg"><label class="fl">Import Duty Basis</label><select class="fc"><option>CIF Value</option><option>FOB Value</option></select></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Export Policy</label><select class="fc"><option>FTP 2023 — Open</option><option>Restricted</option></select></div>
-  <div class="fg"><label class="fl">EXIM Policy Reference</label><input class="fc" value="Foreign Trade Policy 2023-2028"></div>
+  <div class="fg"><label class="fl">EXIM Policy Reference</label><input class="fc"></div>
   <div class="fg"><label class="fl">Free Trade Agreements</label><input class="fc" placeholder="SAFTA, ASEAN, UAE-CEPA…"></div>
-  <div class="fg"><label class="fl">DGFT System</label><input class="fc" value="dgft.gov.in / IEC Portal"></div>
+  <div class="fg"><label class="fl">DGFT System</label><input class="fc"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">AEO Programme</label><select class="fc"><option>Yes — CBIC AEO</option><option>No</option></select></div>
@@ -6253,16 +6225,16 @@ Select rate lines to see summary.
 <div class="card"><div class="ch"><div class="ct">Freight Forwarding Settings</div></div><div class="cb">
 <div class="fsec">Ocean Freight</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Major Sea Ports</label><input class="fc" value="Chennai, Mumbai (JNPT), Mundra, Vizag, Kolkata, Kochi"></div>
+  <div class="fg"><label class="fl">Major Sea Ports</label><input class="fc"></div>
   <div class="fg"><label class="fl">NVOCC Allowed</label><select class="fc"><option>Yes</option><option>No</option></select></div>
   <div class="fg"><label class="fl">Cabotage Rules</label><select class="fc"><option>Restricted — Indian Flag Vessels</option><option>Open</option></select></div>
-  <div class="fg"><label class="fl">Free Trade Zone</label><input class="fc" value="SEZ, FTWZ, EOU"></div>
+  <div class="fg"><label class="fl">Free Trade Zone</label><input class="fc"></div>
 </div>
 <div class="fsec">Air Freight</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Major Airports</label><input class="fc" value="MAA, BOM, BLR, DEL, HYD, CCU"></div>
+  <div class="fg"><label class="fl">Major Airports</label><input class="fc"></div>
   <div class="fg"><label class="fl">IATA CASS</label><select class="fc"><option>Yes — India CASS</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">Vol. Weight Divisor</label><input class="fc" value="6000"></div>
+  <div class="fg"><label class="fl">Vol. Weight Divisor</label><input class="fc"></div>
   <div class="fg"><label class="fl">DGR Regulations</label><select class="fc"><option>IATA DGR applicable</option><option>Local only</option></select></div>
 </div>
 </div></div>
@@ -6271,28 +6243,14 @@ Select rate lines to see summary.
 <!-- CT6 Ports & Airports -->
 <div id="ct6" class="tp">
 <div class="card"><div class="ch"><div class="ct">Ports &amp; Airport Configuration — India</div><button class="btn btn-out btn-sm" data-go="port-master"><svg class="ic" data-icon="plus"></svg> Manage Ports</button></div>
-<div class="tw"><table><thead><tr><th>Port Type</th><th>Port Code</th><th>Port Name</th><th>City</th><th>State</th><th>IATA/UNLOCODE</th><th>Status</th></tr></thead><tbody>
-<tr><td><span class="b b-bl">Sea</span></td><td class="mono">INCHENNAI</td><td>Chennai Sea Port</td><td>Chennai</td><td>Tamil Nadu</td><td class="mono">INMAA</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td><span class="b b-bl">Sea</span></td><td class="mono">INNHAVA</td><td>Nhava Sheva (JNPT)</td><td>Mumbai</td><td>Maharashtra</td><td class="mono">INBOM</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td><span class="b b-bl">Sea</span></td><td class="mono">INMUNDRA</td><td>Mundra Port</td><td>Mundra</td><td>Gujarat</td><td class="mono">INMUND</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td><span class="b b-tl">Air</span></td><td class="mono">MAA</td><td>Chennai International Airport</td><td>Chennai</td><td>Tamil Nadu</td><td class="mono">MAA</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td><span class="b b-tl">Air</span></td><td class="mono">BOM</td><td>Chhatrapati Shivaji Airport</td><td>Mumbai</td><td>Maharashtra</td><td class="mono">BOM</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td><span class="b b-am">ICD</span></td><td class="mono">INICD-TVP</td><td>ICD Irugur (Tiruppur)</td><td>Tiruppur</td><td>Tamil Nadu</td><td class="mono">INICDTVP</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td><span class="b b-gy">CFS</span></td><td class="mono">INCFS-CHN</td><td>CFS Chennai Gateway</td><td>Chennai</td><td>Tamil Nadu</td><td class="mono">—</td><td><span class="b b-gr dot">Active</span></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Port Type</th><th>Port Code</th><th>Port Name</th><th>City</th><th>State</th><th>IATA/UNLOCODE</th><th>Status</th></tr></thead><tbody></tbody></table></div>
 </div>
 </div>
 
 <!-- CT7 States / Cities -->
 <div id="ct7" class="tp">
 <div class="card"><div class="ch"><div class="ct">State / Province Master — India</div><button class="btn btn-out btn-sm"><svg class="ic" data-icon="plus"></svg> Add State</button></div>
-<div class="tw"><table><thead><tr><th>State Code</th><th>State Name</th><th>GST Code</th><th>Capital</th><th>Region</th><th>Cities</th><th>Status</th></tr></thead><tbody>
-<tr><td class="mono">TN</td><td style="font-weight:600">Tamil Nadu</td><td class="mono" style="color:var(--bl)">33</td><td>Chennai</td><td>South India</td><td><span class="b b-bl" style="font-size:10px">38 cities</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td class="mono">KA</td><td style="font-weight:600">Karnataka</td><td class="mono" style="color:var(--bl)">29</td><td>Bengaluru</td><td>South India</td><td><span class="b b-bl" style="font-size:10px">31 cities</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td class="mono">MH</td><td style="font-weight:600">Maharashtra</td><td class="mono" style="color:var(--bl)">27</td><td>Mumbai</td><td>West India</td><td><span class="b b-bl" style="font-size:10px">45 cities</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td class="mono">DL</td><td style="font-weight:600">Delhi (UT)</td><td class="mono" style="color:var(--bl)">07</td><td>New Delhi</td><td>North India</td><td><span class="b b-bl" style="font-size:10px">1 city</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td class="mono">GJ</td><td style="font-weight:600">Gujarat</td><td class="mono" style="color:var(--bl)">24</td><td>Gandhinagar</td><td>West India</td><td><span class="b b-bl" style="font-size:10px">28 cities</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>State Code</th><th>State Name</th><th>GST Code</th><th>Capital</th><th>Region</th><th>Cities</th><th>Status</th></tr></thead><tbody></tbody></table></div>
 </div>
 </div>
 
@@ -6309,7 +6267,7 @@ Select rate lines to see summary.
   <div class="fg"><label class="fl">KYC Required</label><select class="fc"><option>Standard KYC</option><option>Enhanced Due Diligence</option></select></div>
   <div class="fg"><label class="fl">Restricted Goods</label><input class="fc" placeholder="SCOMET, Dual-use…"></div>
   <div class="fg"><label class="fl">GDPR / Data Privacy</label><select class="fc"><option>PDPB 2023 (India)</option><option>GDPR</option><option>None</option></select></div>
-  <div class="fg"><label class="fl">Last Compliance Review</label><input class="fc" type="date" value="2026-01-01"></div>
+  <div class="fg"><label class="fl">Last Compliance Review</label><input class="fc" type="date"></div>
 </div>
 </div></div>
 </div>
@@ -6380,10 +6338,10 @@ Select rate lines to see summary.
 <div id="s-currency-master" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="currency" style="color:var(--gr)"></svg>Currency / Exchange Rate Master</div><div class="ps">Merged master — currency setup and exchange rates always maintained together on one page</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="currencies"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="currency-detail"><svg class="ic" data-icon="plus"></svg> Add Currency</button></div></div>
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Currencies</div><div class="kpi-val">170</div><div class="kpi-sub">ISO 4217 preloaded</div></div>
-  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val up">28</div><div class="kpi-sub">In use</div></div>
-  <div class="kpi"><div class="kpi-lbl">Base Currency</div><div class="kpi-val">INR</div><div class="kpi-sub">Organisation default</div></div>
-  <div class="kpi"><div class="kpi-lbl">Rate Updates</div><div class="kpi-val">Daily</div><div class="kpi-sub">RBI Reference Rate</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Currencies</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val up">28</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Base Currency</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Rate Updates</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 
 <div class="tabs" data-tabgroup="curr" style="margin-bottom:0">
@@ -6402,17 +6360,7 @@ Select rate lines to see summary.
   <select class="fc" style="width:130px"><option>Active Only</option><option>All (170)</option><option>Inactive</option></select>
   <input class="fc" placeholder="Search code / name…" style="width:160px">
 </div></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Symbol</th><th>Currency Name</th><th>Numeric</th><th>Decimals</th><th>Position</th><th>Default</th><th>System</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">INR</td><td style="font-size:16px">₹</td><td>Indian Rupee</td><td class="mono">356</td><td>2</td><td>Prefix</td><td><span class="b b-gr">Base ⭐</span></td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="currency-detail">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">USD</td><td style="font-size:16px">$</td><td>US Dollar</td><td class="mono">840</td><td>2</td><td>Prefix</td><td>—</td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="currency-detail">Edit →</button> · <button class="ta curHistBtn" data-ccy="USD" style="color:var(--gr)">History</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">EUR</td><td style="font-size:16px">€</td><td>Euro</td><td class="mono">978</td><td>2</td><td>Prefix</td><td>—</td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="currency-detail">Edit →</button> · <button class="ta curHistBtn" data-ccy="EUR" style="color:var(--gr)">History</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">AED</td><td style="font-size:16px">د.إ</td><td>UAE Dirham</td><td class="mono">784</td><td>2</td><td>Suffix</td><td>—</td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="currency-detail">Edit →</button> · <button class="ta curHistBtn" data-ccy="AED" style="color:var(--gr)">History</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">GBP</td><td style="font-size:16px">£</td><td>British Pound</td><td class="mono">826</td><td>2</td><td>Prefix</td><td>—</td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="currency-detail">Edit →</button> · <button class="ta curHistBtn" data-ccy="GBP" style="color:var(--gr)">History</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">SGD</td><td style="font-size:16px">S$</td><td>Singapore Dollar</td><td class="mono">702</td><td>2</td><td>Prefix</td><td>—</td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="currency-detail">Edit →</button> · <button class="ta curHistBtn" data-ccy="SGD" style="color:var(--gr)">History</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">CNY</td><td style="font-size:16px">¥</td><td>Chinese Yuan</td><td class="mono">156</td><td>2</td><td>Prefix</td><td>—</td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="currency-detail">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">KES</td><td style="font-size:16px">KSh</td><td>Kenyan Shilling</td><td class="mono">404</td><td>2</td><td>Prefix</td><td>—</td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="currency-detail">Edit →</button></td></tr>
-<tr><td class="mono" style="color:var(--g4)">JPY</td><td style="font-size:16px;color:var(--g4)">¥</td><td>Japanese Yen</td><td class="mono">392</td><td>0</td><td>Prefix</td><td>—</td><td><span class="b b-gy" style="font-size:9.5px">System</span></td><td><span class="b b-gy dot">Inactive</span></td><td class="no-print"><button class="ta">Activate</button></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Symbol</th><th>Currency Name</th><th>Numeric</th><th>Decimals</th><th>Position</th><th>Default</th><th>System</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
 <div class="cf">28 active of 170 preloaded ISO 4217 currencies · System currencies cannot be deleted, only activated/deactivated · Click <strong>History</strong> to view a currency's exchange rate history without leaving this master</div>
 </div>
 </div>
@@ -6420,29 +6368,14 @@ Select rate lines to see summary.
 <!-- CM2: Country Mapping -->
 <div id="cm2" class="tp">
 <div class="card"><div class="ch"><div class="ct">Currency ↔ Country Mapping</div><button class="btn btn-out btn-sm"><svg class="ic" data-icon="plus"></svg> Add Mapping</button></div>
-<div class="tw"><table><thead><tr><th>Country</th><th>Currency</th><th>Default for Country</th><th>Effective From</th><th>Effective To</th><th>Status</th></tr></thead><tbody>
-<tr><td>🇮🇳 India</td><td class="mono" style="font-weight:700;color:var(--bl)">INR</td><td><span class="b b-gr">Yes</span></td><td>01-Apr-1947</td><td>—</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>🇺🇸 United States</td><td class="mono" style="font-weight:700;color:var(--bl)">USD</td><td><span class="b b-gr">Yes</span></td><td>—</td><td>—</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>🇦🇪 UAE</td><td class="mono" style="font-weight:700;color:var(--bl)">AED</td><td><span class="b b-gr">Yes</span></td><td>—</td><td>—</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>🇩🇪 Germany</td><td class="mono" style="font-weight:700;color:var(--bl)">EUR</td><td><span class="b b-gr">Yes</span></td><td>01-Jan-2002</td><td>—</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>🇫🇷 France</td><td class="mono" style="font-weight:700;color:var(--bl)">EUR</td><td><span class="b b-gr">Yes</span></td><td>01-Jan-2002</td><td>—</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>🇮🇹 Italy</td><td class="mono" style="font-weight:700;color:var(--bl)">EUR</td><td><span class="b b-gr">Yes</span></td><td>01-Jan-2002</td><td>—</td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>🇸🇬 Singapore</td><td class="mono" style="font-weight:700;color:var(--bl)">SGD</td><td><span class="b b-gr">Yes</span></td><td>—</td><td>—</td><td><span class="b b-gr dot">Active</span></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Country</th><th>Currency</th><th>Default for Country</th><th>Effective From</th><th>Effective To</th><th>Status</th></tr></thead><tbody></tbody></table></div>
 </div>
 </div>
 
 <!-- CM3: Exchange Rates -->
 <div id="cm3" class="tp">
 <div class="card"><div class="ch"><div class="ct">Exchange Rate Master</div><div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" id="syncRatesBtn"><svg class="ic" data-icon="refresh-cw"></svg> Sync Live Rates</button><button class="btn btn-pri btn-sm"><svg class="ic" data-icon="plus"></svg> Add Rate</button></div></div>
-<div class="tw"><table><thead><tr><th>From</th><th>To</th><th>Buy Rate</th><th>Sell Rate</th><th>Standard Rate</th><th>Effective Date</th><th>Expiry</th><th>Source</th><th>Status</th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700">USD</td><td class="mono" style="font-weight:700">INR</td><td>87.45</td><td>87.95</td><td style="font-weight:700;color:var(--bl)">87.70</td><td>30-Jun-2026</td><td>30-Jun-2026</td><td><span class="b b-bl" style="font-size:9.5px">RBI Ref.</span></td><td><span class="b b-gr dot">Current</span></td></tr>
-<tr><td class="mono" style="font-weight:700">EUR</td><td class="mono" style="font-weight:700">INR</td><td>94.80</td><td>95.40</td><td style="font-weight:700;color:var(--bl)">95.10</td><td>30-Jun-2026</td><td>30-Jun-2026</td><td><span class="b b-bl" style="font-size:9.5px">ECB</span></td><td><span class="b b-gr dot">Current</span></td></tr>
-<tr><td class="mono" style="font-weight:700">AED</td><td class="mono" style="font-weight:700">INR</td><td>23.65</td><td>23.85</td><td style="font-weight:700;color:var(--bl)">23.75</td><td>30-Jun-2026</td><td>30-Jun-2026</td><td><span class="b b-bl" style="font-size:9.5px">RBI Ref.</span></td><td><span class="b b-gr dot">Current</span></td></tr>
-<tr><td class="mono" style="font-weight:700">GBP</td><td class="mono" style="font-weight:700">INR</td><td>110.20</td><td>111.10</td><td style="font-weight:700;color:var(--bl)">110.65</td><td>30-Jun-2026</td><td>30-Jun-2026</td><td><span class="b b-bl" style="font-size:9.5px">RBI Ref.</span></td><td><span class="b b-gr dot">Current</span></td></tr>
-<tr><td class="mono" style="font-weight:700">SGD</td><td class="mono" style="font-weight:700">INR</td><td>64.50</td><td>65.10</td><td style="font-weight:700;color:var(--bl)">64.80</td><td>30-Jun-2026</td><td>30-Jun-2026</td><td><span class="b b-bl" style="font-size:9.5px">RBI Ref.</span></td><td><span class="b b-gr dot">Current</span></td></tr>
-<tr><td class="mono" style="color:var(--g4)">USD</td><td class="mono" style="color:var(--g4)">INR</td><td>87.10</td><td>87.60</td><td style="color:var(--g4)">87.35</td><td>29-Jun-2026</td><td>29-Jun-2026</td><td><span class="b b-gy" style="font-size:9.5px">RBI Ref.</span></td><td><span class="b b-gy dot">Expired</span></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>From</th><th>To</th><th>Buy Rate</th><th>Sell Rate</th><th>Standard Rate</th><th>Effective Date</th><th>Expiry</th><th>Source</th><th>Status</th></tr></thead><tbody></tbody></table></div>
 <div class="cf">Rates auto-update daily at 09:00 IST via RBI Reference Rate API · Manual override requires Finance Manager approval</div>
 </div>
 </div>
@@ -6450,12 +6383,7 @@ Select rate lines to see summary.
 <!-- CM4: Format Rules -->
 <div id="cm4" class="tp">
 <div class="card"><div class="ch"><div class="ct">Currency Format Master</div></div>
-<div class="tw"><table><thead><tr><th>Currency</th><th>Decimals</th><th>Rounding Method</th><th>Precision</th><th>Number Format</th><th>Positive Format</th><th>Negative Format</th><th>Symbol Position</th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700">INR</td><td>2</td><td>Round Half-Up</td><td>0.01</td><td>1,00,000.00 (Indian)</td><td>₹1,00,000.00</td><td>-₹1,00,000.00</td><td>Prefix</td></tr>
-<tr><td class="mono" style="font-weight:700">USD</td><td>2</td><td>Round Half-Up</td><td>0.01</td><td>100,000.00</td><td>$100,000.00</td><td>($100,000.00)</td><td>Prefix</td></tr>
-<tr><td class="mono" style="font-weight:700">EUR</td><td>2</td><td>Round Half-Up</td><td>0.01</td><td>100.000,00</td><td>€100.000,00</td><td>-€100.000,00</td><td>Prefix</td></tr>
-<tr><td class="mono" style="font-weight:700">JPY</td><td>0</td><td>Round Half-Up</td><td>1</td><td>100,000</td><td>¥100,000</td><td>-¥100,000</td><td>Prefix</td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Currency</th><th>Decimals</th><th>Rounding Method</th><th>Precision</th><th>Number Format</th><th>Positive Format</th><th>Negative Format</th><th>Symbol Position</th></tr></thead><tbody></tbody></table></div>
 </div>
 </div>
 
@@ -6477,23 +6405,14 @@ Select rate lines to see summary.
 </div></div>
 
 <div class="card" style="margin-top:14px"><div class="ch"><div class="ct">Branch Currency Setup</div></div>
-<div class="tw"><table><thead><tr><th>Branch</th><th>Local Currency</th><th>Default Txn Currency</th><th>Multi-Currency Allowed</th><th>Foreign Currency Allowed</th><th>Decimal Precision</th></tr></thead><tbody>
-<tr><td style="font-weight:600">Chennai HQ</td><td class="mono">INR</td><td class="mono">USD</td><td><span class="b b-gr">Yes</span></td><td><span class="b b-gr">Yes</span></td><td>2</td></tr>
-<tr><td style="font-weight:600">Bangalore</td><td class="mono">INR</td><td class="mono">INR</td><td><span class="b b-gr">Yes</span></td><td><span class="b b-am">Limited</span></td><td>2</td></tr>
-<tr><td style="font-weight:600">Dubai</td><td class="mono">AED</td><td class="mono">USD</td><td><span class="b b-gr">Yes</span></td><td><span class="b b-gr">Yes</span></td><td>2</td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Branch</th><th>Local Currency</th><th>Default Txn Currency</th><th>Multi-Currency Allowed</th><th>Foreign Currency Allowed</th><th>Decimal Precision</th></tr></thead><tbody></tbody></table></div>
 </div>
 </div>
 
 <!-- CM6: Rate Providers -->
 <div id="cm6" class="tp">
 <div class="card"><div class="ch"><div class="ct">Exchange Rate Providers</div><button class="btn btn-out btn-sm"><svg class="ic" data-icon="plus"></svg> Add Provider</button></div>
-<div class="tw"><table><thead><tr><th>Provider</th><th>API URL</th><th>Update Frequency</th><th>Last Updated</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td style="font-weight:600">Reserve Bank of India (RBI)</td><td class="mono" style="font-size:10.5px">rbi.org.in/fbil-rates</td><td>Daily, 09:00 IST</td><td>30-Jun-2026 09:02</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Test Connection</button></td></tr>
-<tr><td style="font-weight:600">European Central Bank (ECB)</td><td class="mono" style="font-size:10.5px">ecb.europa.eu/rates</td><td>Daily, 16:00 CET</td><td>29-Jun-2026 16:05</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Test Connection</button></td></tr>
-<tr><td style="font-weight:600">Open Exchange Rates</td><td class="mono" style="font-size:10.5px">openexchangerates.org/api</td><td>Hourly</td><td>30-Jun-2026 14:00</td><td><span class="b b-gy dot">Inactive</span></td><td class="no-print"><button class="ta">Activate</button></td></tr>
-<tr><td style="font-weight:600">XE Currency Data</td><td class="mono" style="font-size:10.5px">xe.com/api</td><td>Daily</td><td>—</td><td><span class="b b-gy dot">Not Configured</span></td><td class="no-print"><button class="ta">Configure</button></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Provider</th><th>API URL</th><th>Update Frequency</th><th>Last Updated</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
 <div class="cf">Manual override of any auto-fetched rate requires Finance Manager approval and is logged in audit trail</div>
 </div>
 </div>
@@ -6505,25 +6424,25 @@ Select rate lines to see summary.
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="currency" style="color:var(--gr)"></svg>Currency Detail — Indian Rupee</div><div class="ps">Code: INR · Symbol: ₹ · ISO Numeric: 356</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="currency-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
 <div class="card"><div class="ch"><div class="ct">Currency Information</div><span class="b b-gy">System Currency — Cannot Delete</span></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Currency Code (ISO 4217) <span class="r">*</span></label><input class="fc" value="INR" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-  <div class="fg"><label class="fl">Currency Name <span class="r">*</span></label><input class="fc" value="Indian Rupee"></div>
-  <div class="fg"><label class="fl">Currency Symbol</label><input class="fc" value="₹"></div>
-  <div class="fg"><label class="fl">Unicode Symbol</label><input class="fc" value="U+20B9" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Currency Code (ISO 4217) <span class="r">*</span></label><input class="fc" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
+  <div class="fg"><label class="fl">Currency Name <span class="r">*</span></label><input class="fc"></div>
+  <div class="fg"><label class="fl">Currency Symbol</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Unicode Symbol</label><input class="fc" style="font-family:var(--font-mono)"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Symbol Position</label><select class="fc"><option>Prefix (₹100)</option><option>Suffix (100₹)</option></select></div>
-  <div class="fg"><label class="fl">ISO Numeric Code</label><input class="fc" value="356" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-  <div class="fg"><label class="fl">Decimal Places</label><input class="fc" value="2"></div>
-  <div class="fg"><label class="fl">Sub Currency Name</label><input class="fc" value="Paisa"></div>
+  <div class="fg"><label class="fl">ISO Numeric Code</label><input class="fc" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
+  <div class="fg"><label class="fl">Decimal Places</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Sub Currency Name</label><input class="fc"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Sub Currency Ratio</label><input class="fc" value="100"></div>
+  <div class="fg"><label class="fl">Sub Currency Ratio</label><input class="fc"></div>
   <div class="fg"><label class="fl">Active Status</label><select class="fc"><option>Active</option><option>Inactive</option></select></div>
   <div class="fg"><label class="fl">Default Currency</label><select class="fc"><option>Yes — Organisation Base</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">System Default</label><input class="fc" value="Yes (Read Only)" readonly style="background:var(--g0)"></div>
+  <div class="fg"><label class="fl">System Default</label><input class="fc" readonly style="background:var(--g0)"></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 4"><label class="fl">Notes</label><textarea class="fc" rows="2">Base currency for eSway ERP 2.0 Pvt Ltd. Used as default reporting currency for India operations and consolidated MIS.</textarea></div>
+  <div class="fg" style="grid-column:span 4"><label class="fl">Notes</label><textarea class="fc" rows="2"></textarea></div>
 </div>
 </div></div>
 </div>
@@ -6534,10 +6453,10 @@ Select rate lines to see summary.
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="package" style="color:var(--bl)"></svg>Container Type Master</div><div class="ps">ISO 6346 standard container types — Dry, Reefer, Open Top, Flat Rack, Tank &amp; Special Equipment</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="upload"></svg> Import</button><button class="btn btn-out btn-sm" data-export="containers"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="container-detail"><svg class="ic" data-icon="plus"></svg> New Container Type</button></div></div>
 
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Types</div><div class="kpi-val">18</div><div class="kpi-sub">ISO 6346 standard</div></div>
-  <div class="kpi"><div class="kpi-lbl">Dry Containers</div><div class="kpi-val">4</div><div class="kpi-sub">20GP·40GP·40HC·45HC</div></div>
-  <div class="kpi"><div class="kpi-lbl">Reefer</div><div class="kpi-val">3</div><div class="kpi-sub">Temperature controlled</div></div>
-  <div class="kpi"><div class="kpi-lbl">Most Used</div><div class="kpi-val">40HC</div><div class="kpi-sub">68% of bookings</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Types</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Dry Containers</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Reefer</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Most Used</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 
 <!-- Category filter pills -->
@@ -6557,144 +6476,7 @@ Select rate lines to see summary.
 
 <!-- Card grid view -->
 <div class="cb" style="padding:14px 16px">
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
-
-  <div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:46px;height:34px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">20GP</div>
-      <span class="b b-gr dot" style="font-size:9.5px">Active</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">20' General Purpose</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: 22G1 · Code: 20GP</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Max Gross: <strong>24,000 kg</strong></div>
-      <div>Payload: <strong>21,800 kg</strong></div>
-      <div>Cubic: <strong>33.2 CBM</strong></div>
-      <div>Tare: <strong>2,200 kg</strong></div>
-    </div>
-  </div>
-
-  <div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:52px;height:34px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">40GP</div>
-      <span class="b b-gr dot" style="font-size:9.5px">Active</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">40' General Purpose</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: 42G1 · Code: 40GP</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Max Gross: <strong>30,480 kg</strong></div>
-      <div>Payload: <strong>26,780 kg</strong></div>
-      <div>Cubic: <strong>67.7 CBM</strong></div>
-      <div>Tare: <strong>3,700 kg</strong></div>
-    </div>
-  </div>
-
-  <div class="ctn-card" style="border:2px solid var(--bl);border-radius:10px;padding:14px;cursor:pointer;background:var(--blt);transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:52px;height:36px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">40HC</div>
-      <span class="b b-bl" style="font-size:9.5px">⭐ Most Used</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">40' High Cube</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: 45G1 · Code: 40HC</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Max Gross: <strong>30,480 kg</strong></div>
-      <div>Payload: <strong>26,580 kg</strong></div>
-      <div>Cubic: <strong>76.4 CBM</strong></div>
-      <div>Tare: <strong>3,900 kg</strong></div>
-    </div>
-  </div>
-
-  <div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:52px;height:34px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">45HC</div>
-      <span class="b b-gr dot" style="font-size:9.5px">Active</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">45' High Cube</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: L5G1 · Code: 45HC</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Max Gross: <strong>32,500 kg</strong></div>
-      <div>Payload: <strong>28,200 kg</strong></div>
-      <div>Cubic: <strong>86.1 CBM</strong></div>
-      <div>Tare: <strong>4,300 kg</strong></div>
-    </div>
-  </div>
-
-  <div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:46px;height:34px;background:linear-gradient(135deg,#0E8A7C,#0B5A50);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">20RF</div>
-      <span class="b b-gr dot" style="font-size:9.5px">Active</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">20' Reefer ❄️</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: 22R1 · Code: 20RF</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Max Gross: <strong>27,400 kg</strong></div>
-      <div>Payload: <strong>22,100 kg</strong></div>
-      <div>Cubic: <strong>28.3 CBM</strong></div>
-      <div>Temp: <strong>-25°C to +25°C</strong></div>
-    </div>
-  </div>
-
-  <div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:52px;height:34px;background:linear-gradient(135deg,#0E8A7C,#0B5A50);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">40RF</div>
-      <span class="b b-gr dot" style="font-size:9.5px">Active</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">40' Reefer ❄️</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: 42R1 · Code: 40RF</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Max Gross: <strong>34,000 kg</strong></div>
-      <div>Payload: <strong>27,700 kg</strong></div>
-      <div>Cubic: <strong>59.3 CBM</strong></div>
-      <div>Temp: <strong>-25°C to +25°C</strong></div>
-    </div>
-  </div>
-
-  <div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:46px;height:34px;background:linear-gradient(135deg,#B8700A,#7D4E00);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">20OT</div>
-      <span class="b b-gr dot" style="font-size:9.5px">Active</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">20' Open Top</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: 22U1 · Code: 20OT</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Max Gross: <strong>24,000 kg</strong></div>
-      <div>Payload: <strong>21,600 kg</strong></div>
-      <div>Cubic: <strong>32.5 CBM</strong></div>
-      <div>Door: <strong>Removable Roof</strong></div>
-    </div>
-  </div>
-
-  <div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:46px;height:34px;background:linear-gradient(135deg,#5B4DE0,#3C3489);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">20FR</div>
-      <span class="b b-gr dot" style="font-size:9.5px">Active</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">20' Flat Rack</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: 22P1 · Code: 20FR</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Max Gross: <strong>30,480 kg</strong></div>
-      <div>Payload: <strong>28,250 kg</strong></div>
-      <div>Deck Area: <strong>14.8 m²</strong></div>
-      <div>Sides: <strong>Collapsible</strong></div>
-    </div>
-  </div>
-
-  <div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s" data-go="container-detail">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <div style="width:46px;height:34px;background:linear-gradient(135deg,#C0392B,#791F1F);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">ISOTANK</div>
-      <span class="b b-gr dot" style="font-size:9.5px">Active</span>
-    </div>
-    <div style="font-size:13px;font-weight:700;color:var(--n)">20' Tank Container</div>
-    <div style="font-size:10.5px;color:var(--g5);font-family:var(--font-mono);margin:2px 0 8px">ISO: T11/T14 · Code: TANK20</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:var(--g6)">
-      <div>Capacity: <strong>26,000 L</strong></div>
-      <div>Max Gross: <strong>36,000 kg</strong></div>
-      <div>Pressure: <strong>4 bar</strong></div>
-      <div>Type: <strong>Chemical / Food Grade</strong></div>
-    </div>
-  </div>
-
-</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
 </div>
 <div class="cf">Showing 9 of 18 container types · System types cannot be deleted, only deactivated</div>
 </div>
@@ -6719,9 +6501,9 @@ Select rate lines to see summary.
 <div class="card" style="margin:0"><div class="ch"><div class="ct">Container Specifications</div></div><div class="cb">
 <div class="fsec">Identification</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Container Code <span class="r">*</span></label><input class="fc" value="40HC" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Container Name <span class="r">*</span></label><input class="fc" value="40' High Cube"></div>
-  <div class="fg"><label class="fl">ISO 6346 Code</label><input class="fc" value="45G1" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Container Code <span class="r">*</span></label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Container Name <span class="r">*</span></label><input class="fc"></div>
+  <div class="fg"><label class="fl">ISO 6346 Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">Category</label><select class="fc"><option>Dry Container</option><option>Reefer</option><option>Open Top</option><option>Flat Rack</option><option>Platform</option><option>Tank</option><option>Special Equipment</option></select></div>
 </div>
 <div class="fr">
@@ -6732,23 +6514,23 @@ Select rate lines to see summary.
 </div>
 <div class="fsec">External Dimensions</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Length (mm)</label><input class="fc" value="12192"></div>
-  <div class="fg"><label class="fl">Width (mm)</label><input class="fc" value="2438"></div>
-  <div class="fg"><label class="fl">Height (mm)</label><input class="fc" value="2896"></div>
-  <div class="fg"><label class="fl">Cubic Capacity (CBM)</label><input class="fc" value="76.4"></div>
+  <div class="fg"><label class="fl">Length (mm)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Width (mm)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Height (mm)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Cubic Capacity (CBM)</label><input class="fc"></div>
 </div>
 <div class="fsec">Internal Dimensions</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Internal Length (mm)</label><input class="fc" value="12032"></div>
-  <div class="fg"><label class="fl">Internal Width (mm)</label><input class="fc" value="2350"></div>
-  <div class="fg"><label class="fl">Internal Height (mm)</label><input class="fc" value="2698"></div>
-  <div class="fg"><label class="fl">Door Opening (W×H mm)</label><input class="fc" value="2340 × 2585"></div>
+  <div class="fg"><label class="fl">Internal Length (mm)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Internal Width (mm)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Internal Height (mm)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Door Opening (W×H mm)</label><input class="fc"></div>
 </div>
 <div class="fsec">Weight Specifications</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Maximum Gross Weight (kg)</label><input class="fc" value="30480"></div>
-  <div class="fg"><label class="fl">Tare Weight (kg)</label><input class="fc" value="3900"></div>
-  <div class="fg"><label class="fl">Payload (kg)</label><input class="fc" value="26580" readonly style="background:var(--g0);font-weight:700;color:var(--gr)"></div>
+  <div class="fg"><label class="fl">Maximum Gross Weight (kg)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Tare Weight (kg)</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Payload (kg)</label><input class="fc" readonly style="background:var(--g0);font-weight:700;color:var(--gr)"></div>
   <div class="fg"><label class="fl">CSC Plate Required</label><select class="fc"><option>Yes</option><option>No</option></select></div>
 </div>
 <div class="fsec">Reefer Settings (if applicable)</div>
@@ -6759,7 +6541,7 @@ Select rate lines to see summary.
   <div class="fg"><label class="fl">Ventilation</label><select class="fc" disabled><option>N/A</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 4"><label class="fl">Remarks</label><textarea class="fc" rows="2">Most commonly used container type — accounts for 68% of FCL bookings. Suitable for general cargo, machinery, and palletized goods.</textarea></div>
+  <div class="fg" style="grid-column:span 4"><label class="fl">Remarks</label><textarea class="fc" rows="2"></textarea></div>
 </div>
 </div></div>
 </div>
@@ -6770,10 +6552,10 @@ Select rate lines to see summary.
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="ruler" style="color:var(--bl)"></svg>Unit of Measurement Master</div><div class="ps">Weight, Volume, Length, Area, Quantity, Time &amp; Temperature units with conversion factors</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="units"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> New Unit</button></div></div>
 
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Units</div><div class="kpi-val">32</div><div class="kpi-sub">7 categories</div></div>
-  <div class="kpi"><div class="kpi-lbl">Weight Units</div><div class="kpi-val">5</div><div class="kpi-sub">KG, MT, LB…</div></div>
-  <div class="kpi"><div class="kpi-lbl">Volume Units</div><div class="kpi-val">4</div><div class="kpi-sub">CBM, CFT…</div></div>
-  <div class="kpi"><div class="kpi-lbl">Custom Units</div><div class="kpi-val">2</div><div class="kpi-sub">User-defined</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Units</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Weight Units</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Volume Units</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Custom Units</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 
 <div class="tabs" data-tabgroup="unit" style="margin-bottom:0">
@@ -6789,79 +6571,43 @@ Select rate lines to see summary.
 <!-- UM1 Weight -->
 <div id="um1" class="tp on">
 <div class="card"><div class="ch"><div class="ct">Weight Units</div><button class="btn btn-out btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> Add Unit</button></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to KG</th><th>Default</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono ta" data-go="unit-detail" style="font-weight:700;color:var(--bl)">KG</td><td>Kilogram</td><td>2</td><td>1.000000</td><td><span class="b b-gr">Base ⭐</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="unit-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="unit-detail" style="font-weight:700;color:var(--bl)">GRAM</td><td>Gram</td><td>0</td><td>0.001000</td><td>—</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="unit-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="unit-detail" style="font-weight:700;color:var(--bl)">LB</td><td>Pound</td><td>2</td><td>0.453592</td><td>—</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="unit-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="unit-detail" style="font-weight:700;color:var(--bl)">TON</td><td>Ton (Short)</td><td>3</td><td>907.184740</td><td>—</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="unit-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="unit-detail" style="font-weight:700;color:var(--bl)">MT</td><td>Metric Ton</td><td>3</td><td>1000.000000</td><td>—</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="unit-detail">Edit →</button></td></tr>
-</tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to KG</th><th>Default</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 <!-- UM2 Volume -->
 <div id="um2" class="tp">
 <div class="card"><div class="ch"><div class="ct">Volume Units</div><button class="btn btn-out btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> Add Unit</button></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to CBM</th><th>Default</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">CBM</td><td>Cubic Meter</td><td>3</td><td>1.000000</td><td><span class="b b-gr">Base ⭐</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">CFT</td><td>Cubic Feet</td><td>3</td><td>0.028317</td><td>—</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">LTR</td><td>Litre</td><td>2</td><td>0.001000</td><td>—</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">ML</td><td>Millilitre</td><td>0</td><td>0.000001</td><td>—</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-</tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to CBM</th><th>Default</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 <!-- UM3 Length -->
 <div id="um3" class="tp">
 <div class="card"><div class="ch"><div class="ct">Length Units</div><button class="btn btn-out btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> Add Unit</button></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to Meter</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">MM</td><td>Millimeter</td><td>0</td><td>0.001000</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">CM</td><td>Centimeter</td><td>1</td><td>0.010000</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">METER</td><td>Meter</td><td>2</td><td>1.000000</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">KM</td><td>Kilometer</td><td>3</td><td>1000.000000</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">INCH</td><td>Inch</td><td>2</td><td>0.025400</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">FEET</td><td>Feet</td><td>2</td><td>0.304800</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">YARD</td><td>Yard</td><td>2</td><td>0.914400</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-</tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to Meter</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 <!-- UM4 Area -->
 <div id="um4" class="tp">
 <div class="card"><div class="ch"><div class="ct">Area Units</div><button class="btn btn-out btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> Add Unit</button></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to SQM</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">SQM</td><td>Square Meter</td><td>2</td><td>1.000000</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">SQFT</td><td>Square Feet</td><td>2</td><td>0.092903</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-</tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to SQM</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 <!-- UM5 Quantity -->
 <div id="um5" class="tp">
 <div class="card"><div class="ch"><div class="ct">Quantity Units</div><button class="btn btn-out btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> Add Unit</button></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">PCS</td><td>Pieces</td><td>0</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">NOS</td><td>Numbers</td><td>0</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">SET</td><td>Set</td><td>0</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">PAIR</td><td>Pair</td><td>0</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">DOZEN</td><td>Dozen (12 pcs)</td><td>0</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-</tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 <!-- UM6 Time -->
 <div id="um6" class="tp">
 <div class="card"><div class="ch"><div class="ct">Time Units</div><button class="btn btn-out btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> Add Unit</button></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">DAY</td><td>Day</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">HOUR</td><td>Hour</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">MONTH</td><td>Month</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">YEAR</td><td>Year</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-</tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 <!-- UM7 Temperature -->
 <div id="um7" class="tp">
 <div class="card"><div class="ch"><div class="ct">Temperature Units</div><button class="btn btn-out btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> Add Unit</button></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">CELSIUS</td><td>Celsius (°C)</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">FAHRENHEIT</td><td>Fahrenheit (°F)</td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-</tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 </div>
@@ -6871,19 +6617,19 @@ Select rate lines to see summary.
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="ruler" style="color:var(--bl)"></svg>Unit Detail — Kilogram</div><div class="ps">Code: KG · Category: Weight</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="unit-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
 <div class="card"><div class="ch"><div class="ct">Unit Information</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Unit Code <span class="r">*</span></label><input class="fc" value="KG" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Unit Name <span class="r">*</span></label><input class="fc" value="Kilogram"></div>
+  <div class="fg"><label class="fl">Unit Code <span class="r">*</span></label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Unit Name <span class="r">*</span></label><input class="fc"></div>
   <div class="fg"><label class="fl">Category <span class="r">*</span></label><select class="fc"><option>Weight</option><option>Volume</option><option>Length</option><option>Area</option><option>Quantity</option><option>Time</option><option>Temperature</option></select></div>
   <div class="fg"><label class="fl">Status</label><select class="fc"><option>Active</option><option>Inactive</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Decimal Precision</label><input class="fc" value="2"></div>
-  <div class="fg"><label class="fl">Conversion Factor (to Base)</label><input class="fc" value="1.000000" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Decimal Precision</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Conversion Factor (to Base)</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">Base Unit for Category</label><select class="fc"><option>Yes — KG is Base</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">Symbol</label><input class="fc" value="kg"></div>
+  <div class="fg"><label class="fl">Symbol</label><input class="fc"></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 4"><label class="fl">Remarks</label><textarea class="fc" rows="2">Standard SI base unit for weight. Used across all freight, customs, and warehouse modules.</textarea></div>
+  <div class="fg" style="grid-column:span 4"><label class="fl">Remarks</label><textarea class="fc" rows="2"></textarea></div>
 </div>
 </div></div>
 </div>
@@ -6893,32 +6639,15 @@ Select rate lines to see summary.
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="package" style="color:var(--am)"></svg>Package Type Master</div><div class="ps">UN/ECE Rec. 21 standard packaging codes used in freight forwarding documentation</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="packs"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="pack-detail"><svg class="ic" data-icon="plus"></svg> New Package Type</button></div></div>
 
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Pack Types</div><div class="kpi-val">28</div><div class="kpi-sub">UN/ECE standard</div></div>
-  <div class="kpi"><div class="kpi-lbl">Most Used</div><div class="kpi-val">CTN</div><div class="kpi-sub">Cartons — 45%</div></div>
-  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val up">26</div><div class="kpi-sub">In use</div></div>
-  <div class="kpi"><div class="kpi-lbl">Custom Added</div><div class="kpi-val">2</div><div class="kpi-sub">User-defined</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Pack Types</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Most Used</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val up">26</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Custom Added</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 
 <div class="card"><div class="ch"><div class="ct">Package Type Directory</div>
 <div style="display:flex;gap:8px"><input class="fc" placeholder="Search code / name / UN code…" style="width:220px"><select class="fc" style="width:130px"><option>All Status</option><option>Active</option><option>Inactive</option></select></div></div>
-<div class="tw"><table><thead><tr><th>Pack Code</th><th>Package Name</th><th>UN/ECE Code</th><th>Description</th><th>Usage</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono ta" data-go="pack-detail" style="font-weight:700;color:var(--bl)">CTN</td><td style="font-weight:600">Carton</td><td class="mono">CT</td><td style="font-size:11px;color:var(--g6)">Box made of paperboard</td><td><span class="b b-gr">45%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="pack-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="pack-detail" style="font-weight:700;color:var(--bl)">PKG</td><td style="font-weight:600">Package</td><td class="mono">PK</td><td style="font-size:11px;color:var(--g6)">General packaged goods</td><td><span class="b b-bl">18%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="pack-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="pack-detail" style="font-weight:700;color:var(--bl)">PLT</td><td style="font-weight:600">Pallet</td><td class="mono">PX</td><td style="font-size:11px;color:var(--g6)">Platform for unitised loads</td><td><span class="b b-bl">12%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="pack-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="pack-detail" style="font-weight:700;color:var(--bl)">DRM</td><td style="font-weight:600">Drum</td><td class="mono">DR</td><td style="font-size:11px;color:var(--g6)">Cylindrical shipping container</td><td><span class="b b-am">6%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="pack-detail">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">WCS</td><td>Wooden Case</td><td class="mono">7A</td><td style="font-size:11px;color:var(--g6)">Solid wooden case</td><td><span class="b b-am">4%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">WCR</td><td>Wooden Crate</td><td class="mono">7B</td><td style="font-size:11px;color:var(--g6)">Open wooden frame</td><td><span class="b b-am">3%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">RO</td><td>Roll</td><td class="mono">RO</td><td style="font-size:11px;color:var(--g6)">Rolled material (fabric, paper)</td><td><span class="b b-gy">2%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">REL</td><td>Reel</td><td class="mono">RL</td><td style="font-size:11px;color:var(--g6)">Cylindrical spool</td><td><span class="b b-gy">2%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">BDL</td><td>Bundle</td><td class="mono">BE</td><td style="font-size:11px;color:var(--g6)">Items tied together</td><td><span class="b b-gy">2%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">BLE</td><td>Bale</td><td class="mono">BL</td><td style="font-size:11px;color:var(--g6)">Compressed bundle wrapped/bound</td><td><span class="b b-gy">1%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">BAG</td><td>Bag</td><td class="mono">BG</td><td style="font-size:11px;color:var(--g6)">Flexible container</td><td><span class="b b-bl">3%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">PIP</td><td>Pipe</td><td class="mono">PI</td><td style="font-size:11px;color:var(--g6)">Tubular item</td><td><span class="b b-gy">1%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">CRT</td><td>Crate</td><td class="mono">CR</td><td style="font-size:11px;color:var(--g6)">Open slatted case</td><td><span class="b b-gy">1%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">JBB</td><td>Jumbo Bag</td><td class="mono">JB</td><td style="font-size:11px;color:var(--g6)">Large flexible bulk container (FIBC)</td><td><span class="b b-gy">1%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">IBC</td><td>IBC Container</td><td class="mono">WK</td><td style="font-size:11px;color:var(--g6)">Intermediate bulk container</td><td><span class="b b-gy">&lt;1%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--bl)">BULK</td><td>Bulk (Unpacked)</td><td class="mono">VQ</td><td style="font-size:11px;color:var(--g6)">No packaging — bulk cargo</td><td><span class="b b-gy">&lt;1%</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Pack Code</th><th>Package Name</th><th>UN/ECE Code</th><th>Description</th><th>Usage</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
 <div class="cf">Showing 16 of 28 package types · <button class="ta" style="color:var(--bl)">Show All 28</button></div>
 </div>
 </div>
@@ -6928,13 +6657,13 @@ Select rate lines to see summary.
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="package" style="color:var(--am)"></svg>Package Detail — Carton</div><div class="ps">Code: CTN · UN/ECE: CT</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="pack-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
 <div class="card"><div class="ch"><div class="ct">Package Information</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Package Code <span class="r">*</span></label><input class="fc" value="CTN" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Package Name <span class="r">*</span></label><input class="fc" value="Carton"></div>
-  <div class="fg"><label class="fl">UN/ECE Code</label><input class="fc" value="CT" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Package Code <span class="r">*</span></label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Package Name <span class="r">*</span></label><input class="fc"></div>
+  <div class="fg"><label class="fl">UN/ECE Code</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">Status</label><select class="fc"><option>Active</option><option>Inactive</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 4"><label class="fl">Description</label><textarea class="fc" rows="2">Box made of paperboard, commonly used for packaging consumer goods, electronics, and general cargo. Most frequently used package type in air and sea export shipments.</textarea></div>
+  <div class="fg" style="grid-column:span 4"><label class="fl">Description</label><textarea class="fc" rows="2"></textarea></div>
 </div>
 </div></div>
 </div>
@@ -6946,26 +6675,14 @@ Select rate lines to see summary.
 <div class="ib ib-bl" style="margin-bottom:14px"><svg class="ic" data-icon="info" style="margin-right:6px"></svg><strong>Business Logic Active:</strong> When an Incoterm is selected in Quotation/Booking/Job, the ERP automatically determines Origin Charges, Destination Charges, Insurance, Export/Import Clearance &amp; Freight Payable — no manual calculation required. Incoterms cannot be deleted, only activated/deactivated.</div>
 
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Incoterms</div><div class="kpi-val">11</div><div class="kpi-sub">ICC 2020 Edition</div></div>
-  <div class="kpi"><div class="kpi-lbl">Sea/Inland Only</div><div class="kpi-val">4</div><div class="kpi-sub">FAS·FOB·CFR·CIF</div></div>
-  <div class="kpi"><div class="kpi-lbl">All Modes</div><div class="kpi-val">7</div><div class="kpi-sub">EXW·FCA·CPT·CIP·DAP·DPU·DDP</div></div>
-  <div class="kpi"><div class="kpi-lbl">Most Used</div><div class="kpi-val">CIF</div><div class="kpi-sub">52% of bookings</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Incoterms</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Sea/Inland Only</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">All Modes</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Most Used</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 
 <div class="card"><div class="ch"><div class="ct">Incoterms 2020 Directory</div></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Term</th><th>Mode</th><th>Risk Transfer Point</th><th>Insurance</th><th>Export Clearance</th><th>Import Clearance</th><th>Freight Payable</th><th>Usage</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--pu)">EXW</td><td>Ex Works</td><td><span class="b b-gy" style="font-size:9.5px">All Modes</span></td><td style="font-size:11px">Seller's premises</td><td>Buyer</td><td>Buyer</td><td>Buyer</td><td>Buyer (Collect)</td><td><span class="b b-am">8%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--pu)">FCA</td><td>Free Carrier</td><td><span class="b b-gy" style="font-size:9.5px">All Modes</span></td><td style="font-size:11px">Named place/carrier</td><td>Buyer</td><td>Seller</td><td>Buyer</td><td>Buyer (Collect)</td><td><span class="b b-am">10%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--bl)">FAS</td><td>Free Alongside Ship</td><td><span class="b b-bl" style="font-size:9.5px">Sea Only</span></td><td style="font-size:11px">Alongside vessel at POL</td><td>Buyer</td><td>Seller</td><td>Buyer</td><td>Buyer (Collect)</td><td><span class="b b-gy">2%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--bl)">FOB</td><td>Free On Board</td><td><span class="b b-bl" style="font-size:9.5px">Sea Only</span></td><td style="font-size:11px">On board vessel at POL</td><td>Buyer</td><td>Seller</td><td>Buyer</td><td>Buyer (Collect)</td><td><span class="b b-gr">18%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--bl)">CFR</td><td>Cost &amp; Freight</td><td><span class="b b-bl" style="font-size:9.5px">Sea Only</span></td><td style="font-size:11px">On board vessel at POL</td><td>Buyer</td><td>Seller</td><td>Buyer</td><td>Seller (Prepaid)</td><td><span class="b b-am">6%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr style="background:var(--put)"><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--pu)">CIF</td><td>Cost, Insurance &amp; Freight</td><td><span class="b b-bl" style="font-size:9.5px">Sea Only</span></td><td style="font-size:11px">On board vessel at POL</td><td style="font-weight:700;color:var(--gr)">Seller</td><td>Seller</td><td>Buyer</td><td>Seller (Prepaid)</td><td><span class="b b-gr">⭐ 52%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--pu)">CPT</td><td>Carriage Paid To</td><td><span class="b b-gy" style="font-size:9.5px">All Modes</span></td><td style="font-size:11px">Handed to first carrier</td><td>Buyer</td><td>Seller</td><td>Buyer</td><td>Seller (Prepaid)</td><td><span class="b b-am">4%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--pu)">CIP</td><td>Carriage &amp; Insurance Paid</td><td><span class="b b-gy" style="font-size:9.5px">All Modes</span></td><td style="font-size:11px">Handed to first carrier</td><td style="font-weight:700;color:var(--gr)">Seller</td><td>Seller</td><td>Buyer</td><td>Seller (Prepaid)</td><td><span class="b b-am">5%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--pu)">DAP</td><td>Delivered At Place</td><td><span class="b b-gy" style="font-size:9.5px">All Modes</span></td><td style="font-size:11px">Named place of destination</td><td>Buyer</td><td>Seller</td><td>Buyer</td><td>Seller (Prepaid)</td><td><span class="b b-am">3%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--pu)">DPU</td><td>Delivered At Place Unloaded</td><td><span class="b b-gy" style="font-size:9.5px">All Modes</span></td><td style="font-size:11px">Named place, unloaded</td><td>Buyer</td><td>Seller</td><td>Buyer</td><td>Seller (Prepaid)</td><td><span class="b b-gy">1%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-<tr><td class="mono ta" data-go="incoterm-detail" style="font-weight:800;color:var(--pu)">DDP</td><td>Delivered Duty Paid</td><td><span class="b b-gy" style="font-size:9.5px">All Modes</span></td><td style="font-size:11px">Buyer's destination</td><td>Seller</td><td>Seller</td><td style="font-weight:700;color:var(--rd)">Seller</td><td>Seller (Prepaid)</td><td><span class="b b-gy">1%</span></td><td class="no-print"><button class="ta" data-go="incoterm-detail">View →</button></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Term</th><th>Mode</th><th>Risk Transfer Point</th><th>Insurance</th><th>Export Clearance</th><th>Import Clearance</th><th>Freight Payable</th><th>Usage</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
 <div class="cf">11 Incoterms 2020 — Status: All Active · Version locked to ICC 2020 Edition</div>
 </div>
 </div>
@@ -6978,13 +6695,13 @@ Select rate lines to see summary.
 
 <div class="card"><div class="ch"><div class="ct">Incoterm Definition</div><span class="b b-gr">⭐ Most Used — 52%</span></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Code <span class="r">*</span></label><input class="fc" value="CIF" readonly style="font-family:var(--font-mono);background:var(--g0);font-weight:700"></div>
-  <div class="fg"><label class="fl">Full Name</label><input class="fc" value="Cost, Insurance and Freight"></div>
-  <div class="fg"><label class="fl">Version</label><input class="fc" value="Incoterms® 2020" readonly style="background:var(--g0)"></div>
+  <div class="fg"><label class="fl">Code <span class="r">*</span></label><input class="fc" readonly style="font-family:var(--font-mono);background:var(--g0);font-weight:700"></div>
+  <div class="fg"><label class="fl">Full Name</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Version</label><input class="fc" readonly style="background:var(--g0)"></div>
   <div class="fg"><label class="fl">Status</label><select class="fc"><option>Active</option><option>Inactive</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 4"><label class="fl">Description</label><textarea class="fc" rows="2">Seller delivers goods on board the vessel at the port of shipment. Seller pays the costs and freight to bring goods to the named port of destination, and procures minimum insurance coverage. Risk transfers to buyer once goods are on board.</textarea></div>
+  <div class="fg" style="grid-column:span 4"><label class="fl">Description</label><textarea class="fc" rows="2"></textarea></div>
 </div>
 <div class="fsec">Mode of Transport Applicability</div>
 <div class="fr">
@@ -7038,10 +6755,10 @@ Select rate lines to see summary.
 <div class="ib ib-rd" style="margin-bottom:14px"><svg class="ic" data-icon="alert-triangle" style="margin-right:6px;color:var(--rd)"></svg><strong>Mandatory Validation Active:</strong> Charge Master entries cannot be saved without a linked HSN/SAC code. When creating a Charge, selecting the Charge Name auto-populates HSN/SAC + GST% + Description (and vice versa).</div>
 
 <div class="kpi-row">
-  <div class="kpi"><div class="kpi-lbl">Total Codes</div><div class="kpi-val">142</div><div class="kpi-sub">SAC: 38 · HSN: 104</div></div>
-  <div class="kpi"><div class="kpi-lbl">Linked to Charges</div><div class="kpi-val up">28</div><div class="kpi-sub">Mapped &amp; in use</div></div>
-  <div class="kpi"><div class="kpi-lbl">18% GST Codes</div><div class="kpi-val">31</div><div class="kpi-sub">Most freight services</div></div>
-  <div class="kpi"><div class="kpi-lbl">Unmapped Charges</div><div class="kpi-val dn">0</div><div class="kpi-sub">✓ Fully compliant</div></div>
+  <div class="kpi"><div class="kpi-lbl">Total Codes</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Linked to Charges</div><div class="kpi-val up">28</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">18% GST Codes</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Unmapped Charges</div><div class="kpi-val dn">0</div><div class="kpi-sub"></div></div>
 </div>
 
 <div class="card"><div class="ch"><div class="ct">SAC / HSN Directory</div>
@@ -7050,18 +6767,7 @@ Select rate lines to see summary.
   <select class="fc" style="width:110px"><option>All GST%</option><option>0%</option><option>5%</option><option>12%</option><option>18%</option><option>28%</option></select>
   <input class="fc" placeholder="Search code / description…" style="width:220px">
 </div></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Type</th><th>Description</th><th>GST %</th><th>Tax Category</th><th>Charge Category</th><th>Linked Charges</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td class="mono ta" data-go="hsn-detail" style="font-weight:700;color:var(--gr)">996511</td><td><span class="b b-bl" style="font-size:9.5px">SAC</span></td><td style="font-size:11px">Road transport services of goods</td><td style="font-weight:700">18%</td><td>Goods Transport Agency</td><td>Transportation / THC</td><td><span class="b b-gr">8 charges</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="hsn-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="hsn-detail" style="font-weight:700;color:var(--gr)">996512</td><td><span class="b b-bl" style="font-size:9.5px">SAC</span></td><td style="font-size:11px">Water transport services of goods (Ocean Freight)</td><td style="font-weight:700">18%</td><td>Sea Freight Services</td><td>Ocean Freight</td><td><span class="b b-gr">6 charges</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="hsn-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="hsn-detail" style="font-weight:700;color:var(--gr)">996521</td><td><span class="b b-bl" style="font-size:9.5px">SAC</span></td><td style="font-size:11px">Air transport services of goods (Air Freight)</td><td style="font-weight:700">18%</td><td>Air Freight Services</td><td>Air Freight</td><td><span class="b b-gr">5 charges</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="hsn-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="hsn-detail" style="font-weight:700;color:var(--gr)">996719</td><td><span class="b b-bl" style="font-size:9.5px">SAC</span></td><td style="font-size:11px">Other supporting transport services n.e.c.</td><td style="font-weight:700">18%</td><td>Support Services</td><td>Handling / Documentation</td><td><span class="b b-gr">4 charges</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="hsn-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="hsn-detail" style="font-weight:700;color:var(--gr)">996713</td><td><span class="b b-bl" style="font-size:9.5px">SAC</span></td><td style="font-size:11px">Clearing &amp; forwarding services / CHA</td><td style="font-weight:700">18%</td><td>Customs Broker Services</td><td>Custom Clearance</td><td><span class="b b-gr">3 charges</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="hsn-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="hsn-detail" style="font-weight:700;color:var(--gr)">996729</td><td><span class="b b-bl" style="font-size:9.5px">SAC</span></td><td style="font-size:11px">Storage and warehousing services</td><td style="font-weight:700">18%</td><td>Warehousing Services</td><td>Warehouse / Storage</td><td><span class="b b-gr">2 charges</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="hsn-detail">Edit →</button></td></tr>
-<tr><td class="mono ta" data-go="hsn-detail" style="font-weight:700;color:var(--gr)">998399</td><td><span class="b b-pu" style="font-size:9.5px">SAC</span></td><td style="font-size:11px">Other professional / documentation services</td><td style="font-weight:700">18%</td><td>Documentation</td><td>Documentation Fee</td><td><span class="b b-bl">1 charge</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta" data-go="hsn-detail">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--gr)">8704</td><td><span class="b b-am" style="font-size:9.5px">HSN</span></td><td style="font-size:11px">Motor vehicles for transport of goods</td><td style="font-weight:700">28%</td><td>Goods Classification</td><td>—</td><td><span class="b b-gy">Not Linked</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--gr)">8471</td><td><span class="b b-am" style="font-size:9.5px">HSN</span></td><td style="font-size:11px">Automatic data processing machines</td><td style="font-weight:700">18%</td><td>Goods Classification</td><td>—</td><td><span class="b b-gy">Not Linked</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-<tr><td class="mono" style="font-weight:700;color:var(--gr)">6802</td><td><span class="b b-am" style="font-size:9.5px">HSN</span></td><td style="font-size:11px">Worked monumental/building stone (Granite)</td><td style="font-weight:700">12%</td><td>Goods Classification</td><td>—</td><td><span class="b b-gy">Not Linked</span></td><td><span class="b b-gr dot">Active</span></td><td class="no-print"><button class="ta">Edit →</button></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Type</th><th>Description</th><th>GST %</th><th>Tax Category</th><th>Charge Category</th><th>Linked Charges</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
 <div class="cf">Showing 10 of 142 codes · 38 SAC (services) + 104 HSN (goods classification) preloaded</div>
 </div>
 </div>
@@ -7072,28 +6778,23 @@ Select rate lines to see summary.
 <div class="card"><div class="ch"><div class="ct">Code Information</div></div><div class="cb">
 <div class="fr">
   <div class="fg"><label class="fl">Code Type <span class="r">*</span></label><select class="fc"><option>SAC (Services)</option><option>HSN (Goods)</option></select></div>
-  <div class="fg"><label class="fl">HSN/SAC Code <span class="r">*</span></label><input class="fc" value="996511" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">HSN/SAC Code <span class="r">*</span></label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">GST Rate (%) <span class="r">*</span></label><select class="fc"><option>18%</option><option>0%</option><option>5%</option><option>12%</option><option>28%</option></select></div>
   <div class="fg"><label class="fl">Status</label><select class="fc"><option>Active</option><option>Inactive</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 4"><label class="fl">Description <span class="r">*</span></label><textarea class="fc" rows="2">Road transport services of goods including household and office furniture, by road transport agency or courier agency.</textarea></div>
+  <div class="fg" style="grid-column:span 4"><label class="fl">Description <span class="r">*</span></label><textarea class="fc" rows="2"></textarea></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Tax Category</label><input class="fc" value="Goods Transport Agency"></div>
+  <div class="fg"><label class="fl">Tax Category</label><input class="fc"></div>
   <div class="fg"><label class="fl">Charge Category</label><select class="fc"><option>Transportation / THC</option><option>Ocean Freight</option><option>Air Freight</option><option>Custom Clearance</option><option>Documentation</option><option>Warehouse / Storage</option></select></div>
-  <div class="fg"><label class="fl">CGST %</label><input class="fc" value="9" readonly style="background:var(--g0)"></div>
-  <div class="fg"><label class="fl">SGST %</label><input class="fc" value="9" readonly style="background:var(--g0)"></div>
+  <div class="fg"><label class="fl">CGST %</label><input class="fc" readonly style="background:var(--g0)"></div>
+  <div class="fg"><label class="fl">SGST %</label><input class="fc" readonly style="background:var(--g0)"></div>
 </div>
 </div></div>
 
 <div class="card" style="margin-top:14px"><div class="ch"><div class="ct">Linked Charges (8)</div><button class="btn btn-out btn-sm" data-go="charge-master"><svg class="ic" data-icon="plus"></svg> Link New Charge</button></div>
-<div class="tw"><table><thead><tr><th>Charge Name</th><th>Charge Code</th><th>Module</th><th>Status</th></tr></thead><tbody>
-<tr><td>Terminal Handling Charges</td><td class="mono">THC-001</td><td><span class="b b-bl">Sea Export</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>Transportation Charges</td><td class="mono">TRP-001</td><td><span class="b b-am">Transport</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>Container Movement Charges</td><td class="mono">CMC-001</td><td><span class="b b-bl">Sea Export</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-<tr><td>Inland Haulage Charges</td><td class="mono">IHC-001</td><td><span class="b b-bl">Sea Import</span></td><td><span class="b b-gr dot">Active</span></td></tr>
-</tbody></table></div>
+<div class="tw"><table><thead><tr><th>Charge Name</th><th>Charge Code</th><th>Module</th><th>Status</th></tr></thead><tbody></tbody></table></div>
 </div>
 </div>
 
@@ -7783,6 +7484,7 @@ function go(screen, opts){
   if(screen==="org-list" && window.renderCustomerRows) renderCustomerRows();
   if(screen==="port-master" && window.renderPortRows) renderPortRows();
   if(screen==="job-list" && window.renderJobRows) renderJobRows();
+  if(window.MK) MK.onScreen(screen, opts);
   if(screen==="job-new" && window.populateCustomerSelect) populateCustomerSelect("nj_shipper");
   if(screen==="quotation-new" && window.populateCustomerSelect) populateCustomerSelect("qn_client");
   if(screen==="booking-new" && window.populateCustomerSelect) populateCustomerSelect("bk_customer");
@@ -15423,6 +15125,244 @@ if(document.readyState !== "loading") initChatWidget();
     if(lowPower && overlay) overlay.classList.add("lp-mode");
   }catch(e){ /* ignore */ }
 })();
+</script>
+<script>
+/* ============================================================
+   MASTER KIT: generic list / detail / save wiring for tenant masters
+   served by /api/masters/{type}. All data lives in PostgreSQL.
+   ============================================================ */
+(function(){
+  "use strict";
+  const MK = window.MK = { configs:{}, cache:{}, pending:null, search:{} };
+  const token = ()=> sessionStorage.getItem("esway_access_token");
+  const esc2 = s=> String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const slug = s=> String(s||"").replace(/<[^>]*>/g,"").replace(/\*/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,60);
+
+  async function api(method, path, body){
+    const res = await fetch(path, {method, headers:{Authorization:"Bearer "+token(), "Content-Type":"application/json"}, body: body ? JSON.stringify(body) : undefined});
+    if(res.status === 204) return null;
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      let msg = "Request failed";
+      if(typeof data.detail === "string") msg = data.detail;
+      else if(Array.isArray(data.detail)) msg = data.detail.map(x=> ((x.loc||[]).slice(-1)[0]||"") + ": " + x.msg).join("; ");
+      const err = new Error(msg); err.status = res.status; throw err;
+    }
+    return data;
+  }
+  const say = (title, msg)=>{ if(typeof toast === "function") toast(title, msg); };
+
+  /* ---------- form helpers ---------- */
+  function labelText(lab){
+    let t = Array.from(lab.childNodes).filter(n=>n.nodeType===3).map(n=>n.textContent).join(" ").replace(/\*/g,"").replace(/\s+/g," ").trim();
+    if(!t) t = lab.textContent.replace(/\*/g,"").replace(/\s+/g," ").trim().slice(0,60);
+    return t;
+  }
+  function fieldNodes(scr){
+    const out = [], seen = {};
+    scr.querySelectorAll(".fg").forEach(fg=>{
+      const lab = fg.querySelector("label.fl"); if(!lab) return;
+      const ctl = fg.querySelector("input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea");
+      const boxes = fg.querySelectorAll("input[type=checkbox]");
+      if(!ctl && !boxes.length) return;
+      const text = labelText(lab); let key = slug(text); if(!key) return;
+      if(seen[key]){ seen[key]++; key += "_" + seen[key]; } else seen[key] = 1;
+      out.push({fg, lab, text, key, ctl, boxes, required: !!lab.querySelector(".r")});
+    });
+    return out;
+  }
+  function getValue(f){
+    if(f.ctl) return f.ctl.value.trim();
+    return Array.from(f.boxes).filter(b=>b.checked).map(b=> (b.closest("label")||b.parentElement).textContent.trim()).join(", ");
+  }
+  function setValue(f, v){
+    v = v==null ? "" : String(v);
+    if(f.ctl){
+      if(f.ctl.tagName === "SELECT"){
+        if(v && !Array.from(f.ctl.options).some(o=>o.value===v || o.text===v)){ const o = document.createElement("option"); o.textContent = v; f.ctl.appendChild(o); }
+        const opt = Array.from(f.ctl.options).find(o=>o.value===v || o.text===v);
+        if(opt) f.ctl.value = opt.value; else f.ctl.selectedIndex = 0;
+      } else f.ctl.value = v;
+    } else {
+      const picked = v.split(",").map(x=>x.trim());
+      f.boxes.forEach(b=> b.checked = picked.includes((b.closest("label")||b.parentElement).textContent.trim()));
+    }
+  }
+  function clearField(f){
+    if(f.ctl){ if(f.ctl.tagName === "SELECT") f.ctl.selectedIndex = 0; else f.ctl.value = ""; f.ctl.classList.remove("err"); }
+    else f.boxes.forEach(b=> b.checked = false);
+  }
+  const matches = (f, wanted)=> slug(f.text) === slug(wanted);
+
+  /* ---------- registration ---------- */
+  MK.register = function(cfg){
+    cfg.statusLabels = cfg.statusLabels || ["Status", "Active Status"];
+    MK.configs[cfg.type] = cfg;
+  };
+
+  MK.onScreen = function(screen){
+    Object.values(MK.configs).forEach(cfg=>{
+      if(screen === cfg.list) MK.loadList(cfg);
+      if(screen === cfg.detail) MK.openDetail(cfg);
+    });
+  };
+
+  /* ---------- list ---------- */
+  const statusBadge = s=> s === "ACTIVE" ? '<span class="b b-gr">Active</span>' : '<span class="b b-gy">Inactive</span>';
+  const pathGet = (r, p)=> p === "code" ? r.code : p === "name" ? r.name : p === "status" ? r.status : p.startsWith("data.") ? (r.data||{})[p.slice(5)] : "";
+  function cellHtml(r, spec, idx){
+    if(spec === "actions") return '<td class="no-print" style="white-space:nowrap"><button class="ta" data-mk-edit="'+r.id+'" data-mk-type="'+esc2(r.master_type)+'">Edit</button> <button class="ta" data-mk-del="'+r.id+'" data-mk-type="'+esc2(r.master_type)+'" style="color:var(--rd)">Delete</button></td>';
+    if(typeof spec === "function") return "<td>"+spec(r)+"</td>";
+    if(spec === "status") return "<td>"+statusBadge(r.status)+"</td>";
+    const v = pathGet(r, spec); const text = (v===undefined||v===null||v==="") ? "—" : esc2(v);
+    if(idx === 0) return '<td class="mono ta" data-mk-edit="'+r.id+'" data-mk-type="'+esc2(r.master_type)+'" style="font-weight:700;color:var(--bl);cursor:pointer">'+text+'</td>';
+    return "<td>"+text+"</td>";
+  }
+  function emptyRow(tbody, msg){
+    const table = tbody.closest("table"); const cols = table ? table.querySelectorAll("thead th").length || 6 : 6;
+    return '<tr class="mk-empty"><td colspan="'+cols+'" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">'+msg+'</td></tr>';
+  }
+  MK.filtered = function(cfg){
+    const rows = MK.cache[cfg.type] || []; const q = (MK.search[cfg.type]||"").toLowerCase();
+    return q ? rows.filter(r=> (r.code+" "+r.name).toLowerCase().includes(q)) : rows;
+  };
+  MK.renderList = function(cfg){
+    const scr = document.getElementById("s-"+cfg.list); if(!scr) return;
+    const all = MK.cache[cfg.type] || []; const rows = MK.filtered(cfg);
+    (cfg.tables || [{sel:"tbody"}]).forEach(spec=>{
+      const tbody = scr.querySelector(spec.sel); if(!tbody) return;
+      const subset = spec.filter ? rows.filter(spec.filter) : rows;
+      tbody.innerHTML = subset.length ? subset.map(r=> "<tr>"+cfg.cols.map((c,i)=>cellHtml(r,c,i)).join("")+"</tr>").join("") : emptyRow(tbody, all.length ? "No matching records" : 'No records yet. Use "New" to add one.');
+    });
+    (cfg.blank || []).forEach(sel=>{ scr.querySelectorAll(sel).forEach(tbody=>{ tbody.innerHTML = emptyRow(tbody, "Not available yet"); }); });
+    if(cfg.kpis){
+      const vals = cfg.kpis(all); const kpis = scr.querySelectorAll(".kpi");
+      vals.forEach((v,i)=>{ const k = kpis[i]; if(!k) return; const val = k.querySelector(".kpi-val"), sub = k.querySelector(".kpi-sub"); if(val) val.textContent = v[0]; if(sub) sub.textContent = v[1] || ""; });
+    }
+    if(cfg.cardGrid){
+      const grid = scr.querySelector(cfg.cardGrid);
+      if(grid) grid.innerHTML = rows.length ? rows.map(r=> cfg.card(r)).join("") : '<div style="grid-column:1/-1;text-align:center;color:var(--g4);padding:24px;font-style:italic">No records yet. Use "New" to add one.</div>';
+    }
+  };
+  MK.loadList = function(cfg){
+    if(!token()) return;
+    const scr = document.getElementById("s-"+cfg.list);
+    if(scr && !scr.dataset.mkSearch){
+      scr.dataset.mkSearch = "1";
+      scr.querySelectorAll('input.fc[placeholder*="earch"]').forEach(inp=> inp.addEventListener("input", ()=>{ MK.search[cfg.type] = inp.value; MK.renderList(cfg); }));
+    }
+    return api("GET", "/api/masters/"+cfg.type).then(rows=>{ MK.cache[cfg.type] = rows; MK.renderList(cfg); })
+      .catch(err=>{ say("Could not load "+cfg.label, err.message); });
+  };
+
+  /* ---------- detail ---------- */
+  function codeNameStatus(cfg, fields){
+    const find = lbl=> fields.find(f=>matches(f, lbl));
+    return {code: find(cfg.codeLabel), name: find(cfg.nameLabel), status: fields.find(f=> cfg.statusLabels.some(l=>matches(f,l)))};
+  }
+  MK.openDetail = function(cfg){
+    const scr = document.getElementById("s-"+cfg.detail); if(!scr) return;
+    const fields = fieldNodes(scr); const pend = MK.pending && MK.pending.type === cfg.type ? MK.pending : null;
+    MK.pending = null;
+    scr.dataset.mkId = pend ? pend.id : "";
+    fields.forEach(clearField);
+    scr.querySelectorAll("table tbody").forEach(tb=>{ tb.innerHTML = emptyRow(tb, "Not available yet"); });
+    const saveBtn = scr.querySelector(".pa .btn-suc");
+    if(saveBtn && !saveBtn.dataset.mkWired){ saveBtn.dataset.mkWired = "1"; saveBtn.addEventListener("click", ()=> MK.save(cfg)); }
+    const fill = ()=>{
+      if(pend){
+        const {code, name, status} = codeNameStatus(cfg, fields);
+        if(code) setValue(code, pend.rec.code); if(name) setValue(name, pend.rec.name);
+        if(status) setValue(status, pend.rec.status === "ACTIVE" ? "Active" : "Inactive");
+        fields.forEach(f=>{ if(f !== code && f !== name && f !== status && pend.rec.data && pend.rec.data[f.key] !== undefined) setValue(f, pend.rec.data[f.key]); });
+      }
+      const pt = scr.querySelector(".pt"), ps = scr.querySelector(".ps");
+      const title = pend ? cfg.label+" — "+pend.rec.name : "New "+cfg.label;
+      if(pt){ const last = Array.from(pt.childNodes).reverse().find(n=>n.nodeType===3); if(last) last.textContent = title; else pt.append(title); }
+      if(ps) ps.textContent = pend ? "Code: "+pend.rec.code : "Fill in the details and click Save";
+    };
+    const jobs = (cfg.selects || []).map(sp=> api("GET", "/api/masters/"+sp.from).then(rows=>{
+      const f = fields.find(x=>x.key === slug(sp.label)); if(!f || !f.ctl) return;
+      const keep = f.ctl.options[0] && !f.ctl.options[0].value ? f.ctl.options[0].outerHTML : '<option value="">— Select —</option>';
+      f.ctl.innerHTML = keep + rows.filter(r=>r.status==="ACTIVE").map(r=> '<option value="'+esc2(sp.use==="code"?r.code:r.name)+'">'+esc2(sp.use==="code"? r.code+" — "+r.name : r.name)+'</option>').join("");
+    }).catch(()=>{}));
+    Promise.all(jobs).then(fill);
+  };
+  MK.save = async function(cfg){
+    const scr = document.getElementById("s-"+cfg.detail); const fields = fieldNodes(scr);
+    const {code, name, status} = codeNameStatus(cfg, fields);
+    const missing = fields.filter(f=> f.required && !getValue(f));
+    fields.forEach(f=>{ if(f.ctl) f.ctl.classList.toggle("err", missing.includes(f)); });
+    if(missing.length){ say("Required fields missing", missing.map(f=>f.text).join(", ")); return; }
+    if(!code || !name){ say("Cannot save", "Code and name fields were not found on this form"); return; }
+    const data = {};
+    fields.forEach(f=>{ if(f !== code && f !== name && f !== status){ const v = getValue(f); if(v !== "") data[f.key] = v; } });
+    const body = {code: getValue(code), name: getValue(name).slice(0,200), status: status && /^inactive/i.test(getValue(status)) ? "INACTIVE" : "ACTIVE", data};
+    const id = scr.dataset.mkId;
+    const btn = scr.querySelector(".pa .btn-suc"); if(btn) btn.disabled = true;
+    try{
+      await (id ? api("PATCH", "/api/masters/"+cfg.type+"/"+id, body) : api("POST", "/api/masters/"+cfg.type, body));
+      say(cfg.label+" saved", body.code+" — "+body.name);
+      go(cfg.list);
+    }catch(err){ say("Could not save "+cfg.label, err.message); }
+    finally{ if(btn) btn.disabled = false; }
+  };
+  MK.edit = function(type, id){
+    const cfg = MK.configs[type]; const rec = (MK.cache[type]||[]).find(r=>r.id === id); if(!cfg || !rec) return;
+    MK.pending = {type, id, rec}; go(cfg.detail);
+  };
+  MK.remove = async function(type, id){
+    const cfg = MK.configs[type]; const rec = (MK.cache[type]||[]).find(r=>r.id === id); if(!cfg || !rec) return;
+    if(!window.confirm("Delete "+cfg.label+" "+rec.code+" — "+rec.name+"? This cannot be undone.")) return;
+    try{ await api("DELETE", "/api/masters/"+type+"/"+id); say(cfg.label+" deleted", rec.code); MK.loadList(cfg); }
+    catch(err){ say("Could not delete", err.message); }
+  };
+  document.addEventListener("click", e=>{
+    const ed = e.target.closest("[data-mk-edit]"); if(ed){ e.stopPropagation(); MK.edit(ed.dataset.mkType, Number(ed.dataset.mkEdit)); return; }
+    const del = e.target.closest("[data-mk-del]"); if(del){ e.stopPropagation(); MK.remove(del.dataset.mkType, Number(del.dataset.mkDel)); }
+  }, true);
+
+  /* ---------- configurations ---------- */
+  const count = (rows, fn)=> rows.filter(fn).length;
+  const active = rows=> count(rows, r=>r.status==="ACTIVE");
+  const modes = r=> ["sea_freight","air_freight","road_rail","multimodal"].map((k,i)=> ["Sea","Air","Road/Rail","Multimodal"][i]).filter((_,i)=>{ const v = (r.data||{})[["sea_freight","air_freight","road_rail","multimodal"][i]]; return v && !/^no/i.test(v); }).join(", ") || "—";
+
+  MK.register({type:"country", label:"Country", list:"country-master", detail:"country-detail", codeLabel:"ISO Alpha-2", nameLabel:"Country Name",
+    cols:["data.country_flag_emoji","name","code","data.iso_numeric_code","data.primary_currency","data.region",()=>"—",()=>"—","status","actions"],
+    kpis:rows=>[[rows.length,"Countries in your master"],[active(rows),"Active"],["—","Trade lanes: not tracked yet"],[new Set(rows.map(r=>(r.data||{}).primary_currency).filter(Boolean)).size,"Currencies referenced"]],
+    selects:[{label:"Primary Currency", from:"currency", use:"code"}]});
+  MK.register({type:"currency", label:"Currency", list:"currency-master", detail:"currency-detail", codeLabel:"Currency Code (ISO 4217)", nameLabel:"Currency Name",
+    tables:[{sel:"#cm1 tbody"}], blank:["#cm2 tbody","#cm3 tbody","#cm4 tbody","#cm5 tbody","#cm6 tbody"],
+    cols:["code","data.currency_symbol","name","data.iso_numeric_code","data.decimal_places","data.symbol_position","data.default_currency","data.system_default","status","actions"],
+    kpis:rows=>[[rows.length,"Currencies in your master"],[active(rows),"Active"],[(rows.find(r=>/^yes/i.test((r.data||{}).default_currency||""))||{}).code||"—","Organisation default"],["—","Exchange rates: not available yet"]]});
+  const unitCats = ["Weight","Volume","Length","Area","Quantity","Time","Temperature"];
+  MK.register({type:"unit", label:"Unit", list:"unit-master", detail:"unit-detail", codeLabel:"Unit Code", nameLabel:"Unit Name",
+    tables:unitCats.map((c,i)=>({sel:"#um"+(i+1)+" tbody", filter:r=>(r.data||{}).category===c})),
+    cols:["code","name","data.decimal_precision","data.conversion_factor_to_base","data.base_unit_for_category","status","actions"],
+    kpis:rows=>[[rows.length,unitCats.length+" categories"],[count(rows,r=>(r.data||{}).category==="Weight"),"Weight"],[count(rows,r=>(r.data||{}).category==="Volume"),"Volume"],[count(rows,r=>!unitCats.includes((r.data||{}).category)),"Other"]]});
+  MK.register({type:"pack", label:"Package Type", list:"pack-master", detail:"pack-detail", codeLabel:"Package Code", nameLabel:"Package Name",
+    cols:["code","name","data.un_ece_code","data.description",()=>"—","status","actions"],
+    kpis:rows=>[[rows.length,"Package types"],["—","Usage not tracked yet"],[active(rows),"Active"],[count(rows,r=>r.status!=="ACTIVE"),"Inactive"]]});
+  MK.register({type:"incoterm", label:"Incoterm", list:"incoterms-master", detail:"incoterm-detail", codeLabel:"Code", nameLabel:"Full Name",
+    cols:["code","name",modes,()=>"—",()=>"—",()=>"—",()=>"—",()=>"—",()=>"—","actions"],
+    kpis:rows=>[[rows.length,"Incoterms"],[active(rows),"Active"],[count(rows,r=>r.status!=="ACTIVE"),"Inactive"],["—","Usage not tracked yet"]]});
+  MK.register({type:"hsn", label:"HSN / SAC Code", list:"hsn-master", detail:"hsn-detail", codeLabel:"HSN/SAC Code", nameLabel:"Description",
+    cols:["code","data.code_type","name","data.gst_rate","data.tax_category","data.charge_category",()=>"—","status","actions"],
+    kpis:rows=>[[rows.length,"SAC: "+count(rows,r=>/sac/i.test((r.data||{}).code_type||""))+" · HSN: "+count(rows,r=>/hsn/i.test((r.data||{}).code_type||""))],["—","Charge links not available yet"],[count(rows,r=>String((r.data||{}).gst_rate||"").replace(/\D/g,"")==="18"),"18% GST codes"],[active(rows),"Active"]]});
+  MK.register({type:"container_type", label:"Container Type", list:"container-master", detail:"container-detail", codeLabel:"Container Code", nameLabel:"Container Name",
+    cardGrid:'div[style*="grid-template-columns:repeat(3"]',
+    card:r=>'<div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer" data-mk-edit="'+r.id+'" data-mk-type="container_type"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="min-width:46px;padding:6px 8px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;color:#fff;font-size:10px;font-weight:800;text-align:center">'+esc2(r.code)+'</div>'+statusBadge(r.status)+'</div><div style="font-weight:700;font-size:13px">'+esc2(r.name)+'</div><div style="font-size:11px;color:var(--g5);margin-top:4px">'+esc2([(r.data||{}).category,(r.data||{}).size_feet&&(r.data.size_feet+" ft"),(r.data||{}).height_type].filter(Boolean).join(" · ")||"—")+'</div><div style="margin-top:8px"><button class="ta" data-mk-del="'+r.id+'" data-mk-type="container_type" style="color:var(--rd);font-size:11px">Delete</button></div></div>',
+    kpis:rows=>[[rows.length,"Container types"],[count(rows,r=>/dry/i.test((r.data||{}).category||"")),"Dry"],[count(rows,r=>/reefer/i.test((r.data||{}).category||"")),"Reefer"],["—","Usage not tracked yet"]]});
+  MK.register({type:"department", label:"Department", list:"dept-list", detail:"dept-new", codeLabel:"Department Code", nameLabel:"Department Name",
+    cols:["code","name","data.department_head","data.email","data.phone",()=>"—","status","actions"]});
+  MK.register({type:"designation", label:"Designation", list:"desig-list", detail:"desig-new", codeLabel:"Designation Code", nameLabel:"Designation Name",
+    cols:["code","name","data.department","data.grade","status","actions"], selects:[{label:"Department", from:"department", use:"name"}]});
+  MK.register({type:"branch", label:"Branch", list:"branch-master", detail:"branch-detail", codeLabel:"Branch Code", nameLabel:"Branch Name",
+    cols:["code","name","data.country","data.city","data.local_currency",()=>"—","data.branch_manager","status","actions"],
+    kpis:rows=>[[rows.length,"Branches"],[active(rows),"Active"],[count(rows,r=>r.status!=="ACTIVE"),"Inactive"],[new Set(rows.map(r=>(r.data||{}).country).filter(Boolean)).size,"Countries"]],
+    selects:[{label:"Country", from:"country", use:"name"},{label:"Local Currency", from:"currency", use:"code"},{label:"Default Trans. Currency", from:"currency", use:"code"}]});
+})();
+
 </script>
 </body>
 </html>

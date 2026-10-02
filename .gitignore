@@ -20,3 +20,5 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 *.log
+e2e/node_modules/
+scratch/

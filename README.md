@@ -13,3 +13,10 @@ cd backend && python -m venv .venv && .venv/Scripts/pip install -r requirements.
 .venv/Scripts/python -m uvicorn app.main:app --port 8000     # open http://127.0.0.1:8000
 .venv/Scripts/python -m pytest -q
 ```
+
+## UI tests (headless, real API + database)
+Start the backend on the QA database, then run the UI checks:
+```
+cd backend && ENV_FILE=.env.qa .venv/Scripts/python -m uvicorn app.main:app --port 8010
+cd e2e && npm install && npm run test:masters
+```
