@@ -48,6 +48,7 @@ class User(Base):
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
     is_super_admin: Mapped[bool] = mapped_column(default=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    profile: Mapped[dict] = mapped_column(JSON, default=dict)
     failed_login_count: Mapped[int] = mapped_column(default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

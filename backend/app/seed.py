@@ -15,6 +15,7 @@ PERMISSIONS = [
     ("organization.activate", "Activate organizations", "organization", "activate"),
     ("user.read", "Read users", "user", "read"),
     ("user.create", "Create users", "user", "create"),
+    ("user.update", "Update users", "user", "update"),
     ("customer.read", "Read customers", "customer", "read"),
     ("customer.create", "Create customers", "customer", "create"),
     ("customer.update", "Update customers", "customer", "update"),

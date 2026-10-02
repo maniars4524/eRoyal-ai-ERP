@@ -32,7 +32,7 @@ def get_current_user(
     return user
 
 
-DEMO_BLOCKED_PERMISSIONS = {"organization.update", "organization.create", "user.create"}
+DEMO_BLOCKED_PERMISSIONS = {"organization.update", "organization.create", "user.create", "user.update"}
 
 
 def portal_for(user: User) -> str:

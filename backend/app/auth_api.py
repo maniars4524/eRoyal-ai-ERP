@@ -9,6 +9,7 @@ from .auth import get_current_user, permission_required, portal_for, safe_user
 from .db import get_db
 from .licensing import next_license_number
 from .models import AuditLog, Organization, Permission, Role, User
+from .roles import ensure_role
 from .schemas_auth import LoginRequest, LoginResponse, OrganizationAdminCreate, OrganizationUpdate, SafeUser
 from .security import create_token, hash_password, verify_password
 
@@ -101,10 +102,8 @@ def create_organization(payload: OrganizationAdminCreate, user: User = Depends(p
     organization = Organization(code=payload.code, license_number=next_license_number(db), name=payload.name, legal_name=payload.legal_name, country=payload.country, status="ACTIVE")
     db.add(organization)
     db.flush()
-    admin_role = Role(name="ERP_ADMIN", organization_id=organization.id, description="Organization administrator", status="ACTIVE")
-    foundation_codes = ["organization.read", "organization.update", "user.read", "user.create", "customer.read", "customer.create", "customer.update", "customer.delete", "shipment.read", "shipment.create", "shipment.update", "shipment.delete", "master.read", "master.create", "master.update", "master.delete"]
-    admin_role.permissions = db.scalars(select(Permission).where(Permission.code.in_(foundation_codes))).all()
-    if len(admin_role.permissions) != len(foundation_codes):
+    admin_role = ensure_role(db, organization.id, "ERP_ADMIN")
+    if not admin_role.permissions:
         raise HTTPException(status_code=500, detail="Foundation permissions have not been seeded")
     admin = User(email=payload.admin_email, username=payload.admin_username.lower(), password_hash=hash_password(payload.admin_password), first_name=payload.admin_first_name, last_name=payload.admin_last_name, status="ACTIVE", is_super_admin=False)
     organization.users.append(admin)

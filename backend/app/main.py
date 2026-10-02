@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .auth_api import platform_router, router as auth_router
 from .customers_api import router as customers_router
 from .masters_api import router as masters_router
+from .users_api import router as users_router
 from .ports_api import router as ports_router
 from .shipments_api import router as shipments_router
 from .config import CORS_ORIGINS, IS_PRODUCTION
@@ -44,6 +45,7 @@ app.include_router(platform_router)
 app.include_router(customers_router)
 app.include_router(ports_router)
 app.include_router(masters_router)
+app.include_router(users_router)
 app.include_router(shipments_router)
 
 
