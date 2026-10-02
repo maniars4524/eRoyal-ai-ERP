@@ -15,7 +15,7 @@ export default function App() {
       <iframe
         className="prototype-frame"
         src="/prototype?v=phase1"
-        title="eRoyal Freight ERP"
+        title="eSway ERP 2.0"
         allow="fullscreen"
       />
       <span className="api-indicator" aria-label={`API ${apiState}`} />
