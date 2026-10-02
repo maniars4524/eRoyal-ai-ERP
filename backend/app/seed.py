@@ -2,6 +2,7 @@ import os
 
 from sqlalchemy import select
 
+from .config import IS_PRODUCTION
 from .db import SessionLocal
 from .licensing import next_license_number
 from .models import Organization, Permission, Role, User
@@ -38,15 +39,21 @@ def seed_super_admin() -> None:
         email = os.getenv("SUPER_ADMIN_EMAIL", "admin@eroyal.local")
         username = os.getenv("SUPER_ADMIN_USERNAME", "Admin")
         password = os.getenv("SUPER_ADMIN_PASSWORD", "admin")
+        if IS_PRODUCTION and (len(password) < 12 or password.lower() in {"admin", "password", "mani"}):
+            raise RuntimeError("SUPER_ADMIN_PASSWORD must be at least 12 characters when APP_ENV=production")
         user = db.scalar(select(User).where(User.email == email))
         if not user:
             user = User(email=email, username=username, password_hash=hash_password(password), first_name="Platform", last_name="Administrator", is_super_admin=True)
             db.add(user)
         platform_org = db.scalar(select(Organization).where(Organization.code == "RTS-PLATFORM"))
         if not platform_org:
-            platform_org = Organization(code="RTS-PLATFORM", license_number="RTS0001", name="eRoyal", legal_name="eRoyal", country="India", status="ACTIVE")
+            platform_org = Organization(code="RTS-PLATFORM", license_number="RTS0001", name="eSway ERP 2.0", legal_name="eSway ERP 2.0", country="India", status="ACTIVE")
             db.add(platform_org)
             db.flush()
+        if IS_PRODUCTION:
+            # Production gets only the platform Super Admin; tenants are created through the UI.
+            db.commit()
+            return
         demo_org_code = os.getenv("DEMO_ORG_CODE", "NRS-FREIGHT")
         demo_org_name = os.getenv("DEMO_ORG_NAME", "NRS FREIGHT")
         demo_org = db.scalar(select(Organization).where(Organization.code == demo_org_code))

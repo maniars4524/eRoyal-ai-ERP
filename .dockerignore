@@ -1,0 +1,7 @@
+.git
+.env*
+backend/.venv
+frontend/node_modules
+**/__pycache__
+*.log
+eRoyal_Freight_ERP-*.html
