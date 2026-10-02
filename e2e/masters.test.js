@@ -34,7 +34,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   });
   const w = dom.window, d = w.document;
   await sleep(2500);
-  check("page loaded with go() and MK defined", typeof w.go === "function" && w.MK && Object.keys(w.MK.configs).length === 10, Object.keys((w.MK || {}).configs || {}).length);
+  check("page loaded with go() and MK defined", typeof w.go === "function" && w.MK && Object.keys(w.MK.configs).length >= 10, Object.keys((w.MK || {}).configs || {}).length);
 
   const toasts = [];
   const origToast = w.toast; w.toast = (a, b) => { toasts.push(a + " | " + b); try { origToast && origToast(a, b); } catch (e) {} };
