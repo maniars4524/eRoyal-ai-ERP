@@ -2895,7 +2895,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- ====== JOB DETAIL ====== -->
 
 <div id="s-job-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="clipboard" style="color:var(--bl)"></svg><span id="jobDetailNo">IN-RGC-MAA-SEX-25-000047</span></div><div class="ps" id="jobDetailSub">Sea Export FCL · Tata Chemicals → Solvay SA · Chennai → Antwerp · MSC ROMA 254W</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="file"></svg> BL Draft</button><button class="btn btn-out btn-sm" id="jobSendDocsBtn"><svg class="ic" data-icon="mail"></svg> Send Docs</button><button class="btn btn-pri btn-sm" data-go="invoice-new"><svg class="ic" data-icon="receipt"></svg> Create Invoice</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="clipboard" style="color:var(--bl)"></svg><span id="jobDetailNo">—</span></div><div class="ps" id="jobDetailSub">Loading job…</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="file"></svg> BL Draft</button><button class="btn btn-out btn-sm" id="jobSendDocsBtn"><svg class="ic" data-icon="mail"></svg> Send Docs</button><button class="btn btn-pri btn-sm" data-go="invoice-new"><svg class="ic" data-icon="receipt"></svg> Create Invoice</button></div></div>
 
 <div class="sf">
 <div class="sfn done">Open</div><div class="sfa done"></div>
@@ -2926,27 +2926,23 @@ tbody tr:hover{background:var(--g0)}
 <!-- JT1 OVERVIEW -->
 <div id="jt1" class="tp on"><div class="g2">
 <div class="card"><div class="ch"><div class="ct">Job Details</div></div><div class="cb">
-<div class="sr"><span class="lbl">Job No</span><span class="mono" style="color:var(--bl)">IN-RGC-MAA-SEX-25-000047</span></div>
-<div class="sr"><span class="lbl">Mode</span><span><span class="b b-bl">Sea Export</span> <span class="b b-gy">FCL</span></span></div>
-<div class="sr"><span class="lbl">Shipper</span><span>Tata Chemicals Ltd</span></div>
-<div class="sr"><span class="lbl">Consignee</span><span>Solvay SA, Antwerp</span></div>
-<div class="sr"><span class="lbl">Carrier</span><span>MSC Mediterranean</span></div>
-<div class="sr"><span class="lbl">Vessel / Voyage</span><span class="mono">MSC ROMA / 254W</span></div>
-<div class="sr"><span class="lbl">POL → POD</span><span>INMAA → BEANR</span></div>
-<div class="sr"><span class="lbl">ETD / ETA</span><span>22 Jun 2025 / 12 Jul 2025</span></div>
-<div class="sr"><span class="lbl">Incoterm</span><span>FOB Chennai</span></div>
-<div class="sr"><span class="lbl">Commodity</span><span>Soda Ash Light · HS 2836.20</span></div>
-<div class="sr"><span class="lbl">Status</span><span class="b b-bl dot">In Transit</span></div>
+<div class="sr"><span class="lbl">Job No</span><span id="jd_no" class="mono" style="color:var(--bl)">—</span></div>
+<div class="sr"><span class="lbl">Mode</span><span id="jd_mode">—</span></div>
+<div class="sr"><span class="lbl">Customer / Shipper</span><span id="jd_customer">—</span></div>
+<div class="sr"><span class="lbl">Consignee</span><span id="jd_consignee">—</span></div>
+<div class="sr"><span class="lbl">POL → POD</span><span id="jd_route">—</span></div>
+<div class="sr"><span class="lbl">ETD / ETA</span><span id="jd_dates">—</span></div>
+<div class="sr"><span class="lbl">Commodity</span><span id="jd_commodity">—</span></div>
+<div class="sr"><span class="lbl">Status</span><span id="jd_status">—</span></div>
 </div></div>
 <div class="card"><div class="ch"><div class="ct">Finance Summary</div></div><div class="cb">
-<div class="sr"><span class="lbl">Containers</span><span>2 × 40GP</span></div>
-<div class="sr"><span class="lbl">Gross Weight</span><span>24,000 KG · 42.5 CBM</span></div>
-<div class="sr"><span class="lbl">BL No</span><span class="mono">MSCU9988776</span></div>
-<div class="sr"><span class="lbl">BL Status</span><span class="b b-am">Draft</span></div>
+<div class="sr"><span class="lbl">Packages</span><span id="jd_packages">—</span></div>
+<div class="sr"><span class="lbl">Gross Weight / Volume</span><span id="jd_weight">—</span></div>
+<div class="sr"><span class="lbl">BL / AWB No</span><span id="jd_bl">—</span></div>
 <div class="divider"></div>
-<div class="sr"><span class="lbl">Total AR (Sell)</span><span class="ap">₹1,85,400</span></div>
-<div class="sr"><span class="lbl">Total AP (Buy)</span><span class="an">₹1,22,960</span></div>
-<div class="sr"><span class="lbl">Gross Profit</span><span style="color:var(--gr);font-weight:600">₹62,440 · <span class="b b-gr">33.7%</span></span></div>
+<div class="sr"><span class="lbl">Total AR (Sell)</span><span class="ap">₹0</span></div>
+<div class="sr"><span class="lbl">Total AP (Buy)</span><span class="an">₹0</span></div>
+<div class="sr"><span class="lbl">Gross Profit</span><span style="font-weight:600">₹0</span></div>
 </div></div>
 </div></div>
 
@@ -3033,11 +3029,8 @@ tbody tr:hover{background:var(--g0)}
   <div class="ct"><svg class="ic" data-icon="package" style="color:var(--bl)"></svg> Containers <span class="b b-bl" style="font-size:10px">Sea</span></div>
   <button class="btn btn-out btn-sm" id="addContainerBtn"><svg class="ic" data-icon="plus"></svg> Add Container</button>
 </div>
-<div class="tw"><table id="containerTable"><thead><tr><th>Container No</th><th>Type</th><th>Seal No</th><th>VGM (KG)</th><th>Empty Pickup</th><th>Stuffed</th><th>Gate-In</th><th>Free Days</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="containerTableBody">
-<tr><td class="mono">MSCU1234567</td><td>40GP</td><td class="mono">MSC112233</td><td>24,020</td><td>18 Jun</td><td>19 Jun</td><td>20 Jun</td><td>14</td><td><span class="b b-bl dot">On Vessel</span></td><td class="no-print"><button class="ta remove-row">✕</button></td></tr>
-<tr><td class="mono">MSCU7654321</td><td>40GP</td><td class="mono">MSC445566</td><td>24,005</td><td>18 Jun</td><td>19 Jun</td><td>20 Jun</td><td>14</td><td><span class="b b-bl dot">On Vessel</span></td><td class="no-print"><button class="ta remove-row">✕</button></td></tr>
-</tbody></table></div>
-<div class="cf">Total: 2 containers · 48,025 KG combined VGM</div>
+<div class="tw"><table id="containerTable"><thead><tr><th>Container No</th><th>Type</th><th>Seal No</th><th>VGM (KG)</th><th>Empty Pickup</th><th>Stuffed</th><th>Gate-In</th><th>Free Days</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="containerTableBody"><tr class="empty-row"><td colspan="10" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr></tbody></table></div>
+<div class="cf">Total: 0 containers</div>
 </div>
 
 <!-- AIR mode: Dimensions & Volumetric Weight Calculator -->
@@ -3189,7 +3182,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="fr"><div class="fg"><label class="fl">House BL No</label><input class="fc" id="jobBl_hblNo" readonly placeholder="Not generated yet" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">House BL Date</label><input class="fc" type="date" id="jobBl_hblDate"></div><div class="fg" style="display:flex;align-items:flex-end"><button class="btn btn-pri btn-sm" id="jobBl_genHblBtn"><svg class="ic" data-icon="refresh-cw"></svg> Generate HBL</button></div></div>
 </div>
 
-<div class="fr"><div class="fg"><label class="fl">Originals</label><input class="fc" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" value="Chennai"></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Originals</label><input class="fc" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" value=""></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date"></div></div>
 <div class="ib ib-am" style="margin-top:8px"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg>Original BL is released only after full payment is confirmed by Accounts.</div>
 </div></div></div>
 
@@ -3289,24 +3282,12 @@ tbody tr:hover{background:var(--g0)}
   <button class="btn btn-pri btn-sm" data-go="cargo-arrival" style="margin-left:8px;padding:3px 10px;font-size:11px"><svg class="ic" data-icon="eye"></svg> View / Send CAN</button>
 </div><div class="card"><div class="ch"><div class="ct">Tracking Timeline</div><button class="btn btn-out btn-sm" id="addTrackEventBtn"><svg class="ic" data-icon="plus"></svg> Add Event</button></div><div class="cb">
 <div class="tl" id="jobTimelineBody">
-<div class="tli"><div class="tld done"><svg class="ic" data-icon="check"></svg></div><div><div class="tl-t">Empty Container Picked Up</div><div class="tl-m">18 Jun 2025 · INMAA Depot · Manual</div></div></div>
-<div class="tli"><div class="tld done"><svg class="ic" data-icon="check"></svg></div><div><div class="tl-t">Cargo Stuffed at Factory</div><div class="tl-m">19 Jun 2025 · Tata Chemicals, Mithapur · Manual</div></div></div>
-<div class="tli"><div class="tld done"><svg class="ic" data-icon="check"></svg></div><div><div class="tl-t">Container Gate-In at Chennai Port</div><div class="tl-m">20 Jun 2025 · INMAA CY · EDI received</div></div></div>
-<div class="tli"><div class="tld act"><svg class="ic" data-icon="arrow-right"></svg></div><div><div class="tl-t">Loaded on Vessel MSC ROMA 254W</div><div class="tl-m">22 Jun 2025 · INMAA · EDI confirmed</div></div></div>
-<div class="tli"><div class="tld"></div><div><div class="tl-t">Vessel Sailed</div><div class="tl-m">Expected: 22 Jun 2025 · INMAA</div></div></div>
-<div class="tli"><div class="tld"></div><div><div class="tl-t">Arrived Port of Antwerp</div><div class="tl-m">Expected: 12 Jul 2025 · BEANR</div></div></div>
-<div class="tli"><div class="tld"></div><div><div class="tl-t">Final Delivery to Consignee</div><div class="tl-m">Pending</div></div></div>
+<div style="padding:18px;text-align:center;color:var(--g4);font-style:italic">No tracking events yet</div>
 </div></div></div></div>
 
 <!-- JT7 DOCUMENTS (Shipment Documents) -->
 <div id="jt7" class="tp"><div class="card"><div class="ch"><div class="ct"><svg class="ic" data-icon="folder" style="color:var(--bl)"></svg> Shipment Documents</div><button class="btn btn-out btn-sm" id="jobDocUploadBtn"><svg class="ic" data-icon="upload"></svg> Upload Doc</button></div>
-<div class="tw"><table><thead><tr><th>Type</th><th>Document Name</th><th>Doc No / Ref</th><th>Date</th><th>Issued By</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td><span class="b b-bl">BL Draft</span></td><td>Master Bill of Lading</td><td class="mono">MSCU9988776</td><td>22 Jun</td><td>MSC Mediterranean</td><td><span class="b b-am">Draft</span></td><td class="no-print"><button class="ta" data-go="bl-draft"><svg class="ic ic-sm" data-icon="eye"></svg> View BL Draft</button></td></tr>
-<tr><td><span class="b b-gy">PKL</span></td><td>Packing List</td><td class="mono">TC-PKL-2506</td><td>19 Jun</td><td>Tata Chemicals</td><td><span class="b b-gr">Approved</span></td><td class="no-print"><button class="ta"><svg class="ic ic-sm" data-icon="eye"></svg> View</button></td></tr>
-<tr><td><span class="b b-gy">CI</span></td><td>Commercial Invoice</td><td class="mono">TC-INV-2506</td><td>19 Jun</td><td>Tata Chemicals</td><td><span class="b b-gr">Approved</span></td><td class="no-print"><button class="ta"><svg class="ic ic-sm" data-icon="eye"></svg> View</button></td></tr>
-<tr><td><span class="b b-pu">SB</span></td><td>Shipping Bill (ICEGATE)</td><td class="mono">SB-2245881</td><td>20 Jun</td><td>CHA / ICEGATE</td><td><span class="b b-gr">LEO Received</span></td><td class="no-print"><button class="ta"><svg class="ic ic-sm" data-icon="eye"></svg> View</button></td></tr>
-<tr><td><span class="b b-gr">FC</span></td><td>Freight Certificate</td><td class="mono">RLPL/FC/2026/047</td><td>23 Jun</td><td>eSway ERP 2.0</td><td><span class="b b-gr">Issued</span></td><td class="no-print"><button class="ta" data-go="freight-cert"><svg class="ic ic-sm" data-icon="award"></svg> View FC</button></td></tr>
-</tbody></table></div></div></div>
+<div class="tw"><table><thead><tr><th>Type</th><th>Document Name</th><th>Doc No / Ref</th><th>Date</th><th>Issued By</th><th>Status</th><th class="no-print"></th></tr></thead><tbody><tr class="empty-row"><td colspan="7" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No documents uploaded yet</td></tr></tbody></table></div></div></div>
 
 <!-- JT7B OUTPUT DOCS TAB — Smart mode-aware -->
 <div id="jt7b" class="tp">
@@ -3314,7 +3295,7 @@ tbody tr:hover{background:var(--g0)}
 <div style="background:linear-gradient(135deg,#0B1F3A 50%,#1A6FBF);color:#fff;padding:12px 18px;border-radius:8px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
   <div>
     <div style="font-size:11px;opacity:.65;letter-spacing:.6px;text-transform:uppercase">Output Documents — Generate, View &amp; Print</div>
-    <div style="font-size:15px;font-weight:700;margin-top:2px">Job: IN-RGC-MAA-SEX-25-000047 <span id="outDocMode" style="font-size:12px;background:rgba(255,255,255,.18);padding:2px 10px;border-radius:20px;margin-left:8px">Sea Export</span></div>
+    <div style="font-size:15px;font-weight:700;margin-top:2px">Job: <span id="outDocJobNo">—</span> <span id="outDocMode" style="font-size:12px;background:rgba(255,255,255,.18);padding:2px 10px;border-radius:20px;margin-left:8px">Sea Export</span></div>
   </div>
   <div style="font-size:11px;opacity:.7">Documents appear based on shipment mode &amp; direction</div>
 </div>
@@ -3601,14 +3582,14 @@ tbody tr:hover{background:var(--g0)}
   <div style="display:flex;align-items:center;gap:10px">
     <svg class="ic" data-icon="receipt" style="color:#fff;width:20px;height:20px"></svg>
     <div>
-      <div style="font-size:11px;opacity:.7;letter-spacing:.5px;text-transform:uppercase">Vouchers — Job SEX-25-000047 · Tata Chemicals</div>
+      <div style="font-size:11px;opacity:.7;letter-spacing:.5px;text-transform:uppercase">Vouchers — Job <span id="vJobNo">—</span></div>
       <div style="font-size:15px;font-weight:800">Financial Vouchers Register</div>
     </div>
   </div>
   <div style="display:flex;gap:8px">
-    <span style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px">AR: ₹1,85,496</span>
-    <span style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px">AP: ₹1,26,720</span>
-    <span style="background:rgba(144,238,144,.2);color:#90EE90;border:1px solid #90EE90;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">GP: ₹58,776</span>
+    <span style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px">AR: ₹0</span>
+    <span style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px">AP: ₹0</span>
+    <span style="background:rgba(144,238,144,.2);color:#90EE90;border:1px solid #90EE90;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">GP: ₹0</span>
   </div>
 </div>
 
@@ -3617,17 +3598,17 @@ tbody tr:hover{background:var(--g0)}
   <div class="card" style="margin:0;text-align:center;cursor:pointer" onclick="document.getElementById('vtax').scrollIntoView({behavior:'smooth'})">
     <div class="cb" style="padding:10px 6px">
       <div style="width:32px;height:32px;background:var(--grt);border-radius:7px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="receipt" style="color:var(--gr);width:15px;height:15px"></svg></div>
-      <div style="font-size:16px;font-weight:800;color:var(--gr)">1</div>
+      <div style="font-size:16px;font-weight:800;color:var(--gr)">0</div>
       <div style="font-size:9.5px;color:var(--g5);font-weight:600">Tax Invoice</div>
-      <div style="font-size:10px;color:var(--gr)">₹1,85,496</div>
+      <div style="font-size:10px;color:var(--gr)">₹0</div>
     </div>
   </div>
   <div class="card" style="margin:0;text-align:center;cursor:pointer" onclick="document.getElementById('vdn').scrollIntoView({behavior:'smooth'})">
     <div class="cb" style="padding:10px 6px">
       <div style="width:32px;height:32px;background:var(--amt);border-radius:7px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="file-minus" style="color:var(--am);width:15px;height:15px"></svg></div>
-      <div style="font-size:16px;font-weight:800;color:var(--am)">2</div>
+      <div style="font-size:16px;font-weight:800;color:var(--am)">0</div>
       <div style="font-size:9.5px;color:var(--g5);font-weight:600">Debit Notes</div>
-      <div style="font-size:10px;color:var(--am)">USD 2,105</div>
+      <div style="font-size:10px;color:var(--am)">USD 0.00</div>
     </div>
   </div>
   <div class="card" style="margin:0;text-align:center;cursor:pointer">
@@ -3641,9 +3622,9 @@ tbody tr:hover{background:var(--g0)}
   <div class="card" style="margin:0;text-align:center;cursor:pointer" onclick="document.getElementById('vpi').scrollIntoView({behavior:'smooth'})">
     <div class="cb" style="padding:10px 6px">
       <div style="width:32px;height:32px;background:var(--put);border-radius:7px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="file-plus" style="color:var(--pu);width:15px;height:15px"></svg></div>
-      <div style="font-size:16px;font-weight:800;color:var(--pu)">2</div>
+      <div style="font-size:16px;font-weight:800;color:var(--pu)">0</div>
       <div style="font-size:9.5px;color:var(--g5);font-weight:600">Purchase Inv.</div>
-      <div style="font-size:10px;color:var(--pu)">₹1,26,720</div>
+      <div style="font-size:10px;color:var(--pu)">₹0</div>
     </div>
   </div>
   <div class="card" style="margin:0;text-align:center;cursor:pointer">
@@ -3659,7 +3640,7 @@ tbody tr:hover{background:var(--g0)}
       <div style="width:32px;height:32px;background:var(--grt);border-radius:7px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="trending-up" style="color:var(--gr);width:15px;height:15px"></svg></div>
       <div style="font-size:16px;font-weight:800;color:var(--gr)">P&amp;L</div>
       <div style="font-size:9.5px;color:var(--g5);font-weight:600">Job P&amp;L</div>
-      <div style="font-size:10px;color:var(--gr)">GP 23.9%</div>
+      <div style="font-size:10px;color:var(--gr)">GP —</div>
     </div>
   </div>
 </div>
@@ -3672,24 +3653,8 @@ tbody tr:hover{background:var(--g0)}
     <button class="btn btn-out btn-sm" data-go="invoice-new"><svg class="ic" data-icon="plus"></svg> New Tax Invoice</button>
   </div>
 </div>
-<div class="tw"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Bill To</th><th>Taxable Value</th><th>IGST 18%</th><th>Total Amount</th><th>Due Date</th><th>Paid</th><th>Balance</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr>
-  <td class="mono" style="font-size:10.5px;color:var(--bl)">RLPL/INV/25-26/00091</td>
-  <td>15 Jun 2026</td>
-  <td style="font-weight:500">Raghav Granites</td>
-  <td>₹6,47,890</td><td style="color:var(--rd)">₹1,16,620</td>
-  <td style="font-weight:700;color:var(--bl)">₹7,64,510</td>
-  <td>22 Jun 2026</td>
-  <td style="color:var(--gr)">₹0</td>
-  <td style="color:var(--rd);font-weight:600">₹7,64,510</td>
-  <td><span class="b b-am dot">Unpaid</span></td>
-  <td class="no-print" style="display:flex;gap:4px">
-    <button class="ta" data-go="tax-invoice-print" title="View Tax Invoice"><svg class="ic ic-sm" data-icon="eye" style="color:var(--bl)"></svg> View</button>
-    <button class="ta" data-go="invoice-new" title="Transaction Details"><svg class="ic ic-sm" data-icon="receipt" style="color:var(--gr)"></svg> Txn</button>
-  </td>
-</tr>
-</tbody></table></div>
-<div class="cf" style="color:var(--gr)">Total AR Invoiced: ₹7,64,510 · Collected: ₹0 · Outstanding: ₹7,64,510</div>
+<div class="tw"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Bill To</th><th>Taxable Value</th><th>IGST 18%</th><th>Total Amount</th><th>Due Date</th><th>Paid</th><th>Balance</th><th>Status</th><th class="no-print"></th></tr></thead><tbody><tr class="empty-row"><td colspan="11" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No vouchers raised for this job yet</td></tr></tbody></table></div>
+<div class="cf" style="color:var(--gr)">Total AR Invoiced: ₹0 · Collected: ₹0 · Outstanding: ₹0</div>
 </div>
 
 <!-- ── DEBIT NOTES section ── -->
@@ -3700,37 +3665,8 @@ tbody tr:hover{background:var(--g0)}
     <button class="btn btn-out btn-sm" data-go="debit-note-new" style="border-color:var(--am);color:var(--am)"><svg class="ic" data-icon="plus"></svg> Issue Debit Note</button>
   </div>
 </div>
-<div class="tw"><table><thead><tr><th>DN No</th><th>Date</th><th>Bill To</th><th>Ref Invoice</th><th>Description</th><th>Currency</th><th>Amount</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr>
-  <td class="mono" style="font-size:10.5px;color:var(--am)">RTL/DN/2026/0058</td>
-  <td>16 May 2026</td>
-  <td>Global Imports LLC, UAE</td>
-  <td class="mono" style="font-size:10px">RTL/INV/2026/0412</td>
-  <td>Ocean Freight &amp; Container Movement Charges</td>
-  <td>USD</td>
-  <td style="font-weight:700;color:var(--am)">1,625.00</td>
-  <td><span class="b b-am dot">Issued</span></td>
-  <td class="no-print" style="display:flex;gap:4px">
-    <button class="ta" data-go="debit-note-detail"><svg class="ic ic-sm" data-icon="eye" style="color:var(--am)"></svg> View</button>
-    <button class="ta" id="dnPrintBtn2" title="Print Voucher"><svg class="ic ic-sm" data-icon="printer" style="color:var(--am)"></svg></button>
-  </td>
-</tr>
-<tr>
-  <td class="mono" style="font-size:10.5px;color:var(--am)">RTL/DN/2026/0051</td>
-  <td>02 Apr 2026</td>
-  <td>Global Imports LLC, UAE</td>
-  <td class="mono" style="font-size:10px">RTL/INV/2026/0380</td>
-  <td>Demurrage &amp; Detention Charges</td>
-  <td>USD</td>
-  <td style="font-weight:700;color:var(--gr)">480.00</td>
-  <td><span class="b b-gr dot">Paid</span></td>
-  <td class="no-print" style="display:flex;gap:4px">
-    <button class="ta" data-go="debit-note-detail"><svg class="ic ic-sm" data-icon="eye" style="color:var(--am)"></svg> View</button>
-    <button class="ta"><svg class="ic ic-sm" data-icon="printer" style="color:var(--am)"></svg></button>
-  </td>
-</tr>
-</tbody></table></div>
-<div class="cf" style="color:var(--am)">Total DN Issued: USD 2,105.00 · Paid: USD 480.00 · Outstanding: USD 1,625.00</div>
+<div class="tw"><table><thead><tr><th>DN No</th><th>Date</th><th>Bill To</th><th>Ref Invoice</th><th>Description</th><th>Currency</th><th>Amount</th><th>Status</th><th class="no-print"></th></tr></thead><tbody><tr class="empty-row"><td colspan="11" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No vouchers raised for this job yet</td></tr></tbody></table></div>
+<div class="cf" style="color:var(--am)">Total DN Issued: USD 0.00 · Paid: USD 0.00 · Outstanding: USD 0.00</div>
 </div>
 
 <!-- ── CREDIT NOTE section ── -->
@@ -3754,41 +3690,8 @@ tbody tr:hover{background:var(--g0)}
     <button class="btn btn-out btn-sm" data-go="purchase-invoice-new" style="border-color:var(--pu);color:var(--pu)"><svg class="ic" data-icon="plus"></svg> New Purchase Invoice</button>
   </div>
 </div>
-<div class="tw"><table><thead><tr><th>PI No</th><th>Date</th><th>Vendor</th><th>Bill No</th><th>Description</th><th>Subtotal</th><th>IGST 18%</th><th>Total</th><th>Due Date</th><th>Paid</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr>
-  <td class="mono" style="font-size:10px;color:var(--pu)">PI-0002</td>
-  <td>02 Apr 2026</td>
-  <td style="font-size:11px">Ocean Network Express (ONE LINE)</td>
-  <td class="mono" style="font-size:10px">988</td>
-  <td>Liner Charges</td>
-  <td>₹12,000</td><td style="color:var(--rd)">₹2,160</td>
-  <td style="font-weight:700;color:var(--pu)">₹14,160</td>
-  <td>15 Apr 2026</td>
-  <td style="color:var(--gr);font-weight:600">₹14,160 ✓</td>
-  <td><span class="b b-gr dot">Paid</span></td>
-  <td class="no-print" style="display:flex;gap:4px">
-    <button class="ta" data-go="purchase-invoice-detail"><svg class="ic ic-sm" data-icon="eye" style="color:var(--pu)"></svg> View</button>
-    <button class="ta" title="Transaction Detail"><svg class="ic ic-sm" data-icon="receipt" style="color:var(--gr)"></svg> Txn</button>
-  </td>
-</tr>
-<tr>
-  <td class="mono" style="font-size:10px;color:var(--pu)">PI-0003</td>
-  <td>05 May 2026</td>
-  <td style="font-size:11px">MSC Mediterranean</td>
-  <td class="mono" style="font-size:10px">MSC-INV-9988</td>
-  <td>Ocean Freight Cost 2×40GP</td>
-  <td>₹95,390</td><td style="color:var(--rd)">₹17,170</td>
-  <td style="font-weight:700;color:var(--pu)">₹1,12,560</td>
-  <td>22 Jul 2026</td>
-  <td style="color:var(--am);font-weight:600">₹0</td>
-  <td><span class="b b-am dot">Pending</span></td>
-  <td class="no-print" style="display:flex;gap:4px">
-    <button class="ta" data-go="purchase-invoice-detail"><svg class="ic ic-sm" data-icon="eye" style="color:var(--pu)"></svg> View</button>
-    <button class="ta" title="Pay Now" style="color:var(--gr)"><svg class="ic ic-sm" data-icon="cash" style="color:var(--gr)"></svg> Pay</button>
-  </td>
-</tr>
-</tbody></table></div>
-<div class="cf" style="color:var(--pu)">Total AP: ₹1,26,720 · Paid: ₹14,160 · Outstanding: ₹1,12,560 · Due 22-Jul-2026</div>
+<div class="tw"><table><thead><tr><th>PI No</th><th>Date</th><th>Vendor</th><th>Bill No</th><th>Description</th><th>Subtotal</th><th>IGST 18%</th><th>Total</th><th>Due Date</th><th>Paid</th><th>Status</th><th class="no-print"></th></tr></thead><tbody><tr class="empty-row"><td colspan="11" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No vouchers raised for this job yet</td></tr></tbody></table></div>
+<div class="cf" style="color:var(--pu)">Total AP: ₹0 · Paid: ₹0 · Outstanding: ₹0 · </div>
 </div>
 
 <!-- ── PURCHASE CREDIT NOTE section ── -->
@@ -3807,7 +3710,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- JT9 JOB P&L (moved from jt8) -->
 <div id="jt9" class="tp">
 <div class="card"><div class="ch">
-  <div class="ct"><svg class="ic" data-icon="trending-up" style="color:var(--gr)"></svg> Job P&amp;L — SEX-25-000047</div>
+  <div class="ct"><svg class="ic" data-icon="trending-up" style="color:var(--gr)"></svg> Job P&amp;L — <span id="plJobNo">—</span></div>
   <div style="display:flex;gap:6px">
     <span class="b b-am">Provisional</span>
     <button class="btn btn-out btn-sm" data-go="job-pl-report"><svg class="ic" data-icon="printer"></svg> Full P&amp;L Report</button>
@@ -3816,23 +3719,23 @@ tbody tr:hover{background:var(--g0)}
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
   <div style="border:1.5px solid var(--gr);border-radius:8px;padding:12px;background:var(--grt)">
     <div style="font-size:10.5px;font-weight:700;color:var(--gr);margin-bottom:8px;letter-spacing:.4px">REVENUE (AR)</div>
-    <div class="sr"><span class="lbl">Ocean Freight</span><span class="ap">₹1,40,700</span></div>
-    <div class="sr"><span class="lbl">Documentation</span><span class="ap">₹3,500</span></div>
-    <div class="sr"><span class="lbl">THC Recovery</span><span class="ap">₹13,000</span></div>
-    <div style="border-top:1px solid var(--gr);margin-top:6px;padding-top:6px"><div class="sr"><span style="font-weight:700">Total AR</span><span class="ap" style="font-weight:700;font-size:14px">₹1,57,200</span></div></div>
+    <div class="sr"><span class="lbl">Ocean Freight</span><span class="ap">₹0</span></div>
+    <div class="sr"><span class="lbl">Documentation</span><span class="ap">₹0</span></div>
+    <div class="sr"><span class="lbl">THC Recovery</span><span class="ap">₹0</span></div>
+    <div style="border-top:1px solid var(--gr);margin-top:6px;padding-top:6px"><div class="sr"><span style="font-weight:700">Total AR</span><span class="ap" style="font-weight:700;font-size:14px">₹0</span></div></div>
   </div>
   <div style="border:1.5px solid var(--rd);border-radius:8px;padding:12px;background:var(--rdt)">
     <div style="font-size:10.5px;font-weight:700;color:var(--rd);margin-bottom:8px;letter-spacing:.4px">COST (AP)</div>
-    <div class="sr"><span class="lbl">Ocean Freight Cost</span><span class="an">₹1,12,560</span></div>
-    <div class="sr"><span class="lbl">Liner Charges</span><span class="an">₹14,160</span></div>
+    <div class="sr"><span class="lbl">Ocean Freight Cost</span><span class="an">₹0</span></div>
+    <div class="sr"><span class="lbl">Liner Charges</span><span class="an">₹0</span></div>
     <div class="sr"><span class="lbl">CHA Charges</span><span class="an">₹0</span></div>
-    <div style="border-top:1px solid var(--rd);margin-top:6px;padding-top:6px"><div class="sr"><span style="font-weight:700">Total AP</span><span class="an" style="font-weight:700;font-size:14px">₹1,12,560</span></div></div>
+    <div style="border-top:1px solid var(--rd);margin-top:6px;padding-top:6px"><div class="sr"><span style="font-weight:700">Total AP</span><span class="an" style="font-weight:700;font-size:14px">₹0</span></div></div>
   </div>
   <div style="border:1.5px solid var(--n);border-radius:8px;padding:12px;background:var(--blt)">
     <div style="font-size:10.5px;font-weight:700;color:var(--n);margin-bottom:8px;letter-spacing:.4px">PROFITABILITY</div>
-    <div class="sr"><span class="lbl">Gross Profit</span><span style="font-weight:800;color:var(--gr);font-size:20px">₹44,640</span></div>
-    <div class="sr"><span class="lbl">GP %</span><span style="font-weight:700;color:var(--gr);font-size:16px">23.9%</span></div>
-    <div class="sr"><span class="lbl">Tax on GP</span><span class="ap">₹8,035</span></div>
+    <div class="sr"><span class="lbl">Gross Profit</span><span style="font-weight:800;color:var(--gr);font-size:20px">₹0</span></div>
+    <div class="sr"><span class="lbl">GP %</span><span style="font-weight:700;color:var(--gr);font-size:16px">—</span></div>
+    <div class="sr"><span class="lbl">Tax on GP</span><span class="ap">₹0</span></div>
     <div class="sr"><span class="lbl">Status</span><span><span class="b b-am">Provisional</span></span></div>
   </div>
 </div>
@@ -8946,31 +8849,39 @@ function populateCustomerSelect(selectId){
 /* ============================================================
    6b. JOB DETAIL — dynamic header population by job no (demo dataset)
    ============================================================ */
-const JOB_DB = {
-  "SEX-25-000047":{no:"IN-RGC-MAA-SEX-25-000047", sub:"Sea Export FCL · Tata Chemicals → Solvay SA · Chennai → Antwerp · MSC ROMA 254W", mode:"Sea", dir:"Export"},
-  "AEX-25-000046":{no:"IN-RGC-MAA-AEX-25-000046", sub:"Air Export · Infosys BPO → Capgemini UK · Chennai → London · AI-131", mode:"Air", dir:"Export"},
-  "SIM-25-000045":{no:"IN-RGC-MAA-SIM-25-000045", sub:"Sea Import FCL · GEA Westfalia · Hamburg → Chennai · HLCU Vessel", mode:"Sea", dir:"Import",
-    consignee:"GEA Westfalia", shipper:"Bremen Foods Machinery GmbH", blNo:"HLCUHAM2205567", containerNo:"HLXU4432109 / 40'HC", packages:14, grossWeight:"9,800 KG", pol:"DEHAM", pod:"INMAA", vessel:"HLCU VESSEL", voyage:"045W"},
-  "AIM-25-000029":{no:"IN-RGC-MAA-AIM-25-000029", sub:"Air Import · Infosys BPO · Frankfurt → Chennai · LH 754", mode:"Air", dir:"Import",
-    consignee:"Infosys BPO", shipper:"Lufthansa Cargo AG", blNo:"020-44561278", containerNo:"—", packages:6, grossWeight:"340 KG", pol:"DEFRA", pod:"INMAA", flight:"LH 754", carrier:"Lufthansa Cargo"},
-  "CUS-25-000044":{no:"IN-RGC-MAA-CUS-25-000044", sub:"Customs / CHA · Ashok Leyland · Domestic BE Filing", mode:"Road", dir:"Domestic"},
-  "TRP-25-000043":{no:"IN-RGC-MAA-TRP-25-000043", sub:"Road Transport · TVS Motor · Chennai Port → Hosur Plant", mode:"Road", dir:"Domestic"},
-  "SEX-25-000048":{no:"IN-RGC-MAA-SEX-25-000048", sub:"Sea Export LCL · TVS Motor → Honda Japan · Chennai → Yokohama", mode:"Sea", dir:"Export"},
-};
+/* Registry of real jobs loaded from /api/shipments (no demo records). */
+const JOB_DB = {};
 let currentJobManifestCtx = null;
 function populateJobDetail(jobNo){
-  const rec = JOB_DB[jobNo];
-  if(rec){
-    $("#jobDetailNo").textContent = rec.no;
-    $("#jobDetailSub").textContent = rec.sub;
-    currentJobManifestCtx = rec;
+  const set = (id, v)=>{ const el = document.getElementById(id); if(el) el.textContent = (v===null || v===undefined || v==="") ? "—" : v; };
+  const token = sessionStorage.getItem("eroyal_access_token");
+  const finish = ()=>{
+    if(window.lastJobBookingType && typeof applyBookingTypeToBl==="function") applyBookingTypeToBl(window.lastJobBookingType);
+    if(typeof renderJobCharges==="function") renderJobCharges(jobNo);
+    if(typeof renderJobParties==="function") renderJobParties(jobNo);
+  };
+  set("jobDetailNo", jobNo); set("jd_no", jobNo); set("outDocJobNo", jobNo); set("vJobNo", jobNo); set("plJobNo", jobNo);
+  set("jobDetailSub", "Loading job…");
+  if(!token){ finish(); return; }
+  Promise.all([
+    fetch("/api/shipments", {headers:{Authorization:"Bearer "+token}}).then(r=> r.ok ? r.json() : Promise.reject(new Error("failed"))),
+    fetch("/api/customers", {headers:{Authorization:"Bearer "+token}}).then(r=> r.ok ? r.json() : [])
+  ]).then(([jobs, customers])=>{
+    const j = jobs.find(x=>x.job_number===jobNo);
+    if(!j){ set("jobDetailSub", "Job not found"); return; }
+    const customer = (customers.find(c=>c.id===j.customer_id)||{}).name;
+    const modeLabel = [j.mode, j.direction, j.container_mode].filter(Boolean).join(" ");
+    const route = [j.pol, j.pod].filter(Boolean).join(" → ");
+    set("jobDetailSub", [modeLabel, customer, route].filter(Boolean).join(" · "));
+    set("jd_mode", modeLabel); set("jd_customer", customer); set("jd_consignee", j.consignee);
+    set("jd_route", route); set("jd_dates", [j.etd, j.eta].filter(Boolean).join(" / "));
+    set("jd_commodity", j.commodity); set("jd_status", j.status);
+    set("jd_packages", j.packages ? j.packages + (j.package_type ? " " + j.package_type : "") : "");
+    set("jd_weight", [j.gross_weight ? Number(j.gross_weight).toLocaleString("en-IN")+" KG" : "", j.volume ? Number(j.volume)+" CBM" : ""].filter(Boolean).join(" · "));
+    set("jd_bl", j.bl_awb);
+    currentJobManifestCtx = JOB_DB[jobNo] = {no:j.job_number, sub:[modeLabel, customer, route].filter(Boolean).join(" · "), mode:j.mode, dir:j.direction, consignee:j.consignee, shipper:customer, blNo:j.bl_awb, pol:j.pol, pod:j.pod, packages:j.packages, grossWeight:j.gross_weight};
     if(typeof renderJobManifestTab==="function") renderJobManifestTab();
-  }
-  if(window.lastJobBookingType && typeof applyBookingTypeToBl==="function"){
-    applyBookingTypeToBl(window.lastJobBookingType);
-  }
-  if(typeof renderJobCharges==="function") renderJobCharges(jobNo);
-  if(typeof renderJobParties==="function") renderJobParties(jobNo);
+  }).catch(()=>{ set("jobDetailSub", "Could not load job details"); }).finally(finish);
 }
 
 /* ============================================================
@@ -9018,17 +8929,7 @@ function jcNewChargeRow(seed){
   };
 }
 function jcDefaultRows(){
-  return [
-    jcNewChargeRow({chargeName:"Ocean Freight", desc:"Ocean Freight - export leg", uom:"Per Container", qty:2,
-      buy:{ccy:"USD",exch:83.10,rate:680,taxType:"Non-Taxable",taxPct:0,vendor:"MSC Mediterranean"},
-      sell:{ccy:"USD",exch:83.50,rate:850,taxType:"Taxable",taxPct:18,client:"Tata Chemicals Ltd"}}),
-    jcNewChargeRow({chargeName:"Documentation Charges", desc:"BL / documentation fee", uom:"Per BL", qty:1,
-      buy:{ccy:"INR",exch:1,rate:0,taxType:"Non-Taxable",taxPct:0,vendor:""},
-      sell:{ccy:"INR",exch:1,rate:3500,taxType:"Taxable",taxPct:18,client:"Tata Chemicals Ltd"}}),
-    jcNewChargeRow({chargeName:"Terminal Handling Charges (THC)", desc:"THC at origin port", uom:"Per Container", qty:2,
-      buy:{ccy:"INR",exch:1,rate:5200,taxType:"Non-Taxable",taxPct:0,vendor:"Chennai Port Trust"},
-      sell:{ccy:"INR",exch:1,rate:6500,taxType:"Taxable",taxPct:18,client:"Tata Chemicals Ltd"}}),
-  ];
+  return [];
 }
 function jcGetState(jobNo){
   const key = jobNo || "__default__";
@@ -13127,7 +13028,7 @@ document.addEventListener("click", e=>{
 function renderJobManifestTab(){
   const body = $("#jobManifestTabBody");
   if(!body) return;
-  const rec = currentJobManifestCtx || JOB_DB["SEX-25-000047"];
+  const rec = currentJobManifestCtx || {};
   if(!rec || rec.dir !== "Import"){
     body.innerHTML = `<div class="ib ib-bl" style="margin-top:6px"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>
       Manifest applies to <strong>Import</strong> shipments only (Air or Sea). This job is <strong>${esc(rec?rec.dir:"—")} · ${esc(rec?rec.mode:"—")}</strong>, so no manifest is required.</div>`;
