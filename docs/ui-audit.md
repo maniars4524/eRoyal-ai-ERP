@@ -5,7 +5,7 @@ Generated from the HTML itself. 90 screens; the UI calls only 6 API endpoints (`
 
 ## Platform and tenancy
 
-**Backend status:** Organizations: list/create API exists (Super Admin). Org detail/new forms (66 fields) not wired. Users, branches, departments, designations, employees: NOT IMPLEMENTED.
+**Backend status:** Organizations: list/create API exists (Super Admin). Org detail/new forms (66 fields) not wired. Users (real accounts, roles, password reset), employees, branches, departments, designations: IMPLEMENTED - VERIFIED. Rate/route: Route Master IMPLEMENTED - VERIFIED.
 
 | Screen | Title | Inputs | Tables | Buttons | Static dummy rows |
 |---|---|---|---|---|---|
@@ -26,7 +26,7 @@ Generated from the HTML itself. 90 screens; the UI calls only 6 API endpoints (`
 
 ## Reference masters
 
-**Backend status:** IMPLEMENTED - VERIFIED (API tests + headless UI test against PostgreSQL): Country, Currency (main list), Unit, Pack, Incoterm, HSN/SAC, Container Type, plus Department, Designation and Branch under Platform. Also implemented: Port Master, Customer Master. NOT IMPLEMENTED: Charge Master, Terms & Conditions, Chart of Accounts, Currency sub-tabs (country mapping, exchange rates), Country/Port/ICD linkages.
+**Backend status:** IMPLEMENTED - VERIFIED (API tests + headless UI test against PostgreSQL): Country, Currency (main list), Unit, Pack, Incoterm, HSN/SAC, Container Type, plus Department, Designation and Branch under Platform. Also implemented: Port Master, Customer Master. Charge Master (modal, HSN/SAC mandatory) is IMPLEMENTED - VERIFIED. NOT IMPLEMENTED: Terms & Conditions, Chart of Accounts, Currency sub-tabs (country mapping, exchange rates), Country/Port/ICD linkages.
 
 | Screen | Title | Inputs | Tables | Buttons | Static dummy rows |
 |---|---|---|---|---|---|
