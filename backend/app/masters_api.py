@@ -28,6 +28,9 @@ MASTER_TYPES = {
     "department": "Department",
     "designation": "Designation",
     "branch": "Branch",
+    "employee": "Employee",
+    "route": "Route",
+    "account": "Ledger Account",
 }
 KEY_RE = re.compile(r"^[a-z0-9_]{1,60}$")
 CODE_RE = re.compile(r"^[A-Za-z0-9._/\- ]{1,40}$")
