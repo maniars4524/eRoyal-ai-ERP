@@ -1108,7 +1108,7 @@ tbody tr:hover{background:var(--g0)}
        Added purely alongside the existing login card; the card
        itself (markup below) is untouched. -->
   <div class="login-info-panel" aria-hidden="true">
-    <span class="lip-eyebrow">eSway ERP 2.0 ERP</span>
+    <span class="lip-eyebrow">eSway ERP 2.0</span>
     <h1 class="lip-title">Smart Software.<br>Seamless Logistics.</h1>
     <div class="lip-divider"></div>
     <p class="lip-sub">Powered by <strong>eSway.ai</strong></p>
@@ -1206,7 +1206,7 @@ tbody tr:hover{background:var(--g0)}
     </button>
 
     <div class="login-divider"></div>
-    <div class="login-footer">eSway ERP 2.0 v2.1 · © 2026 eSway ERP 2.0 — RTS0001</div>
+    <div class="login-footer">eSway ERP 2.0 · © 2026</div>
   </div>
 
   <div class="login-brand-strip">
@@ -15196,6 +15196,25 @@ if(document.readyState !== "loading") initChatWidget();
   Authentication is handled by the FastAPI foundation API.
   ============================================================ */
 (function(){
+  /* ---- Portal selection: derived from the URL; the server independently enforces which portal an account may use ---- */
+  const PORTALS = {
+    developer:{title:"ERP System Administration", sub:"System Administrator Access", btn:"Sign In", foot:"System administrator access only", needsLicense:false, label:"Developer / System Administrator"},
+    erp:{title:"ERP", sub:"Sign in to your workspace", btn:"Sign In", foot:"eSway ERP 2.0 · © 2026", needsLicense:true, label:"ERP"},
+    demo:{title:"ERP Demo", sub:"Explore the ERP system using sample data.", btn:"Enter Demo", foot:"Demo environment — no production data", needsLicense:false, label:"Demo"}
+  };
+  const seg = (location.pathname.split("/")[1] || "").toLowerCase();
+  const PORTAL = PORTALS[seg] ? seg : "erp";
+  const P = PORTALS[PORTAL];
+  window.ESWAY_PORTAL = PORTAL;
+  (function applyPortalUI(){
+    const set = (sel, text)=>{ const el = document.querySelector(sel); if(el) el.textContent = text; };
+    set(".login-title", P.title); set(".login-sub", P.sub); set("#loginBtnText", P.btn); set(".login-footer", P.foot);
+    const userLabel = document.querySelector('label[for="loginUser"]'); if(userLabel) userLabel.textContent = "Email or Username";
+    const userField = document.getElementById("loginUser"); if(userField) userField.placeholder = "Enter your email or username";
+    if(!P.needsLicense){ const lf = document.getElementById("loginLicense"); if(lf && lf.closest(".login-field")) lf.closest(".login-field").style.display = "none"; }
+    document.title = P.label + " · eSway ERP 2.0";
+  })();
+
   const overlay  = document.getElementById("loginOverlay");
   const licenseInp = document.getElementById("loginLicense");
   const userInp  = document.getElementById("loginUser");
@@ -15259,12 +15278,20 @@ if(document.readyState !== "loading") initChatWidget();
     fetch("/api/auth/me", {headers:{Authorization:"Bearer "+persisted}})
       .then(response=>{ if(!response.ok) throw new Error("expired"); return response.json(); })
       .then(user=>{
+        if(user.portal && user.portal !== (window.ESWAY_PORTAL || "erp")){
+          const wrong = new Error("wrong-portal"); wrong.portal = user.portal; throw wrong;
+        }
         sessionStorage.setItem("esway_access_token", persisted);
         applySession(user, {silent:true});
         removeSessionLoader();
       })
-      .catch(()=>{
+      .catch(error=>{
         try{ localStorage.removeItem(PERSIST_TOKEN_KEY); }catch(e){ /* ignore */ }
+        sessionStorage.removeItem("esway_access_token");
+        if(error && error.message === "wrong-portal"){
+          const msg = document.getElementById("loginErr");
+          if(msg){ msg.textContent = "You are signed in to a different portal. Please sign in again for this portal."; msg.classList.add("show"); }
+        }
         /* Token turned out invalid/expired — reveal the login card we pre-hid */
         const preHide = document.getElementById("loginOverlayPreHide");
         if(preHide) preHide.remove();
@@ -15298,7 +15325,7 @@ if(document.readyState !== "loading") initChatWidget();
     const u = (userInp ? userInp.value : "").trim().toLowerCase();
     const p = (passInp ? passInp.value : "").trim();
     clearErr();
-    if(!lic){ if(licenseInp){ licenseInp.classList.add("err"); licenseInp.focus(); } return; }
+    if(P.needsLicense && !lic){ if(licenseInp){ licenseInp.classList.add("err"); licenseInp.focus(); } return; }
     if(!u){ if(userInp){ userInp.classList.add("err"); userInp.focus(); } return; }
     if(!p){ if(passInp){ passInp.classList.add("err"); passInp.focus(); } return; }
 
@@ -15308,7 +15335,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(spinner)  spinner.style.display = "block";
     if(arrow)    arrow.style.display = "none";
 
-    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, license_number:lic})})
+    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, portal:PORTAL, license_number:(P.needsLicense ? lic : undefined)})})
       .then(async response=>{
         const data = await response.json().catch(()=>({}));
         if(!response.ok){ const error = new Error(data.detail || "Invalid credentials"); error.status = response.status; throw error; }
@@ -15331,7 +15358,7 @@ if(document.readyState !== "loading") initChatWidget();
           .catch(error=>{
         /* Failed — reset button and show error */
         if(loginBtn) loginBtn.disabled = false;
-        if(btnText)  btnText.textContent = "Sign In";
+        if(btnText)  btnText.textContent = P.btn;
         if(spinner)  spinner.style.display = "none";
         if(arrow)    arrow.style.display = "";
         if(loginErr){ loginErr.textContent = error.status === 503 ? "Authentication service unavailable. Start PostgreSQL and try again." : (error.message || "Invalid license number, username, or password. Please try again."); loginErr.classList.add("show"); }

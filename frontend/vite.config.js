@@ -7,11 +7,13 @@ import { fileURLToPath } from 'node:url';
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const prototypePath = path.resolve(rootDir, '..', 'esway-erp.html');
 
+const PORTAL_ROUTES = ['/prototype', '/developer', '/erp', '/demo'];
+
 function prototypeRoute() {
   return {
     name: 'esway-prototype-route',
     configureServer(server) {
-      server.middlewares.use('/prototype', (_req, res) => {
+      for (const route of PORTAL_ROUTES) server.middlewares.use(route, (_req, res) => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('Cache-Control', 'no-store');
@@ -19,7 +21,7 @@ function prototypeRoute() {
       });
     },
     configurePreviewServer(server) {
-      server.middlewares.use('/prototype', (_req, res) => {
+      for (const route of PORTAL_ROUTES) server.middlewares.use(route, (_req, res) => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('Cache-Control', 'no-store');
