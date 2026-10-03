@@ -17,13 +17,13 @@ from .masters_api import router as masters_router
 from .users_api import router as users_router
 from .ports_api import router as ports_router
 from .shipments_api import router as shipments_router
-from .config import CORS_ORIGINS, IS_PRODUCTION
+from .config import CORS_ORIGINS, DEMO_ONLY, IS_PRODUCTION
 from .db import Base, engine
 from . import models
 
 UI_FILE = Path(__file__).resolve().parents[2] / "esway-erp.html"
 
-app = FastAPI(title="eSway ERP 2.0 API", version="2.0.0")
+app = FastAPI(title="eSway ERP 2.0 API", version="2.0.0", docs_url=None if DEMO_ONLY else "/docs", redoc_url=None if DEMO_ONLY else "/redoc", openapi_url=None if DEMO_ONLY else "/openapi.json")
 
 
 @app.middleware("http")
@@ -93,18 +93,30 @@ a:hover{outline:3px solid var(--acc)}b{font-size:17px;display:block;margin-botto
 </div></main></body></html>"""
 
 
-@app.get("/", include_in_schema=False)
-def landing() -> HTMLResponse:
-    return HTMLResponse(LANDING_HTML, headers={"Cache-Control": "no-store"})
+if DEMO_ONLY:
+    from fastapi.responses import RedirectResponse
+
+    @app.get("/", include_in_schema=False)
+    @app.get("/demo", include_in_schema=False)
+    def demo_home() -> RedirectResponse:
+        return RedirectResponse("/demo/login")
+
+    @app.get("/demo/login", include_in_schema=False)
+    def demo_ui() -> FileResponse:
+        return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-store"})
+else:
+    @app.get("/", include_in_schema=False)
+    def landing() -> HTMLResponse:
+        return HTMLResponse(LANDING_HTML, headers={"Cache-Control": "no-store"})
 
 
-@app.get("/prototype", include_in_schema=False)
-@app.get("/developer", include_in_schema=False)
-@app.get("/developer/login", include_in_schema=False)
-@app.get("/erp", include_in_schema=False)
-@app.get("/erp/login", include_in_schema=False)
-@app.get("/demo", include_in_schema=False)
-@app.get("/demo/login", include_in_schema=False)
-def ui() -> FileResponse:
-    """Serve the single-page ERP UI; the page picks its portal (developer/erp/demo) from the URL path."""
-    return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-store"})
+    @app.get("/prototype", include_in_schema=False)
+    @app.get("/developer", include_in_schema=False)
+    @app.get("/developer/login", include_in_schema=False)
+    @app.get("/erp", include_in_schema=False)
+    @app.get("/erp/login", include_in_schema=False)
+    @app.get("/demo", include_in_schema=False)
+    @app.get("/demo/login", include_in_schema=False)
+    def ui() -> FileResponse:
+        """Serve the single-page ERP UI; the page picks its portal (developer/erp/demo) from the URL path."""
+        return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-store"})

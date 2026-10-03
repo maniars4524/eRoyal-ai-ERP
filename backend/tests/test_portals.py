@@ -101,3 +101,21 @@ def test_portal_routes_serve_ui():
     for path in ("/developer/login", "/erp/login", "/demo/login", "/developer", "/erp", "/demo"):
         r = client.get(path)
         assert r.status_code == 200 and "text/html" in r.headers["content-type"], path
+
+
+def test_demo_only_server_blocks_other_portals_and_never_locks_the_shared_account(world, monkeypatch):
+    from app import config
+
+    monkeypatch.setattr(config, "DEMO_ONLY", True)
+    assert login(world["dev"], "developer").status_code == 403
+    assert login(world["erp"], "erp", world["erp_license"]).status_code == 403
+    assert login(world["erp"], None, world["erp_license"]).status_code == 403  # no portal given: still not a demo account
+    ok = login(world["demo"], "demo")
+    assert ok.status_code == 200 and ok.json()["user"]["portal"] == "demo"
+    for _ in range(7):
+        assert login(world["demo"], "demo", password="wrong").status_code == 401
+    assert login(world["demo"], "demo").status_code == 200  # shared public demo account is never locked out
+    monkeypatch.setattr(config, "DEMO_ONLY", False)
+    for _ in range(5):
+        login(world["lock"], "erp", world["erp_license"], password="wrong")
+    assert login(world["lock"], "erp", world["erp_license"]).status_code == 429  # normal servers still lock

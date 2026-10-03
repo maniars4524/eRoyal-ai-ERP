@@ -13,6 +13,8 @@ DB_NAME = os.getenv("DB_NAME", "esway_erp")
 DB_USER = os.getenv("DB_USER", "esway")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "esway")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
+# Public demo server: only the demo portal is reachable; no lockout on the shared (public) demo account.
+DEMO_ONLY = os.getenv("DEMO_ONLY", "").strip().lower() in ("1", "true", "yes")
 IS_PRODUCTION = APP_ENV == "production"
 
 

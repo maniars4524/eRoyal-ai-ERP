@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
+from . import config
 from .auth import get_current_user, permission_required, portal_for, safe_user
 from .db import get_db
 from .licensing import next_license_number
@@ -35,13 +36,15 @@ def _request_meta(request: Request) -> dict:
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     meta = _request_meta(request)
+    if config.DEMO_ONLY and payload.portal not in (None, "demo"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This is a public demo server. Only the Demo portal is available here.")
     try:
         identifier = payload.identifier.strip()
         user = db.scalar(select(User).options(selectinload(User.organization), selectinload(User.roles).selectinload(Role.permissions)).where((func.lower(User.email) == identifier.lower()) | (func.lower(User.username) == identifier.lower())))
     except SQLAlchemyError:
         raise HTTPException(status_code=503, detail="Authentication service unavailable: PostgreSQL is not connected")
     now = datetime.now(timezone.utc)
-    if user and user.locked_until and user.locked_until > now:
+    if user and not config.DEMO_ONLY and user.locked_until and user.locked_until > now:
         record_audit(db, "LOGIN_BLOCKED_LOCKED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
         db.commit()
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Account temporarily locked after repeated failed sign-ins. Try again later.")
@@ -53,7 +56,7 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     if user and expected_license and portal == "erp":
         license_ok = (payload.license_number or "").strip().upper() == expected_license.upper()
     if not user or user.status != "ACTIVE" or not verify_password(payload.password, user.password_hash) or not license_ok:
-        if user:
+        if user and not config.DEMO_ONLY:
             user.failed_login_count = (user.failed_login_count or 0) + 1
             if user.failed_login_count >= MAX_FAILED_LOGINS:
                 user.locked_until = now + timedelta(minutes=LOCKOUT_MINUTES)
@@ -62,6 +65,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             record_audit(db, "LOGIN_FAILED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
             db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if config.DEMO_ONLY and portal != "demo":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This is a public demo server. Only the Demo portal is available here.")
     if payload.portal and payload.portal != portal:
         record_audit(db, "LOGIN_WRONG_PORTAL", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "requested": payload.portal, "allowed": portal})
         db.commit()
