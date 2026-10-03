@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import cast, select
+from sqlalchemy.dialects.postgresql import JSONB, array
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -7,7 +8,7 @@ from .auth import permission_required
 from .auth_api import record_audit
 from .db import get_db
 from .models import Customer, User
-from .schemas_auth import CustomerCreate, CustomerUpdate
+from .schemas_auth import CLIENT_ROLES, VENDOR_ROLES, CustomerCreate, CustomerUpdate
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
@@ -19,9 +20,17 @@ def _require_tenant(user: User) -> int:
 
 
 @router.get("")
-def list_customers(user: User = Depends(permission_required("customer.read")), db: Session = Depends(get_db)):
+def list_customers(
+    role: str | None = Query(default=None, pattern="^(client|vendor|shipper|consignee|carrier|agent|cha|transporter|ar|ap)$", description="client = shipper/consignee/AR; vendor = AP/carrier/agent/CHA/transporter"),
+    user: User = Depends(permission_required("customer.read")),
+    db: Session = Depends(get_db),
+):
     organization_id = _require_tenant(user)
-    return db.scalars(select(Customer).where(Customer.organization_id == organization_id).order_by(Customer.name)).all()
+    query = select(Customer).where(Customer.organization_id == organization_id)
+    if role:
+        wanted = CLIENT_ROLES if role == "client" else VENDOR_ROLES if role == "vendor" else [role]
+        query = query.where(cast(Customer.roles, JSONB).has_any(array(wanted)))
+    return db.scalars(query.order_by(Customer.name)).all()
 
 
 @router.post("", status_code=201)

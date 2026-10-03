@@ -70,3 +70,26 @@ def test_super_admin_and_anonymous_cannot_use_masters(world):
     assert client.get("/api/masters/country").status_code == 401
     h = auth(world["dev"], "developer")
     assert client.get("/api/masters/country", headers=h).status_code == 403
+
+
+def test_organization_master_roles_data_and_tax_id_validation(world):
+    h = auth(world["erp"], "erp", world["erp_license"])
+    ok = client.post("/api/customers", json={"code": "TATA", "name": "Tata Chemicals", "roles": ["shipper", "ar"], "gstin": "27aaact2727q1zn", "pan": "aaact2727q", "data": {"city": "Mumbai", "contacts": [{"name": "Suresh", "email": "s@t.test", "primary": True}]}}, headers=h)
+    assert ok.status_code == 201, ok.text
+    body = ok.json()
+    assert body["roles"] == ["shipper", "ar"] and body["gstin"] == "27AAACT2727Q1ZN" and body["data"]["contacts"][0]["name"] == "Suresh"
+    carrier = client.post("/api/customers", json={"code": "MSC", "name": "MSC Line", "roles": ["carrier"], "country": "Switzerland"}, headers=h)
+    assert carrier.status_code == 201
+    assert client.post("/api/customers", json={"code": "BADGST", "name": "Bad Gst Co", "gstin": "NOT-A-GSTIN"}, headers=h).status_code == 422
+    assert client.post("/api/customers", json={"code": "BADPAN", "name": "Bad Pan Co", "pan": "12345"}, headers=h).status_code == 422
+    assert client.post("/api/customers", json={"code": "NOROLE", "name": "No Role Co", "roles": []}, headers=h).status_code == 422
+    assert client.post("/api/customers", json={"code": "ODD", "name": "Odd Role Co", "roles": ["hacker"]}, headers=h).status_code == 422
+    assert client.post("/api/customers", json={"code": "NEST", "name": "Nested Co", "data": {"x": {"deep": {"a": 1}}}}, headers=h).status_code == 422
+    assert client.post("/api/customers", json={"code": "FOREIGN", "name": "Foreign Co", "country": "Germany", "gstin": "anything-goes"}, headers=h).status_code == 201
+    assert [c["code"] for c in client.get("/api/customers?role=client", headers=h).json()] == ["FOREIGN", "TATA"]
+    assert [c["code"] for c in client.get("/api/customers?role=vendor", headers=h).json()] == ["MSC"]
+    assert [c["code"] for c in client.get("/api/customers?role=carrier", headers=h).json()] == ["MSC"]
+    assert client.get("/api/customers?role=bogus", headers=h).status_code == 422
+    upd = client.patch(f"/api/customers/{body['id']}", json={"roles": ["shipper", "consignee", "ap"], "data": {"city": "Pune"}}, headers=h)
+    assert upd.status_code == 200 and upd.json()["roles"] == ["shipper", "consignee", "ap"] and upd.json()["data"] == {"city": "Pune"}
+    assert client.post("/api/customers", json={"code": "TATA", "name": "Duplicate"}, headers=h).status_code == 409
