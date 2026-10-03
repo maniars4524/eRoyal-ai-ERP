@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import SessionLocal
 from app.licensing import next_license_number
-from app.models import AuditLog, Customer, MasterRecord, Organization, Permission, Role, User
+from app.models import AuditLog, Customer, MasterRecord, Organization, Payment, Permission, Role, User
 from app.security import hash_password
 from app.seed import PERMISSIONS
 
@@ -72,6 +72,7 @@ def world():
     yield data
     db.rollback()
     db.execute(delete(AuditLog).where(AuditLog.user_id.in_(made_users)))
+    db.execute(delete(Payment).where(Payment.organization_id.in_(made_orgs)))  # payments first: allocations reference documents
     db.execute(delete(MasterRecord).where(MasterRecord.organization_id.in_(made_orgs)))
     db.execute(delete(Customer).where(Customer.organization_id.in_(made_orgs)))
     db.execute(delete(User).where(User.id.in_(made_users)))

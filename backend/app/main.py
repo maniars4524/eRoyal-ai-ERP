@@ -10,7 +10,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .auth_api import platform_router, router as auth_router
 from .customers_api import router as customers_router
+from .documents_api import router as documents_router
 from .job_charges_api import router as job_charges_router
+from .payments_api import router as payments_router
 from .masters_api import router as masters_router
 from .users_api import router as users_router
 from .ports_api import router as ports_router
@@ -49,6 +51,8 @@ app.include_router(masters_router)
 app.include_router(users_router)
 app.include_router(shipments_router)
 app.include_router(job_charges_router)
+app.include_router(documents_router)
+app.include_router(payments_router)
 
 
 @app.get("/api/health")

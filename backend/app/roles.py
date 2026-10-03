@@ -8,9 +8,9 @@ from .models import Permission, Role
 ROLE_LABELS = {"ERP_ADMIN": "Admin", "OPERATIONS": "Operations", "ACCOUNTS": "Accounts", "VIEWER": "Viewer"}
 ROLE_PERMISSIONS = {
     "ERP_ADMIN": "ALL",
-    "OPERATIONS": ["organization.read", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update", "master.read"],
-    "ACCOUNTS": ["organization.read", "customer.read", "shipment.read", "master.read", "master.create", "master.update"],
-    "VIEWER": ["organization.read", "customer.read", "shipment.read", "master.read", "user.read"],
+    "OPERATIONS": ["organization.read", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update", "master.read", "billing.read", "billing.create"],
+    "ACCOUNTS": ["organization.read", "customer.read", "shipment.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "billing.cancel", "payment.read", "payment.create", "payment.cancel"],
+    "VIEWER": ["organization.read", "customer.read", "shipment.read", "master.read", "user.read", "billing.read", "payment.read"],
 }
 PLATFORM_ONLY = {"organization.create", "organization.activate"}
 
