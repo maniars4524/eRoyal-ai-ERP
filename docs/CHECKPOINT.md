@@ -4,8 +4,8 @@ Resume by reading this file, `docs/ui-audit.md`, `docs/portals.md`, `docs/deploy
 
 ## Starting the environment
 1. Start Docker Desktop, then `docker compose up -d postgres` (container `esway-postgres`; databases `esway_erp` dev, `esway_erp_demo` public, `esway_erp_qa`, `esway_erp_test`). Local secrets are in gitignored `.env`, `.env.demo`, `.env.qa`, `.env.test`.
-2. Private app: `cd backend && .venv/Scripts/python -m alembic upgrade head && .venv/Scripts/python -m app.seed && .venv/Scripts/python -m uvicorn app.main:app --port 8000`. Do not `export` .env values in the shell (python-dotenv will not override them).
-3. Public stack (demo + ERP + developer pages on its own database): `tools/start-public.ps1` (starts the app on :8001 with `ENV_FILE=.env.demo PUBLIC_PORTALS=demo,erp,developer` and a Cloudflare quick tunnel; the current public URL is written to `PUBLIC_URL.txt`). A scheduled task/startup entry runs it at login. The tunnel URL changes every time the tunnel restarts.
+2. Everything at once: double-click `START-PUBLIC.cmd` (also installed in the Windows Startup folder as `eSway-public.cmd`, so it runs at every login). It runs `scripts/start-private.ps1` (private app on http://127.0.0.1:8000, database `esway_erp`) and `scripts/start-public.ps1` (public app on :8001 with `ENV_FILE=.env.demo PUBLIC_PORTALS=demo,erp,developer` plus a Cloudflare quick tunnel; the public URL is written to `PUBLIC_URL.txt` and changes every time the tunnel restarts). Logs are in `logs/`. The PC must stay on and awake for the public link to work.
+3. Manual private start: `cd backend && .venv/Scripts/python -m alembic upgrade head && .venv/Scripts/python -m app.seed && .venv/Scripts/python -m uvicorn app.main:app --port 8000`. Do not `export` .env values in the shell (python-dotenv will not override them).
 4. Tests: `cd backend && .venv/Scripts/python -m pytest -q` (56 tests). UI tests (headless jsdom against the real API): start a server with `ENV_FILE=.env.qa` on port 8010, then `cd e2e && npm install && npm run test:masters` (masters, more, users, charges, billing, org, dashboard) and `node login.test.js` against :8000.
 
 ## Local logins (this PC only)
