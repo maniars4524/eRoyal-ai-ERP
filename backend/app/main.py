@@ -17,13 +17,13 @@ from .masters_api import router as masters_router
 from .users_api import router as users_router
 from .ports_api import router as ports_router
 from .shipments_api import router as shipments_router
-from .config import CORS_ORIGINS, DEMO_ONLY, IS_PRODUCTION
+from .config import CORS_ORIGINS, IS_PRODUCTION, PUBLIC_PORTALS
 from .db import Base, engine
 from . import models
 
 UI_FILE = Path(__file__).resolve().parents[2] / "esway-erp.html"
 
-app = FastAPI(title="eSway ERP 2.0 API", version="2.0.0", docs_url=None if DEMO_ONLY else "/docs", redoc_url=None if DEMO_ONLY else "/redoc", openapi_url=None if DEMO_ONLY else "/openapi.json")
+app = FastAPI(title="eSway ERP 2.0 API", version="2.0.0", docs_url=None if PUBLIC_PORTALS else "/docs", redoc_url=None if PUBLIC_PORTALS else "/redoc", openapi_url=None if PUBLIC_PORTALS else "/openapi.json")
 
 
 @app.middleware("http")
@@ -93,30 +93,32 @@ a:hover{outline:3px solid var(--acc)}b{font-size:17px;display:block;margin-botto
 </div></main></body></html>"""
 
 
-if DEMO_ONLY:
-    from fastapi.responses import RedirectResponse
-
-    @app.get("/", include_in_schema=False)
-    @app.get("/demo", include_in_schema=False)
-    def demo_home() -> RedirectResponse:
-        return RedirectResponse("/demo/login")
-
-    @app.get("/demo/login", include_in_schema=False)
-    def demo_ui() -> FileResponse:
-        return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-store"})
-else:
-    @app.get("/", include_in_schema=False)
-    def landing() -> HTMLResponse:
-        return HTMLResponse(LANDING_HTML, headers={"Cache-Control": "no-store"})
+PORTAL_CARDS = {
+    "erp": ("ERP", "Employees and business users. Operations, finance and reports."),
+    "demo": ("Demo", "Explore the system with sample data. No production data."),
+    "developer": ("Developer / Admin", "System administration, companies, users and security."),
+}
 
 
-    @app.get("/prototype", include_in_schema=False)
-    @app.get("/developer", include_in_schema=False)
-    @app.get("/developer/login", include_in_schema=False)
-    @app.get("/erp", include_in_schema=False)
-    @app.get("/erp/login", include_in_schema=False)
-    @app.get("/demo", include_in_schema=False)
-    @app.get("/demo/login", include_in_schema=False)
-    def ui() -> FileResponse:
-        """Serve the single-page ERP UI; the page picks its portal (developer/erp/demo) from the URL path."""
-        return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-store"})
+def _landing(allowed: list[str]) -> str:
+    cards = "".join(f'<a href="/{p}/login"><b>{PORTAL_CARDS[p][0]}</b><span>{PORTAL_CARDS[p][1]}</span></a>' for p in allowed)
+    return LANDING_HTML.split('<div class="g">')[0] + '<div class="g">' + cards + "</div></main></body></html>"
+
+
+def _ui_response() -> FileResponse:
+    return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-store"})
+
+
+_allowed = [p for p in ("erp", "demo", "developer") if not PUBLIC_PORTALS or p in PUBLIC_PORTALS]
+
+
+@app.get("/", include_in_schema=False)
+def landing() -> HTMLResponse:
+    return HTMLResponse(_landing(_allowed), headers={"Cache-Control": "no-store"})
+
+
+for _p in _allowed:
+    app.add_api_route(f"/{_p}", _ui_response, methods=["GET"], include_in_schema=False)
+    app.add_api_route(f"/{_p}/login", _ui_response, methods=["GET"], include_in_schema=False)
+if not PUBLIC_PORTALS:
+    app.add_api_route("/prototype", _ui_response, methods=["GET"], include_in_schema=False)

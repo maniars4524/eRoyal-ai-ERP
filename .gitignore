@@ -22,3 +22,5 @@ Thumbs.db
 *.log
 e2e/node_modules/
 scratch/
+tools/
+tunnel.log

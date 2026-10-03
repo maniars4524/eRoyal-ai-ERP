@@ -14,7 +14,12 @@ DB_USER = os.getenv("DB_USER", "esway")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "esway")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
 # Public demo server: only the demo portal is reachable; no lockout on the shared (public) demo account.
-DEMO_ONLY = os.getenv("DEMO_ONLY", "").strip().lower() in ("1", "true", "yes")
+_public = {p.strip() for p in os.getenv("PUBLIC_PORTALS", "").split(",") if p.strip()}
+if os.getenv("DEMO_ONLY", "").strip().lower() in ("1", "true", "yes"):
+    _public.add("demo")
+# Portals reachable on a public server (e.g. "demo,erp"). Empty = a normal server where every portal is available.
+PUBLIC_PORTALS = _public
+DEMO_ONLY = PUBLIC_PORTALS == {"demo"}
 IS_PRODUCTION = APP_ENV == "production"
 
 

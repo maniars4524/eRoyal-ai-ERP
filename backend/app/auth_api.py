@@ -29,6 +29,11 @@ LOCKOUT_MINUTES = 15
 PORTAL_LABELS = {"developer": "Developer / System Administrator", "erp": "ERP", "demo": "Demo"}
 
 
+def _public_only_message() -> str:
+    names = " and ".join(PORTAL_LABELS[p] for p in sorted(config.PUBLIC_PORTALS))
+    return f"This is a public server. Only the {names} portal is available here."
+
+
 def _request_meta(request: Request) -> dict:
     return {"ip": request.client.host if request.client else None, "user_agent": (request.headers.get("user-agent") or "")[:200]}
 
@@ -36,19 +41,20 @@ def _request_meta(request: Request) -> dict:
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     meta = _request_meta(request)
-    if config.DEMO_ONLY and payload.portal not in (None, "demo"):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This is a public demo server. Only the Demo portal is available here.")
+    if config.PUBLIC_PORTALS and payload.portal is not None and payload.portal not in config.PUBLIC_PORTALS:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=_public_only_message())
     try:
         identifier = payload.identifier.strip()
         user = db.scalar(select(User).options(selectinload(User.organization), selectinload(User.roles).selectinload(Role.permissions)).where((func.lower(User.email) == identifier.lower()) | (func.lower(User.username) == identifier.lower())))
     except SQLAlchemyError:
         raise HTTPException(status_code=503, detail="Authentication service unavailable: PostgreSQL is not connected")
     now = datetime.now(timezone.utc)
-    if user and not config.DEMO_ONLY and user.locked_until and user.locked_until > now:
+    portal = portal_for(user) if user else None
+    shared_demo = bool(config.PUBLIC_PORTALS) and portal == "demo"  # public shared demo account is never locked
+    if user and not shared_demo and user.locked_until and user.locked_until > now:
         record_audit(db, "LOGIN_BLOCKED_LOCKED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
         db.commit()
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Account temporarily locked after repeated failed sign-ins. Try again later.")
-    portal = portal_for(user) if user else None
     expected_license = None
     if user:
         expected_license = user.organization.license_number if user.organization else db.scalar(select(Organization.license_number).where(Organization.code == "RTS-PLATFORM"))
@@ -56,7 +62,7 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     if user and expected_license and portal == "erp":
         license_ok = (payload.license_number or "").strip().upper() == expected_license.upper()
     if not user or user.status != "ACTIVE" or not verify_password(payload.password, user.password_hash) or not license_ok:
-        if user and not config.DEMO_ONLY:
+        if user and not shared_demo:
             user.failed_login_count = (user.failed_login_count or 0) + 1
             if user.failed_login_count >= MAX_FAILED_LOGINS:
                 user.locked_until = now + timedelta(minutes=LOCKOUT_MINUTES)
@@ -65,8 +71,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             record_audit(db, "LOGIN_FAILED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
             db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    if config.DEMO_ONLY and portal != "demo":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This is a public demo server. Only the Demo portal is available here.")
+    if config.PUBLIC_PORTALS and portal not in config.PUBLIC_PORTALS:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=_public_only_message())
     if payload.portal and payload.portal != portal:
         record_audit(db, "LOGIN_WRONG_PORTAL", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "requested": payload.portal, "allowed": portal})
         db.commit()

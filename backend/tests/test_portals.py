@@ -103,19 +103,19 @@ def test_portal_routes_serve_ui():
         assert r.status_code == 200 and "text/html" in r.headers["content-type"], path
 
 
-def test_demo_only_server_blocks_other_portals_and_never_locks_the_shared_account(world, monkeypatch):
+def test_public_server_only_offers_listed_portals_and_never_locks_the_shared_demo_account(world, monkeypatch):
     from app import config
 
-    monkeypatch.setattr(config, "DEMO_ONLY", True)
+    monkeypatch.setattr(config, "PUBLIC_PORTALS", {"demo", "erp"})
     assert login(world["dev"], "developer").status_code == 403
-    assert login(world["erp"], "erp", world["erp_license"]).status_code == 403
-    assert login(world["erp"], None, world["erp_license"]).status_code == 403  # no portal given: still not a demo account
+    assert login(world["erp"], "erp", world["erp_license"]).status_code == 200  # ERP is public on this server
+    assert login(world["erp"], "developer", world["erp_license"]).status_code == 403
     ok = login(world["demo"], "demo")
     assert ok.status_code == 200 and ok.json()["user"]["portal"] == "demo"
     for _ in range(7):
         assert login(world["demo"], "demo", password="wrong").status_code == 401
     assert login(world["demo"], "demo").status_code == 200  # shared public demo account is never locked out
-    monkeypatch.setattr(config, "DEMO_ONLY", False)
+    monkeypatch.setattr(config, "PUBLIC_PORTALS", set())
     for _ in range(5):
         login(world["lock"], "erp", world["erp_license"], password="wrong")
     assert login(world["lock"], "erp", world["erp_license"]).status_code == 429  # normal servers still lock
