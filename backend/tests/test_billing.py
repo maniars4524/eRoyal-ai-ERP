@@ -209,3 +209,15 @@ def test_tenant_isolation_and_permissions(world, admin, h):
     assert client.post("/api/payments", json={"direction": "RECEIPT", "amount": "1"}, headers=ops).status_code == 403
     assert client.get("/api/documents").status_code == 401
     assert client.get("/api/documents", headers=hdr(world["dev"], portal="developer")).status_code == 403
+
+
+def test_editing_a_draft_replaces_lines_and_recalculates(h):
+    d = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Edit Co", "lines": [{"charge_name": "a", "rate": "100", "tax_pct": "18"}, {"charge_name": "b", "rate": "50", "tax_pct": "0", "tax_type": "Non-Taxable"}]}, headers=h).json()
+    assert d["subtotal"] == "150.00" and d["grand_total"] == "168.00"
+    upd = client.patch(f"/api/documents/{d['id']}", json={"party_name": "Edit Co Ltd", "supply_type": "intra", "lines": [{"charge_name": "c", "rate": "200", "tax_pct": "18"}]}, headers=h)
+    assert upd.status_code == 200, upd.text
+    body = upd.json()
+    assert [l["charge_name"] for l in body["lines"]] == ["c"] and body["grand_total"] == "236.00" and body["party_name"] == "Edit Co Ltd"
+    assert body["tax_breakup"] == {"cgst": "18.00", "sgst": "18.00", "igst": "0.00"}
+    again = client.patch(f"/api/documents/{d['id']}", json={"lines": [{"charge_name": "x", "rate": "1"}, {"charge_name": "y", "rate": "2"}, {"charge_name": "z", "rate": "3"}]}, headers=h)
+    assert again.status_code == 200 and len(again.json()["lines"]) == 3

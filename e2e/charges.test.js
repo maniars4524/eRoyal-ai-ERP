@@ -77,9 +77,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("rejected edit did not overwrite saved data", still.body.lines[0].buy.exch === "83.100000", JSON.stringify(still.body.lines[0].buy));
   setf(id, "buy.exch", "83.1"); await sleep(1500);
 
-  // honest document buttons
-  toasts._clear(); d.getElementById("jc_genInvoiceBtn").click(); await sleep(200);
-  check("Generate Invoice does not pretend to succeed", toasts.some(t => /not available yet/.test(t)) && !toasts.some(t => /generated/i.test(t)), toasts.join(";"));
+  // document generation is real now: it creates a draft invoice from the saved charges
+  toasts._clear(); d.getElementById("jc_genInvoiceBtn").click(); await sleep(2500);
+  const drafts = (await j("GET", `/api/documents?doc_type=invoice&job_number=${jobNo}`, null, token)).body;
+  check("Generate Invoice creates a real draft invoice from the charges", drafts.length === 1 && drafts[0].status === "DRAFT" && drafts[0].grand_total === "167501.00", JSON.stringify(drafts));
+  w.go("job-detail", { jobNo }); await sleep(1800);
 
   // manual save + clear
   toasts._clear(); d.getElementById("jc_saveBtn").click(); await sleep(1200);

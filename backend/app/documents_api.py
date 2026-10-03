@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, object_session, selectinload
 
 from .auth import permission_required
 from .auth_api import record_audit
@@ -102,6 +102,9 @@ def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
         if line.ccy != "INR" and line.exch <= 0:
             raise HTTPException(status_code=422, detail="Exchange rate must be greater than zero for non-INR lines")
     doc.lines.clear()
+    session = object_session(doc)
+    if session is not None:
+        session.flush()  # delete the old lines first so line numbers can be reused
     subtotal = tax = Decimal(0)
     for index, line in enumerate(lines, start=1):
         c = calc_line(line.qty, line.ccy, Decimal(1) if line.ccy == "INR" else line.exch, line.rate, line.tax_type, line.tax_pct if line.tax_type == "Taxable" else Decimal(0))
