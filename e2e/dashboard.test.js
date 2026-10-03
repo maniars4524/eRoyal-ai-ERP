@@ -28,6 +28,11 @@ async function openPage(token) {
   const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
   const devToken = dev.body.access_token;
 
+  // ---------- the served page itself must contain no dummy dashboard figures (stale tabs / failed loads can't show them)
+  const html = await (await fetch(BASE + "/erp")).text();
+  const seg = html.slice(html.indexOf('id="s-dashboard"'), html.indexOf('id="s-meetings"'));
+  check("page source has no dummy Shipment Mix / lanes / matrix numbers", !/Chennai → Hamburg|Chennai → Jebel Ali|Halifax → Chennai|>47<|>23<|>14<|Active Jobs<\/text>|>15<\/div><div style="font-size:9.5px/.test(seg), (seg.match(/Chennai → Hamburg|>47<|>23<|>15<\/div>/g) || []).join());
+
   // ---------- empty company
   let token = await company(devToken, "de");
   let w = await openPage(token), d = w.document;
