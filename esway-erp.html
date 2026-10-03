@@ -14511,7 +14511,7 @@ if(document.readyState !== "loading") initChatWidget();
         if(btnText)  btnText.textContent = P.btn;
         if(spinner)  spinner.style.display = "none";
         if(arrow)    arrow.style.display = "";
-        if(loginErr){ loginErr.textContent = error.status === 503 ? "Authentication service unavailable. Start PostgreSQL and try again." : (error.message || "Invalid license number, username, or password. Please try again."); loginErr.classList.add("show"); }
+        if(loginErr){ loginErr.textContent = error.status === 503 ? "Authentication service unavailable. Start PostgreSQL and try again." : (error.status === 401 ? (P.needsLicense ? "Invalid license number, username or password. Check all three and try again." : "Invalid username or password. Please try again.") : (error.message || "Sign-in failed. Please try again.")); loginErr.classList.add("show"); }
         if(userInp)  userInp.classList.add("err");
         if(passInp){ passInp.classList.add("err"); passInp.value = ""; passInp.focus(); }
       });
