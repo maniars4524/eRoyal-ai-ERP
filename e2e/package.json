@@ -3,7 +3,7 @@
   "private": true,
   "description": "Headless UI checks against a running server on the QA database (see README)",
   "scripts": {
-    "test:masters": "node masters.test.js && node more.test.js && node users.test.js && node charges.test.js && node billing.test.js",
+    "test:masters": "node masters.test.js && node more.test.js && node users.test.js && node charges.test.js && node billing.test.js && node org.test.js && node dashboard.test.js",
     "test:login": "node login.test.js"
   },
   "devDependencies": {

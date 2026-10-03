@@ -1718,22 +1718,14 @@ tbody tr:hover{background:var(--g0)}
   </div>
   </div>
   <div class="cf" style="display:flex;gap:16px;font-size:11px">
-    <span><svg class="ic ic-sm" data-icon="license" style="color:var(--pu);vertical-align:-2px"></svg> <span class="ta" data-go="customs" style="color:var(--pu);font-weight:600">6 Customs Pending →</span></span>
-    <span><svg class="ic ic-sm" data-icon="clock" style="color:var(--rd);vertical-align:-2px"></svg> <span class="ta" data-go="job-list" data-filter="bl-pending" style="color:var(--rd);font-weight:600">3 BL Release Pending →</span></span>
+    <span><svg class="ic ic-sm" data-icon="license" style="color:var(--pu);vertical-align:-2px"></svg> <span class="ta" data-go="customs" style="color:var(--pu);font-weight:600">0 Customs Pending →</span></span>
+    
   </div>
 </div>
 
 <!-- ── CHARTS + RECENT JOBS ── -->
 <!-- ── EXECUTIVE DASHBOARD CAROUSEL: FILTERS ── -->
-<div class="dash-filters no-print">
-  <select class="fc" id="dfCompany" style="width:auto"><option>RG Cargo Services Pvt Ltd</option><option>All Companies</option></select>
-  <select class="fc" id="dfBranch" style="width:auto"><option>All Branches</option><option>Chennai HO</option><option>Mumbai Branch</option><option>Delhi Branch</option></select>
-  <select class="fc" id="dfFY" style="width:auto"><option>FY 2025–26</option><option>FY 2024–25</option></select>
-  <select class="fc" id="dfMonth" style="width:auto"><option>All Months</option><option>Jun 2026</option><option>May 2026</option><option>Apr 2026</option></select>
-  <select class="fc" id="dfCustomer" style="width:auto"><option>All Customers</option></select>
-  <select class="fc" id="dfSalesExec" style="width:auto"><option>All Sales Executives</option><option>Arun Kumar</option><option>Priya S</option><option>Rahul M</option></select>
-  <select class="fc" id="dfShipType" style="width:auto"><option>All Shipment Types</option><option>Sea Export</option><option>Sea Import</option><option>Air Export</option><option>Air Import</option><option>Road</option></select>
-</div>
+<!-- decorative dashboard filters removed: they did not filter anything; they return with the reports module -->
 
 <div style="display:grid;grid-template-columns:1fr 340px;gap:12px;margin-bottom:14px">
 
@@ -1744,7 +1736,7 @@ tbody tr:hover{background:var(--g0)}
       <!-- SLIDE 0 — existing chart, kept 100% as-is (id, classes, JS all unchanged) -->
       <div class="dash-slide active" data-idx="0">
         <div class="ch">
-          <div class="ct"><svg class="ic" data-icon="chart-bar" style="color:var(--bl)"></svg>Monthly Revenue &amp; Job Volume — FY 2025–26</div>
+          <div class="ct"><svg class="ic" data-icon="chart-bar" style="color:var(--bl)"></svg>Monthly Revenue &amp; Job Volume — last 6 months</div>
           <div style="display:flex;gap:4px;background:var(--g1);padding:3px;border-radius:7px">
             <div class="tbb on" style="padding:5px 11px;border-bottom:none;font-size:11.5px" data-chart="volume">Jobs</div>
             <div class="tbb" style="padding:5px 11px;border-bottom:none;font-size:11.5px" data-chart="revenue">Revenue</div>
@@ -1999,10 +1991,7 @@ tbody tr:hover{background:var(--g0)}
     <select class="fc" id="orgTypeFilter" style="width:120px"><option value="">All Types</option><option>Client</option><option>Carrier</option><option>CHA</option><option>Agent</option></select>
   </div>
 </div>
-<div class="tw"><table id="orgTable"><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Roles</th><th>GSTIN</th><th>Country</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="orgTableBody">
-<tr id="customerRowsAnchor" style="display:none"></tr>
-<tr id="noCustomersRow" style="display:none"><td colspan="8" style="text-align:center;color:var(--g5);padding:14px">No customers yet — click "New Org" to add your first customer.</td></tr>
-</tbody></table></div>
+<div class="tw"><table id="orgTable"><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Roles</th><th>GSTIN</th><th>Country</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="orgTableBody"></tbody></table></div>
 <div class="cf" id="orgCountLabel">Showing 0 of 0 organizations</div></div></div>
 <!-- ====== ORG NEW ====== -->
 <div id="s-org-new" class="scr">
@@ -2055,11 +2044,11 @@ tbody tr:hover{background:var(--g0)}
       <option data-code="14">Manipur</option><option data-code="17">Meghalaya</option><option data-code="15">Mizoram</option>
       <option data-code="13">Nagaland</option><option data-code="21">Odisha</option><option data-code="34">Puducherry</option>
       <option data-code="03">Punjab</option><option data-code="08">Rajasthan</option><option data-code="11">Sikkim</option>
-      <option data-code="33" selected>Tamil Nadu</option><option data-code="36">Telangana</option><option data-code="16">Tripura</option>
+      <option data-code="33">Tamil Nadu</option><option data-code="36">Telangana</option><option data-code="16">Tripura</option>
       <option data-code="09">Uttar Pradesh</option><option data-code="05">Uttarakhand</option><option data-code="19">West Bengal</option>
     </select></div>
-    <div class="fg"><label class="fl">State Code</label><input class="fc" id="org_state_code" value="33" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-    <div class="fg"><label class="fl">GST Applicable</label><input class="fc" id="org_gst_applicable_in" value="Yes" readonly style="background:var(--g0);color:var(--gr);font-weight:600"></div>
+    <div class="fg"><label class="fl">State Code</label><input class="fc" id="org_state_code" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
+    <div class="fg"><label class="fl">GST Applicable</label><input class="fc" id="org_gst_applicable_in" readonly style="background:var(--g0);color:var(--gr);font-weight:600"></div>
   </div>
 </div>
 
@@ -2068,9 +2057,9 @@ tbody tr:hover{background:var(--g0)}
   <div class="fsec">Overseas Party — No Indian GST Registration</div>
   <div class="ib ib-bl"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>GST, PAN, TAN and IEC do not apply to overseas parties. Place of Supply is automatically set to Foreign Territory (Code 96) with GST Applicable = No — no GST validation is performed.</div>
   <div class="fr">
-    <div class="fg"><label class="fl">Place of Supply</label><input class="fc" id="org_place_of_supply" value="Foreign Territory" readonly style="background:var(--g0)"></div>
-    <div class="fg"><label class="fl">Supply Code</label><input class="fc" id="org_supply_code" value="96 — Foreign Territory" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-    <div class="fg"><label class="fl">GST Applicable</label><input class="fc" id="org_gst_applicable_foreign" value="No" readonly style="background:var(--g0);color:var(--rd);font-weight:600"></div>
+    <div class="fg"><label class="fl">Place of Supply</label><input class="fc" id="org_place_of_supply" readonly style="background:var(--g0)"></div>
+    <div class="fg"><label class="fl">Supply Code</label><input class="fc" id="org_supply_code" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
+    <div class="fg"><label class="fl">GST Applicable</label><input class="fc" id="org_gst_applicable_foreign" readonly style="background:var(--g0);color:var(--rd);font-weight:600"></div>
   </div>
 </div>
 
@@ -2104,7 +2093,7 @@ tbody tr:hover{background:var(--g0)}
     <option data-code="14">Manipur</option><option data-code="17">Meghalaya</option><option data-code="15">Mizoram</option>
     <option data-code="13">Nagaland</option><option data-code="21">Odisha</option><option data-code="34">Puducherry</option>
     <option data-code="03">Punjab</option><option data-code="08">Rajasthan</option><option data-code="11">Sikkim</option>
-    <option data-code="33" selected>Tamil Nadu</option><option data-code="36">Telangana</option><option data-code="16">Tripura</option>
+    <option data-code="33">Tamil Nadu</option><option data-code="36">Telangana</option><option data-code="16">Tripura</option>
     <option data-code="09">Uttar Pradesh</option><option data-code="05">Uttarakhand</option><option data-code="19">West Bengal</option>
   </select></div>
   <div class="fg"><label class="fl">Pincode</label><input class="fc" placeholder="600001"></div><div class="fg"><label class="fl">UNLOCODE</label><input class="fc" placeholder="INMAA" style="font-family:var(--font-mono)"></div></div>
@@ -2125,7 +2114,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- OT3: CONTACT -->
 <div id="ot3" class="tp"><div class="card"><div class="ch"><div class="ct">Contact Persons</div><button class="btn btn-out btn-sm"><svg class="ic" data-icon="plus"></svg> Add Contact</button></div>
 <div class="tw"><table><thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Phone</th><th>Email</th><th>Primary</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td><input class="fc" placeholder="Contact name" value="Suresh Krishnan"></td><td><input class="fc" placeholder="Designation" value="Logistics Manager"></td><td><select class="fc"><option>Operations</option><option>Accounts</option><option>Sales</option></select></td><td><input class="fc" placeholder="+91 98400 12345"></td><td><input class="fc" placeholder="email@company.com" value="suresh.k@tatachemicals.com"></td><td><input type="checkbox" checked></td><td class="no-print"><button class="ta">✕</button></td></tr>
+<tr><td><input class="fc" placeholder="Contact name"></td><td><input class="fc" placeholder="Designation"></td><td><select class="fc"><option>Operations</option><option>Accounts</option><option>Sales</option></select></td><td><input class="fc" placeholder="+91 98400 12345"></td><td><input class="fc" placeholder="email@company.com"></td><td><input type="checkbox" checked></td><td class="no-print"><button class="ta">✕</button></td></tr>
 <tr><td><input class="fc" placeholder="Contact name"></td><td><input class="fc" placeholder="Designation"></td><td><select class="fc"><option>Operations</option><option>Accounts</option><option>Sales</option></select></td><td><input class="fc" placeholder="Phone"></td><td><input class="fc" placeholder="Email"></td><td><input type="checkbox"></td><td class="no-print"><button class="ta">✕</button></td></tr>
 </tbody></table></div></div></div>
 
@@ -2167,50 +2156,8 @@ tbody tr:hover{background:var(--g0)}
 </tbody></table></div></div></div>
 </div>
 <!-- ====== ORG DETAIL ====== -->
-<div id="s-org-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="building" style="color:var(--bl)"></svg><span id="orgDetailName">Tata Chemicals Ltd</span></div><div class="ps" id="orgDetailSub">TATACHEM · Active Client · Shipper · AR · 🇮🇳 India</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="orgEditBtn" data-go="org-new"><svg class="ic" data-icon="edit"></svg> Edit</button><button class="btn btn-pri btn-sm" data-go="job-new"><svg class="ic" data-icon="plus"></svg> New Job</button></div></div>
-<div class="ib ib-gr"><svg class="ic" data-icon="check-circle" style="margin-right:5px"></svg>Screened &amp; cleared (CLR). Credit Limit: ₹10,00,000 · Outstanding: ₹1,85,400 · Available: ₹8,14,600</div>
+<div id="s-org-detail" class="scr"><div class="card"><div class="cb" style="padding:24px;text-align:center;color:var(--g5)">Open an organization from the Organizations list to view or edit it.</div></div></div>
 
-<div class="g2">
-<div class="card"><div class="ch"><div class="ct">Identity &amp; Registration</div></div><div class="cb">
-<div class="sr"><span class="lbl">Org Code</span><span class="chip">TATACHEM</span></div>
-<div class="sr"><span class="lbl">GSTIN</span><span class="mono">27AAACT2727Q1ZN</span></div>
-<div class="sr"><span class="lbl">PAN</span><span class="mono">AAACT2727Q</span></div>
-<div class="sr"><span class="lbl">IEC</span><span class="mono">0512098765</span></div>
-<div class="sr"><span class="lbl">Screening</span><span class="b b-gr dot">Cleared</span></div>
-</div></div>
-<div class="card"><div class="ch"><div class="ct">Active Roles &amp; COA</div></div><div class="cb">
-<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px"><span class="b b-gr">Active Client</span><span class="b b-bl">Shipper</span><span class="b b-tl">Receivable (AR)</span></div>
-<div class="sr"><span class="lbl">COA AR Account</span><span class="mono" style="color:var(--bl)">1101 - Customer Receivables</span></div>
-<div class="sr"><span class="lbl">Credit Limit</span><span>₹10,00,000</span></div>
-<div class="sr"><span class="lbl">Credit Days</span><span>30 days</span></div>
-<div class="sr"><span class="lbl">Outstanding</span><span style="color:var(--rd);font-weight:600">₹1,85,400</span></div>
-</div></div>
-</div>
-
-<div class="card"><div class="ch"><div class="ct"><svg class="ic" data-icon="clipboard" style="color:var(--bl)"></svg>Job History</div><span class="b b-gy">14 total</span></div>
-<div class="tw"><table><thead><tr><th>Job No</th><th>Mode</th><th>POL → POD</th><th>ETD</th><th>Status</th><th>AR Value</th></tr></thead><tbody>
-<tr><td class="mono ta" style="font-size:11px" data-go="job-detail" data-job="SEX-25-000047">IN-RGC-MAA-SEX-25-000047</td><td><span class="b b-bl">SEA EXP FCL</span></td><td>INMAA→BEANR</td><td>22 Jun 25</td><td><span class="b b-am dot">Booked</span></td><td class="ap">₹1,85,400</td></tr>
-<tr><td class="mono" style="font-size:11px">IN-RGC-MAA-SEX-25-000031</td><td><span class="b b-bl">SEA EXP FCL</span></td><td>INMAA→NLRTM</td><td>02 May 25</td><td><span class="b b-gr dot">Closed</span></td><td class="ap">₹1,42,200</td></tr>
-<tr><td class="mono" style="font-size:11px">IN-RGC-MAA-SEX-25-000018</td><td><span class="b b-bl">SEA EXP LCL</span></td><td>INMAA→DEHAM</td><td>14 Mar 25</td><td><span class="b b-gr dot">Closed</span></td><td class="ap">₹68,900</td></tr>
-</tbody></table></div></div>
-
-<div class="card"><div class="ch"><div class="ct"><svg class="ic" data-icon="book" style="color:var(--gr)"></svg>Ledger Statement (Last 90 days)</div><button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> Export</button></div>
-<div class="tw"><table><thead><tr><th>Date</th><th>Type</th><th>Reference</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody>
-<tr><td>18 Jun 25</td><td><span class="b b-bl">Invoice</span></td><td class="mono">RGC-INV-25-00847</td><td class="an">₹1,85,496</td><td>—</td><td>₹1,85,496 Dr</td></tr>
-<tr><td>10 Jun 25</td><td><span class="b b-gr">Receipt</span></td><td class="mono">RGC-RCP-25-00078</td><td>—</td><td class="ap">₹1,42,200</td><td>₹0 Dr</td></tr>
-<tr><td>02 May 25</td><td><span class="b b-bl">Invoice</span></td><td class="mono">RGC-INV-25-00792</td><td class="an">₹1,42,200</td><td>—</td><td>₹1,42,200 Dr</td></tr>
-</tbody></table></div>
-<div class="cf">Closing Balance: <strong style="color:var(--rd)">₹1,85,496 Dr</strong></div>
-</div>
-</div>
-<!-- ============================================================
-     HR MODULE — Department / Designation / Employee Master
-     Added without touching any existing screen, CSS class, or JS.
-     Reuses existing .ph/.card/.tw/.fc/.fg/.fr/.tabs/.b badge system.
-     ============================================================ -->
-
-<!-- ====== DEPARTMENT LIST ====== -->
 <div id="s-dept-list" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="building" style="color:var(--bl)"></svg>Department Master</div><div class="ps">Organization structure — departments within eSway ERP 2.0 / RG Cargo Services</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" data-go="dept-new"><svg class="ic" data-icon="plus"></svg> New Department</button></div></div>
 <div class="card">
@@ -6867,6 +6814,7 @@ const SCREEN_META = {
 
 function go(screen, opts){
   opts = opts||{};
+  if(screen==="org-detail") screen = "org-list";
   if(screen==="debit-note-detail") screen = "debit-note-list";
   if(screen==="purchase-invoice-detail") screen = "purchase-invoice-list";
   const target = $("#s-"+screen);
@@ -6884,7 +6832,6 @@ function go(screen, opts){
   if(screen==="job-detail" && opts.jobNo) populateJobDetail(opts.jobNo);
   if(screen==="rate-sheet-detail" && opts.rateNo) populateRateSheetDetail(opts.rateNo);
   if(screen==="dashboard") renderDashChart("volume");
-  if(screen==="org-list" && window.renderCustomerRows) renderCustomerRows();
   if(screen==="port-master" && window.renderPortRows) renderPortRows();
   if(screen==="job-list" && window.renderJobRows) renderJobRows();
   if(window.MK) MK.onScreen(screen, opts);
@@ -6917,6 +6864,8 @@ function go(screen, opts){
   if(screen==="import-csn" && window.renderCsnFiling) renderCsnFiling();
 }
 window.go = go; // exposed for inline calls if ever needed
+window.dashApplyData = function(months, volume, revenue){ CHART_DATA.months = months; CHART_DATA.volume = volume; CHART_DATA.revenue = revenue; renderDashChart((document.querySelector('[data-chart].on')||{dataset:{}}).dataset.chart || 'volume'); if(typeof dashRenderActive === 'function') dashRenderActive(); };
+window.renderJobRows = renderJobRows; window.renderPortRows = renderPortRows; window.populateCustomerSelect = populateCustomerSelect;
 
 document.addEventListener("click", e=>{
   const t = e.target.closest("[data-go]");
@@ -7927,7 +7876,7 @@ function populateCustomerSelect(selectId){
   if(!select) return;
   const token = sessionStorage.getItem("esway_access_token");
   if(!token) return;
-  fetch("/api/customers", {headers:{Authorization:"Bearer "+token}})
+  fetch("/api/customers?role=client", {headers:{Authorization:"Bearer "+token}})
     .then(response=> response.ok ? response.json() : (response.status===403 ? [] : Promise.reject(new Error("failed"))))
     .then(customers=>{
       const placeholder = select.options[0];
@@ -8750,66 +8699,7 @@ function wireAction(id, title, msg, type){
   node.addEventListener("click", ()=> toast(title, msg, type||"success"));
 }
 /* Role flag chips (Shipper/Consignee/Carrier/...) — toggle on click, matching the .fi/.fi.on pattern used elsewhere */
-$("#orgRoleFlags") && $all(".fi", $("#orgRoleFlags")).forEach(fi=>{
-  fi.addEventListener("click", ()=> fi.classList.toggle("on"));
-});
-
-$("#orgSaveBtn") && $("#orgSaveBtn").addEventListener("click", ()=>{
-  const country = $("#org_country") ? $("#org_country").value : "";
-  const isIndia = country.indexOf("India")===0;
-  if(isIndia){
-    const state = $("#org_state") ? $("#org_state").value : "";
-    if(!state){ toast("State is required","Select the State so the GST State Code can be applied","error"); return; }
-  }
-
-  const isCustomer = $("#orgRoleFlags .fi[data-role='shipper']").classList.contains("on")
-    || $("#orgRoleFlags .fi[data-role='consignee']").classList.contains("on");
-
-  if(!isCustomer){
-    /* Carrier / Agent / CHA / Transporter creation is not yet backend-wired — unchanged prototype behavior */
-    toast("Organization saved","New organization created and added to master");
-    return;
-  }
-
-  const code = ($("#org_code").value || "").trim();
-  const name = ($("#org_name").value || "").trim();
-  if(!code || !name){ toast("Code and Name are required","Fill in Org Code and Full Legal Name","error"); return; }
-
-  const token = sessionStorage.getItem("esway_access_token");
-  if(!token){ toast("Not signed in","Please sign in again","error"); return; }
-
-  const categorySelect = $("#org_category");
-  const category = categorySelect ? categorySelect.value.replace(/\s*\(.*\)/,"") : "Business";
-  const creditLimitRaw = $("#org_credit_limit") ? $("#org_credit_limit").value : "";
-
-  fetch("/api/customers", {
-    method: "POST",
-    headers: {"Content-Type":"application/json", Authorization:"Bearer "+token},
-    body: JSON.stringify({
-      code: code,
-      name: name,
-      short_name: ($("#org_shortname").value || "").trim() || null,
-      category: category,
-      country: country.replace(/\s*\(.*\)/,"") || "India",
-      gstin: ($("#org_gstin").value || "").trim() || null,
-      pan: ($("#org_pan").value || "").trim() || null,
-      credit_limit: creditLimitRaw ? Number(creditLimitRaw) : 0,
-      payment_terms: $("#org_payment_terms") ? $("#org_payment_terms").value : null
-    })
-  })
-    .then(async response=>{
-      const data = await response.json().catch(()=>({}));
-      if(!response.ok) throw new Error(data.detail || "Could not save customer");
-      return data;
-    })
-    .then(()=>{
-      toast("Customer saved","New customer created and added to Customer Master");
-      go("org-list");
-    })
-    .catch(error=>{
-      toast("Save failed", error.message || "Could not save customer", "error");
-    });
-});
+/* org role chips are toggled by the generic .fi[data-role] handler above (a second handler here toggled them twice) */
 
 $("#portSaveBtn") && $("#portSaveBtn").addEventListener("click", ()=>{
   const code = ($("#port_code").value || "").trim();
@@ -9043,24 +8933,6 @@ $("#invApproveBtn") && $("#invApproveBtn").addEventListener("click", ()=>{
    ============================================================ */
 
 /* ---------- ORG LIST ---------- */
-function filterOrgTable(){
-  const q = ($("#orgSearch").value||"").toLowerCase();
-  const type = $("#orgTypeFilter").value;
-  let visible = 0;
-  $all("#orgTableBody tr").forEach(tr=>{
-    const text = tr.textContent.toLowerCase();
-    const matchesQ = !q || text.includes(q);
-    const matchesType = !type || tr.dataset.type===type;
-    const show = matchesQ && matchesType;
-    tr.style.display = show ? "" : "none";
-    if(show) visible++;
-  });
-  if(!visible){
-    toast("No matches", "Try a different search or filter", "warn");
-  }
-}
-$("#orgSearch") && $("#orgSearch").addEventListener("input", filterOrgTable);
-$("#orgTypeFilter") && $("#orgTypeFilter").addEventListener("change", filterOrgTable);
 
 /* ---------- HR MODULE: Department / Designation / Employee ---------- */
 function filterDeptTable(){
@@ -13214,6 +13086,7 @@ const DASH_SLIDES = [
   {title:"AI Shipment Forecast", icon:"package", type:"Line Chart", go:"job-list", ai:true,
     render:(ctx,w,h)=>drawLine(ctx,w,h,[...CHART_DATA.months,"Jul*","Aug*","Sep*"],[...CHART_DATA.volume,50,53,57],DC.pu(),{dashed:true})},
 ];
+DASH_SLIDES.length = Math.min(DASH_SLIDES.length, 3); /* slides 3+ used hardcoded demo figures; they return when real reports exist */
 const DASH_TOTAL = DASH_SLIDES.length; // 26 (index 0 = existing chart)
 
 function buildDashSlides(){
@@ -14408,6 +14281,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(overlay){ overlay.classList.add("hidden"); }
     setTimeout(()=>{ if(overlay) overlay.style.display="none"; }, silent ? 0 : 600);
     if(!silent && typeof toast === "function") toast("Welcome, " + (user.first_name || "User") + "!", "eSway ERP 2.0 workspace loaded");
+    if(window.dashKitLoad) setTimeout(window.dashKitLoad, 50);
   }
 
   /* Restore a persisted session (Remember me) on page load / browser restart, without re-prompting for credentials */
@@ -14642,7 +14516,19 @@ if(document.readyState !== "loading") initChatWidget();
   }
   const matches = (f, wanted)=> slug(f.text) === slug(wanted);
 
-  MK.util = {api, say, esc2, slug, fieldNodes, getValue, setValue, clearField, labelText};
+  /* Show which required fields are missing: banner on the screen, switch to the tab that holds the first one, focus it. */
+  function reportMissing(scr, missing){
+    const tabName = f=>{ const tp = f.fg.closest(".tp"); const b = tp && document.querySelector('.tbb[data-tab="'+tp.id+'"]'); return b ? b.textContent.replace(/[^\w &/]/g,"").trim() : ""; };
+    const list = missing.map(f=> f.text + (tabName(f) ? " ("+tabName(f)+" tab)" : "")).join(", ");
+    let banner = scr.querySelector(".mk-missing");
+    if(!banner){ banner = document.createElement("div"); banner.className = "ib ib-rd mk-missing"; banner.style.margin = "8px 0"; const ph = scr.querySelector(".ph"); if(ph) ph.insertAdjacentElement("afterend", banner); else scr.prepend(banner); }
+    if(!missing.length){ banner.style.display = "none"; return; }
+    banner.style.display = ""; banner.textContent = "Please complete the required fields: " + list;
+    const first = missing[0]; const tp = first.fg.closest(".tp"); const btn = tp && document.querySelector('.tbb[data-tab="'+tp.id+'"]'); if(btn) btn.click();
+    if(first.ctl){ first.ctl.focus(); if(first.ctl.scrollIntoView) first.ctl.scrollIntoView({block:"center"}); }
+    say("Required fields missing", list);
+  }
+  MK.util = {api, say, esc2, slug, fieldNodes, getValue, setValue, clearField, labelText, reportMissing};
   /* ---------- registration ---------- */
   MK.register = function(cfg){
     cfg.statusLabels = cfg.statusLabels || ["Status", "Active Status"];
@@ -14681,7 +14567,7 @@ if(document.readyState !== "loading") initChatWidget();
     (cfg.tables || [{sel:"tbody"}]).forEach(spec=>{
       const tbody = scr.querySelector(spec.sel); if(!tbody) return;
       const subset = spec.filter ? rows.filter(spec.filter) : rows;
-      tbody.innerHTML = subset.length ? subset.map(r=> "<tr>"+cfg.cols.map((c,i)=>cellHtml(r,c,i)).join("")+"</tr>").join("") : emptyRow(tbody, all.length ? "No matching records" : 'No records yet. Use "New" to add one.');
+      tbody.innerHTML = subset.length ? subset.map(r=> "<tr"+(cfg.rowAttrs ? " "+cfg.rowAttrs(r) : "")+">"+cfg.cols.map((c,i)=>cellHtml(r,c,i)).join("")+"</tr>").join("") : emptyRow(tbody, all.length ? "No matching records" : 'No records yet. Use "New" to add one.');
     });
     (cfg.blank || []).forEach(sel=>{ scr.querySelectorAll(sel).forEach(tbody=>{ tbody.innerHTML = emptyRow(tbody, "Not available yet"); }); });
     if(cfg.kpis){
@@ -14700,7 +14586,7 @@ if(document.readyState !== "loading") initChatWidget();
       scr.dataset.mkSearch = "1";
       scr.querySelectorAll('input.fc[placeholder*="earch"]').forEach(inp=> inp.addEventListener("input", ()=>{ MK.search[cfg.type] = inp.value; MK.renderList(cfg); }));
     }
-    return api("GET", "/api/masters/"+cfg.type).then(rows=>{ MK.cache[cfg.type] = rows; MK.renderList(cfg); })
+    return api("GET", "/api/masters/"+cfg.type).then(rows=>{ MK.cache[cfg.type] = rows; MK.renderList(cfg); if(cfg.afterLoad) cfg.afterLoad(rows); })
       .catch(err=>{ say("Could not load "+cfg.label, err.message); });
   };
 
@@ -14746,7 +14632,8 @@ if(document.readyState !== "loading") initChatWidget();
     const {code, name, status} = codeNameStatus(cfg, fields);
     const missing = fields.filter(f=> f.required && !getValue(f));
     fields.forEach(f=>{ if(f.ctl) f.ctl.classList.toggle("err", missing.includes(f)); });
-    if(missing.length){ say("Required fields missing", missing.map(f=>f.text).join(", ")); return; }
+    reportMissing(scr, missing);
+    if(missing.length) return;
     if(!code || !name){ say("Cannot save", "Code and name fields were not found on this form"); return; }
     const data = {};
     fields.forEach(f=>{ if(f !== code && f !== name && f !== status){ const v = getValue(f); if(v !== "") data[f.key] = v; } });
@@ -14819,6 +14706,8 @@ if(document.readyState !== "loading") initChatWidget();
   /* ---- employees, routes ---- */
   const initials = n=> String(n||"").trim().split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase() || "—";
   MK.register({type:"employee", label:"Employee", list:"emp-list", detail:"emp-new", codeLabel:"Employee Code", nameLabel:"Employee Name", statusLabels:["Employee Status"],
+    afterLoad:()=> api("GET","/api/masters/department").then(deps=>{ const s = document.getElementById("empDeptFilter"); if(s) s.innerHTML = '<option value="">All Departments</option>' + deps.map(d=>'<option>'+esc2(d.name)+'</option>').join(""); }).catch(()=>{}),
+    rowAttrs:r=>'data-dept="'+esc2((r.data||{}).department||"")+'" data-status="'+(r.status==="ACTIVE"?"Active":"Inactive")+'"',
     tables:[{sel:"#empTableBody"}],
     cols:[r=>'<div class="emp-avatar sm">'+esc2(initials(r.name))+'</div>', r=>'<span class="chip" data-mk-edit="'+r.id+'" data-mk-type="employee" style="cursor:pointer">'+esc2(r.code)+'</span>', "name","data.department","data.designation","data.mobile","data.official_email","data.joining_date",()=>"—","status","actions"],
     selects:[{label:"Department", from:"department", use:"name"},{label:"Designation", from:"designation", use:"name"}],
@@ -14951,7 +14840,8 @@ if(document.readyState !== "loading") initChatWidget();
     const missing = fields.filter(f=>f.required && !getValue(f));
     const pwd = document.getElementById("uk_pwd");
     fields.forEach(f=>{ if(f.ctl) f.ctl.classList.toggle("err", missing.includes(f)); });
-    if(missing.length){ say("Required fields missing", missing.map(f=>f.text).join(", ")); return; }
+    U.reportMissing(scr, missing);
+    if(missing.length) return;
     if(!id && (!pwd || pwd.value.length < 12)){ say("Password too short", "The initial password must be at least 12 characters"); if(pwd) pwd.focus(); return; }
     const core = new Set(["first_name","last_name","username","work_email","mobile","status","primary_role"]);
     const profile = {}; fields.forEach(f=>{ if(!core.has(f.key)){ const v = getValue(f); if(v !== "") profile[f.key] = v; } });
@@ -15045,7 +14935,7 @@ if(document.readyState !== "loading") initChatWidget();
         : {doc_date:today(), due_date:"", party_name:pre.party_name||"", party_gstin:"", place_of_supply:"", supply_type:"inter", job_number:pre.job_number||"", ref_document_id:pre.ref_document_id||"", remarks:""}};
     host.innerHTML = '<div style="padding:30px;text-align:center;color:var(--g5)">Loading…</div>';
     const [charges, customers, refs] = await Promise.all([
-      api("GET","/api/masters/charge").catch(()=>[]), api("GET","/api/customers").catch(()=>[]),
+      api("GET","/api/masters/charge").catch(()=>[]), api("GET","/api/customers?role="+(TYPES[type].ar ? "client" : "vendor")).catch(()=>[]),
       TYPES[type].ref ? api("GET","/api/documents?doc_type="+TYPES[type].ref+"&status=POSTED").catch(()=>[]) : Promise.resolve([]),
     ]);
     BK.state.charges = charges.filter(c=>c.status==="ACTIVE"); BK.state.customers = customers; BK.state.refs = refs;
@@ -15057,11 +14947,11 @@ if(document.readyState !== "loading") initChatWidget();
     const dis = editable ? "" : " disabled";
     const num = d && d.doc_number ? d.doc_number : "Assigned on posting";
     const opt = (v,l,sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(l)+'</option>';
-    const partyList = T.ar ? S.customers.map(c=>c.name) : [];
+    const partyList = S.customers.map(c=>c.name);
     const lineRows = S.lines.map((l,i)=>{
       const c = calc(l);
       const inp = (f,w,ty)=> '<input class="fc" data-bkl="'+i+'" data-f="'+f+'" '+(ty?'type="'+ty+'" ':'')+'style="'+(w?'width:'+w+'px':'min-width:90px')+'" value="'+esc2(l[f])+'"'+dis+'>';
-      return '<tr><td>'+(i+1)+'</td><td><input class="fc" list="bkCharges" data-bkl="'+i+'" data-f="charge_name" style="min-width:140px" value="'+esc2(l.charge_name)+'"'+dis+'></td><td>'+inp("description")+'</td><td>'+inp("hsn",74)+'</td><td>'+inp("qty",58,"number")+'</td><td>'+inp("uom",92)+'</td>'+
+      return '<tr><td>'+(i+1)+'</td><td><input class="fc" list="bkCharges_'+S.screen+'" data-bkl="'+i+'" data-f="charge_name" style="min-width:140px" value="'+esc2(l.charge_name)+'"'+dis+'></td><td>'+inp("description")+'</td><td>'+inp("hsn",74)+'</td><td>'+inp("qty",58,"number")+'</td><td>'+inp("uom",92)+'</td>'+
         '<td><select class="fc" data-bkl="'+i+'" data-f="ccy" style="width:66px"'+dis+'>'+["INR","USD","EUR","GBP","AED","SGD","JPY"].map(x=>opt(x,x,x===l.ccy)).join("")+'</select></td><td>'+inp("exch",70,"number")+'</td><td>'+inp("rate",84,"number")+'</td>'+
         '<td><select class="fc" data-bkl="'+i+'" data-f="tax_type" style="width:96px"'+dis+'>'+["Taxable","Non-Taxable"].map(x=>opt(x,x,x===l.tax_type)).join("")+'</select></td><td>'+inp("tax_pct",52,"number")+'</td>'+
         '<td class="mono" style="text-align:right">'+inr(c.amount)+'</td><td class="mono" style="text-align:right">'+inr(c.tax)+'</td><td class="mono" style="text-align:right;font-weight:600">'+inr(c.total)+'</td><td>'+(editable?'<button class="ta" data-bkdel="'+i+'">✕</button>':'')+'</td></tr>';
@@ -15085,7 +14975,7 @@ if(document.readyState !== "loading") initChatWidget();
       '<div class="ph" style="border-radius:0;border-top:none"><div><div class="pt">'+esc2(d ? T.label+" "+(d.doc_number||"(draft #"+d.id+")") : "New "+T.label)+'</div><div class="ps">'+esc2(d && d.status!=="DRAFT" ? "Posted documents are locked; correct them with a credit/debit note." : "Draft — numbers are assigned and the document is locked when you post it.")+'</div></div><div class="pa">'+actions.join("")+'</div></div>'+
       '<div class="g2"><div class="card"><div class="ch"><div class="ct">Header</div></div><div class="cb">'+
       '<div class="fr"><div class="fg"><label class="fl">Document No</label><input class="fc" value="'+esc2(num)+'" readonly style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Date <span class="r">*</span></label><input class="fc" type="date" data-bkh="doc_date" value="'+esc2(h.doc_date)+'"'+dis+'></div><div class="fg"><label class="fl">Due Date</label><input class="fc" type="date" data-bkh="due_date" value="'+esc2(h.due_date)+'"'+dis+'></div></div>'+
-      '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">'+esc2(T.party)+' <span class="r">*</span></label><input class="fc" list="bkParties" data-bkh="party_name" value="'+esc2(h.party_name)+'" placeholder="'+(T.ar?"Select or type customer":"Vendor name")+'"'+dis+'></div><div class="fg"><label class="fl">GSTIN</label><input class="fc" data-bkh="party_gstin" maxlength="15" value="'+esc2(h.party_gstin)+'"'+dis+'></div></div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">'+esc2(T.party)+' <span class="r">*</span></label><input class="fc" list="bkParties_'+S.screen+'" data-bkh="party_name" value="'+esc2(h.party_name)+'" placeholder="'+(T.ar?"Select or type customer":"Vendor name")+'"'+dis+'></div><div class="fg"><label class="fl">GSTIN</label><input class="fc" data-bkh="party_gstin" maxlength="15" value="'+esc2(h.party_gstin)+'"'+dis+'></div></div>'+
       '<div class="fr"><div class="fg"><label class="fl">Job Reference</label><input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'></div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
       (refSelect ? '<div class="fr">'+refSelect+'</div>' : '')+
       '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Remarks</label><textarea class="fc" rows="2" data-bkh="remarks"'+dis+'>'+esc2(h.remarks)+'</textarea></div></div></div></div>'+
@@ -15096,7 +14986,7 @@ if(document.readyState !== "loading") initChatWidget();
       (d && d.status==="POSTED" ? '<div class="divider"></div><div class="sr"><span class="lbl">Paid</span><span style="color:var(--gr)">'+money(d.paid_amount)+'</span></div><div class="sr"><span class="lbl">Credited</span><span>'+money(d.credited_amount)+'</span></div><div class="sr"><span class="lbl" style="font-weight:600">Outstanding</span><span style="font-weight:700;color:var(--rd)">'+money(d.outstanding)+'</span></div>' : '')+
       '<div class="ib ib-bl" style="margin-top:10px">Totals shown after saving are calculated by the server; they cannot be changed from the browser.</div></div></div></div>'+
       '<div class="card"><div class="ch"><div class="ct">Line Items</div>'+(editable?'<button class="btn btn-out btn-sm" data-bk="addline"><svg class="ic" data-icon="plus"></svg> Add Line</button>':'')+'</div><div class="tw"><table><thead><tr><th>#</th><th>Charge</th><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>UOM</th><th>CCY</th><th>Exch</th><th>Rate</th><th>Tax</th><th>GST%</th><th>Amount (₹)</th><th>Tax (₹)</th><th>Total (₹)</th><th></th></tr></thead><tbody>'+lineRows+'</tbody></table></div></div>'+
-      '<datalist id="bkCharges">'+S.charges.map(c=>'<option value="'+esc2(c.name)+'">').join("")+'</datalist><datalist id="bkParties">'+partyList.map(n=>'<option value="'+esc2(n)+'">').join("")+'</datalist>';
+      '<datalist id="bkCharges_'+S.screen+'">'+S.charges.map(c=>'<option value="'+esc2(c.name)+'">').join("")+'</datalist><datalist id="bkParties_'+S.screen+'">'+partyList.map(n=>'<option value="'+esc2(n)+'">').join("")+'</datalist>';
     if(window.renderIcons) renderIcons(host);
   }
   function readHead(){ const S = BK.state; document.querySelectorAll("#s-"+S.screen+" [data-bkh]").forEach(el=>{ S.head[el.dataset.bkh] = el.value; }); }
@@ -15273,6 +15163,259 @@ if(document.readyState !== "loading") initChatWidget();
   };
 })();
 
+</script>
+<script>
+/* ============================================================
+   ORG KIT: Organization master (parties: clients, vendors, carriers, agents, CHA, transporters) on /api/customers
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2, slug, fieldNodes, getValue, setValue, clearField} = U;
+  const ROLE_LABEL = {shipper:"Shipper", consignee:"Consignee", carrier:"Carrier", agent:"Agent", cha:"CHA", transporter:"Transporter", ar:"AR", ap:"AP"};
+  const TYPE_ROLES = {Client:["shipper","consignee","ar"], Vendor:["ap","carrier","agent","cha","transporter"], Carrier:["carrier"], CHA:["cha"], Agent:["agent"], Transporter:["transporter"]};
+  let parties = [], pending = null, search = "", typeFilter = "";
+  const REPEAT = [
+    {key:"addresses", tab:"ot2", header:"Type", cols:[{k:"type", t:"select", o:["Billing","Delivery","Warehouse","Registered"]}, {k:"address", t:"text", ph:"Address"}, {k:"city", t:"text", ph:"City"}, {k:"primary", t:"check"}]},
+    {key:"contacts", tab:"ot3", header:"Name", cols:[{k:"name", t:"text", ph:"Contact name"}, {k:"designation", t:"text", ph:"Designation"}, {k:"department", t:"select", o:["Operations","Accounts","Sales","Management"]}, {k:"phone", t:"text", ph:"Phone"}, {k:"email", t:"text", ph:"email@company.com"}, {k:"primary", t:"check"}]},
+    {key:"registrations", tab:"ot5", header:"Country", cols:[{k:"country", t:"text", ph:"Country"}, {k:"type", t:"select", o:["GST","PAN","IEC","TAN","VAT","EORI","Other"]}, {k:"number", t:"text", ph:"Number"}, {k:"valid_until", t:"date"}, {k:"status", t:"select", o:["Active","Expired"]}]},
+    {key:"staff", tab:"ot7", header:"Role", cols:[{k:"role", t:"text", ph:"Role"}, {k:"initials", t:"text", ph:"Initials"}, {k:"person", t:"text", ph:"Responsible person"}, {k:"department", t:"text", ph:"Department"}, {k:"effective_from", t:"date"}]},
+  ];
+  const rows = {addresses:[], contacts:[], registrations:[], staff:[]};
+  const visible = el=>{ for(let n = el; n && n !== document.body; n = n.parentElement){ if(n.style && n.style.display === "none") return false; } return true; };
+  const loose = (f, v)=>{
+    if(!f.ctl || f.ctl.tagName !== "SELECT"){ setValue(f, v); return; }
+    const opt = Array.from(f.ctl.options).find(o=> o.text === v || o.value === v || o.text.startsWith(v+" (") || o.text.startsWith(v+" ["));
+    if(opt) f.ctl.value = opt.value; else setValue(f, v);
+  };
+  const strip = s=> String(s||"").replace(/\s*\(.*\)\s*$/, "").trim();
+
+  /* ---------- list ---------- */
+  function renderList(){
+    const body = document.getElementById("orgTableBody"); if(!body) return;
+    const wanted = typeFilter ? TYPE_ROLES[typeFilter] : null, q = search.toLowerCase();
+    const list = parties.filter(p=> (!wanted || p.roles.some(r=>wanted.includes(r))) && (!q || (p.code+" "+p.name+" "+(p.gstin||"")+" "+p.country).toLowerCase().includes(q)));
+    body.innerHTML = list.length ? list.map(p=>
+      '<tr><td><span class="chip" data-oe="'+p.id+'" style="cursor:pointer">'+esc2(p.code)+'</span></td><td style="font-weight:600">'+esc2(p.name)+'</td><td><span class="b b-bl">'+esc2(p.category)+'</span></td><td>'+p.roles.map(r=>'<span class="b b-gy" style="margin-right:3px">'+esc2(ROLE_LABEL[r]||r)+'</span>').join("")+'</td><td class="mono">'+esc2(p.gstin||"—")+'</td><td>'+esc2(p.country)+'</td><td>'+(p.status==="ACTIVE"?'<span class="b b-gr dot">Active</span>':'<span class="b b-gy dot">Inactive</span>')+'</td><td class="no-print" style="white-space:nowrap"><button class="ta" data-oe="'+p.id+'">Edit</button> <button class="ta" data-od="'+p.id+'" style="color:var(--rd)">Delete</button></td></tr>'
+    ).join("") : '<tr><td colspan="8" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">'+(parties.length ? "No organizations match the filter." : 'No organizations yet. Click "New Org" to add your first client, vendor, carrier or agent.')+'</td></tr>';
+    const c = document.getElementById("orgMasterCount"); if(c) c.textContent = parties.length;
+    const l = document.getElementById("orgCountLabel"); if(l) l.textContent = "Showing "+list.length+" of "+parties.length+" organizations";
+  }
+  function loadList(){
+    const sel = document.getElementById("orgTypeFilter");
+    if(sel && !sel.dataset.okWired){
+      sel.dataset.okWired = "1"; sel.innerHTML = '<option value="">All Types</option>' + Object.keys(TYPE_ROLES).map(k=>'<option>'+k+'</option>').join("");
+      sel.addEventListener("change", ()=>{ typeFilter = sel.value; renderList(); });
+      const s = document.getElementById("orgSearch"); if(s) s.addEventListener("input", ()=>{ search = s.value; renderList(); });
+    }
+    return api("GET","/api/customers").then(r=>{ parties = r; renderList(); }).catch(e=>say("Could not load organizations", e.message));
+  }
+
+  /* ---------- repeating tables (contacts, addresses, registrations, staff) ---------- */
+  function cellHtml(col, val, key, i){
+    const a = 'data-orr="'+key+'" data-i="'+i+'" data-k="'+col.k+'"';
+    if(col.t === "select") return '<select class="fc" '+a+'>'+col.o.map(o=>'<option'+(o===val?" selected":"")+'>'+esc2(o)+'</option>').join("")+'</select>';
+    if(col.t === "check") return '<input type="checkbox" '+a+(val?" checked":"")+'>';
+    return '<input class="fc" '+a+(col.t==="date"?' type="date"':'')+' placeholder="'+esc2(col.ph||"")+'" value="'+esc2(val||"")+'">';
+  }
+  function repeatTable(def){
+    const tab = document.getElementById(def.tab); if(!tab) return null;
+    return Array.from(tab.querySelectorAll("table")).find(t=> (t.querySelector("th")||{}).textContent === def.header);
+  }
+  function renderRepeat(def){
+    const table = repeatTable(def); if(!table) return;
+    const body = table.querySelector("tbody"), list = rows[def.key];
+    body.innerHTML = list.length ? list.map((r,i)=>'<tr>'+def.cols.map(c=>'<td>'+cellHtml(c, r[c.k], def.key, i)+'</td>').join("")+'<td class="no-print"><button class="ta" data-orrdel="'+def.key+':'+i+'" type="button">✕</button></td></tr>').join("") : '<tr><td colspan="'+(def.cols.length+1)+'" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">None added. Use Add.</td></tr>';
+  }
+  function wireRepeats(){
+    REPEAT.forEach(def=>{
+      const table = repeatTable(def); if(!table || table.dataset.orWired) return; table.dataset.orWired = "1";
+      const tw = table.closest(".tw"), ch = tw && tw.previousElementSibling, btn = ch && ch.querySelector("button");
+      if(btn){ btn.type = "button"; btn.addEventListener("click", e=>{ e.stopPropagation(); rows[def.key].push({}); renderRepeat(def); }); }
+    });
+    // document uploads need file storage, which is not built yet: say so instead of faking it
+    document.querySelectorAll("#s-org-new table").forEach(t=>{
+      if((t.querySelector("th")||{}).textContent === "Document"){
+        t.querySelector("tbody").innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">Document upload is not available yet (needs file storage).</td></tr>';
+        const tw = t.closest(".tw"), ch = tw && tw.previousElementSibling, b = ch && ch.querySelector("button"); if(b) b.style.display = "none";
+      }
+    });
+  }
+  document.addEventListener("input", e=>{
+    const el = e.target; if(!el.dataset || el.dataset.orr === undefined) return;
+    rows[el.dataset.orr][Number(el.dataset.i)][el.dataset.k] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  document.addEventListener("change", e=>{
+    const el = e.target; if(!el.dataset || el.dataset.orr === undefined) return;
+    rows[el.dataset.orr][Number(el.dataset.i)][el.dataset.k] = el.type === "checkbox" ? el.checked : el.value;
+  });
+
+  /* ---------- form ---------- */
+  function chips(){ return Array.from(document.querySelectorAll("#orgRoleFlags .fi")); }
+  function openForm(){
+    const scr = document.getElementById("s-org-new"); if(!scr) return;
+    const rec = pending; pending = null; scr.dataset.orgId = rec ? rec.id : "";
+    const fields = fieldNodes(scr); fields.forEach(clearField);
+    scr.querySelectorAll("#orgIndiaTaxWrap input, #orgIndiaTaxWrap select").forEach(()=>{});
+    const by = k=> fields.find(f=>f.key===k);
+    // status control (not on the original form)
+    if(!document.getElementById("org_status_fg")){
+      const host = by("short_name"); if(host){ const fg = document.createElement("div"); fg.className = "fg"; fg.id = "org_status_fg"; fg.innerHTML = '<label class="fl">Status</label><select class="fc" id="org_status"><option>Active</option><option>Inactive</option></select>'; host.fg.parentElement.appendChild(fg); }
+    }
+    document.getElementById("org_status").value = rec && rec.status !== "ACTIVE" ? "Inactive" : "Active";
+    const c = by("org_code"); if(c && c.ctl) c.ctl.disabled = !!rec;
+    chips().forEach(ch=> ch.classList.toggle("on", !!rec && rec.roles.includes(ch.dataset.role)));
+    REPEAT.forEach(def=>{ rows[def.key] = rec && Array.isArray((rec.data||{})[def.key]) ? JSON.parse(JSON.stringify(rec.data[def.key])) : []; });
+    wireRepeats(); REPEAT.forEach(renderRepeat);
+    if(rec){
+      setValue(by("org_code"), rec.code); setValue(by("full_legal_name"), rec.name); setValue(by("short_name"), rec.short_name);
+      loose(by("category"), rec.category); loose(by("country"), rec.country); setValue(by("gstin"), rec.gstin); setValue(by("pan"), rec.pan);
+      if(rec.credit_limit) setValue(by("credit_limit"), String(rec.credit_limit)); setValue(by("payment_terms"), rec.payment_terms);
+      fields.forEach(f=>{ if(!["org_code","full_legal_name","short_name","category","country","gstin","pan","credit_limit","payment_terms"].includes(f.key) && (rec.data||{})[f.key] !== undefined) loose(f, rec.data[f.key]); });
+      const ctry = by("country"); if(ctry && ctry.ctl) ctry.ctl.dispatchEvent(new Event("change", {bubbles:true}));
+      const st = by("state"); if(st && (rec.data||{}).state) { loose(st, rec.data.state); st.ctl.dispatchEvent(new Event("change", {bubbles:true})); }
+    }
+    const pt = scr.querySelector(".pt"), ps = scr.querySelector(".ps");
+    if(pt){ const last = Array.from(pt.childNodes).reverse().find(n=>n.nodeType===3); if(last) last.textContent = rec ? "Edit Organization — "+rec.name : "New Organization"; }
+    if(ps) ps.textContent = rec ? "Code: "+rec.code : "Create a new party — client, vendor, carrier, CHA, agent or transporter";
+    const save = document.getElementById("orgSaveBtn");
+    if(save && !save.dataset.okWired){ save.dataset.okWired = "1"; save.addEventListener("click", saveForm); }
+  }
+  async function saveForm(){
+    const scr = document.getElementById("s-org-new"); const fields = fieldNodes(scr); const id = scr.dataset.orgId;
+    const by = k=> fields.find(f=>f.key===k);
+    const roles = chips().filter(ch=>ch.classList.contains("on")).map(ch=>ch.dataset.role);
+    const missing = fields.filter(f=> f.required && visible(f.fg) && !getValue(f));
+    fields.forEach(f=>{ if(f.ctl) f.ctl.classList.toggle("err", missing.includes(f)); });
+    U.reportMissing(scr, missing);
+    if(missing.length) return;
+    if(!roles.length){ say("Choose a role", "Select at least one role (Shipper, Consignee, Carrier, Agent, CHA, Transporter, AR or AP)", "warn"); return; }
+    const core = new Set(["org_code","full_legal_name","short_name","category","country","gstin","pan","credit_limit","payment_terms","status"]);
+    const data = {};
+    fields.forEach(f=>{ if(!core.has(f.key)){ const v = getValue(f); if(v !== "") data[f.key] = v; } });
+    REPEAT.forEach(def=>{ const keep = rows[def.key].filter(r=> Object.entries(r).some(([k,v])=> v && v !== false && !(def.cols.find(c=>c.k===k)||{}).o)); if(keep.length) data[def.key] = keep; });
+    const credit = getValue(by("credit_limit"));
+    const body = {name:getValue(by("full_legal_name")), short_name:getValue(by("short_name")) || null, category:strip(getValue(by("category"))) || "Business", country:strip(getValue(by("country"))) || "India",
+      gstin:getValue(by("gstin")) || null, pan:getValue(by("pan")) || null, credit_limit:credit ? Number(credit) : 0, payment_terms:getValue(by("payment_terms")) || null, roles, data};
+    const btn = document.getElementById("orgSaveBtn"); if(btn) btn.disabled = true;
+    try{
+      const status = document.getElementById("org_status").value === "Inactive" ? "INACTIVE" : "ACTIVE";
+      if(id) await api("PATCH","/api/customers/"+id, {...body, status});
+      else await api("POST","/api/customers", {...body, status, code:getValue(by("org_code"))});
+      say("Organization saved", body.name); go("org-list");
+    }catch(e){ say("Could not save organization", e.message); }
+    finally{ if(btn) btn.disabled = false; }
+  }
+
+  document.addEventListener("click", async e=>{
+    const del = e.target.closest("[data-orrdel]");
+    if(del){ e.stopPropagation(); const [key, i] = del.dataset.orrdel.split(":"); rows[key].splice(Number(i), 1); renderRepeat(REPEAT.find(d=>d.key===key)); return; }
+    const ed = e.target.closest("[data-oe]");
+    if(ed){ e.stopPropagation(); const p = parties.find(x=>x.id === Number(ed.dataset.oe)); if(p){ pending = p; go("org-new"); } return; }
+    const rm = e.target.closest("[data-od]");
+    if(rm){
+      e.stopPropagation(); const p = parties.find(x=>x.id === Number(rm.dataset.od)); if(!p) return;
+      if(!window.confirm("Delete "+p.code+" — "+p.name+"? Jobs and documents keep their copy of the name, but the link to this organization is removed.")) return;
+      try{ await api("DELETE","/api/customers/"+p.id); say("Organization deleted", p.code); loadList(); }catch(err){ say("Could not delete", err.message); }
+    }
+  }, true);
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    prev(screen, opts);
+    if(screen === "org-list") loadList();
+    if(screen === "org-new") openForm();
+  };
+})();
+
+</script>
+<script>
+/* ============================================================
+   DASHBOARD KIT: every number comes from GET /api/dashboard/summary (tenant-scoped, live database)
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, esc2, say} = U;
+  const inr = v=> "₹" + (Number(v)||0).toLocaleString("en-IN", {maximumFractionDigits:0});
+  const COLORS = ["var(--bl)", "var(--tl)", "var(--pu)", "var(--am)", "var(--gr)", "var(--rd)"];
+  const $q = (s, r)=> (r||document).querySelector(s);
+  const dash = ()=> document.getElementById("s-dashboard");
+  const cardByTitle = title=> Array.from(dash().querySelectorAll(".card")).find(c=>{ const ct = c.querySelector(".ct"); return ct && ct.textContent.trim() === title; });
+
+  function setKpi(key, value, sub, backTitle, backHtml){
+    const card = dash().querySelector('.kpi-flip[data-kpi-select="'+key+'"]'); if(!card) return;
+    const f = card.querySelector(".kpi-face-f"); const nums = f.querySelectorAll('div[style*="font-size:32px"]'); const subs = f.querySelectorAll('div[style*="margin-top:4px"]');
+    if(nums[0]){ nums[0].textContent = value; nums[0].style.color = "var(--n)"; }
+    if(subs[subs.length-1]) subs[subs.length-1].textContent = sub;
+    const back = card.querySelector(".kpi-face-b .cb");
+    if(back) back.innerHTML = '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--g5);text-transform:uppercase;margin-bottom:8px">'+esc2(backTitle)+'</div>'+backHtml;
+  }
+  const lines = pairs=> pairs.length ? '<div style="width:100%;font-size:12px">'+pairs.map(([k,v])=>'<div style="display:flex;justify-content:space-between;padding:2px 0"><span>'+esc2(k)+'</span><b>'+esc2(v)+'</b></div>').join("")+'</div>' : '<div style="font-size:12px">No data yet</div>';
+
+  function donut(items){
+    const total = items.reduce((a,i)=>a+i.count, 0), R = 55, C = 2*Math.PI*R; let off = 0;
+    if(!total) return '<div style="text-align:center;color:var(--g5);padding:24px 0;font-size:12px">No shipments yet</div>';
+    const arcs = items.slice(0,6).map((i,k)=>{ const len = i.count/total*C; const el = '<circle cx="80" cy="80" r="'+R+'" fill="none" stroke="'+COLORS[k%6]+'" stroke-width="22" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 80 80)"/>'; off += len; return el; }).join("");
+    return '<svg viewBox="0 0 160 160" style="width:140px;height:140px;display:block;margin:0 auto 10px">'+arcs+'<text x="80" y="78" text-anchor="middle" font-size="22" font-weight="800" fill="var(--n)">'+total+'</text><text x="80" y="95" text-anchor="middle" font-size="9.5" fill="var(--g5)">shipments</text></svg>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">'+items.slice(0,6).map((i,k)=>'<div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:'+COLORS[k%6]+';flex-shrink:0"></span><span style="color:var(--g6)">'+esc2(i.label)+'</span><span style="margin-left:auto;font-weight:700">'+i.count+'</span></div>').join("")+'</div>';
+  }
+  function render(s){
+    // subtitle + hidden decorative filters (they never filtered anything)
+    const sub = document.getElementById("dashDate"); if(sub) sub.textContent = new Date().toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"}) + " · FY " + s.fiscal_year;
+    const bf = document.getElementById("dfBranch");
+    if(bf){ let bar = bf.parentElement; while(bar && bar !== dash() && !/RG Cargo|All Companies/.test(bar.textContent)) bar = bar.parentElement; if(bar && bar !== dash()){ bar.style.display = "none"; bar.setAttribute("data-hidden-filters", "1"); } else if(bf.parentElement) bf.parentElement.style.display = "none"; }
+    const j = s.jobs, m = s.money;
+    // KPI cards
+    setKpi("jobs", j.active, j.active ? "jobs in progress" : "No active jobs yet", "Active Jobs — By Status", lines(Object.entries(j.by_status)));
+    setKpi("revenue", inr(m.revenue_mtd), "Posted invoices this month", "Revenue MTD — By Mode", lines(Object.entries(m.revenue_by_mode).map(([k,v])=>[k, inr(v)])));
+    setKpi("gp", inr(m.gp_mtd), Number(m.revenue_mtd) ? m.gp_pct+"% margin" : "No billing yet", "GP MTD — By Mode", lines(Object.entries(m.gp_by_mode).map(([k,v])=>[k, inr(v)])));
+    setKpi("ar", inr(m.ar_outstanding), s.alerts.overdue_invoices ? s.alerts.overdue_invoices+" overdue invoice(s)" : "Nothing overdue", "Top Overdue Customers", lines(m.top_overdue.map(o=>[o.party, inr(o.amount)])));
+    // matrix by shipment type
+    const grid = dash().querySelector('div[style*="grid-template-columns:140px repeat(3"]');
+    if(grid){
+      const head = Array.from(grid.children).slice(0,4).map(n=>n.outerHTML).join("");
+      const cell = (label, kind, n, bg, col)=> '<div class="dd-cell" data-go="job-list" data-filter="'+label.toLowerCase().replace(/[^a-z]+/g,"-")+"-"+kind+'" style="background:'+bg+';border-radius:7px;padding:10px;text-align:center;cursor:pointer"><div style="font-size:20px;font-weight:800;color:'+col+'">'+n+'</div><div style="font-size:9.5px;color:var(--g5)">jobs</div></div>';
+      grid.innerHTML = head + Object.entries(j.matrix).map(([label, r])=>'<div style="display:flex;align-items:center;font-size:12px;font-weight:600;color:var(--n)">'+esc2(label)+'</div>'+cell(label,"active",r.active,"var(--blt)","var(--bl)")+cell(label,"closed",r.closed_mtd,"var(--grt)","var(--gr)")+cell(label,"pending",r.pending,"var(--amt)","var(--am)")).join("");
+    }
+    Array.from(dash().querySelectorAll("a,button,span,div")).forEach(n=>{
+      if(n.children.length) return; const tx = n.textContent;
+      if(/Customs Pending/.test(tx)) n.textContent = j.customs_pending+" Customs Pending →";
+      else if(/BL Release Pending/.test(tx)) n.style.display = "none";
+    });
+    // Shipment Mix + trade lanes
+    const mix = cardByTitle("Shipment Mix");
+    if(mix){ const cb = mix.querySelector(".cb");
+      cb.innerHTML = donut(j.mix) + '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--g2)"><div style="font-size:10.5px;color:var(--g5);margin-bottom:4px">Top Trade Lanes</div><div style="font-size:11px;color:var(--g7);line-height:2">' +
+        (j.top_lanes.length ? j.top_lanes.map((l,k)=>'<div style="display:flex;justify-content:space-between"><span>'+esc2(l.lane)+'</span><span class="b b-'+["gr","bl","am","pu","gy"][k%5]+'" style="font-size:10px">'+l.count+' job'+(l.count===1?"":"s")+'</span></div>').join("") : '<div style="color:var(--g4);font-style:italic">No lanes yet</div>') + '</div></div>'; }
+    // recent jobs
+    const rc = cardByTitle("Recent Jobs");
+    if(rc){ const body = rc.querySelector(".ch").nextElementSibling;
+      body.className = ""; body.style.cssText = "padding:0";
+      body.innerHTML = j.recent.length ? '<table><tbody>'+j.recent.map(r=>'<tr style="cursor:pointer" data-go="job-detail" data-job="'+esc2(r.job_number)+'"><td class="mono ta" style="font-size:11px">'+esc2(r.job_number)+'</td><td>'+esc2(r.customer)+'</td><td style="font-size:11px">'+esc2(r.mode+" "+r.direction)+'</td><td><span class="b b-bl">'+esc2(r.status)+'</span></td></tr>').join("")+'</tbody></table>' : '<div style="padding:28px 14px;text-align:center;color:var(--g5)"><div style="font-size:12px;font-weight:600;color:var(--g6)">No jobs yet</div><div style="font-size:11px;margin-top:2px">Recent shipment jobs will appear here once created.</div></div>'; }
+    // AR ageing
+    const ar = cardByTitle("AR Ageing");
+    if(ar){ const body = ar.querySelector(".ch").nextElementSibling; const a = m.ageing; const total = Number(m.ar_outstanding);
+      body.className = "cb"; body.style.cssText = "padding:12px 16px";
+      body.innerHTML = total ? [["Not due", a.not_due, "var(--gr)"],["1–30 days", a.d1_30, "var(--am)"],["31–60 days", a.d31_60, "var(--am)"],["61–90 days", a.d61_90, "var(--rd)"],["90+ days", a.d90_plus, "var(--rd)"]].map(([k,v,c])=>'<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11.5px"><span>'+k+'</span><b>'+inr(v)+'</b></div><div style="height:6px;background:var(--g1);border-radius:3px"><div style="height:6px;width:'+Math.round(Number(v)/total*100)+'%;background:'+c+';border-radius:3px"></div></div></div>').join("") : '<div style="padding:16px 0;text-align:center;color:var(--g5)"><div style="font-size:12px;font-weight:600;color:var(--g6)">No outstanding receivables</div><div style="font-size:11px;margin-top:2px">AR ageing will appear here once invoices are posted.</div></div>'; }
+    // alerts
+    const al = s.alerts, items = [];
+    if(al.overdue_invoices) items.push(["Overdue invoices", al.overdue_invoices+" invoice(s) · "+inr(al.overdue_amount), "invoice-list", "var(--rd)"]);
+    if(al.draft_documents) items.push(["Draft billing documents", al.draft_documents+" waiting to be posted", "invoice-list", "var(--am)"]);
+    al.jobs_arriving_7d.forEach(x=> items.push(["Arriving within 7 days", x.job_number+" · "+x.route+" · ETA "+x.eta, "job-list", "var(--bl)"]));
+    const box = document.getElementById("dashAlerts");
+    if(box) box.innerHTML = items.length ? items.map(([t,d,go,c])=>'<div data-go="'+go+'" style="display:flex;gap:8px;padding:9px 14px;border-bottom:1px solid var(--g1);cursor:pointer"><span style="width:8px;height:8px;border-radius:50%;background:'+c+';margin-top:5px;flex-shrink:0"></span><div><div style="font-size:12px;font-weight:600">'+esc2(t)+'</div><div style="font-size:11px;color:var(--g5)">'+esc2(d)+'</div></div></div>').join("") : '<div style="padding:20px 14px;text-align:center;color:var(--g5);font-size:12px">Nothing needs attention right now.</div>';
+    const badge = document.getElementById("alertBadge"); if(badge) badge.textContent = items.length;
+    // chart data
+    if(window.dashApplyData) window.dashApplyData(s.monthly.map(x=>x.label), s.monthly.map(x=>x.jobs), s.monthly.map(x=>Number(x.revenue)));
+  }
+  async function load(){
+    if(!sessionStorage.getItem("esway_access_token")) return;
+    try{ render(await api("GET","/api/dashboard/summary")); }
+    catch(e){ if(e.status !== 403) say("Could not load the dashboard", e.message); }
+  }
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "dashboard") load(); };
+  const refresh = document.getElementById("dashRefreshBtn"); if(refresh) refresh.addEventListener("click", load);
+  window.dashKitLoad = load;
+})();
 </script>
 </body>
 </html>

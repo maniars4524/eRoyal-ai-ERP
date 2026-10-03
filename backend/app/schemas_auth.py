@@ -80,6 +80,15 @@ class CustomerCreate(BaseModel):
     payment_terms: str | None = Field(default=None, max_length=40)
     roles: list[str] = Field(default_factory=lambda: ["shipper"])
     data: dict[str, Any] = Field(default_factory=dict)
+    status: str = Field(default="ACTIVE", pattern="^(ACTIVE|INACTIVE)$")
+
+    @field_validator("code")
+    @classmethod
+    def _code(cls, value):
+        value = value.strip().upper()
+        if not re.match(r"^[A-Z0-9._/\- ]{2,20}$", value):
+            raise ValueError("code may only contain letters, digits and . _ / - space")
+        return value
 
     @field_validator("roles")
     @classmethod

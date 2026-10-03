@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .auth_api import platform_router, router as auth_router
 from .customers_api import router as customers_router
+from .dashboard_api import router as dashboard_router
 from .documents_api import router as documents_router
 from .job_charges_api import router as job_charges_router
 from .payments_api import router as payments_router
@@ -52,6 +53,7 @@ app.include_router(users_router)
 app.include_router(shipments_router)
 app.include_router(job_charges_router)
 app.include_router(documents_router)
+app.include_router(dashboard_router)
 app.include_router(payments_router)
 
 
@@ -66,16 +68,6 @@ def health() -> dict[str, str]:
         pass
     return {"status": "ok" if database == "healthy" else "degraded", "application": "healthy", "database": database, "timestamp": datetime.now(timezone.utc).isoformat()}
 
-
-@app.get("/api/dashboard/summary")
-def dashboard_summary() -> dict[str, object]:
-    return {
-        "active_jobs": None,
-        "revenue": None,
-        "unbilled_shipments": None,
-        "pending_delivery_orders": None,
-        "source": "unavailable-until-transaction-modules",
-    }
 
 
 LANDING_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
