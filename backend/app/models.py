@@ -180,3 +180,35 @@ class MasterRecord(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class JobCharge(Base):
+    """One buy/sell charge line of a job. Amounts are always recalculated server-side from these inputs."""
+    __tablename__ = "job_charges"
+    __table_args__ = (UniqueConstraint("shipment_id", "line_no", name="uq_job_charge_line"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id", ondelete="CASCADE"), index=True)
+    line_no: Mapped[int] = mapped_column(Integer)
+    charge_name: Mapped[str] = mapped_column(String(160), default="")
+    description: Mapped[str] = mapped_column(String(240), default="")
+    uom: Mapped[str] = mapped_column(String(40), default="Per Shipment")
+    qty = mapped_column(Numeric(14, 3), default=1)
+    hsn: Mapped[str] = mapped_column(String(20), default="")
+    buy_ccy: Mapped[str] = mapped_column(String(3), default="INR")
+    buy_exch = mapped_column(Numeric(14, 6), default=1)
+    buy_rate = mapped_column(Numeric(16, 4), default=0)
+    buy_tax_type: Mapped[str] = mapped_column(String(20), default="Taxable")
+    buy_tax_pct = mapped_column(Numeric(6, 2), default=0)
+    vendor: Mapped[str] = mapped_column(String(160), default="")
+    use_vendor: Mapped[bool] = mapped_column(default=False)
+    sell_ccy: Mapped[str] = mapped_column(String(3), default="INR")
+    sell_exch = mapped_column(Numeric(14, 6), default=1)
+    sell_rate = mapped_column(Numeric(16, 4), default=0)
+    sell_tax_type: Mapped[str] = mapped_column(String(20), default="Taxable")
+    sell_tax_pct = mapped_column(Numeric(6, 2), default=0)
+    client: Mapped[str] = mapped_column(String(160), default="")
+    use_client: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
