@@ -2777,9 +2777,9 @@ tbody tr:hover{background:var(--g0)}
 <div class="sr"><span class="lbl">Gross Weight / Volume</span><span id="jd_weight">—</span></div>
 <div class="sr"><span class="lbl">BL / AWB No</span><span id="jd_bl">—</span></div>
 <div class="divider"></div>
-<div class="sr"><span class="lbl">Total AR (Sell)</span><span class="ap">₹0</span></div>
-<div class="sr"><span class="lbl">Total AP (Buy)</span><span class="an">₹0</span></div>
-<div class="sr"><span class="lbl">Gross Profit</span><span style="font-weight:600">₹0</span></div>
+<div class="sr"><span class="lbl">Total AR (Sell)</span><span class="ap" id="jd_ar">₹0.00</span></div>
+<div class="sr"><span class="lbl">Total AP (Buy)</span><span class="an" id="jd_ap">₹0.00</span></div>
+<div class="sr"><span class="lbl">Gross Profit</span><span style="font-weight:600" id="jd_gp">₹0.00</span></div>
 </div></div>
 </div></div>
 
@@ -3554,29 +3554,10 @@ tbody tr:hover{background:var(--g0)}
   </div>
 </div><div class="cb">
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
-  <div style="border:1.5px solid var(--gr);border-radius:8px;padding:12px;background:var(--grt)">
-    <div style="font-size:10.5px;font-weight:700;color:var(--gr);margin-bottom:8px;letter-spacing:.4px">REVENUE (AR)</div>
-    <div class="sr"><span class="lbl">Ocean Freight</span><span class="ap">₹0</span></div>
-    <div class="sr"><span class="lbl">Documentation</span><span class="ap">₹0</span></div>
-    <div class="sr"><span class="lbl">THC Recovery</span><span class="ap">₹0</span></div>
-    <div style="border-top:1px solid var(--gr);margin-top:6px;padding-top:6px"><div class="sr"><span style="font-weight:700">Total AR</span><span class="ap" style="font-weight:700;font-size:14px">₹0</span></div></div>
-  </div>
-  <div style="border:1.5px solid var(--rd);border-radius:8px;padding:12px;background:var(--rdt)">
-    <div style="font-size:10.5px;font-weight:700;color:var(--rd);margin-bottom:8px;letter-spacing:.4px">COST (AP)</div>
-    <div class="sr"><span class="lbl">Ocean Freight Cost</span><span class="an">₹0</span></div>
-    <div class="sr"><span class="lbl">Liner Charges</span><span class="an">₹0</span></div>
-    <div class="sr"><span class="lbl">CHA Charges</span><span class="an">₹0</span></div>
-    <div style="border-top:1px solid var(--rd);margin-top:6px;padding-top:6px"><div class="sr"><span style="font-weight:700">Total AP</span><span class="an" style="font-weight:700;font-size:14px">₹0</span></div></div>
-  </div>
-  <div style="border:1.5px solid var(--n);border-radius:8px;padding:12px;background:var(--blt)">
-    <div style="font-size:10.5px;font-weight:700;color:var(--n);margin-bottom:8px;letter-spacing:.4px">PROFITABILITY</div>
-    <div class="sr"><span class="lbl">Gross Profit</span><span style="font-weight:800;color:var(--gr);font-size:20px">₹0</span></div>
-    <div class="sr"><span class="lbl">GP %</span><span style="font-weight:700;color:var(--gr);font-size:16px">—</span></div>
-    <div class="sr"><span class="lbl">Tax on GP</span><span class="ap">₹0</span></div>
-    <div class="sr"><span class="lbl">Status</span><span><span class="b b-am">Provisional</span></span></div>
-  </div>
+  <div id="plRevenue" style="border:1.5px solid var(--gr);border-radius:8px;padding:12px;background:var(--grt)"></div>
+  <div id="plCost" style="border:1.5px solid var(--rd);border-radius:8px;padding:12px;background:var(--rdt)"></div>
+  <div id="plProfit" style="border:1.5px solid var(--n);border-radius:8px;padding:12px;background:var(--blt)"></div>
 </div>
-<div class="ib ib-bl"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>Click <strong>Full P&amp;L Report</strong> for detailed charge-wise breakdown with provisional vs actual comparison, vendor cost split, and tax summary.</div>
 </div></div></div>
 
 <!-- JT10 MANIFEST — only populated for Import jobs; Air shows Air Manifest, Sea shows Sea Manifest + CSN -->
@@ -8415,20 +8396,7 @@ function populateJobDetail(jobNo){
    6d. JOB CHARGES — Buy/Sell charge-entry grid (jt5), shared
    template applied to every job, with per-job persisted rows.
    ============================================================ */
-const JC_CHARGE_MASTER = [
-  {name:"Ocean Freight", code:"996512", gst:18},
-  {name:"Air Freight", code:"996521", gst:18},
-  {name:"Terminal Handling Charges (THC)", code:"996719", gst:18},
-  {name:"Documentation Charges", code:"998399", gst:18},
-  {name:"Customs Clearance / CHA Charges", code:"996713", gst:18},
-  {name:"Transport / Haulage Charges", code:"996511", gst:18},
-  {name:"Warehouse / Storage Charges", code:"997212", gst:18},
-  {name:"Bill of Lading / AWB Fee", code:"996812", gst:18},
-  {name:"Container Detention / Demurrage", code:"996719", gst:18},
-  {name:"Insurance Charges", code:"997134", gst:0},
-  {name:"Customs Duty Reimbursement", code:"998399", gst:0},
-  {name:"Other Charges", code:"998399", gst:18},
-];
+const JC_CHARGE_MASTER = [];  /* filled from Charge Master (/api/masters/charge) */
 const JC_CCY = ["INR","USD","EUR","GBP","AED","SGD","JPY"];
 const JC_UOM = ["Per Shipment","Per Container","Per KG","Per CBM","Per Document","Per Job","Per Hour","Per Unit","Per BL"];
 const JOB_CHARGES_DB = {};
@@ -8458,6 +8426,118 @@ function jcNewChargeRow(seed){
 function jcDefaultRows(){
   return [];
 }
+/* ---------- server sync (PostgreSQL is the source of truth) ---------- */
+let jcSuppress = false, jcTimer = null, jcQueue = Promise.resolve();
+const jcTok = ()=> sessionStorage.getItem("esway_access_token");
+function jcApi(method, path, body){
+  return fetch(path, {method, headers:{Authorization:"Bearer "+jcTok(), "Content-Type":"application/json"}, body: body ? JSON.stringify(body) : undefined}).then(async res=>{
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      let msg = "Request failed";
+      if(typeof data.detail === "string") msg = data.detail;
+      else if(Array.isArray(data.detail)) msg = data.detail.map(x=> ((x.loc||[]).slice(-2).join(".")) + ": " + x.msg).join("; ");
+      throw new Error(msg);
+    }
+    return data;
+  });
+}
+function jcSetSaveState(text, kind){
+  let el = document.getElementById("jc_saveState");
+  if(!el){
+    const btn = document.getElementById("jc_saveBtn"); if(!btn) return;
+    el = document.createElement("span"); el.id = "jc_saveState"; el.style.cssText = "margin-left:8px;font-size:11px;font-weight:600";
+    btn.insertAdjacentElement("afterend", el);
+  }
+  el.textContent = text; el.style.color = kind==="ok" ? "var(--gr)" : kind==="err" ? "var(--rd)" : "var(--g5)";
+}
+function jcFromServer(l){
+  return {id: jcRowSeq++, selected:false, chargeName:l.charge_name, desc:l.description, uom:l.uom, qty:Number(l.qty), hsn:l.hsn,
+    buy:{ccy:l.buy.ccy, exch:Number(l.buy.exch), rate:Number(l.buy.rate), taxType:l.buy.tax_type, taxPct:Number(l.buy.tax_pct), vendor:l.buy.party},
+    sell:{ccy:l.sell.ccy, exch:Number(l.sell.exch), rate:Number(l.sell.rate), taxType:l.sell.tax_type, taxPct:Number(l.sell.tax_pct), client:l.sell.party},
+    useVendor:l.buy.use_party, useClient:l.sell.use_party};
+}
+function jcToServer(r){
+  const n = v=> String(Number(v)||0);
+  return {charge_name:r.chargeName||"", description:r.desc||"", uom:r.uom||"Per Shipment", qty:n(r.qty), hsn:r.hsn||"",
+    buy:{ccy:r.buy.ccy, exch:n(r.buy.exch), rate:n(r.buy.rate), tax_type:r.buy.taxType, tax_pct:n(r.buy.taxPct), party:r.buy.vendor||"", use_party:!!r.useVendor},
+    sell:{ccy:r.sell.ccy, exch:n(r.sell.exch), rate:n(r.sell.rate), tax_type:r.sell.taxType, tax_pct:n(r.sell.taxPct), party:r.sell.client||"", use_party:!!r.useClient}};
+}
+function jcLoadMaster(){
+  return jcApi("GET", "/api/masters/charge").then(rows=>{
+    JC_CHARGE_MASTER.length = 0;
+    rows.filter(r=>r.status==="ACTIVE").forEach(r=> JC_CHARGE_MASTER.push({name:r.name, code:(r.data||{}).hsn_code||"", gst:Number((r.data||{}).gst_percent)||0}));
+  }).catch(()=>{ /* master unavailable: grid shows an empty dropdown */ });
+}
+function jcLoadJob(jobNo){
+  const st = jcGetState(jobNo); st.loaded = false; st.rows = [];
+  jcSuppress = true; jcRenderRows(); jcSuppress = false;
+  if(!jobNo || !jcTok()){ jcSetSaveState("", ""); return Promise.resolve(); }
+  jcSetSaveState("Loading…", "");
+  return Promise.all([jcLoadMaster(), jcApi("GET", "/api/shipments/by-number/"+encodeURIComponent(jobNo)+"/charges")]).then(([, resp])=>{
+    if(jcCurrentJob !== jobNo) return;
+    st.rows = resp.lines.map(jcFromServer); st.loaded = true;
+    jcSuppress = true; jcRenderRows(); jcSuppress = false;
+    jcApplyTotals(resp);
+    jcSetSaveState("Saved", "ok");
+  }).catch(err=>{ jcSetSaveState("Not loaded: "+err.message, "err"); });
+}
+function jcSchedulePersist(){
+  const job = jcCurrentJob; const st = job && JOB_CHARGES_DB[job];
+  if(!st || !st.loaded) return;
+  jcSetSaveState("Unsaved changes…", "");
+  clearTimeout(jcTimer); jcTimer = setTimeout(()=> jcPersist(job, false), 700);
+}
+function jcPersist(job, manual){
+  const st = JOB_CHARGES_DB[job]; if(!st || !st.loaded) return Promise.resolve();
+  clearTimeout(jcTimer);
+  const body = {lines: st.rows.map(jcToServer)};
+  jcQueue = jcQueue.then(async ()=>{
+    jcSetSaveState("Saving…", "");
+    try{
+      const resp = await jcApi("PUT", "/api/shipments/by-number/"+encodeURIComponent(job)+"/charges", body);
+      if(jcCurrentJob === job) jcApplyTotals(resp);
+      jcSetSaveState("Saved", "ok");
+      if(manual) toast("Job cost saved", "Charge sheet for "+job+" saved");
+    }catch(err){
+      jcSetSaveState("Not saved: "+err.message, "err");
+      if(manual) toast("Could not save charges", err.message, "error");
+    }
+  });
+  return jcQueue;
+}
+const jcInr = v=> "₹" + (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+function jcApplyTotals(resp){
+  const t = resp.totals;
+  const set = (id, v)=>{ const e = document.getElementById(id); if(e) e.textContent = v; };
+  set("jd_ar", jcInr(t.ar)); set("jd_ap", jcInr(t.ap)); set("jd_gp", jcInr(t.gross_profit) + (Number(t.ar) ? " · " + t.gp_percent + "%" : ""));
+  const group = (side)=>{
+    const m = {};
+    resp.lines.forEach(l=>{ const k = l.charge_name || "(no charge selected)"; m[k] = (m[k]||0) + Number(l[side].inr); });
+    return Object.entries(m);
+  };
+  const box = (title, color, rows, total, cls)=> '<div style="font-size:10.5px;font-weight:700;color:var(--'+color+');margin-bottom:8px;letter-spacing:.4px">'+title+'</div>' +
+    (rows.length ? rows.map(([k,v])=>'<div class="sr"><span class="lbl">'+esc(k)+'</span><span class="'+cls+'">'+jcInr(v)+'</span></div>').join("") : '<div class="sr"><span class="lbl">No charges yet</span><span>—</span></div>') +
+    '<div style="border-top:1px solid var(--'+color+');margin-top:6px;padding-top:6px"><div class="sr"><span style="font-weight:700">Total</span><span class="'+cls+'" style="font-weight:700;font-size:14px">'+jcInr(total)+'</span></div></div>';
+  const rev = document.getElementById("plRevenue"), cost = document.getElementById("plCost"), prof = document.getElementById("plProfit");
+  if(rev) rev.innerHTML = box("REVENUE (AR)", "gr", group("sell"), t.ar, "ap");
+  if(cost) cost.innerHTML = box("COST (AP)", "rd", group("buy"), t.ap, "an");
+  if(prof) prof.innerHTML = '<div style="font-size:10.5px;font-weight:700;color:var(--n);margin-bottom:8px;letter-spacing:.4px">PROFITABILITY</div>' +
+    '<div class="sr"><span class="lbl">Gross Profit</span><span style="font-weight:800;font-size:20px">'+jcInr(t.gross_profit)+'</span></div>' +
+    '<div class="sr"><span class="lbl">GP %</span><span style="font-weight:700;font-size:16px">'+(Number(t.ar) ? t.gp_percent+"%" : "—")+'</span></div>' +
+    '<div class="sr"><span class="lbl">Output tax (sell)</span><span class="ap">'+jcInr(t.ar_tax)+'</span></div>' +
+    '<div class="sr"><span class="lbl">Input tax (buy)</span><span class="an">'+jcInr(t.ap_tax)+'</span></div>';
+  const pills = document.querySelectorAll("#jt8 span[style*='border-radius:20px']");
+  pills.forEach(p=>{ if(/^AR:/.test(p.textContent)) p.textContent = "AR: "+jcInr(t.ar); else if(/^AP:/.test(p.textContent)) p.textContent = "AP: "+jcInr(t.ap); else if(/^GP:/.test(p.textContent)) p.textContent = "GP: "+jcInr(t.gross_profit); });
+}
+function jcExportCsv(){
+  const st = jcGetState(jcCurrentJob); if(!st.rows.length){ toast("Nothing to export", "Add charge rows first", "warn"); return; }
+  const head = ["Charge","Description","UOM","Qty","HSN/SAC","Buy CCY","Buy Exch","Buy Rate","Buy Tax %","Buy INR","Vendor","Sell CCY","Sell Exch","Sell Rate","Sell Tax %","Sell INR","Client"];
+  const csv = [head].concat(st.rows.map(r=>{ const c = jcRowCalc(r); return [r.chargeName,r.desc,r.uom,r.qty,r.hsn,r.buy.ccy,r.buy.exch,r.buy.rate,r.buy.taxPct,c.buyINR.toFixed(2),r.buy.vendor,r.sell.ccy,r.sell.exch,r.sell.rate,r.sell.taxPct,c.sellINR.toFixed(2),r.sell.client]; }))
+    .map(row=>row.map(v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"})); a.download = "job-cost-"+(jcCurrentJob||"sheet")+".csv"; document.body.appendChild(a); a.click(); a.remove();
+  toast("Export ready", "Downloaded job-cost-"+(jcCurrentJob||"sheet")+".csv");
+}
+
 function jcGetState(jobNo){
   const key = jobNo || "__default__";
   if(!JOB_CHARGES_DB[key]){
@@ -8555,7 +8635,7 @@ function jcRenderRows(){
       <td class="mono"><input class="fc" style="width:72px" data-jc-f="hsn" data-jc-id="${r.id}" value="${esc(r.hsn)}" placeholder="HSN/SAC"></td>
       <td><button class="ta" data-jc-removerow="${r.id}" title="Remove row">✕</button></td>
     </tr>`;
-  }).join("") : `<tr><td colspan="24" class="tbl-empty">No charges added yet — click "Add Row" to begin.</td></tr>`;
+  }).join("") : `<tr><td colspan="24" class="tbl-empty">${JC_CHARGE_MASTER.length ? 'No charges added yet — click "Add Row" to begin.' : 'No charge codes exist yet — add them in Masters → Charge Master (or use + on a row), then click "Add Row".'}</td></tr>`;
   renderIcons(tb);
   jcRecalcAll();
 }
@@ -8643,6 +8723,7 @@ function jcRecalcAll(){
   }
   jcRenderValidation();
   jcRenderGenRow();
+  if(!jcSuppress) jcSchedulePersist();
 }
 
 function jcOpenExchModal(){
@@ -8715,21 +8796,7 @@ function jcWireGrid(){
     const nc = e.target.closest("[data-jc-newcharge]");
     if(nc){
       const rowId = Number(nc.dataset.jcNewcharge);
-      openModal({
-        title:`<svg class="ic" data-icon="plus"></svg> Add New Charge to Master`,
-        bodyHTML:`<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Charge Name</label><input class="fc" id="jc_newchg_name" placeholder="e.g. Fumigation Charges"></div></div>
-        <div class="fr"><div class="fg"><label class="fl">HSN / SAC</label><input class="fc" id="jc_newchg_hsn" placeholder="e.g. 998399"></div><div class="fg"><label class="fl">Default GST %</label><input class="fc" id="jc_newchg_gst" value="18"></div></div>`,
-        footHTML:`<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="jc_newchg_save">Add</button>`
-      });
-      $("#jc_newchg_save").addEventListener("click", ()=>{
-        const name = $("#jc_newchg_name").value.trim();
-        if(!name){ toast("Charge name required","Enter a name for the new charge","warn"); return; }
-        JC_CHARGE_MASTER.push({name, code:$("#jc_newchg_hsn").value.trim(), gst:Number($("#jc_newchg_gst").value)||0});
-        jcSetField(rowId, "chargeName", name);
-        closeModal();
-        jcRenderRows();
-        toast("Charge added to master", name+" is now available in the Charge Name dropdown");
-      });
+      if(window.MK && MK.openChargeModal) MK.openChargeModal(null, saved=> jcLoadMaster().then(()=>{ jcSetField(rowId, "chargeName", saved.name); jcRenderRows(); }));
       return;
     }
   });
@@ -8775,52 +8842,26 @@ function wireJobChargesPanel(){
     toast("Row(s) deleted", removed+" row(s) removed");
   });
   on("jc_exchRateBtn", jcOpenExchModal);
-  on("jc_saveBtn", ()=> toast("Job cost saved","Charge sheet saved for "+(jcCurrentJob||"this job")));
-  on("jc_updateBtn", ()=> toast("Job cost updated","Latest charge details updated"));
+  on("jc_saveBtn", ()=>{ if(jcCurrentJob) jcPersist(jcCurrentJob, true); });
+  on("jc_updateBtn", ()=>{ if(jcCurrentJob) jcLoadJob(jcCurrentJob).then(()=> toast("Job cost reloaded", "Latest saved charges loaded from the server")); });
   on("jc_deleteBtn", ()=>{
     const st = jcGetState(jcCurrentJob);
+    if(!st.rows.length) return;
+    if(!window.confirm("Clear all charge rows for this job? This cannot be undone.")) return;
     st.rows = [];
     jcRenderRows();
     toast("Charge sheet cleared","All charge rows removed for this job","warn");
   });
   on("jc_printBtn", ()=> window.print());
-  on("jc_exportBtn", ()=> toast("Export started","Job cost sheet export will download shortly"));
+  on("jc_exportBtn", jcExportCsv);
 
+  const notYet = (label)=> toast(label+" not available yet", "Document generation arrives with the Invoicing module; the charges on this sheet are saved and will feed it.", "warn");
   const genRowEl = document.getElementById("jc_genRow");
   if(genRowEl) genRowEl.addEventListener("click", e=>{
-    const btn = e.target.closest("[data-jc-gendoc]");
-    if(!btn) return;
-    const key = btn.dataset.jcGendoc;
-    const st = jcGetState(jcCurrentJob);
-    const docMeta = JC_GEN_DOCS.find(d=>d.key===key);
-    if(st.docStatus[key]){ toast(docMeta.label+" already generated","Use Export / Print to retrieve the generated document"); return; }
-    st.docStatus[key] = true;
-    jcRenderGenRow();
-    toast(docMeta.label+" generated", docMeta.label+" has been generated for this job and is ready to send");
+    const btn = e.target.closest("[data-jc-gendoc]"); if(!btn) return;
+    const meta = JC_GEN_DOCS.find(d=>d.key===btn.dataset.jcGendoc); notYet(meta ? meta.label : "Document");
   });
-  on("jc_genInvoiceBtn", ()=>{
-    const st = jcGetState(jcCurrentJob);
-    st.docStatus.invoice = true;
-    jcRenderGenRow();
-    toast("Invoice generated","Opening invoice for "+(jcCurrentJob||"this job"));
-    if(typeof go==="function") go("invoice-new");
-  });
-  on("jc_genPurInvoiceBtn", ()=>{
-    const st = jcGetState(jcCurrentJob); st.docStatus.purInvoice = true; jcRenderGenRow();
-    toast("Purchase Invoice generated","Purchase invoice created from Buy-side charges");
-  });
-  on("jc_genCreditNoteBtn", ()=>{
-    const st = jcGetState(jcCurrentJob); st.docStatus.creditNote = true; jcRenderGenRow();
-    toast("Credit Note generated","Credit note created against the Sell-side charges");
-  });
-  on("jc_genPurCreditNoteBtn", ()=>{
-    const st = jcGetState(jcCurrentJob); st.docStatus.purCreditNote = true; jcRenderGenRow();
-    toast("Purchase Credit Note generated","Purchase credit note created against the Buy-side charges");
-  });
-  on("jc_genDebitNoteBtn", ()=>{
-    const st = jcGetState(jcCurrentJob); st.docStatus.debitNote = true; jcRenderGenRow();
-    toast("Debit Note generated","Debit note created for this job");
-  });
+  [["jc_genInvoiceBtn","Invoice"],["jc_genPurInvoiceBtn","Purchase Invoice"],["jc_genCreditNoteBtn","Credit Note"],["jc_genPurCreditNoteBtn","Purchase Credit Note"],["jc_genDebitNoteBtn","Debit Note"]].forEach(([id,label])=> on(id, ()=> notYet(label)));
   jcWireGrid();
 }
 
@@ -8834,7 +8875,7 @@ function renderJobCharges(jobNo){
   if(custName==="—" && rec.sub){ const parts = rec.sub.split("·"); if(parts[1]) custName = parts[1].trim(); }
   if($("#jc_customer")) $("#jc_customer").textContent = custName;
   wireJobChargesPanel();
-  jcRenderRows();
+  jcLoadJob(jobNo || null);
 }
 
 /* ============================================================
@@ -15177,7 +15218,7 @@ if(document.readyState !== "loading") initChatWidget();
 
   /* ---- charge master (modal form) ---- */
   const CHARGE_CATEGORIES = ["Freight","Port","Documentation","Customs","Transport","Warehouse","Insurance","Other"];
-  function openChargeModal(rec){
+  function openChargeModal(rec, onSaved){
     const d = rec ? (rec.data||{}) : {};
     api("GET","/api/masters/hsn").then(hsns=>{
       const act = hsns.filter(h=>h.status==="ACTIVE");
@@ -15206,7 +15247,7 @@ if(document.readyState !== "loading") initChatWidget();
         try{
           await (rec ? api("PATCH","/api/masters/charge/"+rec.id, body) : api("POST","/api/masters/charge", body));
           closeModal(); say("Charge saved", body.code+" — "+body.name+" (HSN/SAC "+body.data.hsn_code+")");
-          MK.loadList(MK.configs.charge);
+          MK.loadList(MK.configs.charge); if(onSaved) onSaved(body);
         }catch(err){ say("Could not save charge", err.message); }
       });
     }).catch(err=> say("Could not open charge form", err.message));
@@ -15214,6 +15255,7 @@ if(document.readyState !== "loading") initChatWidget();
   MK.register({type:"charge", label:"Charge", list:"charge-master", detail:null, codeLabel:"Charge Code", nameLabel:"Charge Name",
     edit:rec=> openChargeModal(rec),
     cols:["code","name",r=>'<span class="b b-bl">'+esc2((r.data||{}).category||"—")+'</span>',"data.hsn_code","data.module","data.mode","data.uom",r=>'<span class="b b-gy">'+esc2((r.data||{}).ar_ap||"—")+'</span>',"data.coa_income","data.coa_expense",r=>(r.data||{}).gst_percent?'<span class="b b-gr">'+esc2(r.data.gst_percent)+'%</span>':"—"]});
+  MK.openChargeModal = openChargeModal;
   const newChargeBtn = document.getElementById("newChargeBtn");
   if(newChargeBtn) newChargeBtn.addEventListener("click", ()=> openChargeModal(null));
 })();
