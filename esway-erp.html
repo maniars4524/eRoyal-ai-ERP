@@ -3483,14 +3483,12 @@ tbody tr:hover{background:var(--g0)}
 <div id="s-quotation" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Quotations</div><div class="ps">Freight quotations — pull from rate master, send to clients, convert to job</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="newQuoteBtn"><svg class="ic" data-icon="plus"></svg> New Quotation</button></div></div>
 <div class="kpi-row">
-<div class="kpi"><div class="kpi-lbl">Open Quotes</div><div class="kpi-val">0</div><div class="kpi-sub">Awaiting response</div></div>
-<div class="kpi"><div class="kpi-lbl">Accepted MTD</div><div class="kpi-val">0</div><div class="kpi-sub">This month</div></div>
-<div class="kpi"><div class="kpi-lbl">Converted to Jobs</div><div class="kpi-val">0</div><div class="kpi-sub">This month</div></div>
-<div class="kpi"><div class="kpi-lbl">Avg Turnaround</div><div class="kpi-val">—</div><div class="kpi-sub">Quote to response</div></div>
+<div class="kpi"><div class="kpi-lbl">Open Quotes</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">Accepted MTD</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">Converted to Jobs</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">Avg Turnaround</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
-<div class="card"><div class="tw"><table><thead><tr><th>Quote No</th><th>Date</th><th>Client</th><th>Mode</th><th>Route</th><th>Valid Until</th><th>Quoted Amount</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No quotations yet — click "New Quotation" to create the first one.</td></tr>
-</tbody></table></div>
+<div class="card"><div class="tw"><table><thead><tr><th>Quote No</th><th>Date</th><th>Client</th><th>Mode</th><th>Route</th><th>Valid Until</th><th>Quoted Amount</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
 <div class="cf">Showing 0 of 0 quotations</div></div></div>
 
 <!-- ====== NEW QUOTATION (advanced wizard) ====== -->
@@ -3557,9 +3555,7 @@ tbody tr:hover{background:var(--g0)}
   Applied from <strong id="quotAppliedRateRef">—</strong> · Carrier: <strong id="quotAppliedRateCarrier">—</strong> · Version <strong id="quotAppliedRateVer">—</strong> · <span id="quotAppliedRateWhen">—</span>
 </div>
 <div class="cb" style="padding:0">
-<div class="tw"><table id="quotRateTable"><thead><tr><th>Charge</th><th id="quotRateCarrierHd" style="display:none">Carrier</th><th>Basis</th><th>Currency</th><th>Rate</th><th class="no-print"></th></tr></thead><tbody id="quotRateTableBody">
-<tr><td><input class="fc" placeholder="Ocean Freight" style="border:none;background:transparent"></td><td class="quotRateCarrierCell" style="display:none"><select class="fc" style="border:none;background:transparent"><option>MSC Mediterranean</option><option>Hapag-Lloyd</option></select></td><td><select class="fc" style="border:none;background:transparent"><option>Per Container</option><option>Per KG</option><option>Per CBM</option><option>Flat</option><option>Per Shipment</option></select></td><td><select class="fc" style="border:none;background:transparent;width:80px"><option>USD</option><option>INR</option><option>EUR</option></select></td><td><input class="fc" placeholder="950.00" style="border:none;background:transparent"></td><td class="no-print"><button class="ta remove-row">✕</button></td></tr>
-</tbody></table></div>
+<div class="tw"><table id="quotRateTable"><thead><tr><th>Charge</th><th id="quotRateCarrierHd" style="display:none">Carrier</th><th>Basis</th><th>Currency</th><th>Rate</th><th class="no-print"></th></tr></thead><tbody id="quotRateTableBody"></tbody></table></div>
 <div class="cf">Add THC, BL Fee, Documentation, Customs Clearance or Transportation lines as needed for the selected quotation type.</div>
 </div></div>
 
@@ -4294,7 +4290,7 @@ Select rate lines to see summary.
 <!-- ====== QUOTATION PRINT ====== -->
 <div id="s-quotation-print" class="scr">
 <div class="ph">
-  <div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--gr)"></svg>Quotation Print</div><div class="ps">Print-quality freight quotation · ECM Logistics / Eroyaltech Systems</div></div>
+  <div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--gr)"></svg>Quotation Print</div><div class="ps">Print-quality freight quotation</div></div>
   <div class="pa"><button class="btn btn-out btn-sm" data-go="quotation" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
     <button class="btn btn-out btn-sm" data-go="quotation"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
     <button class="btn btn-out btn-sm" id="quotEmailBtn"><svg class="ic" data-icon="mail"></svg> Email to Party</button>
@@ -4302,123 +4298,7 @@ Select rate lines to see summary.
     <button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Approve Quote</button>
   </div>
 </div>
-<div class="card" id="quotPrintZone" style="max-width:940px;margin:0 auto">
-<div class="cb" style="padding:28px 34px;font-family:Arial,sans-serif;color:#0B1F3A">
-<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:2px solid #0B1F3A;margin-bottom:20px">
-  <div style="display:flex;gap:13px;align-items:center">
-    <div style="width:50px;height:50px;border-radius:10px;background:linear-gradient(135deg,#1A6FBF,#0E8A7C);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800">ET</div>
-    <div>
-      <div style="font-size:16px;font-weight:800">ESWAYTECH SYSTEMS PVT LTD</div>
-      <div style="font-size:10px;color:#555">No 8, Old 19, 1st Main Road, Second Cross Street, Kalaimagal Nagar, Chennai-600032</div>
-      <div style="font-size:10px;color:#555">Ph: 044-4266 9886 / 93854 13685 | admin@royaltechsystems.co.in | www.royaltechsystems.co.in</div>
-    </div>
-  </div>
-  <div style="text-align:right">
-    <div style="font-size:20px;font-weight:800;letter-spacing:1px">QUOTATION</div>
-    <table style="font-size:11px;border-collapse:collapse;margin-left:auto;margin-top:6px">
-      <tr><td style="padding:1px 8px 1px 0;color:#666">Quotation No.</td><td style="font-weight:700;font-family:monospace">QTN/CHN/25-26/000124</td></tr>
-      <tr><td style="padding:1px 8px 1px 0;color:#666">Date</td><td style="font-weight:600">03-Sep-2025</td></tr>
-      <tr><td style="padding:1px 8px 1px 0;color:#666">Valid Upto</td><td style="color:#C0392B;font-weight:600">15-Sep-2025</td></tr>
-    </table>
-  </div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-  <div style="border:1px solid #ddd;border-radius:6px;padding:11px">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.7px;color:#fff;background:#0B1F3A;padding:3px 8px;border-radius:3px;display:inline-block;margin-bottom:7px">TO</div>
-    <div style="font-size:13px;font-weight:700">Natural Remedies Pvt Ltd</div>
-    <div style="font-size:11px;color:#666;margin-top:2px">Party Role: <strong>Shipper</strong></div>
-  </div>
-  <div style="border:1px solid #ddd;border-radius:6px;padding:11px">
-    <table style="font-size:11px;border-collapse:collapse;width:100%">
-      <tr><td style="padding:2px 0;color:#666;width:50%">Port of Origin</td><td style="font-weight:500">CHENNAI SEA</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Discharge Port</td><td style="font-weight:500">GENOA</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Carrier</td><td>CMA CGM</td></tr>
-      <tr><td style="padding:2px 0;color:#666">INCO Terms</td><td>CIF / 30 days</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Movement Type</td><td>Port to Port</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Gross Weight</td><td>20,000.00 KGS</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Cargo Type</td><td style="font-weight:500">FCL | Commodity: POOJA ITEM</td></tr>
-    </table>
-  </div>
-</div>
-<div style="background:#EBF4FF;border-left:4px solid #1A6FBF;padding:7px 12px;font-size:12px;font-weight:700;margin-bottom:12px;border-radius:0 4px 4px 0">
-  Forwarding (Sea Export) &nbsp;&nbsp; Approved By: &nbsp;&nbsp; On: 03/09/2025
-</div>
-<table style="width:100%;border-collapse:collapse;font-size:11.5px">
-  <thead>
-    <tr style="background:#0B1F3A;color:#fff">
-      <th style="padding:8px 10px;text-align:left">Service</th>
-      <th style="padding:8px 10px;text-align:left">Charge Name</th>
-      <th style="padding:8px 10px;text-align:left">Application</th>
-      <th style="padding:8px 10px;text-align:right">Rate</th>
-      <th style="padding:8px 10px;text-align:center">Cur</th>
-      <th style="padding:8px 10px;text-align:right">Amount</th>
-      <th style="padding:8px 10px;text-align:right">Ex.Rate</th>
-      <th style="padding:8px 10px;text-align:right">Amount (INR)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5">
-      <td style="padding:7px 10px">Sea Import</td><td style="padding:7px 10px;font-weight:600">OCEAN FREIGHT CHARGES</td>
-      <td style="padding:7px 10px;font-size:10.5px">Per Container<br>20GP x2 | 20OT x1 | 40GP x1</td>
-      <td style="padding:7px 10px;text-align:right">100/200/200</td><td style="padding:7px 10px;text-align:center">USD</td>
-      <td style="padding:7px 10px;text-align:right">500.00</td><td style="padding:7px 10px;text-align:right">94.31</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">75,448.00</td>
-    </tr>
-    <tr style="border-bottom:1px solid #e8eef5">
-      <td style="padding:7px 10px">Sea Import</td><td style="padding:7px 10px;font-weight:600">INLAND HAULAGE CHARGES</td>
-      <td style="padding:7px 10px;font-size:10.5px">Per Container · 20GP x2</td>
-      <td style="padding:7px 10px;text-align:right">EUR 50.00</td><td style="padding:7px 10px;text-align:center">EUR</td>
-      <td style="padding:7px 10px;text-align:right">50.00</td><td style="padding:7px 10px;text-align:right">102.22</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">12,77,750.00</td>
-    </tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5">
-      <td style="padding:7px 10px">Sea Import</td><td style="padding:7px 10px;font-weight:600">TERMINAL HANDLING CHARGES</td>
-      <td style="padding:7px 10px;font-size:10.5px">Per Container · 20GP x2</td>
-      <td style="padding:7px 10px;text-align:right">9,500.00</td><td style="padding:7px 10px;text-align:center">INR</td>
-      <td style="padding:7px 10px;text-align:right">9,500.00</td><td style="padding:7px 10px;text-align:right">1.00</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">9,500.00</td>
-    </tr>
-    <tr style="border-bottom:1px solid #e8eef5">
-      <td style="padding:7px 10px">Sea Import</td><td style="padding:7px 10px;font-weight:600">BILL OF LADING CHARGES</td>
-      <td style="padding:7px 10px;font-size:10.5px">Per Shipment</td>
-      <td style="padding:7px 10px;text-align:right">4,500.00</td><td style="padding:7px 10px;text-align:center">INR</td>
-      <td style="padding:7px 10px;text-align:right">4,500.00</td><td style="padding:7px 10px;text-align:right">1.00</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">4,500.00</td>
-    </tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5">
-      <td style="padding:7px 10px">Sea Import</td><td style="padding:7px 10px;font-weight:600">SEAL CHARGES</td>
-      <td style="padding:7px 10px;font-size:10.5px">Per Container · 20GP x2</td>
-      <td style="padding:7px 10px;text-align:right">5.00</td><td style="padding:7px 10px;text-align:center">USD</td>
-      <td style="padding:7px 10px;text-align:right">5.00</td><td style="padding:7px 10px;text-align:right">94.31</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">471.55</td>
-    </tr>
-    <tr style="border-bottom:1px solid #e8eef5">
-      <td style="padding:7px 10px">Sea Import</td><td style="padding:7px 10px;font-weight:600">FACILITY CHARGES</td>
-      <td style="padding:7px 10px;font-size:10.5px">Per Shipment</td>
-      <td style="padding:7px 10px;text-align:right">1,200.00</td><td style="padding:7px 10px;text-align:center">INR</td>
-      <td style="padding:7px 10px;text-align:right">1,200.00</td><td style="padding:7px 10px;text-align:right">1.00</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">1,200.00</td>
-    </tr>
-    <tr style="background:#0B1F3A;color:#fff">
-      <td colspan="7" style="padding:9px 10px;text-align:right;font-size:13px;font-weight:700">TOTAL</td>
-      <td style="padding:9px 10px;text-align:right;font-size:14px;font-weight:800">INR 13,68,869.55</td>
-    </tr>
-  </tbody>
-</table>
-<div style="margin-top:14px;font-size:10.5px;color:#555;line-height:1.9">
-  <div style="font-weight:700;margin-bottom:4px">Notes :</div>
-  <div>* Rates quoted as per shipment details provided and subject to change per actual shipment details.</div>
-  <div>* Applicable for General Cargo with normal dimensions (max 120x90x90 cms) subject to space confirmation.</div>
-  <div>* Rates/surcharges subject to change as per shipping notice. Does not cover transit insurance and customs clearance.</div>
-  <div>* Import duty, storage, VAT, tax, inspection charges at destination are additional at cost.</div>
-  <div>* GST applicable as per Government norms.</div>
-</div>
-<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:20px;padding-top:12px;border-top:1px solid #e0e6ed">
-  <div style="font-size:12px;color:#666">For ECM Logistics Pvt. Ltd.</div>
-  <div style="font-size:12px;color:#666;text-align:right">Administrator<br><span style="font-size:10px">Authorised Signatory</span></div>
-</div>
-</div>
-</div>
+<div class="card" id="quotPrintZone" style="max-width:940px;margin:0 auto"><div style="padding:30px;text-align:center;color:var(--g5)">Open a quotation from the Quotations list.</div></div>
 </div>
 
 <!-- ====== BL DRAFT ====== -->
@@ -8718,7 +8598,6 @@ wireAction("dnApproveBtn","Debit Note issued","RTL/DN/2026/0058 marked as Sent �
 wireAction("piApproveBtn","Purchase Invoice approved","PI-0002 approved — DR 4100 / CR 2101 posted");
 wireAction("taxInvEmailBtn","Tax Invoice emailed","Sent to Raghav Granites — accounts@raghavgranites.in");
 wireAction("taxInvPostBtn","Tax Invoice posted","RLPL/INV/25-26/00091 posted to AR — DR 1101 / CR 3100");
-wireAction("quotEmailBtn","Quotation emailed","Quotation QTN/CHN/25-26/000124 sent to Natural Remedies Pvt Ltd");
 wireAction("blDraftEmailBtn","BL Draft sent","Draft BL sent to CAVITAK ENTERPRISE PTE LTD for approval");
 wireAction("fcEmailBtn","Freight Certificate emailed","Sent to Relay Lines Canada Inc — ryan.parker@relay-logistics.com");
 wireAction("canEmailBtn","CAN sent","Cargo Arrival Notice sent to M/S Sigma Jones AV LLP and notify party");
@@ -9520,7 +9399,6 @@ wireAction("dnApproveBtn","Debit Note issued","RTL/DN/2026/0058 marked as Sent")
 wireAction("piApproveBtn","Purchase Invoice approved","PI-0002 approved — DR 4100 / CR 2101 posted");
 wireAction("taxInvEmailBtn","Tax Invoice emailed","Sent to Raghav Granites");
 wireAction("taxInvPostBtn","Tax Invoice posted","RLPL/INV/25-26/00091 posted to AR");
-wireAction("quotEmailBtn","Quotation emailed","Sent to Natural Remedies Pvt Ltd");
 wireAction("blDraftEmailBtn","BL Draft sent","Draft BL sent to CAVITAK ENTERPRISE");
 wireAction("fcEmailBtn","Freight Certificate emailed","Sent to Relay Lines Canada Inc");
 wireAction("canEmailBtn","CAN sent","Cargo Arrival Notice sent to Sigma Jones AV LLP");
@@ -13666,6 +13544,7 @@ document.addEventListener("click", e=>{
 
 const quotWiz = {mode:null, dir:null, type:null, qtype:null, customServices:null, carrierMode:null, sourceEnquiry:null};
 let pendingQuotEnquiryId = null;
+window.quotWiz = quotWiz; window.quotWizBuildForm = quotWizBuildForm; window.quotWizRefresh = quotWizRefresh;
 
 /* ---- Fetch from Enquiry: same idea as Lead -> Enquiry, one click carries the
    shipment mode/direction/type straight into the Quotation wizard so nothing
@@ -13840,8 +13719,6 @@ function initQuotWizard(){
     tr.innerHTML = `<td><input class="fc" placeholder="Charge description" style="border:none;background:transparent"></td><td class="quotRateCarrierCell" style="display:${isMulti?'':'none'}"><select class="fc" style="border:none;background:transparent"><option>MSC Mediterranean</option><option>Hapag-Lloyd</option></select></td><td><select class="fc" style="border:none;background:transparent"><option>Per Container</option><option>Per KG</option><option>Per CBM</option><option>Flat</option><option>Per Shipment</option></select></td><td><select class="fc" style="border:none;background:transparent;width:80px"><option>USD</option><option>INR</option><option>EUR</option></select></td><td><input class="fc" placeholder="0.00" style="border:none;background:transparent"></td><td class="no-print"><button class="ta remove-row">✕</button></td>`;
     $("#quotRateTableBody").appendChild(tr);
   });
-  wireAction("quotSaveDraftBtn","Quotation saved as draft","You can resume editing from Quotations list");
-  wireAction("quotSendBtn","Quotation sent","Client will be notified by email with the quotation PDF");
 }
 document.addEventListener("DOMContentLoaded", initQuotWizard);
 if(document.readyState !== "loading") initQuotWizard();
@@ -15387,6 +15264,209 @@ if(document.readyState !== "loading") initChatWidget();
   const refresh = document.getElementById("dashRefreshBtn"); if(refresh) refresh.addEventListener("click", load);
   window.dashKitLoad = load;
 })();
+</script>
+<script>
+/* ============================================================
+   QUOTE KIT: real quotations (/api/quotations): list, wizard form, send/accept/reject/convert, print view
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const inr = v=> "₹" + (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const dmy = v=> v ? new Date(v+"T00:00:00").toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
+  const today = ()=> new Date().toISOString().slice(0,10);
+  const BASES = ["Per Container","Per Shipment","Per KG","Per CBM","Per BL","Per AWB","Per Pallet","Flat"];
+  const CCYS = ["USD","INR","EUR","GBP","AED","SGD","JPY"];
+  const Q = window.QK = {list:[], edit:null, lines:[], carriers:[], charges:[], customers:[], pendingOpen:null};
+  const badge = q=>{ const s = q.effective_status; const c = {DRAFT:"b-gy", SENT:"b-bl", ACCEPTED:"b-gr", CONVERTED:"b-pu", REJECTED:"b-rd", EXPIRED:"b-am"}[s] || "b-gy"; return '<span class="b '+c+' dot">'+esc2(s.charAt(0)+s.slice(1).toLowerCase())+'</span>'; };
+  const calc = l=>{ const q = Number(l.qty)||0, r = Number(l.rate)||0, e = l.ccy === "INR" ? 1 : (Number(l.exch)||0); return Math.round(q*r*e*100)/100; };
+
+  /* ---------- list ---------- */
+  async function loadList(){
+    const scr = document.getElementById("s-quotation"); const tbody = scr && scr.querySelector("tbody"); if(!tbody) return;
+    try{ Q.list = await api("GET","/api/quotations"); }catch(e){ say("Could not load quotations", e.message); return; }
+    const act = q=>{
+      const b = [];
+      b.push('<button class="ta" data-qk-open="'+q.id+'">'+(q.status==="DRAFT"?"Edit":"View")+' →</button>');
+      if(q.effective_status === "SENT"){ b.push('<button class="ta" data-qk-do="accept:'+q.id+'" style="color:var(--gr)">Accept</button>'); b.push('<button class="ta" data-qk-do="reject:'+q.id+'" style="color:var(--rd)">Reject</button>'); }
+      if(q.status === "ACCEPTED") b.push('<button class="ta" data-qk-do="convert:'+q.id+'" style="color:var(--bl);font-weight:700">Convert to Job</button>');
+      if(q.status === "DRAFT") b.push('<button class="ta" data-qk-do="delete:'+q.id+'" style="color:var(--rd)">Delete</button>');
+      return b.join(" ");
+    };
+    tbody.innerHTML = Q.list.length ? Q.list.map(q=>'<tr><td class="mono ta" data-qk-open="'+q.id+'" style="color:var(--bl);font-weight:600;cursor:pointer">'+esc2(q.number||("Draft #"+q.id))+'</td><td>'+dmy(q.quote_date)+'</td><td style="font-weight:600">'+esc2(q.party_name||"—")+'</td><td>'+esc2(q.mode+" "+q.direction)+'</td><td>'+esc2([q.pol,q.pod].filter(Boolean).join(" → ")||"—")+'</td><td>'+dmy(q.valid_until)+'</td><td style="text-align:right">'+inr(q.quoted_amount)+'</td><td>'+badge(q)+(q.job_number?' <span class="mono" style="font-size:10px">'+esc2(q.job_number)+'</span>':'')+'</td><td class="no-print" style="white-space:nowrap">'+act(q)+'</td></tr>').join("")
+      : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No quotations yet. Click "New Quotation" to create one.</td></tr>';
+    const m = today().slice(0,7), kp = scr.querySelectorAll(".kpi");
+    const set = (i,v,s)=>{ const k = kp[i]; if(!k) return; const a = k.querySelector(".kpi-val"), c = k.querySelector(".kpi-sub"); if(a) a.textContent = v; if(c) c.textContent = s||""; };
+    set(0, Q.list.filter(q=>q.effective_status==="SENT").length, "Awaiting response");
+    set(1, Q.list.filter(q=>q.status==="ACCEPTED" && (q.responded_at||"").startsWith(m)).length, "This month");
+    set(2, Q.list.filter(q=>q.status==="CONVERTED" && (q.responded_at||"").startsWith(m)).length, "This month");
+    const done = Q.list.filter(q=>q.sent_at && q.responded_at);
+    set(3, done.length ? (done.reduce((a,q)=>a+(new Date(q.responded_at)-new Date(q.sent_at))/864e5,0)/done.length).toFixed(1)+" d" : "—", "Quote to response");
+  }
+
+  /* ---------- form ---------- */
+  const W = ()=> window.quotWiz;
+  const bodyRows = ()=> document.getElementById("quotRateTableBody");
+  async function loadMasters(){
+    const [charges, carriers, customers] = await Promise.all([api("GET","/api/masters/charge").catch(()=>[]), api("GET","/api/customers?role=carrier").catch(()=>[]), api("GET","/api/customers?role=client").catch(()=>[])]);
+    Q.charges = charges.filter(c=>c.status==="ACTIVE"); Q.carriers = carriers.filter(c=>c.status==="ACTIVE").map(c=>c.name); Q.customers = customers;
+    const sel = document.getElementById("qn_client");
+    if(sel){ const keep = sel.options[0] ? sel.options[0].outerHTML : '<option value="">— Search or select —</option>'; sel.innerHTML = keep + customers.map(c=>'<option value="'+c.id+'" data-name="'+esc2(c.name)+'">'+esc2(c.name)+(c.code?" ("+esc2(c.code)+")":"")+'</option>').join(""); }
+    let dl = document.getElementById("qkCharges"); if(!dl){ dl = document.createElement("datalist"); dl.id = "qkCharges"; document.body.appendChild(dl); }
+    dl.innerHTML = Q.charges.map(c=>'<option value="'+esc2(c.name)+'">').join("");
+  }
+  const multi = ()=> W() && W().carrierMode === "multi";
+  function rateRow(l, i){
+    const opt = (v,sel)=> '<option'+(v===sel?" selected":"")+'>'+esc2(v)+'</option>';
+    const carrierOpts = '<option value="">— Carrier —</option>'+Array.from(new Set(Q.carriers.concat(l.carrier ? [l.carrier] : []))).map(c=>'<option'+(c===l.carrier?" selected":"")+'>'+esc2(c)+'</option>').join("");
+    const cell = 'border:none;background:transparent';
+    return '<tr data-qr="'+i+'"><td><input class="fc" list="qkCharges" data-qf="charge_name" value="'+esc2(l.charge_name)+'" placeholder="Charge" style="'+cell+'"></td><td class="quotRateCarrierCell" style="display:'+(multi()?"":"none")+'"><select class="fc" data-qf="carrier" style="'+cell+'">'+carrierOpts+'</select></td>'+
+      '<td><select class="fc" data-qf="basis" style="'+cell+'">'+BASES.map(b=>opt(b,l.basis)).join("")+'</select></td><td><select class="fc" data-qf="ccy" style="'+cell+';width:78px">'+CCYS.map(c=>opt(c,l.ccy)).join("")+'</select></td>'+
+      '<td><input class="fc" type="number" min="0" step="0.01" data-qf="rate" value="'+esc2(l.rate)+'" style="'+cell+';width:90px"></td><td><input class="fc" type="number" min="0" step="0.001" data-qf="qty" value="'+esc2(l.qty)+'" style="'+cell+';width:66px"></td>'+
+      '<td><input class="fc" type="number" min="0" step="0.0001" data-qf="exch" value="'+esc2(l.exch)+'" '+(l.ccy==="INR"?"disabled ":"")+'style="'+cell+';width:80px"></td><td class="no-print"><button class="ta" type="button" data-qk-del="'+i+'">✕</button></td></tr>';
+  }
+  function renderRows(){
+    const tb = bodyRows(); if(!tb) return;
+    tb.innerHTML = Q.lines.length ? Q.lines.map(rateRow).join("") : '<tr><td colspan="8" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">No charges yet. Click "Add Charge".</td></tr>';
+    renderSummary();
+  }
+  function renderSummary(){
+    const box = document.getElementById("quotSummaryBox"); if(!box) return;
+    const by = {}; Q.lines.forEach(l=>{ const k = l.carrier || (multi() ? "(no carrier)" : "Total"); by[k] = (by[k]||0) + calc(l); });
+    const keys = Object.keys(by);
+    box.innerHTML = keys.length ? keys.map(k=>'<div class="sr"><span class="lbl">'+esc2(k)+'</span><span style="font-weight:700">'+inr(by[k])+'</span></div>').join("") + '<div style="margin-top:6px;font-size:10.5px;color:var(--g5)">Indicative. The server recalculates every amount when you save.</div>' : "Add charges to see the summary.";
+  }
+  function formPatch(){
+    // the old fake handlers/dummy sources are neutralised: Get Rate needs the Rate Master, Fetch from Enquiry needs CRM
+    ["quotGetRateBtn","quotFetchEnquiryBtn"].forEach(id=>{ const b = document.getElementById(id); if(b) b.style.display = "none"; });
+    const banner = document.getElementById("quotAppliedRateBanner"); if(banner) banner.style.display = "none";
+    const hd = document.querySelector("#quotRateTable thead tr");
+    if(hd && !hd.dataset.qk){ hd.dataset.qk = "1"; const last = hd.lastElementChild; ["Qty","Ex. Rate"].forEach(t=>{ const th = document.createElement("th"); th.textContent = t; hd.insertBefore(th, last); }); }
+  }
+  async function openForm(rec){
+    const scr = document.getElementById("s-quotation-new"); if(!scr) return;
+    formPatch(); await loadMasters();
+    scr.dataset.qid = rec ? rec.id : "";
+    document.getElementById("quotCarrierRows").innerHTML = "";
+    const w = W();
+    if(rec){
+      Object.assign(w, {mode:rec.mode, dir:rec.direction, type:rec.shipment_type, qtype:rec.quote_type || "Standard", carrierMode:rec.carrier_mode});
+      document.getElementById("quotWizWrap").style.display = "none"; document.getElementById("quotFormWrap").style.display = "block";
+      if(window.quotWizBuildForm) window.quotWizBuildForm();
+    } else {
+      Object.assign(w, {mode:null, dir:null, type:null, qtype:null, customServices:null, carrierMode:null, sourceEnquiry:null});
+      document.getElementById("quotFormWrap").style.display = "none"; document.getElementById("quotWizWrap").style.display = "block";
+      ["quotWizDirWrap","quotWizTypeWrap","quotWizQtypeWrap","quotWizCarrierWrap"].forEach(id=>{ const e = document.getElementById(id); if(e) e.style.display = "none"; });
+      const t = document.getElementById("quotNewTitle"); if(t) t.innerHTML = '<svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>New Quotation';
+      if(window.quotWizRefresh) window.quotWizRefresh();
+    }
+    document.getElementById("qn_client").value = rec && rec.customer_id ? String(rec.customer_id) : "";
+    document.getElementById("qn_pol").value = rec ? (rec.pol||"") : ""; document.getElementById("qn_pod").value = rec ? (rec.pod||"") : "";
+    document.getElementById("qn_date").value = rec ? rec.quote_date : today();
+    document.getElementById("qn_valid").value = rec ? (rec.valid_until||"") : new Date(Date.now()+15*864e5).toISOString().slice(0,10);
+    if(rec && rec.terms) document.getElementById("qn_terms").value = rec.terms;
+    Q.lines = rec ? rec.lines.map(l=>({charge_name:l.charge_name, carrier:l.carrier, basis:l.basis, ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty})) : [{charge_name:"", carrier:"", basis:"Per Container", ccy:"USD", exch:"1", rate:"", qty:"1"}];
+    Q.edit = rec; renderRows();
+  }
+  function collect(){
+    const sel = document.getElementById("qn_client"); const opt = sel.options[sel.selectedIndex];
+    const w = W();
+    return {customer_id: sel.value ? Number(sel.value) : null, party_name: sel.value && opt ? (opt.dataset.name || opt.textContent) : "", mode: w.mode, direction: w.dir, shipment_type: w.type, quote_type: w.qtype, carrier_mode: w.carrierMode || "single",
+      pol: document.getElementById("qn_pol").value.trim() || null, pod: document.getElementById("qn_pod").value.trim() || null, quote_date: document.getElementById("qn_date").value || today(), valid_until: document.getElementById("qn_valid").value || null,
+      terms: document.getElementById("qn_terms").value || null,
+      lines: Q.lines.filter(l=>l.charge_name || Number(l.rate)).map(l=>({charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, ccy:l.ccy, exch:String(Number(l.exch)||0), rate:String(Number(l.rate)||0), qty:String(Number(l.qty)||0), tax_pct:"0"}))};
+  }
+  async function save(){
+    const w = W(); if(!w || !w.mode){ say("Choose the shipment type first", "Complete the wizard (mode, direction, type, quote type, carrier) to continue", "warn"); return null; }
+    const body = collect();
+    if(!body.customer_id){ say("Client required", "Select the client for this quotation", "warn"); document.getElementById("qn_client").focus(); return null; }
+    if(!body.pol || !body.pod){ say("Route required", "Enter the port/place of loading and discharge", "warn"); return null; }
+    const id = document.getElementById("s-quotation-new").dataset.qid;
+    const rec = id ? await api("PATCH","/api/quotations/"+id, body) : await api("POST","/api/quotations", body);
+    Q.edit = rec; document.getElementById("s-quotation-new").dataset.qid = rec.id; return rec;
+  }
+
+  /* ---------- print / view ---------- */
+  async function openView(id){
+    let q; try{ q = await api("GET","/api/quotations/"+id); }catch(e){ say("Could not open quotation", e.message); return; }
+    const me = await api("GET","/api/auth/me").catch(()=>({organization_name:""}));
+    const scr = document.getElementById("s-quotation-print"); const zone = document.getElementById("quotPrintZone"); if(!scr || !zone) return;
+    scr.dataset.qid = q.id;
+    const carriers = Array.from(new Set(q.lines.map(l=>l.carrier || "")));
+    const tables = carriers.map(c=>{
+      const ls = q.lines.filter(l=>(l.carrier||"") === c); const total = ls.reduce((a,l)=>a+Number(l.amount),0);
+      return (c ? '<div style="font-weight:700;margin:12px 0 4px">Carrier: '+esc2(c)+'</div>' : '')+'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#0B1F3A;color:#fff"><th style="padding:6px;text-align:left">Charge</th><th style="padding:6px;text-align:left">Application</th><th style="padding:6px;text-align:right">Rate</th><th style="padding:6px">Cur</th><th style="padding:6px;text-align:right">Qty</th><th style="padding:6px;text-align:right">Ex.Rate</th><th style="padding:6px;text-align:right">Amount (INR)</th></tr></thead><tbody>'+
+        ls.map(l=>'<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:6px">'+esc2(l.charge_name)+'</td><td style="padding:6px">'+esc2(l.basis)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.rate).toLocaleString("en-IN"))+'</td><td style="padding:6px;text-align:center">'+esc2(l.ccy)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.qty))+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.exch))+'</td><td style="padding:6px;text-align:right">'+inr(l.amount)+'</td></tr>').join("")+
+        '</tbody><tfoot><tr><td colspan="6" style="padding:6px;text-align:right;font-weight:700">Total</td><td style="padding:6px;text-align:right;font-weight:800">'+inr(total)+'</td></tr></tfoot></table>';
+    }).join("");
+    zone.innerHTML = '<div style="padding:24px 28px;font-family:inherit"><div style="display:flex;justify-content:space-between;border-bottom:2px solid #0B1F3A;padding-bottom:10px"><div><div style="font-size:20px;font-weight:800;color:#0B1F3A">'+esc2(me.organization_name||"")+'</div><div style="font-size:11px;color:var(--g5)">Freight forwarding quotation</div></div><div style="text-align:right"><div style="font-size:18px;font-weight:800">QUOTATION</div><div class="mono">'+esc2(q.number||("Draft #"+q.id))+'</div><div style="margin-top:4px">'+badge(q)+'</div></div></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;font-size:12px"><div><div style="color:var(--g5);font-size:10.5px">QUOTED TO</div><div style="font-weight:700;font-size:14px">'+esc2(q.party_name)+'</div></div><div><div class="sr"><span class="lbl">Date</span><span>'+dmy(q.quote_date)+'</span></div><div class="sr"><span class="lbl">Valid until</span><span>'+dmy(q.valid_until)+'</span></div><div class="sr"><span class="lbl">Shipment</span><span>'+esc2([q.mode,q.direction,q.shipment_type].filter(Boolean).join(" · "))+'</span></div><div class="sr"><span class="lbl">Route</span><span>'+esc2([q.pol,q.pod].filter(Boolean).join(" → ")||"—")+'</span></div></div></div>'+
+      tables+'<div style="margin-top:16px"><div style="font-weight:700;font-size:12px;margin-bottom:4px">Terms &amp; Conditions</div><div style="white-space:pre-wrap;font-size:11px;color:var(--g7)">'+esc2(q.terms||"—")+'</div></div>'+(q.job_number ? '<div class="ib ib-gr" style="margin-top:12px">Converted to job <b>'+esc2(q.job_number)+'</b></div>' : '')+'</div>';
+    const bar = scr.querySelector(".pa"); if(bar){
+      const keep = Array.from(bar.querySelectorAll("button")).filter(b=>/^\s*(back)\s*$/i.test(b.textContent.replace(/\s+/g," ")) || b.id === "quotPrintBtn");
+      Array.from(bar.querySelectorAll("button")).forEach(b=>{ if(!keep.includes(b)) b.style.display = "none"; });
+      bar.querySelectorAll("[data-qk-bar]").forEach(n=>n.remove());
+      const add = (label, act, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = act+":"+q.id; b.textContent = label; bar.appendChild(b); };
+      if(q.status === "DRAFT") add("Edit Draft", "edit", "btn-out");
+      if(q.effective_status === "SENT"){ add("Mark Accepted", "accept", "btn-suc"); add("Mark Rejected", "reject", "btn-out"); }
+      if(q.status === "ACCEPTED") add("Convert to Job", "convert", "btn-pri");
+    }
+    go("quotation-print");
+  }
+
+  /* ---------- actions ---------- */
+  async function act(kind, id){
+    try{
+      if(kind === "delete"){ if(!window.confirm("Delete this draft quotation?")) return; await api("DELETE","/api/quotations/"+id); say("Draft deleted", ""); return refreshNow(); }
+      if(kind === "edit"){ const q = await api("GET","/api/quotations/"+id); Q.pendingOpen = q; go("quotation-new"); return; }
+      if(kind === "accept" || kind === "reject"){ if(!window.confirm((kind==="accept"?"Record this quotation as ACCEPTED by the client?":"Record this quotation as REJECTED?"))) return; const q = await api("POST","/api/quotations/"+id+"/"+kind); say("Quotation "+(kind==="accept"?"accepted":"rejected"), q.number); return refreshNow(q.id); }
+      if(kind === "convert"){
+        let q = await api("GET","/api/quotations/"+id); let carrier = "";
+        const carriers = Array.from(new Set(q.lines.filter(l=>Number(l.rate)>0).map(l=>l.carrier).filter(Boolean)));
+        if(carriers.length > 1){ carrier = window.prompt("This quotation compares several carriers. Type the carrier to convert:\n"+carriers.join("\n"), carriers[0]) || ""; if(!carrier) return; }
+        else if(!window.confirm("Convert "+q.number+" into a job? Its charges are copied onto the job's sell side.")) return;
+        q = await api("POST","/api/quotations/"+id+"/convert"+(carrier ? "?carrier="+encodeURIComponent(carrier) : "")); say("Job created", q.job_number+" from "+q.number); return refreshNow(q.id);
+      }
+    }catch(e){ say("Could not complete the action", e.message); }
+  }
+  async function refreshNow(openId){
+    if(document.getElementById("s-quotation").classList.contains("on")) return loadList();
+    if(openId) return openView(openId);
+    go("quotation");
+  }
+  document.addEventListener("click", e=>{
+    const o = e.target.closest("[data-qk-open]"); if(o){ e.stopPropagation(); const id = Number(o.dataset.qkOpen); const q = Q.list.find(x=>x.id===id); if(q && q.status === "DRAFT") act("edit", id); else openView(id); return; }
+    const d = e.target.closest("[data-qk-do]"); if(d){ e.stopPropagation(); const [k, id] = d.dataset.qkDo.split(":"); act(k, Number(id)); return; }
+    const del = e.target.closest("[data-qk-del]"); if(del){ e.stopPropagation(); Q.lines.splice(Number(del.dataset.qkDel), 1); renderRows(); return; }
+    if(e.target.closest("#quotAddRateBtn")){ e.stopImmediatePropagation(); e.preventDefault(); Q.lines.push({charge_name:"", carrier:"", basis:"Per Container", ccy:"USD", exch:"1", rate:"", qty:"1"}); renderRows(); return; }
+    if(e.target.closest("#quotAddCarrierBtn")){
+      e.stopImmediatePropagation(); e.preventDefault();
+      const row = document.createElement("div"); row.className = "fr quotCarrierRow";
+      row.innerHTML = '<div class="fg"><label class="fl">Carrier / Line</label><select class="fc">'+(Q.carriers.length ? Q.carriers.map(c=>'<option>'+esc2(c)+'</option>').join("") : '<option value="">No carriers yet — add them in Organizations (role: Carrier)</option>')+'</select></div><div class="fg"><label class="fl">Notes</label><input class="fc"></div>';
+      document.getElementById("quotCarrierRows").appendChild(row); return;
+    }
+    if(e.target.closest("#quotSaveDraftBtn")){ e.stopImmediatePropagation(); e.preventDefault(); save().then(r=>{ if(r){ say("Draft saved", "Draft #"+r.id+" saved"); } }).catch(err=>say("Could not save the quotation", err.message)); return; }
+    if(e.target.closest("#quotSendBtn")){
+      e.stopImmediatePropagation(); e.preventDefault();
+      (async()=>{ try{ const r = await save(); if(!r) return; if(!window.confirm("Issue this quotation? It gets its number and can no longer be edited.")) return; const s = await api("POST","/api/quotations/"+r.id+"/send"); say("Quotation issued", s.number+" — email delivery is not set up yet; use Print / PDF to share it."); openView(s.id); }catch(err){ say("Could not issue the quotation", err.message); } })(); return;
+    }
+    if(e.target.closest("#quotEmailBtn")){ e.stopImmediatePropagation(); e.preventDefault(); say("Email is not available yet", "Use Print / PDF and send the file yourself. Email sending needs an email provider to be configured.", "warn"); return; }
+  }, true);
+  document.addEventListener("input", e=>{
+    const el = e.target; const tr = el.closest && el.closest("tr[data-qr]"); if(!tr || !el.dataset.qf) return;
+    Q.lines[Number(tr.dataset.qr)][el.dataset.qf] = el.value;
+    if(el.dataset.qf === "ccy"){ const l = Q.lines[Number(tr.dataset.qr)]; if(l.ccy === "INR") l.exch = "1"; renderRows(); return; }
+    renderSummary();
+  });
+
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    prev(screen, opts);
+    if(screen === "quotation") loadList();
+    if(screen === "quotation-new"){ const p = Q.pendingOpen; Q.pendingOpen = null; openForm(p); }
+  };
+})();
+
 </script>
 </body>
 </html>
