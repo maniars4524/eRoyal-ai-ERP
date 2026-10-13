@@ -63,7 +63,7 @@ Generated from the HTML itself. 90 screens; the UI calls only 6 API endpoints (`
 
 ## CRM and sales
 
-**Backend status:** NOT IMPLEMENTED (CRM screens are empty shells)
+**Backend status:** Quotations IMPLEMENTED - VERIFIED (API + UI). Bookings: backend IMPLEMENTED - VERIFIED, UI NOT YET WIRED. CRM, Meetings, Quotation Templates: NOT IMPLEMENTED
 
 | Screen | Title | Inputs | Tables | Buttons | Static dummy rows |
 |---|---|---|---|---|---|

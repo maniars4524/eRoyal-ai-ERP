@@ -2,13 +2,14 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .auth import permission_required
 from .auth_api import record_audit
 from .db import get_db
-from .models import Shipment, User
+from .models import DocSequence, Shipment, User
 from .schemas_auth import ShipmentCreate, ShipmentUpdate
 
 router = APIRouter(prefix="/api/shipments", tags=["shipments"])
@@ -24,14 +25,15 @@ def _require_tenant(user: User) -> int:
 
 
 def _next_job_number(db: Session, organization_id: int, mode: str, direction: str) -> str:
+    """Per-company, per-year counter held under a row lock, so simultaneous creations never share a number."""
     prefix = MODE_CODES.get(mode, "GEN") + DIRECTION_CODES.get(direction, "GEN")
-    year = str(datetime.now(timezone.utc).year)[-2:]
-    count = db.scalar(select(func.count()).select_from(Shipment).where(Shipment.organization_id == organization_id)) or 0
-    for attempt in range(count + 1, count + 50):
-        candidate = f"{prefix}-{year}-{attempt:06d}"
-        if not db.scalar(select(Shipment.id).where(Shipment.job_number == candidate)):
-            return candidate
-    raise HTTPException(status_code=500, detail="Could not allocate a job number")
+    year = datetime.now(timezone.utc).year
+    existing = db.scalar(select(func.count()).select_from(Shipment).where(Shipment.organization_id == organization_id)) or 0
+    db.execute(pg_insert(DocSequence).values(organization_id=organization_id, seq_type="job", fiscal_year=str(year), last_number=existing).on_conflict_do_nothing(constraint="uq_doc_sequence"))
+    seq = db.scalar(select(DocSequence).where(DocSequence.organization_id == organization_id, DocSequence.seq_type == "job", DocSequence.fiscal_year == str(year)).with_for_update())
+    seq.last_number += 1
+    db.flush()
+    return f"{prefix}-{str(year)[-2:]}-{seq.last_number:06d}"
 
 
 @router.get("")

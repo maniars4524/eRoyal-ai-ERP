@@ -140,9 +140,11 @@ class Port(Base):
 class Shipment(Base):
     __tablename__ = "shipments"
 
+    __table_args__ = (UniqueConstraint("organization_id", "job_number", name="uq_shipment_org_job"),)
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
-    job_number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    job_number: Mapped[str] = mapped_column(String(40), index=True)
     job_type: Mapped[str] = mapped_column(String(20), default="Forwarding")
     mode: Mapped[str] = mapped_column(String(20))
     direction: Mapped[str] = mapped_column(String(20))
@@ -376,3 +378,39 @@ class QuotationLine(Base):
     tax_pct = mapped_column(Numeric(6, 2), default=0)
     amount = mapped_column(Numeric(16, 2), default=0)
     quotation: Mapped[Quotation] = relationship(back_populates="lines")
+
+
+class Booking(Base):
+    """Carrier booking: DRAFT (editable) -> CONFIRMED (numbered, job created) -> CANCELLED / SPACE_RELEASED."""
+    __tablename__ = "bookings"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_booking_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20), default="DRAFT", index=True)
+    booking_date: Mapped[date] = mapped_column(Date)
+    mode: Mapped[str] = mapped_column(String(20), default="Sea")
+    direction: Mapped[str] = mapped_column(String(20), default="Export")
+    shipment_type: Mapped[str | None] = mapped_column(String(40))
+    booking_type: Mapped[str | None] = mapped_column(String(20))
+    hbl_type: Mapped[str | None] = mapped_column(String(60))
+    scac: Mapped[str | None] = mapped_column(String(20))
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    party_name: Mapped[str] = mapped_column(String(200), default="")
+    carrier: Mapped[str | None] = mapped_column(String(160))
+    carrier_booking_no: Mapped[str | None] = mapped_column(String(80))
+    vessel: Mapped[str | None] = mapped_column(String(120))
+    pol: Mapped[str | None] = mapped_column(String(80))
+    pod: Mapped[str | None] = mapped_column(String(80))
+    etd: Mapped[date | None] = mapped_column(Date)
+    eta: Mapped[date | None] = mapped_column(Date)
+    si_cutoff: Mapped[date | None] = mapped_column(Date)
+    vgm_cutoff: Mapped[date | None] = mapped_column(Date)
+    job_number: Mapped[str | None] = mapped_column(String(40), index=True)
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

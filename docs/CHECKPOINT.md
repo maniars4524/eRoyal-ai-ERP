@@ -1,4 +1,4 @@
-# Checkpoint (paused 2026-10-03, after the Organization master)
+# Checkpoint (paused 2026-10-13, Quotations done, Bookings backend done)
 
 Resume by reading this file, `docs/ui-audit.md`, `docs/portals.md`, `docs/deployment.md` and `git log`.
 
@@ -6,13 +6,13 @@ Resume by reading this file, `docs/ui-audit.md`, `docs/portals.md`, `docs/deploy
 1. Start Docker Desktop, then `docker compose up -d postgres` (container `esway-postgres`; databases `esway_erp` dev, `esway_erp_demo` public, `esway_erp_qa`, `esway_erp_test`). Local secrets are in gitignored `.env`, `.env.demo`, `.env.qa`, `.env.test`.
 2. Everything at once: double-click `START-PUBLIC.cmd` (also installed in the Windows Startup folder as `eSway-public.cmd`, so it runs at every login). It runs `scripts/start-private.ps1` (private app on http://127.0.0.1:8000, database `esway_erp`) and `scripts/start-public.ps1` (public app on :8001 with `ENV_FILE=.env.demo PUBLIC_PORTALS=demo,erp,developer` plus a Cloudflare quick tunnel; the public URL is written to `PUBLIC_URL.txt` and changes every time the tunnel restarts). Logs are in `logs/`. The PC must stay on and awake for the public link to work.
 3. Manual private start: `cd backend && .venv/Scripts/python -m alembic upgrade head && .venv/Scripts/python -m app.seed && .venv/Scripts/python -m uvicorn app.main:app --port 8000`. Do not `export` .env values in the shell (python-dotenv will not override them).
-4. Tests: `cd backend && .venv/Scripts/python -m pytest -q` (56 tests). UI tests (headless jsdom against the real API): start a server with `ENV_FILE=.env.qa` on port 8010, then `cd e2e && npm install && npm run test:masters` (masters, more, users, charges, billing, org, dashboard) and `node login.test.js` against :8000.
+4. Tests: `cd backend && .venv/Scripts/python -m pytest -q` (75 tests). UI tests (headless jsdom against the real API): start a server with `ENV_FILE=.env.qa` on port 8010, then `cd e2e && npm install && npm run test:masters` (masters, more, users, charges, billing, org, dashboard) and `node login.test.js` against :8000.
 
 ## Local logins (this PC only)
 Private app http://127.0.0.1:8000: ERP `admin`/`admin` with license RTS0004; developer `developer`/`developer`; demo `demo`/`demo`. Public stack: ERP `erp`/`erp` (license RTS0003), demo `demo`/`demo`, developer user `developer` with a strong password kept in `.env.demo` (SUPER_ADMIN_PASSWORD). These short passwords are for testing only; production enforces 12+ characters.
 
 ## Done and verified (tests passing)
-Auth + three portals + lockout + audit; PUBLIC_PORTALS mode; tenant isolation; Customers/Organization master (roles shipper/consignee/carrier/agent/CHA/transporter/AR/AP, all form fields, contacts/addresses/registrations/staff tables, GSTIN/PAN validation, role-filtered dropdowns); Ports; Jobs (list, create, detail header, charges autosave, server-side Decimal totals); 14 masters; Users (roles, reset password); Billing (invoice, purchase invoice, debit/credit notes, payments with allocation + idempotency, gap-free numbering, generation from job charges); real dashboard (`/api/dashboard/summary`).
+Auth + three portals + lockout + audit; PUBLIC_PORTALS mode; tenant isolation; Customers/Organization master (roles, all form fields, contacts/addresses tables, GSTIN/PAN validation); Ports; Jobs (list, create, detail header, charges autosave, server-side Decimal totals); 14 masters; Users; Billing (invoice, purchase invoice, debit/credit notes, payments with allocation + idempotency, gap-free numbering, generation from job charges); real dashboard; **Quotations** (API + full UI: wizard form, rate-line grid fed by Charge Master/carrier organizations, draft/issue/accept/reject/convert-to-job, print view, gap-free QT numbers); **Bookings backend** (`/api/bookings`: draft, confirm = numbered BKG + linked job, cancel, release space, duplicate, summary; 8 tests). Job numbers are now allocated from a locked per-company counter and are unique per company (migration 0015).
 
 ## Bugs found and fixed this session (worth remembering)
 - The main page script is an IIFE: anything called from `go()` as `window.x` must be exported explicitly (renderJobRows, renderPortRows, populateCustomerSelect, toast, openModal were not). Add exports when a hook silently does nothing.
@@ -26,8 +26,9 @@ Auth + three portals + lockout + audit; PUBLIC_PORTALS mode; tenant isolation; C
 - Employee PII (Aadhaar, bank account) is stored as plain JSON fields: add field-level encryption before real use. Role-based menu hiding, multi-company users, password reset by email, MFA, developer-portal admin pages (no UI to create companies), backups, CI, monitoring: NOT IMPLEMENTED.
 
 ## Next steps
-1. Quotations + Bookings, Rate Master/Rate Sheets (feeds quotations).
-2. Journal/Contra vouchers + Chart of Accounts, Ledger, GST report, P&L (accounts reports).
-3. Job sub-tabs and operations screens; CRM on the real API.
-4. Developer portal: create/disable companies from the UI.
-5. Replace remaining stubs; deploy permanently (Render), backups, CI, monitoring.
+1. **Bookings UI** (the API is done): `booking` list (rows, KPIs from `/api/bookings/summary`, Duplicate/Cancel/Release Space actions) and `booking-new` (export `bookWiz`, `bookWizApplyAndShowForm`, `bookGotoStep` from the main script; replace the fake finish/random number; fill selects from masters: customers, carriers, ports, branches, container/pack types; charges rows; real Save Draft/Confirm; remove BK_PARTY_ADDR dummy addresses). Then a headless test `e2e/bookings.test.js`.
+2. Rate Master/Rate Sheets (re-enable "Get Rate" in the quotation form).
+3. Journal/Contra vouchers + Chart of Accounts, Ledger, GST report, P&L (accounts reports).
+4. Job sub-tabs and operations screens; CRM on the real API.
+5. Developer portal: create/disable companies from the UI.
+6. Replace remaining `wireAction` stubs; deploy permanently (Render), backups, CI, monitoring.
