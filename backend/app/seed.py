@@ -31,6 +31,12 @@ PERMISSIONS = [
     ("payment.read", "View payments", "payment", "read"),
     ("payment.create", "Record payments", "payment", "create"),
     ("payment.cancel", "Cancel payments", "payment", "cancel"),
+    ("quote.read", "View quotations", "quote", "read"),
+    ("quote.create", "Create/edit draft quotations", "quote", "create"),
+    ("quote.send", "Send, accept, reject and convert quotations", "quote", "send"),
+    ("booking.read", "View bookings", "booking", "read"),
+    ("booking.create", "Create/edit draft bookings", "booking", "create"),
+    ("booking.confirm", "Confirm and cancel bookings", "booking", "confirm"),
     ("shipment.read", "Read shipment jobs", "shipment", "read"),
     ("shipment.create", "Create shipment jobs", "shipment", "create"),
     ("shipment.update", "Update shipment jobs", "shipment", "update"),
@@ -99,7 +105,7 @@ def seed_demo_portal() -> None:
         if not role:
             role = Role(name="DEMO_USER", organization_id=org.id, description="Demo evaluator (no destructive actions)", status="ACTIVE")
             db.add(role)
-        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "payment.read", "payment.create", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
+        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "payment.read", "payment.create", "quote.read", "quote.create", "quote.send", "booking.read", "booking.create", "booking.confirm", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
         email = os.getenv("DEMO_PORTAL_EMAIL", "demo@esway.local")
         username = os.getenv("DEMO_PORTAL_USERNAME", "demo")
         if not db.scalar(select(User).where((User.email == email) | (User.username == username))):

@@ -44,6 +44,12 @@ def portal_for(user: User) -> str:
     return "erp"
 
 
+def has_permission(user: User, code: str) -> bool:
+    if user.is_super_admin:
+        return True
+    return any(p.code == code for role in user.roles for p in role.permissions)
+
+
 def permission_required(code: str):
     def dependency(user: User = Depends(get_current_user)) -> User:
         if user.is_super_admin:

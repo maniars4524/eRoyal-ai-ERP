@@ -14,6 +14,7 @@ from .dashboard_api import router as dashboard_router
 from .documents_api import router as documents_router
 from .job_charges_api import router as job_charges_router
 from .payments_api import router as payments_router
+from .quotations_api import router as quotations_router
 from .masters_api import router as masters_router
 from .users_api import router as users_router
 from .ports_api import router as ports_router
@@ -55,6 +56,7 @@ app.include_router(job_charges_router)
 app.include_router(documents_router)
 app.include_router(dashboard_router)
 app.include_router(payments_router)
+app.include_router(quotations_router)
 
 
 @app.get("/api/health")

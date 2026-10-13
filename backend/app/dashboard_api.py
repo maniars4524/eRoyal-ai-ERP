@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .auth import get_current_user
+from .auth import get_current_user, has_permission
 from .billing import outstanding
 from .db import get_db
 from .models import Customer, Document, Shipment, User
@@ -19,9 +19,7 @@ TYPE_ORDER = ["Sea Export", "Sea Import", "Air Export", "Air Import", "Road / Tr
 
 
 def _has(user: User, code: str) -> bool:
-    if user.is_super_admin:
-        return True
-    return any(p.code == code for role in user.roles for p in role.permissions)
+    return has_permission(user, code)
 
 
 def _bucket(job: Shipment) -> str:

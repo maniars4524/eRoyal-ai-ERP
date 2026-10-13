@@ -325,3 +325,54 @@ class PaymentAllocation(Base):
     document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), index=True)
     amount = mapped_column(Numeric(16, 2))
     payment: Mapped[Payment] = relationship(back_populates="allocations")
+
+
+class Quotation(Base):
+    """Sales quotation: DRAFT (editable) -> SENT (numbered, locked) -> ACCEPTED/REJECTED -> CONVERTED to a job."""
+    __tablename__ = "quotations"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_quotation_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20), default="DRAFT", index=True)
+    quote_date: Mapped[date] = mapped_column(Date)
+    valid_until: Mapped[date | None] = mapped_column(Date)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    party_name: Mapped[str] = mapped_column(String(200), default="")
+    mode: Mapped[str] = mapped_column(String(20), default="Sea")
+    direction: Mapped[str] = mapped_column(String(20), default="Export")
+    shipment_type: Mapped[str | None] = mapped_column(String(40))
+    quote_type: Mapped[str | None] = mapped_column(String(60))
+    carrier_mode: Mapped[str] = mapped_column(String(10), default="single")
+    pol: Mapped[str | None] = mapped_column(String(80))
+    pod: Mapped[str | None] = mapped_column(String(80))
+    terms: Mapped[str | None] = mapped_column(Text)
+    remarks: Mapped[str | None] = mapped_column(Text)
+    header: Mapped[dict] = mapped_column(JSON, default=dict)
+    job_number: Mapped[str | None] = mapped_column(String(40))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    lines: Mapped[list["QuotationLine"]] = relationship(back_populates="quotation", cascade="all, delete-orphan", order_by="QuotationLine.line_no")
+
+
+class QuotationLine(Base):
+    __tablename__ = "quotation_lines"
+    __table_args__ = (UniqueConstraint("quotation_id", "line_no", name="uq_quotation_line"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    quotation_id: Mapped[int] = mapped_column(ForeignKey("quotations.id", ondelete="CASCADE"), index=True)
+    line_no: Mapped[int] = mapped_column(Integer)
+    charge_name: Mapped[str] = mapped_column(String(160), default="")
+    carrier: Mapped[str] = mapped_column(String(160), default="")
+    basis: Mapped[str] = mapped_column(String(40), default="Per Shipment")
+    ccy: Mapped[str] = mapped_column(String(3), default="INR")
+    exch = mapped_column(Numeric(14, 6), default=1)
+    rate = mapped_column(Numeric(16, 4), default=0)
+    qty = mapped_column(Numeric(14, 3), default=1)
+    tax_pct = mapped_column(Numeric(6, 2), default=0)
+    amount = mapped_column(Numeric(16, 2), default=0)
+    quotation: Mapped[Quotation] = relationship(back_populates="lines")
