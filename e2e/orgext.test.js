@@ -35,10 +35,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const tab = async id => { q(`[data-tab="${id}"]`).click(); await sleep(250); };
   const mf = (sel, attr, key) => q(`${sel} [${attr}="${key}"]`);
 
+  const zero = Array.from(d.querySelectorAll(".tn-badge, .mn-badge")).filter(b => b.textContent.trim() === "0");
+  check("count badges showing 0 are hidden (no orange zero in the menu)", zero.length > 0 && zero.every(b => b.classList.contains("badge-zero")), zero.length);
   w.go("org-list"); await sleep(1200);
   q(`[data-oe="${cust.id}"]`).click(); await sleep(1800);
   const tabs = Array.from(d.querySelectorAll('.tabs[data-tabgroup="org"] .tbb')).map(b => b.textContent.trim());
-  check("tabs show the five sections with Basic Details", tabs[0] === "01 Basic Details" && /Address & Branches/.test(tabs[1]) && /Contact Persons/.test(tabs[2]) && /COA \/ AP \/ AR/.test(tabs[3]) && /Credit Control/.test(tabs[4]), tabs.join("|"));
+  check("tabs show the five sections with Basic Details", tabs[0] === "Basic Details" && /Address & Branches/.test(tabs[1]) && /Contact Persons/.test(tabs[2]) && /COA \/ AP \/ AR/.test(tabs[3]) && /Credit Control/.test(tabs[4]), tabs.join("|"));
   check("existing tabs are kept", tabs.includes("Role Defaults") && tabs.includes("Registration") && tabs.includes("Staff & Docs"));
 
   // ---------- branches
@@ -57,6 +59,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("branch table lists them", /MAA/.test(text("#oxBranches")) && /Coimbatore/.test(text("#oxBranches")) && /YES/.test(text("#oxBranches")) && /NO/.test(text("#oxBranches")));
   q(`[data-ox="branch-toggle:${br.find(b => b.code === "CJB").id}"]`).click(); await sleep(800);
   check("a branch can be deactivated (never deleted)", (await j("GET", `/api/customers/${cust.id}/branches`, null, token)).body.find(b => b.code === "CJB").status === "INACTIVE");
+
+  // ---------- full branch form (Sl.No, address 1/2, country/state codes, TIN, PAN, GSTN, type ...) and delete
+  q("#oxAddBranch").click(); await sleep(300);
+  const labels = Array.from(d.querySelectorAll("#modalBody .oxg label")).map(l => l.textContent.trim());
+  check("branch form carries every field of the reference screen", ["Branch Sl.No", "Branch Name *", "Address 1", "Address 2", "Country Name", "Country Code", "PIN Code", "Remarks", "GSTN Type", "TIN No", "PAN No", "GSTN ID", "Contact Person", "Reg No", "Phone No", "State Name", "State Code", "Fax", "E-Mail", "Type", "Bin No", "Adcode"].every(x => labels.includes(x)), labels.join("|"));
+  check("Sl.No is assigned automatically (3rd branch)", mf("#modalBody", "data-bf", "pincode") && Array.from(d.querySelectorAll("#modalBody input[readonly]"))[0].value === "3");
+  setf(mf("#modalBody", "data-bf", "name"), "BANGALORE"); setf(mf("#modalBody", "data-bf", "address"), "Plot No. 5B, Veerasandra"); setf(mf("#modalBody", "data-bf", "state"), "karnataka", "change");
+  check("State Code fills from the state", mf("#modalBody", "data-bf", "state_code").value === "29" || mf("#modalBody", "data-bf", "state_code").value === "", mf("#modalBody", "data-bf", "state_code").value);
+  setf(mf("#modalBody", "data-bf", "pan_no"), "abcd876767"); setf(mf("#modalBody", "data-bf", "gstin"), "29A000000000100"); setf(mf("#modalBody", "data-bf", "adcode"), "AD1"); setf(mf("#modalBody", "data-bf", "pincode"), "560100"); setf(mf("#modalBody", "data-bf", "tin_no"), "TIN9");
+  q("#oxBranchSave").click(); await sleep(1000);
+  const blr = (await j("GET", `/api/customers/${cust.id}/branches`, null, token)).body.find(b => b.name === "BANGALORE");
+  check("the new branch is saved with all details and an auto code", blr && blr.sl_no === 3 && blr.pan_no === "ABCD876767" && blr.gstin === "29A000000000100" && blr.adcode === "AD1" && blr.tin_no === "TIN9" && blr.pincode === "560100" && /^BANGAL/.test(blr.code), JSON.stringify(blr));
+  q(`[data-ox="branch-del:${blr.id}"]`).click(); await sleep(1000);
+  check("an unused branch can be deleted from the list", !(await j("GET", `/api/customers/${cust.id}/branches`, null, token)).body.some(b => b.id === blr.id));
 
   // ---------- contacts
   await tab("ot3");

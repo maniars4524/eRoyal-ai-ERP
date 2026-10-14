@@ -7,18 +7,19 @@ requests need management approval (credit.approve; overrides also credit.overrid
 """
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from . import credit_control as cc
 from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
-from .models import CreditEvent, CreditFacility, CreditRequest, Customer, MasterRecord, OrgBranch, OrgContact, Organization, User
+from .models import CreditEvent, CreditFacility, CreditRequest, Customer, Document, MasterRecord, OrgBranch, OrgContact, Organization, Shipment, User
 
 router = APIRouter(tags=["organization-master"])
 ZERO = Decimal(0)
@@ -71,65 +72,101 @@ def validate_accounting(db: Session, org_id: int, data: dict) -> None:
 
 
 # ---------------------------------------------------------------- branches
+GSTN_TYPES = ("G/GSN - GSTIN of Normal Persons", "S/SEZ - GSTIN of SEZ Unit", "D/SEZD - GSTIN of SEZ Developer", "U/UIN - UIN Holder (embassy, UN body)", "T/TDS - GSTIN of TDS Deductor",
+              "C/TCS - GSTIN of TCS Collector", "N/NRTP - Non-resident Taxable Person", "O/OIDAR - Online Service Provider", "R/UNREG - Unregistered / Not applicable")
+BRANCH_TYPES = ("OTHERS", "HEAD OFFICE", "REGISTERED OFFICE", "BRANCH OFFICE", "FACTORY", "WAREHOUSE", "SEZ UNIT")
+_OPT = lambda n, m=80: Field(default=None, max_length=m)
+
+
 class BranchIn(BaseModel):
-    code: str = Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9._/-]+$")
+    code: str | None = Field(default=None, max_length=20, pattern=r"^[A-Za-z0-9._/-]*$")
     name: str = Field(min_length=1, max_length=160)
-    state: str | None = Field(default=None, max_length=80)
+    address: str | None = Field(default=None, max_length=400)  # Address 1
+    address2: str | None = Field(default=None, max_length=200)
     country: str | None = Field(default=None, max_length=80)
+    country_code: str | None = Field(default=None, max_length=5)
+    state: str | None = Field(default=None, max_length=80)
+    state_code: str | None = Field(default=None, max_length=5)
     city: str | None = Field(default=None, max_length=80)
-    address: str | None = Field(default=None, max_length=400)
     pincode: str | None = Field(default=None, max_length=12)
+    contact_person: str | None = Field(default=None, max_length=120)
     phone: str | None = Field(default=None, max_length=40)
+    fax: str | None = Field(default=None, max_length=40)
     email: str | None = Field(default=None, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    gstin: str | None = Field(default=None, max_length=30)
+    tin_no: str | None = Field(default=None, max_length=30)
+    pan_no: str | None = Field(default=None, max_length=10)
+    gstin: str | None = Field(default=None, max_length=30)  # GSTN ID
+    reg_no: str | None = Field(default=None, max_length=40)
+    branch_type: str | None = Field(default=None, max_length=30)
+    bin_no: str | None = Field(default=None, max_length=40)
+    adcode: str | None = Field(default=None, max_length=40)
+    gstn_type: str | None = Field(default=None, max_length=60)
+    remarks: str | None = Field(default=None, max_length=500)
     billing_enabled: bool = False
     status: str = Field(default="ACTIVE", pattern="^(ACTIVE|INACTIVE)$")
 
-    @field_validator("code")
+    @field_validator("code", mode="before")
     @classmethod
     def _code(cls, v):
-        return v.upper()
+        v = (v or "").strip().upper()
+        return v or None
+
+    @field_validator("pan_no", "gstin", mode="before")
+    @classmethod
+    def _upper(cls, v):
+        v = (v or "").strip().upper()
+        return v or None
 
 
-class BranchPatch(BaseModel):
+class BranchPatch(BranchIn):
     name: str | None = Field(default=None, min_length=1, max_length=160)
-    state: str | None = Field(default=None, max_length=80)
-    country: str | None = Field(default=None, max_length=80)
-    city: str | None = Field(default=None, max_length=80)
-    address: str | None = Field(default=None, max_length=400)
-    pincode: str | None = Field(default=None, max_length=12)
-    phone: str | None = Field(default=None, max_length=40)
-    email: str | None = Field(default=None, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    gstin: str | None = Field(default=None, max_length=30)
-    billing_enabled: bool | None = None
     status: str | None = Field(default=None, pattern="^(ACTIVE|INACTIVE)$")
+    billing_enabled: bool | None = None
+
+
+BRANCH_FIELDS = ("id", "customer_id", "sl_no", "code", "name", "address", "address2", "country", "country_code", "state", "state_code", "city", "pincode", "contact_person", "phone", "fax", "email", "tin_no", "pan_no", "gstin",
+                 "reg_no", "branch_type", "bin_no", "adcode", "gstn_type", "remarks", "billing_enabled", "status")
 
 
 def _branch_out(b: OrgBranch) -> dict:
-    return {c: getattr(b, c) for c in ("id", "customer_id", "code", "name", "state", "country", "city", "address", "pincode", "phone", "email", "gstin", "billing_enabled", "status")}
+    return {c: getattr(b, c) for c in BRANCH_FIELDS}
 
 
-def _check_billing_branch(b: OrgBranch) -> None:
-    if b.billing_enabled and not (b.address and b.city and b.gstin or b.country and b.country.lower() not in ("india", "in") and b.address):
-        raise HTTPException(422, "A billing-enabled branch needs an address, a city and a tax registration (GSTIN); overseas branches need an address")
+def _check_branch_fields(b: OrgBranch) -> None:
+    indian = (b.country or "India").strip().lower() in ("india", "in", "")
+    if b.gstin and indian and not re.fullmatch(r"[0-9A-Z]{15}", b.gstin):
+        raise HTTPException(422, "GSTN ID must be 15 letters/digits")
+    if b.pan_no and not re.fullmatch(r"[0-9A-Z]{10}", b.pan_no):
+        raise HTTPException(422, "PAN No must be 10 letters/digits")
+    if b.billing_enabled and not (b.address and (b.gstin or not indian)):
+        raise HTTPException(422, "A billing-enabled branch needs Address 1 and a GSTN ID (overseas branches need only the address)")
 
 
 @router.get("/api/customers/{customer_id}/branches")
 def list_branches(customer_id: int, user: User = Depends(permission_required("customer.read")), db: Session = Depends(get_db)):
     _party(db, user, customer_id)
-    return [_branch_out(b) for b in db.scalars(select(OrgBranch).where(OrgBranch.customer_id == customer_id).order_by(OrgBranch.code)).all()]
+    return [_branch_out(b) for b in db.scalars(select(OrgBranch).where(OrgBranch.customer_id == customer_id).order_by(OrgBranch.sl_no, OrgBranch.id)).all()]
+
+
+@router.get("/api/org-options/branches")
+def branch_options(user: User = Depends(permission_required("customer.read"))):
+    return {"gstn_types": GSTN_TYPES, "branch_types": BRANCH_TYPES}
 
 
 @router.post("/api/customers/{customer_id}/branches", status_code=201)
 def add_branch(customer_id: int, body: BranchIn, user: User = Depends(permission_required("customer.update")), db: Session = Depends(get_db)):
     c = _party(db, user, customer_id)
-    if db.scalar(select(OrgBranch.id).where(OrgBranch.customer_id == c.id, OrgBranch.code == body.code)):
-        raise HTTPException(409, f"Branch code {body.code} already exists for this organization")
-    b = OrgBranch(organization_id=c.organization_id, customer_id=c.id, created_by=user.id, **body.model_dump())
-    _check_billing_branch(b)
+    db.execute(select(Customer.id).where(Customer.id == c.id).with_for_update())  # serialise serial-number assignment per organization
+    sl_no = (db.scalar(select(func.coalesce(func.max(OrgBranch.sl_no), 0)).where(OrgBranch.customer_id == c.id)) or 0) + 1
+    data = body.model_dump()
+    data["code"] = data["code"] or (re.sub(r"[^A-Z0-9]", "", (body.name or "BR").upper())[:6] or "BR") + str(sl_no)
+    if db.scalar(select(OrgBranch.id).where(OrgBranch.customer_id == c.id, OrgBranch.code == data["code"])):
+        raise HTTPException(409, f"Branch code {data['code']} already exists for this organization")
+    b = OrgBranch(organization_id=c.organization_id, customer_id=c.id, created_by=user.id, sl_no=sl_no, **data)
+    _check_branch_fields(b)
     db.add(b)
     db.flush()
-    record_audit(db, "ORG_BRANCH_ADDED", "ORGANIZATION", user, c.organization_id, "OrgBranch", str(b.id), {"code": b.code, "billing_enabled": b.billing_enabled})
+    record_audit(db, "ORG_BRANCH_ADDED", "ORGANIZATION", user, c.organization_id, "OrgBranch", str(b.id), {"code": b.code, "sl_no": sl_no, "billing_enabled": b.billing_enabled})
     db.commit()
     return _branch_out(b)
 
@@ -141,12 +178,31 @@ def edit_branch(customer_id: int, branch_id: int, body: BranchPatch, user: User 
     if not b:
         raise HTTPException(404, "Branch not found")
     changes = body.model_dump(exclude_unset=True)
+    changes.pop("code", None)  # the branch code is permanent: documents and credit limits refer to it
     for k, v in changes.items():
         setattr(b, k, v)
-    _check_billing_branch(b)
+    _check_branch_fields(b)
     record_audit(db, "ORG_BRANCH_UPDATED", "ORGANIZATION", user, c.organization_id, "OrgBranch", str(b.id), changes)
     db.commit()
     return _branch_out(b)
+
+
+@router.delete("/api/customers/{customer_id}/branches/{branch_id}", status_code=204)
+def delete_branch(customer_id: int, branch_id: int, user: User = Depends(permission_required("customer.update")), db: Session = Depends(get_db)):
+    """Only a branch that was never used can be deleted. Used branches are deactivated instead (history stays intact)."""
+    c = _party(db, user, customer_id)
+    b = db.scalar(select(OrgBranch).where(OrgBranch.id == branch_id, OrgBranch.customer_id == c.id).with_for_update())
+    if not b:
+        raise HTTPException(404, "Branch not found")
+    used = (db.scalar(select(func.count()).select_from(Shipment).where(Shipment.party_branch_id == b.id))
+            or db.scalar(select(func.count()).select_from(Document).where(Document.customer_id == c.id, Document.header["party_branch_id"].as_string() == str(b.id)))
+            or db.scalar(select(func.count()).select_from(CreditRequest).where(CreditRequest.branch_id == b.id))
+            or any(str(x.get("branch_id")) == str(b.id) for f in db.scalars(select(CreditFacility).where(CreditFacility.customer_id == c.id)) for x in (f.branch_limits or [])))
+    if used:
+        raise HTTPException(409, "This branch is used by jobs, invoices or credit limits and cannot be deleted. Deactivate it instead")
+    record_audit(db, "ORG_BRANCH_DELETED", "ORGANIZATION", user, c.organization_id, "OrgBranch", str(b.id), {"code": b.code, "name": b.name})
+    db.delete(b)
+    db.commit()
 
 
 # ---------------------------------------------------------------- contacts

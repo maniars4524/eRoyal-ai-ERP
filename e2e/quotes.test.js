@@ -143,6 +143,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const rv = await j("POST", `/api/quotations/${rec.id}/revise`, null, token);
   check("revision API creates a new editable draft revision", rv.status === 200 || rv.status === 201 || rv.status === 409, rv.status + " " + JSON.stringify(rv.body).slice(0, 120));
 
+  // air shipments have no containers: no Container Rates button, no Container basis; the buy pane stays
+  check("sea quotation offers Container Rates on the sell and buy panes", d.querySelectorAll('[data-qa="containers"][data-k$=":new"]').length === 2);
+  w.quotWiz.mode = "Air"; w.QK.onWizardDone(); await sleep(300);
+  check("air quotation hides the Container Rates button on both panes", d.querySelectorAll('[data-qa="containers"]').length === 0, d.querySelectorAll('[data-qa="containers"]').length);
+  check("air quotation has no Container basis but offers Chargeable KG / AWB", !Array.from(ql("sell", 0, "basis").options).some(o => o.value === "Container") && Array.from(ql("sell", 0, "basis").options).some(o => o.value === "Chargeable KG") && Array.from(ql("buy", 0, "basis").options).some(o => o.value === "AWB"));
+  check("sell and buy panes both stay on screen for air", q("#qkPanes").children.length === 2 && q("#qkPanes").children[0].dataset.pane === "sell" && q("#qkPanes").children[1].dataset.pane === "buy" && !!q('[data-pane="buy"] [data-ql]'));
+  w.quotWiz.mode = "Sea"; w.QK.onWizardDone(); await sleep(300);
+  check("switching back to sea brings Container Rates back", d.querySelectorAll('[data-qa="containers"][data-k$=":new"]').length === 2);
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 

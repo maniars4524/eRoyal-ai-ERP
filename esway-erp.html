@@ -286,6 +286,7 @@ svg{display:block}
 .topnav-flyout > .tn-item.expanded > .tn-row .tn-caret{transform:rotate(-90deg);color:var(--bl)}
 /* nested carets point right (flyout-to-the-right) and stay put — the panel appears beside them */
 .tn-panel .tn-item.expanded > .tn-row .tn-caret{color:var(--bl)}
+.badge-zero{display:none!important}
 .tn-badge{background:var(--am);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.4;flex-shrink:0}
 .tn-sep{height:0.5px;background:var(--g2);margin:6px 4px}
 
@@ -1078,6 +1079,14 @@ tbody tr:hover{background:var(--g0)}
    valid, hide the overlay synchronously (before first paint) and let the
    async restorePersistedSession() below either confirm it or reveal it again. */
 (function(){
+  /* Security: typing the address (or following a link) must always show the login screen. Only a reload / back-forward in the same tab keeps the session. */
+  try{
+    var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")[0]) || null;
+    if(nav && (nav.type === "navigate" || nav.type === "prerender")){
+      sessionStorage.removeItem("esway_access_token");
+      localStorage.removeItem("esway_persistent_token");
+    }
+  }catch(e){ /* storage / timing API unavailable: fall through to the normal check */ }
   try{
     if(localStorage.getItem("esway_persistent_token")){
       document.write('<style id="loginOverlayPreHide">#loginOverlay{display:none!important}</style>');
@@ -1961,11 +1970,11 @@ tbody tr:hover{background:var(--g0)}
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="building-plus" style="color:var(--bl)"></svg>New Organization</div><div class="ps">Create a new party — client, vendor, carrier, CHA, agent or transporter</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-go="org-list">Cancel</button><button class="btn btn-suc btn-sm" id="orgSaveBtn"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
 
 <div class="tabs" data-tabgroup="org">
-  <button class="tbb on" data-tab="ot1">01 Basic Details</button>
-  <button class="tbb" data-tab="ot2">02 Address &amp; Branches</button>
-  <button class="tbb" data-tab="ot3">03 Contact Persons</button>
-  <button class="tbb" data-tab="ot6">04 COA / AP / AR Mapping</button>
-  <button class="tbb" data-tab="ot8">05 Credit Control &amp; Approval</button>
+  <button class="tbb on" data-tab="ot1">Basic Details</button>
+  <button class="tbb" data-tab="ot2">Address &amp; Branches</button>
+  <button class="tbb" data-tab="ot3">Contact Persons</button>
+  <button class="tbb" data-tab="ot6">COA / AP / AR Mapping</button>
+  <button class="tbb" data-tab="ot8">Credit Control &amp; Approval</button>
   <button class="tbb" data-tab="ot4">Role Defaults</button>
   <button class="tbb" data-tab="ot5">Registration</button>
   <button class="tbb" data-tab="ot7">Staff &amp; Docs</button>
@@ -14528,13 +14537,19 @@ if(document.readyState !== "loading") initChatWidget();
       const act = hsns.filter(h=>h.status==="ACTIVE");
       const opt = (v,label,sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(label)+'</option>';
       const sel = (id,list,cur)=> '<select class="fc" id="'+id+'">'+list.map(x=>opt(x,x,x===cur)).join("")+'</select>';
+      const manualHsn = !act.length || !!(d.hsn_code && !act.some(h=>h.code===d.hsn_code));
       const hsnOpts = '<option value="">— Select HSN/SAC (mandatory) —</option>'+act.map(h=>opt(h.code, h.code+" — "+h.name+" ("+((h.data||{}).gst_rate||"?")+"%)", h.code===d.hsn_code)).join("");
-      const note = act.length ? "" : '<div class="ib ib-am" style="margin-bottom:8px">No HSN/SAC codes exist yet. Add them in Masters → SAC / HSN first; every charge must reference one.</div>';
+      const note = act.length ? "" : '<div class="ib ib-am" style="margin-bottom:8px">No HSN/SAC codes exist in the master yet. You can type the code and choose the GST % here, and it will be added to the HSN master for you (or load the SAC list in Masters → SAC / HSN).</div>';
       openModal({
         title: rec ? "Edit Charge Code" : "New Charge Code",
         bodyHTML: note+
           '<div class="fr"><div class="fg"><label class="fl">Charge Code <span class="r">*</span></label><input class="fc" id="nc_code" value="'+esc2(rec?rec.code:"")+'" placeholder="e.g. FSC" style="font-family:var(--font-mono)"></div><div class="fg" style="grid-column:span 2"><label class="fl">Charge Name <span class="r">*</span></label><input class="fc" id="nc_name" value="'+esc2(rec?rec.name:"")+'" placeholder="e.g. Fuel Surcharge"></div></div>'+
-          '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">HSN/SAC Code <span class="r">*</span></label><select class="fc" id="nc_hsn">'+hsnOpts+'</select><span class="ferr" id="nc_hsn_err" style="display:none">HSN/SAC code is required — charges cannot be saved without one</span></div><div class="fg"><label class="fl">GST % <span style="color:var(--g4);font-weight:400">(default from HSN/SAC, editable)</span></label><input class="fc" id="nc_gst" type="number" min="0" max="100" step="0.01" placeholder="—" value="'+esc2(d.gst_percent||"")+'"></div></div>'+
+          '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">HSN/SAC Code <span class="r">*</span></label><select class="fc" id="nc_hsn">'+hsnOpts+'</select>'+
+          '<label style="display:flex;gap:6px;align-items:center;font-size:11.5px;margin-top:5px;cursor:pointer"><input type="checkbox" id="nc_hsn_man"'+(manualHsn?" checked":"")+'> This code is not in the HSN master — enter it manually</label>'+
+          '<div id="nc_hsn_manwrap" style="display:'+(manualHsn?"block":"none")+';margin-top:5px"><input class="fc" id="nc_hsn_manual" value="'+esc2(manualHsn?(d.hsn_code||""):"")+'" placeholder="Type the HSN / SAC code, e.g. 996511" maxlength="12" style="font-family:var(--font-mono)">'+
+          '<label style="display:flex;gap:6px;align-items:center;font-size:11px;margin-top:4px;color:var(--g6)"><input type="checkbox" id="nc_hsn_add" checked> Also add it to the HSN master</label></div>'+
+          '<span class="ferr" id="nc_hsn_err" style="display:none">HSN/SAC code is required — charges cannot be saved without one</span></div>'+
+          '<div class="fg"><label class="fl">GST % <span class="r">*</span></label><div style="display:flex;gap:6px"><select class="fc" id="nc_gst_pick" style="width:96px">'+[["","Choose"],["0","0%"],["3","3%"],["5","5%"],["12","12%"],["18","18%"],["28","28%"],["other","Other"]].map(o=>'<option value="'+o[0]+'"'+(String(d.gst_percent||"")===o[0]&&o[0]!==""?" selected":"")+'>'+o[1]+'</option>').join("")+'</select><input class="fc" id="nc_gst" type="number" min="0" max="100" step="0.01" placeholder="e.g. 18" value="'+esc2(d.gst_percent||"")+'"></div><span style="font-size:10.5px;color:var(--g5)">Pick a slab or type any rate. It fills from the HSN master when the code has one.</span></div></div>'+
           '<div class="fr"><div class="fg"><label class="fl">Category</label>'+sel("nc_cat",CHARGE_CATEGORIES,d.category)+'</div><div class="fg"><label class="fl">AR / AP</label>'+sel("nc_arap",["Both","AR","AP"],d.ar_ap)+'</div><div class="fg"><label class="fl">UOM</label>'+sel("nc_uom",["Flat","Per Container","Per KG","Per CBM","Per Job","Per BL","Per AWB"],d.uom)+'</div></div>'+
           '<div class="fr"><div class="fg"><label class="fl">Module</label>'+sel("nc_mod",["FOR","CUS","TRP","WHS","ALL"],d.module)+'</div><div class="fg"><label class="fl">Mode</label>'+sel("nc_mode",["ALL","SEA","AIR","ROAD","RAIL"],d.mode)+'</div><div class="fg"><label class="fl">Status</label>'+sel("nc_status",["Active","Inactive"],rec&&rec.status!=="ACTIVE"?"Inactive":"Active")+'</div></div>'+
           '<div class="fsec" style="margin-top:6px">Tax verification '+(d.tax_status==='REVIEW_REQUIRED' ? '<span class="b b-am">Review required</span>' : '')+'</div>'+
@@ -14544,15 +14559,25 @@ if(document.readyState !== "loading") initChatWidget();
         footHTML: '<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="nc_save">Save Charge</button>'
       });
       const gstFor = code=>{ const h = act.find(x=>x.code===code); return h ? String((h.data||{}).gst_rate||"").replace(/[^0-9.]/g,"") : ""; };
-      document.getElementById("nc_hsn").addEventListener("change", ()=>{ document.getElementById("nc_gst").value = gstFor(document.getElementById("nc_hsn").value); document.getElementById("nc_hsn_err").style.display = "none"; });
+      const gstBox = document.getElementById("nc_gst"), gstPick = document.getElementById("nc_gst_pick");
+      gstPick.addEventListener("change", ()=>{ if(gstPick.value === "other"){ gstBox.focus(); } else if(gstPick.value !== ""){ gstBox.value = gstPick.value; } });
+      gstBox.addEventListener("input", ()=>{ const v = gstBox.value; gstPick.value = ["0","3","5","12","18","28"].includes(v) ? v : (v === "" ? "" : "other"); });
+      document.getElementById("nc_hsn_man").addEventListener("change", e=>{ document.getElementById("nc_hsn_manwrap").style.display = e.target.checked ? "block" : "none"; if(e.target.checked){ document.getElementById("nc_hsn").value = ""; document.getElementById("nc_hsn_manual").focus(); } });
+      document.getElementById("nc_hsn").addEventListener("change", ()=>{ if(!document.getElementById("nc_hsn").value) return; const g = gstFor(document.getElementById("nc_hsn").value); if(g !== ""){ gstBox.value = g; gstBox.dispatchEvent(new Event("input")); } document.getElementById("nc_hsn_man").checked = false; document.getElementById("nc_hsn_manwrap").style.display = "none"; document.getElementById("nc_hsn_err").style.display = "none"; });
       if(!d.gst_percent) document.getElementById("nc_gst").value = gstFor(d.hsn_code);
       document.getElementById("nc_save").addEventListener("click", async ()=>{
         const v = id=> document.getElementById(id).value.trim();
         if(!v("nc_code") || !v("nc_name")){ say("Required fields missing", "Charge code and name are required"); return; }
-        if(!v("nc_hsn")){ document.getElementById("nc_hsn_err").style.display = "block"; say("HSN/SAC required", "Every charge must reference an HSN/SAC code before it can be saved"); return; }
-        const body = {code:v("nc_code"), name:v("nc_name"), status:v("nc_status")==="Inactive"?"INACTIVE":"ACTIVE", data:Object.assign({}, d, {hsn_code:v("nc_hsn"), gst_percent:v("nc_gst"), category:v("nc_cat"), ar_ap:v("nc_arap"), uom:v("nc_uom"), module:v("nc_mod"), mode:v("nc_mode"), coa_income:v("nc_coai"), coa_expense:v("nc_coae"), tax_treatment:v("nc_treat"), notification_ref:v("nc_notif"), effective_date:v("nc_eff")})};
+        const manual = document.getElementById("nc_hsn_man").checked; const hsnCode = manual ? v("nc_hsn_manual").toUpperCase() : v("nc_hsn");
+        if(!hsnCode){ document.getElementById("nc_hsn_err").style.display = "block"; say("HSN/SAC required", "Every charge must reference an HSN/SAC code before it can be saved"); return; }
+        if(manual && !/^[0-9A-Z]{4,12}$/.test(hsnCode)){ say("HSN/SAC code looks wrong", "Use 4 to 12 letters or digits, e.g. 996511", "warn"); return; }
+        if(v("nc_gst") === "" || isNaN(Number(v("nc_gst"))) || Number(v("nc_gst")) < 0 || Number(v("nc_gst")) > 100){ say("GST % required", "Choose a GST slab or type a rate between 0 and 100", "warn"); return; }
+        const body = {code:v("nc_code"), name:v("nc_name"), status:v("nc_status")==="Inactive"?"INACTIVE":"ACTIVE", data:Object.assign({}, d, {hsn_code:hsnCode, gst_percent:v("nc_gst"), category:v("nc_cat"), ar_ap:v("nc_arap"), uom:v("nc_uom"), module:v("nc_mod"), mode:v("nc_mode"), coa_income:v("nc_coai"), coa_expense:v("nc_coae"), tax_treatment:v("nc_treat"), notification_ref:v("nc_notif"), effective_date:v("nc_eff")})};
         if(body.data.tax_status === "REVIEW_REQUIRED" && body.status === "ACTIVE" && body.data.notification_ref && body.data.effective_date) body.data.tax_status = "VERIFIED";
         try{
+          if(manual && document.getElementById("nc_hsn_add").checked && !act.some(h=>h.code===hsnCode)){
+            try{ await api("POST","/api/masters/hsn", {code:hsnCode, name:v("nc_name"), data:{code_type:"SAC (Services)", gst_rate:v("nc_gst")+"%", tax_category:"Entered manually from the Charge Master", source:"manual"}}); }catch(e2){ /* already exists: fine */ }
+          }
           await (rec ? api("PATCH","/api/masters/charge/"+rec.id, body) : api("POST","/api/masters/charge", body));
           closeModal(); say("Charge saved", body.code+" — "+body.name+" (HSN/SAC "+body.data.hsn_code+")");
           MK.loadList(MK.configs.charge); if(onSaved) onSaved(body);
@@ -15155,7 +15180,7 @@ if(document.readyState !== "loading") initChatWidget();
 (function(){
   "use strict";
   const U = MK.util; const {api, say, esc2} = U;
-  const X = window.OrgExt = {id:null, branches:[], contacts:[], credit:null, accounts:[], currencies:[], states:[], countries:[], contactBranch:"", acct:{}, me:null};
+  const X = window.OrgExt = {countryRecs:[], stateCodes:{}, id:null, branches:[], contacts:[], credit:null, accounts:[], currencies:[], states:[], countries:[], contactBranch:"", acct:{}, me:null};
   const scr = ()=> document.getElementById("s-org-new");
   const money = v=> v===null || v===undefined || v==="" ? "—" : "₹" + (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
   const dmy = v=> v ? new Date(String(v).length > 10 ? v : v+"T00:00:00").toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
@@ -15178,43 +15203,64 @@ if(document.readyState !== "loading") initChatWidget();
     if(X.mastersLoaded) return; X.mastersLoaded = true;
     const get = (p, f)=> api("GET", p).catch(()=> f);
     const [acc, ccy, ctry, me] = await Promise.all([get("/api/masters/account", []), get("/api/masters/currency", []), get("/api/masters/country", []), get("/api/auth/me", null)]);
-    X.accounts = acc.filter(a=>a.status==="ACTIVE"); X.currencies = ccy.filter(a=>a.status==="ACTIVE").map(c=>c.code.toUpperCase()); X.countries = ctry.filter(a=>a.status==="ACTIVE").map(c=>c.name); X.me = me;
+    X.accounts = acc.filter(a=>a.status==="ACTIVE"); X.countryRecs = ctry.filter(a=>a.status==="ACTIVE").map(c=>({code:c.code, name:c.name})); X.currencies = ccy.filter(a=>a.status==="ACTIVE").map(c=>c.code.toUpperCase()); X.countries = ctry.filter(a=>a.status==="ACTIVE").map(c=>c.name); X.me = me;
     if(!X.currencies.includes("INR")) X.currencies.unshift("INR");
-    X.states = Array.from(document.querySelectorAll("#org_state option")).map(o=>o.textContent.trim()).filter(Boolean);
+    X.states = Array.from(document.querySelectorAll("#org_state option")).map(o=>o.textContent.trim()).filter(Boolean); X.stateCodes = Object.fromEntries(Array.from(document.querySelectorAll("#org_state option[data-code]")).map(o=>[o.textContent.trim().toLowerCase(), o.dataset.code]));
   }
 
   /* ---------- 02 Address & Branches ---------- */
   function renderBranches(){
     const el = document.getElementById("oxBranches"); if(!el || !gate(el, "Save the organization first to add branches. One organization can have many branches without duplicate records.")) return;
-    el.innerHTML = '<div class="tw"><table><thead><tr><th>Branch Code</th><th>Branch Name</th><th>State</th><th>City</th><th>Country</th><th>Billing Enabled</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>'+
-      (X.branches.length ? X.branches.map(b=>'<tr><td class="mono">'+esc2(b.code)+'</td><td style="font-weight:600">'+esc2(b.name)+'</td><td>'+esc2(b.state||"—")+'</td><td>'+esc2(b.city||"—")+'</td><td>'+esc2(b.country||"—")+'</td><td>'+(b.billing_enabled ? chip("YES","b-gr") : chip("NO","b-gy"))+'</td><td>'+chip(b.status, b.status==="ACTIVE"?"b-gr":"b-gy")+'</td><td class="no-print" style="white-space:nowrap"><button class="ta" type="button" data-ox="branch-view:'+b.id+'">View</button> <button class="ta" type="button" data-ox="branch-edit:'+b.id+'">Edit</button> <button class="ta" type="button" data-ox="branch-toggle:'+b.id+'">'+(b.status==="ACTIVE"?"Deactivate":"Activate")+'</button></td></tr>').join("") : '<tr><td colspan="8" style="text-align:center;color:var(--g4);padding:14px;font-style:italic">No branches yet. Click "Add Branch".</td></tr>')+
-      '</tbody></table></div><div style="font-size:11px;color:var(--g5);margin-top:6px">Branches are never deleted once used; deactivate them instead. Only billing-enabled branches can issue invoices; other branches can still run shipments.</div>';
+    el.innerHTML = '<div class="tw"><table><thead><tr><th>Sl.No</th><th>Branch Code</th><th>Branch Name</th><th>State</th><th>Country</th><th>GSTN ID</th><th>Billing Enabled</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>'+
+      (X.branches.length ? X.branches.map(b=>'<tr><td>'+esc2(b.sl_no||"")+'</td><td class="mono">'+esc2(b.code)+'</td><td style="font-weight:600">'+esc2(b.name)+(b.branch_type && b.branch_type!=="OTHERS" ? ' <span class="b b-gy">'+esc2(b.branch_type)+'</span>' : '')+'</td><td>'+esc2(b.state||"—")+'</td><td>'+esc2(b.country||"—")+'</td><td class="mono">'+esc2(b.gstin||"—")+'</td><td>'+(b.billing_enabled ? chip("YES","b-gr") : chip("NO","b-gy"))+'</td><td>'+chip(b.status, b.status==="ACTIVE"?"b-gr":"b-gy")+'</td><td class="no-print" style="white-space:nowrap"><button class="ta" type="button" data-ox="branch-view:'+b.id+'">View</button> <button class="ta" type="button" data-ox="branch-edit:'+b.id+'">Edit</button> <button class="ta" type="button" data-ox="branch-toggle:'+b.id+'">'+(b.status==="ACTIVE"?"Deactivate":"Activate")+'</button> <button class="ta" type="button" data-ox="branch-del:'+b.id+'" style="color:var(--rd)">Delete</button></td></tr>').join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:14px;font-style:italic">No branches yet. Click "Add Branch".</td></tr>')+
+      '</tbody></table></div><div style="font-size:11px;color:var(--g5);margin-top:6px">A branch that is used by jobs, invoices or credit limits cannot be deleted; deactivate it instead. Only billing-enabled branches can issue invoices; other branches can still run shipments.</div>';
   }
+  const GSTN_TYPES = ["G/GSN - GSTIN of Normal Persons","S/SEZ - GSTIN of SEZ Unit","D/SEZD - GSTIN of SEZ Developer","U/UIN - UIN Holder (embassy, UN body)","T/TDS - GSTIN of TDS Deductor","C/TCS - GSTIN of TCS Collector","N/NRTP - Non-resident Taxable Person","O/OIDAR - Online Service Provider","R/UNREG - Unregistered / Not applicable"];
+  const BRANCH_TYPES = ["OTHERS","HEAD OFFICE","REGISTERED OFFICE","BRANCH OFFICE","FACTORY","WAREHOUSE","SEZ UNIT"];
   function branchForm(b){
-    b = b || {billing_enabled:false, status:"ACTIVE", country:"India"};
+    b = b || {billing_enabled:false, status:"ACTIVE", country:"INDIA", country_code:"IN", branch_type:"OTHERS", gstn_type:GSTN_TYPES[0]};
     const ro = b.__view ? " disabled" : "";
     const inp = (k, ph, extra)=> '<input class="fc" data-bf="'+k+'" value="'+esc2(b[k]||"")+'" placeholder="'+esc2(ph||"")+'"'+(extra||"")+ro+'>';
-    return '<div class="ox-grid">'+field("Branch Code *", inp("code","e.g. MAA", b.id?" disabled":""))+field("Branch Name *", inp("name","e.g. Chennai"), "s2")+
-      field("Status", '<select class="fc" data-bf="status"'+ro+'>'+opt("ACTIVE","Active",b.status==="ACTIVE")+opt("INACTIVE","Inactive",b.status==="INACTIVE")+'</select>')+
-      field("State", '<input class="fc" data-bf="state" list="oxStates" value="'+esc2(b.state||"")+'"'+ro+'><datalist id="oxStates">'+X.states.map(s=>'<option value="'+esc2(s)+'">').join("")+'</datalist>')+
-      field("Country", '<input class="fc" data-bf="country" list="oxCountries" value="'+esc2(b.country||"")+'"'+ro+'><datalist id="oxCountries">'+X.countries.map(s=>'<option value="'+esc2(s)+'">').join("")+'</datalist>')+
-      field("City", inp("city"))+field("PIN / ZIP", inp("pincode"))+field("Address", inp("address","Complete address"), "s4")+
-      field("Phone", inp("phone"))+field("Email", inp("email"), "s2")+field("GSTIN / Tax Registration", inp("gstin"))+
-      field("Billing Enabled", '<select class="fc" data-bf="billing_enabled"'+ro+'>'+opt("1","YES — can issue invoices",b.billing_enabled)+opt("0","NO — operations only",!b.billing_enabled)+'</select>', "s2")+'</div>';
+    const sel = (k, list, cur)=> '<select class="fc" data-bf="'+k+'"'+ro+'>'+list.map(x=>opt(x,x,x===cur)).join("")+(cur && !list.includes(cur) ? opt(cur,cur,true) : "")+'</select>';
+    const row = (label, html)=> '<div class="oxg" style="margin-bottom:8px"><label>'+label+'</label>'+html+'</div>';
+    const nextNo = b.sl_no || ((X.branches.reduce((m,x)=>Math.max(m,x.sl_no||0),0))+1);
+    const left = row("Branch Sl.No", '<input class="fc" readonly value="'+nextNo+'" style="background:var(--g0)">')+row("Address 1", inp("address","Plot / building, street"))+row("Address 2", inp("address2"))+
+      row("Country Name", '<input class="fc" data-bf="country" list="oxCountries" value="'+esc2(b.country||"")+'" placeholder="Type to search…"'+ro+'><datalist id="oxCountries">'+X.countries.map(s=>'<option value="'+esc2(s)+'">').join("")+'</datalist>')+
+      row("Country Code", inp("country_code","IN"," style=\"max-width:120px\""))+row("PIN Code", inp("pincode"))+row("City", inp("city"))+
+      row("Remarks", '<textarea class="fc" rows="3" data-bf="remarks"'+ro+'>'+esc2(b.remarks||"")+'</textarea>')+row("GSTN Type", sel("gstn_type", GSTN_TYPES, b.gstn_type));
+    const right = row("Branch Name *", inp("name","e.g. BANGALORE"))+row("TIN No", inp("tin_no"))+row("PAN No", inp("pan_no","10 letters/digits"," maxlength=\"10\""))+row("GSTN ID", inp("gstin","15 letters/digits"," maxlength=\"15\""))+
+      row("Contact Person", inp("contact_person"))+row("Reg No", inp("reg_no"))+row("Phone No", inp("phone"))+
+      row("State Name", '<input class="fc" data-bf="state" list="oxStates" value="'+esc2(b.state||"")+'" placeholder="Type to search…"'+ro+'><datalist id="oxStates">'+X.states.map(s=>'<option value="'+esc2(s)+'">').join("")+'</datalist>')+
+      row("State Code", inp("state_code","29"," style=\"max-width:120px\""))+row("Fax", inp("fax"))+row("E-Mail", inp("email"))+row("Type", sel("branch_type", BRANCH_TYPES, b.branch_type))+row("Bin No", inp("bin_no"))+row("Adcode", inp("adcode"));
+    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px"><div>'+left+'</div><div>'+right+'</div></div>'+
+      '<div class="fsec" style="margin-top:4px">Branch control</div><div class="ox-grid">'+field("Branch Code (optional - auto if blank)", inp("code","e.g. MAA", b.id?" disabled":""))+field("Billing Enabled", '<select class="fc" data-bf="billing_enabled"'+ro+'>'+opt("1","YES — can issue invoices",b.billing_enabled)+opt("0","NO — operations only",!b.billing_enabled)+'</select>', "s2")+field("Status", '<select class="fc" data-bf="status"'+ro+'>'+opt("ACTIVE","Active",b.status==="ACTIVE")+opt("INACTIVE","Inactive",b.status==="INACTIVE")+'</select>')+'</div>';
   }
   function branchModal(b){
-    const view = b && b.__view;
-    openModal({title: view ? "Branch — "+b.name : b && b.id ? "Edit Branch" : "Add Branch", size:"lg", bodyHTML: branchForm(b), footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">'+(view?"Close":"Cancel")+'</button>'+(view?"":'<button class="btn btn-pri" type="button" id="oxBranchSave">Save Branch</button>')});
-    const save = document.getElementById("oxBranchSave"); if(!save) return;
-    save.addEventListener("click", async ()=>{
-      const body = {}; document.querySelectorAll("#modalBody [data-bf]").forEach(e=>{ if(!e.disabled || e.dataset.bf==="code") body[e.dataset.bf] = e.value.trim(); });
-      body.billing_enabled = body.billing_enabled === "1";
-      ["state","country","city","address","pincode","phone","email","gstin"].forEach(k=>{ if(body[k] === "") body[k] = null; });
+    const view = b && b.__view; const editing = b && b.id && !view;
+    openModal({title: view ? "Branch — "+b.name : editing ? "Update Branch" : "New Branch", size:"lg", bodyHTML: branchForm(b),
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">'+(view?"Close":"Cancel")+'</button>'+(editing ? '<button class="btn btn-out" type="button" id="oxBranchDelete" style="color:var(--rd)">Delete</button>' : '')+(view?"":'<button class="btn btn-pri" type="button" id="oxBranchSave">'+(editing?"Update":"Save Branch")+'</button>')});
+    const body = document.getElementById("modalBody");
+    const fill = (k, v)=>{ const e = body.querySelector('[data-bf="'+k+'"]'); if(e && !e.disabled) e.value = v; };
+    body.addEventListener("change", e=>{
+      const k = e.target.dataset && e.target.dataset.bf; const v = e.target.value.trim().toLowerCase();
+      if(k === "country"){ const rec = X.countryRecs.find(c=>c.name.toLowerCase()===v || c.code.toLowerCase()===v); if(rec) fill("country_code", rec.code.toUpperCase()); if(v === "india" || v === "in") fill("country_code","IN"); }
+      if(k === "state"){ const code = X.stateCodes[v]; if(code) fill("state_code", code); }
+    });
+    const save = document.getElementById("oxBranchSave"); if(save) save.addEventListener("click", async ()=>{
+      const out = {}; body.querySelectorAll("[data-bf]").forEach(e=>{ if(!e.disabled || e.dataset.bf==="code") out[e.dataset.bf] = e.value.trim(); });
+      out.billing_enabled = out.billing_enabled === "1";
+      Object.keys(out).forEach(k=>{ if(out[k] === "" && !["name","status"].includes(k)) out[k] = null; });
       try{
-        if(b && b.id){ delete body.code; await api("PATCH","/api/customers/"+X.id+"/branches/"+b.id, body); } else { if(!body.code || !body.name){ say("Branch code and name are required", "", "warn"); return; } await api("POST","/api/customers/"+X.id+"/branches", body); }
-        closeModal(); say("Branch saved", body.name || ""); await loadBranches(); renderBranches(); renderContacts();
+        if(editing){ delete out.code; await api("PATCH","/api/customers/"+X.id+"/branches/"+b.id, out); } else { if(!out.name){ say("Branch name is required", "", "warn"); return; } await api("POST","/api/customers/"+X.id+"/branches", out); }
+        closeModal(); say("Branch saved", out.name || ""); await loadBranches(); renderBranches(); renderContacts();
       }catch(e){ say("Could not save branch", e.message); }
     });
+    const del = document.getElementById("oxBranchDelete"); if(del) del.addEventListener("click", ()=> deleteBranch(b));
+  }
+  async function deleteBranch(b){
+    if(!window.confirm("Delete branch "+b.name+" ("+b.code+")?\n\nThis only works for a branch that was never used. Otherwise deactivate it.")) return;
+    try{ await api("DELETE","/api/customers/"+X.id+"/branches/"+b.id); try{ closeModal(); }catch(e){ /* no dialog open */ } say("Branch deleted", b.name); await loadBranches(); renderBranches(); renderContacts(); }
+    catch(e){ say("Branch not deleted", e.message); }
   }
   async function loadBranches(){ X.branches = X.id ? await api("GET","/api/customers/"+X.id+"/branches").catch(()=>[]) : []; }
 
@@ -15257,7 +15303,7 @@ if(document.readyState !== "loading") initChatWidget();
     el.innerHTML = '<div class="ox-grid">'+field("Accounting Classification", '<select class="fc" data-ax="acct_class">'+opt("","— Select —",!k)+opt("customer","Customer — Sundry Debtor",k==="customer")+opt("vendor","Vendor — Sundry Creditor",k==="vendor")+opt("both","Both Customer & Vendor",k==="both")+opt("other","Other — per existing accounting configuration",k==="other")+'</select>', "s2")+'</div>'+
       (showAR ? '<div class="fsec">Customer accounting (Accounts Receivable)</div><div class="ox-grid">'+field("AR Control Account *", '<select class="fc" data-ax="ar_account">'+acctOptions(a.ar_account)+'</select>', "s2")+field("Sundry Debtor Mapping", '<input class="fc" readonly value="'+esc2(a.ar_account ? "Sub-ledger under "+a.ar_account : "—")+'" style="background:var(--g0)">')+field("Default Currency", '<select class="fc" data-ax="ar_currency">'+ccys(a.ar_currency)+'</select>')+
         field("Customer Payment Terms", '<input class="fc" data-ax="ar_terms" value="'+esc2(a.ar_terms||"")+'" placeholder="e.g. 30 days net">', "s2")+field("Credit Customer", '<select class="fc" data-ax="credit_customer">'+opt("no","NO — advance payment",a.credit_customer!=="yes")+opt("yes","YES — credit facility",a.credit_customer==="yes")+'</select>')+(a.credit_customer==="yes" ? field("Expiry alerts (days before)", '<input class="fc" data-ax="credit_notify_days" value="'+esc2(a.credit_notify_days||"30,15,7,0")+'" placeholder="30,15,7,0">') : "")+'</div>'+
-        (a.credit_customer === "yes" ? '<div class="ib ib-bl" style="margin-top:8px">Credit Customer is YES. Open <b>05 Credit Control &amp; Approval</b> to complete the credit application. Credit limits only become active after management approval.</div>' : '') : '')+
+        (a.credit_customer === "yes" ? '<div class="ib ib-bl" style="margin-top:8px">Credit Customer is YES. Open <b>Credit Control &amp; Approval</b> to complete the credit application. Credit limits only become active after management approval.</div>' : '') : '')+
       (showAP ? '<div class="fsec">Vendor accounting (Accounts Payable)</div><div class="ox-grid">'+field("AP Control Account *", '<select class="fc" data-ax="ap_account">'+acctOptions(a.ap_account)+'</select>', "s2")+field("Sundry Creditor Mapping", '<input class="fc" readonly value="'+esc2(a.ap_account ? "Sub-ledger under "+a.ap_account : "—")+'" style="background:var(--g0)">')+field("Default Currency", '<select class="fc" data-ax="ap_currency">'+ccys(a.ap_currency)+'</select>')+field("Vendor Payment Terms", '<input class="fc" data-ax="ap_terms" value="'+esc2(a.ap_terms||"")+'" placeholder="e.g. 45 days">', "s2")+'</div>' : '')+
       (k === "both" ? '<div style="font-size:11px;color:var(--g5);margin-top:6px">The same organization works as customer and vendor without a duplicate record. AR and AP balances stay separate.</div>' : '')+
       (!X.accounts.length ? '<div class="ib ib-am" style="margin-top:8px">No ledger accounts exist yet. Add them in Masters → Ledger Account to map control accounts.</div>' : '');
@@ -15282,10 +15328,10 @@ if(document.readyState !== "loading") initChatWidget();
   function kpi(l, v){ return '<div class="ox-kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>'; }
   function renderCredit(){
     const el = document.getElementById("oxCredit"); if(!el) return;
-    if(!X.id){ el.innerHTML = '<div class="card"><div class="cb"><div class="ib ib-bl">Save the organization first. Then set <b>Credit Customer = YES</b> in 04 COA / AP / AR Mapping and apply for credit here.</div></div></div>'; return; }
+    if(!X.id){ el.innerHTML = '<div class="card"><div class="cb"><div class="ib ib-bl">Save the organization first. Then set <b>Credit Customer = YES</b> in COA / AP / AR Mapping and apply for credit here.</div></div></div>'; return; }
     const c = X.credit;
     if(!c || c.error){ el.innerHTML = '<div class="card"><div class="cb"><div class="ib ib-am">'+esc2(c ? c.error : "Loading…")+'</div></div></div>'; return; }
-    if(!c.credit_customer){ el.innerHTML = '<div class="card"><div class="cb"><div class="ib ib-bl">This organization is <b>not a credit customer</b>: the existing advance-payment process applies. To grant credit, set <b>Credit Customer = YES</b> in 04 COA / AP / AR Mapping and save.</div></div></div>'; return; }
+    if(!c.credit_customer){ el.innerHTML = '<div class="card"><div class="cb"><div class="ib ib-bl">This organization is <b>not a credit customer</b>: the existing advance-payment process applies. To grant credit, set <b>Credit Customer = YES</b> in COA / AP / AR Mapping and save.</div></div></div>'; return; }
     const st = c.status, ex = st.exposure || {};
     const open = openApp(), approved = (c.facilities||[]).find(f=>f.status==="APPROVED");
     let html = '<div class="card"><div class="ch"><div class="ct">Credit Position</div><div>'+chip(STATE_TXT[st.state]||st.state, STATE_CLS[st.state]||"b-gy")+(st.policy ? " "+chip(st.policy==="HARD"?"Hard block":"Soft block","b-gy") : "")+'</div></div><div class="cb">'+
@@ -15377,6 +15423,7 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       if(k === "branch-view") return branchModal({...X.branches.find(b=>b.id===n), __view:true});
       if(k === "branch-edit") return branchModal(X.branches.find(b=>b.id===n));
+      if(k === "branch-del") return deleteBranch(X.branches.find(b=>b.id===n));
       if(k === "branch-toggle"){ const b = X.branches.find(x=>x.id===n); await api("PATCH","/api/customers/"+X.id+"/branches/"+n, {status: b.status==="ACTIVE"?"INACTIVE":"ACTIVE"}); await loadBranches(); renderBranches(); renderContacts(); return; }
       if(k === "contact-edit") return contactModal(X.contacts.find(c=>c.id===n));
       if(k === "contact-toggle"){ const c = X.contacts.find(x=>x.id===n); await api("PATCH","/api/customers/"+X.id+"/contacts/"+n, {status: c.status==="ACTIVE"?"INACTIVE":"ACTIVE"}); await loadContacts(); renderContacts(); return; }
@@ -15820,6 +15867,22 @@ if(document.readyState !== "loading") initChatWidget();
 })();
 </script>
 <script>
+/* Count badges (menu and card headers) are hidden while their number is zero, so an empty module shows no orange "0". */
+(function(){
+  "use strict";
+  function sync(root){
+    (root || document).querySelectorAll(".tn-badge, .mn-badge").forEach(b=>{
+      const t = (b.textContent || "").trim();
+      b.classList.toggle("badge-zero", t === "0" || t === "" || t === "•");
+    });
+  }
+  let timer = null;
+  const schedule = ()=>{ if(timer) return; timer = setTimeout(()=>{ timer = null; sync(); }, 60); };
+  const start = ()=>{ sync(); new MutationObserver(schedule).observe(document.body, {childList:true, subtree:true, characterData:true}); };
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();
+</script>
+<script>
 /* ============================================================
    DASHBOARD KIT: every number comes from GET /api/dashboard/summary (tenant-scoped, live database)
    ============================================================ */
@@ -16157,7 +16220,7 @@ if(document.readyState !== "loading") initChatWidget();
     const lines = side === "SELL" ? Q.sell : Q.buy, key = side.toLowerCase(), ro = Q.rec && !Q.rec.editable;
     const tot = lines.reduce((a,l)=>{ const c = calc(l); a.amount += c.amount; a.gst += c.gst; a.total += c.total; return a; }, {amount:0, gst:0, total:0});
     return '<div class="qk-pane '+key+'" data-pane="'+key+'"><div class="qk-pane-h"><div><div class="t">'+(side==="SELL"?"Sell Cost":"Buy Cost")+' <span class="b b-gy" style="font-size:9.5px">'+lines.length+'</span></div><div class="s">'+(side==="SELL"?"Charges quoted to the customer":"Internal cost — never shown on the customer quotation")+'</div></div>'+
-      '<div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-qa="add" data-side="'+side+'"'+(ro?" disabled":"")+'>＋ Add Charge</button><button class="btn btn-out btn-sm" data-qa="containers" data-k="'+key+':new"'+(ro?" disabled":"")+' title="One charge, several container types with their own rates">📦 Container Rates</button></div></div>'+
+      '<div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-qa="add" data-side="'+side+'"'+(ro?" disabled":"")+'>＋ Add Charge</button>'+(uomList().includes("Container") ? '<button class="btn btn-out btn-sm" data-qa="containers" data-k="'+key+':new"'+(ro?" disabled":"")+' title="One charge, several container types with their own rates">📦 Container Rates</button>' : '')+'</div></div>'+
       '<div class="qk-scroll"><table class="qk-t"><thead><tr><th>#</th><th>Particulars</th><th>Basis / UOM</th><th>Units</th><th>Ccy</th><th>Ex. Rate</th><th>Unit Rate</th><th>Taxable</th><th>Tax %</th><th class="r">Amount (₹)</th><th class="r">Total (₹)</th><th></th></tr></thead><tbody>'+
       (lines.length ? lines.map((l,i)=>rowHtml(l, key, i)).join("") : '<tr><td colspan="12" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No '+(side==="SELL"?"sell":"buy")+' charges yet. Click "Add Charge".</td></tr>')+
       '</tbody><tfoot><tr><td colspan="9">Total ('+(side==="SELL"?"Sell":"Buy")+')</td><td class="r" data-t="'+key+':amount">'+num(tot.amount,2)+'</td><td class="r" data-t="'+key+':total">'+num(tot.total,2)+'</td><td></td></tr><tr><td colspan="9" style="font-weight:600;color:var(--g6)">GST (₹)</td><td colspan="3" class="r" data-t="'+key+':gst" style="font-weight:600">'+num(tot.gst,2)+'</td></tr></tfoot></table></div></div>';
@@ -16193,7 +16256,7 @@ if(document.readyState !== "loading") initChatWidget();
     const el = root(); if(!el) return; const y = window.scrollY;
     const showBuy = can("quote.view_cost");
     el.innerHTML = stepper() + infoCard() +
-      '<div class="qk-panes '+(showBuy?"":"single")+'" id="qkPanes">'+pane("SELL")+(showBuy ? pane("BUY") : "")+'</div>'+ costSheet() +
+      '<div class="qk-panes" id="qkPanes">'+pane("SELL")+(showBuy ? pane("BUY") : '<div class="qk-pane buy" data-pane="buy"><div class="qk-pane-h"><div><div class="t">Buy Cost</div><div class="s">Internal cost</div></div></div><div style="padding:18px"><div class="ib ib-am">Buy cost entry is hidden for your login because it does not have the <b>See buy costs and margins</b> permission. Ask an administrator to give your role <code>quote.view_cost</code>, then sign in again.</div></div></div>')+'</div>'+ costSheet() +
       '<div class="qk-two" style="margin-bottom:12px"><div class="card"><div class="ch"><div class="ct">Terms &amp; Conditions</div></div><div class="cb"><textarea class="fc" rows="6" data-qh="terms"'+(Q.rec && !Q.rec.editable?" disabled":"")+'>'+esc2(Q.head.terms)+'</textarea></div></div>'+
       '<div class="card"><div class="ch"><div class="ct">Internal Notes</div></div><div class="cb"><textarea class="fc" rows="6" data-qh="remarks" placeholder="Not printed on the customer quotation"'+(Q.rec && !Q.rec.editable?" disabled":"")+'>'+esc2(Q.head.remarks)+'</textarea></div></div></div>'+
       approvalCard();
@@ -16250,7 +16313,8 @@ if(document.readyState !== "loading") initChatWidget();
   };
   Q.onWizardDone = function(){
     const w = wiz(); Q.head.currency = Q.head.currency || "USD";
-    Q.sell.concat(Q.buy).forEach(l=>{ if(!uomList().includes(l.basis)) l.basis = uomList()[0]; });
+    const hasCont = uomList().includes("Container");
+    Q.sell.concat(Q.buy).forEach(l=>{ if(!uomList().includes(l.basis)) l.basis = uomList()[0]; if(!hasCont){ l.container_breakup = []; l.container_type = ""; } });
     renderAll();
   };
 

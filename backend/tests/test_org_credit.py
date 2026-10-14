@@ -249,3 +249,26 @@ def test_credit_permissions_are_enforced(h, admin):
     assert client.get(f"/api/customers/{c['id']}/credit", headers=v).status_code == 200
     assert client.post(f"/api/customers/{c['id']}/credit/facilities", json={"kind": "NEW", "requested_limit": "1"}, headers=v).status_code == 403
     assert client.patch(f"/api/customers/{c['id']}", json={"data": {"credit_customer": "no"}}, headers=v).status_code == 403
+
+
+def test_branch_full_details_serial_numbers_and_safe_delete(h):
+    c = party(h, credit=False)
+    full = {"name": "BANGALORE", "address": "Plot No. 5B, Veerasandra Industrial", "address2": "Electronics City", "country": "INDIA", "country_code": "IN", "state": "KARNATAKA", "state_code": "29", "city": "Bengaluru",
+            "pincode": "560100", "contact_person": "Ravi", "phone": "9999", "fax": "080-1", "email": "blr@x.test", "tin_no": "TIN1", "pan_no": "abcd876767", "gstin": "29a000000000100", "reg_no": "R1",
+            "branch_type": "OTHERS", "bin_no": "B1", "adcode": "A1", "gstn_type": "G/GSN - GSTIN of Normal Persons", "remarks": "main plant", "billing_enabled": True}
+    b1 = client.post(f"/api/customers/{c['id']}/branches", json=full, headers=h)
+    assert b1.status_code == 201, b1.text
+    out = b1.json()
+    assert out["sl_no"] == 1 and out["code"].startswith("BANGAL") and out["pan_no"] == "ABCD876767" and out["gstin"] == "29A000000000100" and out["state_code"] == "29" and out["gstn_type"].startswith("G/GSN") and out["adcode"] == "A1"
+    b2 = client.post(f"/api/customers/{c['id']}/branches", json={"name": "Chennai"}, headers=h).json()
+    assert b2["sl_no"] == 2 and b2["code"].startswith("CHENNA")
+    assert client.post(f"/api/customers/{c['id']}/branches", json={"name": "Bad", "pan_no": "TOO-LONG-PAN"}, headers=h).status_code == 422
+    assert client.patch(f"/api/customers/{c['id']}/branches/{b2['id']}", json={"code": "CHANGED", "fax": "044-2"}, headers=h).json()["code"] == b2["code"]  # the code is permanent
+    opts = client.get("/api/org-options/branches", headers=h).json()
+    assert "OTHERS" in opts["branch_types"] and any(x.startswith("G/GSN") for x in opts["gstn_types"])
+    # an unused branch can be deleted; one used by a job cannot
+    assert client.delete(f"/api/customers/{c['id']}/branches/{b2['id']}", headers=h).status_code == 204
+    assert client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "customer_id": c["id"], "party_branch_id": out["id"]}, headers=h).status_code == 201
+    used = client.delete(f"/api/customers/{c['id']}/branches/{out['id']}", headers=h)
+    assert used.status_code == 409 and "Deactivate" in used.json()["detail"]
+    assert client.patch(f"/api/customers/{c['id']}/branches/{out['id']}", json={"status": "INACTIVE"}, headers=h).json()["status"] == "INACTIVE"
