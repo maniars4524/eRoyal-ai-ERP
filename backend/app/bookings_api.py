@@ -211,7 +211,7 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
         credit_enforce(db, org_id, b.customer_id, "confirm booking", user.id, None, __import__("decimal").Decimal(0))
         data = b.data or {}
         pcs, gwt = _num(data.get("pcs")), _num(data.get("gwt"))
-        job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction), mode=b.mode, direction=b.direction, container_mode=b.shipment_type if b.shipment_type in ("FCL", "LCL") else None,
+        job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction, b.shipment_type if b.shipment_type in ("FCL", "LCL") else None, user), mode=b.mode, direction=b.direction, container_mode=b.shipment_type if b.shipment_type in ("FCL", "LCL") else None,
                        pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
                        gross_weight=gwt, commodity=(data.get("marks") or None), status="Booked", created_by=user.id)
         db.add(job)
@@ -221,7 +221,7 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
         from . import job_lifecycle as jl
 
         jl.on_job_created(db, job, user, "booking confirmation", {"booking": b.number})
-    b.number = next_number(db, org_id, "booking", "BKG", b.booking_date)
+    b.number = next_number(db, org_id, "booking", "BKG", b.booking_date, user=user)
     b.status = "CONFIRMED"
     b.confirmed_at = datetime.now(timezone.utc)
     record_audit(db, "BOOKING_CONFIRMED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number, "job_number": b.job_number})

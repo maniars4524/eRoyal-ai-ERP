@@ -309,7 +309,7 @@ def post_document(doc_id: int, user: User = Depends(permission_required("billing
 
         credit_enforce(db, org_id, doc.customer_id, "post invoice", user.id, int(branch_ref) if branch_ref not in (None, "") else None, doc.grand_total if not doc.shipment_id else Decimal(0))
     prefix = DOC_TYPES[doc.doc_type][0]
-    doc.doc_number = next_number(db, org_id, doc.doc_type, prefix, doc.doc_date)
+    doc.doc_number = next_number(db, org_id, doc.doc_type, prefix, doc.doc_date, user=user)
     doc.status = "POSTED"
     doc.posted_at = datetime.now(timezone.utc)
     doc.posted_by = user.id

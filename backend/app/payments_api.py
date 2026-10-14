@@ -89,7 +89,7 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
         if alloc.amount > outstanding(doc):
             raise HTTPException(status_code=422, detail=f"Allocation to {doc.doc_number} exceeds its outstanding balance of {outstanding(doc)}")
     pay_date = payload.pay_date or date.today()
-    payment = Payment(organization_id=org_id, direction=payload.direction, pay_number=next_number(db, org_id, "receipt" if payload.direction == "RECEIPT" else "payment", PAYMENT_PREFIX[payload.direction], pay_date), pay_date=pay_date,
+    payment = Payment(organization_id=org_id, direction=payload.direction, pay_number=next_number(db, org_id, "receipt" if payload.direction == "RECEIPT" else "payment", PAYMENT_PREFIX[payload.direction], pay_date, user=user), pay_date=pay_date,
                       party_name=payload.party_name.strip(), method=payload.method, reference=payload.reference, amount=payload.amount, status="POSTED", idempotency_key=idempotency_key, remarks=payload.remarks, created_by=user.id)
     for alloc in payload.allocations:
         payment.allocations.append(PaymentAllocation(document_id=alloc.document_id, amount=alloc.amount))

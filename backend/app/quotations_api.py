@@ -302,6 +302,17 @@ def _sod_blocked(db: Session, user: User, quote: Quotation) -> bool:
     return bool(config.QUOTE_SOD and not (org and org.is_demo) and quote.prepared_by == user.id)
 
 
+def _assign_number(db: Session, org_id: int, quote: Quotation, user: User) -> None:
+    """The official quotation number exists only once the quotation is approved (never for drafts, rejected or submitted ones)."""
+    if quote.number:
+        return
+    root = db.get(Quotation, quote.root_id) if quote.root_id and quote.root_id != quote.id else None
+    if quote.revision_no > 0 and root is not None and root.number:
+        quote.number = f"{root.number}-R{quote.revision_no}"
+    else:
+        quote.number = next_number(db, org_id, "quotation", "QT", quote.quote_date, user=user)
+
+
 @router.post("/{quote_id}/approval/approve")
 def approve(quote_id: int, payload: Decision | None = None, user: User = Depends(permission_required("quote.approve")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
@@ -313,7 +324,8 @@ def approve(quote_id: int, payload: Decision | None = None, user: User = Depends
     quote.approval_status = "APPROVED"
     quote.approved_by, quote.approved_at = user.id, datetime.now(timezone.utc)
     quote.approval_remarks = (payload.remarks if payload else None) or None
-    _event(db, quote, "APPROVED", "SUBMITTED", "APPROVED", user, quote.approval_remarks)
+    _assign_number(db, org_id, quote, user)
+    _event(db, quote, "APPROVED", "SUBMITTED", "APPROVED", user, f"{quote.number}" + (f" · {quote.approval_remarks}" if quote.approval_remarks else ""))
     record_audit(db, "QUOTATION_APPROVED", "SALES", user, org_id, "Quotation", str(quote.id), {})
     db.commit()
     return _out(db, _load(db, org_id, quote_id), user, True)
@@ -406,11 +418,8 @@ def send_quotation(quote_id: int, user: User = Depends(permission_required("quot
         raise HTTPException(status_code=422, detail="Add at least one sell charge with a rate before sending")
     if quote.valid_until and quote.valid_until < date.today():
         raise HTTPException(status_code=422, detail="The validity date has already passed")
-    root = db.get(Quotation, quote.root_id) if quote.root_id and quote.root_id != quote.id else None
-    if quote.revision_no > 0 and root is not None and root.number:
-        quote.number = f"{root.number}-R{quote.revision_no}"
-    else:
-        quote.number = next_number(db, org_id, "quotation", "QT", quote.quote_date)
+    if not quote.number:  # quotations approved before numbering moved to approval
+        _assign_number(db, org_id, quote, user)
     quote.status = "SENT"
     quote.sent_at = datetime.now(timezone.utc)
     _event(db, quote, "SENT", "DRAFT", "SENT", user, quote.number)
@@ -465,7 +474,7 @@ def convert_to_job(quote_id: int, carrier: str | None = Query(default=None, max_
 
     credit_enforce(db, org_id, quote.customer_id, "convert quotation to job", user.id, None, ZERO_AMT)
     container_mode = quote.shipment_type if quote.shipment_type in ("FCL", "LCL") else None
-    job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, quote.mode, quote.direction), mode=quote.mode, direction=quote.direction, container_mode=container_mode,
+    job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, quote.mode, quote.direction, quote.shipment_type if quote.shipment_type in ("FCL", "LCL") else None, user), mode=quote.mode, direction=quote.direction, container_mode=container_mode,
                    pol=quote.pol, pod=quote.pod, customer_id=quote.customer_id, status="Open", created_by=user.id)
     db.add(job)
     db.flush()

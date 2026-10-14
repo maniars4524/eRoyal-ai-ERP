@@ -15,6 +15,7 @@ from .bookings_api import router as bookings_router
 from .crm_api import router as crm_router
 from .org_ext_api import router as org_ext_router
 from .jobs_lifecycle_api import router as jobs_lifecycle_router
+from .sequences_api import router as sequences_router
 from .documents_api import router as documents_router
 from .job_charges_api import router as job_charges_router
 from .payments_api import router as payments_router
@@ -65,6 +66,7 @@ app.include_router(bookings_router)
 app.include_router(crm_router)
 app.include_router(org_ext_router)
 app.include_router(jobs_lifecycle_router)
+app.include_router(sequences_router)
 
 
 @app.on_event("startup")

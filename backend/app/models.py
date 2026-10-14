@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Table, Text, UniqueConstraint, func
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Table, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -691,4 +691,86 @@ class JobMilestone(Base):
     actual_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     remarks: Mapped[str | None] = mapped_column(Text)
     confirmed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SequenceConfig(Base):
+    """A numbering sequence (format + scope + reset rules). Active configs are immutable: changes are a new version."""
+    __tablename__ = "sequence_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    module: Mapped[str] = mapped_column(String(40))
+    doc_type: Mapped[str] = mapped_column(String(40))
+    branch_scope: Mapped[str] = mapped_column(String(20), default="ALL")
+    fy_scope: Mapped[str] = mapped_column(String(12), default="ALL")
+    shipment_scope: Mapped[str] = mapped_column(String(40), default="ALL")
+    components: Mapped[list] = mapped_column(JSON, default=list)
+    number_width: Mapped[int] = mapped_column(Integer, default=5)
+    start_number = mapped_column(BigInteger, default=1)
+    step: Mapped[int] = mapped_column(Integer, default=1)
+    reset_policy: Mapped[str] = mapped_column(String(10), default="FY")
+    max_length: Mapped[int] = mapped_column(Integer, default=40)
+    doc_code: Mapped[str | None] = mapped_column(String(12))
+    fy_format: Mapped[str] = mapped_column(String(10), default="YY-YY")
+    shipment_codes: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(10), default="DRAFT")
+    effective_from: Mapped[date | None] = mapped_column(Date)
+    effective_to: Mapped[date | None] = mapped_column(Date)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    replaces_id: Mapped[int | None] = mapped_column(ForeignKey("sequence_configs.id", ondelete="SET NULL"))
+    is_system_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    remarks: Mapped[str | None] = mapped_column(String(500))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class SequenceCounter(Base):
+    __tablename__ = "sequence_counters"
+    __table_args__ = (UniqueConstraint("config_id", "period_key", name="uq_sequence_counter"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    config_id: Mapped[int] = mapped_column(ForeignKey("sequence_configs.id", ondelete="CASCADE"), index=True)
+    period_key: Mapped[str] = mapped_column(String(12))
+    last_number = mapped_column(BigInteger, default=0)
+
+
+class IssuedNumber(Base):
+    """Registry of every centrally issued identifier: the final guard against duplicates and the trace back to the configuration."""
+    __tablename__ = "issued_numbers"
+    __table_args__ = (UniqueConstraint("organization_id", "doc_type", "number", name="uq_issued_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    doc_type: Mapped[str] = mapped_column(String(40))
+    number: Mapped[str] = mapped_column(String(60))
+    config_id: Mapped[int | None] = mapped_column(ForeignKey("sequence_configs.id", ondelete="SET NULL"))
+    config_version: Mapped[int | None] = mapped_column(Integer)
+    period_key: Mapped[str | None] = mapped_column(String(12))
+    branch_code: Mapped[str | None] = mapped_column(String(20))
+    shipment_key: Mapped[str | None] = mapped_column(String(40))
+    issued_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    related_type: Mapped[str | None] = mapped_column(String(30))
+    related_id: Mapped[str | None] = mapped_column(String(60))
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SequenceEvent(Base):
+    __tablename__ = "sequence_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    config_id: Mapped[int | None] = mapped_column(ForeignKey("sequence_configs.id", ondelete="SET NULL"), index=True)
+    doc_type: Mapped[str | None] = mapped_column(String(40))
+    action: Mapped[str] = mapped_column(String(40))
+    previous: Mapped[dict | None] = mapped_column(JSON)
+    new: Mapped[dict | None] = mapped_column(JSON)
+    reason: Mapped[str | None] = mapped_column(Text)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    actor_name: Mapped[str | None] = mapped_column(String(160))
+    related_ref: Mapped[str | None] = mapped_column(String(80))
+    result: Mapped[str] = mapped_column(String(10), default="SUCCESS")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

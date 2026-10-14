@@ -72,7 +72,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // reload: everything comes back from the database
   dom = await open(); w = dom.window; d = w.document;
   w.go("crm-enquiry"); await sleep(2000); 
-  check("after a fresh load the enquiries list comes from the database with the customer name", /Acme Exports/.test(text("#crmEnquiryRoot")) && (text("#crmEnquiryRoot").match(/ENQ-/g) || []).length >= 2, text("#crmEnquiryRoot").slice(0, 300));
+  check("after a fresh load the enquiries list comes from the database with the customer name", /Acme Exports/.test(text("#crmEnquiryRoot")) && (text("#crmEnquiryRoot").match(/ENQ\//g) || []).length >= 2, text("#crmEnquiryRoot").slice(0, 300));
   w.go("crm-lead"); await sleep(1500);
   check("leads survive a reload", /Acme Exports/.test(text("#crmLeadRoot")) && /Converted/.test(text("#crmLeadRoot")));
 

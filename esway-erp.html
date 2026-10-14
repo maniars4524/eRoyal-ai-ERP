@@ -3548,6 +3548,12 @@ tbody tr:hover{background:var(--g0)}
 <div id="quotFormWrap" style="display:none"><div id="qkRoot"></div></div>
 </div>
 
+<!-- ====== SEQUENCE SETTING ====== -->
+<div id="s-sequence-setting" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="tag" style="color:var(--bl)"></svg>Sequence Setting</div><div class="ps">Numbering formats for jobs, sales, documentation and finance: configure, preview, test and activate</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
+<div id="seqRoot"></div>
+</div>
+
 <!-- ====== BOOKING ====== -->
 <div id="s-booking" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="calendar-check" style="color:var(--bl)"></svg>Bookings</div><div class="ps">Vessel and flight bookings with shipping lines and airlines</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="newBookingBtn"><svg class="ic" data-icon="plus"></svg> New Booking</button></div></div>
@@ -6640,6 +6646,7 @@ const SCREEN_META = {
   "svc-cha":{title:"CHA", crumb:"eSway ERP 2.0 / Service Ops / <strong>CHA</strong>", menu:"svc-cha"},
   "svc-transport":{title:"Transport", crumb:"eSway ERP 2.0 / Service Ops / <strong>Transport</strong>", menu:"svc-transport"},
   "svc-warehouse":{title:"Warehouse", crumb:"eSway ERP 2.0 / Service Ops / <strong>Warehouse</strong>", menu:"svc-warehouse"},
+  "sequence-setting":{title:"Sequence Setting", crumb:"eSway ERP 2.0 / Settings / <strong>Sequence Setting</strong>", menu:"sequence-setting"},
   "quot-templates":{title:"Quotation Templates", crumb:"eSway ERP 2.0 / Settings / <strong>Quotation Templates</strong>", menu:"quot-templates"},
   "quotation-new":{title:"Quotation Preparation", crumb:"eSway ERP 2.0 / CRM / Quotation / <strong>Quotation Preparation</strong>", menu:"quotation"},
   "booking-new":{title:"New Booking", crumb:"eSway ERP 2.0 / Operations / Bookings / <strong>New Booking</strong>", menu:""},
@@ -7006,6 +7013,9 @@ const TOPNAV_MENU = [
     ]},
     {label:"Quotation Setup", icon:"tag", children:[
       {label:"Quotation Templates", icon:"tag", go:"quot-templates"},
+    ]},
+    {label:"Numbering", icon:"tag", children:[
+      {label:"Sequence Setting", icon:"tag", go:"sequence-setting"},
     ]},
     {label:"Organisation", icon:"building", children:[
       {label:"Organisation Settings", icon:"building", go:"org-list"},
@@ -9685,7 +9695,22 @@ const CRM_SERVICE_TEMPLATES = {
 };
 
 let crmSeq = 100;
-function crmNextId(prefix){ return prefix+"-"+(crmSeq++); }
+const CRM_SEQ_TYPES = {LD:"lead", ENQ:"enquiry", OPP:"opportunity", FU:"followup", BKG:"crm_booking"};
+function crmNextId(prefix){
+  const docType = CRM_SEQ_TYPES[prefix];
+  if(!docType) return prefix+"-"+(crmSeq++);  // internal, in-memory working ids (manifests, customs, templates ...)
+  /* CRM records are numbered by the central sequence service (Settings -> Sequence Setting). The number is needed at the moment the form is saved. */
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/sequences/issue", false);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.setRequestHeader("Authorization", "Bearer " + (sessionStorage.getItem("esway_access_token") || ""));
+  try{ xhr.send(JSON.stringify({doc_type: docType})); }catch(e){ toast("Numbering unavailable", "The numbering service could not be reached. Nothing was saved.", "error"); throw new Error("numbering unavailable"); }
+  if(xhr.status === 200) return JSON.parse(xhr.responseText).number;
+  let msg = "The numbering service refused the request";
+  try{ const d = JSON.parse(xhr.responseText).detail; msg = typeof d === "string" ? d : msg; }catch(e){ /* keep default */ }
+  toast("Number not issued", msg, "error");
+  throw new Error(msg);
+}
 function crmNow(){ return new Date(); }
 function crmFmt(d){ return new Date(d).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}); }
 function crmLog(record, text){ record.timeline = record.timeline || []; record.timeline.unshift({ts:crmFmt(crmNow()), text}); }
@@ -15876,6 +15901,199 @@ if(document.readyState !== "loading") initChatWidget();
 })();
 </script>
 <script>
+/* ============================================================
+   SEQUENCE KIT: Settings -> Sequence Setting. Configure numbering formats, preview / test them, accept system suggestions,
+   activate, version, adjust and audit. Every rule is enforced by /api/sequences on the server.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const S = window.SeqKit = {meta:null, items:[], total:0, f:{q:"", module:"", branch:"", fy:"", shipment:"", status:""}};
+  const root = ()=> document.getElementById("seqRoot");
+  const dmyt = v=> v ? new Date(v).toLocaleString("en-GB", {day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}) : "—";
+  const opt = (v, t, sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(t===undefined?v:t)+'</option>';
+  const chip = (t, cls)=> '<span class="b '+cls+'">'+esc2(t)+'</span>';
+  const ST = {DRAFT:"b-gy", ACTIVE:"b-gr", INACTIVE:"b-am", RETIRED:"b-gy"};
+  const CMP_LABEL = {prefix:"Prefix (fixed text)", branch:"Branch code", fy:"Financial year", cyear:"Calendar year (2026)", cyear2:"Calendar year (26)", shipment:"Shipment type code", doctype:"Document type code", custom:"Custom code", sep:"Separator", number:"Sequential number", suffix:"Suffix (fixed text)"};
+  const can = c=> !!(S.meta && S.meta.can[c]);
+  const docInfo = k=> (S.meta.doc_types || []).find(d=>d.doc_type === k) || {};
+
+  (function css(){ const st = document.createElement("style"); st.textContent = ".sq-row{display:grid;grid-template-columns:170px 1fr auto;gap:6px;align-items:center;margin-bottom:5px}.sq-prev{border:1px solid var(--g2);border-radius:10px;background:var(--g0);padding:10px 12px}.sq-ok{color:var(--gr);font-weight:700}.sq-bad{color:var(--rd);font-weight:700}.sq-note{font-size:11px;color:var(--g5)}"; document.head.appendChild(st); })();
+
+  async function load(){
+    if(!S.meta) S.meta = await api("GET","/api/sequences/meta").catch(e=>{ say("Could not open Sequence Setting", e.message); return null; });
+    if(!S.meta) return;
+    const q = new URLSearchParams({limit:"500"}); Object.entries(S.f).forEach(([k,v])=>{ if(v) q.set(k, v); });
+    try{ const r = await api("GET","/api/sequences?"+q.toString()); S.items = r.items; S.total = r.total; }catch(e){ say("Could not load sequences", e.message); return; }
+    render();
+  }
+
+  function render(){
+    const el = root(); if(!el || !S.meta) return; const m = S.meta;
+    const modules = Array.from(new Set(m.doc_types.map(d=>d.module)));
+    const sel = (id, label, list, cur)=> '<select class="fc" data-sqf="'+id+'" style="width:150px;padding:5px 7px">'+opt("", label, !cur)+list.map(x=>opt(x[0], x[1], x[0]===cur)).join("")+'</select>';
+    el.innerHTML = '<div class="card" style="margin-bottom:12px"><div class="cb" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="fc" data-sqf="q" placeholder="Search sequence…" value="'+esc2(S.f.q)+'" style="width:200px">'+
+        sel("module","All modules", modules.map(x=>[x,x]), S.f.module)+sel("branch","All branches", [["ALL","All branches (global)"]].concat(m.branches.map(b=>[b,b])), S.f.branch)+sel("fy","All financial years", [["ALL","All years"], [m.current_fy, m.current_fy]], S.f.fy)+
+        sel("shipment","All shipment types", [["ALL","All shipment types"]].concat(m.shipment_keys.map(k=>[k,k])), S.f.shipment)+sel("status","All statuses", ["DRAFT","ACTIVE","INACTIVE","RETIRED"].map(x=>[x,x]), S.f.status)+
+        '<span style="flex:1"></span>'+(can("create") ? '<button class="btn btn-pri btn-sm" type="button" data-sq="new">＋ Add New Sequence</button>' : '')+(can("suggest") ? '<button class="btn btn-out btn-sm" type="button" data-sq="suggest">✨ System Suggest Sequence</button>' : '')+(can("export") ? '<button class="btn btn-out btn-sm" type="button" data-sq="export">Export Configuration</button><button class="btn btn-out btn-sm" type="button" data-sq="export-history">Export History</button>' : '')+'</div></div>'+
+      '<div class="card"><div class="tw"><table><thead><tr><th>Sequence Name</th><th>Module</th><th>Document Type</th><th>Branch</th><th>Financial Year</th><th>Shipment Type</th><th>Prefix</th><th>Next Number</th><th>Padding</th><th>Suffix</th><th>Total Length</th><th>Status</th><th>Last Updated</th><th class="no-print"></th></tr></thead><tbody>'+
+      (S.items.length ? S.items.map(c=>'<tr><td style="font-weight:600">'+esc2(c.name)+(c.is_system_default ? ' <span class="b b-gy" title="Created automatically to keep the numbering used before Sequence Setting">default</span>' : '')+(c.version>1 ? ' <span class="b b-gy">v'+c.version+'</span>' : '')+(c.integrated ? '' : ' <span class="b b-am" title="No screen uses this document type yet; the configuration is stored for when it is connected">not wired yet</span>')+'</td><td>'+esc2(c.module)+'</td><td>'+esc2(c.doc_label)+'</td><td>'+esc2(c.branch_scope)+'</td><td>'+esc2(c.fy_scope)+'</td><td>'+esc2(c.shipment_scope)+'</td><td class="mono">'+esc2(c.prefix||"—")+'</td><td class="mono" style="font-weight:700">'+esc2(c.next_number||"—")+'</td><td>'+c.number_width+'</td><td class="mono">'+esc2(c.suffix||"—")+'</td><td>'+(c.total_length ? c.total_length+" / "+c.max_length : "—")+'</td><td>'+chip(c.status, ST[c.status])+'</td><td style="font-size:11px">'+dmyt(c.updated_at)+'</td><td class="no-print" style="white-space:nowrap">'+actions(c)+'</td></tr>').join("")
+        : '<tr><td colspan="14" style="text-align:center;color:var(--g4);padding:16px;font-style:italic">No sequences match these filters.</td></tr>')+'</tbody></table></div><div class="cf">Showing '+S.items.length+' of '+S.total+' sequences · invoice and voucher numbers are limited to '+m.financial_max+' characters in total</div></div>';
+  }
+  function actions(c){
+    const b = (k, t, extra)=> '<button class="ta" type="button" data-sq="'+k+':'+c.id+'" '+(extra||"")+'>'+t+'</button> ';
+    let h = b("view", c.status==="DRAFT" && can("edit") ? "Edit" : "View");
+    if(can("test")) h += b("test", "Preview");
+    if(can("history")) h += b("history", "History");
+    if(c.status==="DRAFT" && can("activate")) h += b("activate", "Activate", 'style="color:var(--gr)"');
+    if(c.status==="ACTIVE" && can("deactivate")) h += b("deactivate", "Deactivate", 'style="color:var(--rd)"');
+    if(c.status==="ACTIVE" && can("create")) h += b("version", "New version");
+    if(c.status!=="RETIRED" && can("adjust")) h += b("adjust", "Adjust next");
+    if((c.status==="INACTIVE" || c.status==="DRAFT") && can("deactivate")) h += b("retire", "Retire");
+    return h;
+  }
+
+  /* ---------- form with format builder and live preview ---------- */
+  let form = null;
+  const blankForm = ()=> ({id:null, name:"", doc_type:"quotation", branch_scope:"ALL", fy_scope:"ALL", shipment_scope:"ALL", components:[{k:"prefix", v:"QT"},{k:"sep", v:"/"},{k:"fy"},{k:"sep", v:"/"},{k:"number"}], number_width:5, start_number:1, step:1, reset_policy:"FY", max_length:40, doc_code:"", fy_format:"YY-YY", shipment_codes:{}, effective_from:"", effective_to:"", remarks:"", status:"DRAFT"});
+  function fieldRow(label, html, span){ return '<div class="fg"'+(span ? ' style="grid-column:span '+span+'"' : '')+'><label class="fl">'+label+'</label>'+html+'</div>'; }
+  function compRows(ro){
+    return form.components.map((c,i)=>'<div class="sq-row"><select class="fc" data-sq-ck="'+i+'"'+(ro?" disabled":"")+'>'+S.meta.components.map(k=>opt(k, CMP_LABEL[k]||k, k===c.k)).join("")+'</select>'+
+      (["prefix","suffix","custom"].includes(c.k) ? '<input class="fc" data-sq-cv="'+i+'" value="'+esc2(c.v||"")+'" placeholder="letters / digits" maxlength="12"'+(ro?" disabled":"")+'>' : c.k === "sep" ? '<select class="fc" data-sq-cv="'+i+'"'+(ro?" disabled":"")+'>'+S.meta.separators.map(s=>opt(s, s==="/"?"/ (slash)":s==="-"?"- (hyphen)":s==="."?". (dot)":"_ (underscore)", s===(c.v||"/"))).join("")+'</select>' : '<span class="sq-note">'+(c.k==="number" ? "Padded to the number width below" : "Filled automatically")+'</span>')+
+      '<span style="white-space:nowrap">'+(ro ? '' : '<button class="qk-icon" type="button" data-sq-cm="up:'+i+'" title="Move up">↑</button><button class="qk-icon" type="button" data-sq-cm="down:'+i+'" title="Move down">↓</button><button class="qk-icon del" type="button" data-sq-cm="del:'+i+'" title="Remove">✕</button>')+'</span></div>').join("");
+  }
+  function openForm(rec, readOnlyMode){
+    form = rec ? JSON.parse(JSON.stringify({...rec, effective_from:rec.effective_from||"", effective_to:rec.effective_to||"", doc_code:rec.doc_code||"", remarks:rec.remarks||""})) : blankForm();
+    const ro = !!readOnlyMode || (form.id && form.status !== "DRAFT");
+    const m = S.meta; const di = docInfo(form.doc_type);
+    const groups = {}; m.doc_types.forEach(d=> (groups[d.module] = groups[d.module] || []).push(d));
+    const docSel = '<select class="fc" data-sq-f="doc_type"'+(form.id?" disabled":"")+'>'+Object.keys(groups).map(g=>'<optgroup label="'+esc2(g)+'">'+groups[g].map(d=>opt(d.doc_type, d.label+(d.integrated?"":" (not wired yet)")+(d.financial?" · max 16":""), d.doc_type===form.doc_type)).join("")+'</optgroup>').join("")+'</select>';
+    const inp = (k, type, extra)=> '<input class="fc" data-sq-f="'+k+'" '+(type?'type="'+type+'" ':'')+'value="'+esc2(form[k]===null||form[k]===undefined?"":form[k])+'"'+(ro?" disabled":"")+(extra||"")+'>';
+    const body = '<div class="fr">'+fieldRow("Sequence Name *", inp("name","text"," placeholder=\"e.g. Sea Export Job Numbers\""), 2)+fieldRow("Document Type *", docSel, 2)+'</div>'+
+      '<div class="fr">'+fieldRow("Branch Scope", '<select class="fc" data-sq-f="branch_scope"'+(ro?" disabled":"")+'>'+opt("ALL","All branches")+m.branches.map(b=>opt(b,b,b===form.branch_scope)).join("")+'</select>')+fieldRow("Financial Year Scope", '<select class="fc" data-sq-f="fy_scope"'+(ro?" disabled":"")+'>'+opt("ALL","All years",form.fy_scope==="ALL")+opt(m.current_fy, m.current_fy, form.fy_scope===m.current_fy)+(form.fy_scope!=="ALL" && form.fy_scope!==m.current_fy ? opt(form.fy_scope, form.fy_scope, true) : "")+'</select>')+
+      (di.shipment_aware ? fieldRow("Shipment Type Scope", '<select class="fc" data-sq-f="shipment_scope"'+(ro?" disabled":"")+'>'+opt("ALL","All shipment types",form.shipment_scope==="ALL")+m.shipment_keys.map(k=>opt(k,k,k===form.shipment_scope)).join("")+'</select>') : '')+
+      fieldRow("Status", '<input class="fc" disabled value="'+esc2(form.status)+'">')+'</div>'+
+      '<div class="fsec">Format builder (top to bottom = left to right in the number)</div><div id="sqComps">'+compRows(ro)+'</div>'+(ro ? '' : '<div style="margin:4px 0 8px"><button class="btn btn-out btn-sm" type="button" data-sq-add="1">＋ Add component</button> <span class="sq-note">Quick formats:</span> <button class="ta" type="button" data-sq-tpl="A">Prefix / Branch / Type / Year / No.</button> <button class="ta" type="button" data-sq-tpl="B">Type / Year / No.</button> <button class="ta" type="button" data-sq-tpl="C">Branch / Type / No.</button></div>')+
+      '<div class="fr">'+fieldRow("Number Width (digits)", inp("number_width","number"," min=\"1\" max=\"12\""))+fieldRow("Starting Number", inp("start_number","number"," min=\"0\""))+fieldRow("Increment Step", inp("step","number"," min=\"1\""))+fieldRow("Reset", '<select class="fc" data-sq-f="reset_policy"'+(ro?" disabled":"")+'>'+opt("FY","Every financial year",form.reset_policy==="FY")+opt("CALENDAR","Every calendar year",form.reset_policy==="CALENDAR")+opt("NEVER","Never reset",form.reset_policy==="NEVER")+'</select>')+'</div>'+
+      '<div class="fr">'+fieldRow("Maximum Identifier Length", '<input class="fc" data-sq-f="max_length" type="number" min="4" max="'+(di.financial?m.financial_max:40)+'" value="'+(di.financial ? Math.min(form.max_length||m.financial_max, m.financial_max) : form.max_length)+'"'+(ro?" disabled":"")+'>')+fieldRow("Document Type Code", inp("doc_code","text"," placeholder=\""+esc2(di.doc_code||"")+"\" maxlength=\"12\""))+fieldRow("Financial Year Format", '<select class="fc" data-sq-f="fy_format"'+(ro?" disabled":"")+'>'+Object.entries(m.fy_formats).map(([k,ex])=>opt(k, k+"  →  "+ex, k===form.fy_format)).join("")+'</select>')+fieldRow("Effective From", inp("effective_from","date"))+'</div>'+
+      '<div class="fr">'+fieldRow("Effective To (optional)", inp("effective_to","date"))+fieldRow("Remarks", inp("remarks","text"), 3)+'</div>'+
+      (form.components.some(c=>c.k==="shipment") ? '<div class="fsec">Shipment type codes</div><div class="fr">'+Object.entries(m.shipment_codes).map(([k,v])=>'<div class="fg"><label class="fl">'+esc2(k)+'</label><input class="fc" data-sq-sc="'+esc2(k)+'" value="'+esc2((form.shipment_codes||{})[k]||v)+'" maxlength="12"'+(ro?" disabled":"")+'></div>').join("")+'</div>' : '')+
+      '<div class="sq-prev" id="sqPrev" style="margin-top:10px">Preview loading…</div>'+(di.financial ? '<div class="ib ib-am" style="margin-top:8px">Invoice and voucher numbers may not exceed <b>'+m.financial_max+' characters</b> in total (prefix, codes, separators, number and suffix all count).</div>' : '')+(!di.integrated ? '<div class="ib ib-bl" style="margin-top:8px">No screen uses this document type yet, so this configuration is stored but will not number anything until that screen is connected. Numbers assigned by carriers, airlines or customs (BL, AWB, ...) are never overwritten.</div>' : '');
+    openModal({title: form.id ? (ro ? "Sequence — "+form.name : "Edit Sequence") : "New Sequence", size:"lg", bodyHTML:body,
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">'+(ro?"Close":"Cancel")+'</button>'+(ro ? '' : '<button class="btn btn-pri" type="button" id="sqSave">'+(form.id?"Save Changes":"Save as Draft")+'</button>')});
+    refreshPreview();
+  }
+  function formBody(){
+    return {name:form.name || "x", doc_type:form.doc_type, branch_scope:form.branch_scope, fy_scope:form.fy_scope, shipment_scope:form.shipment_scope, components:form.components.map(c=>({k:c.k, ...(c.v ? {v:c.v} : {})})), number_width:Number(form.number_width)||5,
+      start_number:Number(form.start_number)||0, step:Number(form.step)||1, reset_policy:form.reset_policy, max_length:Number(form.max_length)||null, doc_code:form.doc_code ? form.doc_code.toUpperCase() : null, fy_format:form.fy_format,
+      shipment_codes:Object.fromEntries(Object.entries(form.shipment_codes||{}).filter(([k,v])=>v)), effective_from:form.effective_from || null, effective_to:form.effective_to || null, remarks:form.remarks || null};
+  }
+  let prevTimer = null;
+  function refreshPreview(){
+    clearTimeout(prevTimer);
+    prevTimer = setTimeout(async ()=>{
+      const box = document.getElementById("sqPrev"); if(!box || !form) return;
+      try{
+        const body = formBody(); if(body.name.length < 2) body.name = "preview";
+        const r = await api("POST","/api/sequences/preview", body); const v = r.validation;
+        box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b>Live preview</b><span class="'+(v.ok?"sq-ok":"sq-bad")+'">'+(v.ok ? "✔ Valid — can be activated" : "✘ Cannot be activated")+'</span></div>'+
+          '<div class="sq-note" style="margin-bottom:6px">Branch used for the sample: <b>'+esc2(r.branch_used||"—")+'</b> · Financial year: <b>'+esc2(r.financial_year||"—")+'</b> · Worst-case length: <b>'+v.worst_length+'</b> of <b>'+v.max_length+'</b> characters · simulated numbers, nothing is consumed</div>'+
+          '<table style="font-size:12px;border-collapse:collapse"><thead><tr style="color:var(--g5)"><th style="text-align:left;padding:2px 14px 2px 0">Sample</th><th style="text-align:left;padding:2px 14px">Generated number</th><th style="text-align:right;padding:2px 0 2px 14px">Length</th></tr></thead><tbody>'+
+          (r.samples||[]).map((s,i)=>'<tr><td style="padding:2px 14px 2px 0">#'+(i+1)+'</td><td class="mono" style="padding:2px 14px;font-weight:700">'+esc2(s.number||s.error||"—")+'</td><td style="text-align:right;padding:2px 0 2px 14px" class="'+(s.ok?"":"sq-bad")+'">'+s.length+'</td></tr>').join("")+'</tbody></table>'+
+          v.errors.map(x=>'<div class="sq-bad" style="margin-top:5px;font-size:12px">• '+esc2(x)+'</div>').join("")+v.warnings.map(x=>'<div style="margin-top:5px;font-size:12px;color:var(--am)">• '+esc2(x)+'</div>').join("");
+      }catch(e){ box.innerHTML = '<span class="sq-bad">'+esc2(e.message)+'</span>'; }
+    }, 250);
+  }
+  function syncComps(){ const c = document.getElementById("sqComps"); if(c) c.innerHTML = compRows(false); refreshPreview(); }
+  const TPL = {A:[{k:"prefix",v:"SW"},{k:"sep",v:"/"},{k:"branch"},{k:"sep",v:"/"},{k:"doctype"},{k:"sep",v:"/"},{k:"fy"},{k:"sep",v:"/"},{k:"number"}], B:[{k:"doctype"},{k:"sep",v:"/"},{k:"fy"},{k:"sep",v:"/"},{k:"number"}], C:[{k:"branch"},{k:"sep",v:"-"},{k:"doctype"},{k:"sep",v:"-"},{k:"number"}]};
+
+  async function saveForm(){
+    const body = formBody(); if(!form.name || form.name.length < 2){ say("Name required", "Give the sequence a name", "warn"); return; }
+    try{
+      const r = form.id ? await api("PATCH","/api/sequences/"+form.id, (({doc_type, ...rest})=>rest)(body)) : await api("POST","/api/sequences", body);
+      closeModal(); say(form.id ? "Sequence updated" : "Sequence saved as draft", r.name+(r.validation && !r.validation.ok ? " — it has validation errors and cannot be activated yet" : "")); load();
+    }catch(e){ say("Could not save the sequence", e.message); }
+  }
+
+  /* ---------- other dialogs ---------- */
+  function samplesTable(samples){ return '<table style="font-size:12px"><thead><tr style="color:var(--g5)"><th style="text-align:left;padding:2px 14px 2px 0">Test</th><th style="text-align:left;padding:2px 14px">Generated number</th><th style="text-align:right;padding:2px 0 2px 14px">Length</th></tr></thead><tbody>'+samples.map((s,i)=>'<tr><td>Sample '+(i+1)+'</td><td class="mono" style="padding:2px 14px;font-weight:700">'+esc2(s.number||s.error)+'</td><td style="text-align:right" class="'+(s.ok?"":"sq-bad")+'">'+s.length+'</td></tr>').join("")+'</tbody></table>'; }
+  async function testDialog(id){
+    const c = S.items.find(x=>x.id===id); const r = await api("POST","/api/sequences/"+id+"/test");
+    openModal({title:"Preview & Test — "+c.name, size:"lg", bodyHTML:'<div class="sq-note" style="margin-bottom:8px">Diagnostic run: nothing is issued, reserved or posted.</div>'+samplesTable(r.samples)+'<div style="margin-top:8px">Validation: <span class="'+(r.validation.ok?"sq-ok":"sq-bad")+'">'+(r.validation.ok?"valid":"not valid")+'</span> · worst-case length '+r.validation.worst_length+' of '+r.validation.max_length+' · uniqueness: <b>'+esc2(r.uniqueness)+'</b>'+(r.conflicts.length ? ' · <span class="sq-bad">conflicts with: '+esc2(r.conflicts.join(", "))+'</span>' : '')+'</div>'+r.validation.errors.map(x=>'<div class="sq-bad" style="font-size:12px">• '+esc2(x)+'</div>').join(""), footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button>'});
+  }
+  async function historyDialog(id){
+    const c = S.items.find(x=>x.id===id); const r = await api("GET","/api/sequences/"+id+"/history");
+    openModal({title:"History — "+c.name, size:"lg", bodyHTML:'<div class="tw"><table><thead><tr><th>When</th><th>Action</th><th>Result</th><th>User</th><th>Reason / detail</th></tr></thead><tbody>'+(r.events.length ? r.events.map(e=>'<tr><td style="font-size:11px">'+dmyt(e.at)+'</td><td><b>'+esc2(e.action.replace(/_/g," ").toLowerCase())+'</b></td><td>'+(e.result==="SUCCESS" ? chip("OK","b-gr") : chip(e.result,"b-rd"))+'</td><td>'+esc2(e.user||"")+'</td><td style="font-size:11px;max-width:320px">'+esc2(e.reason||"")+(e.previous && e.previous.next_number ? " (next number "+e.previous.next_number+" → "+((e.new||{}).next_number)+")" : "")+(e.related_ref ? " · "+esc2(e.related_ref) : "")+'</td></tr>').join("") : '<tr><td colspan="5" style="color:var(--g4);padding:10px">No events yet.</td></tr>')+'</tbody></table></div>'+
+      '<div class="fsec" style="margin-top:12px">Numbers issued by this sequence ('+r.issued_total+', newest first)</div><div class="tw"><table><thead><tr><th>Number</th><th>Issued</th><th>Branch</th><th>Shipment</th><th>Version</th><th>Used by</th></tr></thead><tbody>'+(r.issued.length ? r.issued.map(n=>'<tr><td class="mono">'+esc2(n.number)+'</td><td style="font-size:11px">'+dmyt(n.at)+'</td><td>'+esc2(n.branch||"—")+'</td><td>'+esc2(n.shipment||"—")+'</td><td>v'+(n.version||1)+'</td><td>'+esc2(n.related||"—")+'</td></tr>').join("") : '<tr><td colspan="6" style="color:var(--g4);padding:10px">Nothing issued yet.</td></tr>')+'</tbody></table></div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button>'});
+  }
+  function reasonDialog(title, label, cta, onGo){
+    openModal({title, bodyHTML:'<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">'+label+' *</label><input class="fc" id="sqReason"></div></div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="sqReasonGo">'+cta+'</button>'});
+    document.getElementById("sqReasonGo").onclick = async ()=>{ const v = document.getElementById("sqReason").value.trim(); if(v.length < 3){ say("Reason required", "", "warn"); return; } try{ await onGo(v); closeModal(); load(); }catch(e){ say("Not done", e.message); } };
+  }
+  async function act(kind, id){
+    const c = S.items.find(x=>x.id===id);
+    try{
+      if(kind === "view"){ const full = await api("GET","/api/sequences/"+id); return openForm(full, false); }
+      if(kind === "test") return testDialog(id);
+      if(kind === "history") return historyDialog(id);
+      if(kind === "activate"){
+        try{ const r = await api("POST","/api/sequences/"+id+"/activate", {}); say("Sequence activated", r.name+(r.replaced && r.replaced.length ? " — replaced "+r.replaced.join(", ") : "")); }
+        catch(e){ say("Not activated", e.message); }
+        return load();
+      }
+      if(kind === "deactivate") return reasonDialog("Deactivate "+c.name, "Reason for deactivating", "Deactivate", v=> api("POST","/api/sequences/"+id+"/deactivate", {reason:v}));
+      if(kind === "retire") return reasonDialog("Retire "+c.name, "Reason for retiring", "Retire", v=> api("POST","/api/sequences/"+id+"/retire", {reason:v}));
+      if(kind === "version"){ const r = await api("POST","/api/sequences/"+id+"/new-version"); say("New version created", "Edit the draft, then activate it to replace the current one"); await load(); const full = await api("GET","/api/sequences/"+r.id); return openForm(full); }
+      if(kind === "adjust"){
+        openModal({title:"Adjust next number — "+c.name, bodyHTML:'<div class="ib ib-am" style="margin-bottom:8px">The next number can only move forward, never onto a number that was already issued. Current next number: <b class="mono">'+esc2(c.next_number||"—")+'</b>.</div><div class="fr"><div class="fg"><label class="fl">New next number (digits only) *</label><input class="fc" type="number" min="0" id="sqAdjN"></div><div class="fg" style="grid-column:span 2"><label class="fl">Reason *</label><input class="fc" id="sqAdjR"></div></div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="sqAdjGo">Adjust</button>'});
+        document.getElementById("sqAdjGo").onclick = async ()=>{ try{ const r = await api("POST","/api/sequences/"+id+"/adjust-next", {next_number:Number(document.getElementById("sqAdjN").value), reason:document.getElementById("sqAdjR").value.trim()}); closeModal(); say("Next number adjusted", r.next_number); load(); }catch(e){ say("Not adjusted", e.message); } };
+        return;
+      }
+    }catch(e){ say("Could not complete the action", e.message); }
+  }
+  async function download(path, name){
+    const r = await fetch(path, {headers:{Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}}); if(!r.ok){ say("Export not allowed", "You do not have permission to export this", "warn"); return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(await r.blob()); a.download = name; document.body.appendChild(a); a.click(); a.remove(); say("Exported", name);
+  }
+  async function suggestDialog(){
+    const m = S.meta; const groups = {}; m.doc_types.forEach(d=> (groups[d.module] = groups[d.module] || []).push(d));
+    openModal({title:"System Suggest Sequence", size:"lg", bodyHTML:'<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Document type</label><select class="fc" id="sqSugDoc">'+Object.keys(groups).map(g=>'<optgroup label="'+esc2(g)+'">'+groups[g].map(d=>opt(d.doc_type, d.label)).join("")+'</optgroup>').join("")+'</select></div><div class="fg"><label class="fl">&nbsp;</label><button class="btn btn-pri" type="button" id="sqSugGo">Suggest</button></div></div><div id="sqSugOut" class="sq-note">Choose a document type. Suggestions use your branch codes, the current financial year and the length limit; nothing is activated automatically.</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button>'});
+    document.getElementById("sqSugGo").onclick = async ()=>{
+      const dt = document.getElementById("sqSugDoc").value; const out = document.getElementById("sqSugOut"); out.textContent = "Thinking…";
+      try{
+        const r = await api("POST","/api/sequences/suggest", {doc_type:dt}); window.__sqSug = r;
+        out.innerHTML = r.suggestions.map((s,i)=>'<div class="sq-prev" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between"><b>'+esc2(s.name)+'</b><span class="'+(s.valid?"sq-ok":"sq-bad")+'">'+(s.valid ? "valid · "+s.worst_length+" of "+s.max_length+" chars" : "needs changes")+'</span></div><div class="sq-note" style="margin:4px 0">'+esc2(s.reason)+'</div><div class="mono" style="font-size:12px">'+s.samples.map(x=>esc2(x.number||"—")+" ("+x.length+")").join(" &nbsp; ")+'</div>'+s.errors.map(x=>'<div class="sq-bad" style="font-size:11.5px">• '+esc2(x)+'</div>').join("")+'<div style="margin-top:6px"><button class="btn btn-out btn-sm" type="button" data-sq-use="'+i+'">Use this suggestion (edit &amp; save as draft)</button></div></div>').join("");
+      }catch(e){ out.innerHTML = '<span class="sq-bad">'+esc2(e.message)+'</span>'; }
+    };
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", e=>{
+    const t = e.target.closest("[data-sq]"); if(t){ e.stopPropagation(); const [k, id] = t.dataset.sq.split(":");
+      if(k === "new") return openForm(null); if(k === "suggest") return suggestDialog(); if(k === "export") return download("/api/sequences/export","sequence-configuration.csv"); if(k === "export-history") return download("/api/sequences/history/export","sequence-history.csv");
+      return act(k, Number(id)); }
+    if(e.target.closest("#sqSave")){ e.stopPropagation(); return saveForm(); }
+    const cm = e.target.closest("[data-sq-cm]"); if(cm){ const [a, i] = cm.dataset.sqCm.split(":"); const n = Number(i); const c = form.components;
+      if(a === "del") c.splice(n, 1); else if(a === "up" && n > 0) [c[n-1], c[n]] = [c[n], c[n-1]]; else if(a === "down" && n < c.length-1) [c[n+1], c[n]] = [c[n], c[n+1]]; return syncComps(); }
+    if(e.target.closest("[data-sq-add]")){ form.components.push({k:"sep", v:"/"}); return syncComps(); }
+    const tpl = e.target.closest("[data-sq-tpl]"); if(tpl){ form.components = JSON.parse(JSON.stringify(TPL[tpl.dataset.sqTpl])); return syncComps(); }
+    const use = e.target.closest("[data-sq-use]"); if(use){ const s = window.__sqSug.suggestions[Number(use.dataset.sqUse)]; const di = window.__sqSug.info;
+      closeModal(); openForm({...blankForm(), name:di.label+" — "+s.name, doc_type:window.__sqSug.doc_type, components:s.components, number_width:s.number_width, reset_policy:s.reset_policy, fy_format:s.fy_format, max_length:s.max_length, doc_code:s.doc_code||""}); say("Suggestion loaded", "Review it and save as draft; an authorised user activates it"); }
+  }, true);
+  document.addEventListener("input", e=>{
+    const t = e.target; if(t.dataset && t.dataset.sqf !== undefined){ S.f[t.dataset.sqf] = t.value; clearTimeout(S.ft); S.ft = setTimeout(load, t.dataset.sqf === "q" ? 300 : 0); return; }
+    if(!form) return;
+    if(t.dataset.sqF !== undefined){ form[t.dataset.sqF] = t.type === "number" ? t.value : t.value; if(t.dataset.sqF === "doc_type"){ const di = docInfo(t.value); form.max_length = di.max_length; if(!form.id){ form.components = di.doc_code ? [{k:"prefix", v:di.doc_code},{k:"sep", v:"/"},{k:"fy"},{k:"sep", v:"/"},{k:"number"}] : form.components; form.number_width = di.width; form.reset_policy = di.reset; form.shipment_scope = "ALL"; } openForm(form); return; } if(["number_width","start_number","step","max_length"].includes(t.dataset.sqF)) form[t.dataset.sqF] = Number(t.value); refreshPreview(); }
+    if(t.dataset.sqCk !== undefined){ const c = form.components[Number(t.dataset.sqCk)]; c.k = t.value; c.v = ["prefix","suffix","custom"].includes(c.k) ? (c.v||"") : (c.k === "sep" ? "/" : undefined); if(c.v === undefined) delete c.v; syncComps(); }
+    if(t.dataset.sqCv !== undefined){ form.components[Number(t.dataset.sqCv)].v = t.value.toUpperCase(); if(t.tagName === "INPUT") t.value = t.value.toUpperCase(); refreshPreview(); }
+    if(t.dataset.sqSc !== undefined){ form.shipment_codes = form.shipment_codes || {}; form.shipment_codes[t.dataset.sqSc] = t.value.toUpperCase(); refreshPreview(); }
+  });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "sequence-setting") load(); };
+  window.SeqKit.load = load;
+})();
+</script>
+<script>
 /* Count badges (menu and card headers) are hidden while their number is zero, so an empty module shows no orange "0". */
 (function(){
   "use strict";
@@ -16131,7 +16349,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(q.editable && q.revision_no === 0 && q.approval_status === "DRAFT") b.push('<button class="ta" data-qk-do="delete:'+q.id+'" style="color:var(--rd)">Delete</button>');
       return b.join(" ");
     };
-    tbody.innerHTML = Q.list.length ? Q.list.map(q=>'<tr><td class="mono ta" data-qk-open="'+q.id+'" style="color:var(--bl);font-weight:600;cursor:pointer">'+esc2(q.number||("Draft #"+q.id))+(q.revision_no && !q.number ? ' <span class="b b-gy" style="font-size:9px">Rev '+q.revision_no+'</span>' : '')+'</td><td>'+dmy(q.quote_date)+'</td><td style="font-weight:600">'+esc2(q.party_name||"—")+'</td><td>'+esc2(q.mode+" "+q.direction)+'</td><td>'+esc2([q.pol,q.pod].filter(Boolean).join(" → ")||"—")+'</td><td>'+dmy(q.valid_until)+'</td><td style="text-align:right">'+inr(q.quoted_amount)+'</td><td>'+sbadge(q)+' '+abadge(q)+(q.job_number?' <span class="mono" style="font-size:10px">'+esc2(q.job_number)+'</span>':'')+'</td><td class="no-print" style="white-space:nowrap">'+act(q)+'</td></tr>').join("")
+    tbody.innerHTML = Q.list.length ? Q.list.map(q=>'<tr><td class="mono ta" data-qk-open="'+q.id+'" style="color:var(--bl);font-weight:600;cursor:pointer">'+(q.number ? esc2(q.number) : '<span style="color:var(--g5);font-weight:500">Not numbered yet</span>')+(q.revision_no && !q.number ? ' <span class="b b-gy" style="font-size:9px">Rev '+q.revision_no+'</span>' : '')+'</td><td>'+dmy(q.quote_date)+'</td><td style="font-weight:600">'+esc2(q.party_name||"—")+'</td><td>'+esc2(q.mode+" "+q.direction)+'</td><td>'+esc2([q.pol,q.pod].filter(Boolean).join(" → ")||"—")+'</td><td>'+dmy(q.valid_until)+'</td><td style="text-align:right">'+inr(q.quoted_amount)+'</td><td>'+sbadge(q)+' '+abadge(q)+(q.job_number?' <span class="mono" style="font-size:10px">'+esc2(q.job_number)+'</span>':'')+'</td><td class="no-print" style="white-space:nowrap">'+act(q)+'</td></tr>').join("")
       : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No quotations yet. Click "New Quotation" to create one.</td></tr>';
     const m = today().slice(0,7), kp = scr.querySelectorAll(".kpi");
     const set = (i,v,s)=>{ const k = kp[i]; if(!k) return; const a = k.querySelector(".kpi-val"), c = k.querySelector(".kpi-sub"); if(a) a.textContent = v; if(c) c.textContent = s||""; };
@@ -16192,7 +16410,7 @@ if(document.readyState !== "loading") initChatWidget();
     const inp = (k, type, ph, extra)=> '<input class="fc" '+(type?'type="'+type+'" ':'')+'data-qh="'+k+'" value="'+esc2(h[k])+'" placeholder="'+esc2(ph||"")+'"'+d+(extra||"")+'>';
     const w = wiz();
     return '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Quotation Information</div><div style="font-size:11.5px;color:var(--g6)">'+esc2([w.dir, w.mode, w.type].filter(Boolean).join(" · "))+' · '+esc2(w.qtype||"")+' · '+(isMulti()?"Multiple carriers":"Single carrier")+(ro?"":' <span class="ta" data-qa="changewiz">Change</span>')+'</div></div><div class="cb"><div class="qk-grid">'+
-      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Assigned when issued")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
+      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Assigned on approval")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
       f("Customer", '<select class="fc" data-qh="customer_id"'+d+'><option value="">— Select from Customer Master —</option>'+Q.m.customers.map(c=>opt(String(c.id), c.name+(c.code?" ("+c.code+")":""), String(c.id)===String(h.customer_id))).join("")+(h.customer_id && !Q.m.customers.some(c=>String(c.id)===String(h.customer_id)) ? opt(String(h.customer_id), h.party_name, true) : "")+'</select>', "", true)+
       f("Quotation Date", inp("quote_date","date"))+f("Valid Until", inp("valid_until","date"), "", true)+
       f("Currency", '<select class="fc" data-qh="currency"'+d+'>'+ccyList().map(c=>opt(c, c, c===h.currency)).join("")+'</select>', "", true)+
@@ -16290,7 +16508,7 @@ if(document.readyState !== "loading") initChatWidget();
       approvalCard();
     setActions(); if(keepScroll) window.scrollTo(0, y);
     const t = document.getElementById("quotNewTitle"); if(t) t.textContent = "Quotation Preparation";
-    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft #"+Q.rec.id)+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
+    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft · number assigned on approval")+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
   }
   function refreshComputed(){
     ["sell","buy"].forEach(side=>{
@@ -16378,7 +16596,7 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       if(name === "back"){ if(Q.dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return; go("quotation"); return; }
       if(name === "changewiz"){ document.getElementById("quotFormWrap").style.display = "none"; document.getElementById("quotWizWrap").style.display = "block"; setActions(); return; }
-      if(name === "save"){ const r = await save(); if(r) say("Draft saved", "Draft #"+r.id+" saved"); return; }
+      if(name === "save"){ const r = await save(); if(r) say("Draft saved", "The quotation number is assigned when it is approved"); return; }
       if(name === "submit"){ if(!validate(true)) return; const r = await save(); if(!r) return; const s = await api("POST","/api/quotations/"+r.id+"/approval/submit"); Q.rec = s; renderAll(true); say("Submitted for approval", "An approver can now review it"); return; }
       if(name === "approve" || name === "reject"){
         const remarks = (document.getElementById("qkApprovalRemarks")||{}).value || "";
@@ -16395,7 +16613,7 @@ if(document.readyState !== "loading") initChatWidget();
   }
   async function showHistory(){
     const rows = await api("GET","/api/quotations/"+Q.rec.id+"/revisions");
-    openModal({title:"Revision History", size:"lg", bodyHTML:'<div class="tw"><table><thead><tr><th>Rev</th><th>Number</th><th>Status</th><th>Approval</th><th>Prepared by</th><th>Approved by</th><th class="r">Quoted (₹)</th><th></th></tr></thead><tbody>'+rows.map(x=>'<tr'+(x.current?' style="background:var(--blt)"':'')+'><td>'+x.revision_no+'</td><td class="mono">'+esc2(x.number||"Draft #"+x.id)+'</td><td>'+esc2(x.effective_status)+'</td><td>'+esc2(x.approval_status)+'</td><td>'+esc2(x.prepared_by_name||"—")+'</td><td>'+esc2(x.approved_by_name||"—")+'</td><td style="text-align:right">'+inr(x.quoted_amount)+'</td><td>'+(x.current?'<span class="b b-bl">Viewing</span>':'<button class="ta" data-qk-open="'+x.id+'">Open</button>')+'</td></tr>').join("")+'</tbody></table></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
+    openModal({title:"Revision History", size:"lg", bodyHTML:'<div class="tw"><table><thead><tr><th>Rev</th><th>Number</th><th>Status</th><th>Approval</th><th>Prepared by</th><th>Approved by</th><th class="r">Quoted (₹)</th><th></th></tr></thead><tbody>'+rows.map(x=>'<tr'+(x.current?' style="background:var(--blt)"':'')+'><td>'+x.revision_no+'</td><td class="mono">'+esc2(x.number||"Not numbered yet")+'</td><td>'+esc2(x.effective_status)+'</td><td>'+esc2(x.approval_status)+'</td><td>'+esc2(x.prepared_by_name||"—")+'</td><td>'+esc2(x.approved_by_name||"—")+'</td><td style="text-align:right">'+inr(x.quoted_amount)+'</td><td>'+(x.current?'<span class="b b-bl">Viewing</span>':'<button class="ta" data-qk-open="'+x.id+'">Open</button>')+'</td></tr>').join("")+'</tbody></table></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
   }
   async function showAudit(){
     const ev = await api("GET","/api/quotations/"+Q.rec.id+"/events");
@@ -16455,43 +16673,49 @@ if(document.readyState !== "loading") initChatWidget();
   const hasTaxedLines = q=> q.lines.some(l=>l.side==="SELL" && l.taxable && Number(l.tax_pct) > 0);
   function quotationHtml(q, mode, org, cust){
     const withTax = mode === "TAX"; const hd = q.header || {}; const sell = q.lines.filter(l=>l.side==="SELL");
-    const e = esc2; const row = (k, v)=> v ? '<div style="margin-bottom:7px"><div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.3px">'+k+'</div><div style="font-weight:700;font-size:12px;color:#0B1F3A">'+e(v)+'</div></div>' : '';
-    const num2 = v=> (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+    const e = esc2; const num2 = v=> (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
     const taxable = sell.filter(l=>l.taxable && Number(l.tax_pct) > 0).reduce((a,l)=>a+Number(l.amount),0), nonTaxable = sell.filter(l=>!(l.taxable && Number(l.tax_pct) > 0)).reduce((a,l)=>a+Number(l.amount),0);
     const gst = withTax ? sell.reduce((a,l)=>a+Number(l.gst_amount),0) : 0; const sub = taxable + nonTaxable; const total = sub + gst; const rounded = Math.round(total); const roundOff = rounded - total;
     const byCcy = {}; sell.forEach(l=>{ const c = byCcy[l.ccy] = byCcy[l.ccy] || {ccy:l.ccy, fcy:0, inr:0}; c.fcy += Number(l.amount_fcy); c.inr += Number(l.amount); });
     const foreign = Object.values(byCcy).filter(c=>c.ccy !== "INR");
     const docCcy = hd.currency || "INR"; const docRate = docCcy === "INR" ? 1 : (Q.m.rates[docCcy] || (byCcy[docCcy] && byCcy[docCcy].fcy ? byCcy[docCcy].inr / byCcy[docCcy].fcy : 0));
-    const mode3 = ({Air:"✈️", Sea:"🚢", Road:"🚚", Rail:"🚆", Courier:"📦", Multimodal:"🌐"})[q.mode] || "🚢";
     const statusText = q.effective_status === "DRAFT" ? (q.approval_status === "APPROVED" ? "APPROVED" : q.approval_status === "SUBMITTED" ? "SUBMITTED" : "DRAFT") : q.effective_status;
-    const th = (t, a)=> '<th style="padding:8px 8px;text-align:'+(a||"left")+';font-size:10.5px;letter-spacing:.3px;text-transform:uppercase">'+t+'</th>';
-    const cols = withTax ? 11 : 9;
-    const body = sell.map((l,i)=>{ const bu = l.container_breakup || []; const tx = l.taxable && Number(l.tax_pct) > 0;
-      return '<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:7px 8px">'+(i+1)+'</td><td style="padding:7px 8px"><b>'+e(l.charge_name)+'</b>'+(l.carrier ? '<div style="font-size:10px;color:#64748B">'+e(l.carrier)+'</div>' : '')+(bu.length ? '<div style="font-size:10px;color:#64748B">'+bu.map(b=>e(b.type)+" × "+e(Number(b.qty))+" @ "+e(l.ccy)+" "+e(Number(b.rate).toLocaleString("en-IN"))).join("<br>")+'</div>' : (l.container_type ? '<div style="font-size:10px;color:#64748B">'+e(l.container_type)+'</div>' : ''))+(l.remarks ? '<div style="font-size:10px;color:#64748B">'+e(l.remarks)+'</div>' : '')+'</td><td style="padding:7px 8px">'+e(l.basis)+'</td><td style="padding:7px 8px;text-align:right">'+e(Number(l.qty))+'</td><td style="padding:7px 8px;text-align:right">'+(bu.length ? "as listed" : num2(l.rate))+'</td><td style="padding:7px 8px;text-align:center">'+e(l.ccy)+'</td><td style="padding:7px 8px;text-align:right">'+num2(l.amount_fcy)+'</td><td style="padding:7px 8px;text-align:right">'+(l.ccy === "INR" ? "1.00" : e(Number(l.exch)))+'</td><td style="padding:7px 8px;text-align:right">'+num2(l.amount)+'</td>'+(withTax ? '<td style="padding:7px 8px;text-align:right">'+(tx ? e(Number(l.tax_pct))+"%" : "Nil")+'</td><td style="padding:7px 8px;text-align:right">'+num2(l.total_inr)+'</td>' : '')+'</tr>'; }).join("");
+    const th = (t, a, w)=> '<th style="padding:7px 8px;text-align:'+(a||"left")+';font-size:11px;font-weight:800;border:1px solid #111;'+(w?"width:"+w+";":"")+'">'+t+'</th>';
+    const td = (v, a, extra)=> '<td style="padding:6px 8px;text-align:'+(a||"left")+';border:1px solid #111;font-size:11.5px;'+(extra||"")+'">'+v+'</td>';
+    const pair = (label, v)=> '<div style="display:flex;gap:6px;font-size:11.5px;line-height:1.55"><span style="width:112px;flex:none;font-weight:800">'+label+'</span><span>: '+e(v || "")+'</span></div>';
+    const number = q.number || "Pending approval";
+    const roleText = cust && (cust.roles || []).length ? cust.roles.map(r=>({shipper:"Shipper", consignee:"Consignee", carrier:"Carrier", agent:"Agent", cha:"CHA", transporter:"Transporter"})[r] || r).join(", ") : "";
+    const forwardingTitle = "Forwarding ("+e([q.mode, q.direction].filter(Boolean).join(" "))+")";
+    const rows = sell.map(l=>{ const bu = l.container_breakup || []; const tx = l.taxable && Number(l.tax_pct) > 0;
+      return '<tr>'+td('<b>'+e(String(l.charge_name).toUpperCase())+'</b><div style="font-size:10px;color:#475569">'+e(l.basis)+(l.carrier ? " · "+e(l.carrier) : "")+'</div>'+(bu.length ? '<div style="font-size:10px;color:#475569">'+bu.map(b=>e(b.type)+" × "+e(Number(b.qty))+" @ "+e(l.ccy)+" "+e(Number(b.rate).toLocaleString("en-IN"))).join("<br>")+'</div>' : (l.container_type ? '<div style="font-size:10px;color:#475569">'+e(l.container_type)+'</div>' : ''))+(l.remarks ? '<div style="font-size:10px;color:#475569">'+e(l.remarks)+'</div>' : ''))+
+        td(bu.length ? "as listed" : num2(l.rate), "right")+td(e(Number(l.qty)), "right")+td('<b>'+num2(l.amount_fcy)+'</b>', "right")+td(e(l.ccy), "center")+td(l.ccy === "INR" ? "1.00" : e(Number(l.exch)), "right")+td(num2(l.amount), "right")+
+        (withTax ? td(tx ? e(Number(l.tax_pct))+"%" : "", "right")+td(num2(l.gst_amount), "right")+td(num2(l.total_inr), "right") : '')+'</tr>'; }).join("");
     const termLines = String(q.terms || "").split(/\n+/).map(t=>t.replace(/^\s*\d+[\.\)]\s*/, "").trim()).filter(Boolean);
     const check = '<span style="color:#16A34A;font-weight:800">✓</span> ';
-    return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:#fff;max-width:960px;margin:0 auto">'+
-      '<div class="qp-card" style="display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;border:1px solid #CBD5E1;border-radius:10px;padding:14px 18px;background:linear-gradient(135deg,#F8FAFC,#EEF4FB)"><div style="font-size:38px;line-height:1">'+mode3+'</div><div><div style="font-size:11px;font-weight:700;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div><div style="font-size:11px;color:#475569">Freight Forwarding</div><div style="font-size:24px;font-weight:800;color:#0B1F3A;letter-spacing:.3px">Quotation</div><div style="margin-top:4px"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span></div></div>'+
-      '<div style="display:grid;grid-template-columns:repeat(3,auto);gap:4px 22px;font-size:11px"><div><div style="color:#64748B">Quote Number</div><b>'+e(q.number || ("Draft #"+q.id))+(q.revision_no ? " (Rev "+q.revision_no+")" : "")+'</b></div><div><div style="color:#64748B">Quote Date</div><b>'+e(dmy(q.quote_date))+'</b></div><div><div style="color:#64748B">Valid Until</div><b>'+e(dmy(q.valid_until))+'</b></div><div><div style="color:#64748B">Sales Person</div><b>'+e(hd.sales_person || "—")+'</b></div><div><div style="color:#64748B">Branch</div><b>'+e(hd.branch_name || "—")+'</b></div><div><div style="color:#64748B">Reference</div><b>'+e(hd.reference_no || "—")+'</b></div></div></div>'+
-      '<div class="qp-card" style="border:1px solid #CBD5E1;border-radius:10px;margin-top:12px;padding:12px 18px"><div style="font-weight:800;color:#0B1F3A;font-size:13px;margin-bottom:8px">👥 Customer Details</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">'+row("Customer Name", q.party_name)+row("Email", hd.contact_email)+row("Contact Person", hd.contact_person)+row("Billing Address", hd.billing_address ? hd.billing_address.replace(/\n/g, ", ") : "")+row("Mobile", hd.contact_mobile)+row("GSTIN", hd.customer_gstin)+'</div></div>'+
-      '<div class="qp-card" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">'+
-        '<div style="border:1px solid #CBD5E1;border-radius:10px;overflow:hidden"><div style="background:#DBEAFE;padding:7px 12px;font-weight:800;color:#1E3A8A;font-size:12px">Shipment Details</div><div style="padding:10px 12px">'+row("Mode", q.mode+" Freight")+row("Shipment Type", q.shipment_type)+row("Incoterms", hd.incoterm)+row("Service Type", hd.service_type)+row("Quotation Status", statusText)+row("Direction", q.direction)+'</div></div>'+
-        '<div style="border:1px solid #CBD5E1;border-radius:10px;overflow:hidden"><div style="background:#DCFCE7;padding:7px 12px;font-weight:800;color:#14532D;font-size:12px">Routing &amp; Schedule</div><div style="padding:10px 12px">'+row("Origin", hd.origin)+row("Port of Loading (POL)", q.pol)+row("Port of Discharge (POD)", q.pod)+row("Final Destination", hd.final_destination)+row("Carrier / Airline", hd.carrier)+row("Transit Time", hd.transit_days ? hd.transit_days+" days" : "")+'</div></div>'+
-        '<div style="border:1px solid #CBD5E1;border-radius:10px;overflow:hidden"><div style="background:#EDE9FE;padding:7px 12px;font-weight:800;color:#4C1D95;font-size:12px">Cargo Details</div><div style="padding:10px 12px">'+row("Commodity", hd.commodity)+row("No. of Packages", hd.packages)+row("Gross Weight", hd.gross_weight ? num2(hd.gross_weight)+" KGS" : "")+row("Chargeable Weight", hd.chargeable_weight ? num2(hd.chargeable_weight)+" KGS" : "")+row("Volume", hd.volume ? Number(hd.volume)+" CBM" : "")+row("Dimensions (L x W x H)", hd.dimensions ? hd.dimensions+" CM" : "")+'</div></div></div>'+
-      '<div class="qp-card" style="border:1px solid #CBD5E1;border-radius:10px;margin-top:12px;overflow:hidden"><div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:#F8FAFC;border-bottom:1px solid #E2E8F0"><div style="font-weight:800;color:#0B1F3A;font-size:13px">Sell Rates (to Customer)</div><div style="font-size:11px;color:#475569">Quotation currency <b>'+e(docCcy)+'</b> · Home currency <b>INR</b></div></div>'+
-        '<table style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="background:#0B3A7A;color:#fff">'+th("#")+th("Charge Description")+th("Basis")+th("Units","right")+th("Rate","right")+th("Cur","center")+th("Amount (Cur)","right")+th("Ex. Rate","right")+th("Amount (INR)","right")+(withTax ? th("GST %","right")+th("Total (INR)","right") : "")+'</tr></thead><tbody>'+body+'</tbody></table>'+
-        '<div style="display:grid;grid-template-columns:1fr 340px;gap:14px;padding:12px 14px">'+
-          '<div>'+(hd.chargeable_weight ? '<div style="display:inline-block;background:#EAF2FB;border-radius:8px;padding:7px 12px;font-size:12px">Total Chargeable Weight: <b>'+num2(hd.chargeable_weight)+' KGS</b></div>' : '')+
-            (foreign.length ? '<table style="margin-top:8px;font-size:11px;border-collapse:collapse"><thead><tr style="color:#64748B"><th style="text-align:left;padding:3px 10px 3px 0">Currency</th><th style="text-align:right;padding:3px 10px">Amount</th><th style="text-align:right;padding:3px 10px">Rate to INR</th><th style="text-align:right;padding:3px 0 3px 10px">In INR</th></tr></thead><tbody>'+Object.values(byCcy).map(c=>'<tr><td style="padding:2px 10px 2px 0">'+e(c.ccy)+'</td><td style="text-align:right;padding:2px 10px">'+num2(c.fcy)+'</td><td style="text-align:right;padding:2px 10px">'+(c.ccy==="INR" ? "1.00" : num2(c.inr/c.fcy))+'</td><td style="text-align:right;padding:2px 0 2px 10px">'+num2(c.inr)+'</td></tr>').join("")+'</tbody></table>' : '')+
-            '<div style="margin-top:8px;font-size:11px;color:#334155"><b>Amount in words:</b> Indian Rupees '+e(numWordsIN(rounded))+' Only</div></div>'+
-          '<div style="font-size:12px"><div style="display:flex;justify-content:space-between;padding:3px 0"><span>Taxable value</span><b>'+num2(taxable)+'</b></div><div style="display:flex;justify-content:space-between;padding:3px 0"><span>Non-taxable value</span><b>'+num2(nonTaxable)+'</b></div><div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid #E2E8F0"><b>SUB TOTAL (INR)</b><b>'+num2(sub)+'</b></div>'+
-            (withTax ? '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>GST</span><b>'+num2(gst)+'</b></div>' : '<div style="padding:3px 0;font-size:10.5px;color:#92400E">Tax is not included in this non-taxable quotation.</div>')+
-            '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Round off</span><b>'+(roundOff>=0?"":"-")+num2(Math.abs(roundOff))+'</b></div>'+
-            '<div style="display:flex;justify-content:space-between;background:#0B3A7A;color:#fff;border-radius:6px;padding:9px 12px;margin-top:5px;font-size:13px;font-weight:800"><span>TOTAL QUOTATION</span><span>INR '+num2(rounded)+'</span></div>'+
-            (docCcy !== "INR" && docRate ? '<div style="display:flex;justify-content:space-between;padding:5px 2px;font-size:11px;color:#334155"><span>Equivalent in '+e(docCcy)+' @ '+num2(docRate)+'</span><b>'+e(docCcy)+' '+num2(rounded/docRate)+'</b></div>' : '')+'</div></div></div>'+
-      '<div class="qp-card" style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;border:1px solid #CBD5E1;border-radius:10px;margin-top:12px;padding:12px 16px"><div><div style="font-weight:800;color:#0B1F3A;font-size:13px;margin-bottom:6px">Terms &amp; Conditions (Summary)</div><div style="font-size:11.5px;line-height:1.7">'+check+'<b>Rate Validity:</b> Until '+e(dmy(q.valid_until))+(hd.payment_terms ? '<br>'+check+'<b>Payment Terms:</b> '+e(hd.payment_terms) : '')+termLines.map(t=>'<br>'+check+e(t)).join("")+'</div></div>'+
-        '<div style="border-left:1px solid #E2E8F0;padding-left:14px"><div style="font-weight:800;font-size:12px;margin-bottom:4px">Notes:</div><ul style="font-size:10.5px;color:#475569;margin:0;padding-left:16px;line-height:1.6"><li>Space &amp; rates are subject to availability at the time of booking.</li><li>Additional charges may apply for customs clearance, destination delivery and special handling.</li>'+(withTax ? '<li>GST is shown as applicable on the taxable charges; final tax follows the invoice.</li>' : '<li>This is a non-taxable quotation: applicable taxes, if any, will be charged extra as per law.</li>')+(foreign.length ? '<li>Foreign-currency charges are converted to INR at the rates shown; the invoice uses the rate on the date of billing.</li>' : '')+'<li>This is a system generated quotation.</li></ul></div></div>'+
-      '<div style="display:flex;justify-content:space-between;margin-top:14px;font-size:11px;color:#475569"><div>Prepared by: <b>'+e(q.prepared_by_name||"—")+'</b></div><div>Approved by: <b>'+e(q.approved_by_name||"—")+'</b>'+(q.approved_at ? " · "+e(dmy(q.approved_at)) : "")+'</div></div>'+
+    const colspanTotal = withTax ? 8 : 6;
+    return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:#fff;max-width:980px;margin:0 auto">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div><div style="font-size:10.5px;color:#475569">Freight Forwarding Quotation</div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
+      '<table class="qp-card" style="width:100%;border-collapse:collapse;border-top:2px solid #111;border-bottom:1px solid #111"><tr><td style="padding:7px 8px;font-size:18px;font-weight:800;width:150px">Quotation No</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;'+(q.number ? "" : "color:#92400E")+'">'+e(number)+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:70px">Date</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.quote_date))+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:120px">Valid upto</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.valid_until))+'</td></tr></table>'+
+      '<div class="qp-card" style="display:grid;grid-template-columns:1fr auto;gap:16px;padding:8px 8px 10px;border-bottom:1px solid #111"><div><div style="font-weight:800;font-size:13px">To,</div><div style="font-size:13px;font-weight:600">'+e(q.party_name)+'</div><div style="font-size:12px;white-space:pre-line">'+e(hd.billing_address || "")+'</div>'+
+        ((hd.contact_person || hd.contact_mobile || hd.contact_email) ? '<div style="font-size:11px;color:#334155;margin-top:4px">Attn: '+e([hd.contact_person, hd.contact_mobile, hd.contact_email].filter(Boolean).join(" · "))+'</div>' : '')+(hd.customer_gstin ? '<div style="font-size:11px;color:#334155">GSTIN: '+e(hd.customer_gstin)+'</div>' : '')+'</div>'+
+        '<div style="font-size:12.5px;padding-top:2px">'+(roleText ? '<b>Party Role :</b> '+e(roleText) : '')+(hd.sales_person ? '<div style="margin-top:4px"><b>Sales Person :</b> '+e(hd.sales_person)+'</div>' : '')+(hd.branch_name ? '<div style="margin-top:2px"><b>Branch :</b> '+e(hd.branch_name)+'</div>' : '')+(hd.reference_no ? '<div style="margin-top:2px"><b>Your Ref :</b> '+e(hd.reference_no)+'</div>' : '')+'</div></div>'+
+      '<div class="qp-card" style="margin-top:10px"><div style="background:#C8C8C8;border-top:1px solid #111;border-bottom:1px solid #111;padding:9px 14px;font-size:18px;font-weight:800">'+forwardingTitle+'</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px;padding:8px 8px 10px;border-bottom:1px solid #111"><div>'+pair("Port of Loading", q.pol)+pair("Port of Discharge", q.pod)+pair("INCO Terms", hd.incoterm)+pair("Transit Time", hd.transit_days ? hd.transit_days+" days" : "")+pair("Carrier / Airline", hd.carrier)+pair("No. of Packages", hd.packages)+'</div><div>'+
+          pair("Place of Receipt", hd.origin)+pair("Place of Delivery", hd.final_destination)+pair("Movement Type", hd.service_type)+pair("Gross Weight", hd.gross_weight ? num2(hd.gross_weight)+" KGS" : "")+pair("Commodity", hd.commodity)+pair("Volume", hd.volume ? Number(hd.volume)+" CBM" : "")+'</div><div>'+
+          pair("Mode / Direction", [q.mode, q.direction].filter(Boolean).join(" · "))+pair("Cargo Type", q.shipment_type)+pair("Chrg. Weight", hd.chargeable_weight ? num2(hd.chargeable_weight)+" KGS" : "")+pair("Dimensions", hd.dimensions ? hd.dimensions+" CM" : "")+pair("Payment Terms", hd.payment_terms)+pair("Currency", docCcy)+'</div></div></div>'+
+      '<table class="qp-card" style="width:100%;border-collapse:collapse;margin-top:12px"><thead><tr style="background:#fff">'+th("Charge Name")+th("Unit Rate","right")+th("Qty","right")+th("Amount","right")+th("Cur","center")+th("Ex.Rat","right")+th("Amt (INR)","right")+(withTax ? th("GST%","right")+th("GST Amt","right")+th("Total Amt","right") : "")+'</tr></thead><tbody>'+rows+
+        '<tr><td colspan="'+colspanTotal+'" style="padding:7px 8px;text-align:right;border:1px solid #111;font-weight:800">Total</td>'+td('<b>INR</b>', "center")+td('<b>'+num2(withTax ? sub + gst : sub)+'</b>', "right")+(withTax ? '' : '<td style="border:0"></td>')+'</tr></tbody></table>'+
+      '<div class="qp-card" style="display:grid;grid-template-columns:1fr 340px;gap:14px;padding:12px 4px">'+
+        '<div>'+(foreign.length ? '<table style="font-size:11px;border-collapse:collapse"><thead><tr style="color:#64748B"><th style="text-align:left;padding:3px 10px 3px 0">Currency</th><th style="text-align:right;padding:3px 10px">Amount</th><th style="text-align:right;padding:3px 10px">Rate to INR</th><th style="text-align:right;padding:3px 0 3px 10px">In INR</th></tr></thead><tbody>'+Object.values(byCcy).map(c=>'<tr><td style="padding:2px 10px 2px 0">'+e(c.ccy)+'</td><td style="text-align:right;padding:2px 10px">'+num2(c.fcy)+'</td><td style="text-align:right;padding:2px 10px">'+(c.ccy==="INR" ? "1.00" : num2(c.inr/c.fcy))+'</td><td style="text-align:right;padding:2px 0 2px 10px">'+num2(c.inr)+'</td></tr>').join("")+'</tbody></table>' : '')+
+          '<div style="margin-top:8px;font-size:11px;color:#334155"><b>Amount in words:</b> Indian Rupees '+e(numWordsIN(rounded))+' Only</div></div>'+
+        '<div style="font-size:12px"><div style="display:flex;justify-content:space-between;padding:3px 0"><span>Taxable value</span><b>'+num2(taxable)+'</b></div><div style="display:flex;justify-content:space-between;padding:3px 0"><span>Non-taxable value</span><b>'+num2(nonTaxable)+'</b></div><div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid #111"><b>SUB TOTAL (INR)</b><b>'+num2(sub)+'</b></div>'+
+          (withTax ? '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>GST</span><b>'+num2(gst)+'</b></div>' : '<div style="padding:3px 0;font-size:10.5px;color:#92400E">Tax is not included in this non-taxable quotation.</div>')+
+          '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Round off</span><b>'+(roundOff>=0?"":"-")+num2(Math.abs(roundOff))+'</b></div>'+
+          '<div style="display:flex;justify-content:space-between;background:#0B3A7A;color:#fff;border-radius:4px;padding:9px 12px;margin-top:5px;font-size:13px;font-weight:800"><span>TOTAL QUOTATION</span><span>INR '+num2(rounded)+'</span></div>'+
+          (docCcy !== "INR" && docRate ? '<div style="display:flex;justify-content:space-between;padding:5px 2px;font-size:11px;color:#334155"><span>Equivalent in '+e(docCcy)+' @ '+num2(docRate)+'</span><b>'+e(docCcy)+' '+num2(rounded/docRate)+'</b></div>' : '')+'</div></div>'+
+      '<div class="qp-card" style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;border-top:1px solid #111;padding:10px 4px"><div><div style="font-weight:800;font-size:13px;margin-bottom:6px">Terms &amp; Conditions (Summary)</div><div style="font-size:11.5px;line-height:1.7">'+check+'<b>Rate Validity:</b> Until '+e(dmy(q.valid_until))+(hd.payment_terms ? '<br>'+check+'<b>Payment Terms:</b> '+e(hd.payment_terms) : '')+termLines.map(t=>'<br>'+check+e(t)).join("")+'</div></div>'+
+        '<div style="border-left:1px solid #CBD5E1;padding-left:14px"><div style="font-weight:800;font-size:12px;margin-bottom:4px">Notes:</div><ul style="font-size:10.5px;color:#475569;margin:0;padding-left:16px;line-height:1.6"><li>Space &amp; rates are subject to availability at the time of booking.</li><li>Additional charges may apply for customs clearance, destination delivery and special handling.</li>'+(withTax ? '<li>GST is shown as applicable on the taxable charges; final tax follows the invoice.</li>' : '<li>This is a non-taxable quotation: applicable taxes, if any, will be charged extra as per law.</li>')+(foreign.length ? '<li>Foreign-currency charges are converted to INR at the rates shown; the invoice uses the rate on the date of billing.</li>' : '')+'<li>This is a system generated quotation.</li></ul></div></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#475569"><div>Prepared by: <b>'+e(q.prepared_by_name||"—")+'</b></div><div>'+(q.approved_by_name ? 'Approved by: <b>'+e(q.approved_by_name)+'</b>'+(q.approved_at ? " · "+e(dmy(q.approved_at)) : "") : '<b>Not yet approved: the quotation number is assigned on approval.</b>')+'</div></div>'+
       (q.job_number ? '<div style="margin-top:10px;font-size:11px;color:#14532D">Converted to job <b>'+e(q.job_number)+'</b></div>' : '')+'</div>';
   }
   (function printCss(){ const st = document.createElement("style"); st.textContent = "@media print{ body *{visibility:hidden!important} #quotPrintZone, #quotPrintZone *{visibility:visible!important} #quotPrintZone{position:absolute!important;left:0;top:0;width:100%!important;max-width:none!important;box-shadow:none!important;border:0!important;margin:0!important} .qp-card{break-inside:avoid} .qp-doc *{-webkit-print-color-adjust:exact;print-color-adjust:exact} @page{size:A4;margin:10mm} }"; document.head.appendChild(st); })();

@@ -33,14 +33,12 @@ def fiscal_year(on: date) -> str:
     return f"{start % 100:02d}-{(start + 1) % 100:02d}"
 
 
-def next_number(db: Session, organization_id: int, seq_type: str, prefix: str, on: date) -> str:
-    """Allocate the next gap-free number. The counter row is locked until the surrounding transaction ends."""
-    fy = fiscal_year(on)
-    db.execute(pg_insert(DocSequence).values(organization_id=organization_id, seq_type=seq_type, fiscal_year=fy, last_number=0).on_conflict_do_nothing(constraint="uq_doc_sequence"))
-    seq = db.scalar(select(DocSequence).where(DocSequence.organization_id == organization_id, DocSequence.seq_type == seq_type, DocSequence.fiscal_year == fy).with_for_update())
-    seq.last_number += 1
-    db.flush()
-    return f"{prefix}/{fy}/{seq.last_number:05d}"
+def next_number(db: Session, organization_id: int, seq_type: str, prefix: str, on: date, user=None, shipment_key=None, branch_code=None) -> str:
+    """Issue the next number from the company's active sequence for this document type (see app/sequences.py).
+    `prefix` is kept for old call sites; the format now comes from Settings -> Sequence Setting."""
+    from .sequences import issue
+
+    return issue(db, organization_id, seq_type, on, user=user, branch_code=branch_code, shipment_key=shipment_key)
 
 
 def calc_line(qty: Decimal, ccy: str, exch: Decimal, rate: Decimal, tax_type: str, tax_pct: Decimal) -> dict:

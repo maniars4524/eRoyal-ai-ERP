@@ -27,16 +27,16 @@ def _require_tenant(user: User) -> int:
     return user.organization_id
 
 
-def _next_job_number(db: Session, organization_id: int, mode: str, direction: str) -> str:
-    """Per-company, per-year counter held under a row lock, so simultaneous creations never share a number."""
-    prefix = MODE_CODES.get(mode, "GEN") + DIRECTION_CODES.get(direction, "GEN")
-    year = datetime.now(timezone.utc).year
-    existing = db.scalar(select(func.count()).select_from(Shipment).where(Shipment.organization_id == organization_id)) or 0
-    db.execute(pg_insert(DocSequence).values(organization_id=organization_id, seq_type="job", fiscal_year=str(year), last_number=existing).on_conflict_do_nothing(constraint="uq_doc_sequence"))
-    seq = db.scalar(select(DocSequence).where(DocSequence.organization_id == organization_id, DocSequence.seq_type == "job", DocSequence.fiscal_year == str(year)).with_for_update())
-    seq.last_number += 1
-    db.flush()
-    return f"{prefix}-{str(year)[-2:]}-{seq.last_number:06d}"
+def job_shipment_key(mode: str, direction: str, container_mode: str | None = None) -> str:
+    key = f"{mode} {direction}"
+    return key + f" {container_mode}" if mode == "Sea" and container_mode in ("FCL", "LCL") else key
+
+
+def _next_job_number(db: Session, organization_id: int, mode: str, direction: str, container_mode: str | None = None, user=None) -> str:
+    """Job numbers come from the company's active Job Number sequence (Settings -> Sequence Setting), resolved by shipment type, branch and financial year."""
+    from .sequences import issue
+
+    return issue(db, organization_id, "job", user=user, shipment_key=job_shipment_key(mode, direction, container_mode))
 
 
 @router.get("")
@@ -52,7 +52,7 @@ def create_shipment(payload: ShipmentCreate, user: User = Depends(permission_req
     if data.get("party_branch_id") is not None and not (data.get("customer_id") and db.scalar(select(OrgBranch.id).where(OrgBranch.id == data["party_branch_id"], OrgBranch.customer_id == data["customer_id"], OrgBranch.organization_id == organization_id))):
         raise HTTPException(status_code=422, detail="The branch does not belong to the selected organization")
     credit_enforce(db, organization_id, data.get("customer_id"), "create shipment job", user.id, data.get("party_branch_id"), Decimal(str(data.get("revenue") or 0)))
-    job_number = _next_job_number(db, organization_id, data["mode"], data["direction"])
+    job_number = _next_job_number(db, organization_id, data["mode"], data["direction"], data.get("container_mode"), user)
     shipment = Shipment(organization_id=organization_id, job_number=job_number, created_by=user.id, **data)
     db.add(shipment)
     try:
