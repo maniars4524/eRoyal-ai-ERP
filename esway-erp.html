@@ -14059,12 +14059,20 @@ if(document.readyState !== "loading") initChatWidget();
   const REMEMBER_KEY = "esway_remembered_username";
   const PERSIST_TOKEN_KEY = "esway_persistent_token";
 
-  /* Remember me: restores the username only — passwords are never stored client-side */
-  (function restoreRememberedUsername(){
+  /* Remember me: pre-fills the username, license number and password for this portal on the next visit (the user still presses Sign in).
+     Stored only in this browser, lightly obfuscated (not encrypted) - use it on your own computer only. Unticking Remember me and signing in erases it. */
+  const REMEMBER_CRED_KEY = "esway_remember_" + (window.ESWAY_PORTAL || "erp");
+  const enc = v=> { try{ return btoa(unescape(encodeURIComponent(v))); }catch(e){ return ""; } };
+  const dec = v=> { try{ return decodeURIComponent(escape(atob(v))); }catch(e){ return ""; } };
+  (function restoreRememberedLogin(){
     try{
-      const saved = localStorage.getItem(REMEMBER_KEY);
-      if(saved && userInp){
-        userInp.value = saved;
+      const raw = localStorage.getItem(REMEMBER_CRED_KEY) || null;
+      let c = null; if(raw){ try{ c = JSON.parse(raw); }catch(e){ c = null; } }
+      if(!c){ const legacy = localStorage.getItem(REMEMBER_KEY); if(legacy) c = {u:enc(legacy)}; }
+      if(c){
+        if(userInp && c.u) userInp.value = dec(c.u);
+        if(licenseInp && c.l) licenseInp.value = dec(c.l);
+        if(passInp && c.p) passInp.value = dec(c.p);
         if(rememberChk) rememberChk.checked = true;
       }
     }catch(e){ /* localStorage unavailable — ignore */ }
@@ -14178,10 +14186,11 @@ if(document.readyState !== "loading") initChatWidget();
         sessionStorage.setItem("esway_access_token", data.access_token);
         try{
           if(rememberChk && rememberChk.checked){
-            localStorage.setItem(REMEMBER_KEY, u);
+            localStorage.setItem(REMEMBER_CRED_KEY, JSON.stringify({u:enc(u), l:P.needsLicense ? enc(lic) : "", p:enc(p)}));
             localStorage.setItem(PERSIST_TOKEN_KEY, data.access_token);
           }else{
             localStorage.removeItem(REMEMBER_KEY);
+            localStorage.removeItem(REMEMBER_CRED_KEY);
             localStorage.removeItem(PERSIST_TOKEN_KEY);
           }
         }catch(e){ /* localStorage unavailable — ignore */ }
@@ -16001,7 +16010,7 @@ if(document.readyState !== "loading") initChatWidget();
   const INCOTERMS = ["EXW","FCA","FAS","FOB","CFR","CIF","CPT","CIP","DAP","DPU","DDP"];
   const STEPS = [["DRAFT","Draft"],["SUBMITTED","Submitted"],["APPROVED","Approved"],["SENT","Issued"],["ACCEPTED","Accepted"],["CONVERTED","Converted"]];
 
-  const Q = window.QK = {viewTax:true, list:[], rec:null, head:{}, sell:[], buy:[], m:{charges:[], currencies:[], rates:{}, containers:[], units:[], carriers:[], customers:[], ports:[], users:[]}, me:null, dirty:false, pendingOpen:null, open:{}, saving:false};
+  const Q = window.QK = {viewMode:null, list:[], rec:null, head:{}, sell:[], buy:[], m:{charges:[], currencies:[], rates:{}, containers:[], units:[], carriers:[], customers:[], ports:[], users:[]}, me:null, dirty:false, pendingOpen:null, open:{}, saving:false};
   const can = code=> !!Q.me && (Q.me.is_super_admin || (Q.me.permissions||[]).includes(code));
   const wiz = ()=> window.quotWiz || {};
   const isMulti = ()=> wiz().carrierMode === "multi";
@@ -16134,7 +16143,7 @@ if(document.readyState !== "loading") initChatWidget();
   }
 
   /* ---------- preparation form ---------- */
-  const headDefaults = ()=> ({customer_id:"", party_name:"", quote_date:today(), valid_until:new Date(Date.now()+15*864e5).toISOString().slice(0,10), currency:"USD", sales_person:(Q.me && ((Q.me.first_name||"")+" "+(Q.me.last_name||"")).trim()) || "", service_type:"Port to Port", reference_no:"", incoterm:"", commodity:"", payment_terms:"", transit_days:"", packages:"", gross_weight:"", volume:"", pol:"", pod:"", terms:"", remarks:""});
+  const headDefaults = ()=> ({customer_id:"", party_name:"", quote_date:today(), valid_until:new Date(Date.now()+15*864e5).toISOString().slice(0,10), currency:"USD", sales_person:(Q.me && ((Q.me.first_name||"")+" "+(Q.me.last_name||"")).trim()) || "", service_type:"Port to Port", reference_no:"", incoterm:"", commodity:"", payment_terms:"", transit_days:"", packages:"", gross_weight:"", volume:"", origin:"", final_destination:"", carrier:"", chargeable_weight:"", dimensions:"", billing_branch_id:"", contact_id:"", pol:"", pod:"", terms:"", remarks:""});
   function setActions(){
     const bar = document.getElementById("qkActions"); if(!bar) return;
     const r = Q.rec, formShown = document.getElementById("quotFormWrap").style.display === "block";
@@ -16161,6 +16170,22 @@ if(document.readyState !== "loading") initChatWidget();
     return '<div class="qk-steps">'+STEPS.map(([k,label],i)=>'<div class="qk-step '+(i<idx?"done":i===idx?(bad&&i===0?"bad cur":"cur"):"")+'"><span class="dot">'+(i<idx?"✓":i+1)+'</span>'+esc2(label)+'</div>').join("")+
       (r && ["REJECTED","EXPIRED","SUPERSEDED"].includes(r.effective_status) ? '<span class="b '+(STATUS_CLS[r.effective_status]||"")+'" style="margin-left:10px">'+esc2(r.effective_status.charAt(0)+r.effective_status.slice(1).toLowerCase())+'</span>' : '')+'</div>';
   }
+  /* customer branches / contacts for the billing block of the quotation */
+  const contactChoices = ()=>{ const bid = Q.head.billing_branch_id ? Number(Q.head.billing_branch_id) : null; const br = Object.fromEntries((Q.m.custBranches||[]).map(b=>[b.id, b.code]));
+    return (Q.m.custContacts||[]).filter(c=>c.status==="ACTIVE" && (!bid || c.branch_id===bid || !c.branch_id)).map(c=>({...c, branch_code:br[c.branch_id]||""})); };
+  async function loadParties(cid){
+    Q.m.custBranches = []; Q.m.custContacts = [];
+    if(!cid) return;
+    const [b, c] = await Promise.all([api("GET","/api/customers/"+cid+"/branches").catch(()=>[]), api("GET","/api/customers/"+cid+"/contacts").catch(()=>[])]);
+    Q.m.custBranches = b; Q.m.custContacts = c;
+  }
+  function partySnapshot(){
+    const h = Q.head, cust = Q.m.customers.find(c=>String(c.id)===String(h.customer_id)); if(!cust) return {};
+    const d = cust.data || {}; const br = (Q.m.custBranches||[]).find(b=>String(b.id)===String(h.billing_branch_id));
+    const lines = br ? [br.address, br.address2, [br.city, br.state, br.pincode].filter(Boolean).join(", "), br.country] : [d.address_line_1, d.address_line_2, [d.city, d.state_province || d.state, d.pincode].filter(Boolean).join(", "), cust.country];
+    const ct = (Q.m.custContacts||[]).find(c=>String(c.id)===String(h.contact_id)) || (Array.isArray(d.contacts) && d.contacts[0] ? {name:d.contacts[0].name, email:d.contacts[0].email, mobile:d.contacts[0].phone} : null);
+    return {contact_person:ct ? ct.name : "", contact_email:ct ? (ct.email||"") : "", contact_mobile:ct ? (ct.mobile||ct.whatsapp||"") : "", billing_address:lines.filter(Boolean).join("\n"), customer_gstin:(br && br.gstin) || cust.gstin || "", branch_name:br ? br.name : ""};
+  }
   function infoCard(){
     const h = Q.head, r = Q.rec, ro = r && !r.editable, d = ro ? " disabled" : "";
     const f = (label, body, cls, req)=> '<div class="fg '+(cls||"")+'"><label class="fl">'+label+(req?' <span class="r">*</span>':'')+'</label>'+body+'</div>';
@@ -16178,8 +16203,11 @@ if(document.readyState !== "loading") initChatWidget();
       f("Incoterm", '<select class="fc" data-qh="incoterm"'+d+'><option value="">—</option>'+INCOTERMS.map(s=>opt(s, s, s===h.incoterm)).join("")+'</select>')+
       f("Commodity", inp("commodity","text","e.g. Cotton garments"))+f("Payment Terms", inp("payment_terms","text","e.g. 30 days from invoice"))+f("Transit Time (days)", inp("transit_days","number","","min=\"0\""))+
       f("Packages", inp("packages","number","","min=\"0\""))+f("Gross Weight (kg)", inp("gross_weight","number","","min=\"0\" step=\"0.001\""))+f("Volume (CBM)", inp("volume","number","","min=\"0\" step=\"0.001\""))+
-      f("POL / POD", '<input class="fc" readonly value="'+esc2((h.pol||"").split(/\s+[-—]\s+/)[0]+" / "+(h.pod||"").split(/\s+[-—]\s+/)[0])+'" style="background:var(--g0)">')+
-      '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2(p.code+" - "+p.name)+'">').join("")+'</datalist>';
+      f("Origin (Place of Receipt)", inp("origin","text","City / place of cargo pick-up"), "span2")+f("Final Destination", inp("final_destination","text","Place of final delivery"), "span2")+
+      f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+f("Dimensions (L x W x H cm)", inp("dimensions","text","e.g. 80 x 60 x 45"))+
+      f("Billing Branch", '<select class="fc" data-qh="billing_branch_id"'+d+'><option value="">— Registered address —</option>'+(Q.m.custBranches||[]).filter(b=>b.status==="ACTIVE" && b.billing_enabled).map(b=>opt(String(b.id), b.code+" — "+b.name, String(b.id)===String(h.billing_branch_id))).join("")+'</select>', "span2")+
+      f("Contact Person", '<select class="fc" data-qh="contact_id"'+d+'><option value="">— Select contact —</option>'+contactChoices().map(c=>opt(String(c.id), c.name+(c.designation?" · "+c.designation:"")+(c.branch_code?" ("+c.branch_code+")":""), String(c.id)===String(h.contact_id))).join("")+'</select>', "span2")+
+      '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2(p.code+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+Q.m.carriers.map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
   }
   function chargeOptions(l){
     const names = Q.m.charges.map(c=>c.name); const extra = l.charge_name && !names.includes(l.charge_name) ? [l.charge_name] : [];
@@ -16279,7 +16307,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* ---------- open / load ---------- */
   function fillFromRec(r){
     Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
-      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume"].map(k=>[k, (r.header||{})[k]||""]))};
+      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name"].map(k=>[k, (r.header||{})[k]||""]))};
     const mk = l=>({side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
     Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk);
   }
@@ -16292,7 +16320,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(rec){
       Object.assign(w, {mode:rec.mode, dir:rec.direction, type:rec.shipment_type, qtype:rec.quote_type || "Standard", carrierMode:rec.carrier_mode});
       document.getElementById("quotWizWrap").style.display = "none"; document.getElementById("quotFormWrap").style.display = "block";
-      fillFromRec(rec); renderAll();
+      fillFromRec(rec); await loadParties(Q.head.customer_id); renderAll();
     } else {
       Object.assign(w, {mode:null, dir:null, type:null, qtype:null, customServices:null, carrierMode:null, sourceEnquiry:null});
       Q.head = headDefaults(); Q.sell = [blank("SELL")]; Q.buy = [blank("BUY")];
@@ -16328,7 +16356,7 @@ if(document.readyState !== "loading") initChatWidget();
     };
     return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
       pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,
-      header:Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume"].filter(k=>h[k]!=="" && h[k]!==undefined).map(k=>[k, h[k]])),
+      header:Object.fromEntries(Object.entries({...h, ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name"].includes(k) && v!=="" && v!==undefined && v!==null)),
       lines:Q.sell.concat(Q.buy).filter(l=>l.charge_name || Number(l.rate) || (l.container_breakup||[]).length).map(toLine)};
   }
   function validate(forSubmit){
@@ -16415,50 +16443,104 @@ if(document.readyState !== "loading") initChatWidget();
   }
 
   /* ---------- customer-safe preview / print (SELL charges only) ---------- */
-  async function openView(id, print){
+  const numWordsIN = n=>{
+    const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"], tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+    const two = x=> x < 20 ? ones[x] : tens[Math.floor(x/10)] + (x%10 ? " "+ones[x%10] : "");
+    const three = x=> (x >= 100 ? ones[Math.floor(x/100)]+" Hundred"+(x%100 ? " " : "") : "") + (x%100 ? two(x%100) : "");
+    n = Math.round(Math.abs(n)); if(!n) return "Zero";
+    const parts = []; const cr = Math.floor(n/1e7), lk = Math.floor(n%1e7/1e5), th = Math.floor(n%1e5/1e3), rest = n%1e3;
+    if(cr) parts.push(three(cr)+" Crore"); if(lk) parts.push(two(lk)+" Lakh"); if(th) parts.push(two(th)+" Thousand"); if(rest) parts.push(three(rest));
+    return parts.join(" ");
+  };
+  const hasTaxedLines = q=> q.lines.some(l=>l.side==="SELL" && l.taxable && Number(l.tax_pct) > 0);
+  function quotationHtml(q, mode, org, cust){
+    const withTax = mode === "TAX"; const hd = q.header || {}; const sell = q.lines.filter(l=>l.side==="SELL");
+    const e = esc2; const row = (k, v)=> v ? '<div style="margin-bottom:7px"><div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.3px">'+k+'</div><div style="font-weight:700;font-size:12px;color:#0B1F3A">'+e(v)+'</div></div>' : '';
+    const num2 = v=> (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+    const taxable = sell.filter(l=>l.taxable && Number(l.tax_pct) > 0).reduce((a,l)=>a+Number(l.amount),0), nonTaxable = sell.filter(l=>!(l.taxable && Number(l.tax_pct) > 0)).reduce((a,l)=>a+Number(l.amount),0);
+    const gst = withTax ? sell.reduce((a,l)=>a+Number(l.gst_amount),0) : 0; const sub = taxable + nonTaxable; const total = sub + gst; const rounded = Math.round(total); const roundOff = rounded - total;
+    const byCcy = {}; sell.forEach(l=>{ const c = byCcy[l.ccy] = byCcy[l.ccy] || {ccy:l.ccy, fcy:0, inr:0}; c.fcy += Number(l.amount_fcy); c.inr += Number(l.amount); });
+    const foreign = Object.values(byCcy).filter(c=>c.ccy !== "INR");
+    const docCcy = hd.currency || "INR"; const docRate = docCcy === "INR" ? 1 : (Q.m.rates[docCcy] || (byCcy[docCcy] && byCcy[docCcy].fcy ? byCcy[docCcy].inr / byCcy[docCcy].fcy : 0));
+    const mode3 = ({Air:"✈️", Sea:"🚢", Road:"🚚", Rail:"🚆", Courier:"📦", Multimodal:"🌐"})[q.mode] || "🚢";
+    const statusText = q.effective_status === "DRAFT" ? (q.approval_status === "APPROVED" ? "APPROVED" : q.approval_status === "SUBMITTED" ? "SUBMITTED" : "DRAFT") : q.effective_status;
+    const th = (t, a)=> '<th style="padding:8px 8px;text-align:'+(a||"left")+';font-size:10.5px;letter-spacing:.3px;text-transform:uppercase">'+t+'</th>';
+    const cols = withTax ? 11 : 9;
+    const body = sell.map((l,i)=>{ const bu = l.container_breakup || []; const tx = l.taxable && Number(l.tax_pct) > 0;
+      return '<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:7px 8px">'+(i+1)+'</td><td style="padding:7px 8px"><b>'+e(l.charge_name)+'</b>'+(l.carrier ? '<div style="font-size:10px;color:#64748B">'+e(l.carrier)+'</div>' : '')+(bu.length ? '<div style="font-size:10px;color:#64748B">'+bu.map(b=>e(b.type)+" × "+e(Number(b.qty))+" @ "+e(l.ccy)+" "+e(Number(b.rate).toLocaleString("en-IN"))).join("<br>")+'</div>' : (l.container_type ? '<div style="font-size:10px;color:#64748B">'+e(l.container_type)+'</div>' : ''))+(l.remarks ? '<div style="font-size:10px;color:#64748B">'+e(l.remarks)+'</div>' : '')+'</td><td style="padding:7px 8px">'+e(l.basis)+'</td><td style="padding:7px 8px;text-align:right">'+e(Number(l.qty))+'</td><td style="padding:7px 8px;text-align:right">'+(bu.length ? "as listed" : num2(l.rate))+'</td><td style="padding:7px 8px;text-align:center">'+e(l.ccy)+'</td><td style="padding:7px 8px;text-align:right">'+num2(l.amount_fcy)+'</td><td style="padding:7px 8px;text-align:right">'+(l.ccy === "INR" ? "1.00" : e(Number(l.exch)))+'</td><td style="padding:7px 8px;text-align:right">'+num2(l.amount)+'</td>'+(withTax ? '<td style="padding:7px 8px;text-align:right">'+(tx ? e(Number(l.tax_pct))+"%" : "Nil")+'</td><td style="padding:7px 8px;text-align:right">'+num2(l.total_inr)+'</td>' : '')+'</tr>'; }).join("");
+    const termLines = String(q.terms || "").split(/\n+/).map(t=>t.replace(/^\s*\d+[\.\)]\s*/, "").trim()).filter(Boolean);
+    const check = '<span style="color:#16A34A;font-weight:800">✓</span> ';
+    return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:#fff;max-width:960px;margin:0 auto">'+
+      '<div class="qp-card" style="display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;border:1px solid #CBD5E1;border-radius:10px;padding:14px 18px;background:linear-gradient(135deg,#F8FAFC,#EEF4FB)"><div style="font-size:38px;line-height:1">'+mode3+'</div><div><div style="font-size:11px;font-weight:700;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div><div style="font-size:11px;color:#475569">Freight Forwarding</div><div style="font-size:24px;font-weight:800;color:#0B1F3A;letter-spacing:.3px">Quotation</div><div style="margin-top:4px"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span></div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,auto);gap:4px 22px;font-size:11px"><div><div style="color:#64748B">Quote Number</div><b>'+e(q.number || ("Draft #"+q.id))+(q.revision_no ? " (Rev "+q.revision_no+")" : "")+'</b></div><div><div style="color:#64748B">Quote Date</div><b>'+e(dmy(q.quote_date))+'</b></div><div><div style="color:#64748B">Valid Until</div><b>'+e(dmy(q.valid_until))+'</b></div><div><div style="color:#64748B">Sales Person</div><b>'+e(hd.sales_person || "—")+'</b></div><div><div style="color:#64748B">Branch</div><b>'+e(hd.branch_name || "—")+'</b></div><div><div style="color:#64748B">Reference</div><b>'+e(hd.reference_no || "—")+'</b></div></div></div>'+
+      '<div class="qp-card" style="border:1px solid #CBD5E1;border-radius:10px;margin-top:12px;padding:12px 18px"><div style="font-weight:800;color:#0B1F3A;font-size:13px;margin-bottom:8px">👥 Customer Details</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">'+row("Customer Name", q.party_name)+row("Email", hd.contact_email)+row("Contact Person", hd.contact_person)+row("Billing Address", hd.billing_address ? hd.billing_address.replace(/\n/g, ", ") : "")+row("Mobile", hd.contact_mobile)+row("GSTIN", hd.customer_gstin)+'</div></div>'+
+      '<div class="qp-card" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">'+
+        '<div style="border:1px solid #CBD5E1;border-radius:10px;overflow:hidden"><div style="background:#DBEAFE;padding:7px 12px;font-weight:800;color:#1E3A8A;font-size:12px">Shipment Details</div><div style="padding:10px 12px">'+row("Mode", q.mode+" Freight")+row("Shipment Type", q.shipment_type)+row("Incoterms", hd.incoterm)+row("Service Type", hd.service_type)+row("Quotation Status", statusText)+row("Direction", q.direction)+'</div></div>'+
+        '<div style="border:1px solid #CBD5E1;border-radius:10px;overflow:hidden"><div style="background:#DCFCE7;padding:7px 12px;font-weight:800;color:#14532D;font-size:12px">Routing &amp; Schedule</div><div style="padding:10px 12px">'+row("Origin", hd.origin)+row("Port of Loading (POL)", q.pol)+row("Port of Discharge (POD)", q.pod)+row("Final Destination", hd.final_destination)+row("Carrier / Airline", hd.carrier)+row("Transit Time", hd.transit_days ? hd.transit_days+" days" : "")+'</div></div>'+
+        '<div style="border:1px solid #CBD5E1;border-radius:10px;overflow:hidden"><div style="background:#EDE9FE;padding:7px 12px;font-weight:800;color:#4C1D95;font-size:12px">Cargo Details</div><div style="padding:10px 12px">'+row("Commodity", hd.commodity)+row("No. of Packages", hd.packages)+row("Gross Weight", hd.gross_weight ? num2(hd.gross_weight)+" KGS" : "")+row("Chargeable Weight", hd.chargeable_weight ? num2(hd.chargeable_weight)+" KGS" : "")+row("Volume", hd.volume ? Number(hd.volume)+" CBM" : "")+row("Dimensions (L x W x H)", hd.dimensions ? hd.dimensions+" CM" : "")+'</div></div></div>'+
+      '<div class="qp-card" style="border:1px solid #CBD5E1;border-radius:10px;margin-top:12px;overflow:hidden"><div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:#F8FAFC;border-bottom:1px solid #E2E8F0"><div style="font-weight:800;color:#0B1F3A;font-size:13px">Sell Rates (to Customer)</div><div style="font-size:11px;color:#475569">Quotation currency <b>'+e(docCcy)+'</b> · Home currency <b>INR</b></div></div>'+
+        '<table style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="background:#0B3A7A;color:#fff">'+th("#")+th("Charge Description")+th("Basis")+th("Units","right")+th("Rate","right")+th("Cur","center")+th("Amount (Cur)","right")+th("Ex. Rate","right")+th("Amount (INR)","right")+(withTax ? th("GST %","right")+th("Total (INR)","right") : "")+'</tr></thead><tbody>'+body+'</tbody></table>'+
+        '<div style="display:grid;grid-template-columns:1fr 340px;gap:14px;padding:12px 14px">'+
+          '<div>'+(hd.chargeable_weight ? '<div style="display:inline-block;background:#EAF2FB;border-radius:8px;padding:7px 12px;font-size:12px">Total Chargeable Weight: <b>'+num2(hd.chargeable_weight)+' KGS</b></div>' : '')+
+            (foreign.length ? '<table style="margin-top:8px;font-size:11px;border-collapse:collapse"><thead><tr style="color:#64748B"><th style="text-align:left;padding:3px 10px 3px 0">Currency</th><th style="text-align:right;padding:3px 10px">Amount</th><th style="text-align:right;padding:3px 10px">Rate to INR</th><th style="text-align:right;padding:3px 0 3px 10px">In INR</th></tr></thead><tbody>'+Object.values(byCcy).map(c=>'<tr><td style="padding:2px 10px 2px 0">'+e(c.ccy)+'</td><td style="text-align:right;padding:2px 10px">'+num2(c.fcy)+'</td><td style="text-align:right;padding:2px 10px">'+(c.ccy==="INR" ? "1.00" : num2(c.inr/c.fcy))+'</td><td style="text-align:right;padding:2px 0 2px 10px">'+num2(c.inr)+'</td></tr>').join("")+'</tbody></table>' : '')+
+            '<div style="margin-top:8px;font-size:11px;color:#334155"><b>Amount in words:</b> Indian Rupees '+e(numWordsIN(rounded))+' Only</div></div>'+
+          '<div style="font-size:12px"><div style="display:flex;justify-content:space-between;padding:3px 0"><span>Taxable value</span><b>'+num2(taxable)+'</b></div><div style="display:flex;justify-content:space-between;padding:3px 0"><span>Non-taxable value</span><b>'+num2(nonTaxable)+'</b></div><div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid #E2E8F0"><b>SUB TOTAL (INR)</b><b>'+num2(sub)+'</b></div>'+
+            (withTax ? '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>GST</span><b>'+num2(gst)+'</b></div>' : '<div style="padding:3px 0;font-size:10.5px;color:#92400E">Tax is not included in this non-taxable quotation.</div>')+
+            '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Round off</span><b>'+(roundOff>=0?"":"-")+num2(Math.abs(roundOff))+'</b></div>'+
+            '<div style="display:flex;justify-content:space-between;background:#0B3A7A;color:#fff;border-radius:6px;padding:9px 12px;margin-top:5px;font-size:13px;font-weight:800"><span>TOTAL QUOTATION</span><span>INR '+num2(rounded)+'</span></div>'+
+            (docCcy !== "INR" && docRate ? '<div style="display:flex;justify-content:space-between;padding:5px 2px;font-size:11px;color:#334155"><span>Equivalent in '+e(docCcy)+' @ '+num2(docRate)+'</span><b>'+e(docCcy)+' '+num2(rounded/docRate)+'</b></div>' : '')+'</div></div></div>'+
+      '<div class="qp-card" style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;border:1px solid #CBD5E1;border-radius:10px;margin-top:12px;padding:12px 16px"><div><div style="font-weight:800;color:#0B1F3A;font-size:13px;margin-bottom:6px">Terms &amp; Conditions (Summary)</div><div style="font-size:11.5px;line-height:1.7">'+check+'<b>Rate Validity:</b> Until '+e(dmy(q.valid_until))+(hd.payment_terms ? '<br>'+check+'<b>Payment Terms:</b> '+e(hd.payment_terms) : '')+termLines.map(t=>'<br>'+check+e(t)).join("")+'</div></div>'+
+        '<div style="border-left:1px solid #E2E8F0;padding-left:14px"><div style="font-weight:800;font-size:12px;margin-bottom:4px">Notes:</div><ul style="font-size:10.5px;color:#475569;margin:0;padding-left:16px;line-height:1.6"><li>Space &amp; rates are subject to availability at the time of booking.</li><li>Additional charges may apply for customs clearance, destination delivery and special handling.</li>'+(withTax ? '<li>GST is shown as applicable on the taxable charges; final tax follows the invoice.</li>' : '<li>This is a non-taxable quotation: applicable taxes, if any, will be charged extra as per law.</li>')+(foreign.length ? '<li>Foreign-currency charges are converted to INR at the rates shown; the invoice uses the rate on the date of billing.</li>' : '')+'<li>This is a system generated quotation.</li></ul></div></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:14px;font-size:11px;color:#475569"><div>Prepared by: <b>'+e(q.prepared_by_name||"—")+'</b></div><div>Approved by: <b>'+e(q.approved_by_name||"—")+'</b>'+(q.approved_at ? " · "+e(dmy(q.approved_at)) : "")+'</div></div>'+
+      (q.job_number ? '<div style="margin-top:10px;font-size:11px;color:#14532D">Converted to job <b>'+e(q.job_number)+'</b></div>' : '')+'</div>';
+  }
+  (function printCss(){ const st = document.createElement("style"); st.textContent = "@media print{ body *{visibility:hidden!important} #quotPrintZone, #quotPrintZone *{visibility:visible!important} #quotPrintZone{position:absolute!important;left:0;top:0;width:100%!important;max-width:none!important;box-shadow:none!important;border:0!important;margin:0!important} .qp-card{break-inside:avoid} .qp-doc *{-webkit-print-color-adjust:exact;print-color-adjust:exact} @page{size:A4;margin:10mm} }"; document.head.appendChild(st); })();
+  async function openView(id, print, mode){
     let q; try{ q = await api("GET","/api/quotations/"+id); }catch(e){ say("Could not open quotation", e.message); return; }
+    if(!Q.m.customers.length) await loadMasters().catch(()=>{});
     const me = Q.me || await api("GET","/api/auth/me").catch(()=>({organization_name:""}));
     const scr = document.getElementById("s-quotation-print"); const zone = document.getElementById("quotPrintZone"); if(!scr || !zone) return;
     scr.dataset.qid = q.id; Q.viewRec = q;
-    const sell = q.lines.filter(l=>l.side === "SELL");
-    const carriers = Array.from(new Set(sell.map(l=>l.carrier || "")));
-    const hd = q.header || {};
-    const withTax = Q.viewTax !== false;
-    const th = (t, a)=> '<th style="padding:6px;text-align:'+(a||"left")+'">'+t+'</th>';
-    const tables = carriers.map(c=>{
-      const ls = sell.filter(l=>(l.carrier||"") === c); const tot = ls.reduce((a,l)=>a+Number(l.amount),0), gst = ls.reduce((a,l)=>a+Number(l.gst_amount),0), grand = ls.reduce((a,l)=>a+Number(l.total_inr),0);
-      const cols = withTax ? 9 : 7;
-      return (c ? '<div style="font-weight:700;margin:12px 0 4px">Carrier: '+esc2(c)+'</div>' : '')+'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#0B1F3A;color:#fff">'+th("Charge")+th("Basis")+th("Units","right")+th("Rate","right")+th("Cur","center")+th("Ex.Rate","right")+th("Amount (INR)","right")+(withTax ? th("GST","right")+th("Total (INR)","right") : "")+'</tr></thead><tbody>'+
-        ls.map(l=>{ const bu = l.container_breakup||[]; return '<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:6px">'+esc2(l.charge_name)+(bu.length ? '<div style="font-size:10.5px;color:#64748B">'+bu.map(b=>esc2(b.type)+" × "+esc2(Number(b.qty))+" @ "+esc2(l.ccy)+" "+esc2(Number(b.rate).toLocaleString("en-IN"))).join("<br>")+'</div>' : (l.container_type ? '<div style="font-size:10.5px;color:#64748B">'+esc2(l.container_type)+'</div>' : ''))+'</td><td style="padding:6px">'+esc2(l.basis)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.qty))+'</td><td style="padding:6px;text-align:right">'+(bu.length ? "as listed" : esc2(Number(l.rate).toLocaleString("en-IN")))+'</td><td style="padding:6px;text-align:center">'+esc2(l.ccy)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.exch))+'</td><td style="padding:6px;text-align:right">'+inr(l.amount)+'</td>'+(withTax ? '<td style="padding:6px;text-align:right">'+(l.taxable ? inr(l.gst_amount)+" ("+esc2(Number(l.tax_pct))+"%)" : "Nil")+'</td><td style="padding:6px;text-align:right">'+inr(l.total_inr)+'</td>' : '')+'</tr>'; }).join("")+
-        '</tbody><tfoot><tr><td colspan="6" style="padding:6px;text-align:right;font-weight:700">Total'+(withTax ? "" : " (excluding tax)")+'</td><td style="padding:6px;text-align:right;font-weight:700">'+inr(tot)+'</td>'+(withTax ? '<td style="padding:6px;text-align:right;font-weight:700">'+inr(gst)+'</td><td style="padding:6px;text-align:right;font-weight:800">'+inr(grand)+'</td>' : '')+'</tr></tfoot></table>'+(withTax ? '' : '<div style="font-size:11px;color:#64748B;margin-top:4px">Amounts are exclusive of GST; applicable taxes are charged extra as per law.</div>');
-    }).join("");
-    zone.innerHTML = '<div style="padding:24px 28px"><div style="display:flex;justify-content:space-between;border-bottom:2px solid #0B1F3A;padding-bottom:10px"><div><div style="font-size:20px;font-weight:800;color:#0B1F3A">'+esc2(me.organization_name||"")+'</div><div style="font-size:11px;color:var(--g5)">Freight forwarding quotation</div></div><div style="text-align:right"><div style="font-size:18px;font-weight:800">QUOTATION</div><div class="mono">'+esc2(q.number||("Draft #"+q.id))+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</div><div style="margin-top:4px">'+sbadge(q)+'</div></div></div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;font-size:12px"><div><div style="color:var(--g5);font-size:10.5px">QUOTED TO</div><div style="font-weight:700;font-size:14px">'+esc2(q.party_name)+'</div>'+(hd.reference_no ? '<div style="margin-top:4px">Your ref: '+esc2(hd.reference_no)+'</div>' : '')+(hd.sales_person ? '<div>Contact: '+esc2(hd.sales_person)+'</div>' : '')+'</div><div>'+
-      [["Date",dmy(q.quote_date)],["Valid until",dmy(q.valid_until)],["Shipment",[q.mode,q.direction,q.shipment_type].filter(Boolean).join(" · ")],["Service",hd.service_type||"—"],["Route",[q.pol,q.pod].filter(Boolean).join(" → ")||"—"],["Incoterm",hd.incoterm||"—"],["Commodity",hd.commodity||"—"],["Payment terms",hd.payment_terms||"—"]].map(([k,v])=>'<div class="sr"><span class="lbl">'+k+'</span><span>'+esc2(v)+'</span></div>').join("")+'</div></div>'+
-      tables+'<div style="margin-top:16px"><div style="font-weight:700;font-size:12px;margin-bottom:4px">Terms &amp; Conditions</div><div style="white-space:pre-wrap;font-size:11px;color:var(--g7)">'+esc2(q.terms||"—")+'</div></div>'+
-      '<div style="display:flex;justify-content:space-between;margin-top:22px;font-size:11px;color:var(--g6)"><div>Prepared by: <b>'+esc2(q.prepared_by_name||"—")+'</b></div><div>Approved by: <b>'+esc2(q.approved_by_name||"—")+'</b>'+(q.approved_at ? " · "+dmy(q.approved_at) : "")+'</div></div>'+
-      (q.job_number ? '<div class="ib ib-gr" style="margin-top:12px">Converted to job <b>'+esc2(q.job_number)+'</b></div>' : '')+'</div>';
+    const taxed = hasTaxedLines(q);
+    let want = mode || Q.viewMode || (taxed ? "TAX" : "NOTAX"); let alertText = "";
+    if(want === "TAX" && !taxed){ want = "NOTAX"; alertText = "There are no taxable entries in this quotation, so it cannot be printed as a Taxable quotation. It is shown as a Non-Taxable quotation."; say("No taxable entries", alertText, "warn"); }
+    Q.viewMode = want;
+    const cust = Q.m.customers.find(c=>String(c.id)===String(q.customer_id)) || null;
+    zone.innerHTML = (alertText ? '<div class="ib ib-am no-print" style="margin:0 0 10px">'+esc2(alertText)+'</div>' : '')+(want === "NOTAX" && taxed ? '<div class="ib ib-bl no-print" style="margin:0 0 10px">Non-taxable view: the tax on the taxable charges is left out of this printout (amounts exclusive of GST). Switch to Taxable Quotation to show it.</div>' : '')+quotationHtml(q, want, me, cust);
     const bar = scr.querySelector(".pa");
     if(bar){
       const keep = Array.from(bar.querySelectorAll("button")).filter(b=>/^\s*back\s*$/i.test(b.textContent.replace(/\s+/g," ")) || b.id === "quotPrintBtn");
       Array.from(bar.querySelectorAll("button")).forEach(b=>{ if(!keep.includes(b)) b.style.display = "none"; });
       bar.querySelectorAll("[data-qk-bar]").forEach(n=>n.remove());
-      const add = (label, a, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = a+":"+q.id; b.textContent = label; bar.appendChild(b); };
-      add("With Tax", "viewtax1", Q.viewTax !== false ? "btn-pri" : "btn-out"); add("Without Tax", "viewtax0", Q.viewTax === false ? "btn-pri" : "btn-out");
+      const add = (label, a, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = a+":"+q.id; b.textContent = label; bar.appendChild(b); return b; };
+      add("Taxable Quotation", "viewmode_TAX", want === "TAX" ? "btn-pri" : "btn-out"); add("Non-Taxable Quotation", "viewmode_NOTAX", want === "NOTAX" ? "btn-pri" : "btn-out");
+      add("Print", "print", "btn-out"); add("Download PDF", "pdf", "btn-out"); add("Email to Customer", "email", "btn-out");
       if(q.editable) add("Edit", "edit", "btn-out");
+      if(q.status === "SENT" || q.effective_status === "EXPIRED" || q.effective_status === "REJECTED") add("Revise Quote", "revise", "btn-out");
       if(q.effective_status === "SENT"){ add("Mark Accepted", "accept", "btn-suc"); add("Mark Rejected", "reject", "btn-out"); }
       if(q.status === "ACCEPTED") add("Convert to Job", "convert", "btn-pri");
       if(q.status === "DRAFT" && q.approval_status === "APPROVED" && can("quote.send")) add("Issue to Client", "issue", "btn-pri");
+      add("New Quote", "newquote", "btn-out");
     }
     go("quotation-print");
-    if(print) setTimeout(()=> window.print(), 300);
+    if(print && !alertText) setTimeout(()=> window.print(), 300);
   }
+
+  Q.openView = openView;
 
   /* ---------- list/view actions ---------- */
   async function listAct(kind, id){
     try{
       if(kind === "delete"){ if(!window.confirm("Delete this draft quotation?")) return; await api("DELETE","/api/quotations/"+id); say("Draft deleted", ""); return refresh(); }
-      if(kind === "viewtax1" || kind === "viewtax0"){ Q.viewTax = kind === "viewtax1"; return openView(id); }
+      if(kind === "viewmode_TAX" || kind === "viewmode_NOTAX"){ return openView(id, false, kind.split("_")[1]); }
+      if(kind === "print" || kind === "pdf"){
+        if(Q.viewMode === "TAX" && Q.viewRec && !hasTaxedLines(Q.viewRec)){ say("No taxable entries", "This quotation has no taxable entries, so a Taxable quotation cannot be printed. Print it as Non-Taxable.", "warn"); return; }
+        if(kind === "pdf") say("Save as PDF", "In the print window choose 'Save as PDF' as the printer.");
+        setTimeout(()=> window.print(), kind === "pdf" ? 600 : 100); return;
+      }
+      if(kind === "email"){ say("Email is not available yet", "Use Download PDF and send the file yourself. Email sending needs an email provider to be configured.", "warn"); return; }
+      if(kind === "newquote"){ go("quotation-new"); return; }
+      if(kind === "revise"){ const r = await api("POST","/api/quotations/"+id+"/revise"); say("Revision created", "Revision "+r.revision_no+" is a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
       if(kind === "edit"){ const q = await api("GET","/api/quotations/"+id); Q.pendingOpen = q; go("quotation-new"); return; }
       if(kind === "issue"){ if(!window.confirm("Issue this approved quotation to the client? It gets its number and is locked.")) return; const s = await api("POST","/api/quotations/"+id+"/send"); say("Quotation issued", s.number); return refresh(s.id); }
       if(kind === "accept" || kind === "reject"){ if(!window.confirm(kind==="accept" ? "Record this quotation as ACCEPTED by the client?" : "Record this quotation as REJECTED by the client?")) return; const q = await api("POST","/api/quotations/"+id+"/"+kind); say("Quotation "+(kind==="accept"?"accepted":"rejected"), q.number); return refresh(q.id); }
@@ -16506,7 +16588,9 @@ if(document.readyState !== "loading") initChatWidget();
   const closeModalSafe = ()=>{ try{ closeModal(); }catch(e){ /* modal not open */ } };
   document.addEventListener("input", e=>{
     const el = e.target; if(!document.getElementById("s-quotation-new").contains(el)) return;
-    if(el.dataset.qh){ Q.head[el.dataset.qh] = el.value; Q.dirty = true; if(el.dataset.qh === "customer_id"){ const c = Q.m.customers.find(x=>String(x.id)===el.value); Q.head.party_name = c ? c.name : ""; } return; }
+    if(el.dataset.qh){ Q.head[el.dataset.qh] = el.value; Q.dirty = true; if(el.dataset.qh === "customer_id"){ const c = Q.m.customers.find(x=>String(x.id)===el.value); Q.head.party_name = c ? c.name : ""; Q.head.billing_branch_id = ""; Q.head.contact_id = ""; loadParties(el.value).then(()=>renderAll(true)); }
+      if(el.dataset.qh === "billing_branch_id"){ Q.head.contact_id = ""; const bc = (Q.m.custContacts||[]).find(c=>c.status==="ACTIVE" && String(c.branch_id)===String(el.value) && c.is_billing); if(bc) Q.head.contact_id = String(bc.id); renderAll(true); }
+      return; }
     if(el.dataset.ql){ const [side, idx, f] = el.dataset.ql.split(":"); const l = (side==="sell"?Q.sell:Q.buy)[Number(idx)]; if(!l) return;
       if(f === "taxable"){ l.taxable = el.value === "1"; if(l.taxable && !Number(l.tax_pct)) l.tax_pct = "18"; if(!l.taxable) l.tax_pct = "0"; Q.dirty = true; renderAll(true); return; }
       l[f] = el.value; Q.dirty = true;

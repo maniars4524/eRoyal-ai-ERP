@@ -38,6 +38,27 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("a reload in the same tab keeps the signed-in session", !visible(w) && w.sessionStorage.getItem("esway_access_token") === token);
   w.close();
 
+  // ---------- Remember me: username, license number and password are pre-filled (never auto-signed-in)
+  const lic = org.body.organization.license_number;
+  const fresh = async stored => {
+    const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
+      beforeParse(x) { x.fetch = (u, o) => fetch(new URL(u, BASE).href, o); x.scrollTo = () => {}; x.console.error = () => {}; if (stored) x.localStorage.setItem("esway_remember_erp", stored); } });
+    await sleep(2200); return dom.window;
+  };
+  const type = (x, id, v) => { const el = x.document.getElementById(id); el.value = v; el.dispatchEvent(new x.Event("input", { bubbles: true })); };
+  let x = await fresh(null);
+  type(x, "loginLicense", lic); type(x, "loginUser", "du" + tag); type(x, "loginPass", "Ui-Test-Passw0rd-1"); x.document.getElementById("loginRemember").checked = true;
+  x.document.getElementById("loginBtn").click(); await sleep(2500);
+  const saved = x.localStorage.getItem("esway_remember_erp");
+  check("ticking Remember me stores the sign-in details for this browser", !!saved && Object.keys(JSON.parse(saved)).join() === "u,l,p", saved);
+  x.close();
+  x = await fresh(saved);
+  check("next visit: username, license number and password are pre-filled and the box is ticked", x.document.getElementById("loginUser").value === "du" + tag && x.document.getElementById("loginLicense").value === lic && x.document.getElementById("loginPass").value === "Ui-Test-Passw0rd-1" && x.document.getElementById("loginRemember").checked);
+  check("pre-filled details do not sign in by themselves", !x.sessionStorage.getItem("esway_access_token"));
+  x.document.getElementById("loginRemember").checked = false; x.document.getElementById("loginBtn").click(); await sleep(2500);
+  check("signing in with Remember me unticked erases the saved details", x.localStorage.getItem("esway_remember_erp") === null);
+  x.close();
+
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });

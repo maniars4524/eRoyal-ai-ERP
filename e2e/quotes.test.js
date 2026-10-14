@@ -122,16 +122,25 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("customer-facing view shows sell charges, route and approver", /Acme Exports/.test(pz) && /Ocean Freight/.test(pz) && /INMAA - Chennai/.test(pz) && /Approver/.test(pz) && /20GP/.test(pz), pz.slice(0, 300));
   check("customer-facing view never shows buy cost or margin", !/1,16,900/.test(pz) && !/margin|buy cost|markup/i.test(pz), pz.slice(0, 300));
   check("tax type and tax % are visible columns in the sell and buy tables", /Taxable/.test(text('#qkPanes [data-pane="sell"] thead')) && /Tax %/.test(text('#qkPanes [data-pane="buy"] thead')) || true);
-  q(`[data-qk-do="viewtax0:${rec.id}"]`).click(); await sleep(1200);
+  check("default view is the international-format document (header, customer, shipment / routing / cargo panels)", /Freight Forwarding/.test(pz) && /Customer Details/.test(pz) && /Shipment Details/.test(pz) && /Routing & Schedule/.test(pz) && /Cargo Details/.test(pz) && /TAXABLE QUOTATION/.test(pz) && /Customer Name/.test(pz), pz.slice(0, 200));
+  check("home currency is shown with the foreign-currency entries (taxable, non-taxable, GST and total in INR)", /Amount \(INR\)/.test(pz) && /Taxable value/.test(pz) && /Non-taxable value/.test(pz) && /TOTAL QUOTATION/.test(pz) && /INR [\d,]+\.00/.test(pz) && /USD/.test(pz) && /Rate to INR/.test(pz) && /Amount in words/.test(pz), pz.slice(0, 400));
+  check("taxable mode shows GST per line and the tax total", /GST %/.test(pz) && /18%/.test(pz) && /Total \(INR\)/.test(pz));
+  q(`[data-qk-do="viewmode_NOTAX:${rec.id}"]`).click(); await sleep(1200);
   const noTax = text("#quotPrintZone");
-  check("preview WITHOUT tax hides GST and totals tax-exclusive", !/\(18%\)/.test(noTax) && !/Total \(INR\)/.test(noTax) && /excluding tax/.test(noTax) && /exclusive of GST/i.test(noTax), noTax.slice(0, 300));
-  q(`[data-qk-do="viewtax1:${rec.id}"]`).click(); await sleep(1200);
-  check("preview WITH tax shows GST amount and percentage", /GST/.test(text("#quotPrintZone")) && /18%/.test(text("#quotPrintZone")));
+  check("NON-TAXABLE quotation leaves the tax out and says so", /NON-TAXABLE QUOTATION/.test(noTax) && !/GST %/.test(noTax) && !/Total \(INR\)/.test(noTax) && /Tax is not included/.test(noTax) && /Taxable value/.test(noTax) && /Non-taxable value/.test(noTax), noTax.slice(0, 300));
+  q(`[data-qk-do="viewmode_TAX:${rec.id}"]`).click(); await sleep(1200);
+  check("TAXABLE quotation shows GST amount and percentage again", /TAXABLE QUOTATION/.test(text("#quotPrintZone").replace(/NON-TAXABLE QUOTATION/g, "")) && /GST %/.test(text("#quotPrintZone")), text("#quotPrintZone").slice(0, 200));
+  // a quotation whose entries are all non-taxable cannot be printed as taxable
+  const plain = (await j("POST", "/api/quotations", { party_name: "Acme Exports", customer_id: acme.id, mode: "Sea", direction: "Export", shipment_type: "FCL", pol: "INMAA", pod: "BEANR", lines: [{ side: "SELL", charge_name: "Documentation", ccy: "INR", exch: "1", rate: "3500", qty: "1", taxable: false, tax_pct: "0" }] }, token)).body;
+  clearToasts(); await w.QK.openView(plain.id, false, "TAX"); await sleep(1200);
+  check("no taxable entries: the Taxable print is refused with an alert", toastsNow().some(t => /No taxable entries/i.test(t)) && /NON-TAXABLE QUOTATION/.test(text("#quotPrintZone")) && /no taxable entries/i.test(text("#quotPrintZone")), toastsNow().join(";"));
+  w.QK.viewMode = "TAX"; clearToasts(); q(`[data-qk-do="print:${plain.id}"]`).click(); await sleep(400);
+  check("the Print button also refuses a Taxable print without taxable entries", toastsNow().some(t => /No taxable entries/i.test(t)));
   clearToasts(); q("#quotEmailBtn") && q("#quotEmailBtn").click(); await sleep(200);
 
   // accept + convert
   w.go("quotation"); await sleep(1000);
-  check("list shows number, sent status and approval chip", /QT\/\d\d-\d\d\/00001/.test(rowsText()[0]) && /Sent/.test(rowsText()[0]) && /Approved/.test(rowsText()[0]), rowsText().join("|"));
+  check("list shows number, sent status and approval chip", /QT\/\d\d-\d\d\/00001/.test((rowsText().find(r => /QT\/\d\d-\d\d\/00001/.test(r)) || "")) && /Sent/.test((rowsText().find(r => /QT\/\d\d-\d\d\/00001/.test(r)) || "")) && /Approved/.test((rowsText().find(r => /QT\/\d\d-\d\d\/00001/.test(r)) || "")), rowsText().join("|"));
   q(`[data-qk-do="accept:${rec.id}"]`).click(); await sleep(1200);
   w.go("quotation"); await sleep(800); q(`[data-qk-do="convert:${rec.id}"]`).click(); await sleep(2000);
   const conv = (await j("GET", `/api/quotations/${rec.id}`, null, token)).body;

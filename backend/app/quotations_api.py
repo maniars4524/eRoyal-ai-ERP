@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, object_session, selectinload
 
@@ -12,6 +12,7 @@ from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .billing import next_number
 from .db import get_db
+from .schemas_auth import _clean_party_data
 from .models import Customer, JobCharge, MasterRecord, Organization, Quotation, QuotationEvent, QuotationLine, Shipment, User
 from .quote_calc import calc_line, charge_margin_pct, cost_sheet, q2
 
@@ -62,6 +63,11 @@ class QuotationIn(BaseModel):
     header: dict[str, Any] = Field(default_factory=dict)
     lines: list[QLine] = Field(default_factory=list, max_length=400)
 
+    @field_validator("header")
+    @classmethod
+    def _header(cls, value):
+        return None if value is None else _clean_party_data(value)
+
 
 class QuotationPatch(BaseModel):
     quote_date: date | None = None
@@ -79,6 +85,11 @@ class QuotationPatch(BaseModel):
     remarks: str | None = Field(default=None, max_length=2000)
     header: dict[str, Any] | None = None
     lines: list[QLine] | None = Field(default=None, max_length=400)
+
+    @field_validator("header")
+    @classmethod
+    def _header(cls, value):
+        return None if value is None else _clean_party_data(value)
 
 
 class Decision(BaseModel):
