@@ -3759,7 +3759,7 @@ tbody tr:hover{background:var(--g0)}
 </tbody></table></div></div></div>
 <!-- ====== CHARGE MASTER ====== -->
 <div id="s-charge-master" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="adjustments" style="color:var(--bl)"></svg>Charge Master</div><div class="ps">Global charge code library — all modules, modes, AR/AP, COA mapping</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="newChargeBtn"><svg class="ic" data-icon="plus"></svg> New Charge Code</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="adjustments" style="color:var(--bl)"></svg>Charge Master</div><div class="ps">Global charge code library — all modules, modes, AR/AP, COA mapping</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="importChargesBtn" title="Adds the standard freight-forwarding charges as INACTIVE entries for tax review"><svg class="ic" data-icon="download"></svg> Import Standard Freight Charges</button><button class="btn btn-pri btn-sm" id="newChargeBtn"><svg class="ic" data-icon="plus"></svg> New Charge Code</button></div></div>
 <div class="ib ib-rd" style="margin-bottom:10px"><svg class="ic" data-icon="alert-triangle" style="margin-right:6px;color:var(--rd)"></svg><strong>Mandatory:</strong> every charge must reference an HSN/SAC Code. Selecting a Charge anywhere in the ERP auto-fills its HSN/SAC + GST% — no manual tax lookup needed.</div>
 <div class="card"><div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>HSN/SAC</th><th>Module</th><th>Mode</th><th>UOM</th><th>AR/AP</th><th>COA Income</th><th>COA Expense</th><th>Tax</th></tr></thead><tbody></tbody></table></div></div></div>
 
@@ -14516,9 +14516,12 @@ if(document.readyState !== "loading") initChatWidget();
         title: rec ? "Edit Charge Code" : "New Charge Code",
         bodyHTML: note+
           '<div class="fr"><div class="fg"><label class="fl">Charge Code <span class="r">*</span></label><input class="fc" id="nc_code" value="'+esc2(rec?rec.code:"")+'" placeholder="e.g. FSC" style="font-family:var(--font-mono)"></div><div class="fg" style="grid-column:span 2"><label class="fl">Charge Name <span class="r">*</span></label><input class="fc" id="nc_name" value="'+esc2(rec?rec.name:"")+'" placeholder="e.g. Fuel Surcharge"></div></div>'+
-          '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">HSN/SAC Code <span class="r">*</span></label><select class="fc" id="nc_hsn">'+hsnOpts+'</select><span class="ferr" id="nc_hsn_err" style="display:none">HSN/SAC code is required — charges cannot be saved without one</span></div><div class="fg"><label class="fl">GST % <span style="color:var(--g4);font-weight:400">(from HSN/SAC)</span></label><input class="fc" id="nc_gst" readonly placeholder="—" value="'+esc2(d.gst_percent||"")+'"></div></div>'+
+          '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">HSN/SAC Code <span class="r">*</span></label><select class="fc" id="nc_hsn">'+hsnOpts+'</select><span class="ferr" id="nc_hsn_err" style="display:none">HSN/SAC code is required — charges cannot be saved without one</span></div><div class="fg"><label class="fl">GST % <span style="color:var(--g4);font-weight:400">(default from HSN/SAC, editable)</span></label><input class="fc" id="nc_gst" type="number" min="0" max="100" step="0.01" placeholder="—" value="'+esc2(d.gst_percent||"")+'"></div></div>'+
           '<div class="fr"><div class="fg"><label class="fl">Category</label>'+sel("nc_cat",CHARGE_CATEGORIES,d.category)+'</div><div class="fg"><label class="fl">AR / AP</label>'+sel("nc_arap",["Both","AR","AP"],d.ar_ap)+'</div><div class="fg"><label class="fl">UOM</label>'+sel("nc_uom",["Flat","Per Container","Per KG","Per CBM","Per Job","Per BL","Per AWB"],d.uom)+'</div></div>'+
           '<div class="fr"><div class="fg"><label class="fl">Module</label>'+sel("nc_mod",["FOR","CUS","TRP","WHS","ALL"],d.module)+'</div><div class="fg"><label class="fl">Mode</label>'+sel("nc_mode",["ALL","SEA","AIR","ROAD","RAIL"],d.mode)+'</div><div class="fg"><label class="fl">Status</label>'+sel("nc_status",["Active","Inactive"],rec&&rec.status!=="ACTIVE"?"Inactive":"Active")+'</div></div>'+
+          '<div class="fsec" style="margin-top:6px">Tax verification '+(d.tax_status==='REVIEW_REQUIRED' ? '<span class="b b-am">Review required</span>' : '')+'</div>'+
+          (d.tax_note ? '<div class="ib ib-am" style="margin-bottom:6px">Proposed default: '+esc2(d.classification||'')+' — '+esc2(d.tax_note)+'. Confirm the exact SAC, rate and conditions against the official notification before activating.</div>' : '')+
+          '<div class="fr"><div class="fg"><label class="fl">Tax Treatment</label>'+sel('nc_treat',['taxable','exempt','nil_rated','non_gst','reverse_charge','zero_rated'],d.tax_treatment||'taxable')+'</div><div class="fg" style="grid-column:span 2"><label class="fl">Notification Reference</label><input class="fc" id="nc_notif" value="'+esc2(d.notification_ref||'')+'" placeholder="e.g. Notification No. 11/2017-Central Tax (Rate)"></div><div class="fg"><label class="fl">Effective Date</label><input class="fc" id="nc_eff" type="date" value="'+esc2(d.effective_date||'')+'"></div></div>'+
           '<div class="fr"><div class="fg"><label class="fl">COA Income Account</label><input class="fc" id="nc_coai" value="'+esc2(d.coa_income||"")+'"></div><div class="fg"><label class="fl">COA Expense Account</label><input class="fc" id="nc_coae" value="'+esc2(d.coa_expense||"")+'"></div></div>',
         footHTML: '<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="nc_save">Save Charge</button>'
       });
@@ -14529,7 +14532,8 @@ if(document.readyState !== "loading") initChatWidget();
         const v = id=> document.getElementById(id).value.trim();
         if(!v("nc_code") || !v("nc_name")){ say("Required fields missing", "Charge code and name are required"); return; }
         if(!v("nc_hsn")){ document.getElementById("nc_hsn_err").style.display = "block"; say("HSN/SAC required", "Every charge must reference an HSN/SAC code before it can be saved"); return; }
-        const body = {code:v("nc_code"), name:v("nc_name"), status:v("nc_status")==="Inactive"?"INACTIVE":"ACTIVE", data:{hsn_code:v("nc_hsn"), gst_percent:v("nc_gst"), category:v("nc_cat"), ar_ap:v("nc_arap"), uom:v("nc_uom"), module:v("nc_mod"), mode:v("nc_mode"), coa_income:v("nc_coai"), coa_expense:v("nc_coae")}};
+        const body = {code:v("nc_code"), name:v("nc_name"), status:v("nc_status")==="Inactive"?"INACTIVE":"ACTIVE", data:Object.assign({}, d, {hsn_code:v("nc_hsn"), gst_percent:v("nc_gst"), category:v("nc_cat"), ar_ap:v("nc_arap"), uom:v("nc_uom"), module:v("nc_mod"), mode:v("nc_mode"), coa_income:v("nc_coai"), coa_expense:v("nc_coae"), tax_treatment:v("nc_treat"), notification_ref:v("nc_notif"), effective_date:v("nc_eff")})};
+        if(body.data.tax_status === "REVIEW_REQUIRED" && body.status === "ACTIVE" && body.data.notification_ref && body.data.effective_date) body.data.tax_status = "VERIFIED";
         try{
           await (rec ? api("PATCH","/api/masters/charge/"+rec.id, body) : api("POST","/api/masters/charge", body));
           closeModal(); say("Charge saved", body.code+" — "+body.name+" (HSN/SAC "+body.data.hsn_code+")");
@@ -14542,6 +14546,12 @@ if(document.readyState !== "loading") initChatWidget();
     edit:rec=> openChargeModal(rec),
     cols:["code","name",r=>'<span class="b b-bl">'+esc2((r.data||{}).category||"—")+'</span>',"data.hsn_code","data.module","data.mode","data.uom",r=>'<span class="b b-gy">'+esc2((r.data||{}).ar_ap||"—")+'</span>',"data.coa_income","data.coa_expense",r=>(r.data||{}).gst_percent?'<span class="b b-gr">'+esc2(r.data.gst_percent)+'%</span>':"—"]});
   MK.openChargeModal = openChargeModal;
+  const importBtn = document.getElementById("importChargesBtn");
+  if(importBtn) importBtn.addEventListener("click", async ()=>{
+    if(!window.confirm("Import the standard freight-forwarding charge list (47 charges with proposed SAC and GST rates)?\n\nThey are added INACTIVE. Each one must be verified against the official GST notification (SAC, rate, reference, effective date) before you activate it.")) return;
+    try{ const r = await api("POST","/api/masters/charge/catalogue/import"); say("Charges imported", r.charges_created+" added, "+r.charges_skipped+" already existed. Review and activate them one by one."); MK.loadList(MK.configs.charge); }
+    catch(err){ say("Could not import charges", err.message); }
+  });
   const newChargeBtn = document.getElementById("newChargeBtn");
   if(newChargeBtn) newChargeBtn.addEventListener("click", ()=> openChargeModal(null));
 })();

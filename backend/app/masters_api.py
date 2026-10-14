@@ -32,6 +32,8 @@ MASTER_TYPES = {
     "route": "Route",
     "account": "Ledger Account",
 }
+from .charge_catalogue import CATALOGUE, HEADINGS, validate_activation
+
 KEY_RE = re.compile(r"^[a-z0-9_]{1,60}$")
 CODE_RE = re.compile(r"^[A-Za-z0-9._/\- ]{1,40}$")
 MAX_FIELDS = 200
@@ -123,6 +125,36 @@ def _get(db: Session, org_id: int, master_type: str, record_id: int) -> MasterRe
     return record
 
 
+def _check_charge_activation(master_type: str, status_value: str, data: dict | None) -> None:
+    if master_type == "charge" and status_value == "ACTIVE":
+        try:
+            validate_activation(data or {})
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+
+@router.post("/charge/catalogue/import", status_code=201)
+def import_charge_catalogue(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+    """Create the standard freight charge catalogue (inactive, tax review required). Existing codes are left untouched."""
+    org_id = _tenant(user)
+    made_hsn = made = skipped = 0
+    for code, label in HEADINGS.items():
+        if not db.scalar(select(MasterRecord.id).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "hsn", MasterRecord.code == code)):
+            db.add(MasterRecord(organization_id=org_id, master_type="hsn", code=code, name=label, status="ACTIVE", created_by=user.id, data={"code_type": "SAC (Services)", "tax_category": "Heading only - rate depends on the service and conditions"}))
+            made_hsn += 1
+    for code, name, group, sac, note, pct, config in CATALOGUE:
+        if db.scalar(select(MasterRecord.id).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "charge", MasterRecord.code == code)):
+            skipped += 1
+            continue
+        data = {"catalogue": "yes", "tax_status": "REVIEW_REQUIRED", "hsn_code": sac, "gst_percent": "" if pct is None else str(pct), "category": group, "classification": note, "tax_note": config,
+                "tax_treatment": "taxable", "ar_ap": "Both", "uom": "Flat", "module": "ALL", "mode": "ALL"}
+        db.add(MasterRecord(organization_id=org_id, master_type="charge", code=code, name=name, status="INACTIVE", created_by=user.id, data=data))
+        made += 1
+    record_audit(db, "CHARGE_CATALOGUE_IMPORTED", "MASTER", user, org_id, "charge", "catalogue", {"charges": made, "skipped": skipped, "headings": made_hsn})
+    db.commit()
+    return {"charges_created": made, "charges_skipped": skipped, "headings_created": made_hsn, "note": "Charges are inactive until the SAC, rate, notification reference and effective date are verified and recorded."}
+
+
 @router.get("/types")
 def list_types(user: User = Depends(permission_required("master.read"))):
     return [{"type": key, "label": label} for key, label in MASTER_TYPES.items()]
@@ -151,6 +183,7 @@ def list_records(
 @router.post("/{master_type}", status_code=201)
 def create_record(master_type: str, payload: MasterPayload, user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     org_id, master_type = _tenant(user), _type(master_type)
+    _check_charge_activation(master_type, payload.status, payload.data)
     record = MasterRecord(organization_id=org_id, master_type=master_type, created_by=user.id, **payload.model_dump())
     db.add(record)
     try:
@@ -174,10 +207,15 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, user: 
     org_id, master_type = _tenant(user), _type(master_type)
     record = _get(db, org_id, master_type, record_id)
     changes = payload.model_dump(exclude_unset=True)
+    was_active = record.status == "ACTIVE"
+    _check_charge_activation(master_type, changes.get("status") or record.status, changes.get("data") if changes.get("data") is not None else record.data)
     for key, value in changes.items():
         if value is not None:
             setattr(record, key, value)
     try:
+        if master_type == "charge" and record.status == "ACTIVE" and not was_active and (record.data or {}).get("catalogue") == "yes":
+            record_audit(db, "CHARGE_TAX_ACTIVATED", "MASTER", user, org_id, master_type, str(record.id), {"code": record.code, "gst_percent": (record.data or {}).get("gst_percent"), "hsn_code": (record.data or {}).get("hsn_code"),
+                                                                                                           "notification_ref": (record.data or {}).get("notification_ref"), "effective_date": (record.data or {}).get("effective_date")})
         record_audit(db, "MASTER_UPDATED", "MASTER", user, org_id, master_type, str(record.id), {k: v for k, v in changes.items() if k != "data"})
         db.commit()
     except IntegrityError:
