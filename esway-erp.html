@@ -1331,11 +1331,6 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-section">All Job List</div>
       <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="package"></svg>View All Jobs</div>
       <div class="mn-sub-sep"></div>
-      <div class="mn-sub-section">Quotation</div>
-      <div class="mn-sub-item" data-go="quotation-new"><svg class="ic" data-icon="plus"></svg>Create Quotation</div>
-      <div class="mn-sub-item" data-go="quotation"><svg class="ic" data-icon="file-text"></svg>Manage Quotations</div>
-      <div class="mn-sub-item" data-go="quotation"><svg class="ic" data-icon="check-circle"></svg>Approval Workflow</div>
-      <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Booking</div>
       <div class="mn-sub-item" data-go="booking-new"><svg class="ic" data-icon="plus"></svg>Create Booking</div>
       <div class="mn-sub-item" data-go="booking"><svg class="ic" data-icon="calendar-check"></svg>Booking Status</div>
@@ -3529,9 +3524,7 @@ tbody tr:hover{background:var(--g0)}
         <div style="font-size:11.5px;color:var(--g6)">Carriers to compare in this quotation</div>
         <button class="btn btn-out btn-sm" id="quotAddCarrierBtn" style="font-size:10.5px;padding:4px 9px"><svg class="ic" data-icon="plus"></svg> Add Carrier</button>
       </div>
-      <div id="quotCarrierRows">
-        <div class="fr quotCarrierRow"><div class="fg"><label class="fl">Carrier / Line</label><select class="fc"><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>ONE Line</option><option>Air India</option><option>Emirates SkyCargo</option></select></div><div class="fg"><label class="fl">Notes</label><input class="fc" placeholder="e.g. fastest transit"></div></div>
-      </div>
+      <div id="quotCarrierRows"></div>
     </div>
   </div>
 
@@ -3539,41 +3532,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <!-- QUOTATION BUILDER FORM (revealed after wizard) -->
-<div id="quotFormWrap" style="display:none">
-<div class="wiz-summary" id="quotWizSummary"></div>
-<div class="g2">
-<div>
-<div class="card"><div class="ch"><div class="ct">Client &amp; Route</div></div><div class="cb">
-<div class="fg" style="margin-bottom:7px"><label class="fl">Client <span class="r">*</span></label><select class="fc" id="qn_client"><option value="">— Search or select —</option></select></div>
-<div class="fr"><div class="fg"><label class="fl">Port / Place of Loading <span class="r">*</span></label><input class="fc" id="qn_pol" placeholder="INMAA - Chennai"></div><div class="fg"><label class="fl">Port / Place of Discharge <span class="r">*</span></label><input class="fc" id="qn_pod" placeholder="BEANR - Antwerp"></div></div>
-<div class="fr"><div class="fg"><label class="fl">Quote Date</label><input class="fc" type="date" id="qn_date"></div><div class="fg"><label class="fl">Valid Until</label><input class="fc" type="date" id="qn_valid"></div></div>
-</div></div>
-
-<div class="card"><div class="ch"><div class="ct"><svg class="ic" data-icon="cash" style="color:var(--gr)"></svg>Rate Lines</div><div style="display:flex;gap:7px"><button class="btn btn-pri btn-sm" id="quotGetRateBtn"><svg class="ic" data-icon="search"></svg> Get Rate</button><button class="btn btn-out btn-sm" id="quotAddRateBtn"><svg class="ic" data-icon="plus"></svg> Add Charge</button></div></div>
-<div class="cb" id="quotAppliedRateBanner" style="display:none;background:var(--grt);border-bottom:1px solid var(--g2);padding:9px 14px;font-size:11.5px;color:#27500A">
-  <svg class="ic" data-icon="check-circle" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"></svg>
-  Applied from <strong id="quotAppliedRateRef">—</strong> · Carrier: <strong id="quotAppliedRateCarrier">—</strong> · Version <strong id="quotAppliedRateVer">—</strong> · <span id="quotAppliedRateWhen">—</span>
-</div>
-<div class="cb" style="padding:0">
-<div class="tw"><table id="quotRateTable"><thead><tr><th>Charge</th><th id="quotRateCarrierHd" style="display:none">Carrier</th><th>Basis</th><th>Currency</th><th>Rate</th><th class="no-print"></th></tr></thead><tbody id="quotRateTableBody"></tbody></table></div>
-<div class="cf">Add THC, BL Fee, Documentation, Customs Clearance or Transportation lines as needed for the selected quotation type.</div>
-</div></div>
-
-</div>
-<div>
-<div class="card"><div class="ch"><div class="ct">Terms &amp; Conditions</div></div><div class="cb">
-<textarea class="fc" rows="8" id="qn_terms">1. Rates subject to space &amp; equipment availability.
-2. Rates valid till the date mentioned above, subject to GRI/PSS/BAF/CAF revision without notice.
-3. Payment terms: 100% advance / as per credit agreement.
-4. Detention &amp; demurrage as per carrier tariff beyond free days.
-5. This quotation is indicative and subject to final confirmation at time of booking.</textarea>
-</div></div>
-<div class="card"><div class="ch"><div class="ct">Quotation Summary</div></div><div class="cb" id="quotSummaryBox" style="font-size:12px;color:var(--g6)">
-Select rate lines to see summary.
-</div></div>
-</div>
-</div>
-</div>
+<div id="quotFormWrap" style="display:none"><div id="qkRoot"></div></div>
 </div>
 
 <!-- ====== BOOKING ====== -->
@@ -5373,7 +5332,7 @@ Select rate lines to see summary.
 <div class="fr">
   <div class="fg"><label class="fl">Primary Currency</label><select class="fc"><option>INR — Indian Rupee</option></select></div>
   <div class="fg"><label class="fl">Currency Symbol</label><input class="fc"></div>
-  <div class="fg"><label class="fl">Decimal Places</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Decimal Places</label><input class="fc"></div><div class="fg"><label class="fl">Exchange Rate (INR per 1 unit)</label><input class="fc" type="number" min="0" step="0.0001" placeholder="e.g. 83.50"></div>
   <div class="fg"><label class="fl">Sub Currency</label><input class="fc"></div>
 </div>
 <div class="fsec">Tax Framework</div>
@@ -5556,7 +5515,7 @@ Select rate lines to see summary.
   <select class="fc" style="width:130px"><option>Active Only</option><option>All (170)</option><option>Inactive</option></select>
   <input class="fc" placeholder="Search code / name…" style="width:160px">
 </div></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Symbol</th><th>Currency Name</th><th>Numeric</th><th>Decimals</th><th>Position</th><th>Default</th><th>System</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Symbol</th><th>Currency Name</th><th>Numeric</th><th>Decimals</th><th>Position</th><th>Default</th><th>System</th><th>Rate (₹)</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
 <div class="cf">28 active of 170 preloaded ISO 4217 currencies · System currencies cannot be deleted, only activated/deactivated · Click <strong>History</strong> to view a currency's exchange rate history without leaving this master</div>
 </div>
 </div>
@@ -6606,7 +6565,7 @@ const SCREEN_META = {
   "job-list":{title:"Jobs", crumb:"eSway ERP 2.0 / <strong>Jobs</strong>", menu:"job-list"},
   "job-new":{title:"New Job", crumb:"eSway ERP 2.0 / Jobs / <strong>New</strong>", menu:"job-list"},
   "job-detail":{title:"Job Detail", crumb:"eSway ERP 2.0 / Jobs / <strong>Detail</strong>", menu:"job-list"},
-  "quotation":{title:"Quotations", crumb:"eSway ERP 2.0 / <strong>Quotations</strong>", menu:"quotation"},
+  "quotation":{title:"Quotations", crumb:"eSway ERP 2.0 / CRM / <strong>Quotation</strong>", menu:"quotation"},
   "booking":{title:"Bookings", crumb:"eSway ERP 2.0 / <strong>Bookings</strong>", menu:"booking"},
   "customs":{title:"Customs / CHA", crumb:"eSway ERP 2.0 / <strong>Customs / CHA</strong>", menu:"customs"},
   "tracking":{title:"Tracking", crumb:"eSway ERP 2.0 / <strong>Tracking</strong>", menu:"tracking"},
@@ -6637,7 +6596,7 @@ const SCREEN_META = {
   "pnl":{title:"P&L Report", crumb:"eSway ERP 2.0 / <strong>P&amp;L Report</strong>", menu:"pnl"},
   "reports":{title:"MIS Reports", crumb:"eSway ERP 2.0 / <strong>MIS Reports</strong>", menu:"reports"},
   "tax-invoice-print":{title:"Tax Invoice", crumb:"eSway ERP 2.0 / Invoices / <strong>Tax Invoice</strong>", menu:"invoice-list"},
-  "quotation-print":{title:"Quotation Print", crumb:"eSway ERP 2.0 / Quotations / <strong>Print</strong>", menu:"quotation"},
+  "quotation-print":{title:"Quotation Print", crumb:"eSway ERP 2.0 / CRM / Quotation / <strong>Preview</strong>", menu:"quotation"},
   "bl-draft":{title:"BL Draft", crumb:"eSway ERP 2.0 / Jobs / <strong>BL Draft</strong>", menu:"job-list"},
   "freight-cert":{title:"Freight Certificate", crumb:"eSway ERP 2.0 / Jobs / <strong>Freight Certificate</strong>", menu:"job-list"},
   "cargo-arrival":{title:"Cargo Arrival Notice", crumb:"eSway ERP 2.0 / Jobs / <strong>Cargo Arrival Notice</strong>", menu:"job-list"},
@@ -6656,7 +6615,7 @@ const SCREEN_META = {
   "svc-transport":{title:"Transport", crumb:"eSway ERP 2.0 / Service Ops / <strong>Transport</strong>", menu:"svc-transport"},
   "svc-warehouse":{title:"Warehouse", crumb:"eSway ERP 2.0 / Service Ops / <strong>Warehouse</strong>", menu:"svc-warehouse"},
   "quot-templates":{title:"Quotation Templates", crumb:"eSway ERP 2.0 / Settings / <strong>Quotation Templates</strong>", menu:"quot-templates"},
-  "quotation-new":{title:"New Quotation", crumb:"eSway ERP 2.0 / Operations / Quotations / <strong>New Quotation</strong>", menu:""},
+  "quotation-new":{title:"Quotation Preparation", crumb:"eSway ERP 2.0 / CRM / Quotation / <strong>Quotation Preparation</strong>", menu:"quotation"},
   "booking-new":{title:"New Booking", crumb:"eSway ERP 2.0 / Operations / Bookings / <strong>New Booking</strong>", menu:""},
 };
 
@@ -6781,6 +6740,7 @@ const TOPNAV_MENU = [
     {label:"Enquiries", icon:"file-text", go:"crm-enquiry", badge:"badgeCrmEnq"},
     {label:"Opportunities", icon:"trending-up", go:"crm-opportunity"},
     {label:"Engagement", icon:"message-circle", go:"crm-engagement"},
+    {label:"Quotation", icon:"file-text", go:"quotation"},
   ]},
   {id:"svcops", label:"Service Ops", icon:"truck", roles:["Admin","Operations"], children:[
     {label:"Shipment Console", icon:"globe", go:"svc-console"},
@@ -6791,11 +6751,6 @@ const TOPNAV_MENU = [
   {id:"ops", label:"Operations", icon:"clipboard", badge:"badgeJobs", roles:["Admin","Operations","Sales"], children:[
     {label:"All Job List", icon:"package", children:[
       {label:"View All Jobs", icon:"package", go:"job-list"},
-    ]},
-    {label:"Quotation", icon:"file-text", children:[
-      {label:"Create Quotation", icon:"plus", go:"quotation-new"},
-      {label:"Manage Quotations", icon:"file-text", go:"quotation"},
-      {label:"Approval Workflow", icon:"check-circle", go:"quotation"},
     ]},
     {label:"Booking", icon:"calendar-check", children:[
       {label:"Create Booking", icon:"plus", go:"booking-new"},
@@ -13682,26 +13637,9 @@ function quotWizProcessTitle(){
   return `${quotWiz.dir} ${quotWiz.mode} — ${quotWiz.type} Quotation Process`;
 }
 function quotWizBuildForm(){
-  const isMulti = quotWiz.carrierMode === "multi";
-  $("#quotRateCarrierHd").style.display = isMulti ? "" : "none";
-  $all(".quotRateCarrierCell").forEach(c=> c.style.display = isMulti ? "" : "none");
-  const titleEl = $("#quotNewTitle"), subEl = $("#quotNewSub");
-  if(titleEl) titleEl.innerHTML = `<svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>${quotWizProcessTitle()}`;
-  if(subEl) subEl.textContent = `${quotWiz.qtype} · ${isMulti?'Multiple carriers':'Single carrier'} comparison`;
-  if(window.renderIcons) renderIcons(titleEl);
-  const modeInfo = WIZ_MODES.find(m=>m.id===quotWiz.mode);
-  $("#quotWizSummary").innerHTML = `<svg class="ic" data-icon="${modeInfo?modeInfo.icon:'file-text'}" style="color:${modeInfo?modeInfo.color:'var(--bl)'}"></svg> <b>${quotWiz.dir} ${quotWiz.mode} — ${quotWiz.type}</b> · ${quotWiz.qtype} · ${isMulti?'Multiple carriers':'Single carrier'} <span class="ta" id="quotWizChange">Change selection</span>`;
-  if(window.renderIcons) renderIcons($("#quotWizSummary"));
-  $("#quotWizChange").addEventListener("click", ()=>{
-    $("#quotFormWrap").style.display = "none";
-    $("#quotWizWrap").style.display = "block";
-    if(titleEl) titleEl.innerHTML = '<svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>New Quotation';
-    if(subEl) subEl.textContent = "Advanced quotation builder — mode, shipment type, quote type & carrier setup";
-    if(window.renderIcons) renderIcons(titleEl);
-  });
   $("#quotWizWrap").style.display = "none";
   $("#quotFormWrap").style.display = "block";
-  toast("Process page opened", quotWizProcessTitle());
+  if(window.QK && window.QK.onWizardDone) window.QK.onWizardDone();
 }
 function initQuotWizard(){
   const wrap = $("#quotWizWrap");
@@ -13717,12 +13655,6 @@ function initQuotWizard(){
     row.className = "fr quotCarrierRow";
     row.innerHTML = `<div class="fg"><label class="fl">Carrier / Line</label><select class="fc"><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>ONE Line</option><option>Air India</option><option>Emirates SkyCargo</option></select></div><div class="fg"><label class="fl">Notes</label><input class="fc" placeholder="e.g. fastest transit"></div>`;
     $("#quotCarrierRows").appendChild(row);
-  });
-  $("#quotAddRateBtn").addEventListener("click", ()=>{
-    const isMulti = quotWiz.carrierMode === "multi";
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td><input class="fc" placeholder="Charge description" style="border:none;background:transparent"></td><td class="quotRateCarrierCell" style="display:${isMulti?'':'none'}"><select class="fc" style="border:none;background:transparent"><option>MSC Mediterranean</option><option>Hapag-Lloyd</option></select></td><td><select class="fc" style="border:none;background:transparent"><option>Per Container</option><option>Per KG</option><option>Per CBM</option><option>Flat</option><option>Per Shipment</option></select></td><td><select class="fc" style="border:none;background:transparent;width:80px"><option>USD</option><option>INR</option><option>EUR</option></select></td><td><input class="fc" placeholder="0.00" style="border:none;background:transparent"></td><td class="no-print"><button class="ta remove-row">✕</button></td>`;
-    $("#quotRateTableBody").appendChild(tr);
   });
 }
 document.addEventListener("DOMContentLoaded", initQuotWizard);
@@ -14525,7 +14457,7 @@ if(document.readyState !== "loading") initChatWidget();
     selects:[{label:"Primary Currency", from:"currency", use:"code"}]});
   MK.register({type:"currency", label:"Currency", list:"currency-master", detail:"currency-detail", codeLabel:"Currency Code (ISO 4217)", nameLabel:"Currency Name",
     tables:[{sel:"#cm1 tbody"}], blank:["#cm2 tbody","#cm3 tbody","#cm4 tbody","#cm5 tbody","#cm6 tbody"],
-    cols:["code","data.currency_symbol","name","data.iso_numeric_code","data.decimal_places","data.symbol_position","data.default_currency","data.system_default","status","actions"],
+    cols:["code","data.currency_symbol","name","data.iso_numeric_code","data.decimal_places","data.symbol_position","data.default_currency","data.system_default","data.exchange_rate","status","actions"],
     kpis:rows=>[[rows.length,"Currencies in your master"],[active(rows),"Active"],[(rows.find(r=>/^yes/i.test((r.data||{}).default_currency||""))||{}).code||"—","Organisation default"],["—","Exchange rates: not available yet"]]});
   const unitCats = ["Weight","Volume","Length","Area","Quantity","Time","Temperature"];
   MK.register({type:"unit", label:"Unit", list:"unit-master", detail:"unit-detail", codeLabel:"Unit Code", nameLabel:"Unit Name",
@@ -15273,33 +15205,152 @@ if(document.readyState !== "loading") initChatWidget();
 </script>
 <script>
 /* ============================================================
-   QUOTE KIT: real quotations (/api/quotations): list, wizard form, send/accept/reject/convert, print view
+   QUOTE KIT v2: Quotation Preparation (CRM > Quotation)
+   Sell Cost (left) / Buy Cost (right), live margin & cost sheet, container-wise rates,
+   approval workflow with audit trail, revisions, customer-safe preview. Server (/api/quotations) is authoritative.
    ============================================================ */
 (function(){
   "use strict";
   const U = MK.util; const {api, say, esc2} = U;
   const inr = v=> "₹" + (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
-  const dmy = v=> v ? new Date(v+"T00:00:00").toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
+  const num = (v, d)=> (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:d||0, maximumFractionDigits:d===undefined?2:d});
+  const dmy = v=> v ? new Date(String(v).slice(0,10)+"T00:00:00").toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
+  const dmyt = v=> v ? new Date(v).toLocaleString("en-GB", {day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}) : "—";
   const today = ()=> new Date().toISOString().slice(0,10);
-  const BASES = ["Per Container","Per Shipment","Per KG","Per CBM","Per BL","Per AWB","Per Pallet","Flat"];
-  const CCYS = ["USD","INR","EUR","GBP","AED","SGD","JPY"];
-  const Q = window.QK = {list:[], edit:null, lines:[], carriers:[], charges:[], customers:[], pendingOpen:null};
-  const badge = q=>{ const s = q.effective_status; const c = {DRAFT:"b-gy", SENT:"b-bl", ACCEPTED:"b-gr", CONVERTED:"b-pu", REJECTED:"b-rd", EXPIRED:"b-am"}[s] || "b-gy"; return '<span class="b '+c+' dot">'+esc2(s.charAt(0)+s.slice(1).toLowerCase())+'</span>'; };
-  const calc = l=>{ const q = Number(l.qty)||0, r = Number(l.rate)||0, e = l.ccy === "INR" ? 1 : (Number(l.exch)||0); return Math.round(q*r*e*100)/100; };
+  const r2 = x=> Math.round((x + Number.EPSILON)*100)/100;
+
+  const AIR_UOM = ["KG","Chargeable KG","Gross Weight","CBM","Shipment","AWB","HAWB","MAWB","Package","Piece","Minimum Charge"];
+  const SEA_UOM = ["Container","TEU","FEU","CBM","Revenue Ton (RT)","Weight Ton","Shipment","BL","HBL","MBL","Package","Per Day","Per Container / Day"];
+  const ROAD_UOM = ["Truck","Trip","KM","Ton","CBM","Shipment","Package","Per Day"];
+  const COURIER_UOM = ["KG","Piece","Shipment","Package","Minimum Charge"];
+  const GENERIC_UOM = ["Shipment","Package","Piece","KG","CBM","Flat","Per Day"];
+  const TAX_RATES = [0, 5, 12, 18, 28];
+  const SERVICE_TYPES = ["Port to Port","Door to Door","Door to Port","Port to Door"];
+  const INCOTERMS = ["EXW","FCA","FAS","FOB","CFR","CIF","CPT","CIP","DAP","DPU","DDP"];
+  const STEPS = [["DRAFT","Draft"],["SUBMITTED","Submitted"],["APPROVED","Approved"],["SENT","Issued"],["ACCEPTED","Accepted"],["CONVERTED","Converted"]];
+
+  const Q = window.QK = {list:[], rec:null, head:{}, sell:[], buy:[], m:{charges:[], currencies:[], rates:{}, containers:[], units:[], carriers:[], customers:[], ports:[], users:[]}, me:null, dirty:false, pendingOpen:null, open:{}, saving:false};
+  const can = code=> !!Q.me && (Q.me.is_super_admin || (Q.me.permissions||[]).includes(code));
+  const wiz = ()=> window.quotWiz || {};
+  const isMulti = ()=> wiz().carrierMode === "multi";
+  const root = ()=> document.getElementById("qkRoot");
+
+  /* ---------- styles ---------- */
+  (function(){
+    const s = document.createElement("style");
+    s.textContent = `
+    .qk-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+    .qk-steps{display:flex;gap:0;align-items:center;margin:2px 0 12px;flex-wrap:wrap}
+    .qk-step{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--g5)}
+    .qk-step .dot{width:20px;height:20px;border-radius:50%;background:var(--g2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px}
+    .qk-step.done .dot{background:var(--gr)} .qk-step.cur .dot{background:var(--bl);box-shadow:0 0 0 4px var(--blt)} .qk-step.cur{color:var(--n)} .qk-step.bad .dot{background:var(--rd)}
+    .qk-step + .qk-step:before{content:"";display:block;width:26px;height:2px;background:var(--g2);margin:0 8px}
+    .qk-step.done + .qk-step:before{background:var(--gr)}
+    .qk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px}
+    .qk-grid .span2{grid-column:span 2} .qk-grid .span4{grid-column:span 4}
+    .qk-panes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+    .qk-panes.single{grid-template-columns:minmax(0,1fr)}
+    @media(max-width:1180px){.qk-panes{grid-template-columns:minmax(0,1fr)}.qk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .qk-pane{border:1px solid var(--g2);border-radius:10px;background:#fff;overflow:hidden}
+    .qk-pane.sell{border-top:3px solid var(--bl)} .qk-pane.buy{border-top:3px solid var(--am)}
+    .qk-pane-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--g1);flex-wrap:wrap}
+    .qk-pane-h .t{font-weight:800;font-size:13px;color:var(--n)} .qk-pane-h .s{font-size:10.5px;color:var(--g5)}
+    .qk-scroll{overflow-x:auto}
+    .qk-t{width:100%;border-collapse:collapse;font-size:11.5px;min-width:640px}
+    .qk-t th{background:var(--g0);color:var(--g6);font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:6px 5px;text-align:left;white-space:nowrap;position:sticky;top:0}
+    .qk-t td{padding:4px 4px;border-bottom:1px solid var(--g1);vertical-align:middle}
+    .qk-t .fc{padding:4px 5px;font-size:11.5px;min-width:0}
+    .qk-t tr.qk-d td{background:var(--g0);padding:8px 10px}
+    .qk-t .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .qk-t tfoot td{background:var(--blt);font-weight:800;padding:7px 5px}
+    .qk-pane.buy .qk-t tfoot td{background:var(--amt)}
+    .qk-icon{border:0;background:transparent;cursor:pointer;padding:3px 5px;border-radius:5px;color:var(--g5);font-size:13px}
+    .qk-icon:hover{background:var(--g1);color:var(--n)} .qk-icon.del:hover{color:var(--rd)}
+    .qk-dgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px 10px;align-items:end}
+    .qk-dgrid label{font-size:9.5px;font-weight:700;color:var(--g5);text-transform:uppercase;display:block;margin-bottom:2px}
+    .qk-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .qk-kpi{border:1px solid var(--g2);border-radius:9px;padding:9px 11px;background:#fff}
+    .qk-kpi .l{font-size:10px;color:var(--g5);text-transform:uppercase;font-weight:700;letter-spacing:.3px} .qk-kpi .v{font-size:17px;font-weight:800;color:var(--n);margin-top:2px}
+    .qk-kpi.good{background:var(--grt);border-color:var(--gr)} .qk-kpi.bad{background:var(--rdt);border-color:var(--rd)}
+    .qk-two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+    @media(max-width:1100px){.qk-two{grid-template-columns:minmax(0,1fr)}.qk-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.qk-dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .qk-tl{border-left:2px solid var(--g2);margin-left:6px;padding-left:12px} .qk-tl>div{position:relative;padding:5px 0;font-size:11.5px}
+    .qk-tl>div:before{content:"";position:absolute;left:-18px;top:10px;width:9px;height:9px;border-radius:50%;background:var(--bl)}
+    .qk-warn{color:var(--rd);font-weight:700}
+    .qk-menu{position:relative;display:inline-block} .qk-menu-pop{position:absolute;right:0;top:100%;z-index:60;background:#fff;border:1px solid var(--g2);border-radius:8px;box-shadow:0 8px 24px rgba(11,31,58,.14);min-width:200px;padding:4px;display:none}
+    .qk-menu.on .qk-menu-pop{display:block} .qk-menu-pop button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;font-size:12px;cursor:pointer;border-radius:6px} .qk-menu-pop button:hover{background:var(--g0)}
+    `;
+    document.head.appendChild(s);
+  })();
+
+  /* ---------- masters + permissions ---------- */
+  async function loadMasters(){
+    const get = (p, f)=> api("GET", p).catch(()=> f);
+    const [me, charges, currencies, containers, units, carriers, customers, ports, users] = await Promise.all([
+      Q.me ? Promise.resolve(Q.me) : get("/api/auth/me", null), get("/api/masters/charge", []), get("/api/masters/currency", []), get("/api/masters/container_type", []), get("/api/masters/unit", []),
+      get("/api/customers?role=carrier", []), get("/api/customers?role=client", []), get("/api/ports", []), get("/api/users", [])]);
+    Q.me = me; const act = a=> a.filter(x=>x.status==="ACTIVE");
+    Q.m.charges = act(charges); Q.m.currencies = act(currencies); Q.m.containers = act(containers); Q.m.units = act(units);
+    Q.m.carriers = act(carriers).map(c=>c.name); Q.m.customers = customers.filter(c=>c.status==="ACTIVE"); Q.m.ports = ports; Q.m.users = (users||[]).filter(u=>u.status==="ACTIVE");
+    Q.m.rates = {INR:1};
+    Q.m.currencies.forEach(c=>{ const r = Number(String((c.data||{}).exchange_rate||"").replace(/,/g,"")); if(r > 0) Q.m.rates[c.code.toUpperCase()] = r; });
+  }
+  const ccyList = ()=> Array.from(new Set(["INR"].concat(Q.m.currencies.map(c=>c.code.toUpperCase()))));
+  function uomList(){
+    const mode = wiz().mode || (Q.rec && Q.rec.mode) || "Sea";
+    const base = mode === "Air" ? AIR_UOM : mode === "Sea" ? SEA_UOM : (mode === "Road" || mode === "Rail") ? ROAD_UOM : mode === "Courier" ? COURIER_UOM : mode === "Multimodal" ? Array.from(new Set(SEA_UOM.concat(AIR_UOM, ROAD_UOM))) : GENERIC_UOM;
+    return Array.from(new Set(base.concat(Q.m.units.map(u=>u.name))));
+  }
+  const blank = side=> ({side, charge_name:"", carrier:"", basis:uomList()[0], container_type:"", container_breakup:[], ccy:"INR", exch:"1", rate:"", qty:"1", taxable:false, tax_pct:"0", remarks:""});
+  const rateFor = (ccy, line)=>{
+    if(ccy === "INR") return "1";
+    if(Q.m.rates[ccy]) return String(Q.m.rates[ccy]);
+    const peer = Q.sell.concat(Q.buy).find(l=>l !== line && l.ccy === ccy && Number(l.exch) > 0);
+    return peer ? String(peer.exch) : "";
+  };
+  const canEditRate = line=> line.ccy !== "INR" && (can("quote.rate_override") || !Q.m.rates[line.ccy]);
+
+  /* ---------- calculations (display mirror of the server's Decimal rules) ---------- */
+  function calc(l){
+    const bu = (l.container_breakup||[]).filter(b=>Number(b.qty)>0);
+    const base = bu.length ? bu.reduce((a,b)=>a + r2((Number(b.qty)||0)*(Number(b.rate)||0)), 0) : r2((Number(l.qty)||0)*(Number(l.rate)||0));
+    const units = bu.length ? bu.reduce((a,b)=>a+(Number(b.qty)||0),0) : (Number(l.qty)||0);
+    const exch = l.ccy === "INR" ? 1 : (Number(l.exch)||0);
+    const amount = r2(base*exch), gst = l.taxable ? r2(amount*(Number(l.tax_pct)||0)/100) : 0;
+    return {base, units, amount, gst, total: r2(amount+gst), rate: units ? base/units : 0};
+  }
+  function sheet(){
+    const all = Q.sell.concat(Q.buy), rows = {}, car = {};
+    let sg = 0, bg = 0;
+    all.forEach(l=>{
+      const c = calc(l), key = (l.charge_name||"").trim().toLowerCase() || "(unnamed charge)";
+      const row = rows[key] = rows[key] || {charge:(l.charge_name||"").trim() || "(unnamed charge)", sell:0, buy:0};
+      const ck = l.carrier || "—"; const cr = car[ck] = car[ck] || {carrier:ck, sell:0, buy:0};
+      if(l.side === "SELL"){ row.sell += c.amount; cr.sell += c.amount; sg += c.gst; } else { row.buy += c.amount; cr.buy += c.amount; bg += c.gst; }
+    });
+    const list = Object.values(rows), ts = r2(list.reduce((a,r)=>a+r.sell,0)), tb = r2(list.reduce((a,r)=>a+r.buy,0)), gm = r2(ts-tb);
+    return {rows:list, carriers:Object.values(car), ts, tb, gm, mp: ts ? r2(gm/ts*100) : 0, up: tb ? r2(gm/tb*100) : null, sg:r2(sg), bg:r2(bg), gts:r2(ts+sg), gtb:r2(tb+bg), result: gm>0?"PROFIT":gm<0?"LOSS":"BREAK EVEN"};
+  }
+  const lineMargin = l=>{ const s = sheet(), k = (l.charge_name||"").trim().toLowerCase(); const r = s.rows.find(x=>x.charge.toLowerCase()===k); return r && r.sell>0 && r.buy>0 ? r2((r.sell-r.buy)/r.sell*100) : null; };
 
   /* ---------- list ---------- */
+  const STATUS_CLS = {DRAFT:"b-gy", SENT:"b-bl", ACCEPTED:"b-gr", CONVERTED:"b-pu", REJECTED:"b-rd", EXPIRED:"b-am", SUPERSEDED:"b-gy"};
+  const APPROVAL_CLS = {DRAFT:"b-gy", SUBMITTED:"b-am", APPROVED:"b-gr", REJECTED:"b-rd"};
+  const sbadge = q=> '<span class="b '+(STATUS_CLS[q.effective_status]||"b-gy")+' dot">'+esc2(q.effective_status.charAt(0)+q.effective_status.slice(1).toLowerCase())+'</span>';
+  const abadge = q=> '<span class="b '+(APPROVAL_CLS[q.approval_status]||"b-gy")+'" style="font-size:9.5px" title="Internal approval">'+esc2(q.approval_status.charAt(0)+q.approval_status.slice(1).toLowerCase())+'</span>';
   async function loadList(){
     const scr = document.getElementById("s-quotation"); const tbody = scr && scr.querySelector("tbody"); if(!tbody) return;
     try{ Q.list = await api("GET","/api/quotations"); }catch(e){ say("Could not load quotations", e.message); return; }
+    if(!Q.me){ Q.me = await api("GET","/api/auth/me").catch(()=>null); }
+    const hd = scr.querySelector("thead tr"); if(hd && !hd.dataset.qk){ hd.dataset.qk = "1"; const cells = hd.children; if(cells[7]) cells[7].textContent = "Status / Approval"; }
     const act = q=>{
-      const b = [];
-      b.push('<button class="ta" data-qk-open="'+q.id+'">'+(q.status==="DRAFT"?"Edit":"View")+' →</button>');
+      const b = ['<button class="ta" data-qk-open="'+q.id+'">'+(q.editable?"Edit":"View")+' →</button>'];
       if(q.effective_status === "SENT"){ b.push('<button class="ta" data-qk-do="accept:'+q.id+'" style="color:var(--gr)">Accept</button>'); b.push('<button class="ta" data-qk-do="reject:'+q.id+'" style="color:var(--rd)">Reject</button>'); }
       if(q.status === "ACCEPTED") b.push('<button class="ta" data-qk-do="convert:'+q.id+'" style="color:var(--bl);font-weight:700">Convert to Job</button>');
-      if(q.status === "DRAFT") b.push('<button class="ta" data-qk-do="delete:'+q.id+'" style="color:var(--rd)">Delete</button>');
+      if(q.editable && q.revision_no === 0 && q.approval_status === "DRAFT") b.push('<button class="ta" data-qk-do="delete:'+q.id+'" style="color:var(--rd)">Delete</button>');
       return b.join(" ");
     };
-    tbody.innerHTML = Q.list.length ? Q.list.map(q=>'<tr><td class="mono ta" data-qk-open="'+q.id+'" style="color:var(--bl);font-weight:600;cursor:pointer">'+esc2(q.number||("Draft #"+q.id))+'</td><td>'+dmy(q.quote_date)+'</td><td style="font-weight:600">'+esc2(q.party_name||"—")+'</td><td>'+esc2(q.mode+" "+q.direction)+'</td><td>'+esc2([q.pol,q.pod].filter(Boolean).join(" → ")||"—")+'</td><td>'+dmy(q.valid_until)+'</td><td style="text-align:right">'+inr(q.quoted_amount)+'</td><td>'+badge(q)+(q.job_number?' <span class="mono" style="font-size:10px">'+esc2(q.job_number)+'</span>':'')+'</td><td class="no-print" style="white-space:nowrap">'+act(q)+'</td></tr>').join("")
+    tbody.innerHTML = Q.list.length ? Q.list.map(q=>'<tr><td class="mono ta" data-qk-open="'+q.id+'" style="color:var(--bl);font-weight:600;cursor:pointer">'+esc2(q.number||("Draft #"+q.id))+(q.revision_no && !q.number ? ' <span class="b b-gy" style="font-size:9px">Rev '+q.revision_no+'</span>' : '')+'</td><td>'+dmy(q.quote_date)+'</td><td style="font-weight:600">'+esc2(q.party_name||"—")+'</td><td>'+esc2(q.mode+" "+q.direction)+'</td><td>'+esc2([q.pol,q.pod].filter(Boolean).join(" → ")||"—")+'</td><td>'+dmy(q.valid_until)+'</td><td style="text-align:right">'+inr(q.quoted_amount)+'</td><td>'+sbadge(q)+' '+abadge(q)+(q.job_number?' <span class="mono" style="font-size:10px">'+esc2(q.job_number)+'</span>':'')+'</td><td class="no-print" style="white-space:nowrap">'+act(q)+'</td></tr>').join("")
       : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No quotations yet. Click "New Quotation" to create one.</td></tr>';
     const m = today().slice(0,7), kp = scr.querySelectorAll(".kpi");
     const set = (i,v,s)=>{ const k = kp[i]; if(!k) return; const a = k.querySelector(".kpi-val"), c = k.querySelector(".kpi-sub"); if(a) a.textContent = v; if(c) c.textContent = s||""; };
@@ -15310,160 +15361,378 @@ if(document.readyState !== "loading") initChatWidget();
     set(3, done.length ? (done.reduce((a,q)=>a+(new Date(q.responded_at)-new Date(q.sent_at))/864e5,0)/done.length).toFixed(1)+" d" : "—", "Quote to response");
   }
 
-  /* ---------- form ---------- */
-  const W = ()=> window.quotWiz;
-  const bodyRows = ()=> document.getElementById("quotRateTableBody");
-  async function loadMasters(){
-    const [charges, carriers, customers] = await Promise.all([api("GET","/api/masters/charge").catch(()=>[]), api("GET","/api/customers?role=carrier").catch(()=>[]), api("GET","/api/customers?role=client").catch(()=>[])]);
-    Q.charges = charges.filter(c=>c.status==="ACTIVE"); Q.carriers = carriers.filter(c=>c.status==="ACTIVE").map(c=>c.name); Q.customers = customers;
-    const sel = document.getElementById("qn_client");
-    if(sel){ const keep = sel.options[0] ? sel.options[0].outerHTML : '<option value="">— Search or select —</option>'; sel.innerHTML = keep + customers.map(c=>'<option value="'+c.id+'" data-name="'+esc2(c.name)+'">'+esc2(c.name)+(c.code?" ("+esc2(c.code)+")":"")+'</option>').join(""); }
-    let dl = document.getElementById("qkCharges"); if(!dl){ dl = document.createElement("datalist"); dl.id = "qkCharges"; document.body.appendChild(dl); }
-    dl.innerHTML = Q.charges.map(c=>'<option value="'+esc2(c.name)+'">').join("");
+  /* ---------- preparation form ---------- */
+  const headDefaults = ()=> ({customer_id:"", party_name:"", quote_date:today(), valid_until:new Date(Date.now()+15*864e5).toISOString().slice(0,10), currency:"USD", sales_person:(Q.me && ((Q.me.first_name||"")+" "+(Q.me.last_name||"")).trim()) || "", service_type:"Port to Port", reference_no:"", incoterm:"", commodity:"", payment_terms:"", transit_days:"", packages:"", gross_weight:"", volume:"", pol:"", pod:"", terms:"", remarks:""});
+  function setActions(){
+    const bar = document.getElementById("qkActions"); if(!bar) return;
+    const r = Q.rec, formShown = document.getElementById("quotFormWrap").style.display === "block";
+    const editable = !r || r.editable;
+    const btn = (id, label, cls, extra)=> '<button class="btn btn-sm '+cls+'" data-qa="'+id+'" '+(extra||"")+'>'+label+'</button>';
+    let h = btn("back","← Back","btn-out");
+    if(formShown){
+      if(editable) h += btn("save","Save Draft","btn-pri") + btn("submit","Submit for Approval","btn-suc");
+      if(r && r.approval_status === "SUBMITTED" && can("quote.approve")) h += btn("approve","Approve","btn-suc") + btn("reject","Reject","btn-out",'style="color:var(--rd)"');
+      if(r && r.approval_status === "APPROVED" && r.status === "DRAFT" && can("quote.send")) h += btn("issue","Issue to Client","btn-pri");
+      h += btn("preview","Preview","btn-out") + btn("print","Print / PDF","btn-out");
+      h += '<span class="qk-menu" id="qkMore"><button class="btn btn-sm btn-out" data-qa="more">More ▾</button><div class="qk-menu-pop">'+
+        (r ? '<button data-qa="history">Revision history</button><button data-qa="audit">Audit trail</button>' : '')+
+        (r && (r.status==="SENT"||r.effective_status==="EXPIRED"||r.effective_status==="REJECTED"||(r.status==="DRAFT"&&r.approval_status==="APPROVED")) ? '<button data-qa="revise">Create revision</button>' : '')+
+        (r && r.editable && r.revision_no===0 && r.approval_status==="DRAFT" ? '<button data-qa="delete" style="color:var(--rd)">Delete draft</button>' : '')+'</div></span>';
+    }
+    bar.innerHTML = h;
   }
-  const multi = ()=> W() && W().carrierMode === "multi";
-  function rateRow(l, i){
-    const opt = (v,sel)=> '<option'+(v===sel?" selected":"")+'>'+esc2(v)+'</option>';
-    const carrierOpts = '<option value="">— Carrier —</option>'+Array.from(new Set(Q.carriers.concat(l.carrier ? [l.carrier] : []))).map(c=>'<option'+(c===l.carrier?" selected":"")+'>'+esc2(c)+'</option>').join("");
-    const cell = 'border:none;background:transparent';
-    return '<tr data-qr="'+i+'"><td><input class="fc" list="qkCharges" data-qf="charge_name" value="'+esc2(l.charge_name)+'" placeholder="Charge" style="'+cell+'"></td><td class="quotRateCarrierCell" style="display:'+(multi()?"":"none")+'"><select class="fc" data-qf="carrier" style="'+cell+'">'+carrierOpts+'</select></td>'+
-      '<td><select class="fc" data-qf="basis" style="'+cell+'">'+BASES.map(b=>opt(b,l.basis)).join("")+'</select></td><td><select class="fc" data-qf="ccy" style="'+cell+';width:78px">'+CCYS.map(c=>opt(c,l.ccy)).join("")+'</select></td>'+
-      '<td><input class="fc" type="number" min="0" step="0.01" data-qf="rate" value="'+esc2(l.rate)+'" style="'+cell+';width:90px"></td><td><input class="fc" type="number" min="0" step="0.001" data-qf="qty" value="'+esc2(l.qty)+'" style="'+cell+';width:66px"></td>'+
-      '<td><input class="fc" type="number" min="0" step="0.0001" data-qf="exch" value="'+esc2(l.exch)+'" '+(l.ccy==="INR"?"disabled ":"")+'style="'+cell+';width:80px"></td><td class="no-print"><button class="ta" type="button" data-qk-del="'+i+'">✕</button></td></tr>';
+  const opt = (v, label, sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(label===undefined?v:label)+'</option>';
+  function stepper(){
+    const r = Q.rec; const status = !r ? "DRAFT" : r.status === "DRAFT" ? r.approval_status === "APPROVED" ? "APPROVED" : r.approval_status === "SUBMITTED" ? "SUBMITTED" : "DRAFT" : r.status;
+    const order = STEPS.map(s=>s[0]); let idx = order.indexOf(status); if(idx < 0) idx = 3;
+    const bad = r && r.approval_status === "REJECTED";
+    return '<div class="qk-steps">'+STEPS.map(([k,label],i)=>'<div class="qk-step '+(i<idx?"done":i===idx?(bad&&i===0?"bad cur":"cur"):"")+'"><span class="dot">'+(i<idx?"✓":i+1)+'</span>'+esc2(label)+'</div>').join("")+
+      (r && ["REJECTED","EXPIRED","SUPERSEDED"].includes(r.effective_status) ? '<span class="b '+(STATUS_CLS[r.effective_status]||"")+'" style="margin-left:10px">'+esc2(r.effective_status.charAt(0)+r.effective_status.slice(1).toLowerCase())+'</span>' : '')+'</div>';
   }
-  function renderRows(){
-    const tb = bodyRows(); if(!tb) return;
-    tb.innerHTML = Q.lines.length ? Q.lines.map(rateRow).join("") : '<tr><td colspan="8" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">No charges yet. Click "Add Charge".</td></tr>';
-    renderSummary();
+  function infoCard(){
+    const h = Q.head, r = Q.rec, ro = r && !r.editable, d = ro ? " disabled" : "";
+    const f = (label, body, cls, req)=> '<div class="fg '+(cls||"")+'"><label class="fl">'+label+(req?' <span class="r">*</span>':'')+'</label>'+body+'</div>';
+    const inp = (k, type, ph, extra)=> '<input class="fc" '+(type?'type="'+type+'" ':'')+'data-qh="'+k+'" value="'+esc2(h[k])+'" placeholder="'+esc2(ph||"")+'"'+d+(extra||"")+'>';
+    const w = wiz();
+    return '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Quotation Information</div><div style="font-size:11.5px;color:var(--g6)">'+esc2([w.dir, w.mode, w.type].filter(Boolean).join(" · "))+' · '+esc2(w.qtype||"")+' · '+(isMulti()?"Multiple carriers":"Single carrier")+(ro?"":' <span class="ta" data-qa="changewiz">Change</span>')+'</div></div><div class="cb"><div class="qk-grid">'+
+      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Assigned when issued")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
+      f("Customer", '<select class="fc" data-qh="customer_id"'+d+'><option value="">— Select from Customer Master —</option>'+Q.m.customers.map(c=>opt(String(c.id), c.name+(c.code?" ("+c.code+")":""), String(c.id)===String(h.customer_id))).join("")+(h.customer_id && !Q.m.customers.some(c=>String(c.id)===String(h.customer_id)) ? opt(String(h.customer_id), h.party_name, true) : "")+'</select>', "", true)+
+      f("Quotation Date", inp("quote_date","date"))+f("Valid Until", inp("valid_until","date"), "", true)+
+      f("Currency", '<select class="fc" data-qh="currency"'+d+'>'+ccyList().map(c=>opt(c, c, c===h.currency)).join("")+'</select>', "", true)+
+      f("Sales Person", '<select class="fc" data-qh="sales_person"'+d+'><option value="">—</option>'+Q.m.users.map(u=>{ const n = ((u.first_name||"")+" "+(u.last_name||"")).trim(); return opt(n, n, n===h.sales_person); }).join("")+(h.sales_person && !Q.m.users.some(u=>((u.first_name||"")+" "+(u.last_name||"")).trim()===h.sales_person) ? opt(h.sales_person, h.sales_person, true) : "")+'</select>')+
+      f("Service Type", '<select class="fc" data-qh="service_type"'+d+'>'+SERVICE_TYPES.map(s=>opt(s, s, s===h.service_type)).join("")+'</select>')+
+      f("Reference No", inp("reference_no","text","Customer enquiry / RFQ ref"))+
+      f("From (Port / Place of Loading)", inp("pol","text","Search port…",' list="qkPorts"'), "span2", true)+f("To (Port / Place of Discharge)", inp("pod","text","Search port…",' list="qkPorts"'), "span2", true)+
+      f("Incoterm", '<select class="fc" data-qh="incoterm"'+d+'><option value="">—</option>'+INCOTERMS.map(s=>opt(s, s, s===h.incoterm)).join("")+'</select>')+
+      f("Commodity", inp("commodity","text","e.g. Cotton garments"))+f("Payment Terms", inp("payment_terms","text","e.g. 30 days from invoice"))+f("Transit Time (days)", inp("transit_days","number","","min=\"0\""))+
+      f("Packages", inp("packages","number","","min=\"0\""))+f("Gross Weight (kg)", inp("gross_weight","number","","min=\"0\" step=\"0.001\""))+f("Volume (CBM)", inp("volume","number","","min=\"0\" step=\"0.001\""))+
+      f("POL / POD", '<input class="fc" readonly value="'+esc2((h.pol||"").split(/\s+[-—]\s+/)[0]+" / "+(h.pod||"").split(/\s+[-—]\s+/)[0])+'" style="background:var(--g0)">')+
+      '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2(p.code+" - "+p.name)+'">').join("")+'</datalist>';
   }
-  function renderSummary(){
-    const box = document.getElementById("quotSummaryBox"); if(!box) return;
-    const by = {}; Q.lines.forEach(l=>{ const k = l.carrier || (multi() ? "(no carrier)" : "Total"); by[k] = (by[k]||0) + calc(l); });
-    const keys = Object.keys(by);
-    box.innerHTML = keys.length ? keys.map(k=>'<div class="sr"><span class="lbl">'+esc2(k)+'</span><span style="font-weight:700">'+inr(by[k])+'</span></div>').join("") + '<div style="margin-top:6px;font-size:10.5px;color:var(--g5)">Indicative. The server recalculates every amount when you save.</div>' : "Add charges to see the summary.";
+  function chargeOptions(l){
+    const names = Q.m.charges.map(c=>c.name); const extra = l.charge_name && !names.includes(l.charge_name) ? [l.charge_name] : [];
+    return '<option value="">— Select —</option>'+names.concat(extra).map(n=>opt(n, n, n===l.charge_name)).join("");
   }
-  function formPatch(){
-    // the old fake handlers/dummy sources are neutralised: Get Rate needs the Rate Master, Fetch from Enquiry needs CRM
-    ["quotGetRateBtn","quotFetchEnquiryBtn"].forEach(id=>{ const b = document.getElementById(id); if(b) b.style.display = "none"; });
-    const banner = document.getElementById("quotAppliedRateBanner"); if(banner) banner.style.display = "none";
-    const hd = document.querySelector("#quotRateTable thead tr");
-    if(hd && !hd.dataset.qk){ hd.dataset.qk = "1"; const last = hd.lastElementChild; ["Qty","Ex. Rate"].forEach(t=>{ const th = document.createElement("th"); th.textContent = t; hd.insertBefore(th, last); }); }
+  function rowHtml(l, side, i){
+    const c = calc(l), key = side+":"+i, ro = Q.rec && !Q.rec.editable, d = ro ? " disabled" : "", open = Q.open[key];
+    const cont = l.basis === "Container" || l.basis === "Per Container" && false;
+    const hasBreak = (l.container_breakup||[]).some(b=>Number(b.qty)>0);
+    const carriers = Array.from(new Set(chosenCarriers().concat(l.carrier ? [l.carrier] : [])));
+    const m = lineMargin(l);
+    const rateEditable = canEditRate(l) && !ro;
+    const unitsCell = l.basis === "Container"
+      ? '<button class="btn btn-out btn-sm" style="padding:2px 7px;font-size:11px" data-qa="containers" data-k="'+key+'" '+d+'>📦 '+num(c.units,3)+'</button>'
+      : '<input class="fc" type="number" min="0" step="0.001" data-ql="'+key+':qty" value="'+esc2(l.qty)+'" style="width:64px"'+d+'>';
+    const rateCell = hasBreak ? '<span class="r" title="Average of the container-wise rates">≈ '+num(c.rate,2)+'</span>' : '<input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':rate" value="'+esc2(l.rate)+'" style="width:84px"'+d+'>';
+    return '<tr data-key="'+key+'"><td>'+(i+1)+'</td><td><select class="fc" data-ql="'+key+':charge_name" style="min-width:128px"'+d+'>'+chargeOptions(l)+'</select></td>'+
+      '<td><select class="fc" data-ql="'+key+':basis" style="min-width:96px"'+d+'>'+uomList().concat(uomList().includes(l.basis)?[]:[l.basis]).map(u=>opt(u, u, u===l.basis)).join("")+'</select></td><td>'+unitsCell+'</td>'+
+      '<td><select class="fc" data-ql="'+key+':ccy" style="width:66px"'+d+'>'+ccyList().concat(ccyList().includes(l.ccy)?[]:[l.ccy]).map(x=>opt(x, x, x===l.ccy)).join("")+'</select></td>'+
+      '<td><input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':exch" value="'+esc2(l.exch)+'" style="width:66px"'+(rateEditable?"":" disabled")+' title="'+(l.ccy==="INR"?"Base currency":"INR per 1 "+esc2(l.ccy)+(Q.m.rates[l.ccy]?" (Currency Master)":""))+'"></td>'+
+      '<td>'+rateCell+'</td><td class="r" data-c="amount">'+num(c.amount,2)+'</td><td class="r" data-c="total">'+num(c.total,2)+'</td>'+
+      '<td style="white-space:nowrap"><button class="qk-icon" data-qa="toggle" data-k="'+key+'" title="Taxable, tax, remarks…">'+(open?"▴":"▾")+'</button><button class="qk-icon" data-qa="dup" data-k="'+key+'" title="Duplicate"'+d+'>⧉</button><button class="qk-icon del" data-qa="del" data-k="'+key+'" title="Delete"'+d+'>✕</button></td></tr>'+
+      '<tr class="qk-d" style="display:'+(open?"":"none")+'" data-dk="'+key+'"><td colspan="10"><div class="qk-dgrid">'+
+      '<div><label>Taxable</label><select class="fc" data-ql="'+key+':taxable"'+d+'>'+opt("1","Taxable",l.taxable)+opt("0","Non-Taxable",!l.taxable)+'</select></div>'+
+      '<div><label>Tax %</label><select class="fc" data-ql="'+key+':tax_pct"'+(l.taxable&&!ro?"":" disabled")+'>'+TAX_RATES.concat(TAX_RATES.includes(Number(l.tax_pct))?[]:[Number(l.tax_pct)]).map(t=>opt(String(t), t+"%", Number(l.tax_pct)===t)).join("")+'</select></div>'+
+      '<div><label>GST amount (₹)</label><div class="r" data-c="gst" style="padding:5px 0;font-weight:700">'+num(c.gst,2)+'</div></div>'+
+      '<div><label>Margin rate</label><div class="r" data-c="margin" style="padding:5px 0;font-weight:700">'+(m===null?"—":num(m,2)+"%")+'</div></div>'+
+      (isMulti() ? '<div><label>Carrier</label><select class="fc" data-ql="'+key+':carrier"'+d+'><option value="">—</option>'+carriers.map(x=>opt(x,x,x===l.carrier)).join("")+'</select></div>' : '<div></div>')+
+      (l.basis === "Container" ? '<div><label>Container type (single)</label><select class="fc" data-ql="'+key+':container_type"'+d+'><option value="">— by breakup —</option>'+Q.m.containers.map(x=>opt(x.name, x.name, x.name===l.container_type)).join("")+'</select></div>' : '<div></div>')+
+      '<div style="grid-column:1/-1"><label>Notes / Remarks (internal)</label><input class="fc" data-ql="'+key+':remarks" value="'+esc2(l.remarks)+'" placeholder="Remarks for this charge"'+d+'></div></div></td></tr>';
+  }
+  function chosenCarriers(){
+    const picked = Array.from(document.querySelectorAll("#quotCarrierRows select")).map(s=>s.value).filter(Boolean);
+    return picked.length ? picked : Q.m.carriers;
+  }
+  function pane(side){
+    const lines = side === "SELL" ? Q.sell : Q.buy, key = side.toLowerCase(), ro = Q.rec && !Q.rec.editable;
+    const tot = lines.reduce((a,l)=>{ const c = calc(l); a.amount += c.amount; a.gst += c.gst; a.total += c.total; return a; }, {amount:0, gst:0, total:0});
+    return '<div class="qk-pane '+key+'" data-pane="'+key+'"><div class="qk-pane-h"><div><div class="t">'+(side==="SELL"?"Sell Cost":"Buy Cost")+' <span class="b b-gy" style="font-size:9.5px">'+lines.length+'</span></div><div class="s">'+(side==="SELL"?"Charges quoted to the customer":"Internal cost — never shown on the customer quotation")+'</div></div>'+
+      '<div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-qa="add" data-side="'+side+'"'+(ro?" disabled":"")+'>＋ Add Charge</button><button class="btn btn-out btn-sm" data-qa="containers" data-k="'+key+':new"'+(ro?" disabled":"")+' title="One charge, several container types with their own rates">📦 Container Rates</button></div></div>'+
+      '<div class="qk-scroll"><table class="qk-t"><thead><tr><th>#</th><th>Particulars</th><th>Basis / UOM</th><th>Units</th><th>Ccy</th><th>Ex. Rate</th><th>Unit Rate</th><th class="r">Amount (₹)</th><th class="r">Total (₹)</th><th></th></tr></thead><tbody>'+
+      (lines.length ? lines.map((l,i)=>rowHtml(l, key, i)).join("") : '<tr><td colspan="10" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No '+(side==="SELL"?"sell":"buy")+' charges yet. Click "Add Charge".</td></tr>')+
+      '</tbody><tfoot><tr><td colspan="7">Total ('+(side==="SELL"?"Sell":"Buy")+')</td><td class="r" data-t="'+key+':amount">'+num(tot.amount,2)+'</td><td class="r" data-t="'+key+':total">'+num(tot.total,2)+'</td><td></td></tr><tr><td colspan="7" style="font-weight:600;color:var(--g6)">GST (₹)</td><td colspan="3" class="r" data-t="'+key+':gst" style="font-weight:600">'+num(tot.gst,2)+'</td></tr></tfoot></table></div></div>';
+  }
+  function costSheet(){
+    if(!can("quote.view_cost")) return "";
+    const s = sheet();
+    const kpi = (l, v, cls)=> '<div class="qk-kpi '+(cls||"")+'"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>';
+    return '<div class="card" style="margin:12px 0"><div class="ch"><div class="ct">Quotation Margin &amp; Cost Sheet <span class="b b-gy" style="font-size:9.5px">Internal</span></div><span class="qk-chip" data-c="result" style="background:'+(s.result==="PROFIT"?"var(--grt);color:var(--gr)":s.result==="LOSS"?"var(--rdt);color:var(--rd)":"var(--g1);color:var(--g6)")+'">'+s.result+'</span></div><div class="cb"><div class="qk-two"><div>'+
+      '<div class="qk-kpis" id="qkKpis">'+kpi("Total selling", inr(s.ts))+kpi("Total buying", inr(s.tb))+kpi("Gross margin", inr(s.gm), s.gm>0?"good":s.gm<0?"bad":"")+kpi("Margin %", num(s.mp,2)+"%", s.gm>0?"good":s.gm<0?"bad":"")+
+      kpi("Markup %", s.up===null?"—":num(s.up,2)+"%")+kpi("GST on sell", inr(s.sg))+kpi("GST on buy", inr(s.bg))+kpi("Grand total (sell)", inr(s.gts))+'</div>'+
+      '<div style="font-size:10.5px;color:var(--g5);margin-top:8px">Margin % = (Sell − Buy) ÷ Sell. Markup % = (Sell − Buy) ÷ Buy. Both exclude GST, which is a pass-through tax. Grand total (buy): '+inr(s.gtb)+'.</div></div><div>'+
+      '<table class="qk-t" style="min-width:0"><thead><tr><th>Charge-wise margin</th><th class="r">Sell</th><th class="r">Buy</th><th class="r">Margin</th><th class="r">%</th></tr></thead><tbody>'+
+      (s.rows.length ? s.rows.map(r=>{ const m = r2(r.sell-r.buy); return '<tr><td>'+esc2(r.charge)+'</td><td class="r">'+num(r.sell,2)+'</td><td class="r">'+num(r.buy,2)+'</td><td class="r" style="font-weight:700;color:'+(m<0?"var(--rd)":"var(--gr)")+'">'+num(m,2)+'</td><td class="r">'+(r.sell>0 && r.buy>0 ? num(r2(m/r.sell*100),2)+"%" : "—")+'</td></tr>'; }).join("") : '<tr><td colspan="5" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">Add sell and buy charges to see margins.</td></tr>')+
+      '</tbody><tfoot><tr><td>Total</td><td class="r">'+num(s.ts,2)+'</td><td class="r">'+num(s.tb,2)+'</td><td class="r">'+num(s.gm,2)+'</td><td class="r">'+num(s.mp,2)+'%</td></tr></tfoot></table>'+
+      (isMulti() && s.carriers.length > 1 ? '<table class="qk-t" style="min-width:0;margin-top:10px"><thead><tr><th>Carrier</th><th class="r">Sell</th><th class="r">Buy</th><th class="r">Margin</th></tr></thead><tbody>'+s.carriers.map(c=>'<tr><td>'+esc2(c.carrier)+'</td><td class="r">'+num(c.sell,2)+'</td><td class="r">'+num(c.buy,2)+'</td><td class="r">'+num(r2(c.sell-c.buy),2)+'</td></tr>').join("")+'</tbody></table>' : '')+
+      '</div></div></div></div>';
+  }
+  function approvalCard(){
+    const r = Q.rec, ro = r && !r.editable;
+    const field = (l, v)=> '<div class="fg"><label class="fl">'+l+'</label><input class="fc" readonly value="'+esc2(v)+'" style="background:var(--g0)"></div>';
+    const statusChip = r ? '<span class="b '+(APPROVAL_CLS[r.approval_status]||"b-gy")+'">'+esc2(r.approval_status.charAt(0)+r.approval_status.slice(1).toLowerCase())+'</span>' : '<span class="b b-gy">Draft</span>';
+    const canDecide = r && r.approval_status === "SUBMITTED" && can("quote.approve");
+    return '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Approval Details</div><div>'+statusChip+(r && r.revision_no ? ' <span class="b b-gy">Revision '+r.revision_no+'</span>' : '')+'</div></div><div class="cb"><div class="qk-grid">'+
+      field("Prepared By", r ? (r.prepared_by_name||"—") : ((Q.me && ((Q.me.first_name||"")+" "+(Q.me.last_name||"")).trim())||"—"))+field("Prepared Date", r ? dmyt(r.prepared_at) : "Set when saved")+
+      field("Approved By", r ? (r.approved_by_name||"—") : "—")+field("Approved Date", r ? dmyt(r.approved_at) : "—")+
+      '<div class="fg span4"><label class="fl">Approval Remarks'+(canDecide?' (required when rejecting)':'')+'</label><textarea class="fc" rows="2" id="qkApprovalRemarks" placeholder="'+(canDecide?"Comments for the preparer…":"")+'"'+(canDecide?"":" readonly")+'>'+esc2(canDecide ? "" : (r && r.approval_remarks)||"")+'</textarea></div></div>'+
+      (r && r.approval_status === "REJECTED" ? '<div class="ib ib-rd" style="margin-top:8px"><b>Returned for correction.</b> '+esc2(r.approval_remarks||"")+' — edit the quotation and submit it again.</div>' : '')+
+      (ro ? '<div class="ib ib-bl" style="margin-top:8px">This quotation is locked. Use <b>More → Create revision</b> to change it; the earlier revision is kept for the record.</div>' : '')+
+      '</div></div>';
+  }
+  function renderAll(keepScroll){
+    const el = root(); if(!el) return; const y = window.scrollY;
+    const showBuy = can("quote.view_cost");
+    el.innerHTML = stepper() + infoCard() +
+      '<div class="qk-panes '+(showBuy?"":"single")+'" id="qkPanes">'+pane("SELL")+(showBuy ? pane("BUY") : "")+'</div>'+ costSheet() +
+      '<div class="qk-two" style="margin-bottom:12px"><div class="card"><div class="ch"><div class="ct">Terms &amp; Conditions</div></div><div class="cb"><textarea class="fc" rows="6" data-qh="terms"'+(Q.rec && !Q.rec.editable?" disabled":"")+'>'+esc2(Q.head.terms)+'</textarea></div></div>'+
+      '<div class="card"><div class="ch"><div class="ct">Internal Notes</div></div><div class="cb"><textarea class="fc" rows="6" data-qh="remarks" placeholder="Not printed on the customer quotation"'+(Q.rec && !Q.rec.editable?" disabled":"")+'>'+esc2(Q.head.remarks)+'</textarea></div></div></div>'+
+      approvalCard();
+    setActions(); if(keepScroll) window.scrollTo(0, y);
+    const t = document.getElementById("quotNewTitle"); if(t) t.textContent = "Quotation Preparation";
+    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft #"+Q.rec.id)+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
+  }
+  function refreshComputed(){
+    ["sell","buy"].forEach(side=>{
+      const lines = side==="sell" ? Q.sell : Q.buy; let a = 0, g = 0, t = 0;
+      lines.forEach((l,i)=>{ const c = calc(l); a += c.amount; g += c.gst; t += c.total; const row = document.querySelector('tr[data-key="'+side+":"+i+'"]'); const dr = document.querySelector('tr[data-dk="'+side+":"+i+'"]');
+        if(row){ row.querySelector('[data-c="amount"]').textContent = num(c.amount,2); row.querySelector('[data-c="total"]').textContent = num(c.total,2); } if(dr){ dr.querySelector('[data-c="gst"]').textContent = num(c.gst,2); const m = lineMargin(l); dr.querySelector('[data-c="margin"]').textContent = m===null?"—":num(m,2)+"%"; } });
+      const set = (k,v)=>{ const n = document.querySelector('[data-t="'+side+":"+k+'"]'); if(n) n.textContent = num(v,2); }; set("amount", a); set("gst", g); set("total", t);
+    });
+    // margin rates of the opposite pane's rows change too
+    Q.sell.concat(Q.buy).forEach(l=>{ const i = (l.side==="SELL"?Q.sell:Q.buy).indexOf(l); const dr = document.querySelector('tr[data-dk="'+l.side.toLowerCase()+":"+i+'"]'); if(dr){ const m = lineMargin(l); dr.querySelector('[data-c="margin"]').textContent = m===null?"—":num(m,2)+"%"; } });
+    const host = document.getElementById("qkKpis"); if(host){ const card = host.closest(".card"); const fresh = document.createElement("div"); fresh.innerHTML = costSheet(); card.replaceWith(fresh.firstElementChild); }
+  }
+
+  /* ---------- open / load ---------- */
+  function fillFromRec(r){
+    Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
+      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume"].map(k=>[k, (r.header||{})[k]||""]))};
+    const mk = l=>({side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
+    Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk);
   }
   async function openForm(rec){
     const scr = document.getElementById("s-quotation-new"); if(!scr) return;
-    formPatch(); await loadMasters();
-    scr.dataset.qid = rec ? rec.id : "";
-    document.getElementById("quotCarrierRows").innerHTML = "";
-    const w = W();
+    scr.dataset.qid = rec ? rec.id : ""; Q.rec = rec; Q.dirty = false; Q.open = {};
+    await loadMasters();
+    const w = wiz();
+    const bar = scr.querySelector(".ph .pa"); if(bar && bar.id !== "qkActions"){ bar.id = "qkActions"; }
     if(rec){
       Object.assign(w, {mode:rec.mode, dir:rec.direction, type:rec.shipment_type, qtype:rec.quote_type || "Standard", carrierMode:rec.carrier_mode});
       document.getElementById("quotWizWrap").style.display = "none"; document.getElementById("quotFormWrap").style.display = "block";
-      if(window.quotWizBuildForm) window.quotWizBuildForm();
+      fillFromRec(rec); renderAll();
     } else {
       Object.assign(w, {mode:null, dir:null, type:null, qtype:null, customServices:null, carrierMode:null, sourceEnquiry:null});
+      Q.head = headDefaults(); Q.sell = [blank("SELL")]; Q.buy = [blank("BUY")];
       document.getElementById("quotFormWrap").style.display = "none"; document.getElementById("quotWizWrap").style.display = "block";
       ["quotWizDirWrap","quotWizTypeWrap","quotWizQtypeWrap","quotWizCarrierWrap"].forEach(id=>{ const e = document.getElementById(id); if(e) e.style.display = "none"; });
-      const t = document.getElementById("quotNewTitle"); if(t) t.innerHTML = '<svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>New Quotation';
       if(window.quotWizRefresh) window.quotWizRefresh();
+      const c = document.getElementById("quotCarrierRows"); if(c) c.innerHTML = "";
+      const t = document.getElementById("quotNewTitle"); if(t) t.textContent = "New Quotation";
+      setActions();
+      if(Q.pendingPrefill){ Object.assign(Q.head, Q.pendingPrefill.head||{}); Q.pendingPrefill = null; }
     }
-    document.getElementById("qn_client").value = rec && rec.customer_id ? String(rec.customer_id) : "";
-    document.getElementById("qn_pol").value = rec ? (rec.pol||"") : ""; document.getElementById("qn_pod").value = rec ? (rec.pod||"") : "";
-    document.getElementById("qn_date").value = rec ? rec.quote_date : today();
-    document.getElementById("qn_valid").value = rec ? (rec.valid_until||"") : new Date(Date.now()+15*864e5).toISOString().slice(0,10);
-    if(rec && rec.terms) document.getElementById("qn_terms").value = rec.terms;
-    Q.lines = rec ? rec.lines.map(l=>({charge_name:l.charge_name, carrier:l.carrier, basis:l.basis, ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty})) : [{charge_name:"", carrier:"", basis:"Per Container", ccy:"USD", exch:"1", rate:"", qty:"1"}];
-    Q.edit = rec; renderRows();
   }
+  Q.onWizardDone = function(){
+    const w = wiz(); Q.head.currency = Q.head.currency || "USD";
+    Q.sell.concat(Q.buy).forEach(l=>{ if(!uomList().includes(l.basis)) l.basis = uomList()[0]; });
+    renderAll();
+  };
+
+  /* ---------- save / workflow ---------- */
   function collect(){
-    const sel = document.getElementById("qn_client"); const opt = sel.options[sel.selectedIndex];
-    const w = W();
-    return {customer_id: sel.value ? Number(sel.value) : null, party_name: sel.value && opt ? (opt.dataset.name || opt.textContent) : "", mode: w.mode, direction: w.dir, shipment_type: w.type, quote_type: w.qtype, carrier_mode: w.carrierMode || "single",
-      pol: document.getElementById("qn_pol").value.trim() || null, pod: document.getElementById("qn_pod").value.trim() || null, quote_date: document.getElementById("qn_date").value || today(), valid_until: document.getElementById("qn_valid").value || null,
-      terms: document.getElementById("qn_terms").value || null,
-      lines: Q.lines.filter(l=>l.charge_name || Number(l.rate)).map(l=>({charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, ccy:l.ccy, exch:String(Number(l.exch)||0), rate:String(Number(l.rate)||0), qty:String(Number(l.qty)||0), tax_pct:"0"}))};
+    const h = Q.head, w = wiz();
+    const cust = Q.m.customers.find(c=>String(c.id) === String(h.customer_id));
+    const toLine = l=>{
+      const bu = (l.container_breakup||[]).filter(b=>Number(b.qty)>0 && b.type).map(b=>({type:b.type, qty:String(Number(b.qty)), rate:String(Number(b.rate)||0)}));
+      return {side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||null, container_breakup:bu.length ? bu : null, ccy:l.ccy, exch:String(Number(l.exch)||0), rate:String(Number(l.rate)||0), qty:String(Number(l.qty)||0), taxable:!!l.taxable, tax_pct:l.taxable ? String(Number(l.tax_pct)||0) : "0", remarks:l.remarks||""};
+    };
+    return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
+      pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,
+      header:Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume"].filter(k=>h[k]!=="" && h[k]!==undefined).map(k=>[k, h[k]])),
+      lines:Q.sell.concat(Q.buy).filter(l=>l.charge_name || Number(l.rate) || (l.container_breakup||[]).length).map(toLine)};
+  }
+  function validate(forSubmit){
+    const miss = [];
+    if(!Q.head.customer_id) miss.push("Customer"); if(!(Q.head.pol||"").trim()) miss.push("From"); if(!(Q.head.pod||"").trim()) miss.push("To");
+    if(forSubmit){ if(!Q.head.valid_until) miss.push("Valid Until"); if(!Q.sell.some(l=>l.charge_name && (Number(l.rate)>0 || (l.container_breakup||[]).some(b=>Number(b.rate)>0)))) miss.push("at least one Sell charge with a rate");
+      Q.sell.concat(Q.buy).forEach((l,i)=>{ if(l.ccy !== "INR" && !(Number(l.exch)>0)) miss.push("Exchange rate for "+(l.charge_name||"line "+(i+1))); }); }
+    if(miss.length){ say("Please complete the required details", miss.join(", "), "warn"); return false; }
+    if(!wiz().mode){ say("Choose the shipment type first", "Complete the wizard (mode, direction, type, quote type, carrier)", "warn"); return false; }
+    return true;
   }
   async function save(){
-    const w = W(); if(!w || !w.mode){ say("Choose the shipment type first", "Complete the wizard (mode, direction, type, quote type, carrier) to continue", "warn"); return null; }
-    const body = collect();
-    if(!body.customer_id){ say("Client required", "Select the client for this quotation", "warn"); document.getElementById("qn_client").focus(); return null; }
-    if(!body.pol || !body.pod){ say("Route required", "Enter the port/place of loading and discharge", "warn"); return null; }
-    const id = document.getElementById("s-quotation-new").dataset.qid;
+    if(!validate(false)) return null;
+    const body = collect(); const scr = document.getElementById("s-quotation-new"); const id = scr.dataset.qid;
     const rec = id ? await api("PATCH","/api/quotations/"+id, body) : await api("POST","/api/quotations", body);
-    Q.edit = rec; document.getElementById("s-quotation-new").dataset.qid = rec.id; return rec;
+    scr.dataset.qid = rec.id; Q.rec = rec; fillFromRec(rec); Q.dirty = false; renderAll(true); return rec;
+  }
+  async function act(name){
+    try{
+      if(name === "back"){ if(Q.dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return; go("quotation"); return; }
+      if(name === "changewiz"){ document.getElementById("quotFormWrap").style.display = "none"; document.getElementById("quotWizWrap").style.display = "block"; setActions(); return; }
+      if(name === "save"){ const r = await save(); if(r) say("Draft saved", "Draft #"+r.id+" saved"); return; }
+      if(name === "submit"){ if(!validate(true)) return; const r = await save(); if(!r) return; const s = await api("POST","/api/quotations/"+r.id+"/approval/submit"); Q.rec = s; renderAll(true); say("Submitted for approval", "An approver can now review it"); return; }
+      if(name === "approve" || name === "reject"){
+        const remarks = (document.getElementById("qkApprovalRemarks")||{}).value || "";
+        if(name === "reject" && remarks.trim().length < 3){ say("Reason required", "Write the reason for rejecting in Approval Remarks", "warn"); const t = document.getElementById("qkApprovalRemarks"); if(t) t.focus(); return; }
+        const s = await api("POST","/api/quotations/"+Q.rec.id+"/approval/"+name, {remarks}); Q.rec = s; renderAll(true); say(name === "approve" ? "Quotation approved" : "Returned for correction", s.number || "Draft #"+s.id); return;
+      }
+      if(name === "issue"){ if(!window.confirm("Issue this approved quotation to the client? It gets its number and is locked.")) return; const s = await api("POST","/api/quotations/"+Q.rec.id+"/send"); say("Quotation issued", s.number+" — email delivery is not set up yet; use Print / PDF to share it."); openView(s.id); return; }
+      if(name === "preview" || name === "print"){ const r = Q.rec && Q.rec.editable ? await save() : Q.rec; if(!r) return; await openView(r.id, name === "print"); return; }
+      if(name === "revise"){ const r = await api("POST","/api/quotations/"+Q.rec.id+"/revise"); say("Revision created", "Revision "+r.revision_no+" is a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
+      if(name === "delete"){ if(!window.confirm("Delete this draft quotation?")) return; await api("DELETE","/api/quotations/"+Q.rec.id); say("Draft deleted", ""); go("quotation"); return; }
+      if(name === "history") return showHistory();
+      if(name === "audit") return showAudit();
+    }catch(e){ say("Could not complete the action", e.message); }
+  }
+  async function showHistory(){
+    const rows = await api("GET","/api/quotations/"+Q.rec.id+"/revisions");
+    openModal({title:"Revision History", size:"lg", bodyHTML:'<div class="tw"><table><thead><tr><th>Rev</th><th>Number</th><th>Status</th><th>Approval</th><th>Prepared by</th><th>Approved by</th><th class="r">Quoted (₹)</th><th></th></tr></thead><tbody>'+rows.map(x=>'<tr'+(x.current?' style="background:var(--blt)"':'')+'><td>'+x.revision_no+'</td><td class="mono">'+esc2(x.number||"Draft #"+x.id)+'</td><td>'+esc2(x.effective_status)+'</td><td>'+esc2(x.approval_status)+'</td><td>'+esc2(x.prepared_by_name||"—")+'</td><td>'+esc2(x.approved_by_name||"—")+'</td><td style="text-align:right">'+inr(x.quoted_amount)+'</td><td>'+(x.current?'<span class="b b-bl">Viewing</span>':'<button class="ta" data-qk-open="'+x.id+'">Open</button>')+'</td></tr>').join("")+'</tbody></table></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
+  }
+  async function showAudit(){
+    const ev = await api("GET","/api/quotations/"+Q.rec.id+"/events");
+    openModal({title:"Audit Trail", size:"lg", bodyHTML:'<div class="qk-tl">'+(ev.length ? ev.map(e=>'<div><b>'+esc2(e.action.replace(/_/g," "))+'</b>'+(e.from_state||e.to_state ? ' <span style="color:var(--g5)">'+esc2((e.from_state||"—")+" → "+(e.to_state||"—"))+'</span>' : '')+' · rev '+e.revision_no+'<br><span style="color:var(--g5)">'+esc2(e.user||"system")+' · '+dmyt(e.at)+'</span>'+(e.remarks ? '<div style="margin-top:2px">“'+esc2(e.remarks)+'”</div>' : '')+'</div>').join("") : '<div>No events yet.</div>')+'</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
   }
 
-  /* ---------- print / view ---------- */
-  async function openView(id){
+  /* ---------- container-wise rate popup ---------- */
+  function lineByKey(k){ const [side, idx] = k.split(":"); return {list:side==="sell"?Q.sell:Q.buy, idx, side}; }
+  function containerPopup(k){
+    let target, isNew = k.endsWith(":new");
+    const sideKey = k.split(":")[0];
+    const working = isNew ? {side:sideKey.toUpperCase(), basis:"Container", container_breakup:[], ccy:Q.head.currency||"USD", exch:rateFor(Q.head.currency||"USD", null)||"1", rate:"", qty:"1", taxable:false, tax_pct:"0", charge_name:"", carrier:"", remarks:"", container_type:""} : lineByKey(k).list[Number(lineByKey(k).idx)];
+    const rows = (working.container_breakup||[]).map(b=>({...b}));
+    const draw = ()=>{
+      const used = new Set(rows.map(r=>r.type)); const free = Q.m.containers.filter(c=>!used.has(c.name));
+      const tu = rows.reduce((a,r)=>a+(Number(r.qty)||0),0), ta = rows.reduce((a,r)=>a+r2((Number(r.qty)||0)*(Number(r.rate)||0)),0);
+      document.getElementById("qkCont").innerHTML = (Q.m.containers.length ? '' : '<div class="ib ib-am">No container types exist yet. Add them in Masters → Container Type.</div>')+
+        '<div class="fr" style="margin-bottom:8px">'+(isNew ? '<div class="fg"><label class="fl">Charge</label><select class="fc" id="qkcCharge">'+chargeOptions(working)+'</select></div>' : '')+'<div class="fg"><label class="fl">Currency</label><select class="fc" id="qkcCcy">'+ccyList().map(c=>opt(c,c,c===working.ccy)).join("")+'</select></div><div class="fg"><label class="fl">Ex. Rate (INR per 1)</label><input class="fc" type="number" step="0.0001" min="0" id="qkcExch" value="'+esc2(working.exch)+'"'+(canEditRate(working)?"":" disabled")+'></div></div>'+
+        '<table class="qk-t" style="min-width:0"><thead><tr><th>Container type</th><th>Qty</th><th>Rate ('+esc2(working.ccy)+')</th><th class="r">Amount</th><th></th></tr></thead><tbody>'+
+        (rows.length ? rows.map((r,i)=>'<tr><td>'+esc2(r.type)+'</td><td><input class="fc" type="number" min="0" step="1" data-cq="'+i+':qty" value="'+esc2(r.qty)+'" style="width:70px"></td><td><input class="fc" type="number" min="0" step="0.0001" data-cq="'+i+':rate" value="'+esc2(r.rate)+'" style="width:100px"></td><td class="r">'+num(r2((Number(r.qty)||0)*(Number(r.rate)||0)),2)+'</td><td><button class="qk-icon del" data-cq-del="'+i+'">✕</button></td></tr>').join("") : '<tr><td colspan="5" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">Add the container types in this shipment.</td></tr>')+
+        '</tbody><tfoot><tr><td>Total</td><td>'+num(tu,3)+'</td><td></td><td class="r">'+num(ta,2)+' '+esc2(working.ccy)+'</td><td></td></tr></tfoot></table>'+
+        '<div style="margin-top:8px;display:flex;gap:6px;align-items:center"><select class="fc" id="qkcAdd" style="max-width:220px"><option value="">＋ Add container type…</option>'+free.map(c=>opt(c.name,c.name)).join("")+'</select></div>';
+    };
+    openModal({title:"Container-wise Rates", size:"lg", bodyHTML:'<div id="qkCont"></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button>'+(rows.length ? '<button class="btn btn-out" id="qkcClear">Remove breakup</button>' : '')+'<button class="btn btn-pri" id="qkcSave">Apply</button>'});
+    draw();
+    const body = document.getElementById("modalBody");
+    body.oninput = e=>{ const t = e.target; if(t.dataset.cq){ const [i,f] = t.dataset.cq.split(":"); rows[Number(i)][f] = t.value; const tr = t.closest("tr"); tr.querySelector(".r").textContent = num(r2((Number(rows[Number(i)].qty)||0)*(Number(rows[Number(i)].rate)||0)),2);
+        const tu = rows.reduce((a,r)=>a+(Number(r.qty)||0),0), ta = rows.reduce((a,r)=>a+r2((Number(r.qty)||0)*(Number(r.rate)||0)),0); const foot = body.querySelector("tfoot tr"); foot.children[1].textContent = num(tu,3); foot.children[3].textContent = num(ta,2)+" "+working.ccy; }
+      if(t.id === "qkcExch") working.exch = t.value; };
+    body.onchange = e=>{ const t = e.target;
+      if(t.id === "qkcAdd" && t.value){ rows.push({type:t.value, qty:"1", rate:""}); draw(); }
+      if(t.id === "qkcCcy"){ working.ccy = t.value; working.exch = rateFor(t.value, working) || "1"; draw(); }
+      if(t.id === "qkcCharge"){ working.charge_name = t.value; } };
+    body.onclick = e=>{ const d = e.target.closest("[data-cq-del]"); if(d){ rows.splice(Number(d.dataset.cqDel), 1); draw(); } };
+    document.getElementById("qkcClear") && document.getElementById("qkcClear").addEventListener("click", ()=>{ working.container_breakup = []; closeModal(); renderAll(true); refreshComputed(); Q.dirty = true; });
+    document.getElementById("qkcSave").addEventListener("click", ()=>{
+      const valid = rows.filter(r=>Number(r.qty)>0);
+      if(!valid.length){ say("Add at least one container type with a quantity", "", "warn"); return; }
+      if(valid.some(r=>!(Number(r.rate)>=0) || r.rate==="")){ say("Rate required", "Enter a rate for every container type", "warn"); return; }
+      if(working.ccy !== "INR" && !(Number(working.exch)>0)){ say("Exchange rate required", "Enter the INR rate for "+working.ccy, "warn"); return; }
+      working.container_breakup = valid; working.basis = "Container";
+      if(isNew){ if(!working.charge_name){ say("Select the charge", "Choose which charge these container rates belong to", "warn"); return; } (sideKey === "sell" ? Q.sell : Q.buy).push(working); }
+      Q.dirty = true; closeModal(); renderAll(true);
+    });
+  }
+
+  /* ---------- customer-safe preview / print (SELL charges only) ---------- */
+  async function openView(id, print){
     let q; try{ q = await api("GET","/api/quotations/"+id); }catch(e){ say("Could not open quotation", e.message); return; }
-    const me = await api("GET","/api/auth/me").catch(()=>({organization_name:""}));
+    const me = Q.me || await api("GET","/api/auth/me").catch(()=>({organization_name:""}));
     const scr = document.getElementById("s-quotation-print"); const zone = document.getElementById("quotPrintZone"); if(!scr || !zone) return;
-    scr.dataset.qid = q.id;
-    const carriers = Array.from(new Set(q.lines.map(l=>l.carrier || "")));
+    scr.dataset.qid = q.id; Q.viewRec = q;
+    const sell = q.lines.filter(l=>l.side === "SELL");
+    const carriers = Array.from(new Set(sell.map(l=>l.carrier || "")));
+    const hd = q.header || {};
     const tables = carriers.map(c=>{
-      const ls = q.lines.filter(l=>(l.carrier||"") === c); const total = ls.reduce((a,l)=>a+Number(l.amount),0);
-      return (c ? '<div style="font-weight:700;margin:12px 0 4px">Carrier: '+esc2(c)+'</div>' : '')+'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#0B1F3A;color:#fff"><th style="padding:6px;text-align:left">Charge</th><th style="padding:6px;text-align:left">Application</th><th style="padding:6px;text-align:right">Rate</th><th style="padding:6px">Cur</th><th style="padding:6px;text-align:right">Qty</th><th style="padding:6px;text-align:right">Ex.Rate</th><th style="padding:6px;text-align:right">Amount (INR)</th></tr></thead><tbody>'+
-        ls.map(l=>'<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:6px">'+esc2(l.charge_name)+'</td><td style="padding:6px">'+esc2(l.basis)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.rate).toLocaleString("en-IN"))+'</td><td style="padding:6px;text-align:center">'+esc2(l.ccy)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.qty))+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.exch))+'</td><td style="padding:6px;text-align:right">'+inr(l.amount)+'</td></tr>').join("")+
-        '</tbody><tfoot><tr><td colspan="6" style="padding:6px;text-align:right;font-weight:700">Total</td><td style="padding:6px;text-align:right;font-weight:800">'+inr(total)+'</td></tr></tfoot></table>';
+      const ls = sell.filter(l=>(l.carrier||"") === c); const tot = ls.reduce((a,l)=>a+Number(l.amount),0), gst = ls.reduce((a,l)=>a+Number(l.gst_amount),0), grand = ls.reduce((a,l)=>a+Number(l.total_inr),0);
+      return (c ? '<div style="font-weight:700;margin:12px 0 4px">Carrier: '+esc2(c)+'</div>' : '')+'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#0B1F3A;color:#fff"><th style="padding:6px;text-align:left">Charge</th><th style="padding:6px;text-align:left">Basis</th><th style="padding:6px;text-align:right">Units</th><th style="padding:6px;text-align:right">Rate</th><th style="padding:6px">Cur</th><th style="padding:6px;text-align:right">Ex.Rate</th><th style="padding:6px;text-align:right">Amount (INR)</th><th style="padding:6px;text-align:right">GST</th><th style="padding:6px;text-align:right">Total (INR)</th></tr></thead><tbody>'+
+        ls.map(l=>{ const bu = l.container_breakup||[]; return '<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:6px">'+esc2(l.charge_name)+(bu.length ? '<div style="font-size:10.5px;color:#64748B">'+bu.map(b=>esc2(b.type)+" × "+esc2(Number(b.qty))+" @ "+esc2(l.ccy)+" "+esc2(Number(b.rate).toLocaleString("en-IN"))).join("<br>")+'</div>' : (l.container_type ? '<div style="font-size:10.5px;color:#64748B">'+esc2(l.container_type)+'</div>' : ''))+'</td><td style="padding:6px">'+esc2(l.basis)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.qty))+'</td><td style="padding:6px;text-align:right">'+(bu.length ? "as listed" : esc2(Number(l.rate).toLocaleString("en-IN")))+'</td><td style="padding:6px;text-align:center">'+esc2(l.ccy)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.exch))+'</td><td style="padding:6px;text-align:right">'+inr(l.amount)+'</td><td style="padding:6px;text-align:right">'+(l.taxable ? inr(l.gst_amount)+" ("+esc2(Number(l.tax_pct))+"%)" : "Nil")+'</td><td style="padding:6px;text-align:right">'+inr(l.total_inr)+'</td></tr>'; }).join("")+
+        '</tbody><tfoot><tr><td colspan="6" style="padding:6px;text-align:right;font-weight:700">Total</td><td style="padding:6px;text-align:right;font-weight:700">'+inr(tot)+'</td><td style="padding:6px;text-align:right;font-weight:700">'+inr(gst)+'</td><td style="padding:6px;text-align:right;font-weight:800">'+inr(grand)+'</td></tr></tfoot></table>';
     }).join("");
-    zone.innerHTML = '<div style="padding:24px 28px;font-family:inherit"><div style="display:flex;justify-content:space-between;border-bottom:2px solid #0B1F3A;padding-bottom:10px"><div><div style="font-size:20px;font-weight:800;color:#0B1F3A">'+esc2(me.organization_name||"")+'</div><div style="font-size:11px;color:var(--g5)">Freight forwarding quotation</div></div><div style="text-align:right"><div style="font-size:18px;font-weight:800">QUOTATION</div><div class="mono">'+esc2(q.number||("Draft #"+q.id))+'</div><div style="margin-top:4px">'+badge(q)+'</div></div></div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;font-size:12px"><div><div style="color:var(--g5);font-size:10.5px">QUOTED TO</div><div style="font-weight:700;font-size:14px">'+esc2(q.party_name)+'</div></div><div><div class="sr"><span class="lbl">Date</span><span>'+dmy(q.quote_date)+'</span></div><div class="sr"><span class="lbl">Valid until</span><span>'+dmy(q.valid_until)+'</span></div><div class="sr"><span class="lbl">Shipment</span><span>'+esc2([q.mode,q.direction,q.shipment_type].filter(Boolean).join(" · "))+'</span></div><div class="sr"><span class="lbl">Route</span><span>'+esc2([q.pol,q.pod].filter(Boolean).join(" → ")||"—")+'</span></div></div></div>'+
-      tables+'<div style="margin-top:16px"><div style="font-weight:700;font-size:12px;margin-bottom:4px">Terms &amp; Conditions</div><div style="white-space:pre-wrap;font-size:11px;color:var(--g7)">'+esc2(q.terms||"—")+'</div></div>'+(q.job_number ? '<div class="ib ib-gr" style="margin-top:12px">Converted to job <b>'+esc2(q.job_number)+'</b></div>' : '')+'</div>';
-    const bar = scr.querySelector(".pa"); if(bar){
-      const keep = Array.from(bar.querySelectorAll("button")).filter(b=>/^\s*(back)\s*$/i.test(b.textContent.replace(/\s+/g," ")) || b.id === "quotPrintBtn");
+    zone.innerHTML = '<div style="padding:24px 28px"><div style="display:flex;justify-content:space-between;border-bottom:2px solid #0B1F3A;padding-bottom:10px"><div><div style="font-size:20px;font-weight:800;color:#0B1F3A">'+esc2(me.organization_name||"")+'</div><div style="font-size:11px;color:var(--g5)">Freight forwarding quotation</div></div><div style="text-align:right"><div style="font-size:18px;font-weight:800">QUOTATION</div><div class="mono">'+esc2(q.number||("Draft #"+q.id))+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</div><div style="margin-top:4px">'+sbadge(q)+'</div></div></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;font-size:12px"><div><div style="color:var(--g5);font-size:10.5px">QUOTED TO</div><div style="font-weight:700;font-size:14px">'+esc2(q.party_name)+'</div>'+(hd.reference_no ? '<div style="margin-top:4px">Your ref: '+esc2(hd.reference_no)+'</div>' : '')+(hd.sales_person ? '<div>Contact: '+esc2(hd.sales_person)+'</div>' : '')+'</div><div>'+
+      [["Date",dmy(q.quote_date)],["Valid until",dmy(q.valid_until)],["Shipment",[q.mode,q.direction,q.shipment_type].filter(Boolean).join(" · ")],["Service",hd.service_type||"—"],["Route",[q.pol,q.pod].filter(Boolean).join(" → ")||"—"],["Incoterm",hd.incoterm||"—"],["Commodity",hd.commodity||"—"],["Payment terms",hd.payment_terms||"—"]].map(([k,v])=>'<div class="sr"><span class="lbl">'+k+'</span><span>'+esc2(v)+'</span></div>').join("")+'</div></div>'+
+      tables+'<div style="margin-top:16px"><div style="font-weight:700;font-size:12px;margin-bottom:4px">Terms &amp; Conditions</div><div style="white-space:pre-wrap;font-size:11px;color:var(--g7)">'+esc2(q.terms||"—")+'</div></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:22px;font-size:11px;color:var(--g6)"><div>Prepared by: <b>'+esc2(q.prepared_by_name||"—")+'</b></div><div>Approved by: <b>'+esc2(q.approved_by_name||"—")+'</b>'+(q.approved_at ? " · "+dmy(q.approved_at) : "")+'</div></div>'+
+      (q.job_number ? '<div class="ib ib-gr" style="margin-top:12px">Converted to job <b>'+esc2(q.job_number)+'</b></div>' : '')+'</div>';
+    const bar = scr.querySelector(".pa");
+    if(bar){
+      const keep = Array.from(bar.querySelectorAll("button")).filter(b=>/^\s*back\s*$/i.test(b.textContent.replace(/\s+/g," ")) || b.id === "quotPrintBtn");
       Array.from(bar.querySelectorAll("button")).forEach(b=>{ if(!keep.includes(b)) b.style.display = "none"; });
       bar.querySelectorAll("[data-qk-bar]").forEach(n=>n.remove());
-      const add = (label, act, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = act+":"+q.id; b.textContent = label; bar.appendChild(b); };
-      if(q.status === "DRAFT") add("Edit Draft", "edit", "btn-out");
+      const add = (label, a, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = a+":"+q.id; b.textContent = label; bar.appendChild(b); };
+      if(q.editable) add("Edit", "edit", "btn-out");
       if(q.effective_status === "SENT"){ add("Mark Accepted", "accept", "btn-suc"); add("Mark Rejected", "reject", "btn-out"); }
       if(q.status === "ACCEPTED") add("Convert to Job", "convert", "btn-pri");
+      if(q.status === "DRAFT" && q.approval_status === "APPROVED" && can("quote.send")) add("Issue to Client", "issue", "btn-pri");
     }
     go("quotation-print");
+    if(print) setTimeout(()=> window.print(), 300);
   }
 
-  /* ---------- actions ---------- */
-  async function act(kind, id){
+  /* ---------- list/view actions ---------- */
+  async function listAct(kind, id){
     try{
-      if(kind === "delete"){ if(!window.confirm("Delete this draft quotation?")) return; await api("DELETE","/api/quotations/"+id); say("Draft deleted", ""); return refreshNow(); }
+      if(kind === "delete"){ if(!window.confirm("Delete this draft quotation?")) return; await api("DELETE","/api/quotations/"+id); say("Draft deleted", ""); return refresh(); }
       if(kind === "edit"){ const q = await api("GET","/api/quotations/"+id); Q.pendingOpen = q; go("quotation-new"); return; }
-      if(kind === "accept" || kind === "reject"){ if(!window.confirm((kind==="accept"?"Record this quotation as ACCEPTED by the client?":"Record this quotation as REJECTED?"))) return; const q = await api("POST","/api/quotations/"+id+"/"+kind); say("Quotation "+(kind==="accept"?"accepted":"rejected"), q.number); return refreshNow(q.id); }
+      if(kind === "issue"){ if(!window.confirm("Issue this approved quotation to the client? It gets its number and is locked.")) return; const s = await api("POST","/api/quotations/"+id+"/send"); say("Quotation issued", s.number); return refresh(s.id); }
+      if(kind === "accept" || kind === "reject"){ if(!window.confirm(kind==="accept" ? "Record this quotation as ACCEPTED by the client?" : "Record this quotation as REJECTED by the client?")) return; const q = await api("POST","/api/quotations/"+id+"/"+kind); say("Quotation "+(kind==="accept"?"accepted":"rejected"), q.number); return refresh(q.id); }
       if(kind === "convert"){
         let q = await api("GET","/api/quotations/"+id); let carrier = "";
-        const carriers = Array.from(new Set(q.lines.filter(l=>Number(l.rate)>0).map(l=>l.carrier).filter(Boolean)));
+        const carriers = Array.from(new Set(q.lines.filter(l=>l.side==="SELL" && Number(l.rate)>0).map(l=>l.carrier).filter(Boolean)));
         if(carriers.length > 1){ carrier = window.prompt("This quotation compares several carriers. Type the carrier to convert:\n"+carriers.join("\n"), carriers[0]) || ""; if(!carrier) return; }
-        else if(!window.confirm("Convert "+q.number+" into a job? Its charges are copied onto the job's sell side.")) return;
-        q = await api("POST","/api/quotations/"+id+"/convert"+(carrier ? "?carrier="+encodeURIComponent(carrier) : "")); say("Job created", q.job_number+" from "+q.number); return refreshNow(q.id);
+        else if(!window.confirm("Convert "+q.number+" into a job? Sell charges (and matching buy costs) are copied onto the job.")) return;
+        q = await api("POST","/api/quotations/"+id+"/convert"+(carrier ? "?carrier="+encodeURIComponent(carrier) : "")); say("Job created", q.job_number+" from "+q.number); return refresh(q.id);
       }
     }catch(e){ say("Could not complete the action", e.message); }
   }
-  async function refreshNow(openId){
+  async function refresh(openId){
     if(document.getElementById("s-quotation").classList.contains("on")) return loadList();
     if(openId) return openView(openId);
     go("quotation");
   }
+
+  /* ---------- events ---------- */
   document.addEventListener("click", e=>{
-    const o = e.target.closest("[data-qk-open]"); if(o){ e.stopPropagation(); const id = Number(o.dataset.qkOpen); const q = Q.list.find(x=>x.id===id); if(q && q.status === "DRAFT") act("edit", id); else openView(id); return; }
-    const d = e.target.closest("[data-qk-do]"); if(d){ e.stopPropagation(); const [k, id] = d.dataset.qkDo.split(":"); act(k, Number(id)); return; }
-    const del = e.target.closest("[data-qk-del]"); if(del){ e.stopPropagation(); Q.lines.splice(Number(del.dataset.qkDel), 1); renderRows(); return; }
-    if(e.target.closest("#quotAddRateBtn")){ e.stopImmediatePropagation(); e.preventDefault(); Q.lines.push({charge_name:"", carrier:"", basis:"Per Container", ccy:"USD", exch:"1", rate:"", qty:"1"}); renderRows(); return; }
+    const o = e.target.closest("[data-qk-open]"); if(o){ e.stopPropagation(); const id = Number(o.dataset.qkOpen); closeModalSafe(); const q = Q.list.find(x=>x.id===id); if(q && q.editable) listAct("edit", id); else openView(id); return; }
+    const d = e.target.closest("[data-qk-do]"); if(d){ e.stopPropagation(); const [k, id] = d.dataset.qkDo.split(":"); listAct(k, Number(id)); return; }
+    const a = e.target.closest("[data-qa]");
+    if(a && (document.getElementById("s-quotation-new").contains(a))){
+      e.stopPropagation(); const n = a.dataset.qa;
+      if(n === "more"){ document.getElementById("qkMore").classList.toggle("on"); return; }
+      document.getElementById("qkMore") && document.getElementById("qkMore").classList.remove("on");
+      if(n === "add"){ (a.dataset.side === "SELL" ? Q.sell : Q.buy).push(blank(a.dataset.side)); Q.dirty = true; renderAll(true); return; }
+      if(n === "toggle"){ Q.open[a.dataset.k] = !Q.open[a.dataset.k]; renderAll(true); return; }
+      if(n === "dup"){ const {list, idx} = lineByKey(a.dataset.k); const src = list[Number(idx)]; list.splice(Number(idx)+1, 0, JSON.parse(JSON.stringify(src))); Q.dirty = true; renderAll(true); return; }
+      if(n === "del"){ const {list, idx} = lineByKey(a.dataset.k); list.splice(Number(idx), 1); Q.dirty = true; renderAll(true); return; }
+      if(n === "containers"){ containerPopup(a.dataset.k); return; }
+      act(n); return;
+    }
+    if(!e.target.closest("#qkMore")){ const m = document.getElementById("qkMore"); if(m) m.classList.remove("on"); }
     if(e.target.closest("#quotAddCarrierBtn")){
       e.stopImmediatePropagation(); e.preventDefault();
-      const row = document.createElement("div"); row.className = "fr quotCarrierRow";
-      row.innerHTML = '<div class="fg"><label class="fl">Carrier / Line</label><select class="fc">'+(Q.carriers.length ? Q.carriers.map(c=>'<option>'+esc2(c)+'</option>').join("") : '<option value="">No carriers yet — add them in Organizations (role: Carrier)</option>')+'</select></div><div class="fg"><label class="fl">Notes</label><input class="fc"></div>';
-      document.getElementById("quotCarrierRows").appendChild(row); return;
-    }
-    if(e.target.closest("#quotSaveDraftBtn")){ e.stopImmediatePropagation(); e.preventDefault(); save().then(r=>{ if(r){ say("Draft saved", "Draft #"+r.id+" saved"); } }).catch(err=>say("Could not save the quotation", err.message)); return; }
-    if(e.target.closest("#quotSendBtn")){
-      e.stopImmediatePropagation(); e.preventDefault();
-      (async()=>{ try{ const r = await save(); if(!r) return; if(!window.confirm("Issue this quotation? It gets its number and can no longer be edited.")) return; const s = await api("POST","/api/quotations/"+r.id+"/send"); say("Quotation issued", s.number+" — email delivery is not set up yet; use Print / PDF to share it."); openView(s.id); }catch(err){ say("Could not issue the quotation", err.message); } })(); return;
+      loadMasters().then(()=>{ const row = document.createElement("div"); row.className = "fr quotCarrierRow";
+        row.innerHTML = '<div class="fg"><label class="fl">Carrier / Line</label><select class="fc">'+(Q.m.carriers.length ? Q.m.carriers.map(c=>'<option>'+esc2(c)+'</option>').join("") : '<option value="">No carriers yet — add them in Organizations (role: Carrier)</option>')+'</select></div><div class="fg"><label class="fl">Notes</label><input class="fc"></div>';
+        document.getElementById("quotCarrierRows").appendChild(row); });
+      return;
     }
     if(e.target.closest("#quotEmailBtn")){ e.stopImmediatePropagation(); e.preventDefault(); say("Email is not available yet", "Use Print / PDF and send the file yourself. Email sending needs an email provider to be configured.", "warn"); return; }
   }, true);
+  const closeModalSafe = ()=>{ try{ closeModal(); }catch(e){ /* modal not open */ } };
   document.addEventListener("input", e=>{
-    const el = e.target; const tr = el.closest && el.closest("tr[data-qr]"); if(!tr || !el.dataset.qf) return;
-    Q.lines[Number(tr.dataset.qr)][el.dataset.qf] = el.value;
-    if(el.dataset.qf === "ccy"){ const l = Q.lines[Number(tr.dataset.qr)]; if(l.ccy === "INR") l.exch = "1"; renderRows(); return; }
-    renderSummary();
+    const el = e.target; if(!document.getElementById("s-quotation-new").contains(el)) return;
+    if(el.dataset.qh){ Q.head[el.dataset.qh] = el.value; Q.dirty = true; if(el.dataset.qh === "customer_id"){ const c = Q.m.customers.find(x=>String(x.id)===el.value); Q.head.party_name = c ? c.name : ""; } return; }
+    if(el.dataset.ql){ const [side, idx, f] = el.dataset.ql.split(":"); const l = (side==="sell"?Q.sell:Q.buy)[Number(idx)]; if(!l) return;
+      if(f === "taxable"){ l.taxable = el.value === "1"; if(l.taxable && !Number(l.tax_pct)) l.tax_pct = "18"; if(!l.taxable) l.tax_pct = "0"; Q.dirty = true; renderAll(true); return; }
+      l[f] = el.value; Q.dirty = true;
+      if(f === "ccy"){ l.exch = rateFor(l.ccy, l) || (l.ccy==="INR" ? "1" : ""); renderAll(true); return; }
+      if(f === "basis"){ if(l.basis !== "Container"){ l.container_breakup = []; l.container_type = ""; } renderAll(true); return; }
+      if(f === "charge_name"){ const m = Q.m.charges.find(c=>c.name===l.charge_name); if(m){ const g = Number((m.data||{}).gst_percent); if(g > 0){ l.taxable = true; l.tax_pct = String(g); } } renderAll(true); return; }
+      if(f === "carrier" || f === "container_type" || f === "tax_pct") { refreshComputed(); return; }
+      if(f !== "remarks") refreshComputed();
+    }
   });
+  document.addEventListener("change", e=>{ const el = e.target; if(el.dataset && el.dataset.qh === "currency" && document.getElementById("s-quotation-new").contains(el)){ /* default for new lines */ } });
 
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){
@@ -15471,6 +15740,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(screen === "quotation") loadList();
     if(screen === "quotation-new"){ const p = Q.pendingOpen; Q.pendingOpen = null; openForm(p); }
   };
+  window.addEventListener("beforeunload", e=>{ if(Q.dirty && document.getElementById("s-quotation-new").classList.contains("on")){ e.preventDefault(); e.returnValue = ""; } });
 })();
 
 </script>

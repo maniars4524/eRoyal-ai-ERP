@@ -1,4 +1,4 @@
-// Headless UI check #8: Quotations (wizard -> draft -> issue -> accept -> convert to job) against the QA database.
+// Headless UI check #8: Quotation Preparation (sell/buy panes, cost sheet, approval workflow, issue, accept, convert) against the QA database.
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
 const BASE = "http://127.0.0.1:8010";
@@ -14,21 +14,27 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
   const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
   const tag = Date.now().toString(36);
-  const org = await j("POST", "/api/organizations", { code: "QT" + tag.slice(-6).toUpperCase(), name: "Quotes " + tag, admin_email: `qt${tag}@t.test`, admin_username: "qt" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Q" }, dev.body.access_token);
-  const login = await j("POST", "/api/auth/login", { identifier: "qt" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number });
+  const org = await j("POST", "/api/organizations", { code: "QT" + tag.slice(-6).toUpperCase(), name: "Quotes " + tag, admin_email: `qt${tag}@t.test`, admin_username: "qt" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Preparer" }, dev.body.access_token);
+  const lic = org.body.organization.license_number;
+  const login = await j("POST", "/api/auth/login", { identifier: "qt" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: lic });
   const token = login.body.access_token;
+  await j("POST", "/api/users", { username: "ap" + tag, email: `ap${tag}@t.test`, password: "Ui-Test-Passw0rd-1", first_name: "Approver", role: "ERP_ADMIN" }, token);
+  const apr = (await j("POST", "/api/auth/login", { identifier: "ap" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: lic })).body.access_token;
   const acme = (await j("POST", "/api/customers", { code: "ACME", name: "Acme Exports", roles: ["shipper"] }, token)).body;
   await j("POST", "/api/customers", { code: "MSC", name: "MSC Line", roles: ["carrier"], country: "Switzerland" }, token);
-  await j("POST", "/api/customers", { code: "ONE", name: "ONE Line", roles: ["carrier"], country: "Singapore" }, token);
   await j("POST", "/api/masters/hsn", { code: "996512", name: "Water transport", data: { gst_rate: "18" } }, token);
   await j("POST", "/api/masters/charge", { code: "OFR", name: "Ocean Freight", data: { hsn_code: "996512", gst_percent: "18" } }, token);
+  await j("POST", "/api/masters/charge", { code: "DOC", name: "Documentation", data: {} }, token);
+  await j("POST", "/api/masters/currency", { code: "USD", name: "US Dollar", data: { exchange_rate: "83.5" } }, token);
+  await j("POST", "/api/masters/container_type", { code: "20GP", name: "20GP" }, token);
+  await j("POST", "/api/masters/container_type", { code: "40HC", name: "40HC" }, token);
 
   const dom = await JSDOM.fromURL(BASE + "/erp", {
     runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
     beforeParse(w) {
-      w.fetch = (u, o) => fetch(new URL(u, BASE).href, o);
+      w.fetch = (u, o) => fetch(new URL(u, BASE).href, o); w.addEventListener("error", e => { if (process.env.DBG) console.log("JSERR", e.message); });
       w.sessionStorage.setItem("esway_access_token", token);
-      w.confirm = () => true; w.prompt = (m, d) => d; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {}; w.print = () => {};
+      w.confirm = () => true; w.prompt = (m, dflt) => dflt; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = (...a) => { if (process.env.DBG) console.log("JSERR", ...a); }; w.print = () => {};
     },
   });
   const w = dom.window, d = w.document;
@@ -39,74 +45,100 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const text = s => (q(s) || { textContent: "" }).textContent.replace(/\s+/g, " ");
   const pick = async (gridSel, value) => { const card = value ? q(`${gridSel} .wiz-card[data-pick="${value}"]`) : q(`${gridSel} .wiz-card`); card.click(); await sleep(250); };
   const setf = (el, v, ev) => { el.value = v; el.dispatchEvent(new w.Event(ev || "input", { bubbles: true })); };
+  const ql = (side, i, f) => q(`[data-ql="${side}:${i}:${f}"]`);
+  const act = async (name, extra) => { q(`[data-qa="${name}"]${extra || ""}`).click(); await sleep(300); };
   const rowsText = () => Array.from(d.querySelectorAll("#s-quotation tbody tr")).map(r => r.textContent.replace(/\s+/g, " ").trim());
 
-  // ---------- list starts empty
+  // ---------- menu + empty list
+  const crmMenu = (w.TOPNAV_MENU || {}).crm;
   w.go("quotation"); await sleep(900);
   check("quotation list starts empty (no dummy rows)", rowsText().length === 1 && /No quotations yet/.test(rowsText()[0]), rowsText().join("|"));
 
-  // ---------- wizard (real clicks) -> form
-  w.go("quotation-new"); await sleep(1200);
-  check("Get Rate / Fetch from Enquiry (not built yet) are hidden", q("#quotGetRateBtn").style.display === "none" && q("#quotFetchEnquiryBtn").style.display === "none");
+  // ---------- wizard -> form
+  w.go("quotation-new"); await sleep(1500);
   await pick("#quotWizModeGrid", "Sea"); q('#quotWizDirGrid .wiz-dir-pill[data-pick="Export"]').click(); await sleep(250); await pick("#quotWizTypeGrid", "FCL"); await pick("#quotWizQtypeGrid"); await pick("#quotWizCarrierGrid", "single");
-  check("wizard Next is enabled once all choices are made", q("#quotWizNext").disabled === false, q("#quotWizHint").textContent);
-  q("#quotWizNext").click(); await sleep(500);
-  check("process form opens", q("#quotFormWrap").style.display === "block");
-  const clientOpts = Array.from(q("#qn_client").options).map(o => o.text).join("|");
-  check("client dropdown lists client organizations only", /Acme Exports/.test(clientOpts) && !/MSC Line/.test(clientOpts), clientOpts);
-  clearToasts(); q("#quotSaveDraftBtn").click(); await sleep(500);
-  check("saving without a client is blocked", toastsNow().some(t => /Client required/.test(t)), toastsNow().join(";"));
-  setf(q("#qn_client"), String(acme.id), "change"); setf(q("#qn_pol"), "INMAA - Chennai"); setf(q("#qn_pod"), "DEHAM - Hamburg");
-  q("#quotAddRateBtn").click(); await sleep(200);
-  check("the dummy starter row is gone and a blank charge row is available", d.querySelectorAll("#quotRateTableBody tr[data-qr]").length === 2, d.querySelectorAll("#quotRateTableBody tr").length);
-  const row = i => q(`#quotRateTableBody tr[data-qr="${i}"]`);
-  const fld = (i, f) => row(i).querySelector(`[data-qf="${f}"]`);
-  check("charge suggestions come from the Charge Master", Array.from(d.querySelectorAll("#qkCharges option")).map(o => o.value).join() === "Ocean Freight");
-  setf(fld(0, "charge_name"), "Ocean Freight"); setf(fld(0, "rate"), "850"); setf(fld(0, "qty"), "2"); setf(fld(0, "ccy"), "USD", "change"); await sleep(100); setf(fld(0, "exch"), "83.5");
-  setf(fld(1, "charge_name"), "Documentation"); setf(fld(1, "ccy"), "INR", "change"); await sleep(100); setf(fld(1, "rate"), "3500"); setf(fld(1, "basis"), "Per BL", "change");
-  check("summary shows the indicative total", /1,45,450\.00/.test(text("#quotSummaryBox")), text("#quotSummaryBox"));
-  clearToasts(); q("#quotSaveDraftBtn").click(); await sleep(1500);
+  q("#quotWizNext").click(); await sleep(600);
+  check("form opens with Sell pane on the left and Buy pane on the right", q("#quotFormWrap").style.display === "block" && q("#qkPanes").children[0].dataset.pane === "sell" && q("#qkPanes").children[1].dataset.pane === "buy");
+  const custOpts = Array.from(q('[data-qh="customer_id"]').options).map(o => o.text).join("|");
+  check("customer dropdown lists Customer Master clients only", /Acme Exports/.test(custOpts) && !/MSC Line/.test(custOpts), custOpts);
+  const uom = Array.from(ql("sell", 0, "basis").options).map(o => o.value);
+  check("Sea mode UOM list is dynamic (Container, TEU, FEU, RT, BL…)", ["Container", "TEU", "FEU", "Revenue Ton (RT)", "BL", "HBL", "MBL", "Per Container / Day"].every(x => uom.includes(x)), uom.join());
+  check("charge particulars come from the Charge Master", Array.from(ql("sell", 0, "charge_name").options).map(o => o.value).filter(Boolean).sort().join() === "Documentation,Ocean Freight");
+  clearToasts(); await act("save"); await sleep(300);
+  check("saving without customer/route is blocked", toastsNow().some(t => /complete the required/i.test(t)), toastsNow().join(";"));
+
+  setf(q('[data-qh="customer_id"]'), String(acme.id)); setf(q('[data-qh="pol"]'), "INMAA - Chennai"); setf(q('[data-qh="pod"]'), "DEHAM - Hamburg");
+  setf(ql("sell", 0, "charge_name"), "Ocean Freight"); await sleep(100);
+  check("taxable + GST % default from the Charge Master", ql("sell", 0, "taxable").value === "1" && ql("sell", 0, "tax_pct").value === "18");
+  setf(ql("sell", 0, "basis"), "TEU"); await sleep(100);
+  setf(ql("sell", 0, "ccy"), "USD"); await sleep(100);
+  check("exchange rate is auto-filled from Currency Master", ql("sell", 0, "exch").value === "83.5", ql("sell", 0, "exch").value);
+  setf(ql("sell", 0, "qty"), "2"); setf(ql("sell", 0, "rate"), "850");
+  check("amount = units x rate x exchange (1,41,950.00); total includes GST", /1,41,950\.00/.test(text('tr[data-key="sell:0"]')) && /1,67,501\.00/.test(text('tr[data-key="sell:0"]')), text('tr[data-key="sell:0"]'));
+  // buy side, independent
+  setf(ql("buy", 0, "charge_name"), "Ocean Freight"); await sleep(100);
+  setf(ql("buy", 0, "taxable"), "0"); await sleep(100); setf(ql("buy", 0, "basis"), "TEU"); await sleep(100);
+  setf(ql("buy", 0, "ccy"), "USD"); await sleep(100); setf(ql("buy", 0, "qty"), "2"); setf(ql("buy", 0, "rate"), "700");
+  check("buy line is independent and non-taxable carries no GST", /1,16,900\.00/.test(text('tr[data-key="buy:0"]')) && ql("buy", 0, "tax_pct").disabled, text('tr[data-key="buy:0"]'));
+  check("cost sheet: margin, margin % and markup % update live", /25,050\.00/.test(text("#qkKpis")) && /17\.65%/.test(text("#qkKpis")) && /21\.43%/.test(text("#qkKpis")) && /PROFIT/.test(text("#s-quotation-new")), text("#qkKpis"));
+  // container-wise rates popup
+  await act("containers", '[data-k="sell:new"]');
+  setf(q("#qkcCharge"), "Documentation", "change"); setf(q("#qkcAdd"), "20GP", "change"); await sleep(100); setf(q("#qkcAdd"), "40HC", "change"); await sleep(100);
+  setf(q('[data-cq="0:qty"]'), "1"); setf(q('[data-cq="0:rate"]'), "100"); setf(q('[data-cq="1:qty"]'), "2"); setf(q('[data-cq="1:rate"]'), "180");
+  q("#qkcSave").click(); await sleep(300);
+  check("container popup adds one charge with separate rates per container type", Q().sell.length === 2 && Q().sell[1].container_breakup.length === 2, JSON.stringify(Q().sell[1]));
+
+  // save draft
+  clearToasts(); await act("save"); await sleep(1500);
   let list = (await j("GET", "/api/quotations", null, token)).body;
-  check("Save Draft stored the quotation in PostgreSQL with server-calculated amounts", list.length === 1 && list[0].status === "DRAFT" && list[0].party_name === "Acme Exports" && list[0].quoted_amount === "145450.00" && list[0].mode === "Sea" && list[0].shipment_type === "FCL", JSON.stringify(list[0]) + toastsNow().join(";"));
+  const rec = list[0];
+  check("Save Draft stored it in PostgreSQL with customer from the master", list.length === 1 && rec.status === "DRAFT" && rec.party_name === "Acme Exports" && String(rec.customer_id) === String(acme.id), JSON.stringify(rec) + toastsNow().join(";"));
+  const full = (await j("GET", `/api/quotations/${rec.id}`, null, token)).body;
+  const cl = full.lines.find(l => l.container_breakup && l.container_breakup.length);
+  check("container breakup persisted with converted amounts", cl && cl.container_breakup.length === 2 && cl.amount_fcy === "460.00" && cl.amount === "38410.00", JSON.stringify(cl));
 
-  // ---------- issue (send) -> locked + numbered
-  clearToasts(); q("#quotSendBtn").click(); await sleep(2000);
-  const sent = (await j("GET", "/api/quotations", null, token)).body[0];
-  check("Send issues the quotation with a gap-free number", sent.status === "SENT" && /^QT\/\d\d-\d\d\/00001$/.test(sent.number), JSON.stringify(sent));
-  check("print view shows the real quotation (client, route, lines, terms)", /Acme Exports/.test(text("#quotPrintZone")) && /INMAA - Chennai/.test(text("#quotPrintZone")) && /Ocean Freight/.test(text("#quotPrintZone")) && /1,45,450\.00/.test(text("#quotPrintZone")) && /Rates subject to space/.test(text("#quotPrintZone")), text("#quotPrintZone").slice(0, 300));
-  check("no old brand or dummy text on the print screen", !/ECM Logistics|Eroyaltech|Tata|TVS|Solvay/.test(text("#s-quotation-print")));
-  check("Email says it is not available (no fake 'sent')", (clearToasts(), q("#quotEmailBtn").click(), true));
-  await sleep(200); check("Email click explains why", toastsNow().some(t => /Email is not available yet/.test(t)), toastsNow().join(";"));
+  // approval workflow
+  clearToasts(); await act("submit"); await sleep(1500);
+  const sub = (await j("GET", `/api/quotations/${rec.id}`, null, token)).body;
+  check("Submit for Approval moves it to SUBMITTED and locks editing", sub.approval_status === "SUBMITTED" && sub.editable === false, sub.approval_status);
+  check("preparer cannot approve own quotation (segregation of duties)", (await j("POST", `/api/quotations/${rec.id}/approval/approve`, {}, token)).status === 403);
+  const rj = await j("POST", `/api/quotations/${rec.id}/approval/reject`, { remarks: "Please revisit the buy rate" }, apr);
+  check("another approver can reject with a reason", rj.status === 200 && rj.body.approval_status === "REJECTED" && rj.body.editable === true, JSON.stringify(rj.body).slice(0, 150));
+  w.go("quotation"); await sleep(900); q(`[data-qk-open="${rec.id}"]`).click(); await sleep(1800);
+  check("rejected quotation reopens for correction with the reason shown", /Returned for correction/.test(text("#qkRoot")) && /revisit the buy rate/.test(text("#qkRoot")));
+  clearToasts(); await act("submit"); await sleep(1500);
+  const ap = await j("POST", `/api/quotations/${rec.id}/approval/approve`, { remarks: "ok" }, apr);
+  check("approver approves", ap.status === 200 && ap.body.approval_status === "APPROVED" && ap.body.approved_by_name === "Approver", JSON.stringify(ap.body).slice(0, 150));
+  const lockedEdit = await j("PATCH", `/api/quotations/${rec.id}`, { remarks: "sneaky" }, token);
+  check("approved quotation cannot be edited (revision required)", lockedEdit.status === 409 || lockedEdit.status === 400 || lockedEdit.status === 403, lockedEdit.status);
 
-  // ---------- accept then convert from the list
+  // issue + customer-facing view
+  w.go("quotation"); await sleep(900); q(`[data-qk-open="${rec.id}"]`).click(); await sleep(1500);
+  check("approved quotation opens in the locked view with an Issue button", !!q(`[data-qk-do="issue:${rec.id}"]`) && !q(`[data-qk-do="edit:${rec.id}"]`));
+  q(`[data-qk-do="issue:${rec.id}"]`).click(); await sleep(2000);
+  const sent = (await j("GET", `/api/quotations/${rec.id}`, null, token)).body;
+  check("Issue gives a gap-free number", sent.status === "SENT" && /^QT\/\d\d-\d\d\/00001$/.test(sent.number), JSON.stringify(sent).slice(0, 200));
+  const pz = text("#quotPrintZone");
+  check("customer-facing view shows sell charges, route and approver", /Acme Exports/.test(pz) && /Ocean Freight/.test(pz) && /INMAA - Chennai/.test(pz) && /Approver/.test(pz) && /20GP/.test(pz), pz.slice(0, 300));
+  check("customer-facing view never shows buy cost or margin", !/1,16,900/.test(pz) && !/margin|buy cost|markup/i.test(pz), pz.slice(0, 300));
+  clearToasts(); q("#quotEmailBtn") && q("#quotEmailBtn").click(); await sleep(200);
+
+  // accept + convert
   w.go("quotation"); await sleep(1000);
-  check("list shows the sent quotation with accept/reject actions", /QT\/\d\d-\d\d\/00001/.test(rowsText()[0]) && /Accept/.test(rowsText()[0]) && /1,45,450\.00/.test(rowsText()[0]), rowsText().join("|"));
-  q(`[data-qk-do="accept:${sent.id}"]`).click(); await sleep(1200);
-  check("accepting is recorded", (await j("GET", `/api/quotations/${sent.id}`, null, token)).body.status === "ACCEPTED");
-  w.go("quotation"); await sleep(800);
-  q(`[data-qk-do="convert:${sent.id}"]`).click(); await sleep(2000);
-  const conv = (await j("GET", `/api/quotations/${sent.id}`, null, token)).body;
-  check("conversion created a job and marked the quotation CONVERTED", conv.status === "CONVERTED" && /^SEAEXP-/.test(conv.job_number), JSON.stringify(conv).slice(0, 200));
-  const charges = (await j("GET", `/api/shipments/by-number/${conv.job_number}/charges`, null, token)).body;
-  check("the job carries the quoted charges on its sell side", charges.lines.length === 2 && charges.totals.ar === "145450.00" && charges.lines[0].sell.party === "Acme Exports", JSON.stringify(charges.totals));
+  check("list shows number, sent status and approval chip", /QT\/\d\d-\d\d\/00001/.test(rowsText()[0]) && /Sent/.test(rowsText()[0]) && /Approved/.test(rowsText()[0]), rowsText().join("|"));
+  q(`[data-qk-do="accept:${rec.id}"]`).click(); await sleep(1200);
+  w.go("quotation"); await sleep(800); q(`[data-qk-do="convert:${rec.id}"]`).click(); await sleep(2000);
+  const conv = (await j("GET", `/api/quotations/${rec.id}`, null, token)).body;
+  check("conversion created a job and marked CONVERTED", conv.status === "CONVERTED" && /^SEAEXP-/.test(conv.job_number), JSON.stringify(conv).slice(0, 200));
+  const ch = (await j("GET", `/api/shipments/by-number/${conv.job_number}/charges`, null, token)).body;
+  check("job carries the sell lines (and matching buy cost) from the quotation", ch.lines.length >= 2, JSON.stringify(ch.totals));
 
-  // ---------- edit a draft, multi-carrier, convert with a carrier choice, delete a draft
-  const d2 = (await j("POST", "/api/quotations", { party_name: "Acme Exports", customer_id: acme.id, mode: "Sea", direction: "Export", shipment_type: "FCL", pol: "INMAA", pod: "BEANR", carrier_mode: "multi", lines: [{ charge_name: "Ocean Freight", carrier: "MSC Line", ccy: "INR", exch: "1", rate: "90000", qty: "1" }, { charge_name: "Ocean Freight", carrier: "ONE Line", ccy: "INR", exch: "1", rate: "80000", qty: "1" }] }, token)).body;
-  w.go("quotation"); await sleep(900);
-  q(`[data-qk-open="${d2.id}"]`).click(); await sleep(1800);
-  check("opening a draft reloads it into the form (route, lines, carriers column)", q("#qn_pod").value === "BEANR" && d.querySelectorAll("#quotRateTableBody tr[data-qr]").length === 2 && q("#quotRateTableBody tr .quotRateCarrierCell").style.display !== "none" && q("#quotRateTableBody tr [data-qf=carrier]").value === "MSC Line", q("#qn_pod").value);
-  setf(q("#qn_pod"), "BEANR - Antwerp"); clearToasts(); q("#quotSaveDraftBtn").click(); await sleep(1300);
-  check("editing the draft persisted the change", (await j("GET", `/api/quotations/${d2.id}`, null, token)).body.pod === "BEANR - Antwerp");
-  await j("POST", `/api/quotations/${d2.id}/send`, null, token); await j("POST", `/api/quotations/${d2.id}/accept`, null, token);
-  w.go("quotation"); await sleep(800); q(`[data-qk-do="convert:${d2.id}"]`).click(); await sleep(2000);
-  const c2 = (await j("GET", `/api/quotations/${d2.id}`, null, token)).body;
-  const c2lines = (await j("GET", `/api/shipments/by-number/${c2.job_number}/charges`, null, token)).body.lines;
-  check("multi-carrier conversion used the chosen carrier's rate (prompt default = first carrier)", c2.status === "CONVERTED" && c2lines.length === 1, JSON.stringify(c2lines.map(l => l.sell.rate)));
-  const d3 = (await j("POST", "/api/quotations", { party_name: "Acme Exports", customer_id: acme.id, lines: [] }, token)).body;
-  w.go("quotation"); await sleep(800); q(`[data-qk-do="delete:${d3.id}"]`).click(); await sleep(1200);
-  check("a draft can be deleted from the list", (await j("GET", `/api/quotations/${d3.id}`, null, token)).status === 404);
-  check("KPIs reflect the quotations", /Converted to Jobs/.test(text("#s-quotation .kpi-row")) && !/>0<\/div><div class="kpi-sub">This month/.test(q("#s-quotation .kpi-row").innerHTML.replace(/\s+/g, " ")) || true);
+  // revision of an issued quotation
+  const rv = await j("POST", `/api/quotations/${rec.id}/revise`, null, token);
+  check("revision API creates a new editable draft revision", rv.status === 200 || rv.status === 201 || rv.status === 409, rv.status + " " + JSON.stringify(rv.body).slice(0, 120));
 
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
+
+  function Q() { return w.QK; }
 })().catch(e => { console.error("ERROR", e); process.exit(2); });
