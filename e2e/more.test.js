@@ -77,7 +77,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.go("charge-master"); await sleep(500);
   check("charge list has no dummy rows", !/Ocean Freight|996512/.test(rows("#s-charge-master tbody").join("|")), rows("#s-charge-master tbody").join("|"));
   d.getElementById("newChargeBtn").click(); await sleep(800);
-  check("charge modal warns when no HSN master exists", /No HSN\/SAC codes exist yet/.test(d.getElementById("modalBody").textContent) && d.getElementById("modalOvl").classList.contains("on"));
+  check("charge modal warns when no HSN master exists", /No HSN\/SAC codes exist in the master yet/.test(d.getElementById("modalBody").textContent) && d.getElementById("modalOvl").classList.contains("on"));
   w.closeModal(); await sleep(700);
   await j("POST", "/api/masters/hsn", { code: "996512", name: "Water transport services of goods", data: { gst_rate: "18" } }, token);
   d.getElementById("newChargeBtn").click(); await sleep(800);
