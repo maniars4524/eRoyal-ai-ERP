@@ -217,6 +217,10 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
         db.add(job)
         db.flush()
         b.job_number = job.job_number
+        b.status = "CONFIRMED"
+        from . import job_lifecycle as jl
+
+        jl.on_job_created(db, job, user, "booking confirmation", {"booking": b.number})
     b.number = next_number(db, org_id, "booking", "BKG", b.booking_date)
     b.status = "CONFIRMED"
     b.confirmed_at = datetime.now(timezone.utc)

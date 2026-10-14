@@ -458,6 +458,9 @@ def convert_to_job(quote_id: int, carrier: str | None = Query(default=None, max_
                    pol=quote.pol, pod=quote.pod, customer_id=quote.customer_id, status="Open", created_by=user.id)
     db.add(job)
     db.flush()
+    from . import job_lifecycle as jl
+
+    jl.on_job_created(db, job, user, "quotation conversion", {"quotation": quote.number})
     rows: list[JobCharge] = []
     for l in sell:
         detail = "; ".join(f"{b['type']} x{b['qty']} @ {b['rate']}" for b in (l.container_breakup or []))

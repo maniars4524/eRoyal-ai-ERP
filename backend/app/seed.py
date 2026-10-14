@@ -41,6 +41,12 @@ PERMISSIONS = [
     ("credit.request", "Apply for credit and request grace, extension or override", "credit", "request"),
     ("credit.approve", "Approve credit facilities and credit exceptions (management)", "credit", "approve"),
     ("credit.override", "Approve soft-block overrides", "credit", "override"),
+    ("job.view_history", "View the job activity history and stage/closure history", "job", "view_history"),
+    ("job.export_history", "Export the job activity history", "job", "export_history"),
+    ("job.change_stage", "Manually change the job stage", "job", "change_stage"),
+    ("job.close", "Close a job (manual closure)", "job", "close"),
+    ("job.reopen", "Reopen a closed job", "job", "reopen"),
+    ("job.exceptional_close", "Approve an exceptional job closure", "job", "exceptional_close"),
     ("booking.read", "View bookings", "booking", "read"),
     ("booking.create", "Create/edit draft bookings", "booking", "create"),
     ("booking.confirm", "Confirm and cancel bookings", "booking", "confirm"),
@@ -112,7 +118,7 @@ def seed_demo_portal() -> None:
         if not role:
             role = Role(name="DEMO_USER", organization_id=org.id, description="Demo evaluator (no destructive actions)", status="ACTIVE")
             db.add(role)
-        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "payment.read", "payment.create", "quote.read", "quote.create", "quote.send", "quote.approve", "quote.view_cost", "quote.rate_override", "booking.read", "booking.create", "booking.confirm", "credit.read", "credit.request", "credit.approve", "credit.override", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
+        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "payment.read", "payment.create", "quote.read", "quote.create", "quote.send", "quote.approve", "quote.view_cost", "quote.rate_override", "booking.read", "booking.create", "booking.confirm", "credit.read", "credit.request", "credit.approve", "credit.override", "job.view_history", "job.export_history", "job.change_stage", "job.close", "job.reopen", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
         email = os.getenv("DEMO_PORTAL_EMAIL", "demo@esway.local")
         username = os.getenv("DEMO_PORTAL_USERNAME", "demo")
         if not db.scalar(select(User).where((User.email == email) | (User.username == username))):

@@ -31,6 +31,7 @@ MASTER_TYPES = {
     "employee": "Employee",
     "route": "Route",
     "account": "Ledger Account",
+    "setting": "Company Setting",
 }
 from .charge_catalogue import CATALOGUE, HEADINGS, validate_activation
 

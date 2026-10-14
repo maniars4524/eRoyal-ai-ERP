@@ -156,6 +156,16 @@ class Shipment(Base):
     eta: Mapped[date | None] = mapped_column(Date)
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
     party_branch_id: Mapped[int | None] = mapped_column(ForeignKey("org_branches.id", ondelete="SET NULL"))
+    job_stage: Mapped[str] = mapped_column(String(40), default="Job Created", server_default="Job Created", index=True)
+    stage_source: Mapped[str] = mapped_column(String(10), default="AUTO", server_default="AUTO")
+    stage_reason: Mapped[str | None] = mapped_column(Text)
+    stage_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    closure_status: Mapped[str] = mapped_column(String(10), default="OPEN", server_default="OPEN", index=True)
+    closure_cycle: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_closed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    reopen_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     consignee: Mapped[str | None] = mapped_column(String(160))
     packages: Mapped[int | None] = mapped_column(Integer)
     package_type: Mapped[str | None] = mapped_column(String(40))
@@ -578,4 +588,93 @@ class CreditEvent(Base):
     action: Mapped[str] = mapped_column(String(40))
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class JobEvent(Base):
+    """Append-only job activity log (the database refuses UPDATEs). One row per meaningful business event."""
+    __tablename__ = "job_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int | None] = mapped_column(ForeignKey("shipments.id", ondelete="SET NULL"), index=True)
+    job_number: Mapped[str] = mapped_column(String(40))
+    event_type: Mapped[str] = mapped_column(String(50))
+    category: Mapped[str] = mapped_column(String(20))
+    description: Mapped[str] = mapped_column(Text, default="")
+    previous_value: Mapped[str | None] = mapped_column(Text)
+    new_value: Mapped[str | None] = mapped_column(Text)
+    actor_type: Mapped[str] = mapped_column(String(12), default="USER")
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    actor_name: Mapped[str | None] = mapped_column(String(160))
+    source: Mapped[str] = mapped_column(String(20), default="API")
+    reason: Mapped[str | None] = mapped_column(Text)
+    related_type: Mapped[str | None] = mapped_column(String(30))
+    related_id: Mapped[str | None] = mapped_column(String(60))
+    correlation_id: Mapped[str | None] = mapped_column(String(60))
+    approval_ref: Mapped[str | None] = mapped_column(String(60))
+    result: Mapped[str] = mapped_column(String(10), default="SUCCESS")
+    idempotency_key: Mapped[str | None] = mapped_column(String(80))
+    detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class JobStageHistory(Base):
+    __tablename__ = "job_stage_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int | None] = mapped_column(ForeignKey("shipments.id", ondelete="SET NULL"), index=True)
+    job_number: Mapped[str] = mapped_column(String(40))
+    previous_stage: Mapped[str | None] = mapped_column(String(40))
+    new_stage: Mapped[str] = mapped_column(String(40))
+    source: Mapped[str] = mapped_column(String(10))
+    trigger: Mapped[str | None] = mapped_column(String(200))
+    reason: Mapped[str | None] = mapped_column(Text)
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    actor_name: Mapped[str | None] = mapped_column(String(160))
+    related_ref: Mapped[str | None] = mapped_column(String(80))
+    approval_ref: Mapped[str | None] = mapped_column(String(60))
+    event_id: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class JobClosure(Base):
+    """One row per successful closure / reopening; previous rows are never changed."""
+    __tablename__ = "job_closures"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int | None] = mapped_column(ForeignKey("shipments.id", ondelete="SET NULL"), index=True)
+    job_number: Mapped[str] = mapped_column(String(40))
+    cycle_no: Mapped[int] = mapped_column(Integer)
+    action: Mapped[str] = mapped_column(String(20))
+    previous_status: Mapped[str] = mapped_column(String(10))
+    new_status: Mapped[str] = mapped_column(String(10))
+    reason: Mapped[str | None] = mapped_column(Text)
+    remarks: Mapped[str | None] = mapped_column(Text)
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    actor_name: Mapped[str | None] = mapped_column(String(160))
+    approval_ref: Mapped[str | None] = mapped_column(String(60))
+    checklist: Mapped[list] = mapped_column(JSON, default=list)
+    final_buy = mapped_column(Numeric(16, 2))
+    final_sell = mapped_column(Numeric(16, 2))
+    final_margin = mapped_column(Numeric(16, 2))
+    previous_closure_id: Mapped[int | None] = mapped_column(Integer)
+    event_id: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class JobMilestone(Base):
+    """An ACTUAL operational milestone confirmed by a user (planned dates never count)."""
+    __tablename__ = "job_milestones"
+    __table_args__ = (UniqueConstraint("shipment_id", "code", name="uq_job_milestone"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(30))
+    actual_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    remarks: Mapped[str | None] = mapped_column(Text)
+    confirmed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

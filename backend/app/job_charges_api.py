@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from .auth import permission_required
 from .auth_api import record_audit
 from .db import get_db
+from . import job_lifecycle as jl
 from .models import JobCharge, Shipment, User
 
 router = APIRouter(prefix="/api/shipments", tags=["job-charges"])
@@ -104,6 +105,8 @@ def get_charges(job_number: str, user: User = Depends(permission_required("shipm
 def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """Replace all charge lines of a job atomically; the server recalculates every amount."""
     job = _job(db, user, job_number)
+    jl.assert_job_editable(job, "its charges")
+    before = jl.money_totals(db, job)
     for line in payload.lines:
         for side in (line.buy, line.sell):
             if side.ccy != "INR" and side.exch <= 0:
@@ -122,6 +125,15 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
     result = _response(rows)
     record_audit(db, "JOB_CHARGES_SAVED", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "lines": len(rows), **{k: result["totals"][k] for k in ("ar", "ap", "gross_profit")}})
     job.revenue = Decimal(result["totals"]["ar"])
+    after = jl.money_totals(db, job)
+    corr = __import__("uuid").uuid4().hex[:16]
+    if (before["sell"], before["sell_lines"]) != (after["sell"], after["sell_lines"]):
+        jl.log_event(db, job, user, "SELL_COST_CHANGED", "SELLCOST", f"Sell cost changed: {before['sell']} to {after['sell']} ({after['sell_lines']} charge lines)", previous=before["sell"], new=after["sell"], correlation_id=corr, related_type="JOB_CHARGES", detail={"lines": after["sell_lines"]})
+    if (before["buy"], before["buy_lines"]) != (after["buy"], after["buy_lines"]):
+        jl.log_event(db, job, user, "BUY_COST_CHANGED", "BUYCOST", f"Buy cost changed: {before['buy']} to {after['buy']} ({after['buy_lines']} charge lines)", previous=before["buy"], new=after["buy"], correlation_id=corr, related_type="JOB_CHARGES", detail={"lines": after["buy_lines"]})
+    if before["margin"] != after["margin"]:
+        jl.log_event(db, job, user, "JOB_MARGIN_CHANGED", "FINANCE", f"Job margin recalculated: {before['margin']} to {after['margin']}", previous=before["margin"], new=after["margin"], correlation_id=corr)
+    jl.recompute_stage(db, job, "CHARGES_UPDATED", user, corr)
     db.commit()
     saved = db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id).order_by(JobCharge.line_no))
     return _response(list(saved))

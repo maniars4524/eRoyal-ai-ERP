@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from decimal import Decimal
+from . import job_lifecycle as jl
 from .credit_control import enforce as credit_enforce
 from .auth import permission_required
 from .auth_api import record_audit
@@ -56,6 +57,7 @@ def create_shipment(payload: ShipmentCreate, user: User = Depends(permission_req
     db.add(shipment)
     try:
         db.flush()
+        jl.on_job_created(db, shipment, user, "manual entry")
         record_audit(db, "SHIPMENT_CREATED", "SHIPMENT", user, organization_id, "Shipment", str(shipment.id), {"job_number": job_number})
         db.commit()
     except IntegrityError:
@@ -80,10 +82,17 @@ def update_shipment(shipment_id: int, payload: ShipmentUpdate, user: User = Depe
     shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id))
     if not shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
+    jl.assert_job_editable(shipment, "job details")
     changes = payload.model_dump(exclude_unset=True)
+    old = {k: getattr(shipment, k) for k in changes}
     for key, value in changes.items():
         setattr(shipment, key, value)
-    record_audit(db, "SHIPMENT_UPDATED", "SHIPMENT", user, organization_id, "Shipment", str(shipment.id), changes)
+    corr = __import__("uuid").uuid4().hex[:16]
+    for k, v in changes.items():
+        if str(old[k] if old[k] is not None else "") != str(v if v is not None else ""):
+            jl.log_event(db, shipment, user, "JOB_HEADER_CHANGED", "HEADER", f"{k.replace('_', ' ').capitalize()} changed", previous=old[k], new=v, correlation_id=corr, related_type="FIELD", related_id=k)
+    jl.recompute_stage(db, shipment, "JOB_UPDATED", user, corr)
+    record_audit(db, "SHIPMENT_UPDATED", "SHIPMENT", user, organization_id, "Shipment", str(shipment.id), payload.model_dump(exclude_unset=True, mode="json"))
     db.commit()
     db.refresh(shipment)
     return shipment
@@ -95,6 +104,9 @@ def delete_shipment(shipment_id: int, user: User = Depends(permission_required("
     shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id))
     if not shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
+    if shipment.closure_cycle > 0 or shipment.closure_status != "OPEN":
+        raise HTTPException(status_code=409, detail="A job that has been closed (or reopened) is part of the permanent record and cannot be deleted")
+    jl.log_event(db, shipment, user, "JOB_DELETED", "JOB", f"Job {shipment.job_number} deleted", previous=shipment.job_number)
     record_audit(db, "SHIPMENT_DELETED", "SHIPMENT", user, organization_id, "Shipment", str(shipment.id), {"job_number": shipment.job_number})
     db.delete(shipment)
     db.commit()

@@ -12,6 +12,7 @@ from .auth import permission_required
 from .auth_api import record_audit
 from .billing import CREDIT_TARGET, DOC_TYPES, calc_line, doc_side, next_number, outstanding, payment_status, q2
 from .db import get_db
+from . import job_lifecycle as jl
 from .models import Customer, Document, DocumentLine, JobCharge, Shipment, User, OrgBranch
 
 router = APIRouter(prefix="/api/documents", tags=["billing-documents"])
@@ -146,6 +147,8 @@ def _job(db: Session, org_id: int, job_number: str | None) -> Shipment | None:
 
 def _new_document(db: Session, user: User, org_id: int, payload: DocumentIn) -> Document:
     job = _job(db, org_id, payload.job_number)
+    if job is not None:
+        jl.assert_job_editable(job, "its invoices")
     if payload.customer_id and not db.scalar(select(Customer.id).where(Customer.id == payload.customer_id, Customer.organization_id == org_id)):
         raise HTTPException(status_code=404, detail="Customer not found")
     _check_reference(db, org_id, payload.doc_type, payload.ref_document_id)
@@ -156,6 +159,7 @@ def _new_document(db: Session, user: User, org_id: int, payload: DocumentIn) -> 
     _apply_lines(doc, payload.lines)
     db.add(doc)
     db.flush()
+    jl.doc_hook(db, doc, user, "DRAFT_CREATED")
     return doc
 
 
@@ -279,6 +283,7 @@ def post_document(doc_id: int, user: User = Depends(permission_required("billing
     doc = _load(db, org_id, doc_id, lock=True)
     if doc.status != "DRAFT":
         raise HTTPException(status_code=409, detail="Only draft documents can be posted")
+    jl.guard_document_job(db, doc.shipment_id)
     if not doc.lines or doc.grand_total <= 0:
         raise HTTPException(status_code=422, detail="A document needs at least one line with a positive total before posting")
     if not doc.party_name:
@@ -308,6 +313,7 @@ def post_document(doc_id: int, user: User = Depends(permission_required("billing
     doc.status = "POSTED"
     doc.posted_at = datetime.now(timezone.utc)
     doc.posted_by = user.id
+    jl.doc_hook(db, doc, user, "POSTED")
     record_audit(db, "DOCUMENT_POSTED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number, "total": str(doc.grand_total)})
     db.commit()
     return _out(_load(db, org_id, doc_id), True)
@@ -319,6 +325,7 @@ def cancel_document(doc_id: int, user: User = Depends(permission_required("billi
     doc = _load(db, org_id, doc_id, lock=True)
     if doc.status == "CANCELLED":
         raise HTTPException(status_code=409, detail="Document is already cancelled")
+    jl.guard_document_job(db, doc.shipment_id)
     if doc.status == "POSTED":
         if doc.paid_amount > 0 or doc.credited_amount > 0:
             raise HTTPException(status_code=409, detail="This document has payments or credits against it; cancel those first or issue a credit note")
@@ -330,6 +337,7 @@ def cancel_document(doc_id: int, user: User = Depends(permission_required("billi
             ref.credited_amount = max(Decimal(0), ref.credited_amount - doc.grand_total)
     doc.status = "CANCELLED"
     doc.cancelled_at = datetime.now(timezone.utc)
+    jl.doc_hook(db, doc, user, "CANCELLED")
     record_audit(db, "DOCUMENT_CANCELLED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number})
     db.commit()
     return _out(_load(db, org_id, doc_id), True)
