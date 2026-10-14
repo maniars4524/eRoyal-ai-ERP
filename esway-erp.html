@@ -7302,11 +7302,16 @@ document.addEventListener("click", e=>{
   const item = e.target.closest(".hdr-menu-item");
   if(!item || !item.textContent.toLowerCase().includes("sign out")) return;
   const token = sessionStorage.getItem("esway_access_token");
-  if(token) fetch("/api/auth/logout", {method:"POST", headers:{Authorization:"Bearer "+token}}).catch(()=>{});
+  if(token) fetch("/api/auth/logout", {method:"POST", keepalive:true, headers:{Authorization:"Bearer "+token}}).catch(()=>{});
   sessionStorage.removeItem("esway_access_token");
   try{ localStorage.removeItem("esway_persistent_token"); }catch(e){ /* localStorage unavailable — ignore */ }
   $("#userPop").classList.remove("on");
+  /* A restored "Remember me" session leaves a style rule that keeps the login screen hidden: remove it so the screen can show. */
+  const preHide = document.getElementById("loginOverlayPreHide"); if(preHide) preHide.remove();
+  const loader = document.getElementById("sessionLoader"); if(loader) loader.remove();
   if($("#loginOverlay")){ $("#loginOverlay").style.display="flex"; $("#loginOverlay").classList.remove("hidden"); }
+  /* Reload the portal's login page so nothing from the previous user/company (cached lists, open forms) survives. */
+  setTimeout(()=>{ location.replace("/" + (window.ESWAY_PORTAL || "erp") + "/login"); }, 200);
 });
 
 /* ---------------- ROLE SWITCH ---------------- */
@@ -14153,6 +14158,7 @@ if(document.readyState !== "loading") initChatWidget();
         sessionStorage.setItem("esway_access_token", persisted);
         applySession(user, {silent:true});
         removeSessionLoader();
+        const preHide = document.getElementById("loginOverlayPreHide"); if(preHide) preHide.remove();
       })
       .catch(error=>{
         try{ localStorage.removeItem(PERSIST_TOKEN_KEY); }catch(e){ /* ignore */ }

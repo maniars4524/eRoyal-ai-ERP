@@ -19,6 +19,8 @@ if os.getenv("DEMO_ONLY", "").strip().lower() in ("1", "true", "yes"):
     _public.add("demo")
 # Portals reachable on a public server (e.g. "demo,erp"). Empty = a normal server where every portal is available.
 PUBLIC_PORTALS = _public
+# Quotation approval: the person who prepared a quotation may not approve it (not enforced for demo companies).
+QUOTE_SOD = os.getenv("QUOTE_SOD", "true").strip().lower() not in ("0", "false", "no")
 DEMO_ONLY = PUBLIC_PORTALS == {"demo"}
 IS_PRODUCTION = APP_ENV == "production"
 

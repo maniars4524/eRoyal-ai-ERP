@@ -354,6 +354,15 @@ class Quotation(Base):
     header: Mapped[dict] = mapped_column(JSON, default=dict)
     job_number: Mapped[str | None] = mapped_column(String(40))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approval_status: Mapped[str] = mapped_column(String(12), default="DRAFT")
+    prepared_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    prepared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_remarks: Mapped[str | None] = mapped_column(Text)
+    root_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    revision_no: Mapped[int] = mapped_column(Integer, default=0)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -376,8 +385,30 @@ class QuotationLine(Base):
     rate = mapped_column(Numeric(16, 4), default=0)
     qty = mapped_column(Numeric(14, 3), default=1)
     tax_pct = mapped_column(Numeric(6, 2), default=0)
-    amount = mapped_column(Numeric(16, 2), default=0)
+    amount = mapped_column(Numeric(16, 2), default=0)  # converted to base currency (INR), before GST
+    side: Mapped[str] = mapped_column(String(4), default="SELL")
+    taxable: Mapped[bool] = mapped_column(default=False)
+    container_type: Mapped[str | None] = mapped_column(String(40))
+    container_breakup: Mapped[list | None] = mapped_column(JSON)
+    remarks: Mapped[str] = mapped_column(String(500), default="")
+    amount_fcy = mapped_column(Numeric(16, 2), default=0)  # in the line's own currency
+    gst_amount = mapped_column(Numeric(16, 2), default=0)  # base currency
+    total_inr = mapped_column(Numeric(16, 2), default=0)  # amount + GST, base currency
     quotation: Mapped[Quotation] = relationship(back_populates="lines")
+
+
+class QuotationEvent(Base):
+    """Immutable audit trail of quotation workflow steps."""
+    __tablename__ = "quotation_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    quotation_id: Mapped[int] = mapped_column(ForeignKey("quotations.id", ondelete="CASCADE"), index=True)
+    action: Mapped[str] = mapped_column(String(30))
+    from_state: Mapped[str | None] = mapped_column(String(30))
+    to_state: Mapped[str | None] = mapped_column(String(30))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    remarks: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class Booking(Base):

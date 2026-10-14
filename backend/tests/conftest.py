@@ -103,3 +103,22 @@ def admin(world):
     db.close()
 
 
+
+
+@pytest.fixture(scope="module")
+def admin2(world):
+    """A second ERP_ADMIN in the same tenant (a different person, e.g. the quotation approver)."""
+    db = SessionLocal()
+    org = db.get(Organization, world["erp_org"])
+    tag = uuid.uuid4().hex[:6]
+    user = User(email=f"approver-{tag}@users.test", username=f"apr{tag}", password_hash=hash_password("Portal-Test-Passw0rd!"), first_name="Approver", organization_id=org.id, status="ACTIVE")
+    user.roles.append(ensure_role(db, org.id, "ERP_ADMIN"))
+    db.add(user)
+    db.commit()
+    username, uid, license_number = user.username, user.id, org.license_number
+    db.close()
+    yield {"username": username, "license": license_number, "id": uid}
+    db = SessionLocal()
+    db.execute(delete(AuditLog).where(AuditLog.user_id == uid))
+    db.commit()
+    db.close()

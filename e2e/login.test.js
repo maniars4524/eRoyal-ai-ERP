@@ -84,7 +84,7 @@ const login = async (identifier, password, portal, license) => {
   const open = async (path, token) => {
     const dom = await JSDOM.fromURL(BASE + path, { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
       beforeParse(w) { w.fetch = (u, o) => fetch(new URL(u, BASE).href, o); w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {}; if (token) w.localStorage.setItem("esway_persistent_token", token); } });
-    await sleep(4000); return dom.window;
+    await sleep(7000); return dom.window;
   };
   let w2 = await open("/developer/login", devTok);
   const hidden = w => w.document.getElementById("loginOverlay").classList.contains("hidden") || w.document.getElementById("loginOverlay").style.display === "none";
@@ -93,6 +93,27 @@ const login = async (identifier, password, portal, license) => {
   check("a developer session is NOT accepted on the ERP portal (login shown with a message)", !hidden(w2) && /different portal/i.test(w2.document.getElementById("loginErr").textContent), "hidden=" + hidden(w2) + " msg=" + w2.document.getElementById("loginErr").textContent); w2.close();
   w2 = await open("/erp/login", "not-a-real-token");
   check("an invalid stored token falls back to the login screen", !hidden(w2)); w2.close();
+
+  console.log("== Sign out after a restored (Remember me) session ==");
+  const { VirtualConsole } = require("jsdom");
+  for (const [portal, a] of Object.entries(ACCOUNTS)) {
+    const tok = (await login(a.user, a.pass, portal, a.license)).body.access_token;
+    const nav = [];
+    const vc = new VirtualConsole(); vc.on("jsdomError", e => { if (/navigation/i.test(String(e.message))) nav.push(String(e.message)); });
+    const dom = await JSDOM.fromURL(BASE + a.path.replace("/login", ""), { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true, virtualConsole: vc,
+      beforeParse(w) { w.fetch = (u, o) => fetch(new URL(u, BASE).href, o); w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.localStorage.setItem("esway_persistent_token", tok); } });
+    const w3 = dom.window, d3 = w3.document;
+    await sleep(7000);
+    const ov = d3.getElementById("loginOverlay");
+    check(`${portal}: restored session shows the app (login hidden)`, ov.classList.contains("hidden") || ov.style.display === "none");
+    Array.from(d3.querySelectorAll(".hdr-menu-item")).find(x => /sign out/i.test(x.textContent)).click();
+    await sleep(600);
+    const stillHidden = w3.getComputedStyle(ov).display;
+    check(`${portal}: sign out after a restored session brings the login screen back`, !ov.classList.contains("hidden") && ov.style.display === "flex" && !d3.getElementById("loginOverlayPreHide") && stillHidden !== "none", "display=" + stillHidden + " preHide=" + !!d3.getElementById("loginOverlayPreHide"));
+    check(`${portal}: sign out clears the saved session`, !w3.sessionStorage.getItem("esway_access_token") && !w3.localStorage.getItem("esway_persistent_token"));
+    check(`${portal}: sign out reloads the portal login page (no data from the previous user survives)`, nav.length > 0, "no navigation attempted");
+    w3.close();
+  }
 
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL LOGIN CHECKS PASSED");
   process.exit(failures ? 1 : 0);

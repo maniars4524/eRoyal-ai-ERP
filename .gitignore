@@ -27,3 +27,4 @@ tunnel.log
 
 logs/
 PUBLIC_URL.txt
+backups/
