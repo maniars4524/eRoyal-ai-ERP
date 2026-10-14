@@ -6664,7 +6664,7 @@ function go(screen, opts){
   if(screen==="quotation-new" && typeof pendingQuotEnquiryId!=="undefined" && pendingQuotEnquiryId){
     const enqId = pendingQuotEnquiryId; pendingQuotEnquiryId = null;
     const enq = (typeof CRM_ENQUIRIES!=="undefined" ? CRM_ENQUIRIES : []).find(x=>x.id===enqId);
-    if(enq && window.applyEnquiryToQuotWiz) setTimeout(()=>applyEnquiryToQuotWiz(enq), 60);
+    if(enq && window.applyEnquiryToQuotWiz && window.QK) window.QK.afterOpen = ()=>{ applyEnquiryToQuotWiz(enq); window.QK.prefillFromEnquiry(enq); };
   }
   if(screen==="import-air-manifest" && window.renderAirManifest) renderAirManifest();
   if(screen==="import-sea-manifest" && window.renderSeaManifest) renderSeaManifest();
@@ -9672,19 +9672,15 @@ function crmNotify(title, sub, icon, color){
 }
 
 /* ---- in-memory data model (small seed so the workflow is visible immediately) ---- */
-const CRM_LEADS = [
-  {id:"LD-001", company:"Zenith Pharma Exports", contact:"Ramesh Iyer", mobile:"+91 98400 12233", email:"ramesh@zenithpharma.in",
-   source:"Website", priority:"High", assignedTo:"Sales - Priya", status:"New", notes:"Interested in air export of pharma cargo to Germany.",
-   enquiryId:null, timeline:[{ts:"—", text:"Lead created from website enquiry form"}]},
-  {id:"LD-002", company:"Coastal Steel Traders", contact:"Furqan Sheikh", mobile:"+91 90040 55219", email:"furqan@coastalsteel.com",
-   source:"Referral", priority:"Medium", assignedTo:"Sales - Arvind", status:"Follow-up", notes:"Regular FCL steel coil exporter, wants better rates.",
-   enquiryId:null, timeline:[{ts:"—", text:"Lead created via referral from an existing customer"}]},
-];
+const CRM_LEADS = [];
 const CRM_ENQUIRIES = [];
 const CRM_OPPORTUNITIES = [];
 const CRM_BOOKINGS = [];   // lightweight CRM-side booking record — does not touch the core Booking module
 const CRM_CUSTOMERS = [];  // auto-created customers, tracked here only so we never duplicate one
 const CRM_FOLLOWUPS = [];  // engagement: calls / meetings / visits / tasks
+window.CRM_STORE = {lead:CRM_LEADS, enquiry:CRM_ENQUIRIES, opportunity:CRM_OPPORTUNITIES, followup:CRM_FOLLOWUPS, booking:CRM_BOOKINGS};
+window.renderCrmLead = ()=>renderCrmLead(); window.renderCrmEnquiry = ()=>renderCrmEnquiry(); window.renderCrmOpportunity = ()=>renderCrmOpportunity(); window.renderCrmEngagement = ()=>renderCrmEngagement(); window.crmRenderEnquiryForm = p=>crmRenderEnquiryForm(p);
+window.crmBumpSeq = n=>{ if(n >= crmSeq) crmSeq = n + 1; };
 
 /* ---- one centralized shipment master record — every selected service
    (Freight/CHA/Transport/Warehouse) references this, nothing duplicates it ---- */
@@ -9814,7 +9810,7 @@ function crmRenderLeadForm(){
       <div class="wiz-step-title"><svg class="ic" data-icon="user"></svg>New Lead</div>
       <div class="wiz-step-sub">Basic qualification details — full shipment details are captured at the Enquiry stage</div>
       <div class="fr">
-        <div class="fg"><label class="fl">Company Name</label><input class="fc" id="crmLd_company" placeholder="Company name"></div>
+        <div class="fg"><label class="fl">Company Name</label><input class="fc" id="crmLd_company" placeholder="Company name" list="crmCustList" autocomplete="off"></div>
         <div class="fg"><label class="fl">Contact Person</label><input class="fc" id="crmLd_contact" placeholder="Contact person"></div>
         <div class="fg"><label class="fl">Mobile</label><input class="fc" id="crmLd_mobile" placeholder="+91 ..."></div>
         <div class="fg"><label class="fl">Email</label><input class="fc" id="crmLd_email" placeholder="name@company.com"></div>
@@ -9822,7 +9818,7 @@ function crmRenderLeadForm(){
       <div class="fr">
         <div class="fg"><label class="fl">Lead Source</label><select class="fc" id="crmLd_source"><option>Website</option><option>Referral</option><option>Cold Call</option><option>Exhibition</option><option>Email Campaign</option><option>Existing Customer</option></select></div>
         <div class="fg"><label class="fl">Priority</label><select class="fc" id="crmLd_priority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
-        <div class="fg"><label class="fl">Assigned Sales Executive</label><select class="fc" id="crmLd_assigned"><option>Sales - Priya</option><option>Sales - Arvind</option><option>Sales - Divya</option></select></div>
+        <div class="fg"><label class="fl">Assigned Sales Executive</label><select class="fc" id="crmLd_assigned">${(window.CRM_USERS||[]).map(u=>`<option>${esc(u)}</option>`).join("") || "<option value=\"\">— No users —</option>"}</select></div>
         <div class="fg" style="grid-column:span 2"><label class="fl">Follow-up Notes</label><input class="fc" id="crmLd_notes" placeholder="Notes / next follow-up"></div>
       </div>
       <div class="wiz-nav">
@@ -9839,7 +9835,8 @@ function crmRenderLeadForm(){
       id: crmNextId("LD"), company, contact: $("#crmLd_contact").value.trim(),
       mobile: $("#crmLd_mobile").value.trim(), email: $("#crmLd_email").value.trim(),
       source: $("#crmLd_source").value, priority: $("#crmLd_priority").value, assignedTo: $("#crmLd_assigned").value,
-      status:"New", notes: $("#crmLd_notes").value.trim(), enquiryId:null, timeline:[]
+      status:"New", notes: $("#crmLd_notes").value.trim(), enquiryId:null, timeline:[],
+      customerId: (window.crmFindCustomer && (crmFindCustomer(company)||{}).id) || null
     };
     crmLog(lead, "Lead created and assigned to "+lead.assignedTo);
     CRM_LEADS.unshift(lead);
@@ -9932,7 +9929,7 @@ function crmRenderEnquiryForm(prefill){
 
       <div class="wiz-row-label">Customer Information</div>
       <div class="fr">
-        <div class="fg"><label class="fl">Company Name</label><input class="fc" id="crmEq_company" value="${esc(p.company||'')}"></div>
+        <div class="fg"><label class="fl">Customer <span class="r">*</span></label><input class="fc" id="crmEq_company" value="${esc(p.company||'')}" list="crmCustList" autocomplete="off" placeholder="Select from Customer Master"></div>
         <div class="fg"><label class="fl">Contact Person</label><input class="fc" id="crmEq_contact" value="${esc(p.contact||'')}"></div>
         <div class="fg"><label class="fl">Mobile</label><input class="fc" id="crmEq_mobile" value="${esc(p.mobile||'')}"></div>
         <div class="fg"><label class="fl">Email</label><input class="fc" id="crmEq_email" value="${esc(p.email||'')}"></div>
@@ -10001,16 +9998,18 @@ function crmRenderEnquiryForm(prefill){
   $("#crmEq_cancel").addEventListener("click", ()=>{ crmEnquiryFormOpen=false; renderCrmEnquiry(); });
   $("#crmEq_save").addEventListener("click", ()=>{
     const company = $("#crmEq_company").value.trim();
-    if(!company){ toast("Company name required","Please enter the company name","error"); return; }
+    if(!company){ toast("Customer required","Select the customer from the Customer Master","error"); return; }
+    const masterCust = window.crmFindCustomer ? crmFindCustomer(company) : null;
+    if(!masterCust && !p.leadId){ toast("Customer not in the Customer Master","Pick an existing customer, or add it under Organizations first","error"); return; }
     const shipmentType = $("#crmEq_shptype").value;
     const department = CRM_DEPARTMENTS[shipmentType] || "Operations";
     const templateName = $("#crmEq_template").value;
     const tpl = CRM_SERVICE_TEMPLATES[templateName];
     const enquiry = {
-      id: crmNextId("ENQ"), leadId: p.leadId||null, opportunityId:null, templateName: templateName||null,
+      id: crmNextId("ENQ"), customerId: masterCust ? masterCust.id : null, leadId: p.leadId||null, opportunityId:null, templateName: templateName||null,
       services: tpl ? {...tpl.services} : {Freight:false, CHA:false, Transport:false, Warehouse:false},
       requiredDocuments: tpl ? tpl.documents.slice() : [],
-      company, contact:$("#crmEq_contact").value.trim(), mobile:$("#crmEq_mobile").value.trim(), email:$("#crmEq_email").value.trim(),
+      company: masterCust ? masterCust.name : company, contact:$("#crmEq_contact").value.trim(), mobile:$("#crmEq_mobile").value.trim(), email:$("#crmEq_email").value.trim(),
       country:$("#crmEq_country").value.trim(), city:$("#crmEq_city").value.trim(), address:$("#crmEq_address").value.trim(),
       shipmentType, department, modeOfTransport:$("#crmEq_mode").value, incoterm:$("#crmEq_incoterm").value,
       commodity:$("#crmEq_commodity").value.trim(), cargoDesc:$("#crmEq_cargodesc").value.trim(),
@@ -15529,9 +15528,15 @@ if(document.readyState !== "loading") initChatWidget();
       const c = document.getElementById("quotCarrierRows"); if(c) c.innerHTML = "";
       const t = document.getElementById("quotNewTitle"); if(t) t.textContent = "New Quotation";
       setActions();
-      if(Q.pendingPrefill){ Object.assign(Q.head, Q.pendingPrefill.head||{}); Q.pendingPrefill = null; }
+      if(Q.afterOpen){ const f = Q.afterOpen; Q.afterOpen = null; f(); }
     }
   }
+  Q.prefillFromEnquiry = function(enq){
+    const h = Q.head, cust = enq.customerId ? Q.m.customers.find(c=>String(c.id) === String(enq.customerId)) : Q.m.customers.find(c=>c.name.toLowerCase() === String(enq.company||"").toLowerCase());
+    if(cust){ h.customer_id = String(cust.id); h.party_name = cust.name; }
+    const port = v=> { const t = String(v||"").trim(); const m = Q.m.ports.find(p=>t && (p.code === t.toUpperCase() || p.name.toLowerCase() === t.toLowerCase())); return m ? m.code+" - "+m.name : t; };
+    Object.assign(h, {pol:port(enq.pol || enq.origin), pod:port(enq.pod || enq.destination), commodity:enq.commodity||"", packages:enq.packages||"", gross_weight:enq.grossWeight||"", volume:enq.volumeCBM||"", incoterm:INCOTERMS.includes(enq.incoterm) ? enq.incoterm : "", payment_terms:enq.paymentTerms||"", reference_no:enq.id||"", currency:ccyList().includes(enq.currency) ? enq.currency : h.currency});
+  };
   Q.onWizardDone = function(){
     const w = wiz(); Q.head.currency = Q.head.currency || "USD";
     Q.sell.concat(Q.buy).forEach(l=>{ if(!uomList().includes(l.basis)) l.basis = uomList()[0]; });
@@ -15743,6 +15748,102 @@ if(document.readyState !== "loading") initChatWidget();
   window.addEventListener("beforeunload", e=>{ if(Q.dirty && document.getElementById("s-quotation-new").classList.contains("on")){ e.preventDefault(); e.returnValue = ""; } });
 })();
 
+</script>
+<script>
+/* ============================================================
+   CRM KIT: persists the CRM working records (leads, enquiries, opportunities, follow-ups, CRM bookings) in PostgreSQL
+   (/api/crm/*). The CRM screens keep working on their in-memory lists; this kit loads them when a CRM screen opens and
+   saves every change in the background. Customers come from the Customer Master.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say} = U;
+  const KINDS = ["lead","enquiry","opportunity","followup","booking"];
+  const SCREENS = {"crm-lead":"renderCrmLead", "crm-enquiry":"renderCrmEnquiry", "crm-opportunity":"renderCrmOpportunity", "crm-engagement":"renderCrmEngagement"};
+  const ver = {}, hash = {}; let busy = false, loaded = false, timer = null;
+  const store = ()=> window.CRM_STORE || {};
+  const key = (k, id)=> k + ":" + id;
+  const statusOf = r=> String(r.status || r.stage || (r.done ? "Done" : "") || "").slice(0, 40);
+
+  window.CRM_CUSTOMERS_MASTER = [];
+  window.CRM_USERS = [];
+  const list = document.createElement("datalist"); list.id = "crmCustList"; document.body.appendChild(list);
+  window.crmFindCustomer = name=> { const n = String(name||"").trim().toLowerCase(); return window.CRM_CUSTOMERS_MASTER.find(c=>c.name.toLowerCase() === n) || null; };
+
+  async function loadMasters(){
+    const [cust, users] = await Promise.all([api("GET","/api/customers?role=client").catch(()=>[]), api("GET","/api/users").catch(()=>[])]);
+    window.CRM_CUSTOMERS_MASTER = cust.filter(c=>c.status === "ACTIVE");
+    list.innerHTML = window.CRM_CUSTOMERS_MASTER.map(c=>'<option value="'+U.esc2(c.name)+'"></option>').join("");
+    window.CRM_USERS = users.filter(u=>u.status === "ACTIVE").map(u=>((u.first_name||"")+" "+(u.last_name||"")).trim() || u.username);
+  }
+
+  async function hydrate(){
+    await loadMasters();
+    let max = 99;
+    for(const kind of KINDS){
+      const rows = await api("GET","/api/crm/"+kind);
+      const arr = store()[kind]; if(!arr) continue;
+      arr.length = 0;
+      rows.forEach(r=>{
+        const rec = Object.assign({}, r.data, {id:r.ref});
+        if(r.customer_id) rec.customerId = r.customer_id;
+        arr.push(rec); ver[key(kind, r.ref)] = r.version; hash[key(kind, r.ref)] = JSON.stringify(rec);
+        const n = parseInt(String(r.ref).split("-").pop(), 10); if(n > max) max = n;
+      });
+    }
+    window.crmBumpSeq(max);
+    loaded = true;
+  }
+
+  async function sync(){
+    if(busy || !loaded) return; busy = true;
+    try{
+      for(const kind of KINDS){
+        const arr = store()[kind] || []; const seen = new Set();
+        for(const rec of arr){
+          const k = key(kind, rec.id); seen.add(k);
+          const h = JSON.stringify(rec); if(hash[k] === h) continue;
+          const body = {ref:String(rec.id), version:ver[k] || 0, customer_id:rec.customerId || null, company:String(rec.company || "").slice(0, 200), status:statusOf(rec), data:JSON.parse(h)};
+          delete body.data.id;
+          try{
+            const out = await api("PUT","/api/crm/"+kind, body);
+            ver[k] = out.version; hash[k] = h;
+          }catch(e){
+            if(/changed by someone else|already exists|no longer exists/i.test(e.message || "")){ say("Refreshing CRM data", e.message, "warn"); await hydrate(); rerender(); busy = false; return; }
+            say("Could not save "+kind, e.message); hash[k] = h; /* do not retry the same bad payload forever */
+          }
+        }
+        for(const k of Object.keys(ver)){
+          if(!k.startsWith(kind+":") || seen.has(k)) continue;
+          try{ await api("DELETE","/api/crm/"+kind+"/"+encodeURIComponent(k.slice(kind.length+1))); }catch(e){ /* already gone */ }
+          delete ver[k]; delete hash[k];
+        }
+      }
+    } finally { busy = false; }
+  }
+
+  function currentCrmScreen(){ const on = document.querySelector(".scr.on"); return on && SCREENS[on.id.replace(/^s-/, "")] ? on.id.replace(/^s-/, "") : null; }
+  function rerender(){ const s = currentCrmScreen(); if(s && window[SCREENS[s]]) window[SCREENS[s]](); }
+  function start(){ if(timer) return; timer = setInterval(()=>{ if(currentCrmScreen()) sync(); }, 1500); }
+
+  // Fill contact details from the Customer Master when a customer is picked on the enquiry form
+  document.addEventListener("change", e=>{
+    if(!e.target || e.target.id !== "crmEq_company") return;
+    const c = window.crmFindCustomer(e.target.value); if(!c) return;
+    const d = c.data || {}; const set = (id, v)=>{ const el = document.getElementById(id); if(el && v && !el.value) el.value = v; };
+    set("crmEq_contact", d.contact_person || d.contact || ""); set("crmEq_mobile", d.mobile || d.phone || ""); set("crmEq_email", d.email || "");
+    set("crmEq_country", c.country || d.country || ""); set("crmEq_city", d.city || ""); set("crmEq_address", d.address || d.address_line1 || "");
+  });
+
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    prev(screen, opts);
+    if(!SCREENS[screen]) return;
+    start();
+    (loaded ? sync() : Promise.resolve()).then(hydrate).then(rerender).catch(e=>say("Could not load CRM data", e.message));
+  };
+  window.crmKitSync = sync;
+})();
 </script>
 </body>
 </html>

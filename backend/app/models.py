@@ -445,3 +445,22 @@ class Booking(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CrmRecord(Base):
+    """CRM working records (lead / enquiry / opportunity / followup / booking). The document is kept as JSON; `ref` is the CRM number."""
+    __tablename__ = "crm_records"
+    __table_args__ = (UniqueConstraint("organization_id", "kind", "ref", name="uq_crm_record_ref"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20), index=True)
+    ref: Mapped[str] = mapped_column(String(40))
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    company: Mapped[str] = mapped_column(String(200), default="")
+    status: Mapped[str] = mapped_column(String(40), default="")
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

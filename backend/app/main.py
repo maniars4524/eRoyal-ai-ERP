@@ -12,6 +12,7 @@ from .auth_api import platform_router, router as auth_router
 from .customers_api import router as customers_router
 from .dashboard_api import router as dashboard_router
 from .bookings_api import router as bookings_router
+from .crm_api import router as crm_router
 from .documents_api import router as documents_router
 from .job_charges_api import router as job_charges_router
 from .payments_api import router as payments_router
@@ -59,6 +60,7 @@ app.include_router(dashboard_router)
 app.include_router(payments_router)
 app.include_router(quotations_router)
 app.include_router(bookings_router)
+app.include_router(crm_router)
 
 
 @app.get("/api/health")

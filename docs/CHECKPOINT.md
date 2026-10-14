@@ -32,3 +32,11 @@ Auth + three portals + lockout + audit; PUBLIC_PORTALS mode; tenant isolation; C
 4. Job sub-tabs and operations screens; CRM on the real API.
 5. Developer portal: create/disable companies from the UI.
 6. Replace remaining `wireAction` stubs; deploy permanently (Render), backups, CI, monitoring.
+
+
+## Update 2026-10-14: CRM + Quotation phase
+- Quotation Preparation redesigned (Sell left / Buy right, cost sheet, container rates, approval workflow, revisions, customer-safe view). Migration 0016. UI in QuoteKit v2 inside esway-erp.html. Test: e2e/quotes.test.js.
+- CRM (leads, enquiries, opportunities, follow-ups, CRM bookings) persisted via /api/crm/{kind} (migration 0017, backend/app/crm_api.py); CrmKit syncs the existing in-memory screens. Customers come from Customer Master. Test: e2e/crm.test.js, backend/tests/test_crm.py.
+- Backend: 88 tests pass. All e2e suites pass on QA server (ENV_FILE=.env.qa, port 8010; start with backend/.venv python -m uvicorn app.main:app --port 8010).
+- Known limits: CRM-internal opportunity quotations/bookings are still the old in-memory flow (persisted as JSON, not linked to the real Quotation module); email sending not configured; Get Rate (Rate Master) disabled.
+- NEXT: Organization Master enhancement (branches, branch contacts, COA/AP/AR classification, credit application/approval/control) - see user's spec in chat; then deploy (needs user approval).
