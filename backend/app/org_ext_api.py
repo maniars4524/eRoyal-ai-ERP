@@ -16,7 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from . import credit_control as cc
-from .auth import has_permission, permission_required
+from .auth import get_current_user, has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
 from .models import CreditEvent, CreditFacility, CreditRequest, Customer, Document, MasterRecord, OrgBranch, OrgContact, Organization, Shipment, User
@@ -595,3 +595,46 @@ def overview(user: User = Depends(permission_required("credit.read")), db: Sessi
         rows.append({"customer_id": c.id, "customer": c.name, "state": st["state"], "policy": st.get("policy"), "limit": str(st.get("effective_limit", "")), "exposure": str(ex.get("exposure", "")), "overdue": str(ex.get("overdue", "")),
                      "available": str(st.get("available", "")), "expiry_date": str(st["expiry_date"]) if st.get("expiry_date") else None})
     return {"customers": rows, "alerts": cc.expiry_alerts(db, org)}
+
+
+# ---------------------------------------------------------------- company logo (printed documents)
+LOGO_RE = re.compile(r"^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$")
+MAGIC = {"png": b"\x89PNG", "jpeg": b"\xff\xd8\xff", "webp": b"RIFF"}
+
+
+class LogoIn(BaseModel):
+    data_url: str = Field(max_length=420000)
+
+
+@router.get("/api/company/logo")
+def get_logo(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    org = db.get(Organization, _tenant(user))
+    return {"logo": org.logo if org else None}
+
+
+@router.put("/api/company/logo")
+def put_logo(body: LogoIn, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
+    import base64
+
+    m = LOGO_RE.match(body.data_url)
+    if not m:
+        raise HTTPException(422, "The logo must be a PNG, JPEG or WebP image")
+    try:
+        raw = base64.b64decode(m.group(2), validate=True)
+    except Exception:
+        raise HTTPException(422, "The logo image is damaged")
+    if not raw.startswith(MAGIC[m.group(1)]) or len(raw) > 300_000:
+        raise HTTPException(422, "The logo is not a valid image or is larger than 300 KB")
+    org = db.get(Organization, _tenant(user))
+    org.logo = body.data_url
+    record_audit(db, "COMPANY_LOGO_CHANGED", "ORGANIZATION", user, org.id, "Organization", str(org.id), {"bytes": len(raw)})
+    db.commit()
+    return {"logo": org.logo}
+
+
+@router.delete("/api/company/logo", status_code=204)
+def delete_logo(user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
+    org = db.get(Organization, _tenant(user))
+    org.logo = None
+    record_audit(db, "COMPANY_LOGO_REMOVED", "ORGANIZATION", user, org.id, "Organization", str(org.id), {})
+    db.commit()

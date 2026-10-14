@@ -27,6 +27,7 @@ class Organization(Base):
     legal_name: Mapped[str | None] = mapped_column(String(200))
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
     is_demo: Mapped[bool] = mapped_column(default=False, server_default="false")
+    logo: Mapped[str | None] = mapped_column(Text)
     country: Mapped[str] = mapped_column(String(80), default="India")
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", use_alter=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

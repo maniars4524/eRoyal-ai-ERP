@@ -291,7 +291,8 @@ def submit_for_approval(quote_id: int, user: User = Depends(permission_required(
     quote.approval_status = "SUBMITTED"
     quote.prepared_by, quote.prepared_at, quote.submitted_at = user.id, datetime.now(timezone.utc), datetime.now(timezone.utc)
     quote.approved_by, quote.approved_at = None, None
-    _event(db, quote, "SUBMITTED", before, "SUBMITTED", user)
+    _assign_number(db, org_id, quote, user)  # the official number is generated from the active sequence the moment the quotation is submitted
+    _event(db, quote, "SUBMITTED", before, "SUBMITTED", user, quote.number)
     record_audit(db, "QUOTATION_SUBMITTED", "SALES", user, org_id, "Quotation", str(quote.id), {})
     db.commit()
     return _out(db, _load(db, org_id, quote_id), user, True)
@@ -299,11 +300,16 @@ def submit_for_approval(quote_id: int, user: User = Depends(permission_required(
 
 def _sod_blocked(db: Session, user: User, quote: Quotation) -> bool:
     org = db.get(Organization, quote.organization_id)
-    return bool(config.QUOTE_SOD and not (org and org.is_demo) and quote.prepared_by == user.id)
+    if not (config.QUOTE_SOD and not (org and org.is_demo) and quote.prepared_by == user.id):
+        return False
+    # segregation of duties applies only while another active user can approve; a one-person company must still be able to issue quotations
+    approvers = [u for u in db.scalars(select(User).where(User.organization_id == quote.organization_id, User.status == "ACTIVE", User.id != user.id))
+                 if u.is_super_admin or any(p.code == "quote.approve" for r in u.roles for p in r.permissions)]
+    return bool(approvers)
 
 
 def _assign_number(db: Session, org_id: int, quote: Quotation, user: User) -> None:
-    """The official quotation number exists only once the quotation is approved (never for drafts, rejected or submitted ones)."""
+    """The official quotation number (from Settings -> Sequence Setting) is generated when the quotation is submitted, once, and kept through rejection and resubmission."""
     if quote.number:
         return
     root = db.get(Quotation, quote.root_id) if quote.root_id and quote.root_id != quote.id else None
@@ -324,7 +330,7 @@ def approve(quote_id: int, payload: Decision | None = None, user: User = Depends
     quote.approval_status = "APPROVED"
     quote.approved_by, quote.approved_at = user.id, datetime.now(timezone.utc)
     quote.approval_remarks = (payload.remarks if payload else None) or None
-    _assign_number(db, org_id, quote, user)
+    _assign_number(db, org_id, quote, user)  # normally already numbered at submission
     _event(db, quote, "APPROVED", "SUBMITTED", "APPROVED", user, f"{quote.number}" + (f" · {quote.approval_remarks}" if quote.approval_remarks else ""))
     record_audit(db, "QUOTATION_APPROVED", "SALES", user, org_id, "Quotation", str(quote.id), {})
     db.commit()

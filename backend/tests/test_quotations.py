@@ -323,3 +323,40 @@ def test_tenant_isolation_and_permissions(world, admin, h):
     assert client.post(f"/api/quotations/{q['id']}/approval/submit", headers=viewer).status_code == 403
     assert client.get("/api/quotations").status_code == 401
     assert client.get("/api/quotations", headers=hdr(world["dev"], portal="developer")).status_code == 403
+
+
+# ------------------------------------------------------------------ numbering at submission; one-person companies
+def test_the_quotation_number_is_generated_when_submitted_and_kept_through_rejection(h, h2):
+    q = draft(h)
+    assert q["number"] is None
+    sub = client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h).json()
+    assert sub["approval_status"] == "SUBMITTED" and sub["number"] and sub["number"].startswith("QT/")
+    rej = client.post(f"/api/quotations/{q['id']}/approval/reject", json={"remarks": "Please recheck the buy rate"}, headers=h2).json()
+    assert rej["approval_status"] == "REJECTED" and rej["number"] == sub["number"]  # the number is kept
+    again = client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h).json()
+    assert again["number"] == sub["number"]  # resubmission never takes a second number
+    approved_q = client.post(f"/api/quotations/{q['id']}/approval/approve", json={}, headers=h2).json()
+    assert approved_q["number"] == sub["number"]
+
+
+def test_a_company_with_no_other_approver_can_approve_its_own_quotation(h, admin):
+    from sqlalchemy import select, update
+
+    from app.models import User
+
+    db = SessionLocal()
+    try:
+        me = db.scalar(select(User).where(User.username == admin["username"]))
+        others = [(u.id, u.status) for u in db.scalars(select(User).where(User.organization_id == me.organization_id, User.id != me.id))]
+        for uid, _ in others:
+            db.execute(update(User).where(User.id == uid).values(status="INACTIVE"))
+        db.commit()
+        q = draft(h)
+        assert client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h).status_code == 200
+        r = client.post(f"/api/quotations/{q['id']}/approval/approve", json={}, headers=h)
+        assert r.status_code == 200 and r.json()["approval_status"] == "APPROVED"
+    finally:
+        for uid, status in others:
+            db.execute(update(User).where(User.id == uid).values(status=status))
+        db.commit()
+        db.close()

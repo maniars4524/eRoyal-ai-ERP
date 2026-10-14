@@ -58,6 +58,7 @@ PERMISSIONS = [
     ("sequence.configure_financial", "Configure invoice and voucher sequences", "sequence", "configure_financial"),
     ("sequence.history", "View sequence history", "sequence", "history"),
     ("sequence.export", "Export sequence configuration and history", "sequence", "export"),
+    ("currency.set_base", "Change the organisation base currency", "currency", "set_base"),
     ("booking.read", "View bookings", "booking", "read"),
     ("booking.create", "Create/edit draft bookings", "booking", "create"),
     ("booking.confirm", "Confirm and cancel bookings", "booking", "confirm"),

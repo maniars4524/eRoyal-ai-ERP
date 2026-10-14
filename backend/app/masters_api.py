@@ -33,6 +33,7 @@ MASTER_TYPES = {
     "account": "Ledger Account",
     "setting": "Company Setting",
 }
+from . import currency_ref as cr
 from .charge_catalogue import CATALOGUE, STANDARD_SAC, validate_activation
 
 KEY_RE = re.compile(r"^[a-z0-9_]{1,60}$")
@@ -210,6 +211,37 @@ def import_charge_catalogue(user: User = Depends(permission_required("master.cre
     return {"charges_created": made, "charges_skipped": skipped, "headings_created": made_hsn, "note": "Charges are inactive until the SAC, rate, notification reference and effective date are verified and recorded."}
 
 
+@router.get("/currency/iso-reference")
+def currency_iso_reference(user: User = Depends(permission_required("master.read"))):
+    """The ISO 4217 table the application validates against (code, name, 3-character numeric code, minor units)."""
+    seed = {c: {"symbol": sym, "unicode": uni, "sub": sub, "ratio": ratio, "display_name": name} for c, name, sym, uni, sub, ratio in cr.SEED}
+    return [{"code": k, **v, **({"seed": seed[k]} if k in seed else {})} for k, v in sorted(cr.iso_table().items())]
+
+
+@router.post("/currency/seed", status_code=201)
+def seed_currencies(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+    """Load the sample currencies (idempotent). Existing currencies are never overwritten; differences from ISO 4217 are reported."""
+    org_id = _tenant(user)
+    out = cr.seed(db, org_id, user.id)
+    record_audit(db, "CURRENCY_SEEDED", "MASTER", user, org_id, "currency", "seed", {"created": len(out["created"]), "skipped": len(out["skipped"]), "conflicts": len(out["conflicts"])})
+    db.commit()
+    return out
+
+
+@router.post("/currency/{record_id}/set-base")
+def set_base_currency(record_id: int, body: dict, user: User = Depends(permission_required("currency.set_base")), db: Session = Depends(get_db)):
+    """The only way to change the organisation's base (home) currency: explicit confirmation, a reason, and the dedicated permission."""
+    org_id = _tenant(user)
+    if body.get("confirm") is not True or len(str(body.get("reason") or "").strip()) < 5:
+        raise HTTPException(422, "Confirm the change and give a reason (at least 5 characters)")
+    rec = _get(db, org_id, "currency", record_id)
+    previous = cr.set_base(db, org_id, rec)
+    record_audit(db, "CURRENCY_BASE_CHANGED", "MASTER", user, org_id, "currency", str(rec.id), {"from": previous.code if previous else None, "to": rec.code, "reason": str(body.get("reason")).strip()})
+    db.commit()
+    db.refresh(rec)
+    return _out(rec)
+
+
 @router.get("/types")
 def list_types(user: User = Depends(permission_required("master.read"))):
     return [{"type": key, "label": label} for key, label in MASTER_TYPES.items()]
@@ -239,7 +271,10 @@ def list_records(
 def create_record(master_type: str, payload: MasterPayload, user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     org_id, master_type = _tenant(user), _type(master_type)
     _check_charge_activation(master_type, payload.status, payload.data)
-    record = MasterRecord(organization_id=org_id, master_type=master_type, created_by=user.id, **payload.model_dump())
+    values = payload.model_dump()
+    if master_type == "currency":
+        values["data"] = cr.clean(db, org_id, payload.code, payload.name, payload.data, None)
+    record = MasterRecord(organization_id=org_id, master_type=master_type, created_by=user.id, **values)
     db.add(record)
     try:
         db.flush()
@@ -262,6 +297,11 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, user: 
     org_id, master_type = _tenant(user), _type(master_type)
     record = _get(db, org_id, master_type, record_id)
     changes = payload.model_dump(exclude_unset=True)
+    if master_type == "currency":
+        if "code" in changes and changes["code"] != record.code and (cr.yes((record.data or {}).get("is_system_currency")) or cr.referenced(db, org_id, record.code)):
+            raise HTTPException(409, "The code of a system currency or of a currency that is already in use cannot be changed")
+        cr.check_status_change(record, changes.get("status"))
+        changes["data"] = cr.clean(db, org_id, changes.get("code") or record.code, changes.get("name") or record.name, changes["data"] if changes.get("data") is not None else (record.data or {}), record)
     was_active = record.status == "ACTIVE"
     _check_charge_activation(master_type, changes.get("status") or record.status, changes.get("data") if changes.get("data") is not None else record.data)
     for key, value in changes.items():
@@ -284,6 +324,8 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, user: 
 def delete_record(master_type: str, record_id: int, user: User = Depends(permission_required("master.delete")), db: Session = Depends(get_db)):
     org_id, master_type = _tenant(user), _type(master_type)
     record = _get(db, org_id, master_type, record_id)
+    if master_type == "currency":
+        cr.check_delete(db, org_id, record)
     record_audit(db, "MASTER_DELETED", "MASTER", user, org_id, master_type, str(record.id), {"code": record.code, "name": record.name})
     db.delete(record)
     db.commit()

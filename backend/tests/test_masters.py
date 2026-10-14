@@ -23,7 +23,7 @@ def test_master_crud_roundtrip(world):
     assert rec["code"] == "USD" and rec["data"]["symbol"] == "$"
     assert client.get(f"/api/masters/currency/{rec['id']}", headers=h).json()["name"] == "US Dollar"
     upd = client.patch(f"/api/masters/currency/{rec['id']}", json={"name": "United States Dollar", "status": "INACTIVE", "data": {"symbol": "US$"}}, headers=h)
-    assert upd.status_code == 200 and upd.json()["status"] == "INACTIVE" and upd.json()["data"] == {"symbol": "US$"}
+    assert upd.status_code == 200 and upd.json()["status"] == "INACTIVE" and upd.json()["data"]["symbol"] == "US$" and upd.json()["data"]["iso_numeric_code"] == "840" and upd.json()["data"]["default_currency"] == "No"
     assert [r["code"] for r in client.get("/api/masters/currency?q=dollar", headers=h).json()] == ["USD"]
     assert client.get("/api/masters/currency?status=ACTIVE", headers=h).json() == []
     assert client.delete(f"/api/masters/currency/{rec['id']}", headers=h).status_code == 204

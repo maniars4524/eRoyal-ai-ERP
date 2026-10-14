@@ -5351,8 +5351,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr">
   <div class="fg"><label class="fl">Primary Currency</label><select class="fc"><option>INR — Indian Rupee</option></select></div>
   <div class="fg"><label class="fl">Currency Symbol</label><input class="fc"></div>
-  <div class="fg"><label class="fl">Decimal Places</label><input class="fc"></div><div class="fg"><label class="fl">Exchange Rate (INR per 1 unit)</label><input class="fc" type="number" min="0" step="0.0001" placeholder="e.g. 83.50"></div>
-  <div class="fg"><label class="fl">Sub Currency</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Decimal Places</label><input class="fc"></div>  <div class="fg"><label class="fl">Sub Currency</label><input class="fc"></div>
 </div>
 <div class="fsec">Tax Framework</div>
 <div class="fr">
@@ -5510,7 +5509,7 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== CURRENCY MASTER LIST ====== -->
 <div id="s-currency-master" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="currency" style="color:var(--gr)"></svg>Currency / Exchange Rate Master</div><div class="ps">Merged master — currency setup and exchange rates always maintained together on one page</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="currencies"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="currency-detail"><svg class="ic" data-icon="plus"></svg> Add Currency</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="currency" style="color:var(--gr)"></svg>Currency / Exchange Rate Master</div><div class="ps">Merged master — currency setup and exchange rates always maintained together on one page</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="curSeedBtn" type="button" title="Adds the standard currencies that are missing (INR, USD, EUR, GBP, AED, SAR, SGD, AUD, CAD, JPY, BDT, LKR, CNY, CHF, MYR); nothing is overwritten"><svg class="ic" data-icon="download"></svg> Load Standard Currencies</button><button class="btn btn-out btn-sm" data-export="currencies"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="currency-detail"><svg class="ic" data-icon="plus"></svg> Add Currency</button></div></div>
 <div class="kpi-row">
   <div class="kpi"><div class="kpi-lbl">Total Currencies</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
   <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val up">28</div><div class="kpi-sub"></div></div>
@@ -5595,29 +5594,35 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== CURRENCY DETAIL ====== -->
 <div id="s-currency-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="currency" style="color:var(--gr)"></svg>Currency Detail — Indian Rupee</div><div class="ps">Code: INR · Symbol: ₹ · ISO Numeric: 356</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="currency-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
-<div class="card"><div class="ch"><div class="ct">Currency Information</div><span class="b b-gy">System Currency — Cannot Delete</span></div><div class="cb">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="currency" style="color:var(--gr)"></svg><span id="curTitle">New Currency</span></div><div class="ps" id="curSub">Choose an ISO 4217 code; name, numeric code and decimals fill in automatically</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="currency-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="curSetBase" type="button" style="display:none">Set as base currency</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
+<div class="card"><div class="ch"><div class="ct">Currency Information</div><span class="b b-gy" id="curSysBadge" style="display:none">System Currency — Cannot Delete</span></div><div class="cb">
+<datalist id="curIso"></datalist>
 <div class="fr">
-  <div class="fg"><label class="fl">Currency Code (ISO 4217) <span class="r">*</span></label><input class="fc" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
+  <div class="fg"><label class="fl">Currency Code (ISO 4217) <span class="r">*</span></label><input class="fc" id="cur_code" list="curIso" maxlength="3" placeholder="e.g. USD" style="font-family:var(--font-mono);text-transform:uppercase"></div>
   <div class="fg"><label class="fl">Currency Name <span class="r">*</span></label><input class="fc"></div>
-  <div class="fg"><label class="fl">Currency Symbol</label><input class="fc"></div>
-  <div class="fg"><label class="fl">Unicode Symbol</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Currency Symbol</label><input class="fc" placeholder="e.g. $"></div>
+  <div class="fg"><label class="fl">Unicode Symbol</label><input class="fc" placeholder="e.g. U+0024" style="font-family:var(--font-mono)"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Symbol Position</label><select class="fc"><option>Prefix (₹100)</option><option>Suffix (100₹)</option></select></div>
-  <div class="fg"><label class="fl">ISO Numeric Code</label><input class="fc" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-  <div class="fg"><label class="fl">Decimal Places</label><input class="fc"></div>
-  <div class="fg"><label class="fl">Sub Currency Name</label><input class="fc"></div>
+  <div class="fg"><label class="fl">Symbol Position</label><select class="fc"><option value="PREFIX">Prefix ($100.00)</option><option value="SUFFIX">Suffix (100,00 €)</option></select></div>
+  <div class="fg"><label class="fl">ISO Numeric Code</label><input class="fc" readonly maxlength="3" style="font-family:var(--font-mono);background:var(--g0)" title="Filled from ISO 4217; kept as text so leading zeros stay (036)"></div>
+  <div class="fg"><label class="fl">Decimal Places</label><input class="fc" type="number" min="0" max="4" step="1"></div>
+  <div class="fg"><label class="fl">Sub Currency Name</label><input class="fc" placeholder="e.g. Cent"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Sub Currency Ratio</label><input class="fc"></div>
-  <div class="fg"><label class="fl">Active Status</label><select class="fc"><option>Active</option><option>Inactive</option></select></div>
-  <div class="fg"><label class="fl">Default Currency</label><select class="fc"><option>Yes — Organisation Base</option><option>No</option></select></div>
+  <div class="fg"><label class="fl">Sub Currency Ratio</label><input class="fc" type="number" min="0" step="any" placeholder="e.g. 100" title="How many sub-units make one unit. This is NOT an exchange rate."></div>
+  <div class="fg"><label class="fl">Active Status</label><select class="fc"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
+  <div class="fg"><label class="fl">Default Currency</label><select class="fc" id="cur_default" disabled title="Yes means this is the organisation's base (home) currency. It is changed only with 'Set as base currency'."><option value="Yes">Yes — Organisation Base</option><option value="No">No</option></select></div>
   <div class="fg"><label class="fl">System Default</label><input class="fc" readonly style="background:var(--g0)"></div>
+</div>
+<div class="fr">
+  <div class="fg"><label class="fl">Exchange Rate <span style="font-weight:400;color:var(--g5)">(INR per 1 unit)</span></label><input class="fc" type="number" min="0" step="0.0001" placeholder="e.g. 83.50" title="Today's rate used by quotations. Dated rate history is a separate module and is not the sub-currency ratio."></div>
+  <div class="fg" style="grid-column:span 3"><label class="fl">Display sample</label><input class="fc" id="cur_sample" readonly style="background:var(--g0);font-weight:700"></div>
 </div>
 <div class="fr">
   <div class="fg" style="grid-column:span 4"><label class="fl">Notes</label><textarea class="fc" rows="2"></textarea></div>
 </div>
+<div class="ib ib-bl" style="margin-top:6px"><b>Default Currency = Yes</b> marks the organisation's base (home) currency: all home-currency totals use it. It can be changed only with <b>Set as base currency</b> (needs permission, a reason, and is refused once invoices are posted).</div>
 </div></div>
 </div>
 
@@ -14521,8 +14526,8 @@ if(document.readyState !== "loading") initChatWidget();
     selects:[{label:"Primary Currency", from:"currency", use:"code"}]});
   MK.register({type:"currency", label:"Currency", list:"currency-master", detail:"currency-detail", codeLabel:"Currency Code (ISO 4217)", nameLabel:"Currency Name",
     tables:[{sel:"#cm1 tbody"}], blank:["#cm2 tbody","#cm3 tbody","#cm4 tbody","#cm5 tbody","#cm6 tbody"],
-    cols:["code","data.currency_symbol","name","data.iso_numeric_code","data.decimal_places","data.symbol_position","data.default_currency","data.system_default","data.exchange_rate","status","actions"],
-    kpis:rows=>[[rows.length,"Currencies in your master"],[active(rows),"Active"],[(rows.find(r=>/^yes/i.test((r.data||{}).default_currency||""))||{}).code||"—","Organisation default"],["—","Exchange rates: not available yet"]]});
+    cols:["code","data.currency_symbol","name","data.iso_numeric_code","data.decimal_places",r=>({PREFIX:"Prefix", SUFFIX:"Suffix"})[(r.data||{}).symbol_position] || "—",r=>/^yes/i.test((r.data||{}).default_currency||"") ? '<span class="b b-gr">Yes — base</span>' : "No",r=>/^yes/i.test((r.data||{}).system_default||"") ? '<span class="b b-bl">Yes</span>' : "No","data.exchange_rate","status","actions"],
+    kpis:rows=>[[rows.length,"Currencies in your master"],[active(rows),"Active"],[(rows.find(r=>/^yes/i.test((r.data||{}).default_currency||""))||{}).code||"—","Base (home) currency"],[count(rows,r=>/^yes/i.test((r.data||{}).is_system_currency||"")),"System currencies (protected)"]]});
   const unitCats = ["Weight","Volume","Length","Area","Quantity","Time","Temperature"];
   MK.register({type:"unit", label:"Unit", list:"unit-master", detail:"unit-detail", codeLabel:"Unit Code", nameLabel:"Unit Name",
     tables:unitCats.map((c,i)=>({sel:"#um"+(i+1)+" tbody", filter:r=>(r.data||{}).category===c})),
@@ -16094,6 +16099,93 @@ if(document.readyState !== "loading") initChatWidget();
 })();
 </script>
 <script>
+/* ============================================================
+   CURRENCY KIT: ISO 4217 helper, base-currency action, standard currency load, display sample
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const C = window.CurrencyKit = {iso:[], me:null};
+  const scr = ()=> document.getElementById("s-currency-detail");
+  const field = label=> { const fg = Array.from(scr().querySelectorAll(".fg")).find(f=> ((f.querySelector("label")||{}).textContent||"").trim().startsWith(label)); return fg ? fg.querySelector("input,select,textarea") : null; };
+  const set = (label, v)=> { const el = field(label); if(el && !el.disabled && !el.readOnly && el.value === "") el.value = v; };
+  const money = (n, dec, sym, pos)=>{
+    const loc = pos === "SUFFIX" ? "de-DE" : (sym === "₹" ? "en-IN" : "en-US");
+    const num = new Intl.NumberFormat(loc, {minimumFractionDigits:dec, maximumFractionDigits:dec}).format(n);
+    return pos === "SUFFIX" ? num + " " + sym : sym + num;
+  };
+  async function loadIso(){
+    if(C.iso.length) return;
+    try{ C.iso = await api("GET","/api/masters/currency/iso-reference"); }catch(e){ C.iso = []; }
+    const dl = document.getElementById("curIso"); if(dl) dl.innerHTML = C.iso.map(r=>'<option value="'+esc2(r.code)+'">'+esc2(r.name)+'</option>').join("");
+  }
+  function sample(){
+    const out = document.getElementById("cur_sample"); if(!out) return;
+    const sym = (field("Currency Symbol")||{}).value || (field("Currency Code")||{}).value || "";
+    const dec = Math.max(0, Math.min(4, parseInt((field("Decimal Places")||{}).value, 10) || 0)); const pos = (field("Symbol Position")||{}).value || "PREFIX";
+    out.value = sym ? money(1234.5, dec, sym, pos) + "   ·   " + money(100, dec, sym, pos) : "";
+  }
+  async function paint(){
+    await loadIso(); if(!C.me) C.me = await api("GET","/api/auth/me").catch(()=>null);
+    const s = scr(); if(!s) return;
+    const rec = (MK.cache.currency||[]).find(r=> String(r.id) === s.dataset.mkId);
+    const d = (rec && rec.data) || {};
+    const sys = rec && /^yes/i.test(d.is_system_currency||""), base = rec && /^yes/i.test(d.default_currency||"");
+    const t = document.getElementById("curTitle"), sub = document.getElementById("curSub");
+    if(t) t.textContent = rec ? "Currency Information — "+rec.name : "New Currency";
+    if(sub) sub.textContent = rec ? "Code: "+rec.code+" · Symbol: "+(d.currency_symbol||"—")+" · ISO Numeric: "+(d.iso_numeric_code||"—")+(base ? " · Base currency" : "") : "Choose an ISO 4217 code; name, numeric code and decimals fill in automatically";
+    document.getElementById("curSysBadge").style.display = sys ? "" : "none";
+    const code = field("Currency Code"); if(code){ code.readOnly = !!rec; code.style.background = rec ? "var(--g0)" : ""; }
+    const def = document.getElementById("cur_default"); if(def){ def.value = base ? "Yes" : "No"; def.disabled = true; }
+    const sd = field("System Default"); if(sd) sd.value = /^yes/i.test(d.system_default||"") ? "Yes" : "No";
+    const perms = (C.me && (C.me.is_super_admin ? ["currency.set_base"] : (C.me.permissions||[]))) || [];
+    const btn = document.getElementById("curSetBase"); if(btn) btn.style.display = rec && !base && rec.status === "ACTIVE" && perms.includes("currency.set_base") ? "" : "none";
+    if(btn) btn.dataset.id = rec ? rec.id : "";
+    sample();
+  }
+  document.addEventListener("input", e=>{
+    const s = scr(); if(!s || !s.contains(e.target)) return;
+    const code = field("Currency Code");
+    if(e.target === code){
+      code.value = code.value.toUpperCase();
+      const r = C.iso.find(x=>x.code === code.value);
+      if(r){
+        set("Currency Name", (r.seed && r.seed.display_name) || r.name);
+        const num = field("ISO Numeric Code"); if(num) num.value = r.numeric;
+        const dec = field("Decimal Places"); if(dec && dec.value === "") dec.value = r.minor === null ? 2 : r.minor;
+        if(r.seed){ set("Currency Symbol", r.seed.symbol); set("Unicode Symbol", r.seed.unicode); set("Sub Currency Name", r.seed.sub); set("Sub Currency Ratio", String(r.seed.ratio)); }
+      }
+    }
+    sample();
+  });
+  document.addEventListener("change", e=>{ const s = scr(); if(s && s.contains(e.target)) sample(); });
+  document.addEventListener("click", async e=>{
+    if(e.target.closest("#curSeedBtn")){
+      e.stopPropagation();
+      if(!window.confirm("Add the standard currencies that are missing?\n\nExisting currencies are never overwritten; differences from ISO 4217 are reported.")) return;
+      try{
+        const r = await api("POST","/api/masters/currency/seed");
+        say("Standard currencies loaded", r.created.length+" added, "+r.skipped.length+" already existed"+(r.conflicts.length ? ", "+r.conflicts.length+" differ from ISO 4217" : "")+(r.base_currency_set ? ". "+r.base_currency_set+" is the base currency." : ""));
+        if(r.conflicts.length) openModal({title:"Existing currencies that differ from ISO 4217", bodyHTML:'<div class="tw"><table><thead><tr><th>Code</th><th>Field</th><th>Your value</th><th>ISO 4217</th></tr></thead><tbody>'+r.conflicts.map(c=>'<tr><td>'+esc2(c.code)+'</td><td>'+esc2(c.field)+'</td><td>'+esc2(c.existing)+'</td><td>'+esc2(c.iso_4217)+'</td></tr>').join("")+'</tbody></table></div><div class="sq-note">Nothing was changed. Edit the currency if the ISO value is the correct one.</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button>'});
+        MK.loadList(MK.configs.currency);
+      }catch(err){ say("Could not load the standard currencies", err.message); }
+    }
+    const b = e.target.closest("#curSetBase");
+    if(b){
+      e.stopPropagation(); const rec = (MK.cache.currency||[]).find(r=> String(r.id) === b.dataset.id); if(!rec) return;
+      const cur = (MK.cache.currency||[]).find(r=>/^yes/i.test((r.data||{}).default_currency||""));
+      openModal({title:"Set "+rec.code+" as the base currency", bodyHTML:'<div class="ib ib-am" style="margin-bottom:8px">The base (home) currency is used for all home-currency totals. '+(cur ? "<b>"+esc2(cur.code)+"</b> is the base currency now. " : "")+'This is refused once invoices are posted. Continue only if you are authorised to change it.</div><div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Reason *</label><input class="fc" id="curBaseWhy"></div></div><label style="font-size:12px"><input type="checkbox" id="curBaseOk"> I confirm that I want to change the organisation base currency</label>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="curBaseGo">Change base currency</button>'});
+      document.getElementById("curBaseGo").onclick = async ()=>{
+        try{ await api("POST","/api/masters/currency/"+rec.id+"/set-base", {confirm:document.getElementById("curBaseOk").checked, reason:document.getElementById("curBaseWhy").value.trim()}); closeModal(); say("Base currency changed", rec.code); await MK.loadList(MK.configs.currency); paint(); }
+        catch(err){ say("Base currency not changed", err.message); }
+      };
+    }
+  }, true);
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "currency-detail") setTimeout(paint, 300); };
+})();
+</script>
+<script>
 /* Count badges (menu and card headers) are hidden while their number is zero, so an empty module shows no orange "0". */
 (function(){
   "use strict";
@@ -16410,7 +16502,7 @@ if(document.readyState !== "loading") initChatWidget();
     const inp = (k, type, ph, extra)=> '<input class="fc" '+(type?'type="'+type+'" ':'')+'data-qh="'+k+'" value="'+esc2(h[k])+'" placeholder="'+esc2(ph||"")+'"'+d+(extra||"")+'>';
     const w = wiz();
     return '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Quotation Information</div><div style="font-size:11.5px;color:var(--g6)">'+esc2([w.dir, w.mode, w.type].filter(Boolean).join(" · "))+' · '+esc2(w.qtype||"")+' · '+(isMulti()?"Multiple carriers":"Single carrier")+(ro?"":' <span class="ta" data-qa="changewiz">Change</span>')+'</div></div><div class="cb"><div class="qk-grid">'+
-      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Assigned on approval")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
+      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Assigned when submitted")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
       f("Customer", '<select class="fc" data-qh="customer_id"'+d+'><option value="">— Select from Customer Master —</option>'+Q.m.customers.map(c=>opt(String(c.id), c.name+(c.code?" ("+c.code+")":""), String(c.id)===String(h.customer_id))).join("")+(h.customer_id && !Q.m.customers.some(c=>String(c.id)===String(h.customer_id)) ? opt(String(h.customer_id), h.party_name, true) : "")+'</select>', "", true)+
       f("Quotation Date", inp("quote_date","date"))+f("Valid Until", inp("valid_until","date"), "", true)+
       f("Currency", '<select class="fc" data-qh="currency"'+d+'>'+ccyList().map(c=>opt(c, c, c===h.currency)).join("")+'</select>', "", true)+
@@ -16508,7 +16600,7 @@ if(document.readyState !== "loading") initChatWidget();
       approvalCard();
     setActions(); if(keepScroll) window.scrollTo(0, y);
     const t = document.getElementById("quotNewTitle"); if(t) t.textContent = "Quotation Preparation";
-    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft · number assigned on approval")+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
+    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft · number assigned when submitted")+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
   }
   function refreshComputed(){
     ["sell","buy"].forEach(side=>{
@@ -16596,7 +16688,7 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       if(name === "back"){ if(Q.dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return; go("quotation"); return; }
       if(name === "changewiz"){ document.getElementById("quotFormWrap").style.display = "none"; document.getElementById("quotWizWrap").style.display = "block"; setActions(); return; }
-      if(name === "save"){ const r = await save(); if(r) say("Draft saved", "The quotation number is assigned when it is approved"); return; }
+      if(name === "save"){ const r = await save(); if(r) say("Draft saved", "The quotation number is generated when you submit it"); return; }
       if(name === "submit"){ if(!validate(true)) return; const r = await save(); if(!r) return; const s = await api("POST","/api/quotations/"+r.id+"/approval/submit"); Q.rec = s; renderAll(true); say("Submitted for approval", "An approver can now review it"); return; }
       if(name === "approve" || name === "reject"){
         const remarks = (document.getElementById("qkApprovalRemarks")||{}).value || "";
@@ -16671,6 +16763,14 @@ if(document.readyState !== "loading") initChatWidget();
     return parts.join(" ");
   };
   const hasTaxedLines = q=> q.lines.some(l=>l.side==="SELL" && l.taxable && Number(l.tax_pct) > 0);
+  const WM_PATH = {
+    Air:"M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z",
+    Sea:"M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.14.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z",
+    Road:"M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
+    Rail:"M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-7H6V6h5v4zm2 0V6h5v4h-5zm3.5 7c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"};
+  const wmKey = mode=> ({Courier:"Air", Multimodal:"Sea"})[mode] || (WM_PATH[mode] ? mode : "Sea");
+  const watermark = mode=> '<div class="qp-wm" aria-hidden="true"><svg viewBox="0 0 24 24" width="62%" height="62%" fill="#0B3A7A" style="opacity:.055"><path d="'+WM_PATH[wmKey(mode)]+'"/></svg></div>';
+  const logoBlock = (org, logo)=> logo ? '<img class="qp-logo" alt="'+esc2(org.organization_name||"")+'" src="'+esc2(logo)+'" style="max-height:56px;max-width:190px;object-fit:contain">' : '<div style="width:46px;height:46px;border-radius:50%;background:#0B3A7A;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px">'+esc2(String(org.organization_name||"FF").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase())+'</div>';
   function quotationHtml(q, mode, org, cust){
     const withTax = mode === "TAX"; const hd = q.header || {}; const sell = q.lines.filter(l=>l.side==="SELL");
     const e = esc2; const num2 = v=> (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -16683,7 +16783,7 @@ if(document.readyState !== "loading") initChatWidget();
     const th = (t, a, w)=> '<th style="padding:7px 8px;text-align:'+(a||"left")+';font-size:11px;font-weight:800;border:1px solid #111;'+(w?"width:"+w+";":"")+'">'+t+'</th>';
     const td = (v, a, extra)=> '<td style="padding:6px 8px;text-align:'+(a||"left")+';border:1px solid #111;font-size:11.5px;'+(extra||"")+'">'+v+'</td>';
     const pair = (label, v)=> '<div style="display:flex;gap:6px;font-size:11.5px;line-height:1.55"><span style="width:112px;flex:none;font-weight:800">'+label+'</span><span>: '+e(v || "")+'</span></div>';
-    const number = q.number || "Pending approval";
+    const number = q.number || "Pending submission";
     const roleText = cust && (cust.roles || []).length ? cust.roles.map(r=>({shipper:"Shipper", consignee:"Consignee", carrier:"Carrier", agent:"Agent", cha:"CHA", transporter:"Transporter"})[r] || r).join(", ") : "";
     const forwardingTitle = "Forwarding ("+e([q.mode, q.direction].filter(Boolean).join(" "))+")";
     const rows = sell.map(l=>{ const bu = l.container_breakup || []; const tx = l.taxable && Number(l.tax_pct) > 0;
@@ -16693,8 +16793,8 @@ if(document.readyState !== "loading") initChatWidget();
     const termLines = String(q.terms || "").split(/\n+/).map(t=>t.replace(/^\s*\d+[\.\)]\s*/, "").trim()).filter(Boolean);
     const check = '<span style="color:#16A34A;font-weight:800">✓</span> ';
     const colspanTotal = withTax ? 8 : 6;
-    return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:#fff;max-width:980px;margin:0 auto">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div><div style="font-size:10.5px;color:#475569">Freight Forwarding Quotation</div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
+    return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:#fff;max-width:980px;margin:0 auto;position:relative;padding:4px">'+watermark(q.mode)+'<div style="position:relative;z-index:1">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;gap:12px;align-items:center">'+logoBlock(org, Q.logo)+'<div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div><div style="font-size:10.5px;color:#475569">Freight Forwarding Quotation · '+e(q.mode)+'</div></div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
       '<table class="qp-card" style="width:100%;border-collapse:collapse;border-top:2px solid #111;border-bottom:1px solid #111"><tr><td style="padding:7px 8px;font-size:18px;font-weight:800;width:150px">Quotation No</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;'+(q.number ? "" : "color:#92400E")+'">'+e(number)+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:70px">Date</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.quote_date))+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:120px">Valid upto</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.valid_until))+'</td></tr></table>'+
       '<div class="qp-card" style="display:grid;grid-template-columns:1fr auto;gap:16px;padding:8px 8px 10px;border-bottom:1px solid #111"><div><div style="font-weight:800;font-size:13px">To,</div><div style="font-size:13px;font-weight:600">'+e(q.party_name)+'</div><div style="font-size:12px;white-space:pre-line">'+e(hd.billing_address || "")+'</div>'+
         ((hd.contact_person || hd.contact_mobile || hd.contact_email) ? '<div style="font-size:11px;color:#334155;margin-top:4px">Attn: '+e([hd.contact_person, hd.contact_mobile, hd.contact_email].filter(Boolean).join(" · "))+'</div>' : '')+(hd.customer_gstin ? '<div style="font-size:11px;color:#334155">GSTIN: '+e(hd.customer_gstin)+'</div>' : '')+'</div>'+
@@ -16715,14 +16815,15 @@ if(document.readyState !== "loading") initChatWidget();
           (docCcy !== "INR" && docRate ? '<div style="display:flex;justify-content:space-between;padding:5px 2px;font-size:11px;color:#334155"><span>Equivalent in '+e(docCcy)+' @ '+num2(docRate)+'</span><b>'+e(docCcy)+' '+num2(rounded/docRate)+'</b></div>' : '')+'</div></div>'+
       '<div class="qp-card" style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;border-top:1px solid #111;padding:10px 4px"><div><div style="font-weight:800;font-size:13px;margin-bottom:6px">Terms &amp; Conditions (Summary)</div><div style="font-size:11.5px;line-height:1.7">'+check+'<b>Rate Validity:</b> Until '+e(dmy(q.valid_until))+(hd.payment_terms ? '<br>'+check+'<b>Payment Terms:</b> '+e(hd.payment_terms) : '')+termLines.map(t=>'<br>'+check+e(t)).join("")+'</div></div>'+
         '<div style="border-left:1px solid #CBD5E1;padding-left:14px"><div style="font-weight:800;font-size:12px;margin-bottom:4px">Notes:</div><ul style="font-size:10.5px;color:#475569;margin:0;padding-left:16px;line-height:1.6"><li>Space &amp; rates are subject to availability at the time of booking.</li><li>Additional charges may apply for customs clearance, destination delivery and special handling.</li>'+(withTax ? '<li>GST is shown as applicable on the taxable charges; final tax follows the invoice.</li>' : '<li>This is a non-taxable quotation: applicable taxes, if any, will be charged extra as per law.</li>')+(foreign.length ? '<li>Foreign-currency charges are converted to INR at the rates shown; the invoice uses the rate on the date of billing.</li>' : '')+'<li>This is a system generated quotation.</li></ul></div></div>'+
-      '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#475569"><div>Prepared by: <b>'+e(q.prepared_by_name||"—")+'</b></div><div>'+(q.approved_by_name ? 'Approved by: <b>'+e(q.approved_by_name)+'</b>'+(q.approved_at ? " · "+e(dmy(q.approved_at)) : "") : '<b>Not yet approved: the quotation number is assigned on approval.</b>')+'</div></div>'+
-      (q.job_number ? '<div style="margin-top:10px;font-size:11px;color:#14532D">Converted to job <b>'+e(q.job_number)+'</b></div>' : '')+'</div>';
+      '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#475569"><div>Prepared by: <b>'+e(q.prepared_by_name||"—")+'</b></div><div>'+(q.approved_by_name ? 'Approved by: <b>'+e(q.approved_by_name)+'</b>'+(q.approved_at ? " · "+e(dmy(q.approved_at)) : "") : '<b>Not yet approved.</b>')+'</div></div>'+
+      (q.job_number ? '<div style="margin-top:10px;font-size:11px;color:#14532D">Converted to job <b>'+e(q.job_number)+'</b></div>' : '')+'</div></div>';
   }
-  (function printCss(){ const st = document.createElement("style"); st.textContent = "@media print{ body *{visibility:hidden!important} #quotPrintZone, #quotPrintZone *{visibility:visible!important} #quotPrintZone{position:absolute!important;left:0;top:0;width:100%!important;max-width:none!important;box-shadow:none!important;border:0!important;margin:0!important} .qp-card{break-inside:avoid} .qp-doc *{-webkit-print-color-adjust:exact;print-color-adjust:exact} @page{size:A4;margin:10mm} }"; document.head.appendChild(st); })();
+  (function printCss(){ const st = document.createElement("style"); st.textContent = ".qp-wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden}.qp-wm svg{max-height:100%}@media print{ body *{visibility:hidden!important} #quotPrintZone, #quotPrintZone *{visibility:visible!important} #quotPrintZone{position:absolute!important;left:0;top:0;width:100%!important;max-width:none!important;box-shadow:none!important;border:0!important;margin:0!important} .qp-card{break-inside:avoid} .qp-doc *{-webkit-print-color-adjust:exact;print-color-adjust:exact} @page{size:A4;margin:10mm} }"; document.head.appendChild(st); })();
   async function openView(id, print, mode){
     let q; try{ q = await api("GET","/api/quotations/"+id); }catch(e){ say("Could not open quotation", e.message); return; }
     if(!Q.m.customers.length) await loadMasters().catch(()=>{});
     const me = Q.me || await api("GET","/api/auth/me").catch(()=>({organization_name:""}));
+    if(Q.logo === undefined) Q.logo = (await api("GET","/api/company/logo").catch(()=>({logo:null}))).logo || null;
     const scr = document.getElementById("s-quotation-print"); const zone = document.getElementById("quotPrintZone"); if(!scr || !zone) return;
     scr.dataset.qid = q.id; Q.viewRec = q;
     const taxed = hasTaxedLines(q);
@@ -16738,7 +16839,7 @@ if(document.readyState !== "loading") initChatWidget();
       bar.querySelectorAll("[data-qk-bar]").forEach(n=>n.remove());
       const add = (label, a, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = a+":"+q.id; b.textContent = label; bar.appendChild(b); return b; };
       add("Taxable Quotation", "viewmode_TAX", want === "TAX" ? "btn-pri" : "btn-out"); add("Non-Taxable Quotation", "viewmode_NOTAX", want === "NOTAX" ? "btn-pri" : "btn-out");
-      add("Print", "print", "btn-out"); add("Download PDF", "pdf", "btn-out"); add("Email to Customer", "email", "btn-out");
+      add("Print", "print", "btn-out"); add("Download PDF", "pdf", "btn-out"); add("Email to Customer", "email", "btn-out"); if(can("master.update")) add("Company Logo", "logo", "btn-out");
       if(q.editable) add("Edit", "edit", "btn-out");
       if(q.status === "SENT" || q.effective_status === "EXPIRED" || q.effective_status === "REJECTED") add("Revise Quote", "revise", "btn-out");
       if(q.effective_status === "SENT"){ add("Mark Accepted", "accept", "btn-suc"); add("Mark Rejected", "reject", "btn-out"); }
@@ -16750,6 +16851,23 @@ if(document.readyState !== "loading") initChatWidget();
     if(print && !alertText) setTimeout(()=> window.print(), 300);
   }
 
+  /* company logo: pick an image, shrink it in the browser, store it once for every printed quotation */
+  function chooseLogo(quoteId){
+    let inp = document.getElementById("qkLogoFile");
+    if(!inp){ inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/png,image/jpeg,image/webp"; inp.id = "qkLogoFile"; inp.style.display = "none"; document.body.appendChild(inp); }
+    inp.onchange = ()=>{
+      const f = inp.files[0]; inp.value = ""; if(!f) return;
+      const img = new Image(); const url = URL.createObjectURL(f);
+      img.onload = async ()=>{
+        const k = Math.min(1, 420/img.width, 160/img.height); const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(img.width*k)); c.height = Math.max(1, Math.round(img.height*k));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        try{ const r = await api("PUT","/api/company/logo", {data_url:c.toDataURL("image/png")}); Q.logo = r.logo; say("Company logo saved", "It now appears on every quotation"); openView(quoteId, false, Q.viewMode); }
+        catch(e){ say("Could not save the logo", e.message); }
+      };
+      img.onerror = ()=> say("That file is not an image", "", "warn"); img.src = url;
+    };
+    inp.click();
+  }
   Q.openView = openView;
 
   /* ---------- list/view actions ---------- */
@@ -16762,6 +16880,7 @@ if(document.readyState !== "loading") initChatWidget();
         if(kind === "pdf") say("Save as PDF", "In the print window choose 'Save as PDF' as the printer.");
         setTimeout(()=> window.print(), kind === "pdf" ? 600 : 100); return;
       }
+      if(kind === "logo"){ chooseLogo(id); return; }
       if(kind === "email"){ say("Email is not available yet", "Use Download PDF and send the file yourself. Email sending needs an email provider to be configured.", "warn"); return; }
       if(kind === "newquote"){ go("quotation-new"); return; }
       if(kind === "revise"){ const r = await api("POST","/api/quotations/"+id+"/revise"); say("Revision created", "Revision "+r.revision_no+" is a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
