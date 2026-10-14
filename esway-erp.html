@@ -5909,7 +5909,7 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== SAC/HSN MASTER ====== -->
 <div id="s-hsn-master" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="license" style="color:var(--gr)"></svg>SAC / HSN Master</div><div class="ps">GST classification codes — auto-linked to Charge Master for mandatory tax compliance</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="upload"></svg> Import CSV</button><button class="btn btn-out btn-sm" data-export="hsn"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="hsn-detail"><svg class="ic" data-icon="plus"></svg> New Code</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="license" style="color:var(--gr)"></svg>SAC / HSN Master</div><div class="ps">GST classification codes — auto-linked to Charge Master for mandatory tax compliance</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="hsnLoadSacBtn" title="Loads the section-wise SAC master (571 codes)"><svg class="ic" data-icon="download"></svg> Load SAC Master</button><button class="btn btn-out btn-sm" id="hsnImportBtn"><svg class="ic" data-icon="upload"></svg> Import CSV</button><button class="btn btn-out btn-sm" data-export="hsn"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="hsn-detail"><svg class="ic" data-icon="plus"></svg> New Code</button></div></div>
 
 <div class="ib ib-rd" style="margin-bottom:14px"><svg class="ic" data-icon="alert-triangle" style="margin-right:6px;color:var(--rd)"></svg><strong>Mandatory Validation Active:</strong> Charge Master entries cannot be saved without a linked HSN/SAC code. When creating a Charge, selecting the Charge Name auto-populates HSN/SAC + GST% + Description (and vice versa).</div>
 
@@ -5922,12 +5922,13 @@ tbody tr:hover{background:var(--g0)}
 
 <div class="card"><div class="ch"><div class="ct">SAC / HSN Directory</div>
 <div style="display:flex;gap:8px">
-  <select class="fc" style="width:110px"><option>All Type</option><option>SAC</option><option>HSN</option></select>
-  <select class="fc" style="width:110px"><option>All GST%</option><option>0%</option><option>5%</option><option>12%</option><option>18%</option><option>28%</option></select>
+  <select class="fc" id="hsnSectionFilter" style="width:210px"><option value="">All sections</option></select>
+  <select class="fc" id="hsnTypeFilter" style="width:110px"><option value="">All Type</option><option value="SAC">SAC</option><option value="HSN">HSN</option></select>
+  <select class="fc" id="hsnGstFilter" style="width:120px"><option value="">All GST%</option><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option><option value="28">28%</option><option value="none">Rate not set</option></select>
   <input class="fc" placeholder="Search code / description…" style="width:220px">
 </div></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Type</th><th>Description</th><th>GST %</th><th>Tax Category</th><th>Charge Category</th><th>Linked Charges</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
-<div class="cf">Showing 10 of 142 codes · 38 SAC (services) + 104 HSN (goods classification) preloaded</div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Type</th><th>Description</th><th>Section / Heading</th><th>GST %</th><th>Tax Category</th><th>Charge Category</th><th>Linked Charges</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
+<div class="cf" id="hsnFooter">Loading…</div>
 </div>
 </div>
 
@@ -5943,6 +5944,18 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <div class="fr">
   <div class="fg" style="grid-column:span 4"><label class="fl">Description <span class="r">*</span></label><textarea class="fc" rows="2"></textarea></div>
+</div>
+<div class="fr">
+  <div class="fg"><label class="fl">Section</label><input class="fc" readonly style="background:var(--g0)"></div>
+  <div class="fg" style="grid-column:span 3"><label class="fl">Section Name</label><input class="fc" readonly style="background:var(--g0)"></div>
+</div>
+<div class="fr">
+  <div class="fg"><label class="fl">Heading</label><input class="fc" readonly style="background:var(--g0)"></div>
+  <div class="fg"><label class="fl">Group</label><input class="fc" readonly style="background:var(--g0)"></div>
+  <div class="fg"><label class="fl">Source</label><input class="fc" readonly style="background:var(--g0)"></div>
+</div>
+<div class="fr">
+  <div class="fg" style="grid-column:span 4"><label class="fl">Full Description</label><textarea class="fc" rows="2" readonly style="background:var(--g0)"></textarea></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Tax Category</label><input class="fc"></div>
@@ -14365,6 +14378,11 @@ if(document.readyState !== "loading") initChatWidget();
       if(grid) grid.innerHTML = rows.length ? rows.map(r=> cfg.card(r)).join("") : '<div style="grid-column:1/-1;text-align:center;color:var(--g4);padding:24px;font-style:italic">No records yet. Use "New" to add one.</div>';
     }
   };
+  MK.fetchAll = async function(type){
+    let all = [], offset = 0;
+    for(;;){ const page = await api("GET", "/api/masters/"+type+"?limit=1000&offset="+offset); all = all.concat(page); if(page.length < 1000) break; offset += 1000; }
+    return all;
+  };
   MK.loadList = function(cfg){
     if(!token()) return;
     const scr = document.getElementById("s-"+cfg.list);
@@ -14372,7 +14390,7 @@ if(document.readyState !== "loading") initChatWidget();
       scr.dataset.mkSearch = "1";
       scr.querySelectorAll('input.fc[placeholder*="earch"]').forEach(inp=> inp.addEventListener("input", ()=>{ MK.search[cfg.type] = inp.value; MK.renderList(cfg); }));
     }
-    return api("GET", "/api/masters/"+cfg.type).then(rows=>{ MK.cache[cfg.type] = rows; MK.renderList(cfg); if(cfg.afterLoad) cfg.afterLoad(rows); })
+    return MK.fetchAll(cfg.type).then(rows=>{ MK.cache[cfg.type] = rows; MK.renderList(cfg); if(cfg.afterLoad) cfg.afterLoad(rows); })
       .catch(err=>{ say("Could not load "+cfg.label, err.message); });
   };
 
@@ -14474,8 +14492,8 @@ if(document.readyState !== "loading") initChatWidget();
     cols:["code","name",modes,()=>"—",()=>"—",()=>"—",()=>"—",()=>"—",()=>"—","actions"],
     kpis:rows=>[[rows.length,"Incoterms"],[active(rows),"Active"],[count(rows,r=>r.status!=="ACTIVE"),"Inactive"],["—","Usage not tracked yet"]]});
   MK.register({type:"hsn", label:"HSN / SAC Code", list:"hsn-master", detail:"hsn-detail", codeLabel:"HSN/SAC Code", nameLabel:"Description",
-    cols:["code","data.code_type","name","data.gst_rate","data.tax_category","data.charge_category",()=>"—","status","actions"],
-    kpis:rows=>[[rows.length,"SAC: "+count(rows,r=>/sac/i.test((r.data||{}).code_type||""))+" · HSN: "+count(rows,r=>/hsn/i.test((r.data||{}).code_type||""))],["—","Charge links not available yet"],[count(rows,r=>String((r.data||{}).gst_rate||"").replace(/\D/g,"")==="18"),"18% GST codes"],[active(rows),"Active"]]});
+    cols:["code","data.code_type","name",r=>window.HsnKit ? HsnKit.sectionHeading(r) : "—","data.gst_rate","data.tax_category","data.charge_category",r=>window.HsnKit ? HsnKit.linkedCell(r) : "—","status","actions"],
+    kpis:rows=>window.HsnKit ? HsnKit.kpis(rows) : [[rows.length,"Codes"],["—",""],["—",""],["—",""]]});
   MK.register({type:"container_type", label:"Container Type", list:"container-master", detail:"container-detail", codeLabel:"Container Code", nameLabel:"Container Name",
     cardGrid:'div[style*="grid-template-columns:repeat(3"]',
     card:r=>'<div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer" data-mk-edit="'+r.id+'" data-mk-type="container_type"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="min-width:46px;padding:6px 8px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;color:#fff;font-size:10px;font-weight:800;text-align:center">'+esc2(r.code)+'</div>'+statusBadge(r.status)+'</div><div style="font-weight:700;font-size:13px">'+esc2(r.name)+'</div><div style="font-size:11px;color:var(--g5);margin-top:4px">'+esc2([(r.data||{}).category,(r.data||{}).size_feet&&(r.data.size_feet+" ft"),(r.data||{}).height_type].filter(Boolean).join(" · ")||"—")+'</div><div style="margin-top:8px"><button class="ta" data-mk-del="'+r.id+'" data-mk-type="container_type" style="color:var(--rd);font-size:11px">Delete</button></div></div>',
@@ -15676,6 +15694,128 @@ if(document.readyState !== "loading") initChatWidget();
     if(screen === "job-detail"){ J.lastLoaded = null; setTimeout(()=>{ const no = currentJob(); if(no){ J.lastLoaded = no; loadLifecycle(); } }, 400); }
     else closeDrawer();
     if(screen === "job-list"){ req("GET","/api/jobs/stages").then(r=>{ if(r.ok){ J.stages = r.data.stages; const s = document.getElementById("jlListStage"); if(s && s.options.length <= 1) J.stages.forEach(x=>{ const o = document.createElement("option"); o.textContent = x; s.appendChild(o); }); } }); decorateList(); }
+  };
+})();
+</script>
+<script>
+/* ============================================================
+   HSN KIT: SAC / HSN Master screen - live KPIs, linked charges, section filter, SAC master import (571 section-wise codes),
+   CSV import / export. Data comes from /api/masters/hsn and /api/masters/charge.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const H = window.HsnKit = {charges:[], f:{type:"", gst:"", section:""}};
+  const cfg = ()=> MK.configs.hsn;
+  const digits = v=> String(v||"").replace(/[^0-9.]/g, "");
+  const isSac = r=> /sac/i.test((r.data||{}).code_type || "");
+  H.linked = code=> H.charges.filter(c=> String((c.data||{}).hsn_code||"") === code);
+  H.codes = ()=> new Set((MK.cache.hsn||[]).map(r=>r.code));
+  H.unmapped = ()=> H.charges.filter(c=> !(c.data||{}).hsn_code || !H.codes().has(String(c.data.hsn_code)));
+
+  const origFiltered = MK.filtered;
+  MK.filtered = function(c){
+    let rows = origFiltered(c);
+    if(c.type !== "hsn") return rows;
+    const f = H.f;
+    if(f.type) rows = rows.filter(r=> f.type === "SAC" ? isSac(r) : !isSac(r));
+    if(f.section) rows = rows.filter(r=> String((r.data||{}).section||"") === f.section);
+    if(f.gst === "none") rows = rows.filter(r=> digits((r.data||{}).gst_rate) === "");
+    else if(f.gst) rows = rows.filter(r=> digits((r.data||{}).gst_rate) === f.gst);
+    return rows;
+  };
+  const origRender = MK.renderList;
+  MK.renderList = function(c){ origRender(c); if(c.type === "hsn") decorate(c); };
+
+  function decorate(c){
+    const scr = document.getElementById("s-hsn-master"); if(!scr) return;
+    const all = MK.cache.hsn || [], shown = MK.filtered(c);
+    const foot = document.getElementById("hsnFooter");
+    if(foot) foot.textContent = all.length ? "Showing "+shown.length+" of "+all.length+" codes · SAC "+all.filter(isSac).length+" · HSN "+(all.length - all.filter(isSac).length)+" · rate not set on "+all.filter(r=>digits((r.data||{}).gst_rate)==="").length : "No codes yet. Use \"Load SAC Master\" to load the section-wise SAC list, or \"New Code\".";
+    const sel = document.getElementById("hsnSectionFilter");
+    if(sel){
+      const secs = {}; all.forEach(r=>{ const d = r.data||{}; if(d.section) secs[d.section] = d.section_name || ""; });
+      const keys = Object.keys(secs).sort(); const sig = keys.join(",");
+      if(sel.dataset.sig !== sig){ sel.dataset.sig = sig; sel.innerHTML = '<option value="">All sections</option>'+keys.map(k=>'<option value="'+esc2(k)+'">Section '+esc2(k)+' — '+esc2((secs[k]||"").slice(0,48))+'</option>').join(""); sel.value = H.f.section; }
+    }
+  }
+  H.kpis = rows=>{
+    const sac = rows.filter(isSac).length; const linked = rows.filter(r=>H.linked(r.code).length).length; const um = H.unmapped().length;
+    return [[rows.length, "SAC: "+sac+" · HSN: "+(rows.length-sac)], [linked, "Codes used by charges"], [rows.filter(r=>digits((r.data||{}).gst_rate)==="18").length, "18% GST codes"], [um, um ? "Charges without a valid HSN/SAC" : "All charges are mapped"]];
+  };
+  H.sectionHeading = r=>{ const d = r.data||{}; return d.section ? '<span title="'+esc2(d.section_name||"")+'">Sec '+esc2(d.section)+' · '+esc2(d.heading||"")+(d.group ? ' · '+esc2(d.group) : '')+'</span>' : "—"; };
+  H.linkedCell = r=>{ const l = H.linked(r.code); return l.length ? '<span class="b b-gr" title="'+esc2(l.map(c=>c.name).join(", "))+'">'+l.length+'</span>' : "—"; };
+
+  async function loadCharges(){ try{ H.charges = await api("GET","/api/masters/charge"); }catch(e){ H.charges = []; } if(cfg()) MK.renderList(cfg()); }
+
+  /* ---------- toolbar ---------- */
+  function csvLine(line){ const out = []; let cur = "", q = false; for(let i=0;i<line.length;i++){ const ch = line[i]; if(q){ if(ch === '"' && line[i+1] === '"'){ cur += '"'; i++; } else if(ch === '"') q = false; else cur += ch; } else if(ch === '"') q = true; else if(ch === ","){ out.push(cur); cur = ""; } else cur += ch; } out.push(cur); return out; }
+  function downloadCsv(){
+    const rows = MK.filtered(cfg()); const esc = v=> '"'+String(v===undefined||v===null?"":v).replace(/"/g,'""')+'"';
+    const lines = [["Code","Type","Section","Heading","Group","Description","GST %","Tax Category","Charge Category","Linked Charges","Status"].join(",")].concat(rows.map(r=>{ const d = r.data||{}; return [r.code, d.code_type, d.section, d.heading, d.group, r.name, d.gst_rate, d.tax_category, d.charge_category, H.linked(r.code).length, r.status].map(esc).join(","); }));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿"+lines.join("\n")], {type:"text/csv"})); a.download = "hsn-sac-master.csv"; document.body.appendChild(a); a.click(); a.remove(); say("Exported", rows.length+" codes");
+  }
+  async function importCsv(file){
+    const text = await file.text(); const lines = text.replace(/^﻿/, "").split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length < 2){ say("Nothing to import", "The file needs a header row and at least one code", "warn"); return; }
+    const head = csvLine(lines[0]).map(h=>h.trim().toLowerCase());
+    const col = (...names)=> head.findIndex(h=> names.some(n=> h === n || h.includes(n)));
+    const iCode = col("code","sac code","hsn"), iName = col("description","name"), iType = col("type"), iGst = col("gst","rate");
+    if(iCode < 0 || iName < 0){ say("Columns not recognised", "The first row must contain 'Code' and 'Description' columns", "warn"); return; }
+    let made = 0, skipped = 0, failed = 0; const have = H.codes();
+    for(const line of lines.slice(1)){
+      const c = csvLine(line); const code = (c[iCode]||"").trim(); const name = (c[iName]||"").trim().slice(0,200); if(!code || !name){ failed++; continue; }
+      if(have.has(code)){ skipped++; continue; }
+      const gst = iGst >= 0 ? digits(c[iGst]) : ""; const type = iType >= 0 && /hsn|goods/i.test(c[iType]||"") ? "HSN (Goods)" : "SAC (Services)";
+      try{ await api("POST","/api/masters/hsn", {code, name, data:{code_type:type, gst_rate: gst ? gst+"%" : "", source:"csv"}}); made++; have.add(code); }catch(e){ failed++; }
+    }
+    say("Import finished", made+" added, "+skipped+" already existed, "+failed+" rejected"); MK.loadList(cfg());
+  }
+  document.addEventListener("click", async e=>{
+    const t = e.target.closest("#s-hsn-master .pa button"); if(!t) return;
+    if(t.id === "hsnLoadSacBtn"){
+      e.stopImmediatePropagation(); e.preventDefault();
+      if(!window.confirm("Load the complete section-wise SAC master (571 codes)?\n\nThe file has no GST rates: rates are filled only for the freight starter codes (as proposals to verify) and stay blank for the rest until you set them.")) return;
+      try{ const r = await api("POST","/api/masters/hsn/sac-master/import"); say("SAC master loaded", r.created+" added, "+r.enriched+" updated, "+r.skipped+" already present"); MK.loadList(cfg()); }catch(err){ say("Could not load the SAC master", err.message); }
+    } else if(t.id === "hsnImportBtn"){
+      e.stopImmediatePropagation(); e.preventDefault();
+      let inp = document.getElementById("hsnFile"); if(!inp){ inp = document.createElement("input"); inp.type = "file"; inp.accept = ".csv,text/csv"; inp.id = "hsnFile"; inp.style.display = "none"; inp.onchange = ()=>{ if(inp.files[0]) importCsv(inp.files[0]); inp.value = ""; }; document.body.appendChild(inp); }
+      inp.click();
+    } else if(t.dataset.export === "hsn"){
+      e.stopImmediatePropagation(); e.preventDefault(); downloadCsv();
+    }
+  }, true);
+  document.addEventListener("change", e=>{
+    const m = { hsnTypeFilter:"type", hsnGstFilter:"gst", hsnSectionFilter:"section" }[e.target.id]; if(!m) return;
+    H.f[m] = e.target.value; MK.renderList(cfg());
+  });
+
+  /* ---------- detail screen ---------- */
+  function paintDetail(){
+    const scr = document.getElementById("s-hsn-detail"); if(!scr) return;
+    const rec = (MK.cache.hsn||[]).find(r=> String(r.id) === scr.dataset.mkId);
+    const t = scr.querySelector(".pt"), s = scr.querySelector(".ps");
+    const label = rec ? ((rec.data||{}).code_type||"SAC").split(" ")[0] : "";
+    if(t){ const last = Array.from(t.childNodes).reverse().find(n=>n.nodeType===3); if(last) last.textContent = rec ? label+" Detail — "+rec.code : "New HSN / SAC Code"; }
+    if(s) s.textContent = rec ? rec.name+((rec.data||{}).gst_rate ? " · GST "+rec.data.gst_rate : " · GST rate not set") : "Create a classification code and its GST rate";
+    const card = Array.from(scr.querySelectorAll(".card")).find(c=> /Linked Charges/.test((c.querySelector(".ct")||{}).textContent||""));
+    if(card){
+      const list = rec ? H.linked(rec.code) : []; const ct = card.querySelector(".ct"); ct.textContent = "Linked Charges ("+list.length+")";
+      card.querySelector("tbody").innerHTML = list.length ? list.map(c=>'<tr><td>'+esc2(c.name)+'</td><td class="mono">'+esc2(c.code)+'</td><td>'+esc2((c.data||{}).module||"—")+'</td><td>'+esc2(c.status)+'</td></tr>').join("") : '<tr><td colspan="4" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">No charge uses this code yet.</td></tr>';
+    }
+    syncTax(scr);
+  }
+  function syncTax(scr){
+    const gst = Array.from(scr.querySelectorAll(".fg")).find(fg=> /GST Rate/.test((fg.querySelector("label")||{}).textContent||"")); if(!gst) return;
+    const rate = parseFloat(digits(gst.querySelector("select,input").value)); const half = isNaN(rate) ? "" : String(rate/2);
+    Array.from(scr.querySelectorAll(".fg")).forEach(fg=>{ const l = (fg.querySelector("label")||{}).textContent||""; if(/^CGST|^SGST/.test(l.trim())) fg.querySelector("input").value = half; });
+  }
+  document.addEventListener("change", e=>{ const scr = document.getElementById("s-hsn-detail"); if(scr && scr.contains(e.target)) syncTax(scr); });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    prev(screen, opts);
+    if(screen === "hsn-master") loadCharges();
+    if(screen === "hsn-detail") loadCharges().then(()=> setTimeout(paintDetail, 250));
   };
 })();
 </script>

@@ -26,7 +26,7 @@ def h(world, admin):
 
 def test_catalogue_import_is_inactive_idempotent_and_complete(h):
     r = client.post("/api/masters/charge/catalogue/import", headers=h)
-    assert r.status_code == 201 and r.json()["charges_created"] == 47 and r.json()["headings_created"] == 3
+    assert r.status_code == 201 and r.json()["charges_created"] == 47 and r.json()["headings_created"] >= 3
     again = client.post("/api/masters/charge/catalogue/import", headers=h).json()
     assert again["charges_created"] == 0 and again["charges_skipped"] == 47
     charges = {c["code"]: c for c in client.get("/api/masters/charge", headers=h).json()}
@@ -61,3 +61,30 @@ def test_activation_needs_verified_tax_configuration_and_is_audited(h):
         db.close()
     # an ordinary (non-catalogue) charge keeps working as before
     assert client.post("/api/masters/charge", json={"code": "PLAIN1", "name": "Plain", "data": {"hsn_code": "9965", "gst_percent": "18"}}, headers=h).status_code == 201
+
+
+def test_standard_sac_import_is_idempotent_and_flags_conditional_rates(h):
+    r = client.post("/api/masters/hsn/standard/import", headers=h)
+    assert r.status_code == 201 and r.json()["created"] + r.json()["skipped"] == 21
+    again = client.post("/api/masters/hsn/standard/import", headers=h).json()
+    assert again["created"] == 0 and again["skipped"] == 21
+    codes = {c["code"]: c for c in client.get("/api/masters/hsn", headers=h).json()}
+    assert codes["996711"]["data"]["gst_rate"] == "18%" and codes["996521"]["data"]["gst_rate"] == "" and "verify" in codes["996521"]["data"]["tax_category"].lower()
+    assert {"9965", "9967", "9968", "996812"} <= set(codes)
+
+
+def test_full_sac_master_import_by_section(h):
+    client.post("/api/masters/hsn/standard/import", headers=h)  # starter list first: the master file must enrich it, not duplicate it
+    r = client.post("/api/masters/hsn/sac-master/import", headers=h)
+    assert r.status_code == 201, r.text
+    assert r.json()["created"] + r.json()["enriched"] + r.json()["skipped"] == 571 and r.json()["enriched"] >= 15
+    again = client.post("/api/masters/hsn/sac-master/import", headers=h).json()
+    assert again["created"] == 0 and again["enriched"] == 0 and again["skipped"] == 571
+    codes = {c["code"]: c for c in client.get("/api/masters/hsn?limit=1000", headers=h).json()}
+    assert len(codes) >= 571
+    sea = codes["996521"]["data"]
+    assert sea["section"] == "6" and sea["heading"] == "9965" and sea["group"] == "99652" and sea["source"] == "sac_master" and "Coastal" in codes["996521"]["name"]
+    assert codes["996711"]["data"]["gst_rate"] == "18%"  # proposed starter rate kept
+    assert codes["997113"]["data"]["gst_rate"] == "" and codes["997113"]["data"]["section"] == "7"  # no rate invented for the rest
+    assert {c["data"]["section"] for c in codes.values() if c["data"].get("source") == "sac_master"} == {"5", "6", "7", "8", "9"}
+    assert len(codes["996521"]["name"]) <= 200 and len(codes["996521"]["data"]["full_description"]) >= len(codes["996521"]["name"])

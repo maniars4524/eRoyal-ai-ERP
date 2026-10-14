@@ -33,7 +33,7 @@ MASTER_TYPES = {
     "account": "Ledger Account",
     "setting": "Company Setting",
 }
-from .charge_catalogue import CATALOGUE, HEADINGS, validate_activation
+from .charge_catalogue import CATALOGUE, STANDARD_SAC, validate_activation
 
 KEY_RE = re.compile(r"^[a-z0-9_]{1,60}$")
 CODE_RE = re.compile(r"^[A-Za-z0-9._/\- ]{1,40}$")
@@ -134,15 +134,69 @@ def _check_charge_activation(master_type: str, status_value: str, data: dict | N
             raise HTTPException(status_code=422, detail=str(exc))
 
 
+def _import_standard_sac(db: Session, org_id: int, user: User) -> int:
+    made = 0
+    for code, name, rate, category in STANDARD_SAC:
+        if db.scalar(select(MasterRecord.id).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "hsn", MasterRecord.code == code)):
+            continue
+        db.add(MasterRecord(organization_id=org_id, master_type="hsn", code=code, name=name, status="ACTIVE", created_by=user.id,
+                            data={"source": "standard", "code_type": "SAC (Services)", "gst_rate": rate, "tax_category": "Proposed - verify against the current notification" + ("" if rate else " (rate depends on service and conditions)"), "charge_category": category}))
+        made += 1
+    return made
+
+
+@router.post("/hsn/standard/import", status_code=201)
+def import_standard_sac(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+    """Load the standard freight-forwarding SAC codes (idempotent). Rates are proposals to be verified."""
+    org_id = _tenant(user)
+    made = _import_standard_sac(db, org_id, user)
+    record_audit(db, "HSN_STANDARD_IMPORTED", "MASTER", user, org_id, "hsn", "standard", {"created": made})
+    db.commit()
+    return {"created": made, "skipped": len(STANDARD_SAC) - made, "note": "Codes and rates are proposals; verify each against the current official notification."}
+
+
+SAC_FILE = __import__("pathlib").Path(__file__).resolve().parents[1] / "data" / "sac_codes.csv"
+
+
+@router.post("/hsn/sac-master/import", status_code=201)
+def import_sac_master(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+    """Load the complete section-wise SAC master (571 codes: section, heading, group, code, description). GST rates are NOT in that file:
+    only the codes of the freight starter list get a proposed rate; every other code stays blank until someone sets it. Idempotent."""
+    import csv
+
+    org_id = _tenant(user)
+    if not SAC_FILE.exists():
+        raise HTTPException(status_code=500, detail="The SAC master file is missing on the server")
+    proposed = {code: (rate, cat) for code, _n, rate, cat in STANDARD_SAC}
+    existing = {r.code: r for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "hsn"))}
+    created = enriched = skipped = 0
+    with open(SAC_FILE, encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            code = row["code"].strip()
+            rate, cat = proposed.get(code, ("", ""))
+            info = {"code_type": "SAC (Services)", "section": row["section"], "section_name": row["section_name"], "heading": row["heading"], "group": row["group"], "full_description": row["description"][:3900], "source": "sac_master"}
+            rec = existing.get(code)
+            if rec is None:
+                data = {**info, "gst_rate": rate, "charge_category": cat, "tax_category": ("Proposed rate - verify against the current notification" if rate else "Rate not set - confirm from the current notification")}
+                db.add(MasterRecord(organization_id=org_id, master_type="hsn", code=code, name=row["description"][:200], status="ACTIVE", created_by=user.id, data=data))
+                created += 1
+            elif (rec.data or {}).get("source") == "standard":
+                rec.data = {**(rec.data or {}), **info}
+                rec.name = row["description"][:200]
+                enriched += 1
+            else:
+                skipped += 1
+    record_audit(db, "HSN_SAC_MASTER_IMPORTED", "MASTER", user, org_id, "hsn", "sac-master", {"created": created, "enriched": enriched, "skipped": skipped})
+    db.commit()
+    return {"created": created, "enriched": enriched, "skipped": skipped, "note": "GST rates are not part of the file; set or confirm them from the current official notification."}
+
+
 @router.post("/charge/catalogue/import", status_code=201)
 def import_charge_catalogue(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     """Create the standard freight charge catalogue (inactive, tax review required). Existing codes are left untouched."""
     org_id = _tenant(user)
-    made_hsn = made = skipped = 0
-    for code, label in HEADINGS.items():
-        if not db.scalar(select(MasterRecord.id).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "hsn", MasterRecord.code == code)):
-            db.add(MasterRecord(organization_id=org_id, master_type="hsn", code=code, name=label, status="ACTIVE", created_by=user.id, data={"code_type": "SAC (Services)", "tax_category": "Heading only - rate depends on the service and conditions"}))
-            made_hsn += 1
+    made = skipped = 0
+    made_hsn = _import_standard_sac(db, org_id, user)
     for code, name, group, sac, note, pct, config in CATALOGUE:
         if db.scalar(select(MasterRecord.id).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "charge", MasterRecord.code == code)):
             skipped += 1

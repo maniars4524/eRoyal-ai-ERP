@@ -80,3 +80,30 @@ def validate_activation(data: dict) -> None:
         missing.append("the effective date")
     if missing:
         raise ValueError("Verify the tax configuration before activating this charge: " + ", ".join(missing) + " must be recorded")
+
+
+# Standard SAC codes used by freight forwarders (code, description, GST rate or "" when the rate depends on the service, charge category).
+# PROPOSED reference data: confirm each code and rate against the current official notification before relying on it.
+STANDARD_SAC = [
+    ("9965", "Goods transport services (heading)", "", "Freight"),
+    ("996511", "Road transport services of goods (incl. letting of goods carriages)", "", "Transportation / THC"),
+    ("996512", "Railway transport services of goods", "5%", "Freight"),
+    ("996521", "Coastal and transoceanic (sea-going) water transport services of goods", "", "Ocean Freight"),
+    ("996522", "Inland water transport services of goods", "5%", "Freight"),
+    ("996531", "Air transport services of goods (freight)", "18%", "Air Freight"),
+    ("996601", "Rental services of road vehicles with operator", "", "Transportation / THC"),
+    ("9967", "Supporting services in transport (heading)", "18%", "Handling"),
+    ("996711", "Container handling services (THC, stuffing, destuffing)", "18%", "Handling"),
+    ("996712", "Customs house agent services", "18%", "Custom Clearance"),
+    ("996713", "Other cargo handling services", "18%", "Handling"),
+    ("996721", "Refrigerated storage services", "18%", "Warehouse / Storage"),
+    ("996722", "Storage and warehousing services of bulk liquids or gases", "18%", "Warehouse / Storage"),
+    ("996729", "Other storage and warehousing services", "18%", "Warehouse / Storage"),
+    ("996749", "Other supporting services for road transport", "18%", "Handling"),
+    ("996759", "Other supporting services for water transport (port, agency)", "18%", "Documentation"),
+    ("996769", "Other supporting services for air transport", "18%", "Handling"),
+    ("996791", "Goods transport agency (GTA) services", "", "Freight"),
+    ("996799", "Other supporting transport services n.e.c. (forwarding, documentation)", "18%", "Documentation"),
+    ("9968", "Postal and courier services (heading)", "18%", "Courier"),
+    ("996812", "Courier services", "18%", "Courier"),
+]
