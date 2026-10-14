@@ -47,3 +47,9 @@ Auth + three portals + lockout + audit; PUBLIC_PORTALS mode; tenant isolation; C
 - UI: OrgExt kit in esway-erp.html (tabs 01-05 + legacy tabs). Tests: backend/tests/test_org_credit.py (12), e2e/orgext.test.js.
 - Quotation: Taxable Yes/No + Tax % are visible columns; preview has With Tax / Without Tax.
 - QUEUED (user specs pasted in chat): Charge/SAC/GST catalogue import (47 charges, inactive until verified); Job stage + closure/reopen + right-side Job Activity History.
+
+## Update 2026-10-14 (night): Charge catalogue + Job lifecycle
+- Charge catalogue: POST /api/masters/charge/catalogue/import (47 charges, INACTIVE, tax review required; activation needs SAC, rate/treatment, notification ref, effective date; audited). Test: backend/tests/test_charge_catalogue.py, e2e/catalogue.test.js.
+- Job lifecycle (migration 0019): job_stage/closure_status columns on shipments; tables job_events (append-only, DB trigger blocks UPDATE), job_stage_history, job_closures, job_milestones. Engine app/job_lifecycle.py, API app/jobs_lifecycle_api.py (/api/jobs/{job_number}/lifecycle|milestones|stage|closure/validate|close|reopen|closures|stage-history|activity|activity/export). Permissions job.view_history/export_history/change_stage/close/reopen/exceptional_close. Company setting JOB_EXCEPTIONAL_CLOSURE (master type "setting") enables exceptional closure.
+- UI: JobKit in esway-erp.html (header chips, Close/Reopen/Change Stage dialogs, milestone recorder in Tracking tab, right-side Activity History drawer, job list columns/filters). Tests: backend/tests/test_job_lifecycle.py (10), e2e/joblife.test.js.
+- Known gaps: job document uploads are not stored server-side, so no document events exist; stage configuration is code-level per mode/direction (not editable in a screen); stage chip is not shown on the New Job form (no job number yet); email is not set up.

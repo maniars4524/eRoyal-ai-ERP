@@ -15402,6 +15402,285 @@ if(document.readyState !== "loading") initChatWidget();
 </script>
 <script>
 /* ============================================================
+   JOB LIFECYCLE KIT: job stage + closure status in the job header, manual close / reopen, milestone recorder,
+   right-side Job Activity History drawer, job list columns and filters. Every rule is enforced by /api/jobs/* on the server.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {say, esc2} = U;
+  const J = window.JobKit = {job:null, lc:null, list:{}, drawer:{open:false, items:[], total:0, offset:0, tab:"activity", order:"desc", f:{}}};
+  const tok = ()=> sessionStorage.getItem("esway_access_token");
+  async function req(method, path, body, headers){
+    const r = await fetch(path, {method, headers:{Authorization:"Bearer "+tok(), "Content-Type":"application/json", ...(headers||{})}, body: body ? JSON.stringify(body) : undefined});
+    const text = await r.text(); let data = null; try{ data = text ? JSON.parse(text) : null; }catch(e){ data = text; }
+    return {ok:r.ok, status:r.status, data, text};
+  }
+  const detailMsg = r=> { const d = r.data && r.data.detail; if(typeof d === "string") return d; if(Array.isArray(d)) return d.map(x=>x.msg).join("; "); if(d && d.message) return d.message; return "Request failed"; };
+  const dmyt = v=> v ? new Date(v).toLocaleString("en-GB", {day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}) : "—";
+  const dmy = v=> v ? new Date(v).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
+  const money = v=> "₹" + (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const opt = (v, t, sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(t===undefined?v:t)+'</option>';
+  const STAGE_CLS = s=> /Ready for Closure|Delivered/.test(s) ? "b-gr" : /Financials/.test(s) ? "b-am" : /Customs|Cargo/.test(s) ? "b-am" : /Job Created/.test(s) ? "b-gy" : "b-bl";
+  const CLOSE_CLS = {OPEN:"b-bl", CLOSED:"b-gy", REOPENED:"b-am"};
+  const stageChip = s=> '<span class="b '+STAGE_CLS(s)+'" title="Job stage">'+esc2(String(s).toUpperCase())+'</span>';
+  const closeChip = s=> '<span class="b '+(CLOSE_CLS[s]||"b-gy")+'" title="Closure status"'+(s==="CLOSED"?' style="background:var(--n);color:#fff"':'')+'>'+esc2(s)+'</span>';
+
+  (function css(){ const st = document.createElement("style"); st.textContent = `
+  #jlDrawer{position:fixed;top:0;right:0;height:100vh;width:430px;max-width:96vw;background:#fff;box-shadow:-8px 0 28px rgba(11,31,58,.22);z-index:120;transform:translateX(105%);transition:transform .2s ease;display:flex;flex-direction:column}
+  #jlDrawer.on{transform:none}
+  #jlDrawer .jl-h{padding:12px 14px;background:linear-gradient(135deg,#0B1F3A 55%,#1A6FBF);color:#fff}
+  #jlDrawer .jl-body{flex:1;overflow:auto;padding:10px 14px}
+  .jl-f{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 14px;border-bottom:1px solid var(--g1);background:var(--g0)}
+  .jl-ev{border-left:2px solid var(--g2);margin-left:5px;padding:0 0 12px 12px;position:relative}
+  .jl-ev:before{content:"";position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--bl)}
+  .jl-ev.FAILED:before,.jl-ev.REJECTED:before{background:var(--rd)} .jl-ev.cat-CLOSURE:before{background:var(--n)} .jl-ev.cat-REOPEN:before{background:var(--am)} .jl-ev.cat-STAGE:before{background:var(--gr)}
+  .jl-ev .t{font-weight:700;font-size:12px;color:var(--n)} .jl-ev .m{font-size:10.5px;color:var(--g5)} .jl-ev .d{font-size:11.5px;color:var(--g7);margin-top:2px}
+  .jl-ev details summary{cursor:pointer;font-size:10.5px;color:var(--bl);margin-top:3px}
+  .jl-ev table{font-size:10.5px;margin-top:4px;width:100%} .jl-ev td{padding:1px 4px;vertical-align:top}
+  .jl-hide{display:none !important}
+  .jl-head-chips{display:inline-flex;gap:6px;align-items:center;margin-left:12px;vertical-align:middle;flex-wrap:wrap}
+  .jl-cl{font-size:12px} .jl-cl .g{font-weight:800;color:var(--n);margin:10px 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+  .jl-cl .it{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid var(--g1)} .jl-cl .it .s{width:46px;flex:none;text-align:center}
+  @media(max-width:700px){#jlDrawer{width:100vw}}
+  `; document.head.appendChild(st); })();
+
+  /* ---------- header on the job detail screen ---------- */
+  function currentJob(){ const t = (document.getElementById("jobDetailNo")||{}).textContent || ""; return /^[A-Z0-9-]{5,}$/.test(t.trim()) && t.trim() !== "—" ? t.trim() : null; }
+  async function loadLifecycle(){
+    const no = currentJob(); J.job = no; if(!no) return;
+    const r = await req("GET","/api/jobs/"+encodeURIComponent(no)+"/lifecycle");
+    if(!r.ok) return; J.lc = r.data; renderHeader(); renderMilestones();
+    if(J.drawer.open) loadDrawer(true);
+  }
+  function renderHeader(){
+    const lc = J.lc; const scr = document.getElementById("s-job-detail"); if(!scr || !lc) return;
+    const title = document.getElementById("jobDetailNo"); if(!title) return;
+    let chips = document.getElementById("jlChips");
+    if(!chips){ chips = document.createElement("span"); chips.id = "jlChips"; chips.className = "jl-head-chips"; title.parentNode.insertBefore(chips, title.nextSibling); }
+    chips.innerHTML = '<span style="font-size:10px;color:var(--g5);font-weight:700">STAGE</span>'+stageChip(lc.job_stage)+(lc.stage_source==="MANUAL"?'<span class="b b-gy" title="'+esc2(lc.stage_reason||"")+'">manual</span>':'')+
+      '<span style="font-size:10px;color:var(--g5);font-weight:700;margin-left:6px">CLOSURE</span>'+closeChip(lc.closure_status)+
+      '<span style="font-size:10.5px;color:var(--g5)">Stage updated '+dmyt(lc.stage_updated_at)+(lc.last_closed_at ? " · Last closed "+dmyt(lc.last_closed_at)+" by "+esc2(lc.last_closed_by||"") : "")+'</span>';
+    const bar = scr.querySelector(".ph .pa"); if(!bar) return;
+    bar.querySelectorAll("[data-jl]").forEach(b=>b.remove());
+    const add = (id, label, cls)=> { const b = document.createElement("button"); b.type = "button"; b.className = "btn btn-sm "+cls; b.dataset.jl = id; b.innerHTML = label; bar.appendChild(b); return b; };
+    const a = lc.actions;
+    if(a.can_change_stage) add("stage", "Change Stage", "btn-out");
+    if(a.can_close) add("close", "Close Job", lc.job_stage==="Ready for Closure" ? "btn-suc" : "btn-out");
+    if(a.can_reopen) add("reopen", "Reopen Job", "btn-pri");
+    if(a.can_view_history) add("history", "🕘 Activity History <span class=\"b b-gy\" style=\"margin-left:4px\">"+lc.event_count+"</span>", "btn-out");
+  }
+
+  /* ---------- milestones (Tracking tab) ---------- */
+  function renderMilestones(){
+    const tab = document.getElementById("jt6"); if(!tab || !J.lc) return;
+    let card = document.getElementById("jlMilestones");
+    if(!card){ card = document.createElement("div"); card.id = "jlMilestones"; card.className = "card"; card.style.marginBottom = "12px"; tab.insertBefore(card, tab.firstChild); }
+    const a = J.lc.actions;
+    card.innerHTML = '<div class="ch"><div class="ct">Operational Milestones (actual dates)</div><div style="font-size:11px;color:var(--g5)">Stage moves only when an actual milestone is confirmed. Planned dates never complete a milestone.</div></div><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Milestone</th><th>Stage it drives</th><th>Needed to close</th><th>Status</th><th>Actual</th><th>Remarks</th><th class="no-print"></th></tr></thead><tbody>'+
+      J.lc.milestones.map(m=>'<tr><td style="font-weight:600">'+esc2(m.label)+'</td><td>'+esc2(m.stage||"—")+'</td><td>'+(m.required?'<span class="b b-am">Required</span>':'<span class="b b-gy">Optional</span>')+'</td><td>'+(m.done?'<span class="b b-gr">Confirmed</span>':'<span class="b b-gy">Pending</span>')+'</td><td>'+dmyt(m.actual_at)+(m.source==="booking"?' <span class="b b-gy">booking</span>':'')+'</td><td>'+esc2(m.remarks||"")+'</td><td class="no-print">'+(a.can_record_milestone && m.source!=="booking" ? '<button class="ta" type="button" data-jl-ms="'+m.code+'">'+(m.done?"Correct":"Confirm")+'</button>' : '')+'</td></tr>').join("")+'</tbody></table></div></div>';
+  }
+  function milestoneDialog(code){
+    const m = J.lc.milestones.find(x=>x.code===code); const now = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+    openModal({title:(m.done?"Correct ":"Confirm ")+m.label, bodyHTML:'<div class="fr"><div class="fg"><label class="fl">Actual date &amp; time *</label><input class="fc" type="datetime-local" id="jlMsAt" value="'+now+'"></div></div><div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Remarks</label><input class="fc" id="jlMsRem" value="'+esc2(m.remarks||"")+'"></div></div>'+
+      (m.done ? '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Correction reason * (the original value stays in the history)</label><input class="fc" id="jlMsWhy"></div></div>' : ''), footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="jlMsSave">Save</button>'});
+    document.getElementById("jlMsSave").addEventListener("click", async ()=>{
+      const at = document.getElementById("jlMsAt").value; if(!at){ say("Date required", "Enter the actual date and time", "warn"); return; }
+      const body = {actual_at:new Date(at).toISOString(), remarks:document.getElementById("jlMsRem").value || null}; if(m.done) body.correction_reason = (document.getElementById("jlMsWhy")||{}).value || null;
+      const r = await req("PUT","/api/jobs/"+encodeURIComponent(J.job)+"/milestones/"+code, body);
+      if(!r.ok){ say("Could not save the milestone", detailMsg(r)); return; }
+      closeModal(); say("Milestone saved", m.label); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
+    });
+  }
+
+  /* ---------- manual stage ---------- */
+  function stageDialog(){
+    const lc = J.lc;
+    openModal({title:"Change Job Stage", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">A manual change records who changed it and why. It does <b>not</b> confirm any milestone or document.</div><div class="fr"><div class="fg"><label class="fl">Job</label><input class="fc" disabled value="'+esc2(lc.job_number)+'"></div><div class="fg"><label class="fl">Current stage</label><input class="fc" disabled value="'+esc2(lc.job_stage)+'"></div></div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">New stage *</label><select class="fc" id="jlNewStage">'+lc.stages.map(s=>opt(s,s,s===lc.job_stage)).join("")+'</select></div></div><div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Reason for change *</label><input class="fc" id="jlStageWhy"></div></div><div id="jlStageWarn"></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="jlStageSave">Change Stage</button>'});
+    let confirmed = false;
+    document.getElementById("jlStageSave").addEventListener("click", async ()=>{
+      const stage = document.getElementById("jlNewStage").value, reason = document.getElementById("jlStageWhy").value.trim();
+      if(reason.length < 3){ say("Reason required", "Explain why the stage is being changed", "warn"); return; }
+      const r = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/stage", {stage, reason, confirm_conflict:confirmed});
+      if(r.status === 409 && /STAGE_CONFLICT/.test(detailMsg(r))){ confirmed = true; document.getElementById("jlStageWarn").innerHTML = '<div class="ib ib-am">'+esc2(detailMsg(r).replace("STAGE_CONFLICT: ",""))+'</div>'; document.getElementById("jlStageSave").textContent = "Confirm anyway"; return; }
+      if(!r.ok){ say("Could not change the stage", detailMsg(r)); return; }
+      closeModal(); say("Stage changed", stage); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
+    });
+  }
+
+  /* ---------- close job ---------- */
+  async function closeDialog(){
+    const ack = {no_buy_cost:false, accrual:false, cost_sheet_reviewed:false, discrepancy:false};
+    let exceptional = false;
+    async function evaluate(){
+      const r = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/closure/validate", ack);
+      if(!r.ok){ say("Could not evaluate the closure checklist", detailMsg(r)); return null; }
+      return r.data;
+    }
+    async function draw(){
+      const v = await evaluate(); if(!v) return;
+      const t = v.totals; const groups = {}; v.items.forEach(i=> (groups[i.group] = groups[i.group] || []).push(i));
+      const badge = s=> s==="PASS" ? '<span class="b b-gr">PASS</span>' : s==="ACK" ? '<span class="b b-bl">ACK</span>' : s==="NA" ? '<span class="b b-gy">N/A</span>' : '<span class="b b-rd">PENDING</span>';
+      const body = '<div class="jl-cl"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px"><div><div class="m" style="font-size:10px;color:var(--g5)">JOB</div><b>'+esc2(v.job_number)+'</b></div><div><div style="font-size:10px;color:var(--g5)">STAGE</div>'+stageChip(v.job_stage)+'</div><div><div style="font-size:10px;color:var(--g5)">CLOSURE</div>'+closeChip(v.closure_status)+'</div><div><div style="font-size:10px;color:var(--g5)">CLOSED BY</div><b>'+esc2(((window.currentUser||{}).first_name)||"You")+'</b> · now</div></div>'+
+        Object.keys(groups).sort().map(g=>'<div class="g">'+esc2(g)+'</div>'+groups[g].map(i=>'<div class="it"><div class="s">'+badge(i.status)+'</div><div style="flex:1"><div>'+esc2(i.label)+'</div>'+(i.status==="FAIL" ? '<div style="font-size:11px;color:var(--rd)">'+esc2(i.detail)+'</div>' : '')+(i.ack_key && i.status!=="PASS" ? '<label style="font-size:11px"><input type="checkbox" data-jl-ack="'+i.ack_key+'"'+(ack[i.ack_key]?" checked":"")+'> I confirm this is correct / acknowledged</label>' : '')+(i.link && i.status==="FAIL" ? ' <span class="ta" data-jl-link="'+i.link+'" style="font-size:11px">Open →</span>' : '')+'</div></div>').join("")).join("")+
+        '<div class="g">Final figures</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div class="ox-kpi" style="border:1px solid var(--g2);border-radius:8px;padding:6px 9px"><div style="font-size:10px;color:var(--g5)">FINAL SELL</div><b>'+money(t.sell)+'</b></div><div style="border:1px solid var(--g2);border-radius:8px;padding:6px 9px"><div style="font-size:10px;color:var(--g5)">FINAL BUY</div><b>'+money(t.buy)+'</b></div><div style="border:1px solid var(--g2);border-radius:8px;padding:6px 9px"><div style="font-size:10px;color:var(--g5)">FINAL MARGIN</div><b>'+money(t.margin)+'</b></div></div>'+
+        '<div class="fr" style="margin-top:10px"><div class="fg" style="grid-column:span 2"><label class="fl">Closure remarks</label><input class="fc" id="jlCloseRem" placeholder="e.g. Final cost review completed"></div></div>'+
+        (!v.ready && v.exceptional_allowed ? '<div class="ib ib-am"><label><input type="checkbox" id="jlExc"'+(exceptional?" checked":"")+'> <b>Exceptional closure</b> (allowed by company policy, needs your approval authority and a justification)</label><input class="fc" id="jlExcWhy" placeholder="Justification (at least 10 characters)" style="margin-top:6px;'+(exceptional?"":"display:none")+'"></div>' : '')+'</div>';
+      const modalBody = document.getElementById("modalBody"); const keepRem = (document.getElementById("jlCloseRem")||{}).value || ""; modalBody.innerHTML = body; document.getElementById("jlCloseRem").value = keepRem;
+      const btn = document.getElementById("jlConfirmClose"); btn.disabled = !(v.ready || exceptional);
+      modalBody.querySelectorAll("[data-jl-ack]").forEach(cb=> cb.onchange = ()=>{ ack[cb.dataset.jlAck] = cb.checked; draw(); });
+      const ex = document.getElementById("jlExc"); if(ex) ex.onchange = ()=>{ exceptional = ex.checked; draw(); };
+      modalBody.querySelectorAll("[data-jl-link]").forEach(a=> a.onclick = ()=>{ const [scr, tab] = a.dataset.jlLink.split(":"); closeModal(); const b = document.querySelector('[data-tab="'+tab+'"]'); if(b) b.click(); });
+    }
+    openModal({title:"Close Job — validation checklist", size:"lg", bodyHTML:'<div style="padding:16px;color:var(--g5)">Checking the job…</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-suc" type="button" id="jlConfirmClose" disabled>CONFIRM JOB CLOSURE</button>'});
+    await draw();
+    document.getElementById("jlConfirmClose").addEventListener("click", async ()=>{
+      const btn = document.getElementById("jlConfirmClose"); btn.disabled = true;
+      const body = {ack, remarks:(document.getElementById("jlCloseRem")||{}).value || null, exceptional, justification:(document.getElementById("jlExcWhy")||{}).value || null};
+      const r = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/close", body, {"Idempotency-Key":(window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now())+Math.random())});
+      if(!r.ok){ say("Job was not closed", detailMsg(r)); btn.disabled = false; await draw(); return; }
+      closeModal(); say("Job closed", J.job+" is now CLOSED. It can be reopened by an authorised user."); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
+    });
+  }
+
+  /* ---------- reopen ---------- */
+  async function reopenDialog(){
+    const cl = await req("GET","/api/jobs/"+encodeURIComponent(J.job)+"/closures"); const last = cl.ok ? (cl.data.find(c=>c.action!=="REOPEN")||{}) : {};
+    openModal({title:"Reopen Job", bodyHTML:'<div class="fr"><div class="fg"><label class="fl">Job</label><input class="fc" disabled value="'+esc2(J.job)+'"></div><div class="fg"><label class="fl">Previous closure</label><input class="fc" disabled value="'+dmyt(last.at)+'"></div><div class="fg"><label class="fl">Closed by</label><input class="fc" disabled value="'+esc2(last.actor||"")+'"></div></div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Reopen reason *</label><select class="fc" id="jlReopenWhy">'+J.lc.reopen_reasons.map(r=>opt(r)).join("")+'</select></div></div><div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Additional remarks</label><input class="fc" id="jlReopenRem"></div></div><div class="ib ib-bl">Posted invoices and accounting entries are not reversed automatically. The earlier closure stays in the history.</div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="jlReopenGo">REOPEN JOB</button>'});
+    document.getElementById("jlReopenGo").addEventListener("click", async ()=>{
+      const r = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/reopen", {reason:document.getElementById("jlReopenWhy").value, remarks:document.getElementById("jlReopenRem").value || null}, {"Idempotency-Key":(window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now())+Math.random())});
+      if(!r.ok){ say("Could not reopen the job", detailMsg(r)); return; }
+      closeModal(); say("Job reopened", J.job); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
+    });
+  }
+  function refreshAfter(){ if(J.drawer.open) loadDrawer(true); if(window.populateJobDetail && J.job) { /* keep the page data in sync without losing the user's place */ } }
+
+  /* ---------- activity history drawer ---------- */
+  function ensureDrawer(){
+    let d = document.getElementById("jlDrawer"); if(d) return d;
+    d = document.createElement("aside"); d.id = "jlDrawer"; d.setAttribute("aria-label","Job activity history");
+    d.innerHTML = '<div class="jl-h"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:10.5px;opacity:.7;letter-spacing:.6px">JOB ACTIVITY HISTORY</div><div style="font-size:15px;font-weight:800" id="jlDJob">—</div></div><button type="button" id="jlDClose" style="background:transparent;border:0;color:#fff;font-size:20px;cursor:pointer" aria-label="Close">✕</button></div><div id="jlDMeta" style="margin-top:6px;font-size:11px"></div></div>'+
+      '<div class="tabs" style="margin:0;padding:0 10px"><button class="tbb on" type="button" data-jl-tab="activity">Activity</button><button class="tbb" type="button" data-jl-tab="stages">Stage history</button><button class="tbb" type="button" data-jl-tab="closures">Closures</button></div>'+
+      '<div class="jl-f" id="jlDFilters"><select class="fc" id="jlFcat"><option value="">All activities</option><option value="header">Job creation &amp; header</option><option value="operations">Operational milestones</option><option value="documents">Documentation</option><option value="buycost">Buy cost</option><option value="sellcost">Sell cost</option><option value="finance">Invoices &amp; financials</option><option value="stage">Stage changes</option><option value="closure">Closure</option><option value="reopen">Reopening</option><option value="approvals">Approvals</option><option value="security">Security &amp; permissions</option><option value="system">System &amp; integration</option></select>'+
+      '<select class="fc" id="jlFuser"><option value="">All users</option></select><input class="fc" type="date" id="jlFfrom" title="From"><input class="fc" type="date" id="jlFto" title="To"><input class="fc" id="jlFq" placeholder="Search…" style="grid-column:span 2"><select class="fc" id="jlFres"><option value="">Any result</option><option value="SUCCESS">Success</option><option value="FAILED">Failed</option><option value="REJECTED">Rejected</option></select><button class="btn btn-out btn-sm" type="button" id="jlFsort">Newest first</button></div>'+
+      '<div class="jl-body" id="jlDBody"></div><div style="padding:8px 14px;border-top:1px solid var(--g1);display:flex;justify-content:space-between;align-items:center"><span id="jlDCount" style="font-size:11px;color:var(--g5)"></span><span><button class="btn btn-out btn-sm" type="button" id="jlDMore">Load older</button> <button class="btn btn-out btn-sm" type="button" id="jlDExport">Export</button></span></div>';
+    document.body.appendChild(d);
+    d.querySelector("#jlDClose").onclick = ()=> closeDrawer();
+    d.querySelectorAll("[data-jl-tab]").forEach(b=> b.onclick = ()=>{ J.drawer.tab = b.dataset.jlTab; d.querySelectorAll("[data-jl-tab]").forEach(x=>x.classList.toggle("on", x===b)); loadDrawer(true); });
+    ["jlFcat","jlFuser","jlFfrom","jlFto","jlFres"].forEach(id=> d.querySelector("#"+id).onchange = ()=> loadDrawer(true));
+    let t; d.querySelector("#jlFq").oninput = ()=>{ clearTimeout(t); t = setTimeout(()=>loadDrawer(true), 300); };
+    d.querySelector("#jlFsort").onclick = e=>{ J.drawer.order = J.drawer.order==="desc" ? "asc" : "desc"; e.target.textContent = J.drawer.order==="desc" ? "Newest first" : "Oldest first"; loadDrawer(true); };
+    d.querySelector("#jlDMore").onclick = ()=> loadDrawer(false);
+    d.querySelector("#jlDExport").onclick = exportHistory;
+    return d;
+  }
+  function openDrawer(){ const d = ensureDrawer(); J.drawer.open = true; J.drawer.tab = "activity"; d.querySelectorAll("[data-jl-tab]").forEach(x=>x.classList.toggle("on", x.dataset.jlTab==="activity")); d.classList.add("on"); d.querySelector("#jlDJob").textContent = J.job; d.querySelector("#jlDExport").style.display = J.lc && J.lc.actions.can_export_history ? "" : "none"; loadDrawer(true); }
+  function closeDrawer(){ const d = document.getElementById("jlDrawer"); if(d) d.classList.remove("on"); J.drawer.open = false; }
+  function eventHtml(e){
+    const rows = [["Event ID", e.id], ["Event type", e.event_type], ["Category", e.category], ["Actor", e.actor+" ("+e.actor_type+")"], ["Source", e.source], ["Result", e.result], ["Related", e.related_type ? e.related_type+" "+(e.related_id||"") : ""], ["Correlation", e.correlation_id], ["Approval", e.approval_ref]].filter(r=>r[1]);
+    const det = Object.entries(e.detail||{}).filter(([k,v])=>v!==null&&v!==""&&typeof v!=="object").map(([k,v])=>[k.replace(/_/g," "), v]);
+    return '<div class="jl-ev '+esc2(e.result)+' cat-'+esc2(e.category)+'"><div class="t">'+esc2(e.description)+(e.result!=="SUCCESS" ? ' <span class="b b-rd">'+esc2(e.result)+'</span>' : '')+'</div><div class="m">'+dmyt(e.at)+' · '+esc2(e.actor||"System")+' · '+esc2(e.category)+'</div>'+
+      (e.previous_value!==null || e.new_value!==null ? '<div class="d">'+(e.previous_value!==null ? '<span style="color:var(--g5)">'+esc2(e.previous_value)+'</span> → ' : '')+'<b>'+esc2(e.new_value===null?"":e.new_value)+'</b></div>' : '')+(e.reason ? '<div class="d"><i>Reason:</i> '+esc2(e.reason)+'</div>' : '')+
+      '<details><summary>Details</summary><table>'+rows.concat(det).map(r=>'<tr><td style="color:var(--g5)">'+esc2(r[0])+'</td><td>'+esc2(r[1])+'</td></tr>').join("")+'</table></details></div>';
+  }
+  async function loadDrawer(reset){
+    const d = ensureDrawer(); const D = J.drawer; if(!J.job) return;
+    const body = d.querySelector("#jlDBody"); const lc = J.lc;
+    d.querySelector("#jlDMeta").innerHTML = lc ? stageChip(lc.job_stage)+" "+closeChip(lc.closure_status)+' <span style="opacity:.8">· '+lc.event_count+' events · last activity '+dmyt(lc.last_activity_at)+'</span>' : "";
+    d.querySelector("#jlDFilters").style.display = D.tab === "activity" ? "" : "none"; d.querySelector("#jlDMore").style.display = D.tab === "activity" ? "" : "none";
+    if(reset){ D.items = []; D.offset = 0; body.innerHTML = '<div style="color:var(--g5);padding:10px">Loading…</div>'; }
+    const base = "/api/jobs/"+encodeURIComponent(J.job);
+    if(D.tab === "stages"){
+      const r = await req("GET", base+"/stage-history"); if(!r.ok){ body.innerHTML = '<div class="ib ib-am">'+esc2(detailMsg(r))+'</div>'; return; }
+      body.innerHTML = r.data.length ? r.data.map(h=>'<div class="jl-ev cat-STAGE"><div class="t">'+esc2(h.previous_stage||"—")+' → '+esc2(h.new_stage)+'</div><div class="m">'+dmyt(h.at)+' · '+esc2(h.actor||"System")+' · '+esc2(h.source)+'</div><div class="d">'+esc2(h.trigger||"")+(h.reason ? '<br><i>Reason:</i> '+esc2(h.reason) : '')+'</div></div>').join("") : '<div style="color:var(--g5);padding:10px">No stage changes yet.</div>';
+      d.querySelector("#jlDCount").textContent = r.data.length+" stage changes"; return;
+    }
+    if(D.tab === "closures"){
+      const r = await req("GET", base+"/closures"); if(!r.ok){ body.innerHTML = '<div class="ib ib-am">'+esc2(detailMsg(r))+'</div>'; return; }
+      body.innerHTML = r.data.length ? r.data.map(c=>'<div class="jl-ev cat-'+(c.action==="REOPEN"?"REOPEN":"CLOSURE")+'"><div class="t">'+(c.action==="REOPEN" ? "Reopened" : c.action==="EXCEPTIONAL" ? "Closed (exceptional)" : "Closed")+' · cycle '+c.cycle_no+'</div><div class="m">'+dmyt(c.at)+' · '+esc2(c.actor||"")+'</div><div class="d">'+esc2(c.previous_status)+' → <b>'+esc2(c.new_status)+'</b>'+(c.reason ? '<br><i>Reason:</i> '+esc2(c.reason) : '')+(c.remarks ? '<br>'+esc2(c.remarks) : '')+(c.final_sell!==null ? '<br>Sell '+money(c.final_sell)+' · Buy '+money(c.final_buy)+' · Margin '+money(c.final_margin) : '')+'</div></div>').join("") : '<div style="color:var(--g5);padding:10px">This job has never been closed.</div>';
+      d.querySelector("#jlDCount").textContent = r.data.length+" closure records"; return;
+    }
+    const q = new URLSearchParams({limit:"25", offset:String(D.offset), order:D.order});
+    const val = id=> d.querySelector("#"+id).value; [["category","jlFcat"],["actor_id","jlFuser"],["date_from","jlFfrom"],["date_to","jlFto"],["q","jlFq"],["result","jlFres"]].forEach(([k,id])=>{ if(val(id)) q.set(k, val(id)); });
+    const r = await req("GET", base+"/activity?"+q.toString());
+    if(!r.ok){ body.innerHTML = '<div class="ib ib-am">'+esc2(detailMsg(r))+'</div>'; return; }
+    D.total = r.data.total; D.items = D.items.concat(r.data.items); D.offset = D.items.length;
+    const sel = d.querySelector("#jlFuser"); if(sel.options.length <= 1) r.data.actors.forEach(a=>{ const o = document.createElement("option"); o.value = a.id; o.textContent = a.name; sel.appendChild(o); });
+    body.innerHTML = D.items.length ? D.items.map(eventHtml).join("") : '<div style="color:var(--g5);padding:14px;text-align:center">'+(Object.values(Object.fromEntries(q)).length > 3 ? "No activity matches these filters." : "No activity recorded for this job yet.")+'</div>';
+    d.querySelector("#jlDCount").textContent = "Showing "+D.items.length+" of "+D.total; d.querySelector("#jlDMore").style.display = D.items.length < D.total ? "" : "none";
+  }
+  async function exportHistory(){
+    const r = await fetch("/api/jobs/"+encodeURIComponent(J.job)+"/activity/export", {headers:{Authorization:"Bearer "+tok()}});
+    if(!r.ok){ say("Export not allowed", "You do not have permission to export this history", "warn"); return; }
+    const blob = await r.blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = J.job+"-activity.csv"; document.body.appendChild(a); a.click(); a.remove(); say("History exported", J.job+"-activity.csv");
+  }
+
+  /* ---------- job list: stage / closure columns and filters ---------- */
+  const LIST_COLS = ["Job Stage","Closure","Last Stage Update","Latest Closed","Reopens","Last Activity","History"];
+  async function decorateList(){
+    const table = document.getElementById("jobTable"); if(!table) return;
+    const head = table.querySelector("thead tr"); if(head && !head.dataset.jl){ head.dataset.jl = "1"; const st = Array.from(head.children).find(th=>th.textContent.trim()==="Status"); LIST_COLS.slice().reverse().forEach(c=>{ const th = document.createElement("th"); th.textContent = c; th.dataset.jlCol = "1"; st.after(th); }); }
+    if(!J.list.filters){
+      J.list.filters = true; const bar = document.querySelector("#s-job-list .card .ch > div"); if(bar){
+        const mk = (id, html)=> { const s = document.createElement("select"); s.className = "fc"; s.id = id; s.style.cssText = "width:150px;padding:5px 7px"; s.innerHTML = html; s.onchange = applyListFilters; bar.appendChild(s); };
+        mk("jlListStage", '<option value="">All stages</option>'+(J.stages||[]).map(s=>'<option>'+esc2(s)+'</option>').join(""));
+        mk("jlListClosure", '<option value="">All closure states</option><option value="OPEN">Open jobs</option><option value="CLOSED">Closed jobs</option><option value="REOPENED">Reopened jobs</option><option value="READY">Ready for closure</option><option value="DOCS">Documentation pending</option><option value="FIN">Financials pending</option>');
+        const f = document.createElement("input"); f.type = "date"; f.className = "fc"; f.id = "jlListFrom"; f.title = "Last activity from"; f.style.cssText = "width:130px;padding:5px 7px"; f.onchange = applyListFilters; bar.appendChild(f);
+        const t = document.createElement("input"); t.type = "date"; t.className = "fc"; t.id = "jlListTo"; t.title = "Last activity to"; t.style.cssText = "width:130px;padding:5px 7px"; t.onchange = applyListFilters; bar.appendChild(t);
+      }
+    }
+    const r = await req("GET","/api/shipments"); if(!r.ok) return; const byNo = Object.fromEntries(r.data.map(j=>[j.job_number, j]));
+    document.querySelectorAll("#jobTableBody tr[data-job-row]").forEach(tr=>{
+      const no = tr.querySelector("[data-job]") ? tr.querySelector("[data-job]").dataset.job : null; const j = byNo[no]; if(!j) return;
+      tr.dataset.jlStage = j.job_stage; tr.dataset.jlClosure = j.closure_status; tr.dataset.jlActivity = j.last_activity_at || "";
+      tr.querySelectorAll("td[data-jl-cell]").forEach(td=>td.remove());
+      const cells = [stageChip(j.job_stage), closeChip(j.closure_status), dmyt(j.stage_updated_at), j.last_closed_at ? dmy(j.last_closed_at) : "—", String(j.reopen_count||0), dmyt(j.last_activity_at), '<button class="ta" type="button" data-jl-hist="'+esc2(no)+'">View</button>'];
+      const status = tr.children[7]; cells.slice().reverse().forEach(h=>{ const td = document.createElement("td"); td.dataset.jlCell = "1"; td.innerHTML = h; status.after(td); });
+    });
+    const empty = document.getElementById("noJobsRow"); if(empty) empty.firstElementChild.colSpan = 17;
+    applyListFilters();
+  }
+  function applyListFilters(){
+    const v = id=> (document.getElementById(id)||{}).value || "";
+    const stage = v("jlListStage"), cl = v("jlListClosure"), from = v("jlListFrom"), to = v("jlListTo");
+    document.querySelectorAll("#jobTableBody tr[data-job-row]").forEach(tr=>{
+      let show = true; const s = tr.dataset.jlStage || "", c = tr.dataset.jlClosure || "", act = (tr.dataset.jlActivity||"").slice(0,10);
+      if(stage && s !== stage) show = false;
+      if(cl === "OPEN" || cl === "CLOSED" || cl === "REOPENED"){ if(c !== cl) show = false; }
+      if(cl === "READY" && s !== "Ready for Closure") show = false;
+      if(cl === "FIN" && s !== "Financials Pending") show = false;
+      if(cl === "DOCS" && !["Job Created","Booking In Progress","Booking Confirmed","Documentation In Progress"].includes(s)) show = false;
+      if(from && act < from) show = false; if(to && act > to) show = false;
+      tr.classList.toggle("jl-hide", !show);
+    });
+  }
+
+  /* ---------- wiring ---------- */
+  document.addEventListener("click", e=>{
+    const b = e.target.closest("[data-jl]"); if(b){ e.stopPropagation(); const k = b.dataset.jl; if(k==="history") return openDrawer(); if(k==="stage") return stageDialog(); if(k==="close") return closeDialog(); if(k==="reopen") return reopenDialog(); }
+    const m = e.target.closest("[data-jl-ms]"); if(m){ e.stopPropagation(); return milestoneDialog(m.dataset.jlMs); }
+    const h = e.target.closest("[data-jl-hist]"); if(h){ e.stopPropagation(); J.pendingHistory = h.dataset.jlHist; const c = document.querySelector('[data-job="'+h.dataset.jlHist+'"]'); if(c) c.click(); setTimeout(()=>{ const btn = document.querySelector('#s-job-detail [data-jl="history"]'); if(btn) btn.click(); }, 1500); }
+  }, true);
+  const obs = new MutationObserver(()=>{ const no = currentJob(); if(no && no !== J.lastLoaded){ J.lastLoaded = no; closeDrawer(); loadLifecycle(); } });
+  document.addEventListener("DOMContentLoaded", ()=>{ const t = document.getElementById("jobDetailNo"); if(t) obs.observe(t, {childList:true, characterData:true, subtree:true}); });
+  if(document.readyState !== "loading"){ const t = document.getElementById("jobDetailNo"); if(t) obs.observe(t, {childList:true, characterData:true, subtree:true}); }
+  const tableObs = new MutationObserver(()=>{ clearTimeout(J.listTimer); J.listTimer = setTimeout(()=>{ if(document.querySelectorAll("#jobTableBody tr[data-job-row]:not([data-jl-cell-done])").length){ document.querySelectorAll("#jobTableBody tr[data-job-row]").forEach(tr=>tr.dataset.jlCellDone = "1"); decorateList(); } }, 250); });
+  document.addEventListener("DOMContentLoaded", ()=>{ const tb = document.getElementById("jobTableBody"); if(tb) tableObs.observe(tb, {childList:true}); });
+  if(document.readyState !== "loading"){ const tb = document.getElementById("jobTableBody"); if(tb) tableObs.observe(tb, {childList:true}); }
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    prev(screen, opts);
+    if(screen === "job-detail"){ J.lastLoaded = null; setTimeout(()=>{ const no = currentJob(); if(no){ J.lastLoaded = no; loadLifecycle(); } }, 400); }
+    else closeDrawer();
+    if(screen === "job-list"){ req("GET","/api/jobs/stages").then(r=>{ if(r.ok){ J.stages = r.data.stages; const s = document.getElementById("jlListStage"); if(s && s.options.length <= 1) J.stages.forEach(x=>{ const o = document.createElement("option"); o.textContent = x; s.appendChild(o); }); } }); decorateList(); }
+  };
+})();
+</script>
+<script>
+/* ============================================================
    DASHBOARD KIT: every number comes from GET /api/dashboard/summary (tenant-scoped, live database)
    ============================================================ */
 (function(){
