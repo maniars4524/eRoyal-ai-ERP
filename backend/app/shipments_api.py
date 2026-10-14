@@ -6,10 +6,12 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from decimal import Decimal
+from .credit_control import enforce as credit_enforce
 from .auth import permission_required
 from .auth_api import record_audit
 from .db import get_db
-from .models import DocSequence, Shipment, User
+from .models import DocSequence, Shipment, User, OrgBranch
 from .schemas_auth import ShipmentCreate, ShipmentUpdate
 
 router = APIRouter(prefix="/api/shipments", tags=["shipments"])
@@ -46,6 +48,9 @@ def list_shipments_full(user: User = Depends(permission_required("shipment.read"
 def create_shipment(payload: ShipmentCreate, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
     data = payload.model_dump()
+    if data.get("party_branch_id") is not None and not (data.get("customer_id") and db.scalar(select(OrgBranch.id).where(OrgBranch.id == data["party_branch_id"], OrgBranch.customer_id == data["customer_id"], OrgBranch.organization_id == organization_id))):
+        raise HTTPException(status_code=422, detail="The branch does not belong to the selected organization")
+    credit_enforce(db, organization_id, data.get("customer_id"), "create shipment job", user.id, data.get("party_branch_id"), Decimal(str(data.get("revenue") or 0)))
     job_number = _next_job_number(db, organization_id, data["mode"], data["direction"])
     shipment = Shipment(organization_id=organization_id, job_number=job_number, created_by=user.id, **data)
     db.add(shipment)

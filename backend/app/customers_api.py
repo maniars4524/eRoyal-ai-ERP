@@ -4,7 +4,8 @@ from sqlalchemy.dialects.postgresql import JSONB, array
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .auth import permission_required
+from .org_ext_api import validate_accounting
+from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
 from .models import Customer, User
@@ -36,6 +37,7 @@ def list_customers(
 @router.post("", status_code=201)
 def create_customer(payload: CustomerCreate, user: User = Depends(permission_required("customer.create")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
+    validate_accounting(db, organization_id, payload.data)
     customer = Customer(organization_id=organization_id, created_by=user.id, **payload.model_dump())
     db.add(customer)
     try:
@@ -65,6 +67,11 @@ def update_customer(customer_id: int, payload: CustomerUpdate, user: User = Depe
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     changes = payload.model_dump(exclude_unset=True)
+    if "data" in changes:
+        validate_accounting(db, organization_id, changes["data"])
+        old, new = customer.data or {}, changes["data"] or {}
+        if str(old.get("credit_customer", "")).lower() != str(new.get("credit_customer", "")).lower() and not has_permission(user, "credit.request"):
+            raise HTTPException(status_code=403, detail="You are not allowed to change the Credit Customer setting")
     for key, value in changes.items():
         setattr(customer, key, value)
     record_audit(db, "CUSTOMER_UPDATED", "CUSTOMER", user, organization_id, "Customer", str(customer.id), changes)

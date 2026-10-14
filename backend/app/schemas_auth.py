@@ -182,6 +182,7 @@ class ShipmentCreate(BaseModel):
     etd: date | None = None
     eta: date | None = None
     customer_id: int | None = None
+    party_branch_id: int | None = None
     consignee: str | None = Field(default=None, max_length=160)
     packages: int | None = Field(default=None, ge=0)
     package_type: str | None = Field(default=None, max_length=40)

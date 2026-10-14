@@ -8,11 +8,25 @@ from .models import Permission, Role
 ROLE_LABELS = {"ERP_ADMIN": "Admin", "OPERATIONS": "Operations", "ACCOUNTS": "Accounts", "VIEWER": "Viewer"}
 ROLE_PERMISSIONS = {
     "ERP_ADMIN": "ALL",
-    "OPERATIONS": ["organization.read", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update", "master.read", "billing.read", "billing.create", "quote.read", "quote.create", "quote.send", "quote.view_cost", "booking.read", "booking.create", "booking.confirm"],
-    "ACCOUNTS": ["organization.read", "customer.read", "shipment.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "billing.cancel", "payment.read", "payment.create", "payment.cancel", "quote.read", "quote.view_cost", "quote.rate_override", "booking.read"],
-    "VIEWER": ["organization.read", "customer.read", "shipment.read", "master.read", "user.read", "billing.read", "payment.read", "quote.read", "booking.read"],
+    "OPERATIONS": ["organization.read", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update", "master.read", "billing.read", "billing.create", "quote.read", "quote.create", "quote.send", "quote.view_cost", "booking.read", "booking.create", "booking.confirm", "credit.read", "credit.request"],
+    "ACCOUNTS": ["organization.read", "customer.read", "shipment.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "billing.cancel", "payment.read", "payment.create", "payment.cancel", "quote.read", "quote.view_cost", "quote.rate_override", "booking.read", "credit.read", "credit.request"],
+    "VIEWER": ["organization.read", "customer.read", "shipment.read", "master.read", "user.read", "billing.read", "payment.read", "quote.read", "booking.read", "credit.read"],
 }
 PLATFORM_ONLY = {"organization.create", "organization.activate"}
+
+
+def sync_template_roles(db: Session) -> int:
+    """Bring every tenant's template roles (Admin, Operations, ...) up to date after new permissions were added."""
+    changed = 0
+    all_permissions = [p for p in db.scalars(select(Permission)) if p.code not in PLATFORM_ONLY]
+    for role in db.scalars(select(Role).options(selectinload(Role.permissions)).where(Role.organization_id.is_not(None), Role.name.in_(list(ROLE_PERMISSIONS)))):
+        spec = ROLE_PERMISSIONS[role.name]
+        wanted = all_permissions if spec == "ALL" else [p for p in all_permissions if p.code in spec]
+        if {p.code for p in role.permissions} != {p.code for p in wanted}:
+            role.permissions = wanted
+            changed += 1
+    db.commit()
+    return changed
 
 
 def ensure_role(db: Session, organization_id: int, key: str) -> Role:

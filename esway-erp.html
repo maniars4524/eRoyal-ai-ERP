@@ -1961,17 +1961,18 @@ tbody tr:hover{background:var(--g0)}
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="building-plus" style="color:var(--bl)"></svg>New Organization</div><div class="ps">Create a new party — client, vendor, carrier, CHA, agent or transporter</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="org-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-go="org-list">Cancel</button><button class="btn btn-suc btn-sm" id="orgSaveBtn"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
 
 <div class="tabs" data-tabgroup="org">
-  <button class="tbb on" data-tab="ot1">Details</button>
-  <button class="tbb" data-tab="ot2">Address</button>
-  <button class="tbb" data-tab="ot3">Contact</button>
+  <button class="tbb on" data-tab="ot1">01 Basic Details</button>
+  <button class="tbb" data-tab="ot2">02 Address &amp; Branches</button>
+  <button class="tbb" data-tab="ot3">03 Contact Persons</button>
+  <button class="tbb" data-tab="ot6">04 COA / AP / AR Mapping</button>
+  <button class="tbb" data-tab="ot8">05 Credit Control &amp; Approval</button>
   <button class="tbb" data-tab="ot4">Role Defaults</button>
   <button class="tbb" data-tab="ot5">Registration</button>
-  <button class="tbb" data-tab="ot6">COA / AR / AP</button>
   <button class="tbb" data-tab="ot7">Staff &amp; Docs</button>
 </div>
 
 <!-- OT1: DETAILS -->
-<div id="ot1" class="tp on"><div class="card"><div class="ch"><div class="ct">Basic Identity</div></div><div class="cb">
+<div id="ot1" class="tp on"><div class="card"><div class="ch"><div class="ct">Basic Details</div></div><div class="cb">
 <div class="fsec">Organization identity</div>
 <div class="fr">
   <div class="fg"><label class="fl">Org Code <span class="r">*</span></label><input class="fc" id="org_code" placeholder="e.g. TATACHEM" style="font-family:var(--font-mono)"><span class="ferr">Org code is required</span></div>
@@ -2072,10 +2073,12 @@ tbody tr:hover{background:var(--g0)}
 <tr><td><span class="b b-gy">Billing</span></td><td>Plot 14, Industrial Estate</td><td>Chennai</td><td>—</td><td class="no-print"><button class="ta">✕</button></td></tr>
 <tr><td><span class="b b-gy">Delivery</span></td><td>Warehouse B, Ambattur</td><td>Chennai</td><td>—</td><td class="no-print"><button class="ta">✕</button></td></tr>
 </tbody></table></div>
-</div></div></div>
+</div></div><div class="card" id="oxBranchCard"><div class="ch"><div class="ct">Branch Management</div><button class="btn btn-pri btn-sm" type="button" id="oxAddBranch"><svg class="ic" data-icon="plus"></svg> Add Branch</button></div><div class="cb" id="oxBranches"></div></div>
+</div>
 
 <!-- OT3: CONTACT -->
-<div id="ot3" class="tp"><div class="card"><div class="ch"><div class="ct">Contact Persons</div><button class="btn btn-out btn-sm"><svg class="ic" data-icon="plus"></svg> Add Contact</button></div>
+<div id="ot3" class="tp"><div class="card" id="oxContactCard"><div class="ch"><div class="ct">Branch-wise Contact Persons</div><button class="btn btn-pri btn-sm" type="button" id="oxAddContact"><svg class="ic" data-icon="plus"></svg> Add Contact</button></div><div class="cb" id="oxContacts"></div></div>
+<div class="card"><div class="ch"><div class="ct">Organization-level Contacts (general)</div><button class="btn btn-out btn-sm"><svg class="ic" data-icon="plus"></svg> Add Contact</button></div>
 <div class="tw"><table><thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Phone</th><th>Email</th><th>Primary</th><th class="no-print"></th></tr></thead><tbody>
 <tr><td><input class="fc" placeholder="Contact name"></td><td><input class="fc" placeholder="Designation"></td><td><select class="fc"><option>Operations</option><option>Accounts</option><option>Sales</option></select></td><td><input class="fc" placeholder="+91 98400 12345"></td><td><input class="fc" placeholder="email@company.com"></td><td><input type="checkbox" checked></td><td class="no-print"><button class="ta">✕</button></td></tr>
 <tr><td><input class="fc" placeholder="Contact name"></td><td><input class="fc" placeholder="Designation"></td><td><select class="fc"><option>Operations</option><option>Accounts</option><option>Sales</option></select></td><td><input class="fc" placeholder="Phone"></td><td><input class="fc" placeholder="Email"></td><td><input type="checkbox"></td><td class="no-print"><button class="ta">✕</button></td></tr>
@@ -2083,7 +2086,7 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- OT4: ROLE DEFAULTS -->
 <div id="ot4" class="tp"><div class="card"><div class="ch"><div class="ct">Role-Specific Defaults</div></div><div class="cb">
-<div class="ib ib-am"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg>Sub-tables below activate automatically based on the role flags selected in the <strong>Details</strong> tab.</div>
+<div class="ib ib-am"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg>Sub-tables below activate automatically based on the role flags selected in the <strong>Basic Details</strong> tab.</div>
 <div class="fsec">Shipper / Exporter defaults</div>
 <div class="fr"><div class="fg"><label class="fl">Default Dept</label><select class="fc"><option>SEX - Sea Export</option><option>AEX - Air Export</option></select></div><div class="fg"><label class="fl">Default Incoterm</label><select class="fc"><option>FOB</option><option>CIF</option><option>EXW</option></select></div><div class="fg"><label class="fl">Default POL</label><input class="fc" placeholder="INMAA - Chennai"></div></div>
 <div class="fsec">Carrier defaults</div>
@@ -2101,10 +2104,10 @@ tbody tr:hover{background:var(--g0)}
 </tbody></table></div></div></div>
 
 <!-- OT6: COA/AR/AP -->
-<div id="ot6" class="tp"><div class="card"><div class="ch"><div class="ct">AR / AP &amp; COA Linking</div></div><div class="cb">
-<div class="ib ib-bl"><strong>Receivable (AR)</strong> → links to Sundry Debtors COA 1100. <strong>Payable (AP)</strong> → links to Sundry Creditors COA 2100. Auto-creates sub-ledger per org on Save.</div>
-<div class="fr"><div class="fg"><label class="fl">AR/AP Type</label><select class="fc"><option>Receivable (AR)</option><option>Payable (AP)</option><option>Both</option></select></div><div class="fg"><label class="fl">COA AR Account</label><select class="fc"><option>1101 - Customer Receivables</option><option>1102 - Agent Receivables</option></select></div><div class="fg"><label class="fl">COA AP Account</label><select class="fc"><option>2101 - Vendor Payables</option><option>2102 - CHA Payables</option></select></div><div class="fg"><label class="fl">Default Currency</label><select class="fc"><option>INR</option><option>USD</option><option>EUR</option></select></div></div>
-<div class="fr"><div class="fg"><label class="fl">Credit Limit (₹)</label><input class="fc" id="org_credit_limit" placeholder="500000"></div><div class="fg"><label class="fl">Credit Days</label><input class="fc" placeholder="30"></div><div class="fg"><label class="fl">Payment Terms</label><select class="fc" id="org_payment_terms"><option>30 Days Net</option><option>45 Days Net</option><option>Advance</option><option>LC</option></select></div><div class="fg"><label class="fl">Currency Uplift %</label><input class="fc" placeholder="0.00"></div></div>
+<div id="ot6" class="tp"><div class="card"><div class="ch"><div class="ct">Organization Accounting Classification</div></div><div class="cb">
+<div id="oxAcct"></div>
+<div class="fsec">General terms</div>
+<div class="fr"><div class="fg"><label class="fl">Payment Terms</label><select class="fc" id="org_payment_terms"><option>30 Days Net</option><option>45 Days Net</option><option>Advance</option><option>LC</option></select></div><div class="fg"><label class="fl">Credit Limit (₹)</label><input class="fc" id="org_credit_limit" placeholder="0" readonly title="Credit limits are now managed through the approved credit facility (Credit Control tab)"></div></div>
 </div></div></div>
 
 <!-- OT7: STAFF & DOCS -->
@@ -2117,6 +2120,7 @@ tbody tr:hover{background:var(--g0)}
 <tr><td>GST Certificate.pdf</td><td><span class="b b-bl">Tax</span></td><td>12 Apr 2025</td><td>—</td><td class="no-print"><button class="ta">View</button></td></tr>
 <tr><td>IEC Certificate.pdf</td><td><span class="b b-bl">Trade</span></td><td>12 Apr 2025</td><td>—</td><td class="no-print"><button class="ta">View</button></td></tr>
 </tbody></table></div></div></div>
+<div id="ot8" class="tp"><div id="oxCredit"></div></div>
 </div>
 <!-- ====== ORG DETAIL ====== -->
 <div id="s-org-detail" class="scr"><div class="card"><div class="cb" style="padding:24px;text-align:center;color:var(--g5)">Open an organization from the Organizations list to view or edit it.</div></div></div>
@@ -15036,6 +15040,7 @@ if(document.readyState !== "loading") initChatWidget();
   function openForm(){
     const scr = document.getElementById("s-org-new"); if(!scr) return;
     const rec = pending; pending = null; scr.dataset.orgId = rec ? rec.id : "";
+    if(window.OrgExt) OrgExt.fill(rec);
     const fields = fieldNodes(scr); fields.forEach(clearField);
     scr.querySelectorAll("#orgIndiaTaxWrap input, #orgIndiaTaxWrap select").forEach(()=>{});
     const by = k=> fields.find(f=>f.key===k);
@@ -15075,6 +15080,7 @@ if(document.readyState !== "loading") initChatWidget();
     const data = {};
     fields.forEach(f=>{ if(!core.has(f.key)){ const v = getValue(f); if(v !== "") data[f.key] = v; } });
     REPEAT.forEach(def=>{ const keep = rows[def.key].filter(r=> Object.entries(r).some(([k,v])=> v && v !== false && !(def.cols.find(c=>c.k===k)||{}).o)); if(keep.length) data[def.key] = keep; });
+    if(window.OrgExt){ Object.assign(data, OrgExt.collect()); OrgExt.roles().forEach(r=>{ if(!roles.includes(r)) roles.push(r); }); }
     const credit = getValue(by("credit_limit"));
     const body = {name:getValue(by("full_legal_name")), short_name:getValue(by("short_name")) || null, category:strip(getValue(by("category"))) || "Business", country:strip(getValue(by("country"))) || "India",
       gstin:getValue(by("gstin")) || null, pan:getValue(by("pan")) || null, credit_limit:credit ? Number(credit) : 0, payment_terms:getValue(by("payment_terms")) || null, roles, data};
@@ -15082,7 +15088,11 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       const status = document.getElementById("org_status").value === "Inactive" ? "INACTIVE" : "ACTIVE";
       if(id) await api("PATCH","/api/customers/"+id, {...body, status});
-      else await api("POST","/api/customers", {...body, status, code:getValue(by("org_code"))});
+      else {
+        const made = await api("POST","/api/customers", {...body, status, code:getValue(by("org_code"))});
+        pending = made; say("Organization created", body.name+" — add branches, contacts and credit details below"); openForm(); if(window.OrgExt) OrgExt.refresh();
+        return;
+      }
       say("Organization saved", body.name); go("org-list");
     }catch(e){ say("Could not save organization", e.message); }
     finally{ if(btn) btn.disabled = false; }
@@ -15108,6 +15118,277 @@ if(document.readyState !== "loading") initChatWidget();
   };
 })();
 
+</script>
+<script>
+/* ============================================================
+   ORG EXT KIT: Organization Master enhancement (branches, branch-wise contacts, COA/AP/AR classification,
+   credit application / approval / control). All rules live in the backend (/api/customers/{id}/branches|contacts|credit).
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const X = window.OrgExt = {id:null, branches:[], contacts:[], credit:null, accounts:[], currencies:[], states:[], countries:[], contactBranch:"", acct:{}, me:null};
+  const scr = ()=> document.getElementById("s-org-new");
+  const money = v=> v===null || v===undefined || v==="" ? "—" : "₹" + (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const dmy = v=> v ? new Date(String(v).length > 10 ? v : v+"T00:00:00").toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
+  const dmyt = v=> v ? new Date(v).toLocaleString("en-GB", {day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}) : "—";
+  const opt = (v, t, sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(t===undefined?v:t)+'</option>';
+  const chip = (t, cls)=> '<span class="b '+cls+'">'+esc2(t)+'</span>';
+  const STATE_CLS = {OK:"b-gr", EXCEEDED:"b-rd", BRANCH_EXCEEDED:"b-rd", EXPIRED:"b-am", NOT_CREDIT:"b-gy", NO_FACILITY:"b-gy"};
+  const STATE_TXT = {OK:"Within limit", EXCEEDED:"Limit exceeded", BRANCH_EXCEEDED:"Branch limit exceeded", EXPIRED:"Facility expired", NOT_CREDIT:"Non-credit", NO_FACILITY:"No approved facility"};
+  const APP_CLS = {DRAFT:"b-gy", SUBMITTED:"b-am", UNDER_REVIEW:"b-bl", APPROVED:"b-gr", REJECTED:"b-rd", SUPERSEDED:"b-gy", PENDING:"b-am", EXPIRED:"b-gy", USED:"b-gy"};
+  const DEPTS = ["Sales","Finance","Operations","Management","Documentation","Other"];
+  const REASONS = ["Additional Vendor Invoice Received","Additional Customer Charges","Key account shipment","Payment in transit","Other"];
+
+  (function css(){ const st = document.createElement("style"); st.textContent = ".ox-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px}.ox-grid .s2{grid-column:span 2}.ox-grid .s4{grid-column:span 4}.oxg label{display:block;font-size:10.5px;font-weight:700;color:var(--g6);margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}.ox-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}.ox-kpi{border:1px solid var(--g2);border-radius:9px;padding:8px 11px;background:#fff}.ox-kpi .l{font-size:10px;color:var(--g5);text-transform:uppercase;font-weight:700}.ox-kpi .v{font-size:15px;font-weight:800;color:var(--n);margin-top:2px}.ox-tl{border-left:2px solid var(--g2);margin-left:6px;padding-left:12px}.ox-tl>div{position:relative;padding:4px 0;font-size:11.5px}.ox-tl>div:before{content:'';position:absolute;left:-18px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--bl)}@media(max-width:1100px){.ox-grid,.ox-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}"; document.head.appendChild(st); })();
+
+  const gate = (el, saved)=> { if(!X.id){ el.innerHTML = '<div class="ib ib-bl">'+(saved||"Save the organization first, then add this information.")+'</div>'; return false; } return true; };
+  const field = (label, html, cls)=> '<div class="oxg '+(cls||"")+'"><label>'+label+'</label>'+html+'</div>';
+
+  /* ---------- masters ---------- */
+  async function loadMasters(){
+    if(X.mastersLoaded) return; X.mastersLoaded = true;
+    const get = (p, f)=> api("GET", p).catch(()=> f);
+    const [acc, ccy, ctry, me] = await Promise.all([get("/api/masters/account", []), get("/api/masters/currency", []), get("/api/masters/country", []), get("/api/auth/me", null)]);
+    X.accounts = acc.filter(a=>a.status==="ACTIVE"); X.currencies = ccy.filter(a=>a.status==="ACTIVE").map(c=>c.code.toUpperCase()); X.countries = ctry.filter(a=>a.status==="ACTIVE").map(c=>c.name); X.me = me;
+    if(!X.currencies.includes("INR")) X.currencies.unshift("INR");
+    X.states = Array.from(document.querySelectorAll("#org_state option")).map(o=>o.textContent.trim()).filter(Boolean);
+  }
+
+  /* ---------- 02 Address & Branches ---------- */
+  function renderBranches(){
+    const el = document.getElementById("oxBranches"); if(!el || !gate(el, "Save the organization first to add branches. One organization can have many branches without duplicate records.")) return;
+    el.innerHTML = '<div class="tw"><table><thead><tr><th>Branch Code</th><th>Branch Name</th><th>State</th><th>City</th><th>Country</th><th>Billing Enabled</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>'+
+      (X.branches.length ? X.branches.map(b=>'<tr><td class="mono">'+esc2(b.code)+'</td><td style="font-weight:600">'+esc2(b.name)+'</td><td>'+esc2(b.state||"—")+'</td><td>'+esc2(b.city||"—")+'</td><td>'+esc2(b.country||"—")+'</td><td>'+(b.billing_enabled ? chip("YES","b-gr") : chip("NO","b-gy"))+'</td><td>'+chip(b.status, b.status==="ACTIVE"?"b-gr":"b-gy")+'</td><td class="no-print" style="white-space:nowrap"><button class="ta" type="button" data-ox="branch-view:'+b.id+'">View</button> <button class="ta" type="button" data-ox="branch-edit:'+b.id+'">Edit</button> <button class="ta" type="button" data-ox="branch-toggle:'+b.id+'">'+(b.status==="ACTIVE"?"Deactivate":"Activate")+'</button></td></tr>').join("") : '<tr><td colspan="8" style="text-align:center;color:var(--g4);padding:14px;font-style:italic">No branches yet. Click "Add Branch".</td></tr>')+
+      '</tbody></table></div><div style="font-size:11px;color:var(--g5);margin-top:6px">Branches are never deleted once used; deactivate them instead. Only billing-enabled branches can issue invoices; other branches can still run shipments.</div>';
+  }
+  function branchForm(b){
+    b = b || {billing_enabled:false, status:"ACTIVE", country:"India"};
+    const ro = b.__view ? " disabled" : "";
+    const inp = (k, ph, extra)=> '<input class="fc" data-bf="'+k+'" value="'+esc2(b[k]||"")+'" placeholder="'+esc2(ph||"")+'"'+(extra||"")+ro+'>';
+    return '<div class="ox-grid">'+field("Branch Code *", inp("code","e.g. MAA", b.id?" disabled":""))+field("Branch Name *", inp("name","e.g. Chennai"), "s2")+
+      field("Status", '<select class="fc" data-bf="status"'+ro+'>'+opt("ACTIVE","Active",b.status==="ACTIVE")+opt("INACTIVE","Inactive",b.status==="INACTIVE")+'</select>')+
+      field("State", '<input class="fc" data-bf="state" list="oxStates" value="'+esc2(b.state||"")+'"'+ro+'><datalist id="oxStates">'+X.states.map(s=>'<option value="'+esc2(s)+'">').join("")+'</datalist>')+
+      field("Country", '<input class="fc" data-bf="country" list="oxCountries" value="'+esc2(b.country||"")+'"'+ro+'><datalist id="oxCountries">'+X.countries.map(s=>'<option value="'+esc2(s)+'">').join("")+'</datalist>')+
+      field("City", inp("city"))+field("PIN / ZIP", inp("pincode"))+field("Address", inp("address","Complete address"), "s4")+
+      field("Phone", inp("phone"))+field("Email", inp("email"), "s2")+field("GSTIN / Tax Registration", inp("gstin"))+
+      field("Billing Enabled", '<select class="fc" data-bf="billing_enabled"'+ro+'>'+opt("1","YES — can issue invoices",b.billing_enabled)+opt("0","NO — operations only",!b.billing_enabled)+'</select>', "s2")+'</div>';
+  }
+  function branchModal(b){
+    const view = b && b.__view;
+    openModal({title: view ? "Branch — "+b.name : b && b.id ? "Edit Branch" : "Add Branch", size:"lg", bodyHTML: branchForm(b), footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">'+(view?"Close":"Cancel")+'</button>'+(view?"":'<button class="btn btn-pri" type="button" id="oxBranchSave">Save Branch</button>')});
+    const save = document.getElementById("oxBranchSave"); if(!save) return;
+    save.addEventListener("click", async ()=>{
+      const body = {}; document.querySelectorAll("#modalBody [data-bf]").forEach(e=>{ if(!e.disabled || e.dataset.bf==="code") body[e.dataset.bf] = e.value.trim(); });
+      body.billing_enabled = body.billing_enabled === "1";
+      ["state","country","city","address","pincode","phone","email","gstin"].forEach(k=>{ if(body[k] === "") body[k] = null; });
+      try{
+        if(b && b.id){ delete body.code; await api("PATCH","/api/customers/"+X.id+"/branches/"+b.id, body); } else { if(!body.code || !body.name){ say("Branch code and name are required", "", "warn"); return; } await api("POST","/api/customers/"+X.id+"/branches", body); }
+        closeModal(); say("Branch saved", body.name || ""); await loadBranches(); renderBranches(); renderContacts();
+      }catch(e){ say("Could not save branch", e.message); }
+    });
+  }
+  async function loadBranches(){ X.branches = X.id ? await api("GET","/api/customers/"+X.id+"/branches").catch(()=>[]) : []; }
+
+  /* ---------- 03 Contacts ---------- */
+  function renderContacts(){
+    const el = document.getElementById("oxContacts"); if(!el || !gate(el, "Save the organization first, then add contact persons branch by branch.")) return;
+    const list = X.contacts.filter(c=> X.contactBranch === "" ? true : X.contactBranch === "none" ? !c.branch_id : String(c.branch_id) === X.contactBranch);
+    const bname = id=> { const b = X.branches.find(x=>x.id===id); return b ? b.code+" — "+b.name : "Organization-level"; };
+    el.innerHTML = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><label style="font-size:11px;font-weight:700;color:var(--g6)">Branch</label><select class="fc" id="oxContactFilter" style="max-width:260px">'+opt("","All branches",X.contactBranch==="")+X.branches.map(b=>opt(String(b.id), b.code+" — "+b.name, X.contactBranch===String(b.id))).join("")+opt("none","No branch (organization level)",X.contactBranch==="none")+'</select></div>'+
+      '<div class="tw"><table><thead><tr><th>Branch</th><th>Name</th><th>Designation</th><th>Department</th><th>Mobile</th><th>Email</th><th>Roles</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>'+
+      (list.length ? list.map(c=>'<tr><td>'+esc2(bname(c.branch_id))+'</td><td style="font-weight:600">'+esc2(c.name)+'</td><td>'+esc2(c.designation||"—")+'</td><td>'+esc2(c.department||"—")+'</td><td>'+esc2(c.mobile||"—")+(c.whatsapp?'<div style="font-size:10px;color:var(--g5)">WA '+esc2(c.whatsapp)+'</div>':'')+'</td><td>'+esc2(c.email||"—")+'</td><td>'+[c.is_primary?chip("Primary","b-bl"):"", c.is_billing?chip("Billing","b-gr"):"", c.is_operational?chip("Operational","b-gy"):""].join(" ")+'</td><td>'+chip(c.status, c.status==="ACTIVE"?"b-gr":"b-gy")+'</td><td class="no-print" style="white-space:nowrap"><button class="ta" type="button" data-ox="contact-edit:'+c.id+'">Edit</button> <button class="ta" type="button" data-ox="contact-toggle:'+c.id+'">'+(c.status==="ACTIVE"?"Deactivate":"Activate")+'</button></td></tr>').join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:14px;font-style:italic">No contacts for this selection.</td></tr>')+'</tbody></table></div>';
+  }
+  function contactModal(c){
+    c = c || {status:"ACTIVE", branch_id: X.contactBranch && X.contactBranch!=="none" ? Number(X.contactBranch) : null};
+    const inp = (k, ph)=> '<input class="fc" data-cf="'+k+'" value="'+esc2(c[k]||"")+'" placeholder="'+esc2(ph||"")+'">';
+    const yn = k=> '<select class="fc" data-cf="'+k+'">'+opt("0","NO",!c[k])+opt("1","YES",!!c[k])+'</select>';
+    openModal({title: c.id ? "Edit Contact" : "Add Contact", size:"lg", bodyHTML:'<div class="ox-grid">'+
+      field("Branch", '<select class="fc" data-cf="branch_id">'+opt("","— Organization level —",!c.branch_id)+X.branches.filter(b=>b.status==="ACTIVE"||b.id===c.branch_id).map(b=>opt(String(b.id), b.code+" — "+b.name, c.branch_id===b.id)).join("")+'</select>', "s2")+field("Contact Person Name *", inp("name"), "s2")+
+      field("Designation", inp("designation"))+field("Department", '<select class="fc" data-cf="department">'+opt("","—",!c.department)+DEPTS.map(d=>opt(d,d,c.department===d)).join("")+'</select>')+field("Mobile", inp("mobile"))+field("WhatsApp (optional)", inp("whatsapp"))+
+      field("Email", inp("email"), "s2")+field("Landline (optional)", inp("landline"))+field("Status", '<select class="fc" data-cf="status">'+opt("ACTIVE","Active",c.status==="ACTIVE")+opt("INACTIVE","Inactive",c.status==="INACTIVE")+'</select>')+
+      field("Primary Contact", yn("is_primary"))+field("Billing Contact", yn("is_billing"))+field("Operational Contact", yn("is_operational"))+'</div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="oxContactSave">Save Contact</button>'});
+    document.getElementById("oxContactSave").addEventListener("click", async ()=>{
+      const body = {}; document.querySelectorAll("#modalBody [data-cf]").forEach(e=> body[e.dataset.cf] = e.value.trim());
+      if(!body.name){ say("Contact name is required", "", "warn"); return; }
+      body.branch_id = body.branch_id ? Number(body.branch_id) : null; ["is_primary","is_billing","is_operational"].forEach(k=> body[k] = body[k] === "1");
+      ["designation","department","mobile","whatsapp","email","landline"].forEach(k=>{ if(body[k] === "") body[k] = null; });
+      try{ if(c.id) await api("PATCH","/api/customers/"+X.id+"/contacts/"+c.id, body); else await api("POST","/api/customers/"+X.id+"/contacts", body); closeModal(); say("Contact saved", body.name); await loadContacts(); renderContacts(); }
+      catch(e){ say("Could not save contact", e.message); }
+    });
+  }
+  async function loadContacts(){ X.contacts = X.id ? await api("GET","/api/customers/"+X.id+"/contacts").catch(()=>[]) : []; }
+
+  /* ---------- 04 COA / AP / AR ---------- */
+  function acctOptions(selected){ return opt("","— Select from Chart of Accounts —",!selected)+X.accounts.map(a=>opt(a.code, a.code+" - "+a.name, a.code===selected)).join("")+(selected && !X.accounts.some(a=>a.code===selected) ? opt(selected, selected+" (not found)", true) : ""); }
+  function renderAcct(){
+    const el = document.getElementById("oxAcct"); if(!el) return; const a = X.acct; const k = a.acct_class || "";
+    const ccys = sel=> X.currencies.map(c=>opt(c,c,c===(sel||"INR"))).join("");
+    const showAR = k === "customer" || k === "both", showAP = k === "vendor" || k === "both";
+    el.innerHTML = '<div class="ox-grid">'+field("Accounting Classification", '<select class="fc" data-ax="acct_class">'+opt("","— Select —",!k)+opt("customer","Customer — Sundry Debtor",k==="customer")+opt("vendor","Vendor — Sundry Creditor",k==="vendor")+opt("both","Both Customer & Vendor",k==="both")+opt("other","Other — per existing accounting configuration",k==="other")+'</select>', "s2")+'</div>'+
+      (showAR ? '<div class="fsec">Customer accounting (Accounts Receivable)</div><div class="ox-grid">'+field("AR Control Account *", '<select class="fc" data-ax="ar_account">'+acctOptions(a.ar_account)+'</select>', "s2")+field("Sundry Debtor Mapping", '<input class="fc" readonly value="'+esc2(a.ar_account ? "Sub-ledger under "+a.ar_account : "—")+'" style="background:var(--g0)">')+field("Default Currency", '<select class="fc" data-ax="ar_currency">'+ccys(a.ar_currency)+'</select>')+
+        field("Customer Payment Terms", '<input class="fc" data-ax="ar_terms" value="'+esc2(a.ar_terms||"")+'" placeholder="e.g. 30 days net">', "s2")+field("Credit Customer", '<select class="fc" data-ax="credit_customer">'+opt("no","NO — advance payment",a.credit_customer!=="yes")+opt("yes","YES — credit facility",a.credit_customer==="yes")+'</select>')+(a.credit_customer==="yes" ? field("Expiry alerts (days before)", '<input class="fc" data-ax="credit_notify_days" value="'+esc2(a.credit_notify_days||"30,15,7,0")+'" placeholder="30,15,7,0">') : "")+'</div>'+
+        (a.credit_customer === "yes" ? '<div class="ib ib-bl" style="margin-top:8px">Credit Customer is YES. Open <b>05 Credit Control &amp; Approval</b> to complete the credit application. Credit limits only become active after management approval.</div>' : '') : '')+
+      (showAP ? '<div class="fsec">Vendor accounting (Accounts Payable)</div><div class="ox-grid">'+field("AP Control Account *", '<select class="fc" data-ax="ap_account">'+acctOptions(a.ap_account)+'</select>', "s2")+field("Sundry Creditor Mapping", '<input class="fc" readonly value="'+esc2(a.ap_account ? "Sub-ledger under "+a.ap_account : "—")+'" style="background:var(--g0)">')+field("Default Currency", '<select class="fc" data-ax="ap_currency">'+ccys(a.ap_currency)+'</select>')+field("Vendor Payment Terms", '<input class="fc" data-ax="ap_terms" value="'+esc2(a.ap_terms||"")+'" placeholder="e.g. 45 days">', "s2")+'</div>' : '')+
+      (k === "both" ? '<div style="font-size:11px;color:var(--g5);margin-top:6px">The same organization works as customer and vendor without a duplicate record. AR and AP balances stay separate.</div>' : '')+
+      (!X.accounts.length ? '<div class="ib ib-am" style="margin-top:8px">No ledger accounts exist yet. Add them in Masters → Ledger Account to map control accounts.</div>' : '');
+  }
+  X.collect = function(){
+    const a = X.acct, out = {};
+    ["acct_class","ar_account","ap_account","ar_currency","ap_currency","ar_terms","ap_terms","credit_customer","credit_notify_days"].forEach(k=>{ if(a[k]) out[k] = a[k]; });
+    if(a.acct_class === "customer"){ delete out.ap_account; delete out.ap_currency; delete out.ap_terms; }
+    if(a.acct_class === "vendor"){ delete out.ar_account; delete out.ar_currency; delete out.ar_terms; out.credit_customer = "no"; }
+    if(a.acct_class === "other"){ ["ar_account","ap_account","ar_currency","ap_currency","ar_terms","ap_terms"].forEach(k=> delete out[k]); }
+    if(!out.credit_customer) out.credit_customer = "no";
+    return out;
+  };
+  X.roles = function(){ const k = X.acct.acct_class; return k === "customer" ? ["ar"] : k === "vendor" ? ["ap"] : k === "both" ? ["ar","ap"] : []; };
+  X.fill = function(rec){ const d = (rec && rec.data) || {}; X.acct = {}; ["acct_class","ar_account","ap_account","ar_currency","ap_currency","ar_terms","ap_terms","credit_customer","credit_notify_days"].forEach(k=>{ if(d[k]) X.acct[k] = String(d[k]); });
+    if(!X.acct.acct_class && rec){ const r = rec.roles || []; if(r.includes("ar") && r.includes("ap")) X.acct.acct_class = "both"; else if(r.includes("ar")) X.acct.acct_class = "customer"; else if(r.includes("ap")) X.acct.acct_class = "vendor"; }
+    if(rec && rec.credit_limit && !Number(rec.credit_limit)){} };
+
+  /* ---------- 05 Credit Control & Approval ---------- */
+  async function loadCredit(){ X.credit = X.id ? await api("GET","/api/customers/"+X.id+"/credit").catch(e=>({error:e.message})) : null; }
+  function openApp(){ return X.credit && (X.credit.facilities||[]).find(f=>["DRAFT","SUBMITTED","UNDER_REVIEW"].includes(f.status)); }
+  function kpi(l, v){ return '<div class="ox-kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>'; }
+  function renderCredit(){
+    const el = document.getElementById("oxCredit"); if(!el) return;
+    if(!X.id){ el.innerHTML = '<div class="card"><div class="cb"><div class="ib ib-bl">Save the organization first. Then set <b>Credit Customer = YES</b> in 04 COA / AP / AR Mapping and apply for credit here.</div></div></div>'; return; }
+    const c = X.credit;
+    if(!c || c.error){ el.innerHTML = '<div class="card"><div class="cb"><div class="ib ib-am">'+esc2(c ? c.error : "Loading…")+'</div></div></div>'; return; }
+    if(!c.credit_customer){ el.innerHTML = '<div class="card"><div class="cb"><div class="ib ib-bl">This organization is <b>not a credit customer</b>: the existing advance-payment process applies. To grant credit, set <b>Credit Customer = YES</b> in 04 COA / AP / AR Mapping and save.</div></div></div>'; return; }
+    const st = c.status, ex = st.exposure || {};
+    const open = openApp(), approved = (c.facilities||[]).find(f=>f.status==="APPROVED");
+    let html = '<div class="card"><div class="ch"><div class="ct">Credit Position</div><div>'+chip(STATE_TXT[st.state]||st.state, STATE_CLS[st.state]||"b-gy")+(st.policy ? " "+chip(st.policy==="HARD"?"Hard block":"Soft block","b-gy") : "")+'</div></div><div class="cb">'+
+      (st.applicable ? '<div class="ox-kpis">'+kpi("Approved limit", money(st.limit))+kpi("Extension (approved)", money(st.extension))+kpi("Effective limit", money(st.effective_limit))+kpi("Available credit", money(st.available))+
+        kpi("Receivables outstanding", money(ex.receivables))+kpi("Overdue", money(ex.overdue))+kpi("Unbilled jobs", money(ex.unbilled))+kpi("Unapplied receipts", money(ex.unapplied_receipts))+'</div>'+
+        '<div style="font-size:12px;color:var(--g6)">Current exposure <b>'+money(ex.exposure)+'</b> · Credit days <b>'+esc2(st.credit_days)+'</b> · Valid until <b>'+dmy(st.expiry_date)+'</b>'+(st.excess && Number(st.excess)>0 ? ' · <b style="color:var(--rd)">Excess '+money(st.excess)+'</b>' : '')+'</div>'+(st.state==="OK"?"":'<div class="ib ib-am" style="margin-top:8px">'+esc2(st.message)+'</div>')
+        : '<div class="ib ib-bl">'+esc2(st.message)+'</div>')+'</div></div>';
+    // application
+    html += '<div class="card"><div class="ch"><div class="ct">Customer Credit Application</div><div>'+(open ? chip(open.status.replace("_"," "), APP_CLS[open.status]) : "")+'</div></div><div class="cb">'+applicationHtml(open, approved)+'</div></div>';
+    // exceptions
+    const canAsk = c.can_request && st.applicable;
+    html += '<div class="card"><div class="ch"><div class="ct">Credit Exceptions: Grace, Extension, Override, Release</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+
+      (canAsk ? '<button class="btn btn-out btn-sm" type="button" data-ox="req:GRACE">Request Grace Period</button><button class="btn btn-out btn-sm" type="button" data-ox="req:EXTENSION">Request Credit Extension</button>'+(st.policy==="SOFT" ? '<button class="btn btn-out btn-sm" type="button" data-ox="req:OVERRIDE">Request Override</button>' : '')+(st.policy==="HARD" ? '<button class="btn btn-out btn-sm" type="button" data-ox="req:RELEASE">Request Release</button>' : '') : '')+'</div></div><div class="cb">'+
+      '<div class="tw"><table><thead><tr><th>Type</th><th>Status</th><th>Requested</th><th>Details</th><th>Reason</th><th>Decision</th><th class="no-print"></th></tr></thead><tbody>'+
+      (c.requests.length ? c.requests.map(r=>'<tr><td><b>'+esc2(r.kind)+'</b></td><td>'+chip(r.status, APP_CLS[r.status]||"b-gy")+'</td><td>'+esc2(r.requested_by||"—")+'<div style="font-size:10px;color:var(--g5)">'+dmyt(r.requested_at)+'</div></td><td style="font-size:11px">'+[r.days?r.days+" days":"", r.amount?money(r.amount):"", r.one_time?"one-time":"", r.valid_until?"until "+dmy(r.valid_until):""].filter(Boolean).join(" · ")+'</td><td style="max-width:200px">'+esc2(r.reason)+'</td><td style="font-size:11px">'+(r.decided_by ? esc2(r.decided_by)+'<div style="font-size:10px;color:var(--g5)">'+dmyt(r.decided_at)+'</div>'+(r.remarks?esc2(r.remarks):"") : "—")+'</td><td class="no-print" style="white-space:nowrap">'+(r.status==="PENDING" && (c.can_approve || (r.kind==="OVERRIDE" && c.can_override)) ? '<button class="ta" type="button" data-ox="rapprove:'+r.id+'" style="color:var(--gr)">Approve</button> <button class="ta" type="button" data-ox="rreject:'+r.id+'" style="color:var(--rd)">Reject</button>' : '')+'</td></tr>').join("") : '<tr><td colspan="7" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">No exception requests.</td></tr>')+'</tbody></table></div></div></div>';
+    // history
+    html += '<div class="card"><div class="ch"><div class="ct">Approval &amp; Renewal History</div></div><div class="cb"><div class="tw"><table><thead><tr><th>#</th><th>Type</th><th>Status</th><th class="r">Limit</th><th>Days</th><th>Valid</th><th>Agreement</th><th>Requested by</th><th>Approved by</th></tr></thead><tbody>'+
+      (c.facilities.length ? c.facilities.map(f=>'<tr><td>'+f.id+'</td><td>'+esc2(f.kind)+'</td><td>'+chip(f.status.replace("_"," "), APP_CLS[f.status]||"b-gy")+'</td><td style="text-align:right">'+money(f.approved_limit || f.requested_limit)+'</td><td>'+f.credit_days+'</td><td>'+(f.start_date ? dmy(f.start_date)+" → "+dmy(f.expiry_date) : "—")+'</td><td>'+esc2(f.agreement_no||"—")+'</td><td>'+esc2(f.requested_by||"—")+'<div style="font-size:10px;color:var(--g5)">'+dmyt(f.requested_at)+'</div></td><td>'+esc2(f.approved_by||"—")+(f.approved_at?'<div style="font-size:10px;color:var(--g5)">'+dmyt(f.approved_at)+'</div>':'')+'</td></tr>').join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">No applications yet.</td></tr>')+'</tbody></table></div>'+
+      '<div class="fsec" style="margin-top:12px">Audit trail</div><div class="ox-tl">'+(c.events.length ? c.events.slice(0,40).map(e=>'<div><b>'+esc2(e.action.replace(/_/g," ").toLowerCase())+'</b> <span style="color:var(--g5)">· '+esc2(e.user||"system")+' · '+dmyt(e.at)+'</span>'+(e.detail && Object.keys(e.detail).length ? '<div style="color:var(--g6);font-size:11px">'+esc2(Object.entries(e.detail).filter(([k,v])=>v!==null&&v!=="").map(([k,v])=>k+": "+v).join(" · "))+'</div>' : '')+'</div>').join("") : '<div>No events yet.</div>')+'</div></div></div>';
+    el.innerHTML = html;
+  }
+  function applicationHtml(open, approved){
+    const c = X.credit;
+    if(!open){
+      if(!c.can_request) return '<div class="ib ib-bl">You do not have permission to apply for credit.</div>';
+      return approved ? '<div style="font-size:12px;margin-bottom:8px">Active facility: <b>'+money(approved.approved_limit)+'</b> · '+approved.credit_days+' days · valid until <b>'+dmy(approved.expiry_date)+'</b> · agreement '+esc2(approved.agreement_no||"—")+'. Approved facilities cannot be edited; request a revision or renew them.</div><button class="btn btn-pri btn-sm" type="button" data-ox="apply:RENEWAL">Renew Credit</button> <button class="btn btn-out btn-sm" type="button" data-ox="apply:REVISION">Request Revision</button>'
+        : '<div style="margin-bottom:8px;font-size:12px">No credit facility yet. Credit becomes active only after management approval.</div><button class="btn btn-pri btn-sm" type="button" data-ox="apply:NEW">Apply for Credit</button>';
+    }
+    const draft = open.status === "DRAFT", ccys = X.currencies.map(x=>opt(x,x,x===open.currency)).join("");
+    const prev = open.prev_id ? c.facilities.find(f=>f.id===open.prev_id) : null;
+    const inp = (k, v, type, extra)=> '<input class="fc" data-ap="'+k+'" '+(type?'type="'+type+'" ':'')+'value="'+esc2(v===null||v===undefined?"":v)+'"'+(draft?"":" disabled")+(extra||"")+'>';
+    let h = (prev ? '<div class="ib ib-bl" style="margin-bottom:8px">'+esc2(open.kind)+' of facility #'+prev.id+': existing limit <b>'+money(prev.approved_limit)+'</b>, '+prev.credit_days+' days, approved '+dmy(prev.approved_at)+', expired/expires '+dmy(prev.expiry_date)+'. Current outstanding <b>'+money(((c.status.exposure)||{}).exposure)+'</b>. The previous approval is kept in history.</div>' : '')+
+      '<div class="ox-grid">'+field("Credit Days", inp("credit_days", open.credit_days, "number", ' min="0"'))+field("Requested Credit Limit", inp("requested_limit", open.requested_limit, "number", ' min="0" step="0.01"'))+field("Credit Currency", '<select class="fc" data-ap="currency"'+(draft?"":" disabled")+'>'+ccys+'</select>')+field("Agreement Number *", inp("agreement_no", open.agreement_no))+
+      field("Agreement Attachment (file name)", inp("agreement_file", open.agreement_file), "s2")+field("Requested By", '<input class="fc" disabled value="'+esc2(open.requested_by||"")+'">')+field("Requested Date", '<input class="fc" disabled value="'+dmyt(open.requested_at)+'">')+
+      field(open.kind === "NEW" ? "Reason / Remarks" : "Renewal / Revision Reason", inp("reason", open.reason), "s4")+'</div>'+
+      branchLimitsHtml(open, draft)+
+      '<div class="ib ib-am" style="margin:8px 0">Document upload needs file storage, which is not set up yet. Enter the agreement file name or reference; the number above is the record of the agreement.</div>';
+    if(draft) h += '<button class="btn btn-out btn-sm" type="button" data-ox="app-save:'+open.id+'">Save Draft</button> <button class="btn btn-pri btn-sm" type="button" data-ox="app-submit:'+open.id+'">Submit for Management Approval</button>';
+    else {
+      h += '<div style="font-size:12px">Submitted '+dmyt(open.submitted_at)+' by '+esc2(open.requested_by||"—")+'. Waiting for management approval.</div>';
+      if(c.can_approve){
+        const lim = open.requested_limit;
+        h += '<div class="fsec" style="margin-top:10px">Management Approval</div><div class="ox-grid">'+field("Approved Credit Limit", '<input class="fc" data-ad="approved_limit" type="number" min="0" step="0.01" value="'+esc2(lim)+'">')+field("Approved Credit Days", '<input class="fc" data-ad="credit_days" type="number" min="0" value="'+esc2(open.credit_days)+'">')+
+          field("Credit Start Date", '<input class="fc" data-ad="start_date" type="date" value="'+new Date().toISOString().slice(0,10)+'">')+field("Credit Expiry Date *", '<input class="fc" data-ad="expiry_date" type="date" value="'+new Date(Date.now()+365*864e5).toISOString().slice(0,10)+'">')+
+          field("When limit is exceeded", '<select class="fc" data-ad="policy">'+opt("SOFT","Soft block — warn, override needs approval",(open.policy||"SOFT")==="SOFT")+opt("HARD","Hard block — block, formal release needed",open.policy==="HARD")+'</select>', "s2")+field("Approval Remarks", '<input class="fc" data-ad="remarks">', "s2")+'</div>'+
+          (open.status==="SUBMITTED" ? '<button class="btn btn-out btn-sm" type="button" data-ox="app-review:'+open.id+'">Mark Under Review</button> ' : '')+'<button class="btn btn-suc btn-sm" type="button" data-ox="app-approve:'+open.id+'">Approve</button> <button class="btn btn-out btn-sm" type="button" data-ox="app-reject:'+open.id+'" style="color:var(--rd)">Reject</button>';
+      } else h += '<div class="ib ib-bl" style="margin-top:8px">Only authorised management users can approve credit.</div>';
+    }
+    return h;
+  }
+  function branchLimitsHtml(open, draft){
+    const active = X.branches.filter(b=>b.status==="ACTIVE"); if(!active.length) return '';
+    const lim = Object.fromEntries((open.branch_limits||[]).map(b=>[b.branch_id, b.limit]));
+    return '<div class="fsec" style="margin-top:10px">Branch-wise sub-limits (optional)</div><div class="tw"><table><thead><tr><th>Branch</th><th>Sub-limit</th></tr></thead><tbody>'+active.map(b=>'<tr><td>'+esc2(b.code+" — "+b.name)+'</td><td><input class="fc" type="number" min="0" step="0.01" data-bl="'+b.id+'" value="'+esc2(lim[b.id]||"")+'" style="max-width:160px"'+(draft?"":" disabled")+'></td></tr>').join("")+'</tbody></table></div><div style="font-size:11px;color:var(--g5)">The total of sub-limits cannot exceed the organization limit. Both the branch sub-limit and the parent limit are checked.</div>';
+  }
+  const gather = sel=> { const o = {}; document.querySelectorAll(sel).forEach(e=> o[e.dataset.ap || e.dataset.ad] = e.value.trim()); return o; };
+  function branchLimitsOut(){ return Array.from(document.querySelectorAll("#oxCredit [data-bl]")).filter(e=>Number(e.value)>0).map(e=>({branch_id:Number(e.dataset.bl), limit:e.value})); }
+  function reqModal(kind){
+    const titles = {GRACE:"Request Grace Period", EXTENSION:"Request Credit Extension", OVERRIDE:"Request Soft-block Override", RELEASE:"Request Hard-block Release"};
+    const st = X.credit.status;
+    const body = (kind==="GRACE" ? field("Requested Grace Days *", '<input class="fc" type="number" min="1" max="180" data-rq="days" value="7">')+field("Allowed excess amount (optional)", '<input class="fc" type="number" min="0" step="0.01" data-rq="amount" placeholder="0 = no additional exposure">') :
+      kind==="EXTENSION" ? field("Current Credit Limit", '<input class="fc" disabled value="'+money(st.limit)+'">')+field("Requested Additional Amount *", '<input class="fc" type="number" min="0" step="0.01" data-rq="amount">')+field("Extension Valid Until", '<input class="fc" type="date" data-rq="valid_until">') :
+      field("One-time use", '<select class="fc" data-rq="one_time">'+opt("1","One-time",true)+opt("0","Time-limited",false)+'</select>')+field("Valid until (if time-limited)", '<input class="fc" type="date" data-rq="valid_until">'))+
+      field("Branch (optional)", '<select class="fc" data-rq="branch_id">'+opt("","All branches",true)+X.branches.map(b=>opt(String(b.id), b.code+" — "+b.name)).join("")+'</select>')+field("Reason *", '<input class="fc" data-rq="reason" list="oxReasons" placeholder="Reason for the request">', "s4");
+    openModal({title:titles[kind], size:"lg", bodyHTML:'<div class="ox-grid">'+body+'</div><datalist id="oxReasons">'+REASONS.map(r=>'<option value="'+esc2(r)+'">').join("")+'</datalist>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="oxReqSave">Submit Request</button>'});
+    document.getElementById("oxReqSave").addEventListener("click", async ()=>{
+      const o = {kind}; document.querySelectorAll("#modalBody [data-rq]").forEach(e=>{ if(e.value !== "") o[e.dataset.rq] = e.value.trim(); });
+      if(o.days) o.days = Number(o.days); if(o.branch_id) o.branch_id = Number(o.branch_id); if(o.one_time !== undefined) o.one_time = o.one_time === "1";
+      try{ await api("POST","/api/customers/"+X.id+"/credit/requests", o); closeModal(); say("Request submitted", "Waiting for management approval"); await loadCredit(); renderCredit(); }catch(e){ say("Could not submit the request", e.message); }
+    });
+  }
+  function decideModal(rid, approve){
+    const r = X.credit.requests.find(x=>x.id===rid);
+    openModal({title:(approve?"Approve ":"Reject ")+r.kind.toLowerCase()+" request", bodyHTML:'<div class="ox-grid">'+(approve && r.kind==="GRACE" ? field("Allowed excess amount", '<input class="fc" type="number" min="0" step="0.01" data-rd="amount" value="'+esc2(r.amount||0)+'">') : "")+(approve && r.kind!=="GRACE" && !r.one_time ? field("Valid until *", '<input class="fc" type="date" data-rd="valid_until" value="'+esc2(r.valid_until||"")+'">') : "")+field("Remarks"+(approve?"":" *"), '<input class="fc" data-rd="remarks">', "s4")+'</div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn '+(approve?"btn-suc":"btn-pri")+'" type="button" id="oxDecide">'+(approve?"Approve":"Reject")+'</button>'});
+    document.getElementById("oxDecide").addEventListener("click", async ()=>{
+      const o = {}; document.querySelectorAll("#modalBody [data-rd]").forEach(e=>{ if(e.value !== "") o[e.dataset.rd] = e.value.trim(); });
+      try{ await api("POST","/api/customers/"+X.id+"/credit/requests/"+rid+"/"+(approve?"approve":"reject"), o); closeModal(); say(approve?"Approved":"Rejected", r.kind); await loadCredit(); renderCredit(); }catch(e){ say("Could not complete the action", e.message); }
+    });
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", async e=>{
+    const t = e.target.closest("[data-ox]"); const add = e.target.closest("#oxAddBranch, #oxAddContact");
+    if(!t && !add) return;
+    if(add){ e.stopPropagation(); if(!X.id){ say("Save the organization first", "Branches and contacts attach to a saved organization", "warn"); return; } add.id === "oxAddBranch" ? branchModal() : contactModal(); return; }
+    if(!t) return;
+    e.stopPropagation(); const [k, id] = t.dataset.ox.split(":"); const n = Number(id);
+    try{
+      if(k === "branch-view") return branchModal({...X.branches.find(b=>b.id===n), __view:true});
+      if(k === "branch-edit") return branchModal(X.branches.find(b=>b.id===n));
+      if(k === "branch-toggle"){ const b = X.branches.find(x=>x.id===n); await api("PATCH","/api/customers/"+X.id+"/branches/"+n, {status: b.status==="ACTIVE"?"INACTIVE":"ACTIVE"}); await loadBranches(); renderBranches(); renderContacts(); return; }
+      if(k === "contact-edit") return contactModal(X.contacts.find(c=>c.id===n));
+      if(k === "contact-toggle"){ const c = X.contacts.find(x=>x.id===n); await api("PATCH","/api/customers/"+X.id+"/contacts/"+n, {status: c.status==="ACTIVE"?"INACTIVE":"ACTIVE"}); await loadContacts(); renderContacts(); return; }
+      if(k === "apply"){ const o = {kind:id, credit_days:30, requested_limit:0, currency:"INR"}; const prev = X.credit.facilities.find(f=>f.status==="APPROVED"); if(prev){ o.credit_days = prev.credit_days; o.requested_limit = prev.approved_limit; o.currency = prev.currency; } await api("POST","/api/customers/"+X.id+"/credit/facilities", o); await loadCredit(); renderCredit(); return; }
+      if(k === "app-save" || k === "app-submit"){
+        const o = gather("#oxCredit [data-ap]"); const body = {credit_days:Number(o.credit_days||0), requested_limit:o.requested_limit||"0", currency:o.currency, agreement_no:o.agreement_no||null, agreement_file:o.agreement_file||null, reason:o.reason||null, branch_limits:branchLimitsOut()};
+        await api("PATCH","/api/customers/"+X.id+"/credit/facilities/"+n, body);
+        if(k === "app-submit"){ await api("POST","/api/customers/"+X.id+"/credit/facilities/"+n+"/submit"); say("Submitted for approval", "Management has been asked to review"); } else say("Draft saved", "");
+        await loadCredit(); renderCredit(); return;
+      }
+      if(k === "app-review"){ await api("POST","/api/customers/"+X.id+"/credit/facilities/"+n+"/review"); await loadCredit(); renderCredit(); return; }
+      if(k === "app-approve" || k === "app-reject"){
+        const o = gather("#oxCredit [data-ad]");
+        if(k === "app-reject"){ if(!o.remarks){ say("Reason required", "Write the reason in Approval Remarks", "warn"); return; } await api("POST","/api/customers/"+X.id+"/credit/facilities/"+n+"/reject", {remarks:o.remarks}); say("Credit application rejected", ""); }
+        else { await api("POST","/api/customers/"+X.id+"/credit/facilities/"+n+"/approve", {approved_limit:o.approved_limit, credit_days:Number(o.credit_days||0), start_date:o.start_date||null, expiry_date:o.expiry_date||null, policy:o.policy, remarks:o.remarks||null}); say("Credit approved", "The facility is effective from its start date"); }
+        await loadCredit(); renderCredit(); return;
+      }
+      if(k === "req") return reqModal(id);
+      if(k === "rapprove") return decideModal(n, true);
+      if(k === "rreject") return decideModal(n, false);
+    }catch(err){ say("Could not complete the action", err.message); }
+  }, true);
+  document.addEventListener("input", e=>{
+    const a = e.target.dataset && e.target.dataset.ax; if(a){ X.acct[a] = e.target.value; if(["acct_class","credit_customer","ar_account","ap_account"].includes(a)){ renderAcct(); renderCredit(); } return; }
+  });
+  document.addEventListener("change", e=>{ const f = e.target.id === "oxContactFilter"; if(f){ X.contactBranch = e.target.value; renderContacts(); } });
+
+  /* ---------- lifecycle ---------- */
+  X.refresh = async function(){
+    X.id = scr().dataset.orgId ? Number(scr().dataset.orgId) : null; X.contactBranch = "";
+    await loadMasters();
+    renderBranches(); renderContacts(); renderAcct(); renderCredit();
+    if(X.id){ await Promise.all([loadBranches(), loadContacts(), loadCredit()]); renderBranches(); renderContacts(); renderAcct(); renderCredit(); }
+  };
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    prev(screen, opts);
+    if(screen === "org-new") X.refresh();
+  };
+})();
 </script>
 <script>
 /* ============================================================
@@ -15228,7 +15509,7 @@ if(document.readyState !== "loading") initChatWidget();
   const INCOTERMS = ["EXW","FCA","FAS","FOB","CFR","CIF","CPT","CIP","DAP","DPU","DDP"];
   const STEPS = [["DRAFT","Draft"],["SUBMITTED","Submitted"],["APPROVED","Approved"],["SENT","Issued"],["ACCEPTED","Accepted"],["CONVERTED","Converted"]];
 
-  const Q = window.QK = {list:[], rec:null, head:{}, sell:[], buy:[], m:{charges:[], currencies:[], rates:{}, containers:[], units:[], carriers:[], customers:[], ports:[], users:[]}, me:null, dirty:false, pendingOpen:null, open:{}, saving:false};
+  const Q = window.QK = {viewTax:true, list:[], rec:null, head:{}, sell:[], buy:[], m:{charges:[], currencies:[], rates:{}, containers:[], units:[], carriers:[], customers:[], ports:[], users:[]}, me:null, dirty:false, pendingOpen:null, open:{}, saving:false};
   const can = code=> !!Q.me && (Q.me.is_super_admin || (Q.me.permissions||[]).includes(code));
   const wiz = ()=> window.quotWiz || {};
   const isMulti = ()=> wiz().carrierMode === "multi";
@@ -15255,7 +15536,7 @@ if(document.readyState !== "loading") initChatWidget();
     .qk-pane-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--g1);flex-wrap:wrap}
     .qk-pane-h .t{font-weight:800;font-size:13px;color:var(--n)} .qk-pane-h .s{font-size:10.5px;color:var(--g5)}
     .qk-scroll{overflow-x:auto}
-    .qk-t{width:100%;border-collapse:collapse;font-size:11.5px;min-width:640px}
+    .qk-t{width:100%;border-collapse:collapse;font-size:11.5px;min-width:900px}
     .qk-t th{background:var(--g0);color:var(--g6);font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:6px 5px;text-align:left;white-space:nowrap;position:sticky;top:0}
     .qk-t td{padding:4px 4px;border-bottom:1px solid var(--g1);vertical-align:middle}
     .qk-t .fc{padding:4px 5px;font-size:11.5px;min-width:0}
@@ -15265,7 +15546,7 @@ if(document.readyState !== "loading") initChatWidget();
     .qk-pane.buy .qk-t tfoot td{background:var(--amt)}
     .qk-icon{border:0;background:transparent;cursor:pointer;padding:3px 5px;border-radius:5px;color:var(--g5);font-size:13px}
     .qk-icon:hover{background:var(--g1);color:var(--n)} .qk-icon.del:hover{color:var(--rd)}
-    .qk-dgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px 10px;align-items:end}
+    .qk-dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 10px;align-items:end}
     .qk-dgrid label{font-size:9.5px;font-weight:700;color:var(--g5);text-transform:uppercase;display:block;margin-bottom:2px}
     .qk-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
     .qk-kpi{border:1px solid var(--g2);border-radius:9px;padding:9px 11px;background:#fff}
@@ -15427,11 +15708,12 @@ if(document.readyState !== "loading") initChatWidget();
       '<td><select class="fc" data-ql="'+key+':basis" style="min-width:96px"'+d+'>'+uomList().concat(uomList().includes(l.basis)?[]:[l.basis]).map(u=>opt(u, u, u===l.basis)).join("")+'</select></td><td>'+unitsCell+'</td>'+
       '<td><select class="fc" data-ql="'+key+':ccy" style="width:66px"'+d+'>'+ccyList().concat(ccyList().includes(l.ccy)?[]:[l.ccy]).map(x=>opt(x, x, x===l.ccy)).join("")+'</select></td>'+
       '<td><input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':exch" value="'+esc2(l.exch)+'" style="width:66px"'+(rateEditable?"":" disabled")+' title="'+(l.ccy==="INR"?"Base currency":"INR per 1 "+esc2(l.ccy)+(Q.m.rates[l.ccy]?" (Currency Master)":""))+'"></td>'+
-      '<td>'+rateCell+'</td><td class="r" data-c="amount">'+num(c.amount,2)+'</td><td class="r" data-c="total">'+num(c.total,2)+'</td>'+
+      '<td>'+rateCell+'</td>'+
+      '<td><select class="fc" data-ql="'+key+':taxable" style="width:62px"'+d+'>'+opt("1","Yes",l.taxable)+opt("0","No",!l.taxable)+'</select></td>'+
+      '<td><select class="fc" data-ql="'+key+':tax_pct" style="width:64px"'+(l.taxable&&!ro?"":" disabled")+'>'+TAX_RATES.concat(TAX_RATES.includes(Number(l.tax_pct))?[]:[Number(l.tax_pct)]).map(t=>opt(String(t), t+"%", Number(l.tax_pct)===t)).join("")+'</select></td>'+
+      '<td class="r" data-c="amount">'+num(c.amount,2)+'</td><td class="r" data-c="total">'+num(c.total,2)+'</td>'+
       '<td style="white-space:nowrap"><button class="qk-icon" data-qa="toggle" data-k="'+key+'" title="Taxable, tax, remarks…">'+(open?"▴":"▾")+'</button><button class="qk-icon" data-qa="dup" data-k="'+key+'" title="Duplicate"'+d+'>⧉</button><button class="qk-icon del" data-qa="del" data-k="'+key+'" title="Delete"'+d+'>✕</button></td></tr>'+
-      '<tr class="qk-d" style="display:'+(open?"":"none")+'" data-dk="'+key+'"><td colspan="10"><div class="qk-dgrid">'+
-      '<div><label>Taxable</label><select class="fc" data-ql="'+key+':taxable"'+d+'>'+opt("1","Taxable",l.taxable)+opt("0","Non-Taxable",!l.taxable)+'</select></div>'+
-      '<div><label>Tax %</label><select class="fc" data-ql="'+key+':tax_pct"'+(l.taxable&&!ro?"":" disabled")+'>'+TAX_RATES.concat(TAX_RATES.includes(Number(l.tax_pct))?[]:[Number(l.tax_pct)]).map(t=>opt(String(t), t+"%", Number(l.tax_pct)===t)).join("")+'</select></div>'+
+      '<tr class="qk-d" style="display:'+(open?"":"none")+'" data-dk="'+key+'"><td colspan="12"><div class="qk-dgrid">'+
       '<div><label>GST amount (₹)</label><div class="r" data-c="gst" style="padding:5px 0;font-weight:700">'+num(c.gst,2)+'</div></div>'+
       '<div><label>Margin rate</label><div class="r" data-c="margin" style="padding:5px 0;font-weight:700">'+(m===null?"—":num(m,2)+"%")+'</div></div>'+
       (isMulti() ? '<div><label>Carrier</label><select class="fc" data-ql="'+key+':carrier"'+d+'><option value="">—</option>'+carriers.map(x=>opt(x,x,x===l.carrier)).join("")+'</select></div>' : '<div></div>')+
@@ -15447,9 +15729,9 @@ if(document.readyState !== "loading") initChatWidget();
     const tot = lines.reduce((a,l)=>{ const c = calc(l); a.amount += c.amount; a.gst += c.gst; a.total += c.total; return a; }, {amount:0, gst:0, total:0});
     return '<div class="qk-pane '+key+'" data-pane="'+key+'"><div class="qk-pane-h"><div><div class="t">'+(side==="SELL"?"Sell Cost":"Buy Cost")+' <span class="b b-gy" style="font-size:9.5px">'+lines.length+'</span></div><div class="s">'+(side==="SELL"?"Charges quoted to the customer":"Internal cost — never shown on the customer quotation")+'</div></div>'+
       '<div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-qa="add" data-side="'+side+'"'+(ro?" disabled":"")+'>＋ Add Charge</button><button class="btn btn-out btn-sm" data-qa="containers" data-k="'+key+':new"'+(ro?" disabled":"")+' title="One charge, several container types with their own rates">📦 Container Rates</button></div></div>'+
-      '<div class="qk-scroll"><table class="qk-t"><thead><tr><th>#</th><th>Particulars</th><th>Basis / UOM</th><th>Units</th><th>Ccy</th><th>Ex. Rate</th><th>Unit Rate</th><th class="r">Amount (₹)</th><th class="r">Total (₹)</th><th></th></tr></thead><tbody>'+
-      (lines.length ? lines.map((l,i)=>rowHtml(l, key, i)).join("") : '<tr><td colspan="10" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No '+(side==="SELL"?"sell":"buy")+' charges yet. Click "Add Charge".</td></tr>')+
-      '</tbody><tfoot><tr><td colspan="7">Total ('+(side==="SELL"?"Sell":"Buy")+')</td><td class="r" data-t="'+key+':amount">'+num(tot.amount,2)+'</td><td class="r" data-t="'+key+':total">'+num(tot.total,2)+'</td><td></td></tr><tr><td colspan="7" style="font-weight:600;color:var(--g6)">GST (₹)</td><td colspan="3" class="r" data-t="'+key+':gst" style="font-weight:600">'+num(tot.gst,2)+'</td></tr></tfoot></table></div></div>';
+      '<div class="qk-scroll"><table class="qk-t"><thead><tr><th>#</th><th>Particulars</th><th>Basis / UOM</th><th>Units</th><th>Ccy</th><th>Ex. Rate</th><th>Unit Rate</th><th>Taxable</th><th>Tax %</th><th class="r">Amount (₹)</th><th class="r">Total (₹)</th><th></th></tr></thead><tbody>'+
+      (lines.length ? lines.map((l,i)=>rowHtml(l, key, i)).join("") : '<tr><td colspan="12" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No '+(side==="SELL"?"sell":"buy")+' charges yet. Click "Add Charge".</td></tr>')+
+      '</tbody><tfoot><tr><td colspan="9">Total ('+(side==="SELL"?"Sell":"Buy")+')</td><td class="r" data-t="'+key+':amount">'+num(tot.amount,2)+'</td><td class="r" data-t="'+key+':total">'+num(tot.total,2)+'</td><td></td></tr><tr><td colspan="9" style="font-weight:600;color:var(--g6)">GST (₹)</td><td colspan="3" class="r" data-t="'+key+':gst" style="font-weight:600">'+num(tot.gst,2)+'</td></tr></tfoot></table></div></div>';
   }
   function costSheet(){
     if(!can("quote.view_cost")) return "";
@@ -15648,11 +15930,14 @@ if(document.readyState !== "loading") initChatWidget();
     const sell = q.lines.filter(l=>l.side === "SELL");
     const carriers = Array.from(new Set(sell.map(l=>l.carrier || "")));
     const hd = q.header || {};
+    const withTax = Q.viewTax !== false;
+    const th = (t, a)=> '<th style="padding:6px;text-align:'+(a||"left")+'">'+t+'</th>';
     const tables = carriers.map(c=>{
       const ls = sell.filter(l=>(l.carrier||"") === c); const tot = ls.reduce((a,l)=>a+Number(l.amount),0), gst = ls.reduce((a,l)=>a+Number(l.gst_amount),0), grand = ls.reduce((a,l)=>a+Number(l.total_inr),0);
-      return (c ? '<div style="font-weight:700;margin:12px 0 4px">Carrier: '+esc2(c)+'</div>' : '')+'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#0B1F3A;color:#fff"><th style="padding:6px;text-align:left">Charge</th><th style="padding:6px;text-align:left">Basis</th><th style="padding:6px;text-align:right">Units</th><th style="padding:6px;text-align:right">Rate</th><th style="padding:6px">Cur</th><th style="padding:6px;text-align:right">Ex.Rate</th><th style="padding:6px;text-align:right">Amount (INR)</th><th style="padding:6px;text-align:right">GST</th><th style="padding:6px;text-align:right">Total (INR)</th></tr></thead><tbody>'+
-        ls.map(l=>{ const bu = l.container_breakup||[]; return '<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:6px">'+esc2(l.charge_name)+(bu.length ? '<div style="font-size:10.5px;color:#64748B">'+bu.map(b=>esc2(b.type)+" × "+esc2(Number(b.qty))+" @ "+esc2(l.ccy)+" "+esc2(Number(b.rate).toLocaleString("en-IN"))).join("<br>")+'</div>' : (l.container_type ? '<div style="font-size:10.5px;color:#64748B">'+esc2(l.container_type)+'</div>' : ''))+'</td><td style="padding:6px">'+esc2(l.basis)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.qty))+'</td><td style="padding:6px;text-align:right">'+(bu.length ? "as listed" : esc2(Number(l.rate).toLocaleString("en-IN")))+'</td><td style="padding:6px;text-align:center">'+esc2(l.ccy)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.exch))+'</td><td style="padding:6px;text-align:right">'+inr(l.amount)+'</td><td style="padding:6px;text-align:right">'+(l.taxable ? inr(l.gst_amount)+" ("+esc2(Number(l.tax_pct))+"%)" : "Nil")+'</td><td style="padding:6px;text-align:right">'+inr(l.total_inr)+'</td></tr>'; }).join("")+
-        '</tbody><tfoot><tr><td colspan="6" style="padding:6px;text-align:right;font-weight:700">Total</td><td style="padding:6px;text-align:right;font-weight:700">'+inr(tot)+'</td><td style="padding:6px;text-align:right;font-weight:700">'+inr(gst)+'</td><td style="padding:6px;text-align:right;font-weight:800">'+inr(grand)+'</td></tr></tfoot></table>';
+      const cols = withTax ? 9 : 7;
+      return (c ? '<div style="font-weight:700;margin:12px 0 4px">Carrier: '+esc2(c)+'</div>' : '')+'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#0B1F3A;color:#fff">'+th("Charge")+th("Basis")+th("Units","right")+th("Rate","right")+th("Cur","center")+th("Ex.Rate","right")+th("Amount (INR)","right")+(withTax ? th("GST","right")+th("Total (INR)","right") : "")+'</tr></thead><tbody>'+
+        ls.map(l=>{ const bu = l.container_breakup||[]; return '<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:6px">'+esc2(l.charge_name)+(bu.length ? '<div style="font-size:10.5px;color:#64748B">'+bu.map(b=>esc2(b.type)+" × "+esc2(Number(b.qty))+" @ "+esc2(l.ccy)+" "+esc2(Number(b.rate).toLocaleString("en-IN"))).join("<br>")+'</div>' : (l.container_type ? '<div style="font-size:10.5px;color:#64748B">'+esc2(l.container_type)+'</div>' : ''))+'</td><td style="padding:6px">'+esc2(l.basis)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.qty))+'</td><td style="padding:6px;text-align:right">'+(bu.length ? "as listed" : esc2(Number(l.rate).toLocaleString("en-IN")))+'</td><td style="padding:6px;text-align:center">'+esc2(l.ccy)+'</td><td style="padding:6px;text-align:right">'+esc2(Number(l.exch))+'</td><td style="padding:6px;text-align:right">'+inr(l.amount)+'</td>'+(withTax ? '<td style="padding:6px;text-align:right">'+(l.taxable ? inr(l.gst_amount)+" ("+esc2(Number(l.tax_pct))+"%)" : "Nil")+'</td><td style="padding:6px;text-align:right">'+inr(l.total_inr)+'</td>' : '')+'</tr>'; }).join("")+
+        '</tbody><tfoot><tr><td colspan="6" style="padding:6px;text-align:right;font-weight:700">Total'+(withTax ? "" : " (excluding tax)")+'</td><td style="padding:6px;text-align:right;font-weight:700">'+inr(tot)+'</td>'+(withTax ? '<td style="padding:6px;text-align:right;font-weight:700">'+inr(gst)+'</td><td style="padding:6px;text-align:right;font-weight:800">'+inr(grand)+'</td>' : '')+'</tr></tfoot></table>'+(withTax ? '' : '<div style="font-size:11px;color:#64748B;margin-top:4px">Amounts are exclusive of GST; applicable taxes are charged extra as per law.</div>');
     }).join("");
     zone.innerHTML = '<div style="padding:24px 28px"><div style="display:flex;justify-content:space-between;border-bottom:2px solid #0B1F3A;padding-bottom:10px"><div><div style="font-size:20px;font-weight:800;color:#0B1F3A">'+esc2(me.organization_name||"")+'</div><div style="font-size:11px;color:var(--g5)">Freight forwarding quotation</div></div><div style="text-align:right"><div style="font-size:18px;font-weight:800">QUOTATION</div><div class="mono">'+esc2(q.number||("Draft #"+q.id))+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</div><div style="margin-top:4px">'+sbadge(q)+'</div></div></div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;font-size:12px"><div><div style="color:var(--g5);font-size:10.5px">QUOTED TO</div><div style="font-weight:700;font-size:14px">'+esc2(q.party_name)+'</div>'+(hd.reference_no ? '<div style="margin-top:4px">Your ref: '+esc2(hd.reference_no)+'</div>' : '')+(hd.sales_person ? '<div>Contact: '+esc2(hd.sales_person)+'</div>' : '')+'</div><div>'+
@@ -15666,6 +15951,7 @@ if(document.readyState !== "loading") initChatWidget();
       Array.from(bar.querySelectorAll("button")).forEach(b=>{ if(!keep.includes(b)) b.style.display = "none"; });
       bar.querySelectorAll("[data-qk-bar]").forEach(n=>n.remove());
       const add = (label, a, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = a+":"+q.id; b.textContent = label; bar.appendChild(b); };
+      add("With Tax", "viewtax1", Q.viewTax !== false ? "btn-pri" : "btn-out"); add("Without Tax", "viewtax0", Q.viewTax === false ? "btn-pri" : "btn-out");
       if(q.editable) add("Edit", "edit", "btn-out");
       if(q.effective_status === "SENT"){ add("Mark Accepted", "accept", "btn-suc"); add("Mark Rejected", "reject", "btn-out"); }
       if(q.status === "ACCEPTED") add("Convert to Job", "convert", "btn-pri");
@@ -15679,6 +15965,7 @@ if(document.readyState !== "loading") initChatWidget();
   async function listAct(kind, id){
     try{
       if(kind === "delete"){ if(!window.confirm("Delete this draft quotation?")) return; await api("DELETE","/api/quotations/"+id); say("Draft deleted", ""); return refresh(); }
+      if(kind === "viewtax1" || kind === "viewtax0"){ Q.viewTax = kind === "viewtax1"; return openView(id); }
       if(kind === "edit"){ const q = await api("GET","/api/quotations/"+id); Q.pendingOpen = q; go("quotation-new"); return; }
       if(kind === "issue"){ if(!window.confirm("Issue this approved quotation to the client? It gets its number and is locked.")) return; const s = await api("POST","/api/quotations/"+id+"/send"); say("Quotation issued", s.number); return refresh(s.id); }
       if(kind === "accept" || kind === "reject"){ if(!window.confirm(kind==="accept" ? "Record this quotation as ACCEPTED by the client?" : "Record this quotation as REJECTED by the client?")) return; const q = await api("POST","/api/quotations/"+id+"/"+kind); say("Quotation "+(kind==="accept"?"accepted":"rejected"), q.number); return refresh(q.id); }

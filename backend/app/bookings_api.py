@@ -206,6 +206,9 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
     from .shipments_api import _next_job_number
 
     if not b.job_number:
+        from .credit_control import enforce as credit_enforce
+
+        credit_enforce(db, org_id, b.customer_id, "confirm booking", user.id, None, __import__("decimal").Decimal(0))
         data = b.data or {}
         pcs, gwt = _num(data.get("pcs")), _num(data.get("gwt"))
         job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction), mode=b.mode, direction=b.direction, container_mode=b.shipment_type if b.shipment_type in ("FCL", "LCL") else None,

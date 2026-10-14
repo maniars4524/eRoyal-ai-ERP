@@ -15,6 +15,7 @@ from .db import get_db
 from .models import Customer, JobCharge, MasterRecord, Organization, Quotation, QuotationEvent, QuotationLine, Shipment, User
 from .quote_calc import calc_line, charge_margin_pct, cost_sheet, q2
 
+ZERO_AMT = __import__("decimal").Decimal(0)
 router = APIRouter(prefix="/api/quotations", tags=["quotations"])
 MODES = "^(Sea|Air|Road|Rail|Multimodal|Courier)$"
 DIRECTIONS = "^(Export|Import|Domestic|Cross-Trade)$"
@@ -449,6 +450,9 @@ def convert_to_job(quote_id: int, carrier: str | None = Query(default=None, max_
         buy = [l for l in buy if not l.carrier or l.carrier == carrier]
     from .shipments_api import _next_job_number  # local import: shipments_api imports auth helpers too
 
+    from .credit_control import enforce as credit_enforce
+
+    credit_enforce(db, org_id, quote.customer_id, "convert quotation to job", user.id, None, ZERO_AMT)
     container_mode = quote.shipment_type if quote.shipment_type in ("FCL", "LCL") else None
     job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, quote.mode, quote.direction), mode=quote.mode, direction=quote.direction, container_mode=container_mode,
                    pol=quote.pol, pod=quote.pod, customer_id=quote.customer_id, status="Open", created_by=user.id)

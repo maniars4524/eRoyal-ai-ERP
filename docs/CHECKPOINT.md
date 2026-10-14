@@ -40,3 +40,10 @@ Auth + three portals + lockout + audit; PUBLIC_PORTALS mode; tenant isolation; C
 - Backend: 88 tests pass. All e2e suites pass on QA server (ENV_FILE=.env.qa, port 8010; start with backend/.venv python -m uvicorn app.main:app --port 8010).
 - Known limits: CRM-internal opportunity quotations/bookings are still the old in-memory flow (persisted as JSON, not linked to the real Quotation module); email sending not configured; Get Rate (Rate Master) disabled.
 - NEXT: Organization Master enhancement (branches, branch contacts, COA/AP/AR classification, credit application/approval/control) - see user's spec in chat; then deploy (needs user approval).
+
+## Update 2026-10-14 (later): Organization Master enhancement
+- Migration 0018: org_branches, org_contacts, credit_facilities, credit_requests, credit_events, shipments.party_branch_id.
+- Backend: app/org_ext_api.py (branches, branch contacts, accounting-class validation, credit workflow, requests, overview), app/credit_control.py (exposure + enforcement; hooked into shipment create, quotation convert, booking confirm, invoice post). Permissions credit.read/request/approve/override; template roles auto-sync at startup (roles.sync_template_roles).
+- UI: OrgExt kit in esway-erp.html (tabs 01-05 + legacy tabs). Tests: backend/tests/test_org_credit.py (12), e2e/orgext.test.js.
+- Quotation: Taxable Yes/No + Tax % are visible columns; preview has With Tax / Without Tax.
+- QUEUED (user specs pasted in chat): Charge/SAC/GST catalogue import (47 charges, inactive until verified); Job stage + closure/reopen + right-side Job Activity History.

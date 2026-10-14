@@ -52,13 +52,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("invalid GSTIN is rejected by the server and reported", toastsNow().some(t => /GSTIN format is invalid/i.test(t)), toastsNow().join(";"));
   set("GSTIN", "27AAACT2727Q1ZN");
   // contact row
-  Array.from(d.querySelectorAll("#ot3 .ch button"))[0].click(); await sleep(200);
+  Array.from(d.querySelectorAll("#ot3 .ch button"))[1].click(); await sleep(200);
   const ci = d.querySelectorAll('#ot3 input[data-orr="contacts"]');
   ci[0].value = "Suresh Krishnan"; ci[0].dispatchEvent(new w.Event("input", { bubbles: true }));
   const email = Array.from(ci).find(i => i.dataset.k === "email"); email.value = "suresh@tata.test"; email.dispatchEvent(new w.Event("input", { bubbles: true }));
-  Array.from(d.querySelectorAll("#ot2 .ch button")).pop().click(); await sleep(200);
+  Array.from(d.querySelectorAll("#ot2 .ch button")).filter(b => b.id !== "oxAddBranch").pop().click(); await sleep(200);
   const ai = Array.from(d.querySelectorAll('#ot2 input[data-orr="addresses"]')).find(i => i.dataset.k === "address"); ai.value = "Plot 14, Industrial Estate"; ai.dispatchEvent(new w.Event("input", { bubbles: true }));
   clearToasts(); q("#orgSaveBtn").click(); await sleep(1500);
+  check("after creating, the form stays open on the saved organization (branches/credit now available)", q("#s-org-new").dataset.orgId !== "" && /Organization created/.test(toastsNow().join(";")), toastsNow().join(";"));
+  w.go("org-list"); await sleep(900);
   const saved = (await j("GET", "/api/customers", null, token)).body;
   check("organization saved with all details in PostgreSQL", saved.length === 1 && saved[0].code === "TATACHEM" && saved[0].gstin === "27AAACT2727Q1ZN" && saved[0].roles.includes("shipper") && saved[0].data.city === "Mumbai" && saved[0].data.contacts[0].name === "Suresh Krishnan" && saved[0].data.addresses[0].address === "Plot 14, Industrial Estate", JSON.stringify(saved[0]).slice(0, 500) + toastsNow().join(";"));
   check("list shows it with role badge", rows().some(r => r.includes("TATACHEM") && r.includes("Tata Chemicals Ltd") && r.includes("Shipper")), rows().join("|"));

@@ -12,7 +12,7 @@ from .auth import permission_required
 from .auth_api import record_audit
 from .billing import CREDIT_TARGET, DOC_TYPES, calc_line, doc_side, next_number, outstanding, payment_status, q2
 from .db import get_db
-from .models import Customer, Document, DocumentLine, JobCharge, Shipment, User
+from .models import Customer, Document, DocumentLine, JobCharge, Shipment, User, OrgBranch
 
 router = APIRouter(prefix="/api/documents", tags=["billing-documents"])
 DOC_TYPE_PATTERN = "^(invoice|debit_note|credit_note|purchase_invoice|purchase_credit_note)$"
@@ -292,6 +292,17 @@ def post_document(doc_id: int, user: User = Depends(permission_required("billing
         if doc.grand_total > outstanding(ref):
             raise HTTPException(status_code=422, detail=f"Credit exceeds the outstanding balance of {ref.doc_number} ({outstanding(ref)})")
         ref.credited_amount += doc.grand_total
+    branch_ref = (doc.header or {}).get("party_branch_id")
+    if branch_ref not in (None, ""):
+        br = db.scalar(select(OrgBranch).where(OrgBranch.id == int(branch_ref), OrgBranch.organization_id == org_id, OrgBranch.customer_id == doc.customer_id))
+        if not br or br.status != "ACTIVE":
+            raise HTTPException(status_code=422, detail="The selected billing branch does not belong to this organization or is inactive")
+        if not br.billing_enabled and doc.doc_type in ("invoice", "debit_note", "credit_note"):
+            raise HTTPException(status_code=422, detail=f"Branch {br.code} is not billing-enabled; choose a billing-enabled branch for this invoice")
+    if doc.doc_type in ("invoice", "debit_note") and doc.customer_id:
+        from .credit_control import enforce as credit_enforce
+
+        credit_enforce(db, org_id, doc.customer_id, "post invoice", user.id, int(branch_ref) if branch_ref not in (None, "") else None, doc.grand_total if not doc.shipment_id else Decimal(0))
     prefix = DOC_TYPES[doc.doc_type][0]
     doc.doc_number = next_number(db, org_id, doc.doc_type, prefix, doc.doc_date)
     doc.status = "POSTED"

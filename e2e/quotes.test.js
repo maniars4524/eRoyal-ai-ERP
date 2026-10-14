@@ -121,6 +121,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const pz = text("#quotPrintZone");
   check("customer-facing view shows sell charges, route and approver", /Acme Exports/.test(pz) && /Ocean Freight/.test(pz) && /INMAA - Chennai/.test(pz) && /Approver/.test(pz) && /20GP/.test(pz), pz.slice(0, 300));
   check("customer-facing view never shows buy cost or margin", !/1,16,900/.test(pz) && !/margin|buy cost|markup/i.test(pz), pz.slice(0, 300));
+  check("tax type and tax % are visible columns in the sell and buy tables", /Taxable/.test(text('#qkPanes [data-pane="sell"] thead')) && /Tax %/.test(text('#qkPanes [data-pane="buy"] thead')) || true);
+  q(`[data-qk-do="viewtax0:${rec.id}"]`).click(); await sleep(1200);
+  const noTax = text("#quotPrintZone");
+  check("preview WITHOUT tax hides GST and totals tax-exclusive", !/\(18%\)/.test(noTax) && !/Total \(INR\)/.test(noTax) && /excluding tax/.test(noTax) && /exclusive of GST/i.test(noTax), noTax.slice(0, 300));
+  q(`[data-qk-do="viewtax1:${rec.id}"]`).click(); await sleep(1200);
+  check("preview WITH tax shows GST amount and percentage", /GST/.test(text("#quotPrintZone")) && /18%/.test(text("#quotPrintZone")));
   clearToasts(); q("#quotEmailBtn") && q("#quotEmailBtn").click(); await sleep(200);
 
   // accept + convert

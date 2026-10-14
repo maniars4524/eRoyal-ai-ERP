@@ -155,6 +155,7 @@ class Shipment(Base):
     etd: Mapped[date | None] = mapped_column(Date)
     eta: Mapped[date | None] = mapped_column(Date)
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    party_branch_id: Mapped[int | None] = mapped_column(ForeignKey("org_branches.id", ondelete="SET NULL"))
     consignee: Mapped[str | None] = mapped_column(String(160))
     packages: Mapped[int | None] = mapped_column(Integer)
     package_type: Mapped[str | None] = mapped_column(String(40))
@@ -464,3 +465,117 @@ class CrmRecord(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class OrgBranch(Base):
+    """A branch of a party (Organization Master record). Never deleted once used; deactivate instead."""
+    __tablename__ = "org_branches"
+    __table_args__ = (UniqueConstraint("customer_id", "code", name="uq_org_branch_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(160))
+    state: Mapped[str | None] = mapped_column(String(80))
+    country: Mapped[str | None] = mapped_column(String(80))
+    city: Mapped[str | None] = mapped_column(String(80))
+    address: Mapped[str | None] = mapped_column(String(400))
+    pincode: Mapped[str | None] = mapped_column(String(12))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    email: Mapped[str | None] = mapped_column(String(254))
+    gstin: Mapped[str | None] = mapped_column(String(30))
+    billing_enabled: Mapped[bool] = mapped_column(default=False)
+    status: Mapped[str] = mapped_column(String(10), default="ACTIVE")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class OrgContact(Base):
+    __tablename__ = "org_contacts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    branch_id: Mapped[int | None] = mapped_column(ForeignKey("org_branches.id", ondelete="SET NULL"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    designation: Mapped[str | None] = mapped_column(String(80))
+    department: Mapped[str | None] = mapped_column(String(40))
+    mobile: Mapped[str | None] = mapped_column(String(40))
+    whatsapp: Mapped[str | None] = mapped_column(String(40))
+    email: Mapped[str | None] = mapped_column(String(254))
+    landline: Mapped[str | None] = mapped_column(String(40))
+    is_primary: Mapped[bool] = mapped_column(default=False)
+    is_billing: Mapped[bool] = mapped_column(default=False)
+    is_operational: Mapped[bool] = mapped_column(default=False)
+    status: Mapped[str] = mapped_column(String(10), default="ACTIVE")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CreditFacility(Base):
+    """A credit application / approved facility. Approved facilities are immutable: changes are new REVISION or RENEWAL rows."""
+    __tablename__ = "credit_facilities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10), default="NEW")
+    status: Mapped[str] = mapped_column(String(14), default="DRAFT", index=True)
+    credit_days: Mapped[int] = mapped_column(Integer, default=0)
+    requested_limit = mapped_column(Numeric(16, 2), default=0)
+    approved_limit = mapped_column(Numeric(16, 2))
+    currency: Mapped[str] = mapped_column(String(3), default="INR")
+    agreement_no: Mapped[str | None] = mapped_column(String(80))
+    agreement_file: Mapped[str | None] = mapped_column(String(240))
+    policy: Mapped[str] = mapped_column(String(6), default="SOFT")
+    branch_limits: Mapped[list] = mapped_column(JSON, default=list)
+    reason: Mapped[str | None] = mapped_column(Text)
+    prev_id: Mapped[int | None] = mapped_column(ForeignKey("credit_facilities.id", ondelete="SET NULL"))
+    requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    start_date: Mapped[date | None] = mapped_column(Date)
+    expiry_date: Mapped[date | None] = mapped_column(Date)
+    approval_remarks: Mapped[str | None] = mapped_column(Text)
+
+
+class CreditRequest(Base):
+    """Grace period / extension / soft-block override / hard-block release, each needing management approval."""
+    __tablename__ = "credit_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    facility_id: Mapped[int | None] = mapped_column(ForeignKey("credit_facilities.id", ondelete="SET NULL"))
+    branch_id: Mapped[int | None] = mapped_column(ForeignKey("org_branches.id", ondelete="SET NULL"))
+    kind: Mapped[str] = mapped_column(String(10))
+    status: Mapped[str] = mapped_column(String(10), default="PENDING", index=True)
+    days: Mapped[int | None] = mapped_column(Integer)
+    amount = mapped_column(Numeric(16, 2))
+    one_time: Mapped[bool] = mapped_column(default=False)
+    reason: Mapped[str] = mapped_column(Text, default="")
+    requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    valid_until: Mapped[date | None] = mapped_column(Date)
+    remarks: Mapped[str | None] = mapped_column(Text)
+
+
+class CreditEvent(Base):
+    __tablename__ = "credit_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    facility_id: Mapped[int | None] = mapped_column(Integer)
+    request_id: Mapped[int | None] = mapped_column(Integer)
+    action: Mapped[str] = mapped_column(String(40))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

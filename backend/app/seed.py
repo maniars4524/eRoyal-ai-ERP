@@ -37,6 +37,10 @@ PERMISSIONS = [
     ("quote.approve", "Approve or reject submitted quotations", "quote", "approve"),
     ("quote.view_cost", "See buy costs and margins on quotations", "quote", "view_cost"),
     ("quote.rate_override", "Change the exchange rate on quotation lines", "quote", "rate_override"),
+    ("credit.read", "View customer credit facilities and exposure", "credit", "read"),
+    ("credit.request", "Apply for credit and request grace, extension or override", "credit", "request"),
+    ("credit.approve", "Approve credit facilities and credit exceptions (management)", "credit", "approve"),
+    ("credit.override", "Approve soft-block overrides", "credit", "override"),
     ("booking.read", "View bookings", "booking", "read"),
     ("booking.create", "Create/edit draft bookings", "booking", "create"),
     ("booking.confirm", "Confirm and cancel bookings", "booking", "confirm"),
@@ -108,7 +112,7 @@ def seed_demo_portal() -> None:
         if not role:
             role = Role(name="DEMO_USER", organization_id=org.id, description="Demo evaluator (no destructive actions)", status="ACTIVE")
             db.add(role)
-        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "payment.read", "payment.create", "quote.read", "quote.create", "quote.send", "quote.approve", "quote.view_cost", "quote.rate_override", "booking.read", "booking.create", "booking.confirm", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
+        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "payment.read", "payment.create", "quote.read", "quote.create", "quote.send", "quote.approve", "quote.view_cost", "quote.rate_override", "booking.read", "booking.create", "booking.confirm", "credit.read", "credit.request", "credit.approve", "credit.override", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
         email = os.getenv("DEMO_PORTAL_EMAIL", "demo@esway.local")
         username = os.getenv("DEMO_PORTAL_USERNAME", "demo")
         if not db.scalar(select(User).where((User.email == email) | (User.username == username))):
@@ -134,6 +138,17 @@ def seed_demo_portal() -> None:
         db.close()
 
 
+def sync_roles() -> None:
+    from .roles import sync_template_roles
+
+    db = SessionLocal()
+    try:
+        sync_template_roles(db)
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     seed_super_admin()
+    sync_roles()
     seed_demo_portal()
