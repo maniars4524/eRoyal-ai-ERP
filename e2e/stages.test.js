@@ -82,7 +82,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await j("POST", `/api/quotations/${q.id}/send`, null, token); await j("POST", `/api/quotations/${q.id}/accept`, null, token);
   const bk = (await j("POST", "/api/bookings", { mode: "Sea", direction: "Export", shipment_type: "FCL", booking_type: "Direct", customer_id: cust.id, party_name: "Acme Exports", carrier: "MSC", pol: "INMAA", pod: "BEANR", quotation_id: q.id, data: { services: "Freight", pcs: "10" } }, token)).body;
   const cb = (await j("POST", `/api/bookings/${bk.id}/confirm`, null, token)).body;
-  const bj = (await j("POST", `/api/bookings/${bk.id}/jobs`, { service: "Freight" }, token)).body.created_job;
+  const bj = cb.job_number;
   w.go("job-detail", { jobNo: bj }); await sleep(2500);
   check("a job from a booking starts as Confirmed", /STAGE\s*CONFIRMED/i.test(text("#jlChips")), text("#jlChips"));
   q$("[data-jl-source]").click(); await sleep(1200);

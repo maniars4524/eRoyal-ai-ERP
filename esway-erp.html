@@ -2853,11 +2853,7 @@ tbody tr:hover{background:var(--g0)}
 </div></div></div>
 
 <!-- JT4 CUSTOMS -->
-<div id="jt4" class="tp"><div class="card"><div class="ch"><div class="ct">Customs Filing</div></div><div class="cb">
-<div class="fr"><div class="fg"><label class="fl">Filing Type</label><select class="fc"><option>Shipping Bill (Export)</option><option>Bill of Entry (Import)</option></select></div><div class="fg"><label class="fl">SB / BE Number</label><input class="fc" placeholder="SB Number" style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Filing Date</label><input class="fc" type="date"></div><div class="fg"><label class="fl">CHA Broker</label><select class="fc"><option>Sea Air Marine Surveyors</option></select></div></div>
-<div class="fr"><div class="fg"><label class="fl">Assessable Value (₹)</label><input class="fc" id="cust_av" placeholder="0.00"></div><div class="fg"><label class="fl">Basic Customs Duty (₹)</label><input class="fc" id="cust_bcd" placeholder="0.00"></div><div class="fg"><label class="fl">IGST Amount (₹)</label><input class="fc" id="cust_igst" placeholder="0.00"></div><div class="fg"><label class="fl">Total Duty (₹)</label><input class="fc" id="cust_total" placeholder="0.00" readonly></div></div>
-<div class="fr"><div class="fg"><label class="fl">Examination</label><select class="fc"><option>No (RMS Passed)</option><option>Yes - OOC</option><option>Yes - Physical</option></select></div><div class="fg"><label class="fl">OOC Date</label><input class="fc" type="date"></div><div class="fg"><label class="fl">LEO Date</label><input class="fc" type="date"></div><div class="fg"><label class="fl">Customs Status</label><select class="fc"><option>Filed</option><option>Assessed</option><option>Duty Paid</option><option>OOC</option><option>Cleared / LEO</option></select></div></div>
-</div></div></div>
+<div id="jt4" class="tp"><div class="card"><div class="ch"><div class="ct">Customs Clearance</div><button class="btn btn-out btn-sm" id="cusAddBtn" style="display:none">＋ Add clearance bill</button></div><div class="cb" id="cusBody"><div style="color:var(--g5);font-style:italic">Open a job to see its customs clearance.</div></div></div></div>
 
 <!-- JT5 CHARGES -->
 <div id="jt5" class="tp">
@@ -16783,7 +16779,7 @@ if(document.readyState !== "loading") initChatWidget();
     const rec = await BKG.save(); if(!rec) return;
     try{
       const done = await api("POST", "/api/bookings/"+rec.id+"/confirm");
-      say("Booking Confirmed Successfully!", done.number+" — create the job(s) from the booking page"); BKG.rec = null; BKG.quote = null; BKG.view(done.id);
+      say("Booking Confirmed Successfully!", done.number+(done.created_jobs && done.created_jobs.length ? " — "+done.created_jobs.length+" job(s) created: "+done.created_jobs.join(", ") : " — create the job(s) from the booking page")); BKG.rec = null; BKG.quote = null; BKG.view(done.id);
     }catch(e){ say("Booking not confirmed — saved as a draft", e.message, "error"); }
   };
   document.addEventListener("click", async e=>{
@@ -16865,9 +16861,20 @@ if(document.readyState !== "loading") initChatWidget();
       const nrows = rows.filter(r=>(r.service || "Freight") === (sv === "Consol" ? "Freight" : sv)).length;
       return '<tr><td style="font-weight:600">'+esc2(label)+'<div style="font-size:10.5px;color:var(--g5);font-weight:400">'+nrows+' charge line(s) from the booking costing</div></td><td>'+(j ? '<span class="mono ta" data-bkv-job="'+esc2(j.job_number)+'" style="color:var(--bl);font-weight:700;cursor:pointer">'+esc2(j.job_number)+'</span>' : '<span style="color:var(--g5)">Not created</span>')+'</td><td>'+(j ? esc2(j.job_stage || j.status) : "—")+'</td><td>'+(j ? '<button class="ta" data-bkv-job="'+esc2(j.job_number)+'">Open job →</button>' : (canCreate ? '<button class="btn btn-pri btn-sm" data-bkv-create="'+esc2(sv)+'">Create '+esc2(sv === "CHA" ? "CHA" : sv)+' job</button>' : '<span style="color:var(--g5)">Confirm the booking first</span>'))+'</td></tr>';
     }).join("")+'</tbody></table></div>';
+    let costCard = "";
+    if(jobs.length){
+      const cst = await api("GET", "/api/bookings/"+BKG.viewId+"/costing").catch(()=>null);
+      if(cst && cst.lines.length){
+        const inr = v=> "₹"+Number(v || 0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+        costCard = '<div class="card"><div class="ch"><div class="ct">Costing by service (freight and customs clearance, with the combined total)</div></div><div class="cb"><div class="tw"><table><thead><tr><th>Service</th><th>Charge lines</th><th style="text-align:right">Sell (INR)</th><th style="text-align:right">Buy (INR)</th><th style="text-align:right">Margin (INR)</th></tr></thead><tbody>'+
+          Object.keys(cst.services).map(k=>'<tr><td style="font-weight:600">'+esc2(k === "CHA" ? "Customs clearance (CHA)" : k)+'</td><td>'+cst.services[k].lines+'</td><td style="text-align:right">'+inr(cst.services[k].sell)+'</td><td style="text-align:right">'+inr(cst.services[k].buy)+'</td><td style="text-align:right">'+inr(cst.services[k].margin)+'</td></tr>').join("")+
+          '</tbody><tfoot><tr><td style="font-weight:700">Combined</td><td>'+cst.lines.length+'</td><td style="text-align:right;font-weight:700">'+inr(cst.combined.sell)+'</td><td style="text-align:right;font-weight:700">'+inr(cst.combined.buy)+'</td><td style="text-align:right;font-weight:700">'+inr(cst.combined.margin)+'</td></tr></tfoot></table></div>'+
+          '<div class="tw" style="margin-top:10px"><table><thead><tr><th>Job</th><th>Service</th><th>Charge</th><th>Vendor</th><th style="text-align:right">Sell</th><th style="text-align:right">Buy</th></tr></thead><tbody>'+cst.lines.map(l=>'<tr><td class="mono">'+esc2(l.job_number)+'</td><td>'+esc2(l.service === "CHA" ? "Customs" : l.service)+'</td><td>'+esc2(l.charge_name)+'</td><td>'+esc2(l.vendor || "—")+'</td><td style="text-align:right">'+inr(l.sell_inr)+'</td><td style="text-align:right">'+inr(l.buy_inr)+'</td></tr>').join("")+'</tbody></table></div></div></div>';
+      }
+    }
     const summary = summaryHtml({...b, number:b.number, data:d}, rows);
-    root.innerHTML = '<div class="card"><div class="ch"><div class="ct">Jobs under booking '+esc2(b.number || "")+'</div></div><div class="cb">'+(b.status === "CONFIRMED" ? '<div class="ib ib-bl" style="margin-bottom:10px">One booking number covers every service booked: freight, consol, CHA, transport. Create each job here; they all carry this booking number.</div>' : '')+jobTable+(b.quotation_id ? '<div style="margin-top:8px;font-size:11.5px;color:var(--g6)">Quotation '+esc2(d.quotation_no || "")+' is marked Converted when the first job is created.</div>' : '')+'</div></div>'+
-      '<div class="card"><div class="ch"><div class="ct">Booking summary</div></div><div class="cb">'+summary+'</div></div>';
+    root.innerHTML = '<div class="card"><div class="ch"><div class="ct">Jobs under booking '+esc2(b.number || "")+'</div></div><div class="cb">'+(b.status === "CONFIRMED" ? '<div class="ib ib-bl" style="margin-bottom:10px">One booking number covers every service booked. The Freight job and, when CHA is booked, the Customs Clearance job are created automatically when the booking is released; other services (consol, transport, warehouse) are created here.</div>' : '')+jobTable+(b.quotation_id ? '<div style="margin-top:8px;font-size:11.5px;color:var(--g6)">Quotation '+esc2(d.quotation_no || "")+' is marked Converted when the first job is created.</div>' : '')+'</div></div>'+
+      costCard+'<div class="card"><div class="ch"><div class="ct">Booking summary</div></div><div class="cb">'+summary+'</div></div>';
   };
   document.addEventListener("click", async e=>{
     const jobBtn = e.target.closest("[data-bkv-job]"); if(jobBtn){ go("job-detail", {jobNo:jobBtn.dataset.bkvJob}); return; }
@@ -16973,12 +16980,81 @@ function makePrintFit(){
     const no = window.__lastJobNo; const j = no && window.JOB_DB ? window.JOB_DB[no] : null;
     const notice = '<div class="ib ib-am" style="margin-bottom:14px"><b>'+esc(title)+'</b> — the format for this document has not been added yet. Once the company\'s format is set up it will be produced here from the job\'s own data. Nothing on this page is sample data.</div>';
     if(!j){ body.innerHTML = '<div style="padding:22px">'+notice+'<div style="color:var(--g5)">Open a job and choose this document from its Output Documents.</div></div>'; return; }
+    const token = sessionStorage.getItem("esway_access_token");
+    fetch("/api/jobs/"+encodeURIComponent(no)+"/report-data", {headers:{Authorization:"Bearer "+token}}).then(r=>r.ok ? r.json() : null).then(rd=>{
+      if(!rd) return; const host = zone.querySelector("[data-doc-fields]"); if(!host) return;
+      const inv = rd.invoices.map(i=>i.doc_number || "Draft").join(", ");
+      const sb = rd.shipping_bills.map(b=>b.bill_no+(b.bill_date ? " ("+String(b.bill_date).slice(8,10)+"-"+String(b.bill_date).slice(5,7)+"-"+String(b.bill_date).slice(0,4)+")" : "")).join(", ");
+      const be = rd.bills_of_entry.map(b=>b.bill_no+(b.bill_date ? " ("+String(b.bill_date).slice(8,10)+"-"+String(b.bill_date).slice(5,7)+"-"+String(b.bill_date).slice(0,4)+")" : "")).join(", ");
+      host.innerHTML = '<div class="fsec">Fields this document will carry (taken from the booking, the job and customs clearance)</div><div style="display:flex;gap:14px;flex-wrap:wrap">'+fact("Booking no", rd.booking_number)+fact(rd.bl_awb.label+" no", rd.bl_awb.number)+fact("Invoice no(s)", inv)+(rd.direction === "Export" ? fact("Shipping Bill (SB) no / date", sb) : "")+(rd.direction === "Import" ? fact("Bill of Entry (BE) no / date", be) : "")+fact("Customs clearance bills processed", String(rd.customs_bill_count))+'</div>';
+    }).catch(()=>{});
     body.innerHTML = '<div style="padding:22px">'+notice+'<div style="font-weight:700;margin-bottom:8px">Job '+esc(j.no || no)+'</div>'+
       '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">'+fact("Mode / direction", [j.mode, j.dir].filter(Boolean).join(" · "))+fact("Route", [j.pol, j.pod].filter(Boolean).join(" → "))+fact("Customer / shipper", j.shipper)+fact("Consignee", j.consignee)+'</div>'+
-      '<div style="display:flex;gap:14px;flex-wrap:wrap">'+fact("Packages", j.packages)+fact("Gross weight", j.grossWeight)+fact("Volume", j.volume)+fact("Commodity", j.commodity)+fact("BL / AWB no", j.blNo)+'</div></div>';
+      '<div style="display:flex;gap:14px;flex-wrap:wrap">'+fact("Packages", j.packages)+fact("Gross weight", j.grossWeight)+fact("Volume", j.volume)+fact("Commodity", j.commodity)+fact("BL / AWB no", j.blNo)+'</div><div data-doc-fields style="margin-top:14px"></div></div>';
   }
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(SCREENS[screen]) render(SCREENS[screen]); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   CUSTOMS CLEARANCE KIT: the Custom section of a job.
+   Shipping Bills (export) / Bills of Entry (import): several per booking, all kept, shown in every job of the booking.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const money = n=> "₹" + (Number(n) || 0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "—";
+  const CUS = window.CustomsKit = {job:null, data:null};
+  const STATUS_CLS = {Draft:"b-gy", Filed:"b-bl", Assessed:"b-am", Cleared:"b-gr", Cancelled:"b-rd"};
+
+  CUS.load = async function(jobNo){
+    jobNo = jobNo || window.__lastJobNo; CUS.job = jobNo; const body = el("cusBody"); if(!body || !jobNo) return;
+    let d; try{ d = await api("GET", "/api/customs/by-job/"+encodeURIComponent(jobNo)); }catch(e){ body.innerHTML = '<div class="ib ib-am">'+esc2(e.message)+'</div>'; return; }
+    CUS.data = d; CUS.render();
+  };
+  CUS.render = function(){
+    const d = CUS.data, body = el("cusBody"), add = el("cusAddBtn"); if(!d || !body) return;
+    if(!d.bill_type){ body.innerHTML = '<div class="ib ib-bl">Customs clearance bills apply to export jobs (Shipping Bill) and import jobs (Bill of Entry). This job is neither.</div>'; if(add) add.style.display = "none"; return; }
+    if(add){ add.style.display = ""; add.textContent = "＋ Add " + (d.bill_type === "SB" ? "Shipping Bill" : "Bill of Entry"); }
+    const live = d.bills.filter(b=>b.status !== "Cancelled");
+    const fact = (k, v)=> '<div style="min-width:170px;flex:1"><div style="font-size:10.5px;color:var(--g5);font-weight:600;text-transform:uppercase;letter-spacing:.3px">'+esc2(k)+'</div><div style="margin-top:2px;font-weight:600">'+(v ? esc2(v) : '<span style="color:var(--g4);font-weight:400">—</span>')+'</div></div>';
+    const head = '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;padding:12px;background:var(--g0);border-radius:8px">'+fact("Booking no", d.booking_number)+fact(d.label+" no", d.primary_no)+fact(d.label+" date", d.primary_date ? dmy(d.primary_date) : "")+fact("Customs clearance bills processed", String(d.count))+fact("Customs (CHA) job", d.customs_jobs.map(j=>j.job_number).join(", "))+'</div>';
+    const rows = d.bills.length ? d.bills.map(b=>'<tr'+(b.status === "Cancelled" ? ' style="opacity:.55"' : "")+'><td class="mono" style="font-weight:700">'+esc2(b.bill_no)+'</td><td>'+dmy(b.bill_date)+'</td><td>'+esc2(b.reference || "—")+'</td><td>'+esc2(b.port_code || "—")+'</td><td style="text-align:right">'+money(b.assessable_value)+'</td><td style="text-align:right">'+money(b.duty_amount)+'</td><td>'+esc2(b.examination || "—")+'</td><td>'+dmy(b.ooc_date)+'</td><td><span class="b '+(STATUS_CLS[b.status] || "b-gy")+'">'+esc2(b.status)+'</span></td><td class="mono" style="font-size:11px">'+esc2(b.entered_in_job || "—")+'</td><td class="no-print"><button class="ta" data-cus-edit="'+b.id+'">Edit</button></td></tr>').join("")
+      : '<tr><td colspan="11" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">No '+esc2(d.label)+' recorded yet. Add each clearance bill as it is filed; every one is kept.</td></tr>';
+    const charges = d.customs_charges.length ? '<div class="fsec" style="margin-top:14px">Customs clearance charges (from the CHA job)</div><div class="tw"><table><thead><tr><th>Job</th><th>Charge</th><th>Qty</th><th>Sell rate</th><th>Buy rate</th><th>Vendor</th></tr></thead><tbody>'+d.customs_charges.map(c=>'<tr><td class="mono">'+esc2(c.job_number)+'</td><td>'+esc2(c.charge_name)+'</td><td>'+esc2(c.qty)+'</td><td>'+esc2(c.sell_rate)+'</td><td>'+esc2(c.buy_rate)+'</td><td>'+esc2(c.vendor || "—")+'</td></tr>').join("")+'</tbody></table></div>' : "";
+    body.innerHTML = head+'<div class="tw"><table><thead><tr><th>'+esc2(d.label)+' no</th><th>Date</th><th>Clearance reference</th><th>Port</th><th style="text-align:right">Assessable value</th><th style="text-align:right">Duty</th><th>Examination</th><th>OOC date</th><th>Status</th><th>Entered in job</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+charges;
+  };
+  function dialog(bill){
+    const d = CUS.data; const edit = !!bill; const b = bill || {};
+    const f = (id, label, val, type, ph)=> '<div class="fg"><label class="fl">'+label+'</label><input class="fc" id="'+id+'" type="'+(type || "text")+'" value="'+esc2(val == null ? "" : val)+'"'+(ph ? ' placeholder="'+ph+'"' : "")+'></div>';
+    const exam = ["", "No (RMS Passed)", "Yes - OOC", "Yes - Physical"]; const status = ["Draft", "Filed", "Assessed", "Cleared", "Cancelled"];
+    openModal({title:(edit ? "Edit " : "Add ")+d.label, bodyHTML:
+      '<div class="fr">'+(edit ? '<div class="fg"><label class="fl">'+esc2(d.label)+' no</label><input class="fc" disabled value="'+esc2(b.bill_no)+'"></div>' : f("cusNo", esc2(d.label)+" no *", "", "text", d.bill_type === "SB" ? "e.g. 7654321" : "e.g. 9876543"))+f("cusDate", d.label+" date", b.bill_date, "date")+f("cusRef", "Clearance reference", b.reference, "text", "CHA file / reference")+'</div>'+
+      '<div class="fr">'+f("cusPort", "Port code", b.port_code, "text", "e.g. INMAA1")+f("cusAv", "Assessable value (₹)", b.assessable_value, "number")+f("cusDuty", "Duty (₹)", b.duty_amount, "number")+'</div>'+
+      '<div class="fr"><div class="fg"><label class="fl">Examination</label><select class="fc" id="cusExam">'+exam.map(x=>'<option'+(x === (b.examination || "") ? " selected" : "")+'>'+esc2(x)+'</option>').join("")+'</select></div>'+f("cusOoc", "OOC date", b.ooc_date, "date")+'<div class="fg"><label class="fl">Status</label><select class="fc" id="cusStatus">'+status.map(x=>'<option'+(x === (b.status || "Filed") ? " selected" : "")+'>'+x+'</option>').join("")+'</select></div></div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Remarks</label><input class="fc" id="cusRem" value="'+esc2(b.remarks || "")+'"></div></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="cusSave">'+(edit ? "Save Changes" : "Add "+esc2(d.label))+'</button>'});
+    el("cusSave").addEventListener("click", async ()=>{
+      const g = id=> (el(id) || {}).value || "";
+      const payload = {bill_date:g("cusDate") || null, reference:g("cusRef") || null, port_code:g("cusPort") || null, assessable_value:g("cusAv") || "0", duty_amount:g("cusDuty") || "0", examination:g("cusExam") || null, ooc_date:g("cusOoc") || null, status:g("cusStatus"), remarks:g("cusRem") || null};
+      try{
+        if(edit) CUS.data = await api("PATCH", "/api/customs/"+b.id, payload);
+        else { if(!g("cusNo").trim()){ say("Number required", "Enter the "+d.label+" number", "warn"); return; } CUS.data = await api("POST", "/api/customs/by-job/"+encodeURIComponent(CUS.job), {bill_no:g("cusNo").trim(), ...payload}); }
+        closeModal(); say(edit ? "Customs Clearance Updated Successfully!" : d.label+" Added Successfully!", edit ? b.bill_no : g("cusNo").trim()); CUS.render();
+      }catch(e){ say("Could not save the customs bill", e.message, "error"); }
+    });
+  }
+  document.addEventListener("click", e=>{
+    if(e.target.closest("#cusAddBtn")){ dialog(null); return; }
+    const ed = e.target.closest("[data-cus-edit]"); if(ed){ const bill = CUS.data.bills.find(x=>String(x.id) === ed.dataset.cusEdit); if(bill) dialog(bill); return; }
+    if(e.target.closest('.tbb[data-tab="jt4"]')) CUS.load();
+  });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>CUS.load(opts && opts.jobNo), 900); };
 })();
 </script>
 </body>

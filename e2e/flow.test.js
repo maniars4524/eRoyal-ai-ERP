@@ -39,10 +39,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the Costing step starts from the quotation's buy cost", true);
   d.getElementById("bk_finishBtn").click(); await sleep(2500);
   let bk = (await j("GET", "/api/bookings", null, token)).body[0];
-  check("the booking confirms with its number and opens the Booking page (no job yet)", bk && bk.status === "CONFIRMED" && /^BKG/.test(bk.number) && !bk.job_number && d.querySelector(".scr.on").id === "s-booking-view", JSON.stringify(bk || {}).slice(0, 200));
-  d.querySelector('[data-bkv-create="Freight"]').click(); await sleep(2500);
   bk = (await j("GET", `/api/bookings/${bk.id}`, null, token)).body; bk.job_number = (bk.jobs[0] || {}).job_number;
-  check("the freight job is created from the booking page", !!bk.job_number && bk.jobs.length === 1 && bk.jobs[0].job_type === "Forwarding");
+  check("releasing the booking issues its number, creates the freight job automatically and opens the Booking page", bk && bk.status === "CONFIRMED" && /^BKG/.test(bk.number) && !!bk.job_number && bk.jobs.length === 1 && bk.jobs[0].job_type === "Forwarding" && d.querySelector(".scr.on").id === "s-booking-view", JSON.stringify(bk || {}).slice(0, 200));
 
   // the job
   const jobNo = bk.job_number;
@@ -108,8 +106,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.BKG.addCharge({ type: "AR", description: "Customs Clearance", qty: "1", rate: "4500", currency: "INR", exch: "1", tax_pct: "18", service: "CHA" });
   d.getElementById("bk_finishBtn").click(); await sleep(2500);
   const multi = (await j("GET", "/api/bookings", null, token)).body.find(x => x.quotation_id === fc.id);
-  check("a Freight + CHA booking shows a create button for each service", d.querySelector(".scr.on").id === "s-booking-view" && !!d.querySelector('[data-bkv-create="Freight"]') && !!d.querySelector('[data-bkv-create="CHA"]'));
-  d.querySelector('[data-bkv-create="Freight"]').click(); await sleep(2000); d.querySelector('[data-bkv-create="CHA"]').click(); await sleep(2000);
+  check("a Freight + CHA booking opens the Booking page with both jobs already created", d.querySelector(".scr.on").id === "s-booking-view" && !d.querySelector('[data-bkv-create="Freight"]') && !d.querySelector('[data-bkv-create="CHA"]') && /Customs/.test(text("#bkvRoot")));
   const mb = (await j("GET", `/api/bookings/${multi.id}`, null, token)).body;
   check("both jobs sit under the one booking number", mb.jobs.length === 2 && new Set(mb.jobs.map(x => x.job_type)).size === 2 && /BKG/.test(mb.number), JSON.stringify(mb.jobs));
   const chaJob = mb.jobs.find(x => x.job_type === "Customs").job_number;
@@ -117,6 +114,29 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the CHA job carries only the CHA charge, with its GST", chaCh.length === 1 && chaCh[0].charge_name === "Customs Clearance" && Number(chaCh[0].sell.tax_pct) === 18, JSON.stringify(chaCh).slice(0, 200));
   w.go("booking"); await sleep(1500);
   check("the Bookings list shows both job numbers against the booking", mb.jobs.every(x => new RegExp(x.job_number).test(d.querySelector("#s-booking tbody").textContent)));
+
+  // customs clearance: bills entered in the CHA job appear in the freight job of the same booking
+  const jobs2 = (await j("GET", `/api/bookings/${multi.id}`, null, token)).body.jobs;
+  const fj2 = jobs2.find(x => x.job_type === "Forwarding").job_number, cj2 = jobs2.find(x => x.job_type === "Customs").job_number;
+  w.go("job-detail", { jobNo: cj2 }); await sleep(2800);
+  d.querySelector('.tbb[data-tab="jt4"]').click(); await sleep(1200);
+  check("the CHA job has a Customs section with an Add Shipping Bill button", !!d.getElementById("cusAddBtn") && /Add Shipping Bill/.test(d.getElementById("cusAddBtn").textContent) && /No Shipping Bill recorded yet/.test(text("#cusBody")), text("#cusBody").slice(0, 160));
+  for (const [no, dt] of [["SB5001", "2026-10-10"], ["SB5002", "2026-10-11"]]) {
+    d.getElementById("cusAddBtn").click(); await sleep(500);
+    const sv = (id, v) => { const e = d.getElementById(id); e.value = v; e.dispatchEvent(new w.Event("input", { bubbles: true })); };
+    sv("cusNo", no); sv("cusDate", dt); sv("cusRef", "CHA-" + no); sv("cusAv", "250000");
+    d.querySelectorAll("#toastStack .toast").forEach(t => t.remove());
+    d.getElementById("cusSave").click(); await sleep(1500);
+  }
+  check("both shipping bills are listed, with the count and a green success toast", /SB5001/.test(text("#cusBody")) && /SB5002/.test(text("#cusBody")) && /bills processed\s*2/i.test(text("#cusBody")) && Array.from(d.querySelectorAll("#toastStack .toast")).some(t => t.classList.contains("success") && /Added Successfully/.test(t.textContent)), text("#cusBody").slice(0, 300));
+  w.go("job-detail", { jobNo: fj2 }); await sleep(2800);
+  d.querySelector('.tbb[data-tab="jt4"]').click(); await sleep(1200);
+  check("the freight job shows the same bills, the first SB number and date, and the total count", /SB5001/.test(text("#cusBody")) && /SB5002/.test(text("#cusBody")) && /Shipping Bill no\s*SB5001/.test(text("#cusBody")) && /10-10-2026/.test(text("#cusBody")) && /processed\s*2/i.test(text("#cusBody")) && new RegExp(cj2).test(text("#cusBody")), text("#cusBody").slice(0, 400));
+  w.go("booking-view"); await sleep(300);
+  w.BKG.view(multi.id); await sleep(2500);
+  check("the Booking page splits freight and customs charges and shows the combined total", /Costing by service/.test(text("#bkvRoot")) && /Customs clearance \(CHA\)/.test(text("#bkvRoot")) && /Combined/.test(text("#bkvRoot")), text("#bkvRoot").slice(0, 300));
+  w.go("bl-draft"); await sleep(1500);
+  check("the BL document page lists the job's SB number from customs clearance", /SB5001/.test(text("#blDraftPrintZone")) || /Shipping Bill \(SB\) no/.test(text("#blDraftPrintZone")), text("#blDraftPrintZone").slice(0, 300));
 
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);

@@ -47,45 +47,71 @@ def test_draft_roundtrip_and_validation(h):
     assert upd.status_code == 200 and upd.json()["carrier"] == "ONE" and upd.json()["etd"] is None and upd.json()["data"] == {"pcs": "5"}
 
 
-def test_confirm_numbers_the_booking_and_locks_it_without_creating_a_job(h):
+def test_release_numbers_the_booking_and_creates_the_freight_job_automatically(h):
     b = draft(h)
     done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
     assert done.status_code == 200, done.text
     body = done.json()
     fy = fiscal_year(date.today())
-    assert body["status"] == "CONFIRMED" and body["number"].startswith(f"BKG/{fy}/") and body["job_number"] is None
-    assert client.get(f"/api/bookings/{b['id']}/jobs", headers=h).json() == []
+    assert body["status"] == "CONFIRMED" and body["number"].startswith(f"BKG/{fy}/") and body["job_number"].startswith("SEAEXP-") and body["created_jobs"] == [body["job_number"]]
+    job = next(j for j in client.get("/api/shipments", headers=h).json() if j["job_number"] == body["job_number"])
+    assert job["mode"] == "Sea" and job["pol"] == "INMAA" and job["pod"] == "BEANR" and job["container_mode"] == "FCL" and job["consignee"] == "Solvay SA" and job["packages"] == 120 and job["job_type"] == "Forwarding"
+    assert [j["job_type"] for j in client.get(f"/api/bookings/{b['id']}/jobs", headers=h).json()] == ["Forwarding"]
     assert client.patch(f"/api/bookings/{b['id']}", json={"carrier": "x"}, headers=h).status_code == 409
     assert client.delete(f"/api/bookings/{b['id']}", headers=h).status_code == 409
     assert client.post(f"/api/bookings/{b['id']}/confirm", headers=h).status_code == 409
+    assert client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h).status_code == 409  # already created
 
 
-def test_one_booking_number_carries_several_jobs_one_per_booked_service(h):
+def test_freight_plus_cha_release_creates_both_jobs_under_one_booking_number(h):
     b = draft(h, data={"pcs": "120", "gwt": "24000", "consignee": "Solvay SA", "marks": "Soda ash", "services": "Freight, CHA",
                        "charges": [{"type": "AR", "description": "Ocean Freight", "qty": "2", "rate": "850", "currency": "USD", "exch": "83.5", "service": "Freight"},
                                    {"type": "AP", "description": "Ocean Freight", "qty": "2", "rate": "700", "currency": "USD", "exch": "83.5", "service": "Freight", "vendor": "MSC Mediterranean"},
-                                   {"type": "AR", "description": "Customs Clearance", "qty": "1", "rate": "4500", "currency": "INR", "exch": "1", "tax_pct": "18", "service": "CHA"}]})
+                                   {"type": "AR", "description": "Customs Clearance", "qty": "1", "rate": "4500", "currency": "INR", "exch": "1", "tax_pct": "18", "service": "CHA"},
+                                   {"type": "AP", "description": "Customs Clearance", "qty": "1", "rate": "3000", "currency": "INR", "exch": "1", "service": "CHA", "vendor": "Sea Air Marine Surveyors"}]})
     assert client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h).status_code == 409  # not confirmed yet
-    number = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()["number"]
-    fr = client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h)
-    assert fr.status_code == 201, fr.text
-    fjob = fr.json()["created_job"]
-    assert fjob.startswith("SEAEXP-") and fr.json()["job_number"] == fjob
-    shipments = client.get("/api/shipments", headers=h).json()
-    job = next(j for j in shipments if j["job_number"] == fjob)
-    assert job["job_type"] == "Forwarding" and job["pol"] == "INMAA" and job["packages"] == 120 and job["status"] == "Booked"
-    ch = client.get(f"/api/shipments/by-number/{fjob}/charges", headers=h).json()["lines"]
-    assert [c["charge_name"] for c in ch] == ["Ocean Freight"]  # only the freight service's rows
-    assert float(ch[0]["sell"]["rate"]) == 850 and float(ch[0]["buy"]["rate"]) == 700 and ch[0]["buy"]["party"] == "MSC Mediterranean"
-    cha = client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "CHA"}, headers=h)
-    assert cha.status_code == 201 and cha.json()["created_job"] != fjob
-    cj = client.get(f"/api/shipments/by-number/{cha.json()['created_job']}/charges", headers=h).json()["lines"]
-    assert [c["charge_name"] for c in cj] == ["Customs Clearance"] and float(cj[0]["sell"]["tax_pct"]) == 18
-    jobs = client.get(f"/api/bookings/{b['id']}", headers=h).json()["jobs"]
-    assert {j["job_type"] for j in jobs} == {"Forwarding", "Customs"} and len(jobs) == 2
-    assert client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h).status_code == 409  # one freight job per booking
+    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    assert done["number"].startswith("BKG/") and len(done["created_jobs"]) == 2 and {j["job_type"] for j in done["jobs"]} == {"Forwarding", "Customs"}
+    fjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Forwarding")
+    cjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
+    fc = client.get(f"/api/shipments/by-number/{fjob}/charges", headers=h).json()["lines"]
+    assert [c["charge_name"] for c in fc] == ["Ocean Freight"] and float(fc[0]["sell"]["rate"]) == 850 and fc[0]["buy"]["party"] == "MSC Mediterranean"
+    cc = client.get(f"/api/shipments/by-number/{cjob}/charges", headers=h).json()["lines"]
+    assert [c["charge_name"] for c in cc] == ["Customs Clearance"] and float(cc[0]["sell"]["tax_pct"]) == 18 and cc[0]["buy"]["party"] == "Sea Air Marine Surveyors"
+    shipments = {j["job_number"]: j for j in client.get("/api/shipments", headers=h).json()}
+    assert shipments[cjob]["pol"] == "INMAA" and shipments[cjob]["packages"] == 120 and shipments[cjob]["consignee"] == "Solvay SA" and shipments[cjob]["booking_id"] == shipments[fjob]["booking_id"]
+    assert client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h).status_code == 409
     assert client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Transport"}, headers=h).status_code == 422  # not booked
-    assert number.startswith("BKG/")
+    cost = client.get(f"/api/bookings/{b['id']}/costing", headers=h).json()
+    assert set(cost["services"]) == {"Freight", "CHA"} and float(cost["services"]["Freight"]["sell"]) == 850 * 2 * 83.5 and float(cost["services"]["CHA"]["sell"]) == 4500 and float(cost["services"]["CHA"]["buy"]) == 3000
+    assert float(cost["combined"]["sell"]) == 850 * 2 * 83.5 + 4500 and float(cost["combined"]["buy"]) == 700 * 2 * 83.5 + 3000 and len(cost["lines"]) == 2
+
+
+def test_customs_bills_are_kept_per_booking_and_show_in_the_freight_job(h):
+    b = draft(h, data={"pcs": "10", "services": "Freight, CHA", "consignee": "X"})
+    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    fjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Forwarding")
+    cjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
+    first = client.post(f"/api/customs/by-job/{cjob}", json={"bill_no": "SB7001", "bill_date": "2026-10-10", "reference": "CHA-REF-1", "assessable_value": "500000", "duty_amount": "0"}, headers=h)
+    assert first.status_code == 201, first.text
+    assert first.json()["bill_type"] == "SB" and first.json()["label"] == "Shipping Bill"
+    assert client.post(f"/api/customs/by-job/{cjob}", json={"bill_no": "SB7001"}, headers=h).status_code == 409  # a number is recorded once
+    second = client.post(f"/api/customs/by-job/{cjob}", json={"bill_no": "SB7002", "bill_date": "2026-10-11", "reference": "CHA-REF-2"}, headers=h)
+    assert second.status_code == 201 and second.json()["count"] == 2
+    fj = client.get(f"/api/customs/by-job/{fjob}", headers=h).json()
+    assert fj["count"] == 2 and [x["bill_no"] for x in fj["bills"]] == ["SB7001", "SB7002"] and fj["primary_no"] == "SB7001" and str(fj["primary_date"]) == "2026-10-10" and fj["booking_number"] == done["number"]
+    assert all(x["entered_in_job"] == cjob for x in fj["bills"])
+    bid = fj["bills"][0]["id"]
+    assert client.patch(f"/api/customs/{bid}", json={"status": "Cleared", "ooc_date": "2026-10-12"}, headers=h).status_code == 200
+    assert client.patch(f"/api/customs/{fj['bills'][1]['id']}", json={"status": "Cancelled"}, headers=h).json()["count"] == 1
+    assert len(client.get(f"/api/customs/by-job/{fjob}", headers=h).json()["bills"]) == 2  # the cancelled record is still listed
+    rd = client.get(f"/api/jobs/{fjob}/report-data", headers=h).json()
+    assert rd["booking_number"] == done["number"] and rd["shipping_bills"][0]["bill_no"] == "SB7001" and rd["bills_of_entry"] == [] and rd["bl_awb"]["label"] == "BL"
+    imp = client.post("/api/bookings", json={"mode": "Sea", "direction": "Import", "shipment_type": "FCL", "booking_type": "Direct", "party_name": "Acme", "carrier": "MSC", "pol": "DEHAM", "pod": "INMAA", "data": {"services": "Freight", "pcs": "5"}}, headers=h).json()
+    ij = client.post(f"/api/bookings/{imp['id']}/confirm", headers=h).json()["job_number"]
+    be = client.post(f"/api/customs/by-job/{ij}", json={"bill_no": "BE9001", "bill_date": "2026-10-14"}, headers=h).json()
+    assert be["bill_type"] == "BE" and be["label"] == "Bill of Entry"
+    assert client.get(f"/api/jobs/{ij}/report-data", headers=h).json()["bills_of_entry"][0]["bill_no"] == "BE9001"
 
 
 def test_confirm_requires_the_key_fields(h):
@@ -164,14 +190,13 @@ def _accepted_quote(h, h2):
     return q["id"]
 
 
-def test_booking_raised_from_a_quotation_converts_it_when_the_job_is_created(h, h2):
+def test_booking_raised_from_a_quotation_converts_it_when_the_job_is_created_at_release(h, h2):
     qid = _accepted_quote(h, h2)
     b = draft(h, quotation_id=qid, data={"pcs": "120", "gwt": "24000", "consignee": "Solvay SA"})
     assert b["quotation_id"] == qid
     done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
     assert done.status_code == 200, done.text
-    assert client.get(f"/api/quotations/{qid}", headers=h).json()["status"] == "ACCEPTED"  # still waiting: no job yet
-    job_no = client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h).json()["created_job"]
+    job_no = done.json()["job_number"]  # the freight job is created at release
     quote = client.get(f"/api/quotations/{qid}", headers=h).json()
     assert quote["status"] == "CONVERTED" and quote["job_number"] == job_no
     charges = client.get(f"/api/shipments/by-number/{job_no}/charges", headers=h).json()["lines"]

@@ -128,6 +128,24 @@ def job_source(job_number: str, user: User = Depends(permission_required("shipme
                           "reference": (quote.header or {}).get("reference_no")} if quote else None}
 
 
+@router.get("/{job_number}/report-data")
+def report_data(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """Everything the job documents need, taken from the booking, the job, the customs clearance bills and the posted invoices: BL / AWB, invoices, SB, BE."""
+    from . import customs_api
+    from .models import Booking, Document
+
+    job = _job(db, user, job_number)
+    booking = db.get(Booking, job.booking_id) if job.booking_id else None
+    cus = customs_api.summary(db, job)
+    docs = list(db.scalars(select(Document).where(Document.organization_id == job.organization_id, Document.job_number == job.job_number, Document.status != "CANCELLED").order_by(Document.id)))
+    bills = [b for b in cus["bills"] if b["status"] != "Cancelled"]
+    return {"job_number": job.job_number, "job_type": job.job_type, "mode": job.mode, "direction": job.direction, "booking_number": booking.number if booking else None,
+            "bl_awb": {"label": "AWB" if job.mode == "Air" else "BL", "number": job.bl_awb}, "pol": job.pol, "pod": job.pod, "packages": job.packages, "gross_weight": str(job.gross_weight) if job.gross_weight is not None else None,
+            "volume": str(job.volume) if job.volume is not None else None, "commodity": job.commodity,
+            "invoices": [{"doc_number": d.doc_number, "doc_type": d.doc_type, "doc_date": d.doc_date, "status": d.status, "total": str(d.grand_total)} for d in docs],
+            "shipping_bills": [b for b in bills if b["bill_type"] == "SB"], "bills_of_entry": [b for b in bills if b["bill_type"] == "BE"], "customs_bill_count": cus["count"], "customs_jobs": cus["customs_jobs"]}
+
+
 @router.get("/{job_number}/lifecycle")
 def get_lifecycle(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     return lifecycle_out(db, _job(db, user, job_number), user)

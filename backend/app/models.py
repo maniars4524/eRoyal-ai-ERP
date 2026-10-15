@@ -203,6 +203,31 @@ class MasterRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class CustomsBill(Base):
+    """One customs clearance bill: a Shipping Bill (export) or a Bill of Entry (import). A booking / job can carry many; none is ever overwritten."""
+    __tablename__ = "customs_bills"
+    __table_args__ = (UniqueConstraint("organization_id", "bill_type", "bill_no", name="uq_customs_bill_no"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    booking_id: Mapped[int | None] = mapped_column(ForeignKey("bookings.id", ondelete="SET NULL"), index=True)
+    shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id", ondelete="CASCADE"), index=True)
+    bill_type: Mapped[str] = mapped_column(String(2))
+    bill_no: Mapped[str] = mapped_column(String(40))
+    bill_date: Mapped[date | None] = mapped_column(Date)
+    reference: Mapped[str | None] = mapped_column(String(120))
+    port_code: Mapped[str | None] = mapped_column(String(20))
+    assessable_value: Mapped[float] = mapped_column(Numeric(14, 2), default=0)
+    duty_amount: Mapped[float] = mapped_column(Numeric(14, 2), default=0)
+    examination: Mapped[str | None] = mapped_column(String(40))
+    ooc_date: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(20), default="Filed")
+    remarks: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class JobCharge(Base):
     """One buy/sell charge line of a job. Amounts are always recalculated server-side from these inputs."""
     __tablename__ = "job_charges"
@@ -212,6 +237,7 @@ class JobCharge(Base):
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
     shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id", ondelete="CASCADE"), index=True)
     line_no: Mapped[int] = mapped_column(Integer)
+    service: Mapped[str] = mapped_column(String(20), default="Freight", server_default="Freight")
     charge_name: Mapped[str] = mapped_column(String(160), default="")
     description: Mapped[str] = mapped_column(String(240), default="")
     uom: Mapped[str] = mapped_column(String(40), default="Per Shipment")

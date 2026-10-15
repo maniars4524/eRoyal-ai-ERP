@@ -233,8 +233,14 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
     b.status = "CONFIRMED"
     b.confirmed_at = datetime.now(timezone.utc)
     record_audit(db, "BOOKING_CONFIRMED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number})
+    created: list[str] = []
+    if has_permission(user, "shipment.create"):
+        booked = _booked_services(b)
+        for service in ("Freight", "CHA"):
+            if service in booked:
+                created.append(_make_job(db, org_id, b, service, user).job_number)
     db.commit()
-    return _out(_get(db, org_id, booking_id))
+    return {**_out(_get(db, org_id, booking_id)), "jobs": _jobs(db, _get(db, org_id, booking_id)), "created_jobs": created}
 
 
 SERVICE_JOB_TYPES = {"Freight": "Forwarding", "Consol": "Consol", "CHA": "Customs", "Transport": "Transport", "Warehouse": "Warehouse"}
@@ -257,7 +263,7 @@ def _dec(value: Any, default: str = "0") -> Decimal:
         return Decimal(default)
 
 
-def _charges_from_booking(db: Session, org_id: int, job: Shipment, rows: list[dict], client: str) -> Decimal:
+def _charges_from_booking(db: Session, org_id: int, job: Shipment, rows: list[dict], client: str, service: str = "Freight") -> Decimal:
     """The booking's costing rows become the job's charge lines: AR rows are the sell side, AP rows the buy side (with the vendor chosen on the booking)."""
     from .models import JobCharge
 
@@ -280,9 +286,9 @@ def _charges_from_booking(db: Session, org_id: int, job: Shipment, rows: list[di
                 for k, v in fields.items():
                     setattr(match, k, v)
             else:
-                lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=name[:160], description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn="", sell_rate=Decimal(0), **fields))
+                lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, service=service, charge_name=name[:160], description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn="", sell_rate=Decimal(0), **fields))
         else:
-            lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=name[:160], description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn="", sell_ccy=ccy, sell_exch=exch, sell_rate=rate,
+            lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, service=service, charge_name=name[:160], description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn="", sell_ccy=ccy, sell_exch=exch, sell_rate=rate,
                                    sell_tax_type=taxtype, sell_tax_pct=tax, client=client, use_client=True))
             revenue += (qty * rate * exch).quantize(Decimal("0.01"))
     for i, l in enumerate(lines, start=1):
@@ -296,9 +302,44 @@ def booking_jobs(booking_id: int, user: User = Depends(permission_required("book
     return _jobs(db, _get(db, _tenant(user), booking_id))
 
 
+def _make_job(db: Session, org_id: int, b: Booking, service: str, user: User) -> Shipment:
+    """Create one job of a confirmed booking (all booking details carried over, costing rows of that service become its charges)."""
+    needed = "Freight" if service == "Consol" else service
+    job_type = SERVICE_JOB_TYPES[service]
+    from .shipments_api import _next_job_number
+
+    data = b.data or {}
+    pcs, gwt = _num(data.get("pcs")), _num(data.get("gwt"))
+    container_mode = "LCL" if service == "Consol" else (b.shipment_type if b.shipment_type in ("FCL", "LCL") else None)
+    job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction, container_mode, user), job_type=job_type, booking_id=b.id, mode=b.mode, direction=b.direction, container_mode=container_mode,
+                   pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
+                   gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id)
+    db.add(job)
+    db.flush()
+    first = not _jobs_exist(db, b, exclude=job.id)
+    from . import job_lifecycle as jl
+
+    jl.on_job_created(db, job, user, "booking " + (b.number or ""), {"booking": b.number, "service": service})
+    rows = [r for r in (data.get("charges") or []) if (r.get("service") or "Freight") == needed]
+    if rows:
+        job.revenue = _charges_from_booking(db, org_id, job, rows, b.party_name, needed)
+    elif b.quotation_id and first and not (data.get("charges") or []):
+        from .quotations_api import copy_quote_charges
+
+        copy_quote_charges(db, org_id, b.quotation_id, job, b.carrier)
+    if b.quotation_id and first:
+        from .quotations_api import mark_converted_by_booking
+
+        mark_converted_by_booking(db, org_id, b.quotation_id, job, user)
+    if first:
+        b.job_number = job.job_number
+    record_audit(db, "BOOKING_JOB_CREATED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number, "job_number": job.job_number, "service": service})
+    return job
+
+
 @router.post("/{booking_id}/jobs", status_code=201)
 def create_job_from_booking(booking_id: int, payload: JobFromBooking, user: User = Depends(permission_required("booking.confirm")), db: Session = Depends(get_db)):
-    """One booking number can carry a freight job, a consol job, a CHA job, a transport job ... Each is created here, once per service."""
+    """Freight and CHA jobs are created automatically when the booking is released; this creates any other service (consol, transport, warehouse) or one that was missed."""
     org_id = _tenant(user)
     if not has_permission(user, "shipment.create"):
         raise HTTPException(status_code=403, detail="Permission denied: creating a job needs shipment.create")
@@ -312,36 +353,35 @@ def create_job_from_booking(booking_id: int, payload: JobFromBooking, user: User
     job_type = SERVICE_JOB_TYPES[payload.service]
     if db.scalar(select(Shipment.id).where(Shipment.organization_id == org_id, Shipment.booking_id == b.id, Shipment.job_type == job_type)):
         raise HTTPException(status_code=409, detail="A " + payload.service.lower() + " job already exists for booking " + (b.number or ""))
-    from .shipments_api import _next_job_number
-
-    data = b.data or {}
-    pcs, gwt = _num(data.get("pcs")), _num(data.get("gwt"))
-    container_mode = "LCL" if payload.service == "Consol" else (b.shipment_type if b.shipment_type in ("FCL", "LCL") else None)
-    job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction, container_mode, user), job_type=job_type, booking_id=b.id, mode=b.mode, direction=b.direction, container_mode=container_mode,
-                   pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
-                   gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id)
-    db.add(job)
-    db.flush()
-    first = not _jobs_exist(db, b, exclude=job.id)
-    from . import job_lifecycle as jl
-
-    jl.on_job_created(db, job, user, "booking " + (b.number or ""), {"booking": b.number, "service": payload.service})
-    rows = [r for r in (data.get("charges") or []) if (r.get("service") or "Freight") == needed]
-    if rows:
-        job.revenue = _charges_from_booking(db, org_id, job, rows, b.party_name)
-    elif b.quotation_id and first and not (data.get("charges") or []):
-        from .quotations_api import copy_quote_charges
-
-        copy_quote_charges(db, org_id, b.quotation_id, job, b.carrier)
-    if b.quotation_id and first:
-        from .quotations_api import mark_converted_by_booking
-
-        mark_converted_by_booking(db, org_id, b.quotation_id, job, user)
-    if first:
-        b.job_number = job.job_number
-    record_audit(db, "BOOKING_JOB_CREATED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number, "job_number": job.job_number, "service": payload.service})
+    job = _make_job(db, org_id, b, payload.service, user)
     db.commit()
     return {**_out(_get(db, org_id, booking_id)), "jobs": _jobs(db, _get(db, org_id, booking_id)), "created_job": job.job_number}
+
+
+@router.get("/{booking_id}/costing")
+def booking_costing(booking_id: int, user: User = Depends(permission_required("booking.read")), db: Session = Depends(get_db)):
+    """Freight and customs clearance charges of every job under the booking: separately by service, and combined."""
+    from .job_charges_api import line_out
+    from .models import JobCharge
+
+    org_id = _tenant(user)
+    b = _get(db, org_id, booking_id)
+    out = {"booking_number": b.number, "services": {}, "lines": [], "combined": {"sell": "0", "buy": "0", "margin": "0"}}
+    tot = {"sell": Decimal(0), "buy": Decimal(0)}
+    for job in db.scalars(select(Shipment).where(Shipment.organization_id == org_id, Shipment.booking_id == b.id).order_by(Shipment.id)):
+        for row in db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id).order_by(JobCharge.line_no)):
+            ln = line_out(row)
+            sell, buy = Decimal(str(ln["_sell"]["inr"])), Decimal(str(ln["_buy"]["inr"]))
+            svc = out["services"].setdefault(row.service or "Freight", {"sell": Decimal(0), "buy": Decimal(0), "lines": 0})
+            svc["sell"] += sell
+            svc["buy"] += buy
+            svc["lines"] += 1
+            tot["sell"] += sell
+            tot["buy"] += buy
+            out["lines"].append({"job_number": job.job_number, "job_type": job.job_type, "service": row.service or "Freight", "charge_name": row.charge_name, "vendor": row.vendor, "sell_inr": str(sell), "buy_inr": str(buy)})
+    out["services"] = {k: {"sell": str(v["sell"]), "buy": str(v["buy"]), "margin": str(v["sell"] - v["buy"]), "lines": v["lines"]} for k, v in out["services"].items()}
+    out["combined"] = {"sell": str(tot["sell"]), "buy": str(tot["buy"]), "margin": str(tot["sell"] - tot["buy"])}
+    return out
 
 
 def _jobs_exist(db: Session, b: Booking, exclude: int) -> bool:

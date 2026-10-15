@@ -73,12 +73,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   d.getElementById("bk_finishBtn").click(); await sleep(2500);
   const all = (await j("GET", "/api/bookings", null, token)).body;
-  check("Confirm Booking issues the booking number only (no job yet) and opens the Booking page", all[0].status === "CONFIRMED" && /^BKG/.test(all[0].number || "") && !all[0].job_number && d.querySelector(".scr.on").id === "s-booking-view" && /Create Freight job/.test(text("#bkvRoot")), JSON.stringify(all[0] || {}).slice(0, 250));
-  check("the quotation waits (still Accepted) until a job exists", (await j("GET", `/api/quotations/${q.id}`, null, token)).body.status === "ACCEPTED");
-  d.querySelector('[data-bkv-create="Freight"]').click(); await sleep(2500);
-  all[0] = (await j("GET", "/api/bookings", null, token)).body[0]; const bookingNo = all[0].number;
-  const fullBooking = (await j("GET", `/api/bookings/${all[0].id}`, null, token)).body; all[0].job_number = (fullBooking.jobs[0] || {}).job_number;
-  check("the Freight job is created from the booking page under the booking number", !!all[0].job_number && /Create|SEAEXP/.test(text("#bkvRoot")) && new RegExp(all[0].job_number).test(text("#bkvRoot")), text("#bkvRoot").slice(0, 200));
+  const relFull = (await j("GET", `/api/bookings/${all[0].id}`, null, token)).body;
+  check("releasing the booking issues the number, creates the Freight job automatically and opens the Booking page", all[0].status === "CONFIRMED" && /^BKG/.test(all[0].number || "") && relFull.jobs.length === 1 && relFull.jobs[0].job_type === "Forwarding" && d.querySelector(".scr.on").id === "s-booking-view" && new RegExp(relFull.jobs[0].job_number).test(text("#bkvRoot")), JSON.stringify(relFull.jobs));
+  all[0].job_number = relFull.jobs[0].job_number; const bookingNo = all[0].number;
   const quote = (await j("GET", `/api/quotations/${q.id}`, null, token)).body;
   check("the quotation is now Converted to that job", quote.status === "CONVERTED" && quote.job_number === all[0].job_number, quote.status);
   const jobRec = (await j("GET", "/api/shipments", null, token)).body.find(x => x.job_number === all[0].job_number);

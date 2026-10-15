@@ -12,6 +12,7 @@ from .auth_api import platform_router, router as auth_router
 from .customers_api import router as customers_router
 from .dashboard_api import router as dashboard_router
 from .bookings_api import router as bookings_router
+from .customs_api import router as customs_router
 from .crm_api import router as crm_router
 from .org_ext_api import router as org_ext_router
 from .jobs_lifecycle_api import router as jobs_lifecycle_router
@@ -63,6 +64,7 @@ app.include_router(dashboard_router)
 app.include_router(payments_router)
 app.include_router(quotations_router)
 app.include_router(bookings_router)
+app.include_router(customs_router)
 app.include_router(crm_router)
 app.include_router(org_ext_router)
 app.include_router(jobs_lifecycle_router)
