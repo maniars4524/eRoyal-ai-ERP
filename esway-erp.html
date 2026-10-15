@@ -1569,6 +1569,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="ph" style="padding-bottom:10px">
   <div>
     <div class="pt"><svg class="ic" data-icon="dashboard" style="color:var(--bl)"></svg>Dashboard</div>
+    <div id="dashWelcome" style="font-size:15px;font-weight:600;margin:2px 0 4px"></div>
     <div class="ps">eSway ERP 2.0 · RTS0001 · FY 2025–26 &nbsp;·&nbsp; <span id="dashDate" style="color:var(--g5)"></span></div>
   </div>
   <div class="pa">
@@ -14114,6 +14115,12 @@ if(document.readyState !== "loading") initChatWidget();
     if(overlay){ overlay.classList.add("hidden"); }
     setTimeout(()=>{ if(overlay) overlay.style.display="none"; }, silent ? 0 : 600);
     if(!silent && typeof toast === "function") toast("Welcome, " + (user.first_name || "User") + "!", "eSway ERP 2.0 workspace loaded");
+    const welcome = document.getElementById("dashWelcome");
+    if(welcome){
+      const cap = t=> String(t||"").replace(/\b\w/g, c=>c.toUpperCase());
+      const full = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "User";
+      welcome.textContent = "Welcome back, " + cap(full) + " \u{1F44B}";
+    }
     if(window.dashKitLoad) setTimeout(window.dashKitLoad, 50);
   }
 
