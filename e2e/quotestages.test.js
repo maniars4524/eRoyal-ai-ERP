@@ -95,6 +95,24 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   q$("#nc_save").click(); await sleep(2000);
   check("the instantly added charge is on the job cost grid and in the master", /CFS Handling/.test(Array.from(d.querySelectorAll("#jc_tbody select")).map(s => s.value).join("|")) && (await j("GET", "/api/masters/charge", null, token)).body.some(x => x.name === "CFS Handling"));
 
+  // ---- approval wording in the report, no automatic revisions, print fit
+  const pending = (await j("POST", "/api/quotations", { customer_id: cust.id, party_name: "Acme Exports", mode: "Sea", direction: "Export", shipment_type: "FCL", pol: "INMAA", pod: "BEANR", lines: [line("Ocean Freight", "850", "SELL")] }, token)).body;
+  await j("POST", `/api/quotations/${pending.id}/approval/submit`, null, token);
+  const draftOnly = (await j("POST", "/api/quotations", { customer_id: cust.id, party_name: "Acme Exports", mode: "Sea", direction: "Export", shipment_type: "FCL", pol: "INMAA", pod: "BEANR", lines: [line("Ocean Freight", "850", "SELL")] }, token)).body;
+  const before = (await j("GET", "/api/quotations", null, token)).body.length;
+  w.go("quotation"); await sleep(1500);
+  const listText = text("#s-quotation tbody");
+  check("the report says Approved / Pending approval / Not approved, never Submitted", /Approved/.test(listText) && /Pending approval/.test(listText) && /Not approved/.test(listText) && !/Submitted/.test(listText), listText.slice(0, 260));
+  for (const id of [approved.id, pending.id, draftOnly.id]) { await w.QK.openView(id, false, "NOTAX"); await sleep(700); }
+  check("opening or viewing quotations never creates a duplicate or revision", (await j("GET", "/api/quotations", null, token)).body.length === before);
+  const pageRoot = d.createElement("div");
+  const rows = n => Array.from({ length: n }, () => "<tr><td>x</td></tr>").join("");
+  pageRoot.innerHTML = `<table><tbody>${rows(10)}</tbody></table>`; d.body.appendChild(pageRoot);
+  check("10 entries print on one page", w.PrintFit.fit(pageRoot).pages === 1);
+  w.PrintFit.reset(pageRoot);
+  pageRoot.innerHTML = `<table><tbody>${rows(11)}</tbody></table>`;
+  check("more than 10 entries flow onto the next page", w.PrintFit.fit(pageRoot).pages === "more than one");
+
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });

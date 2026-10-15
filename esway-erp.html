@@ -692,7 +692,10 @@ tbody tr:hover{background:var(--g0)}
 }
 
 /* ---------- PRINT ---------- */
+@page{size:A4;margin:8mm}
 @media print{
+  thead{display:table-header-group}
+  tr{break-inside:avoid;page-break-inside:avoid}
   .hdr,.mnb-wrap,.bc-bar,.pa,.toast-stack,.modal-ovl,.no-print,.topnav-wrap{display:none !important}
   .main{padding:0;max-width:100%;margin-left:0!important;width:100%!important}
   body{background:#fff}
@@ -8608,7 +8611,7 @@ function printZone(zoneId, title){
 <style>${CSS}</style>
 </head><body>
 ${z.innerHTML}
-<script>window.onload=function(){window.print();};<\/script>
+<script>${makePrintFit.toString()}\nwindow.onload=function(){ try{ makePrintFit().fit(document.body); }catch(e){} window.print(); };<\/script>
 </body></html>`;
 
   const blob = new Blob([html], {type:'text/html'});
@@ -16510,7 +16513,8 @@ if(document.readyState !== "loading") initChatWidget();
   const STATUS_CLS = {DRAFT:"b-gy", SENT:"b-bl", ACCEPTED:"b-gr", CONVERTED:"b-pu", REJECTED:"b-rd", EXPIRED:"b-am", SUPERSEDED:"b-gy", CANCELLED:"b-gy", LOST:"b-rd"};
   const APPROVAL_CLS = {DRAFT:"b-gy", SUBMITTED:"b-am", APPROVED:"b-gr", REJECTED:"b-rd"};
   const sbadge = q=> '<span class="b '+(STATUS_CLS[q.effective_status]||"b-gy")+' dot">'+esc2(q.effective_status.charAt(0)+q.effective_status.slice(1).toLowerCase())+'</span>';
-  const abadge = q=> '<span class="b '+(APPROVAL_CLS[q.approval_status]||"b-gy")+'" style="font-size:9.5px" title="Internal approval">'+esc2(q.approval_status.charAt(0)+q.approval_status.slice(1).toLowerCase())+'</span>';
+  const APPROVAL_LABEL = {DRAFT:"Not approved", SUBMITTED:"Pending approval", APPROVED:"Approved", REJECTED:"Not approved"};
+  const abadge = q=> '<span class="b '+(APPROVAL_CLS[q.approval_status]||"b-gy")+'" style="font-size:9.5px" title="Internal approval">'+esc2(APPROVAL_LABEL[q.approval_status] || q.approval_status)+'</span>';
   async function loadList(){
     const scr = document.getElementById("s-quotation"); const tbody = scr && scr.querySelector("tbody"); if(!tbody) return;
     try{ Q.list = await api("GET","/api/quotations"); }catch(e){ say("Could not load quotations", e.message); return; }
@@ -16872,11 +16876,11 @@ if(document.readyState !== "loading") initChatWidget();
     const byCcy = {}; sell.forEach(l=>{ const c = byCcy[l.ccy] = byCcy[l.ccy] || {ccy:l.ccy, fcy:0, inr:0}; c.fcy += Number(l.amount_fcy); c.inr += Number(l.amount); });
     const foreign = Object.values(byCcy).filter(c=>c.ccy !== "INR");
     const docCcy = hd.currency || "INR"; const docRate = docCcy === "INR" ? 1 : (Q.m.rates[docCcy] || (byCcy[docCcy] && byCcy[docCcy].fcy ? byCcy[docCcy].inr / byCcy[docCcy].fcy : 0));
-    const statusText = q.effective_status === "DRAFT" ? (q.approval_status === "APPROVED" ? "APPROVED" : q.approval_status === "SUBMITTED" ? "SUBMITTED" : "DRAFT") : q.effective_status;
+    const statusText = q.effective_status === "DRAFT" ? (q.approval_status === "APPROVED" ? "APPROVED" : q.approval_status === "SUBMITTED" ? "PENDING APPROVAL" : "NOT APPROVED") : q.effective_status;
     const th = (t, a, w)=> '<th style="padding:7px 8px;text-align:'+(a||"left")+';font-size:11px;font-weight:800;border:1px solid #111;'+(w?"width:"+w+";":"")+'">'+t+'</th>';
     const td = (v, a, extra)=> '<td style="padding:6px 8px;text-align:'+(a||"left")+';border:1px solid #111;font-size:11.5px;'+(extra||"")+'">'+v+'</td>';
     const pair = (label, v)=> '<div style="display:flex;gap:6px;font-size:11.5px;line-height:1.55"><span style="width:112px;flex:none;font-weight:800">'+label+'</span><span>: '+e(v || "")+'</span></div>';
-    const number = q.number || "Pending submission";
+    const number = q.number || "Pending approval";
     const roleText = cust && (cust.roles || []).length ? cust.roles.map(r=>({shipper:"Shipper", consignee:"Consignee", carrier:"Carrier", agent:"Agent", cha:"CHA", transporter:"Transporter"})[r] || r).join(", ") : "";
     const forwardingTitle = "Forwarding ("+e([q.mode, q.direction].filter(Boolean).join(" "))+")";
     const rows = sell.map(l=>{ const bu = l.container_breakup || []; const tx = l.taxable && Number(l.tax_pct) > 0;
@@ -16931,11 +16935,11 @@ if(document.readyState !== "loading") initChatWidget();
       Array.from(bar.querySelectorAll("button")).forEach(b=>{ if(!keep.includes(b)) b.style.display = "none"; });
       bar.querySelectorAll("[data-qk-bar]").forEach(n=>n.remove());
       const add = (label, a, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = a+":"+q.id; b.textContent = label; bar.appendChild(b); return b; };
-      if(q.editable || ["DRAFT","SENT","ACCEPTED","REJECTED"].includes(q.status) || q.effective_status === "EXPIRED") add("Edit", "edit", "btn-pri");
+      if(q.editable) add("Edit", "edit", "btn-pri");
       add("Taxable Quotation", "viewmode_TAX", want === "TAX" ? "btn-pri" : "btn-out"); add("Non-Taxable Quotation", "viewmode_NOTAX", want === "NOTAX" ? "btn-pri" : "btn-out");
       add("Print", "print", "btn-out"); add("Download PDF", "pdf", "btn-out"); add("Email to Customer", "email", "btn-out");
       if(can("master.update")){ const lg = zone.querySelector(".qp-logo"); if(lg){ lg.dataset.qkDo = "logo:"+q.id; lg.style.cursor = "pointer"; lg.title = "Click to change the company logo"; } }
-      if(q.status === "SENT" || q.effective_status === "EXPIRED" || q.effective_status === "REJECTED") add("Revise Quote", "revise", "btn-out");
+      if(q.status === "SENT" || q.effective_status === "EXPIRED" || q.effective_status === "REJECTED" || q.status === "LOST" || (q.status === "DRAFT" && q.approval_status === "APPROVED")) add("Revise Quote", "revise", "btn-out");
       if(q.effective_status === "SENT"){ add("Mark Accepted", "accept", "btn-suc"); add("Mark Rejected", "reject", "btn-out"); }
       if(["SENT","ACCEPTED","REJECTED"].includes(q.status) || q.effective_status === "EXPIRED") add("Mark Lost", "lost", "btn-out");
       if(["DRAFT","SENT","ACCEPTED","REJECTED"].includes(q.status)) add("Cancel Quote", "cancel", "btn-out");
@@ -16988,11 +16992,8 @@ if(document.readyState !== "loading") initChatWidget();
       if(kind === "newquote"){ go("quotation-new"); return; }
       if(kind === "revise"){ const r = await api("POST","/api/quotations/"+id+"/revise"); say("Revision created", "Revision "+r.revision_no+" is a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
       if(kind === "edit"){
-        let q = await api("GET","/api/quotations/"+id);
-        if(!q.editable){
-          if(!window.confirm("This quotation is already "+(q.number ? "numbered ("+q.number+")" : "approved")+" and cannot be changed directly.\n\nEdit it as a new revision? The original stays on record.")) return;
-          q = await api("POST","/api/quotations/"+id+"/revise"); say("Revision created", "Revision "+q.revision_no+" is a new draft you can edit");
-        }
+        const q = await api("GET","/api/quotations/"+id);
+        if(!q.editable){ say("This quotation is locked", "Use Revise Quote to make a new version. Nothing was changed.", "warn"); return; }
         Q.pendingOpen = q; go("quotation-new"); return;
       }
       if(kind === "issue"){ if(!window.confirm("Issue this approved quotation to the client? It gets its number and is locked.")) return; const s = await api("POST","/api/quotations/"+id+"/send"); say("Quotation issued", s.number); return refresh(s.id); }
@@ -17459,6 +17460,40 @@ if(document.readyState !== "loading") initChatWidget();
     }catch(err){ say("Booking action failed", err.message, "warn"); }
   });
   document.addEventListener("click", e=>{ if(e.target.closest("#newBookingBtn")){ BKG.rec = null; BKG.quote = null; BKG.pending = null; } }, true);
+})();
+</script>
+
+<script>
+/* ============================================================
+   PRINT FIT: a document with 10 entries or fewer prints on ONE page; with more than 10 it flows onto the next page (header row repeats).
+   Applies to quotations, tax invoices / debit and credit notes and the job documents.
+   ============================================================ */
+function makePrintFit(){
+  var PAGE_W = 733, PAGE_H = 1030, MAX_ENTRIES = 10, saved = null;
+  function entries(root){ var n = 0; root.querySelectorAll("tbody").forEach(function(tb){ var c = 0; for(var i = 0; i < tb.children.length; i++){ if(tb.children[i].tagName === "TR") c++; } if(c > n) n = c; }); return n; }
+  function fit(root){
+    reset(root);
+    var n = entries(root); if(n > MAX_ENTRIES) return {entries:n, pages:"more than one"};
+    saved = {zoom:root.style.zoom, width:root.style.width, maxWidth:root.style.maxWidth, margin:root.style.margin};
+    root.style.width = PAGE_W + "px"; root.style.maxWidth = "none"; root.style.margin = "0 auto";
+    var h = root.scrollHeight; root.querySelectorAll(".no-print").forEach(function(x){ h -= x.offsetHeight; });
+    if(h > PAGE_H) root.style.zoom = String(Math.max(0.4, PAGE_H / h));
+    return {entries:n, pages:1, zoom:root.style.zoom};
+  }
+  function reset(root){ if(!saved) return; root.style.zoom = saved.zoom; root.style.width = saved.width; root.style.maxWidth = saved.maxWidth; root.style.margin = saved.margin; saved = null; }
+  return {fit:fit, reset:reset, entries:entries};
+}
+(function(){
+  var PF = window.PrintFit = makePrintFit(), active = null;
+  function documentRoot(){
+    var scr = document.querySelector(".scr.on"); if(!scr) return null;
+    if(scr.id === "s-quotation-print") return document.getElementById("quotPrintZone");
+    var zone = scr.querySelector('.card[id$="PrintZone"]'); if(zone) return zone;
+    if(scr.querySelector('[data-bk="addline"], [data-bkh]')) return scr;   // invoice / note editor screens
+    return null;
+  }
+  window.addEventListener("beforeprint", function(){ var r = documentRoot(); if(r){ active = r; PF.fit(r); } });
+  window.addEventListener("afterprint", function(){ if(active){ PF.reset(active); active = null; } });
 })();
 </script>
 </body>
