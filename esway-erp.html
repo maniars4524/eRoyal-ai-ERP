@@ -55,6 +55,7 @@ body,.card,.modal-box,.fc,.kpi{transition:background-color .2s var(--ease),borde
 .theme-sw span{flex:1}
 
 html,body{height:100%}
+body[data-screen="dashboard"] [data-hide-on="dashboard"]{display:none!important}
 body{background:var(--g0);color:var(--g8);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important}}
 :focus-visible{outline:2px solid var(--bl);outline-offset:1px;border-radius:3px}
@@ -75,6 +76,8 @@ svg{display:block}
 .hdr{background:var(--n);height:var(--hh);display:flex;align-items:center;padding:0 16px;gap:12px;position:sticky;top:0;z-index:300}
 .hdr-logo{display:flex;align-items:center;gap:8px;flex-shrink:0;cursor:pointer}
 .hdr-logo-icon{width:28px;height:28px;background:var(--bl);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hdr-logo-brand{width:74px;height:30px;background:#fff;padding:3px 6px;border-radius:7px;box-sizing:border-box}
+.hdr-logo-brand img{display:block;width:100%;height:100%;object-fit:contain}
 .hdr-logo-icon .ic{color:#fff;width:16px;height:16px}
 .hdr-logo-text{font-size:14px;font-weight:600;color:#fff;letter-spacing:-.2px;line-height:1.2}
 .hdr-logo-sub{font-size:10px;color:var(--g4);line-height:1.2}
@@ -1099,7 +1102,7 @@ tbody tr:hover{background:var(--g0)}
 
 </style>
 </head>
-<body>
+<body data-screen="dashboard">
 
 <!-- ====== LOGIN OVERLAY ====== -->
 <script>
@@ -1273,7 +1276,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-logo" data-go="dashboard">
-    <div class="hdr-logo-icon"><svg class="ic" data-icon="ship"></svg></div>
+    <div class="hdr-logo-icon hdr-logo-brand" id="hdrLogo" title="eSway"><svg viewBox="0 0 226 100" role="img" aria-label="SWAY" style="display:block;width:100%;height:100%"><path d="M64 21 C112 3 172 -1 214 14 C170 8 114 12 64 21 Z" fill="#1A6FBF"/><g fill="none" stroke="#0B1F3A" stroke-width="12" stroke-linejoin="miter" stroke-linecap="butt"><path d="M64 36 H36 Q23 36 23 46 Q23 55 36 55 H52 Q64 55 64 64 Q64 73 52 73 H20"/><path d="M74 36 L87 73 L101 45 L115 73 L128 36"/><path d="M138 73 L154 36 L170 73"/><path d="M178 36 L194 56 L210 36 M194 56 V73"/></g><path d="M12 62 C4 92 62 102 120 84" fill="none" stroke="#1A6FBF" stroke-width="3.6" stroke-linecap="round"/><polygon points="112,77 132,81 117,93" fill="#1A6FBF"/></svg></div>
     <div>
       <div class="hdr-logo-text">eSway ERP 2.0</div>
       <div class="hdr-logo-sub">eSway Platform · RTS0001</div>
@@ -1588,7 +1591,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="bc-bar">
   <div class="bc-text" id="bc">eSway ERP 2.0 / <strong>Dashboard</strong></div>
   <div class="bc-actions">
-    <button class="btn btn-out btn-sm" data-go="org-new"><svg class="ic" data-icon="plus"></svg> New Org</button>
+    <button class="btn btn-out btn-sm" data-go="org-new" data-hide-on="dashboard"><svg class="ic" data-icon="plus"></svg> New Org</button>
     <button class="btn btn-pri btn-sm" data-go="job-new"><svg class="ic" data-icon="plus"></svg> New Job</button>
   </div>
 </div>
@@ -1599,11 +1602,6 @@ tbody tr:hover{background:var(--g0)}
     <div class="pt"><svg class="ic" data-icon="dashboard" style="color:var(--bl)"></svg>Dashboard</div>
     <div id="dashWelcome" style="font-size:15px;font-weight:600;margin:2px 0 4px"></div>
     <div class="ps">eSway ERP 2.0 · RTS0001 · FY 2025–26 &nbsp;·&nbsp; <span id="dashDate" style="color:var(--g5)"></span></div>
-  </div>
-  <div class="pa">
-    <button class="btn btn-out btn-sm" data-export="dashboard"><svg class="ic" data-icon="download"></svg> Export</button>
-    <button class="btn btn-out btn-sm" id="dashRefreshBtn"><svg class="ic" data-icon="refresh-cw"></svg> Refresh</button>
-    <button class="btn btn-pri btn-sm" data-go="job-new"><svg class="ic" data-icon="plus"></svg> New Shipment</button>
   </div>
 </div>
 
@@ -6004,6 +6002,7 @@ const SCREEN_META = {
 
 function go(screen, opts){
   opts = opts||{};
+  document.body.dataset.screen = screen;
   if(screen==="org-detail") screen = "org-list";
   if(screen==="debit-note-detail") screen = "debit-note-list";
   if(screen==="purchase-invoice-detail") screen = "purchase-invoice-list";
@@ -6455,6 +6454,7 @@ function tnCloseFrom(depth){
 }
 function tnCloseAll(){ tnCloseFrom(0); }
 window.tnCloseAll = tnCloseAll;
+
 
 /* Level 0 (top bar -> first child list) opens as a dropdown BELOW the
    trigger, like a classic menu bar. Every level after that (depth>=1)
@@ -13369,6 +13369,13 @@ if(document.readyState !== "loading") initChatWidget();
       welcome.textContent = "Welcome back, " + cap(full) + " \u{1F44B}";
     }
     if(window.ThemeKit) ThemeKit.fromAccount(user);
+    try{
+      const lg = document.getElementById("hdrLogo");
+      if(lg && !lg.dataset.default) lg.dataset.default = lg.innerHTML;
+      if(lg && !user.is_super_admin){
+        fetch("/api/company/logo", {headers:{Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}}).then(r=>r.ok ? r.json() : null).then(r=>{ if(r && r.logo){ lg.innerHTML = '<img alt="Company logo" src="'+r.logo+'">'; } else if(lg.dataset.default){ lg.innerHTML = lg.dataset.default; } }).catch(()=>{});
+      }
+    }catch(e){ /* the default logo stays */ }
     if(window.dashKitLoad) setTimeout(window.dashKitLoad, 50);
   }
 
@@ -16199,7 +16206,7 @@ if(document.readyState !== "loading") initChatWidget();
         (withTax ? td(tx ? e(Number(l.tax_pct))+"%" : "", "right")+td(num2(l.gst_amount), "right")+td(num2(l.total_inr), "right") : '')+'</tr>'; }).join("");
     const termLines = String(q.terms || "").split(/\n+/).map(t=>t.replace(/^\s*\d+[\.\)]\s*/, "").trim()).filter(Boolean);
     const check = '<span style="color:#16A34A;font-weight:800">✓</span> ';
-    const colspanTotal = withTax ? 8 : 6;
+    const colspanTotal = withTax ? 8 : 5;   // the Total row must have exactly as many cells as the table has columns
     return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:var(--wh);max-width:980px;margin:0 auto;position:relative;padding:4px">'+watermark(q.mode)+'<div style="position:relative;z-index:1">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;gap:12px;align-items:center">'+logoBlock(org, Q.logo)+'<div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div><div style="font-size:10.5px;color:#475569">Freight Forwarding Quotation · '+e(q.mode)+'</div></div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
       '<table class="qp-card" style="width:100%;border-collapse:collapse;border-top:2px solid #111;border-bottom:1px solid #111"><tr><td style="padding:7px 8px;font-size:18px;font-weight:800;width:150px">Quotation No</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;'+(q.number ? "" : "color:#92400E")+'">'+e(number)+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:70px">Date</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.quote_date))+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:120px">Valid upto</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.valid_until))+'</td></tr></table>'+
@@ -16211,7 +16218,7 @@ if(document.readyState !== "loading") initChatWidget();
           pair("Place of Receipt", hd.origin)+pair("Place of Delivery", hd.final_destination)+pair("Movement Type", hd.service_type)+pair("Gross Weight", hd.gross_weight ? num2(hd.gross_weight)+" KGS" : "")+pair("Commodity", hd.commodity)+pair("Volume", hd.volume ? Number(hd.volume)+" CBM" : "")+'</div><div>'+
           pair("Mode / Direction", [q.mode, q.direction].filter(Boolean).join(" · "))+pair("Cargo Type", q.shipment_type)+pair("Chrg. Weight", hd.chargeable_weight ? num2(hd.chargeable_weight)+" KGS" : "")+pair("Dimensions", hd.dimensions ? hd.dimensions+" CM" : "")+pair("Payment Terms", hd.payment_terms)+pair("Currency", docCcy)+'</div></div></div>'+
       '<table class="qp-card" style="width:100%;border-collapse:collapse;margin-top:12px"><thead><tr style="background:var(--wh)">'+th("Charge Name")+th("Unit Rate","right")+th("Qty","right")+th("Amount","right")+th("Cur","center")+th("Ex.Rat","right")+th("Amt (INR)","right")+(withTax ? th("GST%","right")+th("GST Amt","right")+th("Total Amt","right") : "")+'</tr></thead><tbody>'+rows+
-        '<tr><td colspan="'+colspanTotal+'" style="padding:7px 8px;text-align:right;border:1px solid #111;font-weight:800">Total</td>'+td('<b>INR</b>', "center")+td('<b>'+num2(withTax ? sub + gst : sub)+'</b>', "right")+(withTax ? '' : '<td style="border:0"></td>')+'</tr></tbody></table>'+
+        '<tr><td colspan="'+colspanTotal+'" style="padding:7px 8px;text-align:right;border:1px solid #111;font-weight:800">Total</td>'+td('<b>INR</b>', "center")+td('<b>'+num2(withTax ? sub + gst : sub)+'</b>', "right")+'</tr></tbody></table>'+
       '<div class="qp-card" style="display:grid;grid-template-columns:1fr 340px;gap:14px;padding:12px 4px">'+
         '<div>'+(foreign.length ? '<table style="font-size:11px;border-collapse:collapse"><thead><tr style="color:#64748B"><th style="text-align:left;padding:3px 10px 3px 0">Currency</th><th style="text-align:right;padding:3px 10px">Amount</th><th style="text-align:right;padding:3px 10px">Rate to INR</th><th style="text-align:right;padding:3px 0 3px 10px">In INR</th></tr></thead><tbody>'+Object.values(byCcy).map(c=>'<tr><td style="padding:2px 10px 2px 0">'+e(c.ccy)+'</td><td style="text-align:right;padding:2px 10px">'+num2(c.fcy)+'</td><td style="text-align:right;padding:2px 10px">'+(c.ccy==="INR" ? "1.00" : num2(c.inr/c.fcy))+'</td><td style="text-align:right;padding:2px 0 2px 10px">'+num2(c.inr)+'</td></tr>').join("")+'</tbody></table>' : '')+
           '<div style="margin-top:8px;font-size:11px;color:#334155"><b>Amount in words:</b> Indian Rupees '+e(numWordsIN(rounded))+' Only</div></div>'+

@@ -35,7 +35,8 @@ const NAMES = ["Navy Blue & White", "Brown & Cream", "Charcoal & Silver", "Fores
 
   // design tokens: no hard-coded white surfaces left in the stylesheet, one variable block per theme
   check("the stylesheet defines the eight themes as variable sets", ["navy", "brown", "charcoal", "forest", "purple", "teal", "burgundy", "midnight"].every(t => css.includes(`:root[data-theme="${t}"]{`)));
-  check("surfaces and text use shared variables (no hard-coded white backgrounds)", !/background(-color)?:\s*#fff\b/i.test(css), (css.match(/[^{};]*background(-color)?:\s*#fff\b[^;}]*/i) || [""])[0]);
+  const cssNoBadge = css.replace(/\.hdr-logo-brand\{[^}]*\}/, "");   // the white badge behind the dark SWAY lettering is intentional
+  check("surfaces and text use shared variables (no hard-coded white backgrounds)", !/background(-color)?:\s*#fff\b/i.test(cssNoBadge), (cssNoBadge.match(/[^{};]*background(-color)?:\s*#fff\b[^;}]*/i) || [""])[0]);
   check("every theme sets every token the screens read", ["navy", "brown", "charcoal", "forest", "purple", "teal", "burgundy", "midnight"].every(t => { const m = css.match(new RegExp(':root\\[data-theme="' + t + '"\\]\\{([^}]*)\\}')); return m && ["--n:", "--n2:", "--n3:", "--bl:", "--bl2:", "--blt:", "--on-bl:", "--bl-ink:", "--g0:", "--g1:", "--g2:", "--g3:", "--g4:", "--g5:", "--g6:", "--g7:", "--g8:", "--wh:"].every(v => m[1].includes(v)); }));
 
   // readable on every theme
