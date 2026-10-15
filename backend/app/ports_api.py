@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -18,8 +18,47 @@ def _require_super_admin(user: User) -> None:
 
 
 @router.get("")
-def list_ports(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.scalars(select(Port).order_by(Port.name)).all()
+def list_ports(q: str | None = Query(default=None, max_length=80), port_type: str | None = Query(default=None, max_length=20), country: str | None = Query(default=None, max_length=80),
+               status_filter: str | None = Query(default=None, alias="status", pattern="^(ACTIVE|INACTIVE)$"), limit: int = Query(default=200, ge=1, le=1000), offset: int = Query(default=0, ge=0),
+               response: Response = None, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Searchable, paged list (the master holds ~21,000 ports and airports). The total is returned in the X-Total-Count header."""
+    cond = []
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        cond.append(or_(Port.code.ilike(like), Port.unlocode.ilike(like), Port.name.ilike(like), Port.city.ilike(like)))
+    if port_type:
+        cond.append(Port.port_type == port_type)
+    if country:
+        cond.append(Port.country == country)
+    if status_filter:
+        cond.append(Port.status == status_filter)
+    total = db.scalar(select(func.count()).select_from(Port).where(*cond)) or 0
+    # exact code matches first so typing "MAA" or "INMAA" finds that port at the top
+    rank = case((Port.code == (q or "").strip().upper(), 0), (Port.code.ilike(f"{(q or '').strip()}%"), 1), else_=2)
+    rows = db.scalars(select(Port).where(*cond).order_by(rank, Port.name).limit(limit).offset(offset)).all()
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+    return rows
+
+
+@router.get("/summary")
+def ports_summary(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    types = db.execute(select(Port.port_type, func.count()).group_by(Port.port_type).order_by(Port.port_type)).all()
+    countries = db.scalars(select(Port.country).distinct().order_by(Port.country)).all()
+    return {"total": sum(c for _, c in types), "types": {t: c for t, c in types}, "countries": countries}
+
+
+@router.post("/import-global")
+def import_global_ports(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Load the worldwide sea ports and airports (platform administrators only; existing codes are never overwritten)."""
+    _require_super_admin(user)
+    from .ports_import import import_global
+
+    out = import_global(db)
+    record_audit(db, "PORTS_IMPORTED", "PORT", user, None, "Port", "global", out)
+    db.commit()
+    return out
 
 
 @router.post("", status_code=201)

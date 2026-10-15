@@ -2581,7 +2581,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr"><div class="fg"><label class="fl">Department <span class="r">*</span></label><select class="fc" id="nj_dept"><option>SEX - Sea Export</option><option>SIM - Sea Import</option><option>AEX - Air Export</option><option>AIM - Air Import</option><option>CUS - Customs</option><option>TRP - Transport</option></select></div><div class="fg"><label class="fl">Incoterm</label><select class="fc"><option>FOB</option><option>CIF</option><option>EXW</option><option>DDP</option></select></div></div>
 </div></div>
 <div class="card"><div class="ch"><div class="ct">Route &amp; Schedule</div></div><div class="cb">
-<div class="fr"><div class="fg"><label class="fl">Port of Loading <span class="r">*</span></label><input class="fc" id="nj_pol" placeholder="INMAA - Chennai"><span class="ferr">Port of loading is required</span></div><div class="fg"><label class="fl">Port of Discharge <span class="r">*</span></label><input class="fc" id="nj_pod" placeholder="BEANR - Antwerp"><span class="ferr">Port of discharge is required</span></div></div>
+<div class="fr"><div class="fg"><label class="fl">Port of Loading <span class="r">*</span></label><input class="fc" id="nj_pol" placeholder="e.g. INMAA(CHENNAI)" autocomplete="off"><span class="ferr">Port of loading is required</span></div><div class="fg"><label class="fl">Port of Discharge <span class="r">*</span></label><input class="fc" id="nj_pod" placeholder="BEANR - Antwerp"><span class="ferr">Port of discharge is required</span></div></div>
 <div class="fr"><div class="fg"><label class="fl">ETD</label><input class="fc" type="date" id="nj_etd"></div><div class="fg"><label class="fl">ETA</label><input class="fc" type="date" id="nj_eta"></div></div>
 <div class="fr"><div class="fg"><label class="fl">Carrier / Line</label><select class="fc"><option>— Select —</option><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>Air India</option></select></div><div class="fg"><label class="fl">Vessel / Flight</label><input class="fc" placeholder="Vessel / Voyage No"></div></div>
 </div></div>
@@ -3632,12 +3632,12 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr">
   <div class="fg"><label class="fl">BL Marks and No</label><input class="fc" id="bk_marks" placeholder="Marks & numbers as per BL"></div>
   <div class="fg" id="bk_vesselLbl"><label class="fl">Vessel / Voyage</label><input class="fc" id="bk_vessel" placeholder="MSC ROMA / 254W"></div>
-  <div class="fg"><label class="fl">POL <span class="r">*</span></label><select class="fc" id="bk_pol"><option value="">--Select--</option><option>INMAA — Chennai</option><option>INNSA — Nhava Sheva</option><option>DEHAM — Hamburg</option><option>SGSIN — Singapore</option></select></div>
+  <div class="fg"><label class="fl">POL <span class="r">*</span></label><input class="fc" id="bk_pol" placeholder="e.g. INMAA(CHENNAI)" autocomplete="off"></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Carrier / Line <span class="r">*</span></label><select class="fc" id="bk_carrier"><option>— Select —</option><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>ONE Line</option><option>Air India</option><option>Emirates SkyCargo</option></select></div>
   <div class="fg"><label class="fl">Booking No</label><input class="fc" id="bk_no" placeholder="Auto-generated on confirm" readonly style="background:var(--g0)"></div>
-  <div class="fg"><label class="fl">POD <span class="r">*</span></label><select class="fc" id="bk_pod"><option value="">--Select--</option><option>BEANR — Antwerp</option><option>NLRTM — Rotterdam</option><option>INMAA — Chennai</option><option>SGSIN — Singapore</option></select></div>
+  <div class="fg"><label class="fl">POD <span class="r">*</span></label><input class="fc" id="bk_pod" placeholder="e.g. BEANR(ANTWERPEN)" autocomplete="off"></div>
 </div>
 <div class="fg"><label class="fl">Notes</label><textarea class="fc" id="bk_notes" rows="2" placeholder="Internal notes for this booking"></textarea></div>
 </div></div>
@@ -5456,14 +5456,14 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <div class="card"><div class="ch"><div class="ct">Port Directory</div>
 <div style="display:flex;gap:8px">
-  <select class="fc" style="width:140px"><option>All Types</option><option>Sea Port</option><option>Airport</option><option>ICD</option><option>CFS</option><option>Rail Terminal</option><option>Border Post</option></select>
-  <select class="fc" style="width:140px"><option>All Countries</option><option>India</option><option>UAE</option><option>Singapore</option></select>
-  <input class="fc" placeholder="Search port / code…" style="width:180px">
+  <select class="fc" id="portTypeFilter" style="width:150px"><option value="">All Types</option></select>
+  <select class="fc" id="portCountryFilter" style="width:190px"><option value="">All Countries</option></select>
+  <input class="fc" id="portSearch" placeholder="Search port / code / city…" style="width:220px">
 </div></div>
 <div class="tw"><table><thead><tr><th>Type</th><th>Port Code</th><th>UNLOCODE</th><th>Port Name</th><th>City</th><th>Country</th><th>Time Zone</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="portTableBody">
 <tr id="noPortsRow"><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No ports yet — click "Add Port" to create the first one.</td></tr>
 </tbody></table></div>
-<div class="cf" id="portCountLabel">Showing 0 of 0 ports</div>
+<div class="cf" style="display:flex;justify-content:space-between;align-items:center"><span id="portCountLabel">Showing 0 of 0 ports</span><span><button class="btn btn-out btn-sm" type="button" id="portPrev">‹ Previous</button> <button class="btn btn-out btn-sm" type="button" id="portNext">Next ›</button></span></div>
 </div>
 </div>
 
@@ -5610,7 +5610,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr">
   <div class="fg"><label class="fl">Sub Currency Ratio</label><input class="fc" type="number" min="0" step="any" placeholder="e.g. 100" title="How many sub-units make one unit. This is NOT an exchange rate."></div>
   <div class="fg"><label class="fl">Active Status</label><select class="fc"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
-  <div class="fg"><label class="fl">Default Currency</label><select class="fc" id="cur_default" disabled title="Yes means this is the organisation's base (home) currency. It is changed only with 'Set as base currency'."><option value="Yes">Yes — Organisation Base</option><option value="No">No</option></select></div>
+  <div class="fg"><label class="fl">Default Currency</label><select class="fc" id="cur_default" disabled title="Yes means this is the organisation's base (home) currency. It is changed only with 'Set as base currency'."><option value="No">No</option><option value="Yes">Yes — Organisation Base</option></select></div>
   <div class="fg"><label class="fl">System Default</label><input class="fc" readonly style="background:var(--g0)"></div>
 </div>
 <div class="fr">
@@ -7640,39 +7640,7 @@ function renderCustomerRows(){
 /* Port Master — real backend-driven rows (global reference data, not tenant-scoped) */
 const PORT_TYPE_BADGE = {"Sea Port":"b-bl","Airport":"b-tl","ICD (Dry Port)":"b-am","CFS":"b-gy","Rail Terminal":"b-pu","Border Check Post":"b-rd"};
 const PORT_TYPE_SHORT = {"Sea Port":"Sea","Airport":"Air","ICD (Dry Port)":"ICD","CFS":"CFS","Rail Terminal":"Rail","Border Check Post":"Border"};
-function renderPortRows(){
-  const body = document.getElementById("portTableBody");
-  const emptyRow = document.getElementById("noPortsRow");
-  const countLabel = document.getElementById("portCountLabel");
-  if(!body) return;
-  const token = sessionStorage.getItem("esway_access_token");
-  if(!token) return;
-  fetch("/api/ports", {headers:{Authorization:"Bearer "+token}})
-    .then(response=> response.ok ? response.json() : Promise.reject(new Error("failed")))
-    .then(ports=>{
-      document.querySelectorAll("#portTableBody tr[data-port-row]").forEach(tr=>tr.remove());
-      if(emptyRow) emptyRow.style.display = ports.length ? "none" : "";
-      ports.forEach(p=>{
-        const tr = document.createElement("tr");
-        tr.dataset.portRow = "1";
-        const badge = PORT_TYPE_BADGE[p.port_type] || "b-gy";
-        const short = PORT_TYPE_SHORT[p.port_type] || p.port_type;
-        tr.innerHTML = `<td><span class="b ${badge}">${esc(short)}</span></td><td class="mono">${esc(p.code)}</td><td class="mono">${esc(p.unlocode || "—")}</td><td style="font-weight:600">${esc(p.name)}</td><td>${esc(p.city || "—")}</td><td>${esc(p.country)}</td><td>${esc(p.timezone || "—")}</td><td><span class="b ${p.status==='ACTIVE' ? 'b-gr dot' : 'b-gy dot'}">${esc(p.status==='ACTIVE' ? 'Active' : 'Inactive')}</span></td><td class="no-print"><button class="ta" data-go="port-detail">Edit →</button></td>`;
-        body.appendChild(tr);
-      });
-      const total = ports.length;
-      const sea = ports.filter(p=>p.port_type==="Sea Port").length;
-      const air = ports.filter(p=>p.port_type==="Airport").length;
-      const icdCfs = ports.filter(p=>p.port_type==="ICD (Dry Port)"||p.port_type==="CFS").length;
-      const setTxt = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent = v; };
-      setTxt("portKpiTotal", total);
-      setTxt("portKpiSea", sea);
-      setTxt("portKpiAir", air);
-      setTxt("portKpiIcdCfs", icdCfs);
-      if(countLabel) countLabel.textContent = `Showing ${total} of ${total} ports`;
-    })
-    .catch(()=>{ /* best-effort; empty state stays as-is */ });
-}
+function renderPortRows(){ if(window.PortKit) window.PortKit.load(); }
 
 const MODE_BADGE = {Sea:"b-bl", Air:"b-tl", Road:"b-am", Rail:"b-pu"};
 function renderJobRows(){
@@ -13298,6 +13266,7 @@ function wizRenderTypeGrid(container, mode, selected, onPick){
 /* ---------------- NEW JOB WIZARD ---------------- */
 
 const jobWiz = {mode:null, dir:null, type:null, bookingType:null, hblType:null, scac:null};
+window.jobWiz = jobWiz;
 function jobWizRefresh(){
   wizRenderModeGrid($("#jobWizModeGrid"), jobWiz.mode, (m)=>{
     jobWiz.mode = m; jobWiz.dir = null; jobWiz.type = null; jobWiz.bookingType = null;
@@ -13722,6 +13691,7 @@ document.addEventListener("click", e=>{
    wizRenderTypeGrid) defined above for New Job.
    ============================================================ */
 const bookWiz = {mode:null, dir:null, type:null, bookingType:null, hblType:null, scac:null};
+window.bookWiz = bookWiz;
 function bookWizRefresh(){
   wizRenderModeGrid($("#bookWizModeGrid"), bookWiz.mode, (m)=>{
     bookWiz.mode = m; bookWiz.dir = null; bookWiz.type = null; bookWiz.bookingType = null;
@@ -16184,6 +16154,107 @@ if(document.readyState !== "loading") initChatWidget();
 })();
 </script>
 <script>
+/* ============================================================
+   PORT KIT: Port Master with ~21,500 sea ports and airports: server-side search, filters and paging
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, esc2} = U;
+  const P = window.PortKit = {page:0, size:50, f:{q:"", type:"", country:""}, total:0, summary:null};
+  const BADGE = {"Sea Port":"b-bl", "Airport":"b-tl", "ICD (Dry Port)":"b-am", "CFS":"b-gy", "Rail Terminal":"b-pu", "Border Check Post":"b-rd"};
+  const SHORT = {"Sea Port":"Sea", "Airport":"Air", "ICD (Dry Port)":"ICD", "CFS":"CFS", "Rail Terminal":"Rail", "Border Check Post":"Border"};
+  const token = ()=> sessionStorage.getItem("esway_access_token");
+  const set = (id, v)=> { const el = document.getElementById(id); if(el) el.textContent = v; };
+  async function loadSummary(){
+    if(P.summary) return;
+    try{ P.summary = await api("GET","/api/ports/summary"); }catch(e){ return; }
+    const t = document.getElementById("portTypeFilter"), c = document.getElementById("portCountryFilter");
+    if(t) t.innerHTML = '<option value="">All Types</option>' + Object.keys(P.summary.types).map(k=>'<option value="'+esc2(k)+'">'+esc2(k)+' ('+P.summary.types[k].toLocaleString("en-IN")+')</option>').join("");
+    if(c) c.innerHTML = '<option value="">All Countries</option>' + P.summary.countries.map(k=>'<option>'+esc2(k)+'</option>').join("");
+  }
+  async function load(){
+    if(!token()) return;
+    P.summary = null; await loadSummary();
+    const q = new URLSearchParams({limit:String(P.size), offset:String(P.page*P.size)});
+    if(P.f.q) q.set("q", P.f.q); if(P.f.type) q.set("port_type", P.f.type); if(P.f.country) q.set("country", P.f.country);
+    const r = await fetch("/api/ports?"+q.toString(), {headers:{Authorization:"Bearer "+token()}});
+    if(!r.ok) return; const rows = await r.json(); P.total = Number(r.headers.get("X-Total-Count") || rows.length);
+    const body = document.getElementById("portTableBody"); if(!body) return;
+    body.innerHTML = rows.length ? rows.map(p=>'<tr data-port-row="1"><td><span class="b '+(BADGE[p.port_type]||"b-gy")+'">'+esc2(SHORT[p.port_type]||p.port_type)+'</span></td><td class="mono">'+esc2(p.code)+'</td><td class="mono">'+esc2(p.unlocode||"—")+'</td><td style="font-weight:600">'+esc2(p.name)+'</td><td>'+esc2(p.city||"—")+'</td><td>'+esc2(p.country)+'</td><td>'+esc2(p.timezone||"—")+'</td><td><span class="b '+(p.status==="ACTIVE"?"b-gr":"b-gy")+' dot">'+(p.status==="ACTIVE"?"Active":"Inactive")+'</span></td><td class="no-print"></td></tr>').join("")
+      : '<tr id="noPortsRow"><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">'+(P.summary && P.summary.total ? "No ports match these filters." : 'No ports yet — click "Add Port" to create the first one.')+'</td></tr>';
+    const s = P.summary || {types:{}, total:0}; const tp = s.types || {};
+    set("portKpiTotal", (s.total||0).toLocaleString("en-IN")); set("portKpiSea", (tp["Sea Port"]||0).toLocaleString("en-IN")); set("portKpiAir", (tp["Airport"]||0).toLocaleString("en-IN")); set("portKpiIcdCfs", ((tp["ICD (Dry Port)"]||0)+(tp["CFS"]||0)).toLocaleString("en-IN"));
+    const from = P.total ? P.page*P.size+1 : 0, to = P.page*P.size+rows.length;
+    set("portCountLabel", "Showing "+from.toLocaleString("en-IN")+"–"+to.toLocaleString("en-IN")+" of "+P.total.toLocaleString("en-IN")+" ports");
+    const prev = document.getElementById("portPrev"), next = document.getElementById("portNext");
+    if(prev) prev.disabled = P.page === 0; if(next) next.disabled = to >= P.total;
+  }
+  P.load = load;
+  let t = null;
+  document.addEventListener("input", e=>{ if(e.target.id === "portSearch"){ clearTimeout(t); t = setTimeout(()=>{ P.f.q = e.target.value.trim(); P.page = 0; load(); }, 300); } });
+  document.addEventListener("change", e=>{ if(e.target.id === "portTypeFilter"){ P.f.type = e.target.value; P.page = 0; load(); } if(e.target.id === "portCountryFilter"){ P.f.country = e.target.value; P.page = 0; load(); } });
+  document.addEventListener("click", e=>{ if(e.target.closest("#portPrev") && P.page > 0){ P.page--; load(); } if(e.target.closest("#portNext")){ P.page++; load(); } });
+})();
+
+/* ============================================================
+   PORT PICKER: every Port / Airport field in the ERP (enquiry, quotation, booking, job, route ...) searches the Port Master.
+   Suggestions read CODE(NAME): INMAA(CHENNAI), USLAX(LOS ANGELES), MAA(CHENNAI INTERNATIONAL AIRPORT). Typing the code or the name finds the same port.
+   Sea shipments only offer sea ports, air shipments only airports; other modes offer everything.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {esc2} = U;
+  const token = ()=> sessionStorage.getItem("esway_access_token");
+  const clean = n=> String(n||"").split(" (")[0].trim().toUpperCase();
+  const canon = p=> (p.unlocode || p.code) + "(" + clean(p.name) + ")";
+  const CANON_RE = /^[A-Z0-9]{3,6}\(.+\)$/;
+  const typeOf = mode=> mode === "Sea" ? "Sea Port" : mode === "Air" ? "Airport" : "";
+  const val = id=> (document.getElementById(id) || {}).value || "";
+  const MODE = {
+    nj_pol:()=> (window.jobWiz||{}).mode, nj_pod:()=> (window.jobWiz||{}).mode,
+    bk_pol:()=> (window.bookWiz||{}).mode, bk_pod:()=> (window.bookWiz||{}).mode, bk_por:()=> (window.bookWiz||{}).mode, bk_pod2:()=> (window.bookWiz||{}).mode,
+    crmEq_origin:()=> val("crmEq_mode"), crmEq_pol:()=> val("crmEq_mode"), crmEq_pod:()=> val("crmEq_mode"), crmEq_destination:()=> val("crmEq_mode"), crmEq_finaldelivery:()=> val("crmEq_mode"),
+    route_origin:()=> "", route_dest:()=> ""
+  };
+  function modeFor(el){
+    if(el.id && MODE[el.id]) return MODE[el.id]() || "";
+    if(el.dataset && ["pol","pod","origin","final_destination"].includes(el.dataset.qh) && el.closest("#s-quotation-new")) return (window.quotWiz||{}).mode || "";
+    return null;  // not a port field
+  }
+  const timers = new WeakMap();
+  async function search(el, text, limit){
+    const type = typeOf(modeFor(el));
+    const q = new URLSearchParams({limit:String(limit||15), status:"ACTIVE", q:text}); if(type) q.set("port_type", type);
+    const r = await fetch("/api/ports?"+q.toString(), {headers:{Authorization:"Bearer "+token()}});
+    return r.ok ? r.json() : [];
+  }
+  function listFor(el){
+    const id = "pp-"+(el.id || el.dataset.qh || "x"); let dl = document.getElementById(id);
+    if(!dl){ dl = document.createElement("datalist"); dl.id = id; document.body.appendChild(dl); }
+    el.setAttribute("list", id); el.setAttribute("autocomplete", "off"); return dl;
+  }
+  document.addEventListener("focusin", e=>{ if(e.target.tagName === "INPUT" && modeFor(e.target) !== null){ const dl = listFor(e.target); if(!dl.children.length) fill(e.target, e.target.value); } });
+  async function fill(el, text){
+    const dl = listFor(el); const t = String(text||"").split("(")[0].trim();
+    const rows = await search(el, t, 15).catch(()=>[]);
+    dl.innerHTML = rows.map(p=>'<option value="'+esc2(canon(p))+'" label="'+esc2(p.port_type+" · "+(p.city && p.port_type==="Sea Port" ? "" : (p.city||"")+" · ")+p.country)+'"></option>').join("");
+  }
+  document.addEventListener("input", e=>{
+    const el = e.target; if(el.tagName !== "INPUT" || modeFor(el) === null) return;
+    clearTimeout(timers.get(el)); timers.set(el, setTimeout(()=> fill(el, el.value), 220));
+  });
+  // leaving the field: a typed code or name becomes the canonical CODE(NAME) when it identifies one port
+  document.addEventListener("change", async e=>{
+    const el = e.target; if(el.tagName !== "INPUT" || modeFor(el) === null) return;
+    const v = el.value.trim(); if(!v || CANON_RE.test(v.toUpperCase())) return;
+    const rows = await search(el, v, 5).catch(()=>[]); if(!rows.length){ el.title = "Not found in the Port Master"; return; }
+    const u = v.toUpperCase(); const hit = rows.find(p=> p.code.toUpperCase() === u || (p.unlocode||"").toUpperCase() === u || clean(p.name) === u || String(p.city||"").toUpperCase() === u) || (rows.length === 1 ? rows[0] : null);
+    if(hit){ el.value = canon(hit); el.title = hit.port_type+" · "+hit.country; el.dispatchEvent(new Event("input", {bubbles:true})); }
+  });
+  window.PortPick = {canon, clean, typeOf};
+})();
+</script>
+<script>
 /* Count badges (menu and card headers) are hidden while their number is zero, so an empty module shows no orange "0". */
 (function(){
   "use strict";
@@ -16377,7 +16448,7 @@ if(document.readyState !== "loading") initChatWidget();
     const get = (p, f)=> api("GET", p).catch(()=> f);
     const [me, charges, currencies, containers, units, carriers, customers, ports, users] = await Promise.all([
       Q.me ? Promise.resolve(Q.me) : get("/api/auth/me", null), get("/api/masters/charge", []), get("/api/masters/currency", []), get("/api/masters/container_type", []), get("/api/masters/unit", []),
-      get("/api/customers?role=carrier", []), get("/api/customers?role=client", []), get("/api/ports", []), get("/api/users", [])]);
+      get("/api/customers?role=carrier", []), get("/api/customers?role=client", []), get("/api/ports?limit=30", []), get("/api/users", [])]);
     Q.me = me; const act = a=> a.filter(x=>x.status==="ACTIVE");
     Q.m.charges = act(charges); Q.m.currencies = act(currencies); Q.m.containers = act(containers); Q.m.units = act(units);
     Q.m.carriers = act(carriers).map(c=>c.name); Q.m.customers = customers.filter(c=>c.status==="ACTIVE"); Q.m.ports = ports; Q.m.users = (users||[]).filter(u=>u.status==="ACTIVE");
@@ -16511,11 +16582,11 @@ if(document.readyState !== "loading") initChatWidget();
       f("Incoterm", '<select class="fc" data-qh="incoterm"'+d+'><option value="">—</option>'+INCOTERMS.map(s=>opt(s, s, s===h.incoterm)).join("")+'</select>')+
       f("Commodity", inp("commodity","text","e.g. Cotton garments"))+f("Payment Terms", inp("payment_terms","text","e.g. 30 days from invoice"))+f("Transit Time (days)", inp("transit_days","number","","min=\"0\""))+
       f("Packages", inp("packages","number","","min=\"0\""))+f("Gross Weight (kg)", inp("gross_weight","number","","min=\"0\" step=\"0.001\""))+f("Volume (CBM)", inp("volume","number","","min=\"0\" step=\"0.001\""))+
-      f("Origin (Place of Receipt)", inp("origin","text","City / place of cargo pick-up"), "span2")+f("Final Destination", inp("final_destination","text","Place of final delivery"), "span2")+
+      f("Origin (Place of Receipt)", inp("origin","text","City / place of cargo pick-up",' list="qkPorts"'), "span2")+f("Final Destination", inp("final_destination","text","Place of final delivery",' list="qkPorts"'), "span2")+
       f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+f("Dimensions (L x W x H cm)", inp("dimensions","text","e.g. 80 x 60 x 45"))+
       f("Billing Branch", '<select class="fc" data-qh="billing_branch_id"'+d+'><option value="">— Registered address —</option>'+(Q.m.custBranches||[]).filter(b=>b.status==="ACTIVE" && b.billing_enabled).map(b=>opt(String(b.id), b.code+" — "+b.name, String(b.id)===String(h.billing_branch_id))).join("")+'</select>', "span2")+
       f("Contact Person", '<select class="fc" data-qh="contact_id"'+d+'><option value="">— Select contact —</option>'+contactChoices().map(c=>opt(String(c.id), c.name+(c.designation?" · "+c.designation:"")+(c.branch_code?" ("+c.branch_code+")":""), String(c.id)===String(h.contact_id))).join("")+'</select>', "span2")+
-      '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2(p.code+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+Q.m.carriers.map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
+      '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2((p.unlocode||p.code)+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+Q.m.carriers.map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
   }
   function chargeOptions(l){
     const names = Q.m.charges.map(c=>c.name); const extra = l.charge_name && !names.includes(l.charge_name) ? [l.charge_name] : [];
@@ -16927,8 +16998,19 @@ if(document.readyState !== "loading") initChatWidget();
     if(e.target.closest("#quotEmailBtn")){ e.stopImmediatePropagation(); e.preventDefault(); say("Email is not available yet", "Use Print / PDF and send the file yourself. Email sending needs an email provider to be configured.", "warn"); return; }
   }, true);
   const closeModalSafe = ()=>{ try{ closeModal(); }catch(e){ /* modal not open */ } };
+  let portTimer = null;
+  const portLabel = p=> (p.unlocode || p.code) + " - " + p.name;
+  function portSuggest(text){
+    clearTimeout(portTimer);
+    if(String(text||"").trim().length < 2) return;
+    portTimer = setTimeout(async ()=>{
+      const rows = await api("GET","/api/ports?limit=20&status=ACTIVE&q="+encodeURIComponent(String(text).split(" - ")[0].trim())).catch(()=>[]);
+      const dl = document.getElementById("qkPorts"); if(dl) dl.innerHTML = rows.map(p=>'<option value="'+esc2(portLabel(p))+'" label="'+esc2(p.port_type+" · "+(p.city||"")+" · "+p.country)+'">').join("");
+    }, 250);
+  }
   document.addEventListener("input", e=>{
     const el = e.target; if(!document.getElementById("s-quotation-new").contains(el)) return;
+
     if(el.dataset.qh){ Q.head[el.dataset.qh] = el.value; Q.dirty = true; if(el.dataset.qh === "customer_id"){ const c = Q.m.customers.find(x=>String(x.id)===el.value); Q.head.party_name = c ? c.name : ""; Q.head.billing_branch_id = ""; Q.head.contact_id = ""; loadParties(el.value).then(()=>renderAll(true)); }
       if(el.dataset.qh === "billing_branch_id"){ Q.head.contact_id = ""; const bc = (Q.m.custContacts||[]).find(c=>c.status==="ACTIVE" && String(c.branch_id)===String(el.value) && c.is_billing); if(bc) Q.head.contact_id = String(bc.id); renderAll(true); }
       return; }

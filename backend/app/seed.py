@@ -166,7 +166,18 @@ def sync_roles() -> None:
         db.close()
 
 
+def seed_ports() -> None:
+    from .ports_import import ensure_loaded
+
+    db = SessionLocal()
+    try:
+        ensure_loaded(db)
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     seed_super_admin()
     sync_roles()
+    seed_ports()
     seed_demo_portal()
