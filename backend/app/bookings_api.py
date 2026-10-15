@@ -12,7 +12,7 @@ from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .billing import next_number
 from .db import get_db
-from .models import Booking, Customer, Shipment, User
+from .models import Booking, Customer, Quotation, Shipment, User
 from .schemas_auth import _clean_party_data
 
 router = APIRouter(prefix="/api/bookings", tags=["bookings"])
@@ -40,6 +40,7 @@ class BookingIn(BaseModel):
     eta: date | None = None
     si_cutoff: date | None = None
     vgm_cutoff: date | None = None
+    quotation_id: int | None = None
     data: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -62,6 +63,7 @@ class BookingPatch(BaseModel):
     eta: date | None = None
     si_cutoff: date | None = None
     vgm_cutoff: date | None = None
+    quotation_id: int | None = None
     data: dict[str, Any] | None = None
 
 
@@ -81,7 +83,7 @@ def _clean(data: dict[str, Any]) -> dict[str, Any]:
 def _out(b: Booking) -> dict:
     return {"id": b.id, "number": b.number, "status": b.status, "booking_date": b.booking_date, "mode": b.mode, "direction": b.direction, "shipment_type": b.shipment_type, "booking_type": b.booking_type, "hbl_type": b.hbl_type, "scac": b.scac,
             "customer_id": b.customer_id, "party_name": b.party_name, "carrier": b.carrier, "carrier_booking_no": b.carrier_booking_no, "vessel": b.vessel, "pol": b.pol, "pod": b.pod, "etd": b.etd, "eta": b.eta,
-            "si_cutoff": b.si_cutoff, "vgm_cutoff": b.vgm_cutoff, "job_number": b.job_number, "data": b.data or {}, "confirmed_at": b.confirmed_at, "closed_at": b.closed_at, "created_at": b.created_at}
+            "si_cutoff": b.si_cutoff, "vgm_cutoff": b.vgm_cutoff, "job_number": b.job_number, "quotation_id": b.quotation_id, "data": b.data or {}, "confirmed_at": b.confirmed_at, "closed_at": b.closed_at, "created_at": b.created_at}
 
 
 def _get(db: Session, org_id: int, booking_id: int, lock: bool = False) -> Booking:
@@ -97,6 +99,11 @@ def _get(db: Session, org_id: int, booking_id: int, lock: bool = False) -> Booki
 def _check_customer(db: Session, org_id: int, customer_id: int | None) -> None:
     if customer_id and not db.scalar(select(Customer.id).where(Customer.id == customer_id, Customer.organization_id == org_id)):
         raise HTTPException(status_code=404, detail="Customer not found")
+
+
+def _check_quotation(db: Session, org_id: int, quotation_id: int | None) -> None:
+    if quotation_id and not db.scalar(select(Quotation.id).where(Quotation.id == quotation_id, Quotation.organization_id == org_id)):
+        raise HTTPException(status_code=404, detail="Quotation not found")
 
 
 def _check_dates(b: Booking) -> None:
@@ -135,6 +142,7 @@ def summary(user: User = Depends(permission_required("booking.read")), db: Sessi
 def create_booking(payload: BookingIn, user: User = Depends(permission_required("booking.create")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     _check_customer(db, org_id, payload.customer_id)
+    _check_quotation(db, org_id, payload.quotation_id)
     values = payload.model_dump(exclude={"data", "booking_date"})
     b = Booking(organization_id=org_id, status="DRAFT", booking_date=payload.booking_date or date.today(), data=_clean(payload.data), created_by=user.id, **values)
     _check_dates(b)
@@ -159,7 +167,9 @@ def update_booking(booking_id: int, payload: BookingPatch, user: User = Depends(
     changes = payload.model_dump(exclude_unset=True)
     if "customer_id" in changes:
         _check_customer(db, org_id, changes["customer_id"])
-    nullable = {"customer_id", "shipment_type", "booking_type", "hbl_type", "scac", "carrier", "carrier_booking_no", "vessel", "pol", "pod", "etd", "eta", "si_cutoff", "vgm_cutoff"}
+    if changes.get("quotation_id"):
+        _check_quotation(db, org_id, changes["quotation_id"])
+    nullable = {"customer_id", "shipment_type", "booking_type", "hbl_type", "scac", "carrier", "carrier_booking_no", "vessel", "pol", "pod", "etd", "eta", "si_cutoff", "vgm_cutoff", "quotation_id"}
     for key, value in changes.items():
         if key == "data":
             if value is not None:
@@ -221,6 +231,10 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
         from . import job_lifecycle as jl
 
         jl.on_job_created(db, job, user, "booking confirmation", {"booking": b.number})
+        if b.quotation_id:
+            from .quotations_api import link_booking_job
+
+            link_booking_job(db, org_id, b.quotation_id, job, user, b.carrier)
     b.number = next_number(db, org_id, "booking", "BKG", b.booking_date, user=user)
     b.status = "CONFIRMED"
     b.confirmed_at = datetime.now(timezone.utc)

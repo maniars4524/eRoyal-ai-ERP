@@ -139,7 +139,16 @@ def test_buy_costs_and_margins_are_hidden_from_users_without_cost_permission(wor
 
 
 # ------------------------------------------------------------------ approval workflow
-def test_submit_validation_and_lock_after_submission(h):
+@pytest.fixture
+def without_admin_edit(monkeypatch):
+    """A user who may not edit locked quotations (everyone except administrators)."""
+    from app import quotations_api as qa
+
+    real = qa.has_permission
+    monkeypatch.setattr(qa, "has_permission", lambda user, code: False if code == "quote.edit_locked" else real(user, code))
+
+
+def test_submit_validation_and_lock_after_submission(h, without_admin_edit):
     empty = client.post("/api/quotations", json={"party_name": "X"}, headers=h).json()
     assert client.post(f"/api/quotations/{empty['id']}/approval/submit", headers=h).status_code == 422
     buy_only = client.post("/api/quotations", json={"party_name": "X", "lines": [line(side="BUY")]}, headers=h).json()
@@ -189,7 +198,7 @@ def test_rejection_requires_a_reason_returns_for_correction_and_can_be_resubmitt
     assert [e["action"] for e in trail] == ["CREATED", "SUBMITTED", "REJECTED", "SUBMITTED", "APPROVED"] and trail[2]["remarks"] == "Margin too low" and all(e["user"] for e in trail)
 
 
-def test_approved_quotation_cannot_be_modified_but_can_be_revised(h, h2):
+def test_approved_quotation_cannot_be_modified_but_can_be_revised(h, h2, without_admin_edit):
     q = approved(h, h2)
     assert client.patch(f"/api/quotations/{q['id']}", json={"party_name": "Sneaky"}, headers=h).status_code == 409
     rev = client.post(f"/api/quotations/{q['id']}/revise", headers=h)
@@ -326,17 +335,18 @@ def test_tenant_isolation_and_permissions(world, admin, h):
 
 
 # ------------------------------------------------------------------ numbering at submission; one-person companies
-def test_the_quotation_number_is_generated_when_submitted_and_kept_through_rejection(h, h2):
+def test_the_quotation_number_is_generated_when_approved_and_kept_through_rejection(h, h2):
     q = draft(h)
     assert q["number"] is None
     sub = client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h).json()
-    assert sub["approval_status"] == "SUBMITTED" and sub["number"] and sub["number"].startswith("QT/")
+    assert sub["approval_status"] == "SUBMITTED" and sub["number"] is None  # still a draft until it is approved
     rej = client.post(f"/api/quotations/{q['id']}/approval/reject", json={"remarks": "Please recheck the buy rate"}, headers=h2).json()
-    assert rej["approval_status"] == "REJECTED" and rej["number"] == sub["number"]  # the number is kept
+    assert rej["approval_status"] == "REJECTED" and rej["number"] is None
     again = client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h).json()
-    assert again["number"] == sub["number"]  # resubmission never takes a second number
+    assert again["number"] is None
     approved_q = client.post(f"/api/quotations/{q['id']}/approval/approve", json={}, headers=h2).json()
-    assert approved_q["number"] == sub["number"]
+    assert approved_q["approval_status"] == "APPROVED" and approved_q["number"] and approved_q["number"].startswith("QT/")
+    assert client.get(f"/api/quotations/{q['id']}", headers=h).json()["number"] == approved_q["number"]
 
 
 def test_a_company_with_no_other_approver_can_approve_its_own_quotation(h, admin):
@@ -360,3 +370,35 @@ def test_a_company_with_no_other_approver_can_approve_its_own_quotation(h, admin
             db.execute(update(User).where(User.id == uid).values(status=status))
         db.commit()
         db.close()
+
+
+def test_an_administrator_can_edit_an_approved_quotation_and_the_number_stays(h, h2):
+    q = approved(h, h2)
+    assert q["editable"] is True and q["number"]
+    r = client.patch(f"/api/quotations/{q['id']}", json={"remarks": "Corrected after approval"}, headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["remarks"] == "Corrected after approval" and r.json()["number"] == q["number"] and r.json()["approval_status"] == "APPROVED"
+    events = client.get(f"/api/quotations/{q['id']}/events", headers=h).json() if client.get(f"/api/quotations/{q['id']}/events", headers=h).status_code == 200 else []
+    assert not events or any(e["action"] == "ADMIN_EDITED" for e in events)
+
+
+def test_converted_cancelled_and_lost_quotations_are_final(h, h2):
+    q = issued(h, h2)
+    lost = client.post(f"/api/quotations/{q['id']}/lost", json={"reason": "Customer chose another forwarder"}, headers=h)
+    assert lost.status_code == 200 and lost.json()["status"] == "LOST" and lost.json()["closure_reason"] == "Customer chose another forwarder"
+    assert lost.json()["editable"] is False
+    assert client.patch(f"/api/quotations/{q['id']}", json={"remarks": "x"}, headers=h).status_code == 409
+    assert client.post(f"/api/quotations/{q['id']}/cancel", json={"reason": "again"}, headers=h).status_code == 409
+    assert client.post(f"/api/quotations/{q['id']}/revise", headers=h).status_code == 201  # a lost quotation can be revised into a new draft
+
+
+def test_cancel_needs_a_reason_and_a_draft_cannot_be_lost(h, h2):
+    d = draft(h)
+    assert client.post(f"/api/quotations/{d['id']}/cancel", json={"reason": ""}, headers=h).status_code == 422
+    assert client.post(f"/api/quotations/{d['id']}/lost", json={"reason": "no response"}, headers=h).status_code == 409
+    c = client.post(f"/api/quotations/{d['id']}/cancel", json={"reason": "Duplicate quotation"}, headers=h)
+    assert c.status_code == 200 and c.json()["status"] == "CANCELLED"
+    sent = issued(h, h2)
+    accepted = client.post(f"/api/quotations/{sent['id']}/accept", headers=h)
+    assert accepted.status_code == 200
+    assert client.post(f"/api/quotations/{sent['id']}/cancel", json={"reason": "Customer withdrew the shipment"}, headers=h).json()["status"] == "CANCELLED"

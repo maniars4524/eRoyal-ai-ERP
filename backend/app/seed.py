@@ -35,6 +35,7 @@ PERMISSIONS = [
     ("quote.create", "Create/edit draft quotations", "quote", "create"),
     ("quote.send", "Send, accept, reject and convert quotations", "quote", "send"),
     ("quote.approve", "Approve or reject submitted quotations", "quote", "approve"),
+    ("quote.edit_locked", "Edit a quotation after approval or issue (administrators)", "quote", "edit_locked"),
     ("quote.view_cost", "See buy costs and margins on quotations", "quote", "view_cost"),
     ("quote.rate_override", "Change the exchange rate on quotation lines", "quote", "rate_override"),
     ("credit.read", "View customer credit facilities and exposure", "credit", "read"),

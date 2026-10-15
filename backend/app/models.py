@@ -455,6 +455,7 @@ class Booking(Base):
     si_cutoff: Mapped[date | None] = mapped_column(Date)
     vgm_cutoff: Mapped[date | None] = mapped_column(Date)
     job_number: Mapped[str | None] = mapped_column(String(40), index=True)
+    quotation_id: Mapped[int | None] = mapped_column(ForeignKey("quotations.id", ondelete="SET NULL"), index=True)
     data: Mapped[dict] = mapped_column(JSON, default=dict)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

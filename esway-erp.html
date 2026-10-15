@@ -3014,6 +3014,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="jc-grid-toolbar">
     <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:var(--g6);cursor:pointer"><input type="checkbox" class="jc-chk" id="jc_selectAll"> Select All</label>
     <button class="btn btn-out btn-sm" id="jc_addRowBtn"><svg class="ic" data-icon="plus"></svg> Add Row</button>
+    <button class="btn btn-out btn-sm" id="jc_newChargeBtn" title="The charge you need is not in the Charge Master: add it now and use it on this job">＋ New Charge</button>
     <button class="btn btn-out btn-sm" id="jc_dupRowBtn"><svg class="ic" data-icon="copy"></svg> Duplicate Row</button>
     <button class="btn btn-out btn-sm" id="jc_delRowBtn"><svg class="ic" data-icon="trash"></svg> Delete Row</button>
   </div>
@@ -3658,6 +3659,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr">
   <div class="fg"><label class="fl">Carrier / Line <span class="r">*</span></label><select class="fc" id="bk_carrier"><option>— Select —</option><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>ONE Line</option><option>Air India</option><option>Emirates SkyCargo</option></select></div>
   <div class="fg"><label class="fl">Booking No</label><input class="fc" id="bk_no" placeholder="Auto-generated on confirm" readonly style="background:var(--g0)"></div>
+  <div class="fg"><label class="fl">Carrier Booking Ref</label><input class="fc" id="bk_carrierref" placeholder="Reference given by the carrier"></div>
   <div class="fg"><label class="fl">POD <span class="r">*</span></label><input class="fc" id="bk_pod" placeholder="e.g. BEANR(ANTWERPEN)" autocomplete="off"></div>
 </div>
 <div class="fg"><label class="fl">Notes</label><textarea class="fc" id="bk_notes" rows="2" placeholder="Internal notes for this booking"></textarea></div>
@@ -3675,7 +3677,7 @@ tbody tr:hover{background:var(--g0)}
 
 <div class="card"><div class="ch"><div class="ct">Cutoffs</div></div><div class="cb">
 <div class="fr" id="bk_seaCutoffs"><div class="fg"><label class="fl">SI Cutoff</label><input class="fc" type="date" id="bk_sicutoff"></div><div class="fg"><label class="fl">VGM Cutoff</label><input class="fc" type="date" id="bk_vgmcutoff"></div></div>
-<div class="fr" id="bk_airCutoffs" style="display:none"><div class="fg"><label class="fl">Cargo Acceptance Cutoff</label><input class="fc" type="date"></div><div class="fg"><label class="fl">AWB Cutoff</label><input class="fc" type="date"></div></div>
+<div class="fr" id="bk_airCutoffs" style="display:none"><div class="fg"><label class="fl">Cargo Acceptance Cutoff</label><input id="bk_cargocutoff" class="fc" type="date"></div><div class="fg"><label class="fl">AWB Cutoff</label><input id="bk_awbcutoff" class="fc" type="date"></div></div>
 </div></div>
 </div>
 
@@ -3720,11 +3722,11 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">V.Weight</label><input class="fc" id="bk_vwt"></div>
-  <div class="fg"><label class="fl">Unit</label><select class="fc"><option>KGS</option><option>LBS</option></select></div>
+  <div class="fg"><label class="fl">Unit</label><select class="fc" id="bk_vwtunit"><option>KGS</option><option>LBS</option></select></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">N.Weight</label><input class="fc" id="bk_nwt"></div>
-  <div class="fg"><label class="fl">Unit</label><select class="fc"><option>KGS</option><option>LBS</option></select></div>
+  <div class="fg"><label class="fl">Unit</label><select class="fc" id="bk_nwtunit"><option>KGS</option><option>LBS</option></select></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Volume</label><input class="fc" id="bk_vol"></div>
@@ -3749,8 +3751,9 @@ tbody tr:hover{background:var(--g0)}
 <div class="wiz-nav" style="margin-top:14px">
   <button class="btn btn-out btn-sm" id="bk_prevBtn" style="display:none">← Previous</button>
   <span style="flex:1"></span>
+  <button class="btn btn-out btn-sm" id="bk_saveBtn">Save Draft</button>
   <button class="btn btn-pri btn-sm" id="bk_nextBtn">Next →</button>
-  <button class="btn btn-suc btn-sm" id="bk_finishBtn" style="display:none">Finish</button>
+  <button class="btn btn-suc btn-sm" id="bk_finishBtn" style="display:none">Confirm Booking</button>
 </div>
 
 <div>
@@ -4289,7 +4292,6 @@ tbody tr:hover{background:var(--g0)}
 <div class="ph">
   <div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--gr)"></svg>Quotation Print</div><div class="ps">Print-quality freight quotation</div></div>
   <div class="pa"><button class="btn btn-out btn-sm" data-go="quotation" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
-    <button class="btn btn-out btn-sm" data-go="quotation"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
     <button class="btn btn-out btn-sm" id="quotEmailBtn"><svg class="ic" data-icon="mail"></svg> Email to Party</button>
     <button class="btn btn-out btn-sm" id="quotPrintBtn"><svg class="ic" data-icon="printer"></svg> Print / PDF</button>
     <button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Approve Quote</button>
@@ -8184,10 +8186,16 @@ function wireJobChargesPanel(){
   });
   on("jc_addRowBtn", ()=>{
     const st = jcGetState(jcCurrentJob);
-    st.rows.push(jcNewChargeRow({}));
-    jcRenderRows();
-    toast("Row added","New charge row ready for entry");
+    jcLoadMaster().then(()=>{ st.rows.push(jcNewChargeRow({})); jcRenderRows(); toast("Row added","New charge row ready for entry"); });
   });
+  on("jc_newChargeBtn", ()=>{
+    if(!jcCurrentJob){ toast("Open a job first", "Charges are added to a job"); return; }
+    MK.openChargeModal(null, body=>{
+      const st = jcGetState(jcCurrentJob);
+      jcLoadMaster().then(()=>{ st.rows.push(jcNewChargeRow({chargeName: body.name})); jcRenderRows(); toast("Charge added", body.name+" is now in the Charge Master and on this job"); });
+    });
+  });
+  window.addEventListener("focus", ()=>{ if(jcCurrentJob) jcLoadMaster().then(()=>{ if(typeof jcRenderRows === "function") jcRenderRows(); }); });
   on("jc_dupRowBtn", ()=>{
     const st = jcGetState(jcCurrentJob);
     const sel = st.rows.filter(r=>r.selected);
@@ -12161,17 +12169,8 @@ function wireBookProcess(){
   nextBtn.dataset.wired = "1";
   nextBtn.addEventListener("click", ()=> bookGotoStep(bookStep+1));
   $("#bk_prevBtn").addEventListener("click", ()=> bookGotoStep(bookStep-1));
-  $("#bk_finishBtn").addEventListener("click", ()=>{
-    const no = "BKG-"+new Date().getFullYear()+"-"+String(Math.floor(Math.random()*9000)+1000);
-    $("#bk_no").value = no;
-    toast("Booking confirmed", no+" — Booking Confirmation ready to generate");
-    go("booking");
-  });
-  $("#bk_addChargeBtn").addEventListener("click", bookAddChargeRow);
-  [["bk_customer","bk_customerAddr"],["bk_shipper","bk_shipperAddr"],["bk_consignee","bk_consigneeAddr"],["bk_notify","bk_notifyAddr"]].forEach(([selId,addrId])=>{
-    const sel = $("#"+selId), addr = $("#"+addrId);
-    if(sel) sel.addEventListener("change", ()=>{ addr.value = BK_PARTY_ADDR[sel.value] || ""; });
-  });
+  $("#bk_finishBtn").addEventListener("click", ()=>{ if(window.BKG) BKG.finish(); });
+  $("#bk_addChargeBtn").addEventListener("click", ()=>{ if(window.BKG) BKG.addCharge(); else bookAddChargeRow(); });
   bookGotoStep(1);
 }
 document.addEventListener("DOMContentLoaded", wireBookProcess);
@@ -14605,6 +14604,7 @@ if(document.readyState !== "loading") initChatWidget();
       });
     }).catch(err=> say("Could not open charge form", err.message));
   }
+  MK.openChargeModal = openChargeModal;
   MK.register({type:"charge", label:"Charge", list:"charge-master", detail:null, codeLabel:"Charge Code", nameLabel:"Charge Name",
     edit:rec=> openChargeModal(rec),
     cols:["code","name",r=>'<span class="b b-bl">'+esc2((r.data||{}).category||"—")+'</span>',"data.hsn_code","data.module","data.mode","data.uom",r=>'<span class="b b-gy">'+esc2((r.data||{}).ar_ap||"—")+'</span>',"data.coa_income","data.coa_expense",r=>(r.data||{}).gst_percent?'<span class="b b-gr">'+esc2(r.data.gst_percent)+'%</span>':"—"]});
@@ -16507,7 +16507,7 @@ if(document.readyState !== "loading") initChatWidget();
   const lineMargin = l=>{ const s = sheet(), k = (l.charge_name||"").trim().toLowerCase(); const r = s.rows.find(x=>x.charge.toLowerCase()===k); return r && r.sell>0 && r.buy>0 ? r2((r.sell-r.buy)/r.sell*100) : null; };
 
   /* ---------- list ---------- */
-  const STATUS_CLS = {DRAFT:"b-gy", SENT:"b-bl", ACCEPTED:"b-gr", CONVERTED:"b-pu", REJECTED:"b-rd", EXPIRED:"b-am", SUPERSEDED:"b-gy"};
+  const STATUS_CLS = {DRAFT:"b-gy", SENT:"b-bl", ACCEPTED:"b-gr", CONVERTED:"b-pu", REJECTED:"b-rd", EXPIRED:"b-am", SUPERSEDED:"b-gy", CANCELLED:"b-gy", LOST:"b-rd"};
   const APPROVAL_CLS = {DRAFT:"b-gy", SUBMITTED:"b-am", APPROVED:"b-gr", REJECTED:"b-rd"};
   const sbadge = q=> '<span class="b '+(STATUS_CLS[q.effective_status]||"b-gy")+' dot">'+esc2(q.effective_status.charAt(0)+q.effective_status.slice(1).toLowerCase())+'</span>';
   const abadge = q=> '<span class="b '+(APPROVAL_CLS[q.approval_status]||"b-gy")+'" style="font-size:9.5px" title="Internal approval">'+esc2(q.approval_status.charAt(0)+q.approval_status.slice(1).toLowerCase())+'</span>';
@@ -16519,7 +16519,9 @@ if(document.readyState !== "loading") initChatWidget();
     const act = q=>{
       const b = ['<button class="ta" data-qk-open="'+q.id+'">'+(q.editable?"Edit":"View")+' →</button>'];
       if(q.effective_status === "SENT"){ b.push('<button class="ta" data-qk-do="accept:'+q.id+'" style="color:var(--gr)">Accept</button>'); b.push('<button class="ta" data-qk-do="reject:'+q.id+'" style="color:var(--rd)">Reject</button>'); }
-      if(q.status === "ACCEPTED") b.push('<button class="ta" data-qk-do="convert:'+q.id+'" style="color:var(--bl);font-weight:700">Convert to Job</button>');
+      if(["SENT","ACCEPTED","REJECTED"].includes(q.status)) b.push('<button class="ta" data-qk-do="lost:'+q.id+'" style="color:var(--rd)">Lost</button>');
+      if(["DRAFT","SENT","ACCEPTED","REJECTED"].includes(q.status)) b.push('<button class="ta" data-qk-do="cancel:'+q.id+'" style="color:var(--g6)">Cancel</button>');
+      if(q.status === "ACCEPTED") b.push('<button class="ta" data-qk-do="book:'+q.id+'" style="color:var(--bl);font-weight:700">Create Booking</button>', '<button class="ta" data-qk-do="convert:'+q.id+'">Convert to Job</button>');
       if(q.editable && q.revision_no === 0 && q.approval_status === "DRAFT") b.push('<button class="ta" data-qk-do="delete:'+q.id+'" style="color:var(--rd)">Delete</button>');
       return b.join(" ");
     };
@@ -16543,13 +16545,17 @@ if(document.readyState !== "loading") initChatWidget();
     const btn = (id, label, cls, extra)=> '<button class="btn btn-sm '+cls+'" data-qa="'+id+'" '+(extra||"")+'>'+label+'</button>';
     let h = btn("back","← Back","btn-out");
     if(formShown){
-      if(editable) h += btn("save","Save Draft","btn-pri") + btn("submit","Submit for Approval","btn-suc");
+      const adminMode = !!(r && r.editable && !(r.status === "DRAFT" && ["DRAFT","REJECTED"].includes(r.approval_status)));
+      if(adminMode) h += btn("save","Save Changes","btn-pri");
+      else if(editable) h += btn("save","Save Draft","btn-pri") + btn("submit","Submit for Approval","btn-suc");
       if(r && r.approval_status === "SUBMITTED" && can("quote.approve")) h += btn("approve","Approve","btn-suc") + btn("reject","Reject","btn-out",'style="color:var(--rd)"');
       if(r && r.approval_status === "APPROVED" && r.status === "DRAFT" && can("quote.send")) h += btn("issue","Issue to Client","btn-pri");
       h += btn("preview","Preview","btn-out") + btn("print","Print / PDF","btn-out");
       h += '<span class="qk-menu" id="qkMore"><button class="btn btn-sm btn-out" data-qa="more">More ▾</button><div class="qk-menu-pop">'+
         (r ? '<button data-qa="history">Revision history</button><button data-qa="audit">Audit trail</button>' : '')+
         (r && (r.status==="SENT"||r.effective_status==="EXPIRED"||r.effective_status==="REJECTED"||(r.status==="DRAFT"&&r.approval_status==="APPROVED")) ? '<button data-qa="revise">Create revision</button>' : '')+
+        (r && ["SENT","ACCEPTED","REJECTED"].includes(r.status) ? '<button data-qa="lost" style="color:var(--rd)">Mark lost</button>' : '')+
+        (r && ["DRAFT","SENT","ACCEPTED","REJECTED"].includes(r.status) ? '<button data-qa="cancelq">Cancel quotation</button>' : '')+
         (r && r.editable && r.revision_no===0 && r.approval_status==="DRAFT" ? '<button data-qa="delete" style="color:var(--rd)">Delete draft</button>' : '')+'</div></span>';
     }
     bar.innerHTML = h;
@@ -16560,7 +16566,7 @@ if(document.readyState !== "loading") initChatWidget();
     const order = STEPS.map(s=>s[0]); let idx = order.indexOf(status); if(idx < 0) idx = 3;
     const bad = r && r.approval_status === "REJECTED";
     return '<div class="qk-steps">'+STEPS.map(([k,label],i)=>'<div class="qk-step '+(i<idx?"done":i===idx?(bad&&i===0?"bad cur":"cur"):"")+'"><span class="dot">'+(i<idx?"✓":i+1)+'</span>'+esc2(label)+'</div>').join("")+
-      (r && ["REJECTED","EXPIRED","SUPERSEDED"].includes(r.effective_status) ? '<span class="b '+(STATUS_CLS[r.effective_status]||"")+'" style="margin-left:10px">'+esc2(r.effective_status.charAt(0)+r.effective_status.slice(1).toLowerCase())+'</span>' : '')+'</div>';
+      (r && ["REJECTED","EXPIRED","SUPERSEDED","CANCELLED","LOST"].includes(r.effective_status) ? '<span class="b '+(STATUS_CLS[r.effective_status]||"")+'" style="margin-left:10px">'+esc2(r.effective_status.charAt(0)+r.effective_status.slice(1).toLowerCase())+'</span>' : '')+'</div>';
   }
   /* customer branches / contacts for the billing block of the quotation */
   const contactChoices = ()=>{ const bid = Q.head.billing_branch_id ? Number(Q.head.billing_branch_id) : null; const br = Object.fromEntries((Q.m.custBranches||[]).map(b=>[b.id, b.code]));
@@ -16584,7 +16590,7 @@ if(document.readyState !== "loading") initChatWidget();
     const inp = (k, type, ph, extra)=> '<input class="fc" '+(type?'type="'+type+'" ':'')+'data-qh="'+k+'" value="'+esc2(h[k])+'" placeholder="'+esc2(ph||"")+'"'+d+(extra||"")+'>';
     const w = wiz();
     return '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Quotation Information</div><div style="font-size:11.5px;color:var(--g6)">'+esc2([w.dir, w.mode, w.type].filter(Boolean).join(" · "))+' · '+esc2(w.qtype||"")+' · '+(isMulti()?"Multiple carriers":"Single carrier")+(ro?"":' <span class="ta" data-qa="changewiz">Change</span>')+'</div></div><div class="cb"><div class="qk-grid">'+
-      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Assigned when submitted")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
+      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Generated when approved")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
       f("Customer", '<select class="fc" data-qh="customer_id"'+d+'><option value="">— Select from Customer Master —</option>'+Q.m.customers.map(c=>opt(String(c.id), c.name+(c.code?" ("+c.code+")":""), String(c.id)===String(h.customer_id))).join("")+(h.customer_id && !Q.m.customers.some(c=>String(c.id)===String(h.customer_id)) ? opt(String(h.customer_id), h.party_name, true) : "")+'</select>', "", true)+
       f("Quotation Date", inp("quote_date","date"))+f("Valid Until", inp("valid_until","date"), "", true)+
       f("Currency", '<select class="fc" data-qh="currency"'+d+'>'+ccyList().map(c=>opt(c, c, c===h.currency)).join("")+'</select>', "", true)+
@@ -16601,6 +16607,10 @@ if(document.readyState !== "loading") initChatWidget();
       f("Contact Person", '<select class="fc" data-qh="contact_id"'+d+'><option value="">— Select contact —</option>'+contactChoices().map(c=>opt(String(c.id), c.name+(c.designation?" · "+c.designation:"")+(c.branch_code?" ("+c.branch_code+")":""), String(c.id)===String(h.contact_id))).join("")+'</select>', "span2")+
       '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2((p.unlocode||p.code)+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+Q.m.carriers.map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
   }
+  async function reloadCharges(){
+    try{ const rows = await api("GET","/api/masters/charge"); Q.m.charges = rows.filter(c=>c.status === "ACTIVE"); return true; }catch(e){ return false; }
+  }
+  window.addEventListener("focus", ()=>{ if(document.getElementById("s-quotation-new") && document.getElementById("s-quotation-new").classList.contains("on") && Q.m && Q.m.charges) reloadCharges().then(()=>{ if(Q.rec ? Q.rec.editable : true) renderAll(true); }); });
   function chargeOptions(l){
     const names = Q.m.charges.map(c=>c.name); const extra = l.charge_name && !names.includes(l.charge_name) ? [l.charge_name] : [];
     return '<option value="">— Select —</option>'+names.concat(extra).map(n=>opt(n, n, n===l.charge_name)).join("");
@@ -16640,7 +16650,7 @@ if(document.readyState !== "loading") initChatWidget();
     const lines = side === "SELL" ? Q.sell : Q.buy, key = side.toLowerCase(), ro = Q.rec && !Q.rec.editable;
     const tot = lines.reduce((a,l)=>{ const c = calc(l); a.amount += c.amount; a.gst += c.gst; a.total += c.total; return a; }, {amount:0, gst:0, total:0});
     return '<div class="qk-pane '+key+'" data-pane="'+key+'"><div class="qk-pane-h"><div><div class="t">'+(side==="SELL"?"Sell Cost":"Buy Cost")+' <span class="b b-gy" style="font-size:9.5px">'+lines.length+'</span></div><div class="s">'+(side==="SELL"?"Charges quoted to the customer":"Internal cost — never shown on the customer quotation")+'</div></div>'+
-      '<div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-qa="add" data-side="'+side+'"'+(ro?" disabled":"")+'>＋ Add Charge</button>'+(uomList().includes("Container") ? '<button class="btn btn-out btn-sm" data-qa="containers" data-k="'+key+':new"'+(ro?" disabled":"")+' title="One charge, several container types with their own rates">📦 Container Rates</button>' : '')+'</div></div>'+
+      '<div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-qa="add" data-side="'+side+'"'+(ro?" disabled":"")+'>＋ Add Charge</button>'+(can("master.create") ? '<button class="btn btn-out btn-sm" data-qa="newcharge" data-side="'+side+'"'+(ro?" disabled":"")+' title="The charge you need is not in the Charge Master: add it now and use it on this quotation">＋ New Charge</button>' : '')+(uomList().includes("Container") ? '<button class="btn btn-out btn-sm" data-qa="containers" data-k="'+key+':new"'+(ro?" disabled":"")+' title="One charge, several container types with their own rates">📦 Container Rates</button>' : '')+'</div></div>'+
       '<div class="qk-scroll"><table class="qk-t"><thead><tr><th>#</th><th>Particulars</th><th>Basis / UOM</th><th>Units</th><th>Ccy</th><th>Ex. Rate</th><th>Unit Rate</th><th>Taxable</th><th>Tax %</th><th class="r">Amount (₹)</th><th class="r">Total (₹)</th><th></th></tr></thead><tbody>'+
       (lines.length ? lines.map((l,i)=>rowHtml(l, key, i)).join("") : '<tr><td colspan="12" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No '+(side==="SELL"?"sell":"buy")+' charges yet. Click "Add Charge".</td></tr>')+
       '</tbody><tfoot><tr><td colspan="9">Total ('+(side==="SELL"?"Sell":"Buy")+')</td><td class="r" data-t="'+key+':amount">'+num(tot.amount,2)+'</td><td class="r" data-t="'+key+':total">'+num(tot.total,2)+'</td><td></td></tr><tr><td colspan="9" style="font-weight:600;color:var(--g6)">GST (₹)</td><td colspan="3" class="r" data-t="'+key+':gst" style="font-weight:600">'+num(tot.gst,2)+'</td></tr></tfoot></table></div></div>';
@@ -16682,7 +16692,7 @@ if(document.readyState !== "loading") initChatWidget();
       approvalCard();
     setActions(); if(keepScroll) window.scrollTo(0, y);
     const t = document.getElementById("quotNewTitle"); if(t) t.textContent = "Quotation Preparation";
-    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft · number assigned when submitted")+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
+    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft · number generated when approved")+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
   }
   function refreshComputed(){
     ["sell","buy"].forEach(side=>{
@@ -16770,7 +16780,8 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       if(name === "back"){ if(Q.dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return; go("quotation"); return; }
       if(name === "changewiz"){ document.getElementById("quotFormWrap").style.display = "none"; document.getElementById("quotWizWrap").style.display = "block"; setActions(); return; }
-      if(name === "save"){ const r = await save(); if(r) say("Draft saved", "The quotation number is generated when you submit it"); return; }
+      if(name === "save"){ const wasLocked = !!(Q.rec && !(Q.rec.status === "DRAFT" && ["DRAFT","REJECTED"].includes(Q.rec.approval_status))); const r = await save(); if(r) say(wasLocked ? "Changes saved" : "Draft saved", wasLocked ? (r.number || "")+" keeps its number; the change is recorded in the audit trail" : "The quotation number is generated when it is approved"); return; }
+      if(name === "lost" || name === "cancelq"){ const kind = name === "lost" ? "lost" : "cancel"; const reason = window.prompt(kind === "lost" ? "Why was this quotation lost? (e.g. customer chose another forwarder, price too high)" : "Why is this quotation being cancelled?", ""); if(reason === null) return; if(reason.trim().length < 3){ say("Reason required", "Please type at least 3 characters", "warn"); return; } const c = await api("POST","/api/quotations/"+Q.rec.id+"/"+kind, {reason:reason.trim()}); say(kind === "lost" ? "Marked as lost" : "Quotation cancelled", (c.number || "Draft #"+c.id)+" — "+reason.trim()); go("quotation"); return; }
       if(name === "submit"){ if(!validate(true)) return; const r = await save(); if(!r) return; const s = await api("POST","/api/quotations/"+r.id+"/approval/submit"); Q.rec = s; renderAll(true); say("Submitted for approval", "An approver can now review it"); return; }
       if(name === "approve" || name === "reject"){
         const remarks = (document.getElementById("qkApprovalRemarks")||{}).value || "";
@@ -16920,12 +16931,15 @@ if(document.readyState !== "loading") initChatWidget();
       Array.from(bar.querySelectorAll("button")).forEach(b=>{ if(!keep.includes(b)) b.style.display = "none"; });
       bar.querySelectorAll("[data-qk-bar]").forEach(n=>n.remove());
       const add = (label, a, cls)=>{ const b = document.createElement("button"); b.className = "btn btn-sm "+cls; b.dataset.qkBar = "1"; b.dataset.qkDo = a+":"+q.id; b.textContent = label; bar.appendChild(b); return b; };
+      if(q.editable || ["DRAFT","SENT","ACCEPTED","REJECTED"].includes(q.status) || q.effective_status === "EXPIRED") add("Edit", "edit", "btn-pri");
       add("Taxable Quotation", "viewmode_TAX", want === "TAX" ? "btn-pri" : "btn-out"); add("Non-Taxable Quotation", "viewmode_NOTAX", want === "NOTAX" ? "btn-pri" : "btn-out");
-      add("Print", "print", "btn-out"); add("Download PDF", "pdf", "btn-out"); add("Email to Customer", "email", "btn-out"); if(can("master.update")) add("Company Logo", "logo", "btn-out");
-      if(q.editable) add("Edit", "edit", "btn-out");
+      add("Print", "print", "btn-out"); add("Download PDF", "pdf", "btn-out"); add("Email to Customer", "email", "btn-out");
+      if(can("master.update")){ const lg = zone.querySelector(".qp-logo"); if(lg){ lg.dataset.qkDo = "logo:"+q.id; lg.style.cursor = "pointer"; lg.title = "Click to change the company logo"; } }
       if(q.status === "SENT" || q.effective_status === "EXPIRED" || q.effective_status === "REJECTED") add("Revise Quote", "revise", "btn-out");
       if(q.effective_status === "SENT"){ add("Mark Accepted", "accept", "btn-suc"); add("Mark Rejected", "reject", "btn-out"); }
-      if(q.status === "ACCEPTED") add("Convert to Job", "convert", "btn-pri");
+      if(["SENT","ACCEPTED","REJECTED"].includes(q.status) || q.effective_status === "EXPIRED") add("Mark Lost", "lost", "btn-out");
+      if(["DRAFT","SENT","ACCEPTED","REJECTED"].includes(q.status)) add("Cancel Quote", "cancel", "btn-out");
+      if(q.status === "ACCEPTED"){ add("Create Booking", "book", "btn-pri"); add("Convert to Job", "convert", "btn-out"); }
       if(q.status === "DRAFT" && q.approval_status === "APPROVED" && can("quote.send")) add("Issue to Client", "issue", "btn-pri");
       add("New Quote", "newquote", "btn-out");
     }
@@ -16963,10 +16977,24 @@ if(document.readyState !== "loading") initChatWidget();
         setTimeout(()=> window.print(), kind === "pdf" ? 600 : 100); return;
       }
       if(kind === "logo"){ chooseLogo(id); return; }
+      if(kind === "cancel" || kind === "lost"){
+        const reason = window.prompt(kind === "lost" ? "Why was this quotation lost? (e.g. customer chose another forwarder, price too high, shipment dropped)" : "Why is this quotation being cancelled? (e.g. wrong rates, duplicate, customer withdrew the enquiry)", "");
+        if(reason === null) return;
+        if(reason.trim().length < 3){ say("Reason required", "Please type at least 3 characters", "warn"); return; }
+        const q = await api("POST","/api/quotations/"+id+"/"+kind, {reason:reason.trim()}); say(kind === "lost" ? "Marked as lost" : "Quotation cancelled", (q.number || "Draft #"+q.id)+" — "+reason.trim()); return refresh(q.id);
+      }
+      if(kind === "book"){ if(window.BKG) await BKG.fromQuotation(id); return; }
       if(kind === "email"){ say("Email is not available yet", "Use Download PDF and send the file yourself. Email sending needs an email provider to be configured.", "warn"); return; }
       if(kind === "newquote"){ go("quotation-new"); return; }
       if(kind === "revise"){ const r = await api("POST","/api/quotations/"+id+"/revise"); say("Revision created", "Revision "+r.revision_no+" is a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
-      if(kind === "edit"){ const q = await api("GET","/api/quotations/"+id); Q.pendingOpen = q; go("quotation-new"); return; }
+      if(kind === "edit"){
+        let q = await api("GET","/api/quotations/"+id);
+        if(!q.editable){
+          if(!window.confirm("This quotation is already "+(q.number ? "numbered ("+q.number+")" : "approved")+" and cannot be changed directly.\n\nEdit it as a new revision? The original stays on record.")) return;
+          q = await api("POST","/api/quotations/"+id+"/revise"); say("Revision created", "Revision "+q.revision_no+" is a new draft you can edit");
+        }
+        Q.pendingOpen = q; go("quotation-new"); return;
+      }
       if(kind === "issue"){ if(!window.confirm("Issue this approved quotation to the client? It gets its number and is locked.")) return; const s = await api("POST","/api/quotations/"+id+"/send"); say("Quotation issued", s.number); return refresh(s.id); }
       if(kind === "accept" || kind === "reject"){ if(!window.confirm(kind==="accept" ? "Record this quotation as ACCEPTED by the client?" : "Record this quotation as REJECTED by the client?")) return; const q = await api("POST","/api/quotations/"+id+"/"+kind); say("Quotation "+(kind==="accept"?"accepted":"rejected"), q.number); return refresh(q.id); }
       if(kind === "convert"){
@@ -16985,15 +17013,24 @@ if(document.readyState !== "loading") initChatWidget();
   }
 
   /* ---------- events ---------- */
-  document.addEventListener("click", e=>{
-    const o = e.target.closest("[data-qk-open]"); if(o){ e.stopPropagation(); const id = Number(o.dataset.qkOpen); closeModalSafe(); const q = Q.list.find(x=>x.id===id); if(q && q.editable) listAct("edit", id); else openView(id); return; }
+  document.addEventListener("click", async e=>{
+    const o = e.target.closest("[data-qk-open]"); if(o){ e.stopPropagation(); const id = Number(o.dataset.qkOpen); closeModalSafe(); const q = Q.list.find(x=>x.id===id); if(q && q.editable && q.status === "DRAFT" && ["DRAFT","REJECTED"].includes(q.approval_status)) listAct("edit", id); else openView(id); return; }
     const d = e.target.closest("[data-qk-do]"); if(d){ e.stopPropagation(); const [k, id] = d.dataset.qkDo.split(":"); listAct(k, Number(id)); return; }
     const a = e.target.closest("[data-qa]");
     if(a && (document.getElementById("s-quotation-new").contains(a))){
       e.stopPropagation(); const n = a.dataset.qa;
       if(n === "more"){ document.getElementById("qkMore").classList.toggle("on"); return; }
       document.getElementById("qkMore") && document.getElementById("qkMore").classList.remove("on");
-      if(n === "add"){ (a.dataset.side === "SELL" ? Q.sell : Q.buy).push(blank(a.dataset.side)); Q.dirty = true; renderAll(true); return; }
+      if(n === "add"){ await reloadCharges(); (a.dataset.side === "SELL" ? Q.sell : Q.buy).push(blank(a.dataset.side)); Q.dirty = true; renderAll(true); return; }
+      if(n === "newcharge"){
+        const side = a.dataset.side;
+        MK.openChargeModal(null, async body=>{
+          await reloadCharges(); const l = blank(side); l.charge_name = body.name;
+          const g = Number((body.data||{}).gst_percent); if(g > 0){ l.taxable = true; l.tax_pct = String(g); }
+          (side === "SELL" ? Q.sell : Q.buy).push(l); Q.dirty = true; renderAll(true); say("Charge added", body.name+" is now in the Charge Master and on this quotation");
+        });
+        return;
+      }
       if(n === "toggle"){ Q.open[a.dataset.k] = !Q.open[a.dataset.k]; renderAll(true); return; }
       if(n === "dup"){ const {list, idx} = lineByKey(a.dataset.k); const src = list[Number(idx)]; list.splice(Number(idx)+1, 0, JSON.parse(JSON.stringify(src))); Q.dirty = true; renderAll(true); return; }
       if(n === "del"){ const {list, idx} = lineByKey(a.dataset.k); list.splice(Number(idx), 1); Q.dirty = true; renderAll(true); return; }
@@ -17236,6 +17273,192 @@ if(document.readyState !== "loading") initChatWidget();
   let timer = null;
   new MutationObserver(()=>{ clearTimeout(timer); timer = setTimeout(()=>{ if(!token()) return; if(!cache.incoterm) load(); else refresh(); }, 250); }).observe(document.body, {childList:true, subtree:true});
   window.StdKit = {ctnForm, containerPills, usage, reload:()=>{ loading = null; Object.keys(cache).forEach(k=> delete cache[k]); return load(); }, cache, incoPanel};
+})();
+</script>
+
+<script>
+/* ============================================================
+   BOOKING KIT: the Bookings list and the 5-step booking process work on real data.
+   Quotation -> Booking (prefilled, linked) -> Confirm (number from Sequence Setting, job created, quotation charges carried over).
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const $ = s=> document.querySelector(s);
+  const token = ()=> sessionStorage.getItem("esway_access_token");
+  const BKG = window.BKG = {rec:null, quote:null, list:[], m:{clients:[], carriers:[]}, pending:null};
+
+  /* [element id, key, "col" = booking column, "data" = booking.data] */
+  const MAP = [
+    ["bk_bookdate","booking_date","col"], ["bk_carrier","carrier","col"], ["bk_carrierref","carrier_booking_no","col"], ["bk_vessel","vessel","col"], ["bk_pol","pol","col"], ["bk_pod","pod","col"],
+    ["bk_etd","etd","col"], ["bk_eta","eta","col"], ["bk_sicutoff","si_cutoff","col"], ["bk_vgmcutoff","vgm_cutoff","col"],
+    ["bk_branch","branch","data"], ["bk_freightpp","freight_pp","data"], ["bk_svctype","service_type","data"], ["bk_por","place_of_receipt","data"], ["bk_pod2","place_of_delivery","data"], ["bk_marks","marks","data"], ["bk_notes","notes","data"],
+    ["bk_customerAddr","customer_address","data"], ["bk_shipper","shipper","data"], ["bk_shipperAddr","shipper_address","data"], ["bk_consignee","consignee","data"], ["bk_consigneeAddr","consignee_address","data"], ["bk_notify","notify","data"], ["bk_notifyAddr","notify_address","data"],
+    ["bk_pcs","pcs","data"], ["bk_conttype","container_type","data"], ["bk_pallet","pallet","data"], ["bk_packtype","pack_type","data"], ["bk_contno","container_no","data"], ["bk_gwt","gwt","data"], ["bk_gwtunit","gwt_unit","data"], ["bk_teu","teu","data"],
+    ["bk_vwt","vwt","data"], ["bk_vwtunit","vwt_unit","data"], ["bk_nwt","nwt","data"], ["bk_nwtunit","nwt_unit","data"], ["bk_vol","volume","data"], ["bk_chgunit","chargeable_unit","data"], ["bk_cargocutoff","cargo_cutoff","data"], ["bk_awbcutoff","awb_cutoff","data"]
+  ];
+  const el = id=> document.getElementById(id);
+  const setVal = (id, v)=>{ const e = el(id); if(!e) return; v = v == null ? "" : String(v); if(e.tagName === "SELECT" && v && !Array.from(e.options).some(o=>o.value === v || o.text === v)){ const o = document.createElement("option"); o.value = o.text = v; e.appendChild(o); } e.value = v; };
+  const clean = v=> { v = (v == null ? "" : String(v)).trim(); return v === "" ? null : v; };
+
+  /* ---------- masters ---------- */
+  async function loadMasters(){
+    const get = (p)=> api("GET", p).catch(()=>[]);
+    const [clients, carriers] = await Promise.all([get("/api/customers?role=client"), get("/api/customers?role=carrier")]);
+    BKG.m.clients = clients.filter(c=>c.status === "ACTIVE"); BKG.m.carriers = carriers.filter(c=>c.status === "ACTIVE");
+    const opts = (rows, first, val)=> '<option value="">'+first+'</option>'+rows.map(c=>'<option value="'+esc2(val(c))+'">'+esc2(c.name)+'</option>').join("");
+    const cust = el("bk_customer"); if(cust){ const cur = cust.value; cust.innerHTML = opts(BKG.m.clients, "--Select Customer--", c=>c.id); cust.value = cur; }
+    ["bk_shipper","bk_consignee"].forEach(id=>{ const e = el(id); if(e){ const cur = e.value; e.innerHTML = opts(BKG.m.clients, "--Select "+(id === "bk_shipper" ? "Shipper" : "Consignee")+"--", c=>c.name); setVal(id, cur); } });
+    const nt = el("bk_notify"); if(nt){ const cur = nt.value; nt.innerHTML = '<option value="">--Select Notify--</option><option>Same as Consignee</option>'+BKG.m.clients.map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_notify", cur); }
+    const ca = el("bk_carrier"); if(ca){ const cur = ca.value; ca.innerHTML = '<option value="">— Select —</option>'+BKG.m.carriers.map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_carrier", cur && !/^—/.test(cur) ? cur : ""); }
+  }
+  const addressOf = c=>{ if(!c) return ""; const d = c.data || {}; return [d.address_line_1, d.address_line_2, d.city, d.state_province || d.state, d.country_2 || c.country].filter(Boolean).join(", "); };
+  const byName = n=> BKG.m.clients.find(c=>c.name === n);
+  document.addEventListener("change", e=>{
+    const t = e.target; if(!t.closest || !t.closest("#s-booking-new")) return;
+    if(t.id === "bk_customer"){ const c = BKG.m.clients.find(x=>String(x.id) === t.value); setVal("bk_customerAddr", addressOf(c)); const d = (c && c.data) || {}; if(c && !el("bk_shipper").value && (c.roles||[]).includes("shipper")) { setVal("bk_shipper", c.name); setVal("bk_shipperAddr", addressOf(c)); } }
+    if(t.id === "bk_shipper") setVal("bk_shipperAddr", addressOf(byName(t.value)));
+    if(t.id === "bk_consignee"){ setVal("bk_consigneeAddr", addressOf(byName(t.value))); if(el("bk_notify").value === "Same as Consignee") setVal("bk_notifyAddr", addressOf(byName(t.value))); }
+    if(t.id === "bk_notify") setVal("bk_notifyAddr", t.value === "Same as Consignee" ? addressOf(byName(el("bk_consignee").value)) : addressOf(byName(t.value)));
+  });
+
+  /* ---------- charges (costing step) ---------- */
+  BKG.addCharge = function(row){
+    row = row || {}; const tbody = el("bk_chargeRows"); if(!tbody) return;
+    const tr = document.createElement("tr"); tr.dataset.bkCharge = "1";
+    const ccys = (window.QK && QK.m && QK.m.currencies && QK.m.currencies.length ? QK.m.currencies.map(c=>c.code) : ["INR","USD","EUR"]);
+    tr.innerHTML = '<td><select class="fc" data-f="type"><option value="AR">AR (sell)</option><option value="AP">AP (buy)</option></select></td><td><input class="fc" data-f="code" placeholder="OFR"></td><td><input class="fc" data-f="description" placeholder="Ocean Freight"></td>'+
+      '<td><input class="fc" type="number" min="0" step="any" data-f="qty" style="width:70px" placeholder="1"></td><td><input class="fc" type="number" min="0" step="any" data-f="rate" style="width:90px" placeholder="0.00"></td><td><select class="fc" data-f="currency" style="width:80px">'+ccys.map(c=>"<option>"+esc2(c)+"</option>").join("")+'</select></td><td><input class="fc" data-f="amount" style="width:100px" readonly></td><td><button class="ta" data-bk-rm style="color:var(--rd)">✕</button></td>';
+    tbody.appendChild(tr);
+    ["type","code","description","qty","rate","currency"].forEach(k=>{ const e = tr.querySelector('[data-f="'+k+'"]'); if(e && row[k] != null) e.value = row[k]; });
+    calcRow(tr);
+  };
+  function calcRow(tr){ const q = parseFloat(tr.querySelector('[data-f="qty"]').value) || 0, r = parseFloat(tr.querySelector('[data-f="rate"]').value) || 0; tr.querySelector('[data-f="amount"]').value = q && r ? (q*r).toFixed(2) : ""; }
+  document.addEventListener("input", e=>{ const tr = e.target.closest && e.target.closest("tr[data-bk-charge]"); if(tr) calcRow(tr); });
+  document.addEventListener("click", e=>{ const b = e.target.closest("[data-bk-rm]"); if(b){ b.closest("tr").remove(); } });
+  const chargeRows = ()=> Array.from(document.querySelectorAll("#bk_chargeRows tr[data-bk-charge]")).map(tr=>{ const g = k=> tr.querySelector('[data-f="'+k+'"]').value; return {type:g("type"), code:g("code"), description:g("description"), qty:g("qty"), rate:g("rate"), currency:g("currency"), amount:g("amount")}; }).filter(r=>r.description || r.code || r.rate);
+
+  /* ---------- form <-> record ---------- */
+  BKG.collect = function(){
+    const w = window.bookWiz || {}; const body = {mode: w.mode || "Sea", direction: w.dir || "Export", shipment_type: w.type || null, booking_type: w.bookingType || null, hbl_type: w.hblType || null, scac: w.scac || null, data:{}};
+    MAP.forEach(([id, key, where])=>{ const e = el(id); if(!e) return; const v = clean(e.value); if(where === "col") body[key] = v; else body.data[key] = v == null ? "" : v; });
+    const cust = el("bk_customer"); const c = BKG.m.clients.find(x=>String(x.id) === (cust && cust.value));
+    body.customer_id = c ? c.id : null; body.party_name = c ? c.name : ""; if(!body.booking_date) delete body.booking_date;
+    body.data.services = Array.from(document.querySelectorAll(".fi[data-svc].on")).map(f=>f.dataset.svc).join(", ");
+    body.data.charges = chargeRows();
+    if(BKG.quote){ body.quotation_id = BKG.quote.id; body.data.quotation_no = BKG.quote.number || ""; }
+    else if(BKG.rec && BKG.rec.quotation_id){ body.quotation_id = BKG.rec.quotation_id; body.data.quotation_no = (BKG.rec.data||{}).quotation_no || ""; }
+    return body;
+  };
+  BKG.fill = function(rec){
+    MAP.forEach(([id, key, where])=> setVal(id, where === "col" ? rec[key] : (rec.data||{})[key]));
+    setVal("bk_no", rec.number || ""); setVal("bk_direction", (rec.direction||"").toUpperCase());
+    setVal("bk_customer", rec.customer_id || "");
+    const tb = el("bk_chargeRows"); if(tb) tb.innerHTML = ""; ((rec.data||{}).charges || []).forEach(r=> BKG.addCharge(r));
+    const sv = ((rec.data||{}).services || "").split(",").map(x=>x.trim()).filter(Boolean);
+    if(sv.length){ document.querySelectorAll(".fi[data-svc]").forEach(f=> f.classList.toggle("on", sv.includes(f.dataset.svc))); }
+  };
+  BKG.reset = function(){
+    BKG.rec = null; BKG.quote = null;
+    MAP.forEach(([id])=>{ const e = el(id); if(e) e.value = e.tagName === "SELECT" ? (e.options[0] ? e.options[0].value : "") : ""; });
+    setVal("bk_no", ""); setVal("bk_customer", ""); const tb = el("bk_chargeRows"); if(tb) tb.innerHTML = "";
+    setVal("bk_bookdate", new Date().toISOString().slice(0,10));
+    const note = el("bk_quoteNote"); if(note) note.remove();
+  };
+  function quoteNote(){
+    const host = el("bk_svcFromQuoteNote") || $("#bookFormWrap"); const old = el("bk_quoteNote"); if(old) old.remove();
+    const q = BKG.quote ? BKG.quote.number : (BKG.rec && (BKG.rec.data||{}).quotation_no);
+    if(!q || !host) return; const n = document.createElement("div"); n.id = "bk_quoteNote"; n.className = "ib ib-bl"; n.style.marginBottom = "10px"; n.textContent = "Raised from quotation "+q+". Confirming this booking creates the job with the quotation's sell charges and buy costs and marks the quotation as converted.";
+    $("#bookFormWrap").insertBefore(n, $("#bookFormWrap").firstChild);
+  }
+
+  /* ---------- save / confirm ---------- */
+  BKG.save = async function(){
+    const body = BKG.collect();
+    if(!body.party_name){ say("Customer required", "Choose the customer on the Parties step", "warn"); }
+    try{
+      const rec = BKG.rec ? await api("PATCH", "/api/bookings/"+BKG.rec.id, body) : await api("POST", "/api/bookings", body);
+      BKG.rec = rec; setVal("bk_no", rec.number || ""); return rec;
+    }catch(e){ say("Could not save the booking", e.message, "warn"); return null; }
+  };
+  BKG.finish = async function(){
+    const rec = await BKG.save(); if(!rec) return;
+    try{
+      const done = await api("POST", "/api/bookings/"+rec.id+"/confirm");
+      say("Booking confirmed", done.number+" · Job "+(done.job_number||"—")+" created"); BKG.rec = null; BKG.quote = null; go("booking");
+    }catch(e){ say("Booking saved as a draft", e.message, "warn"); }
+  };
+  document.addEventListener("click", async e=>{
+    if(e.target.closest("#bk_saveBtn")){ const r = await BKG.save(); if(r){ say("Draft saved", "You can finish it later from the Bookings list"); } }
+  });
+
+  /* ---------- open: from the list, or prefilled from a quotation ---------- */
+  function showForm(rec){
+    const w = window.bookWiz; w.mode = rec.mode; w.dir = rec.direction; w.type = rec.shipment_type || (WIZ_TYPES[rec.mode] && WIZ_TYPES[rec.mode][0].id); w.bookingType = rec.booking_type || "Direct"; w.hblType = rec.hbl_type; w.scac = rec.scac;
+    BKG.pending = rec; go("booking-new");
+  }
+  BKG.open = async function(id){ const rec = await api("GET", "/api/bookings/"+id); BKG.rec = rec; BKG.quote = null; showForm(rec); };
+  BKG.fromQuotation = async function(quoteId){
+    try{
+      const q = await api("GET", "/api/quotations/"+quoteId);
+      if(q.status !== "ACCEPTED"){ say("Not ready to book", "Only an accepted quotation can be booked", "warn"); return; }
+      const carriers = Array.from(new Set((q.lines||[]).filter(l=>l.side==="SELL" && Number(l.rate)>0).map(l=>l.carrier).filter(Boolean)));
+      let carrier = carriers[0] || "";
+      if(carriers.length > 1){ carrier = window.prompt("This quotation compares several carriers. Type the carrier to book with:\n"+carriers.join("\n"), carriers[0]) || ""; if(!carrier) return; }
+      const h = q.header || {};
+      const rec = {mode:q.mode, direction:q.direction, shipment_type:q.shipment_type, booking_type:"Direct", customer_id:q.customer_id, party_name:q.party_name, carrier, pol:q.pol, pod:q.pod, quotation_id:q.id, booking_date:new Date().toISOString().slice(0,10),
+        data:{incoterm:h.incoterm||"", marks:"", notes:"From quotation "+q.number, quotation_no:q.number, freight_pp:h.freight_terms||"Prepaid"}};
+      BKG.rec = null; BKG.quote = {id:q.id, number:q.number}; showForm(rec);
+    }catch(e){ say("Could not open the quotation", e.message, "warn"); }
+  };
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen){
+    prev(screen);
+    if(screen === "booking") BKG.loadList();
+    if(screen === "booking-new") setTimeout(async ()=>{
+      if(!BKG.m.clients.length) await loadMasters();
+      const rec = BKG.pending; BKG.pending = null;
+      if(rec){
+        if(typeof window.bookWizApplyAndShowForm === "function") window.bookWizApplyAndShowForm();
+        BKG.fill(rec); quoteNote();
+        if(rec.id){ const t = el("bookNewTitle"); if(t) t.lastChild.textContent = (rec.number ? rec.number+" — " : "Draft — ")+(rec.party_name||"Booking"); }
+      }else if(!BKG.rec && !BKG.quote){ BKG.reset(); }
+    }, 60);
+  };
+
+  /* ---------- list ---------- */
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "—";
+  const STATUS = {DRAFT:["b-gy","Draft"], CONFIRMED:["b-gr","Confirmed"], CANCELLED:["b-rd","Cancelled"], SPACE_RELEASED:["b-am","Space released"]};
+  BKG.loadList = async function(){
+    if(!token()) return;
+    const scr = $("#s-booking"); if(!scr) return;
+    try{ BKG.list = await api("GET", "/api/bookings"); }catch(e){ say("Could not load bookings", e.message, "warn"); return; }
+    const sum = await api("GET", "/api/bookings/summary").catch(()=>null);
+    const kp = scr.querySelectorAll(".kpi"); const put = (i, v)=>{ const k = kp[i]; if(k) k.querySelector(".kpi-val").textContent = v; };
+    if(sum){ put(0, sum.confirmed_this_week); put(1, sum.si_cutoff_48h); put(2, sum.vgm_pending); put(3, sum.space_released); }
+    const tb = scr.querySelector("tbody");
+    const btn = (a, id, label, color)=> '<button class="ta" data-bk-act="'+a+':'+id+'"'+(color ? ' style="color:var(--'+color+')"' : "")+'>'+label+'</button>';
+    tb.innerHTML = BKG.list.length ? BKG.list.map(b=>{
+      const st = STATUS[b.status] || ["b-gy", b.status]; const acts = [];
+      if(b.status === "DRAFT"){ acts.push(btn("open", b.id, "Edit")); acts.push(btn("confirm", b.id, "Confirm", "gr")); acts.push(btn("delete", b.id, "Delete", "rd")); }
+      else { acts.push(btn("open", b.id, "View")); if(b.status === "CONFIRMED"){ acts.push(btn("cancel", b.id, "Cancel", "rd")); acts.push(btn("release", b.id, "Release space", "am")); } acts.push(btn("dup", b.id, "Duplicate")); }
+      return '<tr><td class="mono">'+esc2(b.job_number || "—")+'</td><td>'+esc2(b.carrier || "—")+'</td><td class="mono">'+esc2(b.number || "Draft")+(b.carrier_booking_no ? '<div style="font-size:10.5px;color:var(--g5)">Carrier ref '+esc2(b.carrier_booking_no)+'</div>' : "")+'</td><td>'+esc2(b.vessel || "—")+'</td><td>'+dmy(b.etd)+'</td><td>'+dmy(b.si_cutoff)+'</td><td>'+dmy(b.vgm_cutoff)+'</td><td><span class="b '+st[0]+'">'+st[1]+'</span>'+((b.data||{}).quotation_no ? '<div style="font-size:10.5px;color:var(--g5)">'+esc2(b.data.quotation_no)+'</div>' : "")+'</td><td class="no-print" style="white-space:nowrap">'+acts.join(" ")+'</td></tr>';
+    }).join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No bookings yet — click "New Booking" or use "Create Booking" on an accepted quotation.</td></tr>';
+  };
+  document.addEventListener("click", async e=>{
+    const b = e.target.closest("[data-bk-act]"); if(!b) return;
+    const [act, id] = b.dataset.bkAct.split(":");
+    try{
+      if(act === "open") return BKG.open(id);
+      if(act === "confirm"){ if(!window.confirm("Confirm this booking? It gets its booking number and the job is created.")) return; const r = await api("POST", "/api/bookings/"+id+"/confirm"); say("Booking confirmed", r.number+" · Job "+r.job_number); }
+      if(act === "cancel"){ if(!window.confirm("Cancel this booking?")) return; await api("POST", "/api/bookings/"+id+"/cancel"); say("Booking cancelled", ""); }
+      if(act === "release"){ if(!window.confirm("Release the booked space?")) return; await api("POST", "/api/bookings/"+id+"/release-space"); say("Space released", "Re-book is required for this cargo"); }
+      if(act === "dup"){ const r = await api("POST", "/api/bookings/"+id+"/duplicate"); say("Draft created", "A copy of the booking is open for editing"); return BKG.open(r.id); }
+      if(act === "delete"){ if(!window.confirm("Delete this draft booking?")) return; await api("DELETE", "/api/bookings/"+id); say("Draft deleted", ""); }
+      BKG.loadList();
+    }catch(err){ say("Booking action failed", err.message, "warn"); }
+  });
+  document.addEventListener("click", e=>{ if(e.target.closest("#newBookingBtn")){ BKG.rec = null; BKG.quote = null; BKG.pending = null; } }, true);
 })();
 </script>
 </body>

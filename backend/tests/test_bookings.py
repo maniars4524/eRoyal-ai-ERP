@@ -120,3 +120,41 @@ def test_tenant_isolation_and_permissions(world, admin, h):
     assert client.post("/api/bookings", json={}, headers=ops).status_code == 201
     assert client.get("/api/bookings").status_code == 401
     assert client.get("/api/bookings", headers=hdr(world["dev"], portal="developer")).status_code == 403
+
+
+@pytest.fixture(scope="module")
+def h2(world, admin2):
+    return hdr(admin2["username"], admin2["license"])
+
+
+def _accepted_quote(h, h2):
+    line = lambda name, rate, side="SELL": {"side": side, "charge_name": name, "carrier": "", "basis": "Per Container", "ccy": "USD", "exch": "83.5", "rate": rate, "qty": "2", "tax_pct": "0"}
+    q = client.post("/api/quotations", json={"party_name": "Acme Exports", "mode": "Sea", "direction": "Export", "shipment_type": "FCL", "pol": "INMAA", "pod": "BEANR", "lines": [line("Ocean Freight", "850"), line("Ocean Freight", "700", "BUY")]}, headers=h).json()
+    assert client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h).status_code == 200
+    assert client.post(f"/api/quotations/{q['id']}/approval/approve", json={}, headers=h2).status_code == 200
+    assert client.post(f"/api/quotations/{q['id']}/send", headers=h).status_code == 200
+    assert client.post(f"/api/quotations/{q['id']}/accept", headers=h).status_code == 200
+    return q["id"]
+
+
+def test_booking_raised_from_a_quotation_carries_its_charges_to_the_job(h, h2):
+    qid = _accepted_quote(h, h2)
+    b = draft(h, quotation_id=qid)
+    assert b["quotation_id"] == qid
+    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    assert done.status_code == 200, done.text
+    job_no = done.json()["job_number"]
+    quote = client.get(f"/api/quotations/{qid}", headers=h).json()
+    assert quote["status"] == "CONVERTED" and quote["job_number"] == job_no
+    charges = client.get(f"/api/shipments/by-number/{job_no}/charges", headers=h).json()["lines"]
+    assert any(c["charge_name"] == "Ocean Freight" and float(c["sell"]["rate"]) == 850 and float(c["buy"]["rate"]) == 700 for c in charges)
+
+
+def test_a_quotation_that_is_not_accepted_cannot_be_booked(h, h2):
+    line = {"side": "SELL", "charge_name": "Ocean Freight", "carrier": "", "basis": "Per Container", "ccy": "USD", "exch": "83.5", "rate": "850", "qty": "2", "tax_pct": "0"}
+    q = client.post("/api/quotations", json={"party_name": "Acme Exports", "mode": "Sea", "direction": "Export", "shipment_type": "FCL", "pol": "INMAA", "pod": "BEANR", "lines": [line]}, headers=h).json()
+    b = draft(h, quotation_id=q["id"])
+    r = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    assert r.status_code == 409 and "accepted" in r.json()["detail"]
+    assert client.get(f"/api/bookings/{b['id']}", headers=h).json()["status"] == "DRAFT"  # nothing was half-created
+    assert client.post("/api/bookings", json={"party_name": "X", "quotation_id": 99999999}, headers=h).status_code == 404

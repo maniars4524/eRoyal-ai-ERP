@@ -20,8 +20,15 @@ ZERO_AMT = __import__("decimal").Decimal(0)
 router = APIRouter(prefix="/api/quotations", tags=["quotations"])
 MODES = "^(Sea|Air|Road|Rail|Multimodal|Courier)$"
 DIRECTIONS = "^(Export|Import|Domestic|Cross-Trade)$"
-LIST_STATUSES = "^(DRAFT|SENT|ACCEPTED|REJECTED|CONVERTED|EXPIRED|SUPERSEDED)$"
+LIST_STATUSES = "^(DRAFT|SENT|ACCEPTED|REJECTED|CONVERTED|EXPIRED|SUPERSEDED|CANCELLED|LOST)$"
 EDITABLE_APPROVALS = ("DRAFT", "REJECTED")
+ADMIN_EDITABLE_STATUSES = ("DRAFT", "SENT", "ACCEPTED", "REJECTED")  # an administrator may still correct these; converted, cancelled, lost and superseded quotations are final
+
+
+def _can_edit(user: User, q: Quotation) -> bool:
+    if q.status == "DRAFT" and q.approval_status in EDITABLE_APPROVALS:
+        return True
+    return q.status in ADMIN_EDITABLE_STATUSES and has_permission(user, "quote.edit_locked")
 
 
 class Breakup(BaseModel):
@@ -136,7 +143,7 @@ def _out(db: Session, q: Quotation, user: User, with_lines: bool = False, names:
             "sent_at": q.sent_at, "responded_at": q.responded_at, "created_at": q.created_at, "root_id": q.root_id or q.id, "revision_no": q.revision_no,
             "prepared_by": q.prepared_by, "prepared_by_name": names.get(q.prepared_by), "prepared_at": q.prepared_at, "submitted_at": q.submitted_at,
             "approved_by": q.approved_by, "approved_by_name": names.get(q.approved_by), "approved_at": q.approved_at, "approval_remarks": q.approval_remarks,
-            "can_view_cost": can_cost, "editable": q.status == "DRAFT" and q.approval_status in EDITABLE_APPROVALS}
+            "can_view_cost": can_cost, "editable": _can_edit(user, q), "closure_reason": (q.header or {}).get("closure_reason", "")}
     if with_lines:
         visible = q.lines if can_cost else sell
         margins = charge_margin_pct(list(q.lines)) if can_cost else {}
@@ -245,8 +252,9 @@ def get_quotation(quote_id: int, user: User = Depends(permission_required("quote
 def update_quotation(quote_id: int, payload: QuotationPatch, user: User = Depends(permission_required("quote.create")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     quote = _load(db, org_id, quote_id, lock=True)
-    if quote.status != "DRAFT" or quote.approval_status not in EDITABLE_APPROVALS:
-        raise HTTPException(status_code=409, detail="This quotation is locked (submitted, approved or issued). Use Revise to create a new revision.")
+    if not _can_edit(user, quote):
+        raise HTTPException(status_code=409, detail="This quotation is locked (it is converted, cancelled or lost, or you may not edit it after approval). Use Revise to create a new revision.")
+    admin_edit = not (quote.status == "DRAFT" and quote.approval_status in EDITABLE_APPROVALS)
     changes = payload.model_dump(exclude_unset=True)
     if "customer_id" in changes:
         _check_customer(db, org_id, changes["customer_id"])
@@ -256,7 +264,9 @@ def update_quotation(quote_id: int, payload: QuotationPatch, user: User = Depend
         setattr(quote, key, value)
     if payload.lines is not None:
         _apply_lines(db, quote, payload.lines, user, org_id)
-    record_audit(db, "QUOTATION_UPDATED", "SALES", user, org_id, "Quotation", str(quote.id), {"fields": sorted(k for k in changes if k != "lines")})
+    record_audit(db, "QUOTATION_UPDATED", "SALES", user, org_id, "Quotation", str(quote.id), {"fields": sorted(k for k in changes if k != "lines"), "admin_edit": admin_edit})
+    if admin_edit:
+        _event(db, quote, "ADMIN_EDITED", quote.status, quote.status, user, "edited by an administrator after " + (quote.approval_status or "approval").lower() + " (" + (quote.number or "no number") + ")")
     db.commit()
     return _out(db, _load(db, org_id, quote_id), user, True)
 
@@ -291,8 +301,7 @@ def submit_for_approval(quote_id: int, user: User = Depends(permission_required(
     quote.approval_status = "SUBMITTED"
     quote.prepared_by, quote.prepared_at, quote.submitted_at = user.id, datetime.now(timezone.utc), datetime.now(timezone.utc)
     quote.approved_by, quote.approved_at = None, None
-    _assign_number(db, org_id, quote, user)  # the official number is generated from the active sequence the moment the quotation is submitted
-    _event(db, quote, "SUBMITTED", before, "SUBMITTED", user, quote.number)
+    _event(db, quote, "SUBMITTED", before, "SUBMITTED", user, "awaiting approval")  # the official number is generated only when the quotation is approved
     record_audit(db, "QUOTATION_SUBMITTED", "SALES", user, org_id, "Quotation", str(quote.id), {})
     db.commit()
     return _out(db, _load(db, org_id, quote_id), user, True)
@@ -309,7 +318,7 @@ def _sod_blocked(db: Session, user: User, quote: Quotation) -> bool:
 
 
 def _assign_number(db: Session, org_id: int, quote: Quotation, user: User) -> None:
-    """The official quotation number (from Settings -> Sequence Setting) is generated when the quotation is submitted, once, and kept through rejection and resubmission."""
+    """The official quotation number (from Settings -> Sequence Setting) is generated when the quotation is approved, once, and kept through later revisions (-R1, -R2)."""
     if quote.number:
         return
     root = db.get(Quotation, quote.root_id) if quote.root_id and quote.root_id != quote.id else None
@@ -330,7 +339,7 @@ def approve(quote_id: int, payload: Decision | None = None, user: User = Depends
     quote.approval_status = "APPROVED"
     quote.approved_by, quote.approved_at = user.id, datetime.now(timezone.utc)
     quote.approval_remarks = (payload.remarks if payload else None) or None
-    _assign_number(db, org_id, quote, user)  # normally already numbered at submission
+    _assign_number(db, org_id, quote, user)  # the official number comes from the active sequence the moment the quotation is approved
     _event(db, quote, "APPROVED", "SUBMITTED", "APPROVED", user, f"{quote.number}" + (f" · {quote.approval_remarks}" if quote.approval_remarks else ""))
     record_audit(db, "QUOTATION_APPROVED", "SALES", user, org_id, "Quotation", str(quote.id), {})
     db.commit()
@@ -364,7 +373,7 @@ def revise(quote_id: int, user: User = Depends(permission_required("quote.create
     org_id = _tenant(user)
     src = _load(db, org_id, quote_id, lock=True)
     eff = effective_status(src)
-    revisable = (src.status == "DRAFT" and src.approval_status == "APPROVED") or eff in ("SENT", "REJECTED", "EXPIRED")
+    revisable = (src.status == "DRAFT" and src.approval_status == "APPROVED") or eff in ("SENT", "REJECTED", "EXPIRED", "LOST")
     if not revisable:
         raise HTTPException(status_code=409, detail="Only an approved, issued, rejected or expired quotation can be revised (drafts are edited directly; accepted/converted quotations are final)")
     root = src.root_id or src.id
@@ -452,9 +461,88 @@ def accept(quote_id: int, user: User = Depends(permission_required("quote.send")
     return _respond(quote_id, "ACCEPTED", user, db)
 
 
+class Closure(BaseModel):
+    reason: str = Field(min_length=3, max_length=300)
+
+
+def _close(quote_id: int, outcome: str, label: str, body: Closure, user: User, db: Session) -> dict:
+    org_id = _tenant(user)
+    quote = _load(db, org_id, quote_id, lock=True)
+    if quote.status in ("CONVERTED", "SUPERSEDED", "CANCELLED", "LOST"):
+        raise HTTPException(status_code=409, detail="This quotation is already " + quote.status.lower() + " and cannot be changed")
+    if outcome == "LOST" and quote.status == "DRAFT":
+        raise HTTPException(status_code=409, detail="A quotation that was never issued cannot be marked lost; cancel it instead")
+    before = quote.status
+    quote.status = outcome
+    quote.responded_at = datetime.now(timezone.utc)
+    quote.header = {**(quote.header or {}), "closure_reason": body.reason.strip(), "closed_from": before}
+    _event(db, quote, outcome, before, outcome, user, body.reason.strip())
+    record_audit(db, f"QUOTATION_{outcome}", "SALES", user, org_id, "Quotation", str(quote.id), {"number": quote.number, "reason": body.reason.strip(), "from": before})
+    db.commit()
+    return _out(db, _load(db, org_id, quote_id), user, True)
+
+
+@router.post("/{quote_id}/cancel")
+def cancel_quotation(quote_id: int, body: Closure, user: User = Depends(permission_required("quote.send")), db: Session = Depends(get_db)):
+    """We withdraw the quotation (wrong rates, customer withdrew the enquiry, duplicate ...)."""
+    return _close(quote_id, "CANCELLED", "cancelled", body, user, db)
+
+
+@router.post("/{quote_id}/lost")
+def mark_lost(quote_id: int, body: Closure, user: User = Depends(permission_required("quote.send")), db: Session = Depends(get_db)):
+    """The customer chose another forwarder / dropped the shipment: closed as LOST with the reason, for win-loss reporting."""
+    return _close(quote_id, "LOST", "lost", body, user, db)
+
+
 @router.post("/{quote_id}/reject")
 def reject(quote_id: int, user: User = Depends(permission_required("quote.send")), db: Session = Depends(get_db)):
     return _respond(quote_id, "REJECTED", user, db)
+
+
+def _copy_quote_to_job(db: Session, org_id: int, quote: Quotation, job: Shipment, sell: list, buy: list) -> None:
+    """Sell charges become the job's sell side; matching buy costs its buy side."""
+    rows: list[JobCharge] = []
+    for l in sell:
+        detail = "; ".join(f"{b['type']} x{b['qty']} @ {b['rate']}" for b in (l.container_breakup or []))
+        rows.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=l.charge_name, description=(f"From quotation {quote.number}" + (f" ({detail})" if detail else ""))[:240], uom=l.basis, qty=l.qty, hsn="",
+                              sell_ccy=l.ccy, sell_exch=l.exch, sell_rate=l.rate, sell_tax_type="Taxable" if l.taxable else "Non-Taxable", sell_tax_pct=l.tax_pct if l.taxable else Decimal(0), client=quote.party_name, use_client=True))
+    for b in buy:
+        match = next((r for r in rows if r.charge_name.strip().lower() == b.charge_name.strip().lower() and not r.buy_rate), None)
+        base_rate = b.rate if (match is None or match.qty == b.qty or not match.qty) else (b.amount_fcy / match.qty).quantize(Decimal("0.0001"))
+        fields = dict(buy_ccy=b.ccy, buy_exch=b.exch, buy_rate=base_rate, buy_tax_type="Taxable" if b.taxable else "Non-Taxable", buy_tax_pct=b.tax_pct if b.taxable else Decimal(0))
+        if match is not None:
+            for k, v in fields.items():
+                setattr(match, k, v)
+        else:
+            rows.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=b.charge_name, description=f"Buy cost from quotation {quote.number}"[:240], uom=b.basis, qty=b.qty, hsn="", sell_rate=Decimal(0), **fields))
+    for i, r in enumerate(rows, start=1):
+        r.line_no = i
+        db.add(r)
+    job.revenue = sum((l.amount for l in sell), Decimal(0))
+
+
+def select_lines_for_carrier(quote: Quotation, carrier: str | None) -> tuple[list, list]:
+    sell = [l for l in quote.lines if l.side == "SELL" and l.rate > 0]
+    buy = [l for l in quote.lines if l.side == "BUY" and l.rate > 0]
+    carriers = sorted({l.carrier for l in sell if l.carrier})
+    if len(carriers) > 1 and carrier in carriers:
+        sell = [l for l in sell if l.carrier == carrier]
+        buy = [l for l in buy if not l.carrier or l.carrier == carrier]
+    return sell, buy
+
+
+def link_booking_job(db: Session, org_id: int, quote_id: int, job: Shipment, user: User, carrier: str | None) -> Quotation:
+    """A confirmed booking that came from a quotation carries the quotation's charges to the job and closes the quotation as CONVERTED."""
+    quote = _load(db, org_id, quote_id, lock=True)
+    if quote.status != "ACCEPTED":
+        raise HTTPException(status_code=409, detail="The linked quotation " + (quote.number or "") + " is " + quote.status + "; only an accepted quotation can be booked")
+    sell, buy = select_lines_for_carrier(quote, carrier)
+    _copy_quote_to_job(db, org_id, quote, job, sell, buy)
+    quote.status = "CONVERTED"
+    quote.job_number = job.job_number
+    _event(db, quote, "CONVERTED", "ACCEPTED", "CONVERTED", user, job.job_number)
+    record_audit(db, "QUOTATION_CONVERTED", "SALES", user, org_id, "Quotation", str(quote.id), {"number": quote.number, "job_number": job.job_number, "via": "booking"})
+    return quote
 
 
 @router.post("/{quote_id}/convert")
@@ -487,24 +575,7 @@ def convert_to_job(quote_id: int, carrier: str | None = Query(default=None, max_
     from . import job_lifecycle as jl
 
     jl.on_job_created(db, job, user, "quotation conversion", {"quotation": quote.number})
-    rows: list[JobCharge] = []
-    for l in sell:
-        detail = "; ".join(f"{b['type']} x{b['qty']} @ {b['rate']}" for b in (l.container_breakup or []))
-        rows.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=l.charge_name, description=(f"From quotation {quote.number}" + (f" ({detail})" if detail else ""))[:240], uom=l.basis, qty=l.qty, hsn="",
-                              sell_ccy=l.ccy, sell_exch=l.exch, sell_rate=l.rate, sell_tax_type="Taxable" if l.taxable else "Non-Taxable", sell_tax_pct=l.tax_pct if l.taxable else Decimal(0), client=quote.party_name, use_client=True))
-    for b in buy:
-        match = next((r for r in rows if r.charge_name.strip().lower() == b.charge_name.strip().lower() and not r.buy_rate), None)
-        base_rate = b.rate if (match is None or match.qty == b.qty or not match.qty) else (b.amount_fcy / match.qty).quantize(Decimal("0.0001"))
-        fields = dict(buy_ccy=b.ccy, buy_exch=b.exch, buy_rate=base_rate, buy_tax_type="Taxable" if b.taxable else "Non-Taxable", buy_tax_pct=b.tax_pct if b.taxable else Decimal(0))
-        if match is not None:
-            for k, v in fields.items():
-                setattr(match, k, v)
-        else:
-            rows.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=b.charge_name, description=f"Buy cost from quotation {quote.number}"[:240], uom=b.basis, qty=b.qty, hsn="", sell_rate=Decimal(0), **fields))
-    for i, r in enumerate(rows, start=1):
-        r.line_no = i
-        db.add(r)
-    job.revenue = sum((l.amount for l in sell), Decimal(0))
+    _copy_quote_to_job(db, org_id, quote, job, sell, buy)
     quote.status = "CONVERTED"
     quote.job_number = job.job_number
     _event(db, quote, "CONVERTED", "ACCEPTED", "CONVERTED", user, job.job_number)
