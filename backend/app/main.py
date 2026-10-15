@@ -77,6 +77,11 @@ def _sync_template_roles() -> None:
 
         seed_super_admin()
         sync_roles()
+        from . import std_masters
+        from .db import SessionLocal
+
+        with SessionLocal() as db:
+            std_masters.seed_all_orgs(db)
     except Exception:  # database unavailable at boot: the health endpoint reports it
         pass
 

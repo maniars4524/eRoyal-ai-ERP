@@ -181,3 +181,7 @@ if __name__ == "__main__":
     sync_roles()
     seed_ports()
     seed_demo_portal()
+    from . import std_masters
+
+    with SessionLocal() as _db:
+        std_masters.seed_all_orgs(_db)

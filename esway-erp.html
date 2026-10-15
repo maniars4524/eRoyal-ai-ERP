@@ -5654,7 +5654,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="kpi"><div class="kpi-lbl">Total Types</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
   <div class="kpi"><div class="kpi-lbl">Dry Containers</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
   <div class="kpi"><div class="kpi-lbl">Reefer</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
-  <div class="kpi"><div class="kpi-lbl">Most Used</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Special / Tank</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 
 <!-- Category filter pills -->
@@ -5670,13 +5670,13 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <div class="card"><div class="ch"><div class="ct">Container Type Directory</div>
-<div style="display:flex;gap:8px"><input class="fc" placeholder="Search code / name…" style="width:200px"><select class="fc" style="width:120px"><option>All Status</option><option>Active</option><option>Inactive</option></select></div></div>
+<div style="display:flex;gap:8px"><input class="fc" placeholder="Search code / name…" style="width:200px"><select class="fc" id="ctnStatusFilter" style="width:120px"><option value="">All Status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div></div>
 
 <!-- Card grid view -->
 <div class="cb" style="padding:14px 16px">
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
 </div>
-<div class="cf">Showing 9 of 18 container types · System types cannot be deleted, only deactivated</div>
+<div class="cf"><span id="ctnCount">Showing 0 container types</span> · System types cannot be deleted, only deactivated</div>
 </div>
 </div>
 
@@ -5769,7 +5769,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- UM1 Weight -->
 <div id="um1" class="tp on">
 <div class="card"><div class="ch"><div class="ct">Weight Units</div><button class="btn btn-out btn-sm" data-go="unit-detail"><svg class="ic" data-icon="plus"></svg> Add Unit</button></div>
-<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to KG</th><th>Default</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Decimal Precision</th><th>Conversion to Base Unit</th><th>Default</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div>
 </div>
 
 <!-- UM2 Volume -->
@@ -5823,7 +5823,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr">
   <div class="fg"><label class="fl">Decimal Precision</label><input class="fc"></div>
   <div class="fg"><label class="fl">Conversion Factor (to Base)</label><input class="fc" style="font-family:var(--font-mono)"></div>
-  <div class="fg"><label class="fl">Base Unit for Category</label><select class="fc"><option>Yes — KG is Base</option><option>No</option></select></div>
+  <div class="fg"><label class="fl">Base Unit for Category</label><select class="fc"><option>No</option><option>Yes</option></select></div>
   <div class="fg"><label class="fl">Symbol</label><input class="fc"></div>
 </div>
 <div class="fr">
@@ -5876,12 +5876,12 @@ tbody tr:hover{background:var(--g0)}
   <div class="kpi"><div class="kpi-lbl">Total Incoterms</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
   <div class="kpi"><div class="kpi-lbl">Sea/Inland Only</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
   <div class="kpi"><div class="kpi-lbl">All Modes</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
-  <div class="kpi"><div class="kpi-lbl">Most Used</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+  <div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 
 <div class="card"><div class="ch"><div class="ct">Incoterms 2020 Directory</div></div>
 <div class="tw"><table><thead><tr><th>Code</th><th>Term</th><th>Mode</th><th>Risk Transfer Point</th><th>Insurance</th><th>Export Clearance</th><th>Import Clearance</th><th>Freight Payable</th><th>Usage</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div>
-<div class="cf">11 Incoterms 2020 — Status: All Active · Version locked to ICC 2020 Edition</div>
+<div class="cf">Incoterms 2020 (ICC) · Standard terms can be deactivated but not deleted</div>
 </div>
 </div>
 
@@ -5891,7 +5891,7 @@ tbody tr:hover{background:var(--g0)}
 
 <div class="ib ib-am" style="margin-bottom:14px"><svg class="ic" data-icon="alert-triangle" style="margin-right:6px;color:var(--am)"></svg>Incoterms cannot be deleted per ICC standard. Only Active/Inactive status can be changed.</div>
 
-<div class="card"><div class="ch"><div class="ct">Incoterm Definition</div><span class="b b-gr">⭐ Most Used — 52%</span></div><div class="cb">
+<div class="card"><div class="ch"><div class="ct">Incoterm Definition</div></div><div class="cb">
 <div class="fr">
   <div class="fg"><label class="fl">Code <span class="r">*</span></label><input class="fc" readonly style="font-family:var(--font-mono);background:var(--g0);font-weight:700"></div>
   <div class="fg"><label class="fl">Full Name</label><input class="fc"></div>
@@ -5909,40 +5909,18 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Multimodal</label><select class="fc"><option>Not Applicable</option><option>✓ Applicable</option></select></div>
 </div>
 <div class="fsec">Responsibility Matrix</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-  <div style="border:1.5px solid var(--bl);border-radius:8px;padding:12px;background:var(--blt)">
-    <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:8px">🏭 SELLER RESPONSIBILITY</div>
-    <div style="font-size:11.5px;color:var(--g7);line-height:2">
-      ✓ Export packaging &amp; marking<br>
-      ✓ Export clearance / documentation<br>
-      ✓ Inland transport to port<br>
-      ✓ Loading on board vessel<br>
-      ✓ Ocean freight to destination port<br>
-      ✓ Minimum insurance coverage (110% CIF)
-    </div>
-  </div>
-  <div style="border:1.5px solid var(--gr);border-radius:8px;padding:12px;background:var(--grt)">
-    <div style="font-size:11px;font-weight:700;color:var(--gr);margin-bottom:8px">🏢 BUYER RESPONSIBILITY</div>
-    <div style="font-size:11.5px;color:var(--g7);line-height:2">
-      ✓ Risk from on-board loading point<br>
-      ✓ Import clearance / customs duty<br>
-      ✓ Unloading at destination port<br>
-      ✓ Inland transport from port<br>
-      ✓ Any additional insurance above minimum<br>
-      ✓ Destination terminal handling charges
-    </div>
-  </div>
+<div class="fr">
+  <div class="fg" style="grid-column:span 4"><label class="fl">Risk Transfer Point</label><input class="fc" placeholder="e.g. On board the vessel at the port of shipment"></div>
+</div>
+<div class="fr">
+  <div class="fg"><label class="fl">Insurance</label><select class="fc"><option>Seller</option><option>Buyer</option><option>Seller / Optional</option><option>Not required</option></select></div>
+  <div class="fg"><label class="fl">Export Clearance</label><select class="fc"><option>Seller</option><option>Buyer</option></select></div>
+  <div class="fg"><label class="fl">Import Clearance</label><select class="fc"><option>Buyer</option><option>Seller</option></select></div>
+  <div class="fg"><label class="fl">Freight Payable</label><select class="fc"><option>Seller</option><option>Buyer</option></select></div>
 </div>
 <div class="fsec">ERP Charge Automation</div>
-<div class="ib ib-bl"><svg class="ic" data-icon="zap" style="margin-right:5px;color:var(--bl)"></svg>When CIF is selected in Quotation/Booking, the system automatically applies:</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;font-size:11.5px">
-  <div style="padding:8px 10px;background:var(--g0);border-radius:6px"><strong>Origin Charges:</strong> Seller (Prepaid)</div>
-  <div style="padding:8px 10px;background:var(--g0);border-radius:6px"><strong>Ocean Freight:</strong> Seller (Prepaid)</div>
-  <div style="padding:8px 10px;background:var(--g0);border-radius:6px"><strong>Insurance:</strong> Seller (Min. 110% CIF)</div>
-  <div style="padding:8px 10px;background:var(--g0);border-radius:6px"><strong>Export Clearance:</strong> Seller</div>
-  <div style="padding:8px 10px;background:var(--g0);border-radius:6px"><strong>Import Clearance:</strong> Buyer (Collect)</div>
-  <div style="padding:8px 10px;background:var(--g0);border-radius:6px"><strong>Destination Charges:</strong> Buyer (Collect)</div>
-</div>
+<div class="ib ib-bl"><svg class="ic" data-icon="zap" style="margin-right:5px;color:var(--bl)"></svg><span id="incoAutoHead">When this Incoterm is selected in Quotation / Booking / Job, the system applies:</span></div>
+<div id="incoAuto" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;font-size:11.5px"></div>
 </div></div>
 </div>
 
@@ -14392,7 +14370,7 @@ if(document.readyState !== "loading") initChatWidget();
   const statusBadge = s=> s === "ACTIVE" ? '<span class="b b-gr">Active</span>' : '<span class="b b-gy">Inactive</span>';
   const pathGet = (r, p)=> p === "code" ? r.code : p === "name" ? r.name : p === "status" ? r.status : p.startsWith("data.") ? (r.data||{})[p.slice(5)] : "";
   function cellHtml(r, spec, idx){
-    if(spec === "actions") return '<td class="no-print" style="white-space:nowrap"><button class="ta" data-mk-edit="'+r.id+'" data-mk-type="'+esc2(r.master_type)+'">Edit</button> <button class="ta" data-mk-del="'+r.id+'" data-mk-type="'+esc2(r.master_type)+'" style="color:var(--rd)">Delete</button></td>';
+    if(spec === "actions") return '<td class="no-print" style="white-space:nowrap"><button class="ta" data-mk-edit="'+r.id+'" data-mk-type="'+esc2(r.master_type)+'">Edit</button>'+((r.data||{}).system_default === "yes" ? ' <span style="font-size:10.5px;color:var(--g4)" title="Standard record: deactivate instead of deleting">System</span>' : ' <button class="ta" data-mk-del="'+r.id+'" data-mk-type="'+esc2(r.master_type)+'" style="color:var(--rd)">Delete</button>')+'</td>';
     if(typeof spec === "function") return "<td>"+spec(r)+"</td>";
     if(spec === "status") return "<td>"+statusBadge(r.status)+"</td>";
     const v = pathGet(r, spec); const text = (v===undefined||v===null||v==="") ? "—" : esc2(v);
@@ -14405,7 +14383,8 @@ if(document.readyState !== "loading") initChatWidget();
   }
   MK.filtered = function(cfg){
     const rows = MK.cache[cfg.type] || []; const q = (MK.search[cfg.type]||"").toLowerCase();
-    return q ? rows.filter(r=> (r.code+" "+r.name).toLowerCase().includes(q)) : rows;
+    const base = cfg.extraFilter ? rows.filter(cfg.extraFilter) : rows;
+    return q ? base.filter(r=> (r.code+" "+r.name+" "+Object.values(r.data||{}).join(" ")).toLowerCase().includes(q)) : base;
   };
   MK.renderList = function(cfg){
     const scr = document.getElementById("s-"+cfg.list); if(!scr) return;
@@ -14536,15 +14515,18 @@ if(document.readyState !== "loading") initChatWidget();
     cols:["code","name","data.un_ece_code","data.description",()=>"—","status","actions"],
     kpis:rows=>[[rows.length,"Package types"],["—","Usage not tracked yet"],[active(rows),"Active"],[count(rows,r=>r.status!=="ACTIVE"),"Inactive"]]});
   MK.register({type:"incoterm", label:"Incoterm", list:"incoterms-master", detail:"incoterm-detail", codeLabel:"Code", nameLabel:"Full Name",
-    cols:["code","name",modes,()=>"—",()=>"—",()=>"—",()=>"—",()=>"—",()=>"—","actions"],
-    kpis:rows=>[[rows.length,"Incoterms"],[active(rows),"Active"],[count(rows,r=>r.status!=="ACTIVE"),"Inactive"],["—","Usage not tracked yet"]]});
+    cols:["code","name",modes,"data.risk_transfer_point","data.insurance","data.export_clearance","data.import_clearance","data.freight_payable",r=>window.StdKit ? StdKit.usage("incoterm", r.code) : "—","actions"],
+    kpis:rows=>[[rows.length,"Incoterms 2020"],[count(rows,r=>/^not/i.test((r.data||{}).air_freight||"")),"Sea / inland waterway only"],[count(rows,r=>!/^not/i.test((r.data||{}).air_freight||"")),"Any mode of transport"],[active(rows),"Active"]]});
   MK.register({type:"hsn", label:"HSN / SAC Code", list:"hsn-master", detail:"hsn-detail", codeLabel:"HSN/SAC Code", nameLabel:"Description",
     cols:["code","data.code_type","name",r=>window.HsnKit ? HsnKit.sectionHeading(r) : "—","data.gst_rate","data.tax_category","data.charge_category",r=>window.HsnKit ? HsnKit.linkedCell(r) : "—","status","actions"],
     kpis:rows=>window.HsnKit ? HsnKit.kpis(rows) : [[rows.length,"Codes"],["—",""],["—",""],["—",""]]});
   MK.register({type:"container_type", label:"Container Type", list:"container-master", detail:"container-detail", codeLabel:"Container Code", nameLabel:"Container Name",
     cardGrid:'div[style*="grid-template-columns:repeat(3"]',
-    card:r=>'<div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer" data-mk-edit="'+r.id+'" data-mk-type="container_type"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="min-width:46px;padding:6px 8px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;color:#fff;font-size:10px;font-weight:800;text-align:center">'+esc2(r.code)+'</div>'+statusBadge(r.status)+'</div><div style="font-weight:700;font-size:13px">'+esc2(r.name)+'</div><div style="font-size:11px;color:var(--g5);margin-top:4px">'+esc2([(r.data||{}).category,(r.data||{}).size_feet&&(r.data.size_feet+" ft"),(r.data||{}).height_type].filter(Boolean).join(" · ")||"—")+'</div><div style="margin-top:8px"><button class="ta" data-mk-del="'+r.id+'" data-mk-type="container_type" style="color:var(--rd);font-size:11px">Delete</button></div></div>',
-    kpis:rows=>[[rows.length,"Container types"],[count(rows,r=>/dry/i.test((r.data||{}).category||"")),"Dry"],[count(rows,r=>/reefer/i.test((r.data||{}).category||"")),"Reefer"],["—","Usage not tracked yet"]]});
+    card:r=>{ const d = r.data||{}; const spec = [d.category, d.size_feet && (d.size_feet+" ft"), d.height_type].filter(Boolean).join(" · ") || "—"; const dims = d.internal_length_mm ? ("Int. "+d.internal_length_mm+" × "+d.internal_width_mm+" × "+d.internal_height_mm+" mm") : ""; const cap = [d.cubic_capacity_cbm && (d.cubic_capacity_cbm+" CBM"), d.payload_kg && ("payload "+Number(d.payload_kg).toLocaleString()+" kg")].filter(Boolean).join(" · ");
+      return '<div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer" data-mk-edit="'+r.id+'" data-mk-type="container_type"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="min-width:46px;padding:6px 8px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;color:#fff;font-size:10px;font-weight:800;text-align:center">'+esc2(r.code)+'</div>'+statusBadge(r.status)+'</div><div style="font-weight:700;font-size:13px">'+esc2(r.name)+'</div><div style="font-size:11px;color:var(--g5);margin-top:4px">'+esc2(spec)+'</div>'+(d.iso_6346_code ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">ISO 6346: <span class="mono">'+esc2(d.iso_6346_code)+'</span></div>' : "")+(dims ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">'+esc2(dims)+'</div>' : "")+(cap ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">'+esc2(cap)+'</div>' : "")+(d.system_default === "yes" ? '<div style="margin-top:8px;font-size:10.5px;color:var(--g4)">System type · deactivate only</div>' : '<div style="margin-top:8px"><button class="ta" data-mk-del="'+r.id+'" data-mk-type="container_type" style="color:var(--rd);font-size:11px">Delete</button></div>')+'</div>'; },
+    extraFilter:r=>{ const cat = window.__ctnCat || "all"; const st = (document.getElementById("ctnStatusFilter")||{}).value || ""; const c = ((r.data||{}).category||""); return (cat === "all" || (window.CTN_CATS[cat]||"") === c) && (!st || r.status === st); },
+    afterLoad:rows=>{ if(window.StdKit) StdKit.containerPills(rows); },
+    kpis:rows=>[[rows.length,"Container types"],[count(rows,r=>(r.data||{}).category==="Dry Container"),"Dry"],[count(rows,r=>(r.data||{}).category==="Reefer"),"Reefer"],[count(rows,r=>["Tank","Special Equipment","Platform","Flat Rack","Open Top"].includes((r.data||{}).category)),"Special equipment"]]});
   MK.register({type:"department", label:"Department", list:"dept-list", detail:"dept-new", codeLabel:"Department Code", nameLabel:"Department Name",
     cols:["code","name","data.department_head","data.email","data.phone",()=>"—","status","actions"]});
   MK.register({type:"designation", label:"Designation", list:"desig-list", detail:"desig-new", codeLabel:"Designation Code", nameLabel:"Designation Name",
@@ -16647,7 +16629,7 @@ if(document.readyState !== "loading") initChatWidget();
       '<div><label>GST amount (₹)</label><div class="r" data-c="gst" style="padding:5px 0;font-weight:700">'+num(c.gst,2)+'</div></div>'+
       '<div><label>Margin rate</label><div class="r" data-c="margin" style="padding:5px 0;font-weight:700">'+(m===null?"—":num(m,2)+"%")+'</div></div>'+
       (isMulti() ? '<div><label>Carrier</label><select class="fc" data-ql="'+key+':carrier"'+d+'><option value="">—</option>'+carriers.map(x=>opt(x,x,x===l.carrier)).join("")+'</select></div>' : '<div></div>')+
-      (l.basis === "Container" ? '<div><label>Container type (single)</label><select class="fc" data-ql="'+key+':container_type"'+d+'><option value="">— by breakup —</option>'+Q.m.containers.map(x=>opt(x.name, x.name, x.name===l.container_type)).join("")+'</select></div>' : '<div></div>')+
+      (l.basis === "Container" ? '<div><label>Container type (single)</label><select class="fc" data-ql="'+key+':container_type"'+d+'><option value="">— by breakup —</option>'+Q.m.containers.map(x=>opt(x.code, x.code, x.code===l.container_type)).join("")+'</select></div>' : '<div></div>')+
       '<div style="grid-column:1/-1"><label>Notes / Remarks (internal)</label><input class="fc" data-ql="'+key+':remarks" value="'+esc2(l.remarks)+'" placeholder="Remarks for this charge"'+d+'></div></div></td></tr>';
   }
   function chosenCarriers(){
@@ -16820,14 +16802,14 @@ if(document.readyState !== "loading") initChatWidget();
     const working = isNew ? {side:sideKey.toUpperCase(), basis:"Container", container_breakup:[], ccy:Q.head.currency||"USD", exch:rateFor(Q.head.currency||"USD", null)||"1", rate:"", qty:"1", taxable:false, tax_pct:"0", charge_name:"", carrier:"", remarks:"", container_type:""} : lineByKey(k).list[Number(lineByKey(k).idx)];
     const rows = (working.container_breakup||[]).map(b=>({...b}));
     const draw = ()=>{
-      const used = new Set(rows.map(r=>r.type)); const free = Q.m.containers.filter(c=>!used.has(c.name));
+      const used = new Set(rows.map(r=>r.type)); const free = Q.m.containers.filter(c=>!used.has(c.code));
       const tu = rows.reduce((a,r)=>a+(Number(r.qty)||0),0), ta = rows.reduce((a,r)=>a+r2((Number(r.qty)||0)*(Number(r.rate)||0)),0);
       document.getElementById("qkCont").innerHTML = (Q.m.containers.length ? '' : '<div class="ib ib-am">No container types exist yet. Add them in Masters → Container Type.</div>')+
         '<div class="fr" style="margin-bottom:8px">'+(isNew ? '<div class="fg"><label class="fl">Charge</label><select class="fc" id="qkcCharge">'+chargeOptions(working)+'</select></div>' : '')+'<div class="fg"><label class="fl">Currency</label><select class="fc" id="qkcCcy">'+ccyList().map(c=>opt(c,c,c===working.ccy)).join("")+'</select></div><div class="fg"><label class="fl">Ex. Rate (INR per 1)</label><input class="fc" type="number" step="0.0001" min="0" id="qkcExch" value="'+esc2(working.exch)+'"'+(canEditRate(working)?"":" disabled")+'></div></div>'+
         '<table class="qk-t" style="min-width:0"><thead><tr><th>Container type</th><th>Qty</th><th>Rate ('+esc2(working.ccy)+')</th><th class="r">Amount</th><th></th></tr></thead><tbody>'+
         (rows.length ? rows.map((r,i)=>'<tr><td>'+esc2(r.type)+'</td><td><input class="fc" type="number" min="0" step="1" data-cq="'+i+':qty" value="'+esc2(r.qty)+'" style="width:70px"></td><td><input class="fc" type="number" min="0" step="0.0001" data-cq="'+i+':rate" value="'+esc2(r.rate)+'" style="width:100px"></td><td class="r">'+num(r2((Number(r.qty)||0)*(Number(r.rate)||0)),2)+'</td><td><button class="qk-icon del" data-cq-del="'+i+'">✕</button></td></tr>').join("") : '<tr><td colspan="5" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">Add the container types in this shipment.</td></tr>')+
         '</tbody><tfoot><tr><td>Total</td><td>'+num(tu,3)+'</td><td></td><td class="r">'+num(ta,2)+' '+esc2(working.ccy)+'</td><td></td></tr></tfoot></table>'+
-        '<div style="margin-top:8px;display:flex;gap:6px;align-items:center"><select class="fc" id="qkcAdd" style="max-width:220px"><option value="">＋ Add container type…</option>'+free.map(c=>opt(c.name,c.name)).join("")+'</select></div>';
+        '<div style="margin-top:8px;display:flex;gap:6px;align-items:center"><select class="fc" id="qkcAdd" style="max-width:220px"><option value="">＋ Add container type…</option>'+free.map(c=>opt(c.code,c.code)).join("")+'</select></div>';
     };
     openModal({title:"Container-wise Rates", size:"lg", bodyHTML:'<div id="qkCont"></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button>'+(rows.length ? '<button class="btn btn-out" id="qkcClear">Remove breakup</button>' : '')+'<button class="btn btn-pri" id="qkcSave">Apply</button>'});
     draw();
@@ -17161,6 +17143,99 @@ if(document.readyState !== "loading") initChatWidget();
     (loaded ? sync() : Promise.resolve()).then(hydrate).then(rerender).catch(e=>say("Could not load CRM data", e.message));
   };
   window.crmKitSync = sync;
+})();
+</script>
+
+<script>
+/* ============================================================
+   STANDARD MASTERS KIT: Container Type / Unit / Pack / Incoterm.
+   - container pills + counts, incoterm charge-automation panel
+   - every Incoterm / container-type / pack-type drop-down in the ERP is fed from these masters
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, esc2} = U;
+  window.CTN_CATS = {dry:"Dry Container", reefer:"Reefer", opentop:"Open Top", flatrack:"Flat Rack", platform:"Platform", tank:"Tank", special:"Special Equipment"};
+  const token = ()=> sessionStorage.getItem("esway_access_token");
+  const cache = {}; let loading = null;
+  const ctnCfg = ()=> MK.configs.container_type;
+
+  function containerPills(rows){
+    const scr = document.getElementById("s-container-master"); if(!scr) return;
+    const counts = {all: rows.length}; Object.keys(window.CTN_CATS).forEach(k=> counts[k] = rows.filter(r=>(r.data||{}).category === window.CTN_CATS[k]).length);
+    const label = {all:"All", dry:"📦 Dry", reefer:"❄️ Reefer", opentop:"⬜ Open Top", flatrack:"▭ Flat Rack", platform:"▬ Platform", tank:"🛢 Tank", special:"⭐ Special"};
+    scr.querySelectorAll("[data-cat]").forEach(b=>{ const k = b.dataset.cat; b.textContent = label[k] + " (" + (counts[k]||0) + ")"; b.className = "btn " + ((window.__ctnCat||"all") === k ? "btn-pri" : "btn-out") + " btn-sm"; });
+  }
+  document.addEventListener("click", e=>{
+    const b = e.target.closest("#s-container-master [data-cat]"); if(!b) return;
+    window.__ctnCat = b.dataset.cat; MK.renderList(ctnCfg()); containerPills(MK.cache.container_type || []);
+  });
+  document.addEventListener("change", e=>{ if(e.target.id === "ctnStatusFilter") MK.renderList(ctnCfg()); });
+  const baseRender = MK.renderList;
+  MK.renderList = function(cfg){
+    baseRender(cfg);
+    if(cfg.type === "container_type"){ const n = document.getElementById("ctnCount"); if(n) n.textContent = "Showing " + MK.filtered(cfg).length + " of " + (MK.cache.container_type||[]).length + " container types"; }
+  };
+
+  /* ---------- Incoterm: the charge-automation summary follows the selected values ---------- */
+  function incoPanel(){
+    const scr = document.getElementById("s-incoterm-detail"); const host = document.getElementById("incoAuto"); if(!scr || !host) return;
+    const f = {}; U.fieldNodes(scr).forEach(n=>{ f[n.key] = U.getValue(n); });
+    const code = (f.code || "").toUpperCase() || "this Incoterm";
+    const head = document.getElementById("incoAutoHead"); if(head) head.textContent = "When " + code + " is selected in Quotation / Booking / Job, the system applies:";
+    const who = v=> v || "—"; const term = v=> /seller/i.test(v||"") ? "Prepaid" : /buyer/i.test(v||"") ? "Collect" : "";
+    const dest = ["DAP","DPU","DDP"].includes((f.code||"").toUpperCase()) ? "Seller" : "Buyer";
+    const items = [["Origin Charges", ((f.code||"").toUpperCase() === "EXW" ? "Buyer" : "Seller"), ((f.code||"").toUpperCase() === "EXW" ? "Collect" : "Prepaid")], ["Main Freight", who(f.freight_payable), term(f.freight_payable)], ["Insurance", who(f.insurance), ""], ["Export Clearance", who(f.export_clearance), ""], ["Import Clearance", who(f.import_clearance), ""], ["Destination Charges", dest, dest === "Seller" ? "Prepaid" : "Collect"]];
+    host.innerHTML = items.map(i=>'<div style="padding:8px 10px;background:var(--g0);border-radius:6px"><strong>'+i[0]+':</strong> '+esc2(i[1])+(i[2] ? " ("+i[2]+")" : "")+'</div>').join("");
+  }
+  document.addEventListener("change", e=>{ if(e.target.closest("#s-incoterm-detail")) incoPanel(); });
+  document.addEventListener("input", e=>{ if(e.target.closest("#s-incoterm-detail")) incoPanel(); });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen){ prev(screen); if(screen === "incoterm-detail"){ setTimeout(incoPanel, 150); setTimeout(incoPanel, 700); } };
+
+  /* ---------- container detail: payload = gross - tare; temperature fields only for a Reefer ---------- */
+  function ctnForm(){
+    const scr = document.getElementById("s-container-detail"); if(!scr) return;
+    const f = {}; U.fieldNodes(scr).forEach(n=>{ f[n.key] = n; });
+    const num = k=> parseFloat(f[k] ? U.getValue(f[k]) : "") || 0;
+    if(f.payload_kg){ const gross = num("maximum_gross_weight_kg"), tare = num("tare_weight_kg"); if(gross && tare) U.setValue(f.payload_kg, String(Math.max(0, gross - tare))); }
+    const reefer = f.category && /reefer/i.test(U.getValue(f.category) || "");
+    ["temperature_range_min_c","temperature_range_max_c","genset_required","ventilation"].forEach(k=>{ const n = f[k]; if(!n) return; const el = n.ctl; if(el && "disabled" in el){ el.disabled = !reefer; if(el.tagName === "INPUT") el.placeholder = reefer ? "e.g. -25" : "N/A - reefer only"; } });
+  }
+  document.addEventListener("input", e=>{ if(e.target.closest("#s-container-detail")) ctnForm(); });
+  document.addEventListener("change", e=>{ if(e.target.closest("#s-container-detail")) ctnForm(); });
+  const prev2 = MK.onScreen;
+  MK.onScreen = function(screen){ prev2(screen); if(screen === "container-detail"){ setTimeout(ctnForm, 150); setTimeout(ctnForm, 700); } };
+
+  /* ---------- usage: how many quotations / bookings / jobs use a value (not tracked per master yet) ---------- */
+  const usage = ()=> "—";
+
+  /* ---------- drop-downs fed from the masters ---------- */
+  const FEEDS = [
+    {sel:"#grw_incoterm, #crmEq_incoterm, select[data-qh=incoterm]", type:"incoterm", value:r=>r.code, text:r=>r.code, hint:r=>r.name},
+    {sel:"#grw_ctype", type:"container_type", value:r=>r.code, text:r=>r.code, hint:r=>r.name, extra:["LCL"]},
+    {sel:"#bk_conttype, #crmEq_conttype", type:"container_type", value:r=>r.code, text:r=>r.code+" — "+r.name},
+    {sel:"#bk_packtype", type:"pack", value:r=>r.name, text:r=>r.name}
+  ];
+  function load(){
+    if(!token()) return Promise.resolve();
+    if(loading) return loading;
+    loading = Promise.all(["incoterm","container_type","pack","unit"].map(t=> api("GET", "/api/masters/"+t+"?status=ACTIVE&limit=1000").then(rows=>{ cache[t] = rows; }).catch(()=>{}))).then(()=>{ loading = null; refresh(); });
+    return loading;
+  }
+  function fill(el, feed){
+    const rows = cache[feed.type]; if(!rows || !rows.length || el.dataset.stdFilled === String(rows.length)) return;
+    const current = el.value; const keepFirst = el.options.length && el.options[0].value === "" ? el.options[0].outerHTML : (el.options.length && /^(—|--)/.test(el.options[0].text) ? el.options[0].outerHTML : "");
+    const opts = rows.map(r=>({v:feed.value(r), t:feed.text(r), h:feed.hint ? feed.hint(r) : ""})).concat((feed.extra||[]).map(x=>({v:x,t:x,h:""})));
+    if(current && !opts.some(o=>o.v === current)) opts.push({v:current, t:current, h:""});
+    el.innerHTML = keepFirst + opts.map(o=>'<option value="'+esc2(o.v)+'"'+(o.h ? ' title="'+esc2(o.h)+'"' : "")+'>'+esc2(o.t)+'</option>').join("");
+    el.value = current || (keepFirst ? "" : opts[0] && opts[0].v);
+    el.dataset.stdFilled = String(rows.length);
+  }
+  function refresh(){ FEEDS.forEach(feed=> document.querySelectorAll(feed.sel).forEach(el=> fill(el, feed))); }
+  let timer = null;
+  new MutationObserver(()=>{ clearTimeout(timer); timer = setTimeout(()=>{ if(!token()) return; if(!cache.incoterm) load(); else refresh(); }, 250); }).observe(document.body, {childList:true, subtree:true});
+  window.StdKit = {ctnForm, containerPills, usage, reload:()=>{ loading = null; Object.keys(cache).forEach(k=> delete cache[k]); return load(); }, cache, incoPanel};
 })();
 </script>
 </body>

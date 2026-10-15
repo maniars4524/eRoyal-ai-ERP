@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
-from . import config
+from . import config, std_masters
 from .auth import get_current_user, permission_required, portal_for, safe_user
 from .db import get_db
 from .licensing import next_license_number
@@ -130,6 +130,7 @@ def create_organization(payload: OrganizationAdminCreate, user: User = Depends(p
     admin = User(email=payload.admin_email, username=payload.admin_username.lower(), password_hash=hash_password(payload.admin_password), first_name=payload.admin_first_name, last_name=payload.admin_last_name, status="ACTIVE", is_super_admin=False)
     organization.users.append(admin)
     organization.created_by = user.id
+    std_masters.seed_org(db, organization.id, user_id=user.id)
     admin.roles.append(admin_role)
     try:
         db.flush()

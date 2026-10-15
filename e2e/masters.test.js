@@ -77,14 +77,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("branch Local Currency dropdown is fed by Currency master", ccyOpts.some(t => t.startsWith("USD")), ccyOpts.join(","));
 
   // ---- Unit tabs filter by category; delete flow; other masters render empty not dummy
-  await j("POST", "/api/masters/unit", { code: "KG", name: "Kilogram", data: { category: "Weight", decimal_precision: "2" } }, token);
-  await j("POST", "/api/masters/unit", { code: "CBM", name: "Cubic Meter", data: { category: "Volume" } }, token);
+  await j("POST", "/api/masters/unit", { code: "ZKG", name: "Test Kilogram", data: { category: "Weight", decimal_precision: "2" } }, token);
+  await j("POST", "/api/masters/unit", { code: "ZCBM", name: "Test Cubic Meter", data: { category: "Volume" } }, token);
   w.go("unit-master"); await sleep(700);
-  check("unit Weight tab shows only weight units", rowsText("#um1 tbody").length === 1 && rowsText("#um1 tbody")[0].includes("KG") && !rowsText("#um1 tbody")[0].includes("CBM"), rowsText("#um1 tbody").join("|"));
-  check("unit Volume tab shows only volume units", rowsText("#um2 tbody").length === 1 && rowsText("#um2 tbody")[0].includes("CBM"));
-  const kgId = w.MK.cache.unit.find(u => u.code === "KG").id;
+  check("unit Weight tab shows only weight units", rowsText("#um1 tbody").some(r => r.includes("ZKG")) && !rowsText("#um1 tbody").some(r => r.includes("ZCBM")), rowsText("#um1 tbody").join("|"));
+  check("unit Volume tab shows only volume units", rowsText("#um2 tbody").some(r => r.includes("ZCBM")) && !rowsText("#um2 tbody").some(r => r.includes("ZKG")));
+  const kgId = w.MK.cache.unit.find(u => u.code === "ZKG").id;
   await w.MK.remove("unit", kgId); await sleep(700);
-  check("delete removes the unit from the database", !(await j("GET", "/api/masters/unit", null, token)).body.some(u => u.code === "KG"));
+  check("delete removes the unit from the database", !(await j("GET", "/api/masters/unit", null, token)).body.some(u => u.code === "ZKG"));
   for (const [list, sel] of [["country-master", "#s-country-master tbody"], ["pack-master", "#s-pack-master tbody"], ["hsn-master", "#s-hsn-master tbody"], ["dept-list", "#s-dept-list tbody"], ["desig-list", "#s-desig-list tbody"]]) {
     w.go(list); await sleep(500);
     const txt = rowsText(sel).join("|");

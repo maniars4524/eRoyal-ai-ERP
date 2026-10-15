@@ -34,6 +34,7 @@ MASTER_TYPES = {
     "setting": "Company Setting",
 }
 from . import currency_ref as cr
+from . import std_masters as sm
 from .charge_catalogue import CATALOGUE, STANDARD_SAC, validate_activation
 
 KEY_RE = re.compile(r"^[a-z0-9_]{1,60}$")
@@ -218,6 +219,16 @@ def currency_iso_reference(user: User = Depends(permission_required("master.read
     return [{"code": k, **v, **({"seed": seed[k]} if k in seed else {})} for k, v in sorted(cr.iso_table().items())]
 
 
+@router.post("/standard/seed", status_code=201)
+def seed_standard(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+    """Load the standard container types, units, package types and Incoterms 2020 (idempotent; nothing is overwritten)."""
+    org_id = _tenant(user)
+    out = sm.seed_org(db, org_id, user_id=user.id)
+    record_audit(db, "STANDARD_MASTERS_SEEDED", "MASTER", user, org_id, "standard", "seed", {k: v["created"] for k, v in out.items()})
+    db.commit()
+    return out
+
+
 @router.post("/currency/seed", status_code=201)
 def seed_currencies(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     """Load the sample currencies (idempotent). Existing currencies are never overwritten; differences from ISO 4217 are reported."""
@@ -302,6 +313,11 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, user: 
             raise HTTPException(409, "The code of a system currency or of a currency that is already in use cannot be changed")
         cr.check_status_change(record, changes.get("status"))
         changes["data"] = cr.clean(db, org_id, changes.get("code") or record.code, changes.get("name") or record.name, changes["data"] if changes.get("data") is not None else (record.data or {}), record)
+    if master_type in sm.TYPES and sm.is_system(record):
+        if "code" in changes and changes["code"] != record.code:
+            raise HTTPException(409, "The code of a standard (system) record cannot be changed. Deactivate it instead.")
+        if changes.get("data") is not None:
+            changes["data"] = {**changes["data"], sm.SYSTEM_KEY: "yes", "source": (record.data or {}).get("source", "standard")}
     was_active = record.status == "ACTIVE"
     _check_charge_activation(master_type, changes.get("status") or record.status, changes.get("data") if changes.get("data") is not None else record.data)
     for key, value in changes.items():
@@ -324,6 +340,8 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, user: 
 def delete_record(master_type: str, record_id: int, user: User = Depends(permission_required("master.delete")), db: Session = Depends(get_db)):
     org_id, master_type = _tenant(user), _type(master_type)
     record = _get(db, org_id, master_type, record_id)
+    if master_type in sm.TYPES and sm.is_system(record):
+        raise HTTPException(409, "Standard (system) records cannot be deleted. Set the status to Inactive instead.")
     if master_type == "currency":
         cr.check_delete(db, org_id, record)
     record_audit(db, "MASTER_DELETED", "MASTER", user, org_id, master_type, str(record.id), {"code": record.code, "name": record.name})
