@@ -3710,39 +3710,32 @@ tbody tr:hover{background:var(--g0)}
 <div id="bpStep3" class="bstep-pane">
 <div class="card"><div class="ch" style="background:#17A6C4;color:#fff"><div class="ct" style="color:#fff">Consignment Details</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">No of Pcs</label><input class="fc" id="bk_pcs"></div>
-  <div class="fg"><label class="fl">Container Type</label><select class="fc" id="bk_conttype"><option value="">--Select--</option><option>20' GP</option><option>40' GP</option><option>40' HC</option><option>Reefer</option></select></div>
+  <div class="fg "><label class="fl">No of Pcs</label><input class="fc" id="bk_pcs"></div>
+  <div class="fg"><label class="fl">Pack Type</label><select class="fc" id="bk_packtype"><option value="">--Select Pack Type--</option></select></div>
+  <div class="fg bk-sea"><label class="fl">Container Type</label><select class="fc" id="bk_conttype"><option value="">--Select--</option></select></div>
+  <div class="fg bk-sea"><label class="fl">Container No</label><input class="fc" id="bk_contno"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">No of Pallet</label><input class="fc" id="bk_pallet"></div>
-  <div class="fg"><label class="fl">Pack Type</label><select class="fc" id="bk_packtype"><option value="">--Select Pack Type--</option><option>Carton</option><option>Pallet</option><option>Drum</option><option>Bag</option><option>Crate</option></select></div>
-  <div class="fg"><label class="fl">Container No</label><input class="fc" id="bk_contno"></div>
+  <div class="fg "><label class="fl">No of Pallet</label><input class="fc" id="bk_pallet"></div><div class="fg bk-sea"><label class="fl">No of Containers</label><input class="fc" id="bk_qty" placeholder="e.g. 2"></div><div class="fg bk-sea"><label class="fl">No of TEU</label><input class="fc" id="bk_teu"></div>
+  <div class="fg bk-air"><label class="fl">Chargeable Weight (KG)</label><input class="fc" id="bk_chgwt"></div><div class="fg bk-air"><label class="fl">ULD Type (if any)</label><select class="fc" id="bk_uld"><option>— Loose —</option><option>AKE</option><option>PMC</option><option>PAG</option></select></div>
+  <div class="fg bk-road"><label class="fl">Vehicle Type</label><select class="fc" id="bk_vehicle"><option>Container Truck (32ft)</option><option>Open Body Truck</option><option>Trailer / Multi-Axle</option></select></div><div class="fg bk-road"><label class="fl">No. of Vehicles</label><input class="fc" id="bk_vehqty" placeholder="1"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">G.Weight</label><input class="fc" id="bk_gwt"></div>
-  <div class="fg"><label class="fl">Unit</label><select class="fc" id="bk_gwtunit"><option>KGS</option><option>LBS</option></select></div>
-  <div class="fg"><label class="fl">No of TEU</label><input class="fc" id="bk_teu"></div>
+  <div class="fg "><label class="fl">G.Weight</label><input class="fc" id="bk_gwt"></div><div class="fg "><label class="fl">Unit</label><select class="fc" id="bk_gwtunit"><option>KGS</option><option>LBS</option></select></div><div class="fg "><label class="fl">N.Weight</label><input class="fc" id="bk_nwt"></div><div class="fg "><label class="fl">Unit</label><select class="fc" id="bk_nwtunit"><option>KGS</option><option>LBS</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">V.Weight</label><input class="fc" id="bk_vwt"></div>
-  <div class="fg"><label class="fl">Unit</label><select class="fc" id="bk_vwtunit"><option>KGS</option><option>LBS</option></select></div>
-</div>
-<div class="fr">
-  <div class="fg"><label class="fl">N.Weight</label><input class="fc" id="bk_nwt"></div>
-  <div class="fg"><label class="fl">Unit</label><select class="fc" id="bk_nwtunit"><option>KGS</option><option>LBS</option></select></div>
-</div>
-<div class="fr">
-  <div class="fg"><label class="fl">Volume</label><input class="fc" id="bk_vol"></div>
-  <div class="fg"><label class="fl">Chargeable Unit</label><input class="fc" id="bk_chgunit"></div>
+  <div class="fg "><label class="fl">V.Weight</label><input class="fc" id="bk_vwt"></div><div class="fg "><label class="fl">Unit</label><select class="fc" id="bk_vwtunit"><option>KGS</option><option>LBS</option></select></div><div class="fg "><label class="fl">Volume (CBM)</label><input class="fc" id="bk_vol"></div><div class="fg "><label class="fl">Chargeable Unit</label><input class="fc" id="bk_chgunit"></div>
 </div>
 </div></div>
 </div>
 
 <!-- STEP 4 — COSTING DETAILS -->
 <div id="bpStep4" class="bstep-pane">
-<div class="card"><div class="ch"><div class="ct">Costing Details</div><button class="btn btn-out btn-sm" id="bk_addChargeBtn"><svg class="ic" data-icon="plus"></svg> Add</button></div>
-<div class="tw"><table><thead><tr><th>Type</th><th>Code</th><th>Description</th><th>Qty</th><th>Rate</th><th>Currency</th><th>Amount</th></tr></thead>
+<div class="card"><div class="ch"><div class="ct">Costing Details</div><div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" id="bk_newChargeBtn" title="The charge is not in the Charge Master: add it now and use it here">＋ New Charge</button><button class="btn btn-out btn-sm" id="bk_addChargeBtn"><svg class="ic" data-icon="plus"></svg> Add</button></div></div>
+<div class="ib ib-bl" id="bk_costNote" style="margin:10px 14px 0;display:none"></div>
+<div class="tw"><table><thead><tr><th>Type</th><th>Charge</th><th>Code</th><th>Qty</th><th>Rate</th><th>Currency</th><th>Exch</th><th>GST %</th><th>Amount</th><th>Vendor (for buy)</th><th></th></tr></thead>
 <tbody id="bk_chargeRows"></tbody></table></div>
+<datalist id="bkChargeList"></datalist>
 </div>
 </div>
 
@@ -3759,11 +3752,13 @@ tbody tr:hover{background:var(--g0)}
   <button class="btn btn-suc btn-sm" id="bk_finishBtn" style="display:none">Confirm Booking</button>
 </div>
 
-<div>
-<div class="card"><div class="ch"><div class="ct">Space / Equipment</div></div><div class="cb" id="bk_spaceBox">
-</div></div>
 </div>
 </div>
+
+<!-- ====== BOOKING PAGE (confirmed booking: one number, jobs created from here) ====== -->
+<div id="s-booking-view" class="scr">
+<div class="ph"><div><div class="pt" id="bkvTitle">Booking</div><div class="ps" id="bkvSub"></div></div><div class="pa" id="bkvActions"></div></div>
+<div id="bkvRoot"></div>
 </div>
 
 <!-- ====== CUSTOMS / CHA ====== -->
@@ -6657,6 +6652,7 @@ const SCREEN_META = {
   "quot-templates":{title:"Quotation Templates", crumb:"eSway ERP 2.0 / Settings / <strong>Quotation Templates</strong>", menu:"quot-templates"},
   "quotation-new":{title:"Quotation Preparation", crumb:"eSway ERP 2.0 / CRM / Quotation / <strong>Quotation Preparation</strong>", menu:"quotation"},
   "booking-new":{title:"New Booking", crumb:"eSway ERP 2.0 / Operations / Bookings / <strong>New Booking</strong>", menu:""},
+  "booking-view":{title:"Booking", crumb:"eSway ERP 2.0 / Operations / Bookings / <strong>Booking</strong>", menu:""},
 };
 
 function go(screen, opts){
@@ -12123,7 +12119,9 @@ function bookGotoStep(n){
   if(bookStep===5) bookRenderOverview();
   window.scrollTo({top:0, behavior:"smooth"});
 }
+window.bookGotoStep = bookGotoStep;
 function bookRenderOverview(){
+  if(window.BKG){ BKG.renderOverview(); return; }
   const body = $("#bk_overviewBody");
   if(!body) return;
   const services = $all(".fi[data-svc].on").map(fi=>fi.dataset.svc);
@@ -13728,16 +13726,7 @@ function bookWizRefresh(){
   $("#bookWizNext").disabled = !bookReady;
   $("#bookWizHint").textContent = bookReady ? `${bookWiz.dir} ${bookWiz.mode} — ${bookWiz.type} · ${bookWiz.bookingType} BL` : "Select mode, direction, type and booking type to continue";
 }
-function bookWizBuildSpaceBox(){
-  const box = $("#bk_spaceBox");
-  if(bookWiz.mode === "Sea"){
-    box.innerHTML = `<div class="fg" style="margin-bottom:7px"><label class="fl">Container Type</label><select class="fc"><option>20GP</option><option>40GP</option><option>40HC</option><option>20RF (Reefer)</option></select></div><div class="fg"><label class="fl">Quantity</label><input class="fc" placeholder="2" value="2"></div>`;
-  } else if(bookWiz.mode === "Air"){
-    box.innerHTML = `<div class="fg" style="margin-bottom:7px"><label class="fl">Chargeable Weight (KG)</label><input class="fc" placeholder="1500"></div><div class="fg"><label class="fl">ULD Type (if any)</label><select class="fc"><option>— Loose —</option><option>AKE</option><option>PMC</option></select></div>`;
-  } else {
-    box.innerHTML = `<div class="fg" style="margin-bottom:7px"><label class="fl">Vehicle Type</label><select class="fc"><option>Container Truck (32ft)</option><option>Open Body Truck</option><option>Trailer / Multi-Axle</option></select></div><div class="fg"><label class="fl">No. of Vehicles</label><input class="fc" placeholder="1" value="1"></div>`;
-  }
-}
+function bookWizBuildSpaceBox(){ if(window.BKG) BKG.applyMode(); }
 function bookWizProcessTitle(){
   return `${bookWiz.dir} ${bookWiz.mode} — ${bookWiz.type} Booking Process`;
 }
@@ -17281,15 +17270,16 @@ if(document.readyState !== "loading") initChatWidget();
 
 <script>
 /* ============================================================
-   BOOKING KIT: the Bookings list and the 5-step booking process work on real data.
-   Quotation -> Booking (prefilled, linked) -> Confirm (number from Sequence Setting, job created, quotation charges carried over).
+   BOOKING KIT: the Bookings list, the 5-step booking process and the Booking page work on real data.
+   Quotation -> Booking (prefilled, linked) -> Confirm (one booking number) -> Booking page -> jobs (freight, consol, CHA, transport ...).
    ============================================================ */
 (function(){
   "use strict";
   const U = MK.util; const {api, say, esc2} = U;
   const $ = s=> document.querySelector(s);
+  const el = id=> document.getElementById(id);
   const token = ()=> sessionStorage.getItem("esway_access_token");
-  const BKG = window.BKG = {rec:null, quote:null, list:[], m:{clients:[], carriers:[]}, pending:null};
+  const BKG = window.BKG = {rec:null, quote:null, prefill:null, list:[], pending:null, viewId:null, m:{clients:[], carriers:[], vendors:[], charges:[]}, branches:{}};
 
   /* [element id, key, "col" = booking column, "data" = booking.data] */
   const MAP = [
@@ -17297,49 +17287,142 @@ if(document.readyState !== "loading") initChatWidget();
     ["bk_etd","etd","col"], ["bk_eta","eta","col"], ["bk_sicutoff","si_cutoff","col"], ["bk_vgmcutoff","vgm_cutoff","col"],
     ["bk_branch","branch","data"], ["bk_freightpp","freight_pp","data"], ["bk_svctype","service_type","data"], ["bk_por","place_of_receipt","data"], ["bk_pod2","place_of_delivery","data"], ["bk_marks","marks","data"], ["bk_notes","notes","data"],
     ["bk_customerAddr","customer_address","data"], ["bk_shipper","shipper","data"], ["bk_shipperAddr","shipper_address","data"], ["bk_consignee","consignee","data"], ["bk_consigneeAddr","consignee_address","data"], ["bk_notify","notify","data"], ["bk_notifyAddr","notify_address","data"],
-    ["bk_pcs","pcs","data"], ["bk_conttype","container_type","data"], ["bk_pallet","pallet","data"], ["bk_packtype","pack_type","data"], ["bk_contno","container_no","data"], ["bk_gwt","gwt","data"], ["bk_gwtunit","gwt_unit","data"], ["bk_teu","teu","data"],
-    ["bk_vwt","vwt","data"], ["bk_vwtunit","vwt_unit","data"], ["bk_nwt","nwt","data"], ["bk_nwtunit","nwt_unit","data"], ["bk_vol","volume","data"], ["bk_chgunit","chargeable_unit","data"], ["bk_cargocutoff","cargo_cutoff","data"], ["bk_awbcutoff","awb_cutoff","data"]
+    ["bk_pcs","pcs","data"], ["bk_packtype","pack_type","data"], ["bk_conttype","container_type","data"], ["bk_contno","container_no","data"], ["bk_pallet","pallet","data"], ["bk_qty","container_qty","data"], ["bk_teu","teu","data"],
+    ["bk_chgwt","chargeable_weight","data"], ["bk_uld","uld_type","data"], ["bk_vehicle","vehicle_type","data"], ["bk_vehqty","vehicle_qty","data"],
+    ["bk_gwt","gwt","data"], ["bk_gwtunit","gwt_unit","data"], ["bk_nwt","nwt","data"], ["bk_nwtunit","nwt_unit","data"], ["bk_vwt","vwt","data"], ["bk_vwtunit","vwt_unit","data"], ["bk_vol","volume","data"], ["bk_chgunit","chargeable_unit","data"],
+    ["bk_cargocutoff","cargo_cutoff","data"], ["bk_awbcutoff","awb_cutoff","data"]
   ];
-  const el = id=> document.getElementById(id);
-  const setVal = (id, v)=>{ const e = el(id); if(!e) return; v = v == null ? "" : String(v); if(e.tagName === "SELECT" && v && !Array.from(e.options).some(o=>o.value === v || o.text === v)){ const o = document.createElement("option"); o.value = o.text = v; e.appendChild(o); } e.value = v; };
+  const setVal = (id, v)=>{
+    const e = el(id); if(!e) return; v = v == null ? "" : String(v);
+    if(e.tagName === "SELECT"){
+      if(v && !Array.from(e.options).some(o=>o.value === v || o.text === v)){ const o = document.createElement("option"); o.value = o.text = v; e.appendChild(o); }
+      if(!v){ e.selectedIndex = 0; return; }
+    }
+    e.value = v;
+  };
   const clean = v=> { v = (v == null ? "" : String(v)).trim(); return v === "" ? null : v; };
+  const num = v=> { const n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isNaN(n) ? 0 : n; };
+  const money = n=> Number(n || 0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "—";
+  const SERVICE_OF_MODULE = {FOR:"Freight", CUS:"CHA", TRP:"Transport", WHS:"Warehouse", ALL:"Freight"};
+
+  /* ---------- the equipment fields follow the mode ---------- */
+  BKG.applyMode = function(){
+    const mode = (window.bookWiz || {}).mode || "Sea";
+    const show = (cls, on)=> document.querySelectorAll("#s-booking-new ."+cls).forEach(n=>{ n.style.display = on ? "" : "none"; });
+    show("bk-sea", mode === "Sea"); show("bk-air", mode === "Air"); show("bk-road", mode === "Road" || mode === "Rail");
+  };
 
   /* ---------- masters ---------- */
   async function loadMasters(){
-    const get = (p)=> api("GET", p).catch(()=>[]);
-    const [clients, carriers] = await Promise.all([get("/api/customers?role=client"), get("/api/customers?role=carrier")]);
-    BKG.m.clients = clients.filter(c=>c.status === "ACTIVE"); BKG.m.carriers = carriers.filter(c=>c.status === "ACTIVE");
+    const get = p=> api("GET", p).catch(()=>[]);
+    const [clients, carriers, vendors, charges, packs, conts] = await Promise.all([get("/api/customers?role=client"), get("/api/customers?role=carrier"), get("/api/customers?role=vendor"), get("/api/masters/charge"), get("/api/masters/pack?status=ACTIVE&limit=1000"), get("/api/masters/container_type?status=ACTIVE&limit=1000")]);
+    const act = a=> a.filter(c=>c.status === "ACTIVE");
+    BKG.m.clients = act(clients); BKG.m.carriers = act(carriers); BKG.m.vendors = act(vendors); BKG.m.charges = act(charges);
+    BKG.m.packs = packs; BKG.m.conts = conts;
     const opts = (rows, first, val)=> '<option value="">'+first+'</option>'+rows.map(c=>'<option value="'+esc2(val(c))+'">'+esc2(c.name)+'</option>').join("");
     const cust = el("bk_customer"); if(cust){ const cur = cust.value; cust.innerHTML = opts(BKG.m.clients, "--Select Customer--", c=>c.id); cust.value = cur; }
     ["bk_shipper","bk_consignee"].forEach(id=>{ const e = el(id); if(e){ const cur = e.value; e.innerHTML = opts(BKG.m.clients, "--Select "+(id === "bk_shipper" ? "Shipper" : "Consignee")+"--", c=>c.name); setVal(id, cur); } });
     const nt = el("bk_notify"); if(nt){ const cur = nt.value; nt.innerHTML = '<option value="">--Select Notify--</option><option>Same as Consignee</option>'+BKG.m.clients.map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_notify", cur); }
     const ca = el("bk_carrier"); if(ca){ const cur = ca.value; ca.innerHTML = '<option value="">— Select —</option>'+BKG.m.carriers.map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_carrier", cur && !/^—/.test(cur) ? cur : ""); }
+    const pk = el("bk_packtype"); if(pk){ const cur = pk.value; pk.innerHTML = '<option value="">--Select Pack Type--</option>'+packs.filter(x=>x.status === "ACTIVE").map(x=>'<option value="'+esc2(x.name)+'">'+esc2(x.name)+'</option>').join(""); setVal("bk_packtype", cur); }
+    const ct = el("bk_conttype"); if(ct){ const cur = ct.value; ct.innerHTML = '<option value="">--Select--</option>'+conts.filter(x=>x.status === "ACTIVE").map(x=>'<option value="'+esc2(x.code)+'">'+esc2(x.code+" — "+x.name)+'</option>').join(""); setVal("bk_conttype", cur); }
+    const dl = el("bkChargeList"); if(dl) dl.innerHTML = BKG.m.charges.map(c=>'<option value="'+esc2(c.name)+'"></option>').join("");
+    document.querySelectorAll("#bk_chargeRows select[data-f=vendor]").forEach(vendorOptions);
   }
-  const addressOf = c=>{ if(!c) return ""; const d = c.data || {}; return [d.address_line_1, d.address_line_2, d.city, d.state_province || d.state, d.country_2 || c.country].filter(Boolean).join(", "); };
-  const byName = n=> BKG.m.clients.find(c=>c.name === n);
-  document.addEventListener("change", e=>{
-    const t = e.target; if(!t.closest || !t.closest("#s-booking-new")) return;
-    if(t.id === "bk_customer"){ const c = BKG.m.clients.find(x=>String(x.id) === t.value); setVal("bk_customerAddr", addressOf(c)); const d = (c && c.data) || {}; if(c && !el("bk_shipper").value && (c.roles||[]).includes("shipper")) { setVal("bk_shipper", c.name); setVal("bk_shipperAddr", addressOf(c)); } }
-    if(t.id === "bk_shipper") setVal("bk_shipperAddr", addressOf(byName(t.value)));
-    if(t.id === "bk_consignee"){ setVal("bk_consigneeAddr", addressOf(byName(t.value))); if(el("bk_notify").value === "Same as Consignee") setVal("bk_notifyAddr", addressOf(byName(t.value))); }
-    if(t.id === "bk_notify") setVal("bk_notifyAddr", t.value === "Same as Consignee" ? addressOf(byName(el("bk_consignee").value)) : addressOf(byName(t.value)));
-  });
 
-  /* ---------- charges (costing step) ---------- */
+  /* ---------- parties: addresses come from the Organization master (branches) ---------- */
+  async function branchesOf(customerId){
+    if(!customerId) return [];
+    if(!BKG.branches[customerId]) BKG.branches[customerId] = await api("GET", "/api/customers/"+customerId+"/branches").catch(()=>[]);
+    return BKG.branches[customerId].filter(b=>b.status === "ACTIVE" || !b.status);
+  }
+  const branchText = (c, b)=> [c && c.name, b.address, b.address2, b.city, [b.state, b.pincode].filter(Boolean).join(" "), b.country].filter(Boolean).join(", ");
+  const masterText = c=>{ const d = (c && c.data) || {}; return [c && c.name, d.address_line_1, d.address_line_2, d.city, d.state_province || d.state, d.country_2 || (c && c.country)].filter(Boolean).join(", "); };
+  const PARTY = {customer:{sel:"bk_customer", addr:"bk_customerAddr"}, shipper:{sel:"bk_shipper", addr:"bk_shipperAddr"}, consignee:{sel:"bk_consignee", addr:"bk_consigneeAddr"}, notify:{sel:"bk_notify", addr:"bk_notifyAddr"}};
+  async function fillAddress(key, customer, branchId){
+    const cfg = PARTY[key]; const area = el(cfg.addr); if(!area) return;
+    if(!customer){ area.value = ""; const old = el("bk_"+key+"Branch"); if(old) old.remove(); return; }
+    const rows = await branchesOf(customer.id);
+    const head = rows.find(b=>String(b.id) === String(branchId)) || rows.find(b=>/head|regist|corporate|primary/i.test(b.branch_type || "")) || rows[0];
+    area.value = head ? branchText(customer, head) : masterText(customer);
+    let pick = el("bk_"+key+"Branch");
+    if(rows.length > 1){
+      if(!pick){ pick = document.createElement("select"); pick.className = "fc"; pick.id = "bk_"+key+"Branch"; pick.style.marginBottom = "6px"; pick.dataset.party = key; area.parentNode.insertBefore(pick, area); }
+      pick.innerHTML = rows.map(b=>'<option value="'+b.id+'"'+(head && b.id === head.id ? " selected" : "")+'>'+esc2((b.code ? b.code+" — " : "")+(b.city || b.name || "Branch"))+'</option>').join("");
+      pick.dataset.cust = customer.id;
+    }else if(pick){ pick.remove(); }
+  }
+  const clientBy = (key, v)=> key === "customer" ? BKG.m.clients.find(c=>String(c.id) === String(v)) : BKG.m.clients.find(c=>c.name === v);
+  document.addEventListener("change", async e=>{
+    const t = e.target; if(!t.closest || !t.closest("#s-booking-new")) return;
+    if(t.dataset && t.dataset.party){ const c = BKG.m.clients.find(x=>String(x.id) === t.dataset.cust); const b = (BKG.branches[t.dataset.cust] || []).find(x=>String(x.id) === t.value); if(c && b) el(PARTY[t.dataset.party].addr).value = branchText(c, b); return; }
+    if(t.id === "bk_customer"){
+      const c = clientBy("customer", t.value); await fillAddress("customer", c);
+      if(c && !el("bk_shipper").value && (c.roles||[]).includes("shipper")){ setVal("bk_shipper", c.name); await fillAddress("shipper", c); }
+    }
+    if(t.id === "bk_shipper") await fillAddress("shipper", clientBy("shipper", t.value));
+    if(t.id === "bk_consignee"){ await fillAddress("consignee", clientBy("consignee", t.value)); if(el("bk_notify").value === "Same as Consignee") el("bk_notifyAddr").value = el("bk_consigneeAddr").value; }
+    if(t.id === "bk_notify"){ if(t.value === "Same as Consignee"){ el("bk_notifyAddr").value = el("bk_consigneeAddr").value; const old = el("bk_notifyBranch"); if(old) old.remove(); } else await fillAddress("notify", clientBy("notify", t.value)); }
+  });
+  async function refreshAddresses(rec){
+    const d = rec.data || {};
+    const c = clientBy("customer", rec.customer_id); if(c && !d.customer_address) await fillAddress("customer", c);
+    const s = clientBy("shipper", d.shipper); if(s && !d.shipper_address) await fillAddress("shipper", s);
+    const k = clientBy("consignee", d.consignee); if(k && !d.consignee_address) await fillAddress("consignee", k);
+    if(d.notify === "Same as Consignee" && !d.notify_address) el("bk_notifyAddr").value = el("bk_consigneeAddr").value;
+    else { const n = clientBy("notify", d.notify); if(n && !d.notify_address) await fillAddress("notify", n); }
+  }
+
+  /* ---------- costing: what the quotation approved, with the vendor for every buy charge ---------- */
+  function vendorOptions(sel){
+    const tr = sel.closest("tr"); const cur = sel.value || (tr && tr.dataset.vendor) || "";
+    sel.innerHTML = '<option value="">— Select vendor —</option>'+BKG.m.vendors.map(v=>'<option value="'+esc2(v.name)+'">'+esc2(v.name)+'</option>').join("");
+    if(cur && !BKG.m.vendors.some(v=>v.name === cur)){ const o = document.createElement("option"); o.value = o.text = cur; sel.appendChild(o); }
+    sel.value = cur;
+  }
+  const chargeMaster = name=> BKG.m.charges.find(c=>c.name.toLowerCase() === String(name||"").trim().toLowerCase());
   BKG.addCharge = function(row){
     row = row || {}; const tbody = el("bk_chargeRows"); if(!tbody) return;
-    const tr = document.createElement("tr"); tr.dataset.bkCharge = "1";
-    const ccys = (window.QK && QK.m && QK.m.currencies && QK.m.currencies.length ? QK.m.currencies.map(c=>c.code) : ["INR","USD","EUR"]);
-    tr.innerHTML = '<td><select class="fc" data-f="type"><option value="AR">AR (sell)</option><option value="AP">AP (buy)</option></select></td><td><input class="fc" data-f="code" placeholder="OFR"></td><td><input class="fc" data-f="description" placeholder="Ocean Freight"></td>'+
-      '<td><input class="fc" type="number" min="0" step="any" data-f="qty" style="width:70px" placeholder="1"></td><td><input class="fc" type="number" min="0" step="any" data-f="rate" style="width:90px" placeholder="0.00"></td><td><select class="fc" data-f="currency" style="width:80px">'+ccys.map(c=>"<option>"+esc2(c)+"</option>").join("")+'</select></td><td><input class="fc" data-f="amount" style="width:100px" readonly></td><td><button class="ta" data-bk-rm style="color:var(--rd)">✕</button></td>';
+    const tr = document.createElement("tr"); tr.dataset.bkCharge = "1"; tr.dataset.service = row.service || "Freight"; tr.dataset.uom = row.uom || ""; tr.dataset.vendor = row.vendor || "";
+    const ccys = (window.QK && QK.m && QK.m.currencies && QK.m.currencies.length ? QK.m.currencies.map(c=>c.code) : ["INR","USD","EUR","AED","SGD"]);
+    if(row.currency && !ccys.includes(row.currency)) ccys.push(row.currency);
+    tr.innerHTML = '<td><select class="fc" data-f="type" style="width:92px"><option value="AR">AR (sell)</option><option value="AP">AP (buy)</option></select></td>'+
+      '<td><input class="fc" data-f="description" list="bkChargeList" placeholder="Choose or type a charge" style="min-width:170px"></td><td><input class="fc" data-f="code" style="width:70px" placeholder="code"></td>'+
+      '<td><input class="fc" type="number" min="0" step="any" data-f="qty" style="width:70px" placeholder="1"></td><td><input class="fc" type="number" min="0" step="any" data-f="rate" style="width:90px" placeholder="0.00"></td>'+
+      '<td><select class="fc" data-f="currency" style="width:78px">'+ccys.map(c=>"<option>"+esc2(c)+"</option>").join("")+'</select></td><td><input class="fc" type="number" min="0" step="any" data-f="exch" style="width:74px" placeholder="1"></td>'+
+      '<td><input class="fc" type="number" min="0" step="any" data-f="tax_pct" style="width:60px" placeholder="0"></td><td><input class="fc" data-f="amount" style="width:100px" readonly></td>'+
+      '<td><select class="fc" data-f="vendor" style="min-width:150px"></select></td><td><button class="ta" data-bk-rm style="color:var(--rd)" title="Remove">✕</button></td>';
     tbody.appendChild(tr);
-    ["type","code","description","qty","rate","currency"].forEach(k=>{ const e = tr.querySelector('[data-f="'+k+'"]'); if(e && row[k] != null) e.value = row[k]; });
-    calcRow(tr);
+    ["type","description","code","qty","rate","currency","exch","tax_pct"].forEach(k=>{ const e = tr.querySelector('[data-f="'+k+'"]'); if(e && row[k] != null) e.value = row[k]; });
+    vendorOptions(tr.querySelector('[data-f="vendor"]')); calcRow(tr); return tr;
   };
-  function calcRow(tr){ const q = parseFloat(tr.querySelector('[data-f="qty"]').value) || 0, r = parseFloat(tr.querySelector('[data-f="rate"]').value) || 0; tr.querySelector('[data-f="amount"]').value = q && r ? (q*r).toFixed(2) : ""; }
+  function calcRow(tr){
+    const g = k=> tr.querySelector('[data-f="'+k+'"]'); const q = num(g("qty").value), r = num(g("rate").value);
+    g("amount").value = q && r ? (q*r).toFixed(2) : "";
+    const ap = g("type").value === "AP"; const v = g("vendor"); v.disabled = !ap; if(!ap) v.value = "";
+    v.style.background = ap && !v.value ? "#FFF8E1" : "";
+  }
   document.addEventListener("input", e=>{ const tr = e.target.closest && e.target.closest("tr[data-bk-charge]"); if(tr) calcRow(tr); });
-  document.addEventListener("click", e=>{ const b = e.target.closest("[data-bk-rm]"); if(b){ b.closest("tr").remove(); } });
-  const chargeRows = ()=> Array.from(document.querySelectorAll("#bk_chargeRows tr[data-bk-charge]")).map(tr=>{ const g = k=> tr.querySelector('[data-f="'+k+'"]').value; return {type:g("type"), code:g("code"), description:g("description"), qty:g("qty"), rate:g("rate"), currency:g("currency"), amount:g("amount")}; }).filter(r=>r.description || r.code || r.rate);
+  document.addEventListener("change", e=>{
+    const tr = e.target.closest && e.target.closest("tr[data-bk-charge]"); if(!tr) return;
+    const f = e.target.dataset.f;
+    if(f === "description"){ const m = chargeMaster(e.target.value); if(m){ tr.querySelector('[data-f="code"]').value = m.code; const g = (m.data || {}).gst_percent; if(g != null && g !== "" && !num(tr.querySelector('[data-f="tax_pct"]').value)) tr.querySelector('[data-f="tax_pct"]').value = g; tr.dataset.service = SERVICE_OF_MODULE[(m.data || {}).module] || "Freight"; tr.dataset.uom = (m.data || {}).uom || tr.dataset.uom; } }
+    if(f === "currency" && e.target.value === "INR") tr.querySelector('[data-f="exch"]').value = "1";
+    if(f === "vendor") tr.dataset.vendor = e.target.value;
+    calcRow(tr);
+  });
+  document.addEventListener("click", e=>{ const b = e.target.closest("[data-bk-rm]"); if(b) b.closest("tr").remove(); });
+  document.addEventListener("click", e=>{
+    if(!e.target.closest("#bk_newChargeBtn")) return;
+    if(!MK.openChargeModal) return;
+    MK.openChargeModal(null, async body=>{ await loadMasters(); BKG.addCharge({type:"AR", description:body.name, code:body.code, tax_pct:(body.data||{}).gst_percent, qty:"1", currency:"INR", exch:"1", service:SERVICE_OF_MODULE[(body.data||{}).module] || "Freight"}); say("Charge added", body.name+" is in the Charge Master and on this booking"); });
+  });
+  const chargeRows = ()=> Array.from(document.querySelectorAll("#bk_chargeRows tr[data-bk-charge]")).map(tr=>{
+    const g = k=> tr.querySelector('[data-f="'+k+'"]').value;
+    return {type:g("type"), description:g("description").trim(), code:g("code").trim(), qty:g("qty"), rate:g("rate"), currency:g("currency"), exch:g("exch") || (g("currency") === "INR" ? "1" : ""), tax_pct:g("tax_pct"), amount:g("amount"), vendor:g("type") === "AP" ? g("vendor") : "", service:tr.dataset.service || "Freight", uom:tr.dataset.uom || ""};
+  }).filter(r=>r.description || r.code || r.rate);
+  const totals = rows=>{ let ar = 0, ap = 0, missing = 0; rows.forEach(r=>{ const inr = num(r.qty || 1) * num(r.rate) * (r.currency === "INR" ? 1 : (num(r.exch) || 1)); if(r.type === "AP"){ ap += inr; if(!r.vendor) missing++; } else ar += inr; }); return {ar, ap, margin:ar-ap, missing}; };
 
   /* ---------- form <-> record ---------- */
   BKG.collect = function(){
@@ -17349,6 +17432,7 @@ if(document.readyState !== "loading") initChatWidget();
     body.customer_id = c ? c.id : null; body.party_name = c ? c.name : ""; if(!body.booking_date) delete body.booking_date;
     body.data.services = Array.from(document.querySelectorAll(".fi[data-svc].on")).map(f=>f.dataset.svc).join(", ");
     body.data.charges = chargeRows();
+    ["shipper","consignee","notify"].forEach(k=>{ const cc = clientBy(k, (el("bk_"+k) || {}).value); body.data[k+"_id"] = cc ? cc.id : ""; });
     if(BKG.quote){ body.quotation_id = BKG.quote.id; body.data.quotation_no = BKG.quote.number || ""; }
     else if(BKG.rec && BKG.rec.quotation_id){ body.quotation_id = BKG.rec.quotation_id; body.data.quotation_no = (BKG.rec.data||{}).quotation_no || ""; }
     return body;
@@ -17361,20 +17445,55 @@ if(document.readyState !== "loading") initChatWidget();
     const tb = el("bk_chargeRows"); if(tb) tb.innerHTML = ""; ((rec.data||{}).charges || []).forEach(r=> BKG.addCharge(r));
     const sv = ((rec.data||{}).services || "").split(",").map(x=>x.trim()).filter(Boolean);
     if(sv.length){ document.querySelectorAll(".fi[data-svc]").forEach(f=> f.classList.toggle("on", sv.includes(f.dataset.svc))); }
+    BKG.applyMode(); refreshAddresses(rec);
   };
   BKG.reset = function(){
     BKG.rec = null; BKG.quote = null; BKG.prefill = null;
     MAP.forEach(([id])=>{ const e = el(id); if(e) e.value = e.tagName === "SELECT" ? (e.options[0] ? e.options[0].value : "") : ""; });
     setVal("bk_no", ""); setVal("bk_customer", ""); const tb = el("bk_chargeRows"); if(tb) tb.innerHTML = "";
+    ["customer","shipper","consignee","notify"].forEach(k=>{ const b = el("bk_"+k+"Branch"); if(b) b.remove(); });
     setVal("bk_bookdate", new Date().toISOString().slice(0,10));
-    const note = el("bk_quoteNote"); if(note) note.remove();
+    const note = el("bk_quoteNote"); if(note) note.remove(); const cn = el("bk_costNote"); if(cn) cn.style.display = "none";
   };
   function quoteNote(){
-    const host = el("bk_svcFromQuoteNote") || $("#bookFormWrap"); const old = el("bk_quoteNote"); if(old) old.remove();
+    const old = el("bk_quoteNote"); if(old) old.remove();
     const q = BKG.quote ? BKG.quote.number : (BKG.rec && (BKG.rec.data||{}).quotation_no);
-    if(!q || !host) return; const n = document.createElement("div"); n.id = "bk_quoteNote"; n.className = "ib ib-bl"; n.style.marginBottom = "10px"; n.textContent = "Raised from quotation "+q+". Confirming this booking creates the job with the quotation's sell charges and buy costs and marks the quotation as converted.";
+    const cn = el("bk_costNote"); if(cn){ cn.style.display = q ? "" : "none"; cn.textContent = q ? "Charges below are the ones approved in quotation "+q+". Choose the vendor for every buy (AP) charge; you can change rates here if the carrier or vendor quoted differently." : ""; }
+    if(!q) return; const n = document.createElement("div"); n.id = "bk_quoteNote"; n.className = "ib ib-bl"; n.style.marginBottom = "10px"; n.textContent = "Raised from quotation "+q+". Confirm the booking to get the booking number; the jobs (freight, CHA, transport ...) are then created from the booking page and carry these charges.";
     $("#bookFormWrap").insertBefore(n, $("#bookFormWrap").firstChild);
   }
+
+  /* ---------- overview (step 5) ---------- */
+  const v = id=> { const e = el(id); return e ? (e.tagName === "SELECT" && e.selectedOptions[0] && !e.value ? "" : e.value) : ""; };
+  const kv = (label, value)=> '<div style="min-width:160px;flex:1"><div style="font-size:10.5px;color:var(--g5);font-weight:600;text-transform:uppercase;letter-spacing:.3px">'+esc2(label)+'</div><div style="margin-top:2px">'+(value ? esc2(value) : '<span style="color:var(--g4)">—</span>')+'</div></div>';
+  const kvRow = items=> '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px">'+items.map(i=>kv(i[0], i[1])).join("")+'</div>';
+  function costTable(rows){
+    if(!rows.length) return '<div style="color:var(--g5);font-style:italic">No charges yet.</div>';
+    const t = totals(rows);
+    return '<div class="tw"><table><thead><tr><th>Type</th><th>Charge</th><th>Qty</th><th>Rate</th><th>Ccy</th><th>Exch</th><th>GST %</th><th style="text-align:right">Amount (INR)</th><th>Vendor</th></tr></thead><tbody>'+
+      rows.map(r=>{ const inr = num(r.qty || 1) * num(r.rate) * (r.currency === "INR" ? 1 : (num(r.exch) || 1)); return '<tr><td>'+(r.type === "AP" ? '<span class="b b-am">Buy</span>' : '<span class="b b-gr">Sell</span>')+'</td><td>'+esc2(r.description || r.code)+'</td><td>'+esc2(r.qty || "1")+'</td><td>'+esc2(r.rate)+'</td><td>'+esc2(r.currency)+'</td><td>'+esc2(r.currency === "INR" ? "1" : r.exch)+'</td><td>'+esc2(r.tax_pct || "0")+'</td><td style="text-align:right">'+money(inr)+'</td><td>'+(r.type === "AP" ? (r.vendor ? esc2(r.vendor) : '<span style="color:var(--am);font-weight:600">Not chosen</span>') : "—")+'</td></tr>'; }).join("")+
+      '</tbody><tfoot><tr><td colspan="7" style="text-align:right;font-weight:600">Sell total / Buy total / Margin (INR)</td><td style="text-align:right;font-weight:700">'+money(t.ar)+' / '+money(t.ap)+' / <span style="color:'+(t.margin >= 0 ? "var(--gr)" : "var(--rd)")+'">'+money(t.margin)+'</span></td><td></td></tr></tfoot></table></div>';
+  }
+  function summaryHtml(d, rows, opts){
+    const w = window.bookWiz || {}; const mode = d.mode || w.mode || "Sea";
+    const equip = mode === "Air" ? [["Chargeable weight", d.data.chargeable_weight], ["ULD type", d.data.uld_type]] : (mode === "Road" || mode === "Rail") ? [["Vehicle type", d.data.vehicle_type], ["No. of vehicles", d.data.vehicle_qty]] : [["Container type", d.data.container_type], ["Container no", d.data.container_no], ["No. of containers", d.data.container_qty], ["TEU", d.data.teu]];
+    const party = (title, name, addr)=> '<div style="flex:1;min-width:210px;border:1px solid var(--g2);border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:var(--g5);font-weight:700;text-transform:uppercase">'+title+'</div><div style="font-weight:600;margin-top:3px">'+(name ? esc2(name) : "—")+'</div><div style="font-size:11.5px;color:var(--g6);margin-top:3px;white-space:pre-line">'+esc2(addr || "")+'</div></div>';
+    return '<div class="fsec">Booking details</div>'+kvRow([["Booking no", d.number || "To be issued on confirmation"], ["Date", dmy(d.booking_date)], ["Mode / direction / type", [mode, d.direction, d.shipment_type].filter(Boolean).join(" · ")], ["Branch", d.data.branch], ["Freight", d.data.freight_pp], ["Service type", d.data.service_type]])+
+      kvRow([["POL", d.pol], ["POD", d.pod], ["Place of receipt", d.data.place_of_receipt], ["Place of delivery", d.data.place_of_delivery], ["ETD", dmy(d.etd)], ["ETA", dmy(d.eta)]])+
+      kvRow([["Carrier", d.carrier], ["Vessel / flight", d.vessel], ["Carrier booking ref", d.carrier_booking_no], ["SI cutoff", dmy(d.si_cutoff)], ["VGM cutoff", dmy(d.vgm_cutoff)], ["Services booked", d.data.services], ["Quotation", d.data.quotation_no]])+
+      '<div class="fsec">Parties</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+party("Customer", d.party_name, d.data.customer_address)+party("Shipper", d.data.shipper, d.data.shipper_address)+party("Consignee", d.data.consignee, d.data.consignee_address)+party("Notify", d.data.notify, d.data.notify_address)+'</div>'+
+      '<div class="fsec">Consignment</div>'+kvRow([["No of pieces", d.data.pcs], ["Pack type", d.data.pack_type]].concat(equip))+
+      kvRow([["Pallets", d.data.pallet], ["Gross weight", d.data.gwt ? d.data.gwt+" "+(d.data.gwt_unit || "") : ""], ["Net weight", d.data.nwt ? d.data.nwt+" "+(d.data.nwt_unit || "") : ""], ["Volume weight", d.data.vwt ? d.data.vwt+" "+(d.data.vwt_unit || "") : ""], ["Volume (CBM)", d.data.volume], ["Marks & numbers", d.data.marks], ["Commodity", d.data.commodity]])+
+      '<div class="fsec">Costing</div>'+costTable(rows)+(d.data.notes ? '<div class="fsec">Notes</div><div style="white-space:pre-line">'+esc2(d.data.notes)+'</div>' : "");
+  }
+  BKG.renderOverview = function(){
+    const body = $("#bk_overviewBody"); if(!body) return;
+    const d = BKG.collect(); d.number = (BKG.rec && BKG.rec.number) || ""; d.mode = d.mode; d.data.customer_address = v("bk_customerAddr"); d.data.shipper_address = v("bk_shipperAddr"); d.data.consignee_address = v("bk_consigneeAddr"); d.data.notify_address = v("bk_notifyAddr");
+    d.etd = d.etd; const rows = d.data.charges || [];
+    const miss = [d.party_name ? "" : "Customer", d.carrier ? "" : "Carrier", d.pol ? "" : "POL", d.pod ? "" : "POD"].filter(Boolean); const t = totals(rows);
+    body.innerHTML = (miss.length ? '<div class="ib ib-am" style="margin-bottom:10px">Required before confirming: '+miss.join(", ")+'</div>' : '')+(t.missing ? '<div class="ib ib-am" style="margin-bottom:10px">'+t.missing+' buy charge(s) have no vendor chosen yet. Choose them on the Costing step.</div>' : '')+summaryHtml(d, rows)+
+      '<div class="ib ib-bl" style="margin-top:12px">Confirm Booking gives this booking its number. The jobs (freight, consol, CHA, transport ...) are created from the booking page under that one booking number.</div>';
+  };
 
   /* ---------- save / confirm ---------- */
   BKG.save = async function(){
@@ -17386,10 +17505,12 @@ if(document.readyState !== "loading") initChatWidget();
     }catch(e){ say("Could not save the booking", e.message, "warn"); return null; }
   };
   BKG.finish = async function(){
+    const t = totals(chargeRows());
+    if(t.missing && !window.confirm(t.missing+" buy charge(s) have no vendor chosen. Confirm the booking anyway?")) return;
     const rec = await BKG.save(); if(!rec) return;
     try{
       const done = await api("POST", "/api/bookings/"+rec.id+"/confirm");
-      say("Booking confirmed", done.number+" · Job "+(done.job_number||"—")+" created"); BKG.rec = null; BKG.quote = null; go("booking");
+      say("Booking confirmed", done.number+" — create the job(s) from the booking page"); BKG.rec = null; BKG.quote = null; BKG.view(done.id);
     }catch(e){ say("Booking saved as a draft", e.message, "warn"); }
   };
   document.addEventListener("click", async e=>{
@@ -17398,10 +17519,10 @@ if(document.readyState !== "loading") initChatWidget();
 
   /* ---------- open: from the list, or prefilled from a quotation ---------- */
   function showForm(rec){
-    const w = window.bookWiz; w.mode = rec.mode; w.dir = rec.direction; w.type = rec.shipment_type || (WIZ_TYPES[rec.mode] && WIZ_TYPES[rec.mode][0].id); w.bookingType = rec.booking_type || "Direct"; w.hblType = rec.hbl_type; w.scac = rec.scac;
+    const w = window.bookWiz; w.mode = rec.mode; w.dir = rec.direction; w.type = rec.shipment_type || ((window.WIZ_TYPES || {})[rec.mode] || [{}])[0].id; w.bookingType = rec.booking_type || "Direct"; w.hblType = rec.hbl_type; w.scac = rec.scac;
     BKG.pending = rec; go("booking-new");
   }
-  BKG.open = async function(id){ const rec = await api("GET", "/api/bookings/"+id); BKG.rec = rec; BKG.quote = null; showForm(rec); };
+  BKG.open = async function(id){ const rec = await api("GET", "/api/bookings/"+id); if(rec.status !== "DRAFT"){ return BKG.view(id); } BKG.rec = rec; BKG.quote = null; showForm(rec); };
   BKG.fromQuotation = async function(quoteId){
     try{
       const q = await api("GET", "/api/quotations/"+quoteId);
@@ -17409,9 +17530,18 @@ if(document.readyState !== "loading") initChatWidget();
       const carriers = Array.from(new Set((q.lines||[]).filter(l=>l.side==="SELL" && Number(l.rate)>0).map(l=>l.carrier).filter(Boolean)));
       let carrier = carriers[0] || "";
       if(carriers.length > 1){ carrier = window.prompt("This quotation compares several carriers. Type the carrier to book with:\n"+carriers.join("\n"), carriers[0]) || ""; if(!carrier) return; }
+      await loadMasters();
       const h = q.header || {};
+      const rows = [];
+      (q.lines || []).filter(l=>!carrier || !l.carrier || l.carrier === carrier).forEach(l=>{
+        const m = chargeMaster(l.charge_name); const service = SERVICE_OF_MODULE[((m && m.data) || {}).module] || "Freight";
+        const base = {type:l.side === "BUY" ? "AP" : "AR", code:m ? m.code : "", currency:l.ccy, exch:l.ccy === "INR" ? "1" : l.exch, tax_pct:l.taxable ? l.tax_pct : "0", service, uom:l.basis, vendor:l.side === "BUY" ? (BKG.m.vendors.find(x=>x.name === (l.carrier || carrier)) ? (l.carrier || carrier) : "") : ""};
+        const br = (l.container_breakup || []).filter(b=>Number(b.qty) > 0);
+        if(br.length) br.forEach(b=> rows.push({...base, description:l.charge_name+" — "+b.type, qty:String(Number(b.qty)), rate:String(Number(b.rate))}));
+        else if(Number(l.rate) > 0) rows.push({...base, description:l.charge_name, qty:String(Number(l.qty) || 1), rate:String(Number(l.rate))});
+      });
       const rec = {mode:q.mode, direction:q.direction, shipment_type:q.shipment_type, booking_type:"Direct", customer_id:q.customer_id, party_name:q.party_name, carrier, pol:q.pol, pod:q.pod, quotation_id:q.id, booking_date:new Date().toISOString().slice(0,10),
-        data:{incoterm:h.incoterm||"", commodity:h.commodity||"", marks:h.commodity||"", pcs:h.packages||"", gwt:h.gross_weight||"", volume:h.volume||"", service_type:h.service_type||"", notes:"From quotation "+q.number, quotation_no:q.number, freight_pp:h.freight_terms||"Prepaid"}};
+        data:{incoterm:h.incoterm||"", commodity:h.commodity||"", marks:h.commodity||"", pcs:h.packages||"", gwt:h.gross_weight||"", volume:h.volume||"", service_type:h.service_type||"", services:"Freight", charges:rows, notes:"From quotation "+q.number, quotation_no:q.number, freight_pp:h.freight_terms||"Prepaid"}};
       BKG.rec = null; BKG.quote = {id:q.id, number:q.number}; showForm(rec);
     }catch(e){ say("Could not open the quotation", e.message, "warn"); }
   };
@@ -17419,8 +17549,9 @@ if(document.readyState !== "loading") initChatWidget();
   MK.onScreen = function(screen){
     prev(screen);
     if(screen === "booking") BKG.loadList();
+    if(screen === "booking-view") BKG.renderView();
     if(screen === "booking-new") setTimeout(async ()=>{
-      if(!BKG.m.clients.length) await loadMasters();
+      await loadMasters();
       const rec = BKG.pending; BKG.pending = null;
       if(rec){
         if(typeof window.bookWizApplyAndShowForm === "function") window.bookWizApplyAndShowForm();
@@ -17431,23 +17562,74 @@ if(document.readyState !== "loading") initChatWidget();
     }, 60);
   };
 
-  /* ---------- list ---------- */
-  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "—";
+  /* ---------- the booking page: one number, several jobs ---------- */
   const STATUS = {DRAFT:["b-gy","Draft"], CONFIRMED:["b-gr","Confirmed"], CANCELLED:["b-rd","Cancelled"], SPACE_RELEASED:["b-am","Space released"]};
+  BKG.view = function(id){ BKG.viewId = id; go("booking-view"); };
+  BKG.renderView = async function(){
+    const root = el("bkvRoot"); if(!root || !BKG.viewId) return;
+    let b; try{ b = await api("GET", "/api/bookings/"+BKG.viewId); }catch(e){ say("Could not open the booking", e.message, "warn"); return; }
+    if(!BKG.m.clients.length) await loadMasters();
+    const st = STATUS[b.status] || ["b-gy", b.status]; const d = b.data || {};
+    el("bkvTitle").innerHTML = esc2(b.number || "Draft booking")+' <span class="b '+st[0]+'" style="font-size:11px;vertical-align:middle">'+st[1]+'</span>';
+    el("bkvSub").textContent = [b.party_name, [b.mode, b.direction, b.shipment_type].filter(Boolean).join(" "), [b.pol, b.pod].filter(Boolean).join(" → ")].filter(Boolean).join(" · ");
+    const acts = ['<button class="btn btn-out btn-sm" data-go="booking">← Back</button>'];
+    if(b.status === "DRAFT") acts.push('<button class="btn btn-pri btn-sm" data-bkv="edit">Edit</button>');
+    if(b.status === "CONFIRMED"){ acts.push('<button class="btn btn-out btn-sm" data-bkv="cancel" style="color:var(--rd)">Cancel booking</button>'); acts.push('<button class="btn btn-out btn-sm" data-bkv="release">Release space</button>'); }
+    acts.push('<button class="btn btn-out btn-sm" data-bkv="dup">Duplicate</button>');
+    el("bkvActions").innerHTML = acts.join("");
+    const rows = d.charges || [];
+    const booked = String(d.services || "Freight").split(",").map(x=>x.trim()).filter(Boolean);
+    const jobs = b.jobs || [];
+    const svcRows = [];
+    booked.forEach(sv=>{
+      const type = {Freight:"Forwarding", CHA:"Customs", Transport:"Transport", Warehouse:"Warehouse"}[sv] || sv;
+      svcRows.push([sv+(sv === "Freight" ? " job" : sv === "CHA" ? " job (customs clearance)" : " job"), type, sv]);
+      if(sv === "Freight" && ["LCL","Consolidation"].includes(b.shipment_type || "")) svcRows.push(["Consol job", "Consol", "Consol"]);
+    });
+    const canCreate = b.status === "CONFIRMED";
+    const jobTable = '<div class="tw"><table><thead><tr><th>Service</th><th>Job</th><th>Stage</th><th></th></tr></thead><tbody>'+svcRows.map(([label, type, sv])=>{
+      const j = jobs.find(x=>x.job_type === type);
+      const nrows = rows.filter(r=>(r.service || "Freight") === (sv === "Consol" ? "Freight" : sv)).length;
+      return '<tr><td style="font-weight:600">'+esc2(label)+'<div style="font-size:10.5px;color:var(--g5);font-weight:400">'+nrows+' charge line(s) from the booking costing</div></td><td>'+(j ? '<span class="mono ta" data-bkv-job="'+esc2(j.job_number)+'" style="color:var(--bl);font-weight:700;cursor:pointer">'+esc2(j.job_number)+'</span>' : '<span style="color:var(--g5)">Not created</span>')+'</td><td>'+(j ? esc2(j.job_stage || j.status) : "—")+'</td><td>'+(j ? '<button class="ta" data-bkv-job="'+esc2(j.job_number)+'">Open job →</button>' : (canCreate ? '<button class="btn btn-pri btn-sm" data-bkv-create="'+esc2(sv)+'">Create '+esc2(sv === "CHA" ? "CHA" : sv)+' job</button>' : '<span style="color:var(--g5)">Confirm the booking first</span>'))+'</td></tr>';
+    }).join("")+'</tbody></table></div>';
+    const summary = summaryHtml({...b, number:b.number, data:d}, rows);
+    root.innerHTML = '<div class="card"><div class="ch"><div class="ct">Jobs under booking '+esc2(b.number || "")+'</div></div><div class="cb">'+(b.status === "CONFIRMED" ? '<div class="ib ib-bl" style="margin-bottom:10px">One booking number covers every service booked: freight, consol, CHA, transport. Create each job here; they all carry this booking number.</div>' : '')+jobTable+(b.quotation_id ? '<div style="margin-top:8px;font-size:11.5px;color:var(--g6)">Quotation '+esc2(d.quotation_no || "")+' is marked Converted when the first job is created.</div>' : '')+'</div></div>'+
+      '<div class="card"><div class="ch"><div class="ct">Booking summary</div></div><div class="cb">'+summary+'</div></div>';
+  };
+  document.addEventListener("click", async e=>{
+    const jobBtn = e.target.closest("[data-bkv-job]"); if(jobBtn){ go("job-detail", {jobNo:jobBtn.dataset.bkvJob}); return; }
+    const cr = e.target.closest("[data-bkv-create]");
+    if(cr){
+      cr.disabled = true;
+      try{ const r = await api("POST", "/api/bookings/"+BKG.viewId+"/jobs", {service:cr.dataset.bkvCreate}); say("Job created", r.created_job+" under booking "+r.number); BKG.renderView(); }
+      catch(err){ say("Could not create the job", err.message, "warn"); cr.disabled = false; }
+      return;
+    }
+    const a = e.target.closest("[data-bkv]"); if(!a) return;
+    try{
+      if(a.dataset.bkv === "edit") return BKG.open(BKG.viewId);
+      if(a.dataset.bkv === "dup"){ const r = await api("POST", "/api/bookings/"+BKG.viewId+"/duplicate"); say("Draft created", "A copy of the booking is open for editing"); BKG.rec = r; BKG.quote = null; return showForm(r); }
+      if(a.dataset.bkv === "cancel"){ if(!window.confirm("Cancel this booking?")) return; await api("POST", "/api/bookings/"+BKG.viewId+"/cancel"); say("Booking cancelled", ""); }
+      if(a.dataset.bkv === "release"){ if(!window.confirm("Release the booked space?")) return; await api("POST", "/api/bookings/"+BKG.viewId+"/release-space"); say("Space released", ""); }
+      BKG.renderView();
+    }catch(err){ say("Booking action failed", err.message, "warn"); }
+  });
+
+  /* ---------- list ---------- */
   BKG.loadList = async function(){
     if(!token()) return;
     const scr = $("#s-booking"); if(!scr) return;
     try{ BKG.list = await api("GET", "/api/bookings"); }catch(e){ say("Could not load bookings", e.message, "warn"); return; }
     const sum = await api("GET", "/api/bookings/summary").catch(()=>null);
-    const kp = scr.querySelectorAll(".kpi"); const put = (i, v)=>{ const k = kp[i]; if(k) k.querySelector(".kpi-val").textContent = v; };
+    const kp = scr.querySelectorAll(".kpi"); const put = (i, val)=>{ const k = kp[i]; if(k) k.querySelector(".kpi-val").textContent = val; };
     if(sum){ put(0, sum.confirmed_this_week); put(1, sum.si_cutoff_48h); put(2, sum.vgm_pending); put(3, sum.space_released); }
     const tb = scr.querySelector("tbody");
     const btn = (a, id, label, color)=> '<button class="ta" data-bk-act="'+a+':'+id+'"'+(color ? ' style="color:var(--'+color+')"' : "")+'>'+label+'</button>';
     tb.innerHTML = BKG.list.length ? BKG.list.map(b=>{
       const st = STATUS[b.status] || ["b-gy", b.status]; const acts = [];
       if(b.status === "DRAFT"){ acts.push(btn("open", b.id, "Edit")); acts.push(btn("confirm", b.id, "Confirm", "gr")); acts.push(btn("delete", b.id, "Delete", "rd")); }
-      else { acts.push(btn("open", b.id, "View")); if(b.status === "CONFIRMED"){ acts.push(btn("cancel", b.id, "Cancel", "rd")); acts.push(btn("release", b.id, "Release space", "am")); } acts.push(btn("dup", b.id, "Duplicate")); }
-      return '<tr><td class="mono">'+esc2(b.job_number || "—")+'</td><td>'+esc2(b.carrier || "—")+'</td><td class="mono">'+esc2(b.number || "Draft")+(b.carrier_booking_no ? '<div style="font-size:10.5px;color:var(--g5)">Carrier ref '+esc2(b.carrier_booking_no)+'</div>' : "")+'</td><td>'+esc2(b.vessel || "—")+'</td><td>'+dmy(b.etd)+'</td><td>'+dmy(b.si_cutoff)+'</td><td>'+dmy(b.vgm_cutoff)+'</td><td><span class="b '+st[0]+'">'+st[1]+'</span>'+((b.data||{}).quotation_no ? '<div style="font-size:10.5px;color:var(--g5)">'+esc2(b.data.quotation_no)+'</div>' : "")+'</td><td class="no-print" style="white-space:nowrap">'+acts.join(" ")+'</td></tr>';
+      else { acts.push(btn("open", b.id, (b.jobs || []).length ? "Open" : "Open / create job")); if(b.status === "CONFIRMED"){ acts.push(btn("cancel", b.id, "Cancel", "rd")); acts.push(btn("release", b.id, "Release space", "am")); } acts.push(btn("dup", b.id, "Duplicate")); }
+      return '<tr><td class="mono">'+((b.jobs || []).length ? b.jobs.map(esc2).join(", ") : "—")+'</td><td>'+esc2(b.carrier || "—")+'</td><td class="mono">'+esc2(b.number || "Draft")+(b.carrier_booking_no ? '<div style="font-size:10.5px;color:var(--g5)">Carrier ref '+esc2(b.carrier_booking_no)+'</div>' : "")+'</td><td>'+esc2(b.vessel || "—")+'</td><td>'+dmy(b.etd)+'</td><td>'+dmy(b.si_cutoff)+'</td><td>'+dmy(b.vgm_cutoff)+'</td><td><span class="b '+st[0]+'">'+st[1]+'</span>'+((b.data||{}).quotation_no ? '<div style="font-size:10.5px;color:var(--g5)">'+esc2(b.data.quotation_no)+'</div>' : "")+'</td><td class="no-print" style="white-space:nowrap">'+acts.join(" ")+'</td></tr>';
     }).join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px">No bookings yet — click "New Booking" or use "Create Booking" on an accepted quotation.</td></tr>';
   };
   document.addEventListener("click", async e=>{
@@ -17455,7 +17637,7 @@ if(document.readyState !== "loading") initChatWidget();
     const [act, id] = b.dataset.bkAct.split(":");
     try{
       if(act === "open") return BKG.open(id);
-      if(act === "confirm"){ if(!window.confirm("Confirm this booking? It gets its booking number and the job is created.")) return; const r = await api("POST", "/api/bookings/"+id+"/confirm"); say("Booking confirmed", r.number+" · Job "+r.job_number); }
+      if(act === "confirm"){ if(!window.confirm("Confirm this booking? It gets its booking number; the jobs are then created from the booking page.")) return; const r = await api("POST", "/api/bookings/"+id+"/confirm"); say("Booking confirmed", r.number); return BKG.view(r.id); }
       if(act === "cancel"){ if(!window.confirm("Cancel this booking?")) return; await api("POST", "/api/bookings/"+id+"/cancel"); say("Booking cancelled", ""); }
       if(act === "release"){ if(!window.confirm("Release the booked space?")) return; await api("POST", "/api/bookings/"+id+"/release-space"); say("Space released", "Re-book is required for this cargo"); }
       if(act === "dup"){ const r = await api("POST", "/api/bookings/"+id+"/duplicate"); say("Draft created", "A copy of the booking is open for editing"); return BKG.open(r.id); }
@@ -17465,6 +17647,7 @@ if(document.readyState !== "loading") initChatWidget();
   });
   document.addEventListener("click", e=>{ if(e.target.closest("#newBookingBtn")){ BKG.rec = null; BKG.quote = null; BKG.pending = null; } }, true);
 })();
+
 </script>
 
 <script>

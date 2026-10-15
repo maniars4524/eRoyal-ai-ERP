@@ -38,8 +38,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the Change-shipment-details link is hidden for a quotation booking", d.getElementById("bookWizChange").style.display === "none");
   check("the Costing step starts from the quotation's buy cost", true);
   d.getElementById("bk_finishBtn").click(); await sleep(2500);
-  const bk = (await j("GET", "/api/bookings", null, token)).body[0];
-  check("the booking confirms and returns a job number", bk && bk.status === "CONFIRMED" && !!bk.job_number, JSON.stringify(bk || {}).slice(0, 200));
+  let bk = (await j("GET", "/api/bookings", null, token)).body[0];
+  check("the booking confirms with its number and opens the Booking page (no job yet)", bk && bk.status === "CONFIRMED" && /^BKG/.test(bk.number) && !bk.job_number && d.querySelector(".scr.on").id === "s-booking-view", JSON.stringify(bk || {}).slice(0, 200));
+  d.querySelector('[data-bkv-create="Freight"]').click(); await sleep(2500);
+  bk = (await j("GET", `/api/bookings/${bk.id}`, null, token)).body; bk.job_number = (bk.jobs[0] || {}).job_number;
+  check("the freight job is created from the booking page", !!bk.job_number && bk.jobs.length === 1 && bk.jobs[0].job_type === "Forwarding");
 
   // the job
   const jobNo = bk.job_number;
@@ -81,6 +84,39 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const cv = await j("POST", `/api/quotations/${conv.id}/convert`, null, token);
   const cjob = (await j("GET", "/api/shipments", null, token)).body.find(x => x.job_number === (cv.body || {}).job_number);
   check("Convert to Job also carries commodity, packages, weight and volume", cjob && cjob.commodity === "Tea" && cjob.packages === 300 && Number(cjob.gross_weight) === 6000 && Number(cjob.volume) === 22 && cjob.container_mode === "LCL", JSON.stringify(cjob || cv.body).slice(0, 300));
+
+  // addresses come from the customer's branches in the Organization master
+  const cust2 = (await j("POST", "/api/customers", { code: "BRN" + tag.slice(-3).toUpperCase(), name: "Branchy Traders", roles: ["shipper", "consignee"], data: {} }, token)).body;
+  await j("POST", `/api/customers/${cust2.id}/branches`, { name: "Head Office", address: "1 Anna Salai", city: "Chennai", state: "Tamil Nadu", pincode: "600002", country: "India", branch_type: "Head Office" }, token);
+  await j("POST", `/api/customers/${cust2.id}/branches`, { name: "Mumbai Office", address: "9 Marine Drive", city: "Mumbai", state: "Maharashtra", pincode: "400020", country: "India" }, token);
+  w.go("booking-new"); await sleep(1500);
+  w.bookWiz.mode = "Sea"; w.bookWiz.dir = "Export"; w.bookWiz.type = "FCL"; w.bookWiz.bookingType = "Direct"; w.bookWizApplyAndShowForm(); await sleep(500);
+  const cs = d.getElementById("bk_customer"); cs.value = String(cust2.id); cs.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(1500);
+  check("the customer's address is picked from its branch in the master", /1 Anna Salai/.test(d.getElementById("bk_customerAddr").value) && /Chennai/.test(d.getElementById("bk_customerAddr").value), d.getElementById("bk_customerAddr").value);
+  check("a customer with several branches gets a branch chooser", !!d.getElementById("bk_customerBranch") && d.getElementById("bk_customerBranch").options.length === 2);
+  const bsel = d.getElementById("bk_customerBranch"); bsel.value = bsel.options[1].value; bsel.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(300);
+  check("choosing another branch changes the address", /Marine Drive/.test(d.getElementById("bk_customerAddr").value), d.getElementById("bk_customerAddr").value);
+  check("the shipper is filled from the customer too, with its address", d.getElementById("bk_shipper").value === "Branchy Traders" && /Marine Drive|Anna Salai/.test(d.getElementById("bk_shipperAddr").value), d.getElementById("bk_shipperAddr").value);
+  check("sea equipment fields are shown, air ones hidden", d.getElementById("bk_conttype").closest(".fg").style.display !== "none" && d.getElementById("bk_chgwt").closest(".fg").style.display === "none");
+
+  // one booking number, several jobs: Freight + CHA
+  const fc = (await j("POST", "/api/quotations", { customer_id: cust.id, party_name: "Acme Exports", mode: "Sea", direction: "Export", shipment_type: "FCL", pol: "INMAA", pod: "BEANR", lines: [line("Ocean Freight", "850", "SELL"), line("Ocean Freight", "700", "BUY")] }, token)).body;
+  await j("POST", `/api/quotations/${fc.id}/approval/submit`, null, token); await j("POST", `/api/quotations/${fc.id}/approval/approve`, {}, token); await j("POST", `/api/quotations/${fc.id}/send`, null, token); await j("POST", `/api/quotations/${fc.id}/accept`, null, token);
+  w.go("quotation"); await sleep(1200);
+  d.querySelector(`[data-qk-do="book:${fc.id}"]`).click(); await sleep(2500);
+  d.querySelector('.fi[data-svc="CHA"]').classList.add("on");
+  w.BKG.addCharge({ type: "AR", description: "Customs Clearance", qty: "1", rate: "4500", currency: "INR", exch: "1", tax_pct: "18", service: "CHA" });
+  d.getElementById("bk_finishBtn").click(); await sleep(2500);
+  const multi = (await j("GET", "/api/bookings", null, token)).body.find(x => x.quotation_id === fc.id);
+  check("a Freight + CHA booking shows a create button for each service", d.querySelector(".scr.on").id === "s-booking-view" && !!d.querySelector('[data-bkv-create="Freight"]') && !!d.querySelector('[data-bkv-create="CHA"]'));
+  d.querySelector('[data-bkv-create="Freight"]').click(); await sleep(2000); d.querySelector('[data-bkv-create="CHA"]').click(); await sleep(2000);
+  const mb = (await j("GET", `/api/bookings/${multi.id}`, null, token)).body;
+  check("both jobs sit under the one booking number", mb.jobs.length === 2 && new Set(mb.jobs.map(x => x.job_type)).size === 2 && /BKG/.test(mb.number), JSON.stringify(mb.jobs));
+  const chaJob = mb.jobs.find(x => x.job_type === "Customs").job_number;
+  const chaCh = (await j("GET", `/api/shipments/by-number/${chaJob}/charges`, null, token)).body.lines;
+  check("the CHA job carries only the CHA charge, with its GST", chaCh.length === 1 && chaCh[0].charge_name === "Customs Clearance" && Number(chaCh[0].sell.tax_pct) === 18, JSON.stringify(chaCh).slice(0, 200));
+  w.go("booking"); await sleep(1500);
+  check("the Bookings list shows both job numbers against the booking", mb.jobs.every(x => new RegExp(x.job_number).test(d.querySelector("#s-booking tbody").textContent)));
 
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);

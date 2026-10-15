@@ -80,6 +80,11 @@ def _clean(data: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail=str(exc))
 
 
+def _jobs(db: Session, b: Booking) -> list[dict]:
+    rows = db.scalars(select(Shipment).where(Shipment.organization_id == b.organization_id, Shipment.booking_id == b.id).order_by(Shipment.id))
+    return [{"job_number": j.job_number, "job_type": j.job_type, "status": j.status, "job_stage": j.job_stage, "created_at": j.created_at} for j in rows]
+
+
 def _out(b: Booking) -> dict:
     return {"id": b.id, "number": b.number, "status": b.status, "booking_date": b.booking_date, "mode": b.mode, "direction": b.direction, "shipment_type": b.shipment_type, "booking_type": b.booking_type, "hbl_type": b.hbl_type, "scac": b.scac,
             "customer_id": b.customer_id, "party_name": b.party_name, "carrier": b.carrier, "carrier_booking_no": b.carrier_booking_no, "vessel": b.vessel, "pol": b.pol, "pod": b.pod, "etd": b.etd, "eta": b.eta,
@@ -121,7 +126,12 @@ def list_bookings(status_filter: str | None = Query(default=None, alias="status"
     if q:
         like = f"%{q.strip()}%"
         query = query.where(or_(Booking.number.ilike(like), Booking.party_name.ilike(like), Booking.carrier.ilike(like), Booking.job_number.ilike(like), Booking.carrier_booking_no.ilike(like)))
-    return [_out(b) for b in db.scalars(query.order_by(Booking.booking_date.desc(), Booking.id.desc()).limit(limit))]
+    rows = list(db.scalars(query.order_by(Booking.booking_date.desc(), Booking.id.desc()).limit(limit)))
+    by_booking: dict[int, list[str]] = {}
+    if rows:
+        for jn, bid in db.execute(select(Shipment.job_number, Shipment.booking_id).where(Shipment.organization_id == org_id, Shipment.booking_id.in_([r.id for r in rows])).order_by(Shipment.id)):
+            by_booking.setdefault(bid, []).append(jn)
+    return [{**_out(b), "jobs": by_booking.get(b.id, [])} for b in rows]
 
 
 @router.get("/summary")
@@ -155,7 +165,8 @@ def create_booking(payload: BookingIn, user: User = Depends(permission_required(
 
 @router.get("/{booking_id}")
 def get_booking(booking_id: int, user: User = Depends(permission_required("booking.read")), db: Session = Depends(get_db)):
-    return _out(_get(db, _tenant(user), booking_id))
+    b = _get(db, _tenant(user), booking_id)
+    return {**_out(b), "jobs": _jobs(db, b)}
 
 
 @router.patch("/{booking_id}")
@@ -203,44 +214,138 @@ def _num(value: Any) -> Decimal | None:
 
 @router.post("/{booking_id}/confirm")
 def confirm_booking(booking_id: int, user: User = Depends(permission_required("booking.confirm")), db: Session = Depends(get_db)):
-    """DRAFT -> CONFIRMED: assigns the booking number, creates the linked job (if none), and locks the booking."""
+    """DRAFT -> CONFIRMED: assigns the booking number and locks the booking. Jobs (freight, consol, CHA, transport ...) are then created from the booking, all under this one number."""
     org_id = _tenant(user)
-    if not has_permission(user, "shipment.create"):
-        raise HTTPException(status_code=403, detail="Permission denied: confirming a booking creates the job and needs shipment.create")
     b = _get(db, org_id, booking_id, lock=True)
     if b.status != "DRAFT":
         raise HTTPException(status_code=409, detail="Only draft bookings can be confirmed")
     missing = [label for label, value in (("customer", b.party_name), ("carrier", b.carrier), ("port of loading", b.pol), ("port of discharge", b.pod)) if not value]
     if missing:
         raise HTTPException(status_code=422, detail="Required before confirming: " + ", ".join(missing))
-    from .shipments_api import _next_job_number
+    if b.quotation_id:
+        quote = db.get(Quotation, b.quotation_id)
+        if not quote or quote.status != "ACCEPTED":
+            raise HTTPException(status_code=409, detail="The linked quotation " + ((quote.number if quote else "") or "") + " is " + (quote.status if quote else "missing") + "; only an accepted quotation can be booked")
+    from .credit_control import enforce as credit_enforce
 
-    if not b.job_number:
-        from .credit_control import enforce as credit_enforce
-
-        credit_enforce(db, org_id, b.customer_id, "confirm booking", user.id, None, __import__("decimal").Decimal(0))
-        data = b.data or {}
-        pcs, gwt = _num(data.get("pcs")), _num(data.get("gwt"))
-        job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction, b.shipment_type if b.shipment_type in ("FCL", "LCL") else None, user), mode=b.mode, direction=b.direction, container_mode=b.shipment_type if b.shipment_type in ("FCL", "LCL") else None,
-                       pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
-                       gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id)
-        db.add(job)
-        db.flush()
-        b.job_number = job.job_number
-        b.status = "CONFIRMED"
-        from . import job_lifecycle as jl
-
-        jl.on_job_created(db, job, user, "booking confirmation", {"booking": b.number})
-        if b.quotation_id:
-            from .quotations_api import link_booking_job
-
-            link_booking_job(db, org_id, b.quotation_id, job, user, b.carrier)
+    credit_enforce(db, org_id, b.customer_id, "confirm booking", user.id, None, Decimal(0))
     b.number = next_number(db, org_id, "booking", "BKG", b.booking_date, user=user)
     b.status = "CONFIRMED"
     b.confirmed_at = datetime.now(timezone.utc)
-    record_audit(db, "BOOKING_CONFIRMED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number, "job_number": b.job_number})
+    record_audit(db, "BOOKING_CONFIRMED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number})
     db.commit()
     return _out(_get(db, org_id, booking_id))
+
+
+SERVICE_JOB_TYPES = {"Freight": "Forwarding", "Consol": "Consol", "CHA": "Customs", "Transport": "Transport", "Warehouse": "Warehouse"}
+MODULE_SERVICE = {"FOR": "Freight", "CUS": "CHA", "TRP": "Transport", "WHS": "Warehouse", "ALL": "Freight"}
+
+
+class JobFromBooking(BaseModel):
+    service: str = Field(pattern="^(Freight|Consol|CHA|Transport|Warehouse)$")
+
+
+def _booked_services(b: Booking) -> list[str]:
+    raw = str((b.data or {}).get("services") or "Freight")
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
+
+def _dec(value: Any, default: str = "0") -> Decimal:
+    try:
+        return Decimal(str(value).replace(",", "").strip() or default)
+    except (InvalidOperation, ValueError):
+        return Decimal(default)
+
+
+def _charges_from_booking(db: Session, org_id: int, job: Shipment, rows: list[dict], client: str) -> Decimal:
+    """The booking's costing rows become the job's charge lines: AR rows are the sell side, AP rows the buy side (with the vendor chosen on the booking)."""
+    from .models import JobCharge
+
+    lines: list[JobCharge] = []
+    revenue = Decimal(0)
+    for r in rows:
+        name = (r.get("description") or r.get("code") or "").strip()
+        if not name:
+            continue
+        qty, rate, exch = _dec(r.get("qty"), "1") or Decimal(1), _dec(r.get("rate")), _dec(r.get("exch"), "1") or Decimal(1)
+        ccy = (r.get("currency") or "INR")[:3]
+        if ccy == "INR":
+            exch = Decimal(1)
+        tax = _dec(r.get("tax_pct"))
+        taxtype = "Taxable" if tax > 0 else "Non-Taxable"
+        if r.get("type") == "AP":
+            match = next((l for l in lines if l.charge_name.strip().lower() == name.lower() and not l.buy_rate), None)
+            fields = dict(buy_ccy=ccy, buy_exch=exch, buy_rate=rate, buy_tax_type=taxtype, buy_tax_pct=tax, vendor=(r.get("vendor") or "")[:160], use_vendor=bool(r.get("vendor")))
+            if match is not None:
+                for k, v in fields.items():
+                    setattr(match, k, v)
+            else:
+                lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=name[:160], description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn="", sell_rate=Decimal(0), **fields))
+        else:
+            lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=name[:160], description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn="", sell_ccy=ccy, sell_exch=exch, sell_rate=rate,
+                                   sell_tax_type=taxtype, sell_tax_pct=tax, client=client, use_client=True))
+            revenue += (qty * rate * exch).quantize(Decimal("0.01"))
+    for i, l in enumerate(lines, start=1):
+        l.line_no = i
+        db.add(l)
+    return revenue
+
+
+@router.get("/{booking_id}/jobs")
+def booking_jobs(booking_id: int, user: User = Depends(permission_required("booking.read")), db: Session = Depends(get_db)):
+    return _jobs(db, _get(db, _tenant(user), booking_id))
+
+
+@router.post("/{booking_id}/jobs", status_code=201)
+def create_job_from_booking(booking_id: int, payload: JobFromBooking, user: User = Depends(permission_required("booking.confirm")), db: Session = Depends(get_db)):
+    """One booking number can carry a freight job, a consol job, a CHA job, a transport job ... Each is created here, once per service."""
+    org_id = _tenant(user)
+    if not has_permission(user, "shipment.create"):
+        raise HTTPException(status_code=403, detail="Permission denied: creating a job needs shipment.create")
+    b = _get(db, org_id, booking_id, lock=True)
+    if b.status != "CONFIRMED":
+        raise HTTPException(status_code=409, detail="Jobs can be created only from a confirmed booking")
+    booked = _booked_services(b)
+    needed = "Freight" if payload.service == "Consol" else payload.service
+    if needed not in booked:
+        raise HTTPException(status_code=422, detail=payload.service + " was not booked on this booking (booked: " + ", ".join(booked) + ")")
+    job_type = SERVICE_JOB_TYPES[payload.service]
+    if db.scalar(select(Shipment.id).where(Shipment.organization_id == org_id, Shipment.booking_id == b.id, Shipment.job_type == job_type)):
+        raise HTTPException(status_code=409, detail="A " + payload.service.lower() + " job already exists for booking " + (b.number or ""))
+    from .shipments_api import _next_job_number
+
+    data = b.data or {}
+    pcs, gwt = _num(data.get("pcs")), _num(data.get("gwt"))
+    container_mode = "LCL" if payload.service == "Consol" else (b.shipment_type if b.shipment_type in ("FCL", "LCL") else None)
+    job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction, container_mode, user), job_type=job_type, booking_id=b.id, mode=b.mode, direction=b.direction, container_mode=container_mode,
+                   pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
+                   gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id)
+    db.add(job)
+    db.flush()
+    first = not _jobs_exist(db, b, exclude=job.id)
+    from . import job_lifecycle as jl
+
+    jl.on_job_created(db, job, user, "booking " + (b.number or ""), {"booking": b.number, "service": payload.service})
+    rows = [r for r in (data.get("charges") or []) if (r.get("service") or "Freight") == needed]
+    if rows:
+        job.revenue = _charges_from_booking(db, org_id, job, rows, b.party_name)
+    elif b.quotation_id and first and not (data.get("charges") or []):
+        from .quotations_api import copy_quote_charges
+
+        copy_quote_charges(db, org_id, b.quotation_id, job, b.carrier)
+    if b.quotation_id and first:
+        from .quotations_api import mark_converted_by_booking
+
+        mark_converted_by_booking(db, org_id, b.quotation_id, job, user)
+    if first:
+        b.job_number = job.job_number
+    record_audit(db, "BOOKING_JOB_CREATED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number, "job_number": job.job_number, "service": payload.service})
+    db.commit()
+    return {**_out(_get(db, org_id, booking_id)), "jobs": _jobs(db, _get(db, org_id, booking_id)), "created_job": job.job_number}
+
+
+def _jobs_exist(db: Session, b: Booking, exclude: int) -> bool:
+    return bool(db.scalar(select(Shipment.id).where(Shipment.organization_id == b.organization_id, Shipment.booking_id == b.id, Shipment.id != exclude)))
 
 
 def _close(booking_id: int, new_status: str, user: User, db: Session) -> dict:

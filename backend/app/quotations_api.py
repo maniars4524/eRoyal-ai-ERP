@@ -549,6 +549,24 @@ def _fill_job_from_quote(job: Shipment, quote: Quotation) -> None:
         job.volume = num(h["volume"])
 
 
+def copy_quote_charges(db: Session, org_id: int, quote_id: int, job: Shipment, carrier: str | None) -> None:
+    """Fallback for a booking that has no costing rows of its own: the quotation's charges go to the job."""
+    quote = _load(db, org_id, quote_id, lock=True)
+    sell, buy = select_lines_for_carrier(quote, carrier)
+    _copy_quote_to_job(db, org_id, quote, job, sell, buy)
+
+
+def mark_converted_by_booking(db: Session, org_id: int, quote_id: int, job: Shipment, user: User) -> None:
+    quote = _load(db, org_id, quote_id, lock=True)
+    if quote.status != "ACCEPTED":
+        raise HTTPException(status_code=409, detail="The linked quotation " + (quote.number or "") + " is " + quote.status + "; only an accepted quotation can be booked")
+    quote.status = "CONVERTED"
+    quote.job_number = job.job_number
+    _fill_job_from_quote(job, quote)
+    _event(db, quote, "CONVERTED", "ACCEPTED", "CONVERTED", user, job.job_number)
+    record_audit(db, "QUOTATION_CONVERTED", "SALES", user, org_id, "Quotation", str(quote.id), {"number": quote.number, "job_number": job.job_number, "via": "booking"})
+
+
 def link_booking_job(db: Session, org_id: int, quote_id: int, job: Shipment, user: User, carrier: str | None) -> Quotation:
     """A confirmed booking that came from a quotation carries the quotation's charges to the job and closes the quotation as CONVERTED."""
     quote = _load(db, org_id, quote_id, lock=True)
