@@ -223,7 +223,7 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
         pcs, gwt = _num(data.get("pcs")), _num(data.get("gwt"))
         job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction, b.shipment_type if b.shipment_type in ("FCL", "LCL") else None, user), mode=b.mode, direction=b.direction, container_mode=b.shipment_type if b.shipment_type in ("FCL", "LCL") else None,
                        pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
-                       gross_weight=gwt, commodity=(data.get("marks") or None), status="Booked", created_by=user.id)
+                       gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id)
         db.add(job)
         db.flush()
         b.job_number = job.job_number

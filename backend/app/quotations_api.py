@@ -531,6 +531,24 @@ def select_lines_for_carrier(quote: Quotation, carrier: str | None) -> tuple[lis
     return sell, buy
 
 
+def _fill_job_from_quote(job: Shipment, quote: Quotation) -> None:
+    """Whatever shipment detail the quotation carries and the job still lacks is taken from the quotation (the booking's own values win)."""
+    h = quote.header or {}
+    def num(v):
+        try:
+            return Decimal(str(v).replace(",", "").strip())
+        except Exception:
+            return None
+    if not job.commodity and h.get("commodity"):
+        job.commodity = str(h["commodity"])[:160]
+    if not job.packages and num(h.get("packages")) is not None and num(h.get("packages")) == num(h.get("packages")).to_integral_value():
+        job.packages = int(num(h["packages"]))
+    if not job.gross_weight and num(h.get("gross_weight")) is not None:
+        job.gross_weight = num(h["gross_weight"])
+    if not job.volume and num(h.get("volume")) is not None:
+        job.volume = num(h["volume"])
+
+
 def link_booking_job(db: Session, org_id: int, quote_id: int, job: Shipment, user: User, carrier: str | None) -> Quotation:
     """A confirmed booking that came from a quotation carries the quotation's charges to the job and closes the quotation as CONVERTED."""
     quote = _load(db, org_id, quote_id, lock=True)
@@ -540,6 +558,7 @@ def link_booking_job(db: Session, org_id: int, quote_id: int, job: Shipment, use
     _copy_quote_to_job(db, org_id, quote, job, sell, buy)
     quote.status = "CONVERTED"
     quote.job_number = job.job_number
+    _fill_job_from_quote(job, quote)
     _event(db, quote, "CONVERTED", "ACCEPTED", "CONVERTED", user, job.job_number)
     record_audit(db, "QUOTATION_CONVERTED", "SALES", user, org_id, "Quotation", str(quote.id), {"number": quote.number, "job_number": job.job_number, "via": "booking"})
     return quote
@@ -576,6 +595,7 @@ def convert_to_job(quote_id: int, carrier: str | None = Query(default=None, max_
 
     jl.on_job_created(db, job, user, "quotation conversion", {"quotation": quote.number})
     _copy_quote_to_job(db, org_id, quote, job, sell, buy)
+    _fill_job_from_quote(job, quote)
     quote.status = "CONVERTED"
     quote.job_number = job.job_number
     _event(db, quote, "CONVERTED", "ACCEPTED", "CONVERTED", user, job.job_number)

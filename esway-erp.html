@@ -7752,7 +7752,7 @@ function populateJobDetail(jobNo){
     set("jd_packages", j.packages ? j.packages + (j.package_type ? " " + j.package_type : "") : "");
     set("jd_weight", [j.gross_weight ? Number(j.gross_weight).toLocaleString("en-IN")+" KG" : "", j.volume ? Number(j.volume)+" CBM" : ""].filter(Boolean).join(" · "));
     set("jd_bl", j.bl_awb);
-    currentJobManifestCtx = JOB_DB[jobNo] = {no:j.job_number, sub:[modeLabel, customer, route].filter(Boolean).join(" · "), mode:j.mode, dir:j.direction, consignee:j.consignee, shipper:customer, blNo:j.bl_awb, pol:j.pol, pod:j.pod, packages:j.packages, grossWeight:j.gross_weight};
+    currentJobManifestCtx = JOB_DB[jobNo] = {no:j.job_number, sub:[modeLabel, customer, route].filter(Boolean).join(" · "), mode:j.mode, dir:j.direction, consignee:j.consignee, shipper:customer, blNo:j.bl_awb, pol:j.pol, pod:j.pod, packages:j.packages, grossWeight:j.gross_weight, volume:j.volume, commodity:j.commodity, packageType:j.package_type};
     if(typeof renderJobManifestTab==="function") renderJobManifestTab();
   }).catch(()=>{ set("jobDetailSub", "Could not load job details"); }).finally(finish);
 }
@@ -7971,7 +7971,7 @@ function jcRenderRows(){
   const tb = $("#jc_tbody");
   if(!tb) return;
   tb.innerHTML = st.rows.length ? st.rows.map((r,idx)=>{
-    const chargeOpts = JC_CHARGE_MASTER.map(m=>`<option ${m.name===r.chargeName?"selected":""}>${esc(m.name)}</option>`).join("");
+    const chargeOpts = (r.chargeName && !JC_CHARGE_MASTER.some(m=>m.name===r.chargeName) ? `<option selected>${esc(r.chargeName)}</option>` : "") + JC_CHARGE_MASTER.map(m=>`<option ${m.name===r.chargeName?"selected":""}>${esc(m.name)}</option>`).join("");
     const uomOpts = JC_UOM.map(u=>`<option ${u===r.uom?"selected":""}>${esc(u)}</option>`).join("");
     const buyCcyOpts = JC_CCY.map(c2=>`<option ${c2===r.buy.ccy?"selected":""}>${c2}</option>`).join("");
     const sellCcyOpts = JC_CCY.map(c2=>`<option ${c2===r.sell.ccy?"selected":""}>${c2}</option>`).join("");
@@ -8295,10 +8295,10 @@ function pcDefaultState(jobNo){
     notify1:"", notify2:"", originAgent:"", deliveryAgent:"",
     coloader:"", coloaderShipper:"", coloaderConsignee:"", billTo:"",
     cfs:"", cha:"", chaMode:"select", transport:"",
-    commodity:"", hscode:"", cargoDesc:"",
-    pkgs: rec.packages || "", pkgType:"Carton",
-    gwt: (rec.grossWeight||"").replace(/[^0-9.]/g,"") || "",
-    nwt:"", vol:"", haz:"No", temp:"No"
+    commodity: rec.commodity || "", hscode:"", cargoDesc:"",
+    pkgs: rec.packages || "", pkgType: rec.packageType || "Carton",
+    gwt: String(rec.grossWeight == null ? "" : rec.grossWeight).replace(/[^0-9.]/g,"") || "",
+    nwt:"", vol: String(rec.volume == null ? "" : rec.volume).replace(/[^0-9.]/g,""), haz:"No", temp:"No"
   };
   return state;
 }
@@ -13774,6 +13774,8 @@ function bookWizApplyAndShowForm(){
   if(typeof bookGotoStep==="function") bookGotoStep(1);
   toast("Process page opened", bookWizProcessTitle());
 }
+window.bookWizApplyAndShowForm = bookWizApplyAndShowForm;
+window.WIZ_TYPES = WIZ_TYPES;
 function initBookWizard(){
   const wrap = $("#bookWizWrap");
   if(!wrap || wrap.dataset.inited) return;
@@ -17341,7 +17343,7 @@ if(document.readyState !== "loading") initChatWidget();
 
   /* ---------- form <-> record ---------- */
   BKG.collect = function(){
-    const w = window.bookWiz || {}; const body = {mode: w.mode || "Sea", direction: w.dir || "Export", shipment_type: w.type || null, booking_type: w.bookingType || null, hbl_type: w.hblType || null, scac: w.scac || null, data:{}};
+    const w = window.bookWiz || {}; const body = {mode: w.mode || "Sea", direction: w.dir || "Export", shipment_type: w.type || null, booking_type: w.bookingType || null, hbl_type: w.hblType || null, scac: w.scac || null, data:Object.assign({}, BKG.prefill || {})};
     MAP.forEach(([id, key, where])=>{ const e = el(id); if(!e) return; const v = clean(e.value); if(where === "col") body[key] = v; else body.data[key] = v == null ? "" : v; });
     const cust = el("bk_customer"); const c = BKG.m.clients.find(x=>String(x.id) === (cust && cust.value));
     body.customer_id = c ? c.id : null; body.party_name = c ? c.name : ""; if(!body.booking_date) delete body.booking_date;
@@ -17352,6 +17354,7 @@ if(document.readyState !== "loading") initChatWidget();
     return body;
   };
   BKG.fill = function(rec){
+    BKG.prefill = Object.assign({}, rec.data || {});   // details without a field on the form (commodity, incoterm ...) travel with the booking
     MAP.forEach(([id, key, where])=> setVal(id, where === "col" ? rec[key] : (rec.data||{})[key]));
     setVal("bk_no", rec.number || ""); setVal("bk_direction", (rec.direction||"").toUpperCase());
     setVal("bk_customer", rec.customer_id || "");
@@ -17360,7 +17363,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(sv.length){ document.querySelectorAll(".fi[data-svc]").forEach(f=> f.classList.toggle("on", sv.includes(f.dataset.svc))); }
   };
   BKG.reset = function(){
-    BKG.rec = null; BKG.quote = null;
+    BKG.rec = null; BKG.quote = null; BKG.prefill = null;
     MAP.forEach(([id])=>{ const e = el(id); if(e) e.value = e.tagName === "SELECT" ? (e.options[0] ? e.options[0].value : "") : ""; });
     setVal("bk_no", ""); setVal("bk_customer", ""); const tb = el("bk_chargeRows"); if(tb) tb.innerHTML = "";
     setVal("bk_bookdate", new Date().toISOString().slice(0,10));
@@ -17408,7 +17411,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(carriers.length > 1){ carrier = window.prompt("This quotation compares several carriers. Type the carrier to book with:\n"+carriers.join("\n"), carriers[0]) || ""; if(!carrier) return; }
       const h = q.header || {};
       const rec = {mode:q.mode, direction:q.direction, shipment_type:q.shipment_type, booking_type:"Direct", customer_id:q.customer_id, party_name:q.party_name, carrier, pol:q.pol, pod:q.pod, quotation_id:q.id, booking_date:new Date().toISOString().slice(0,10),
-        data:{incoterm:h.incoterm||"", marks:"", notes:"From quotation "+q.number, quotation_no:q.number, freight_pp:h.freight_terms||"Prepaid"}};
+        data:{incoterm:h.incoterm||"", commodity:h.commodity||"", marks:h.commodity||"", pcs:h.packages||"", gwt:h.gross_weight||"", volume:h.volume||"", service_type:h.service_type||"", notes:"From quotation "+q.number, quotation_no:q.number, freight_pp:h.freight_terms||"Prepaid"}};
       BKG.rec = null; BKG.quote = {id:q.id, number:q.number}; showForm(rec);
     }catch(e){ say("Could not open the quotation", e.message, "warn"); }
   };
@@ -17422,6 +17425,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(rec){
         if(typeof window.bookWizApplyAndShowForm === "function") window.bookWizApplyAndShowForm();
         BKG.fill(rec); quoteNote();
+        const change = el("bookWizChange"); if(change) change.style.display = (BKG.quote || rec.quotation_id) ? "none" : "";
         if(rec.id){ const t = el("bookNewTitle"); if(t) t.lastChild.textContent = (rec.number ? rec.number+" — " : "Draft — ")+(rec.party_name||"Booking"); }
       }else if(!BKG.rec && !BKG.quote){ BKG.reset(); }
     }, 60);
