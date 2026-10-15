@@ -84,24 +84,48 @@ def _event_out(e: JobEvent, full: bool = True) -> dict:
             "result": e.result, "at": _ts(e.created_at), "job_number": e.job_number, "detail": e.detail or {}}
 
 
+def _stage_actor(db: Session, job: Shipment) -> str | None:
+    row = db.scalar(select(JobStageHistory).where(JobStageHistory.shipment_id == job.id).order_by(JobStageHistory.id.desc()).limit(1))
+    return (row.actor_name if row and row.actor_name else None) or ("System (automatic)" if row else None)
+
+
 def lifecycle_out(db: Session, job: Shipment, user: User) -> dict:
     ms = jl.milestone_map(db, job)
     req = jl.required_milestones(job)
     last_closer = db.get(User, job.last_closed_by) if job.last_closed_by else None
     count = db.scalar(select(func.count()).select_from(JobEvent).where(JobEvent.organization_id == job.organization_id, JobEvent.shipment_id == job.id)) or 0
     closed = job.closure_status == "CLOSED"
-    return {"job_number": job.job_number, "job_stage": job.job_stage, "stage_source": job.stage_source, "stage_reason": job.stage_reason, "stage_updated_at": _ts(job.stage_updated_at), "closure_status": job.closure_status,
+    return {"job_number": job.job_number, "job_stage": job.job_stage, "stage_source": job.stage_source, "stage_reason": job.stage_reason, "stage_updated_at": _ts(job.stage_updated_at), "stage_updated_by": _stage_actor(db, job), "closure_status": job.closure_status,
             "closure_cycle": job.closure_cycle, "last_closed_at": _ts(job.last_closed_at), "last_closed_by": jl.display_name(last_closer) if last_closer else None, "reopen_count": job.reopen_count,
-            "last_activity_at": _ts(job.last_activity_at), "event_count": count, "stages": jl.STAGES, "reopen_reasons": REOPEN_REASONS,
+            "last_activity_at": _ts(job.last_activity_at), "event_count": count, "stages": jl.STAGES, "manual_stages": jl.MANUAL_STAGES, "reopen_reasons": REOPEN_REASONS,
             "milestones": [{"code": c, "label": jl.MILESTONE_LABEL.get(c, c), "required": c in req, "stage": jl.MILESTONES.get(c), "done": c in ms, "actual_at": _ts(ms[c].actual_at) if c in ms else None,
                             "remarks": ms[c].remarks if c in ms else None, "source": "booking" if c in ms and ms[c].id is None else "user"} for c in jl.applicable_milestones(job)],
-            "actions": {"can_close": _can(user, "job.close") and not closed, "can_reopen": _can(user, "job.reopen") and closed, "can_change_stage": _can(user, "job.change_stage") and not closed, "can_view_history": _can(user, "job.view_history"),
+            "actions": {"can_close": _can(user, "job.close") and not closed, "can_reopen": _can(user, "job.reopen") and closed, "can_change_stage": _can(user, "job.change_stage") and job.closure_status == "OPEN", "can_view_history": _can(user, "job.view_history"),
                         "can_export_history": _can(user, "job.export_history"), "can_record_milestone": _can(user, "shipment.update") and not closed, "can_exceptional_close": _can(user, "job.exceptional_close") and jl.setting_enabled(db, job.organization_id, "JOB_EXCEPTIONAL_CLOSURE")}}
 
 
 @router.get("/stages")
 def stage_config(user: User = Depends(permission_required("shipment.read"))):
     return {"stages": jl.STAGES, "milestones": [{"code": c, "label": jl.MILESTONE_LABEL.get(c, c), "stage": jl.MILESTONES.get(c)} for c in jl.ALL_MILESTONES], "reopen_reasons": REOPEN_REASONS}
+
+
+@router.get("/{job_number}/source")
+def job_source(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """Where the job came from: the quotation, the booking, or created directly."""
+    from .models import Booking, Quotation
+
+    job = _job(db, user, job_number)
+    booking = db.get(Booking, job.booking_id) if job.booking_id else None
+    qid = booking.quotation_id if booking and booking.quotation_id else None
+    quote = db.get(Quotation, qid) if qid else db.scalar(select(Quotation).where(Quotation.organization_id == job.organization_id, Quotation.job_number == job.job_number))
+    creator = db.get(User, job.created_by) if job.created_by else None
+    first = db.scalar(select(JobEvent).where(JobEvent.shipment_id == job.id, JobEvent.event_type == "JOB_CREATED").order_by(JobEvent.id).limit(1))
+    via = "Booking" if booking else ("Quotation" if quote else "Created directly")
+    names = lambda uid: jl.display_name(db.get(User, uid)) if uid else None
+    return {"job_number": job.job_number, "created_via": via, "created_at": _ts(job.created_at), "created_by": jl.display_name(creator) if creator else None, "creation_note": (first.description if first else None),
+            "booking": {"number": booking.number, "date": str(booking.booking_date), "status": booking.status, "carrier": booking.carrier, "confirmed_at": _ts(booking.confirmed_at), "created_by": names(booking.created_by), "services": (booking.data or {}).get("services")} if booking else None,
+            "quotation": {"number": quote.number, "date": str(quote.quote_date), "status": quote.status, "party": quote.party_name, "prepared_by": names(quote.prepared_by), "approved_by": names(quote.approved_by), "approved_at": _ts(quote.approved_at), "valid_until": str(quote.valid_until) if quote.valid_until else None,
+                          "reference": (quote.header or {}).get("reference_no")} if quote else None}
 
 
 @router.get("/{job_number}/lifecycle")
@@ -157,15 +181,15 @@ def change_stage(job_number: str, body: StageIn, user: User = Depends(get_curren
     if not _can(user, "job.change_stage"):
         _denied(db, job, user, "change the job stage", "job.change_stage")
     jl.assert_job_editable(job, "the stage")
-    if body.stage not in jl.RANK:
+    if body.stage in ("Closed", "Reopened"):
+        raise HTTPException(422, "Use Close Job or Reopen Job: those stages are set only by the closure actions")
+    if body.stage not in jl.MANUAL_STAGES:
         raise HTTPException(422, "Unknown job stage")
+    if job.closure_status == "REOPENED":
+        raise HTTPException(409, "A reopened job stays Reopened until it is closed again")
     if body.stage == job.job_stage:
         raise HTTPException(409, "The job is already at this stage")
-    derived, why = jl.derive_stage(db, job)
-    conflict = jl.RANK[body.stage] > jl.RANK[derived]
-    if conflict and not body.confirm_conflict:
-        raise HTTPException(409, f"STAGE_CONFLICT: the recorded milestones only support '{derived}'. Setting '{body.stage}' does not complete any milestone or document. Confirm to proceed anyway")
-    jl.set_stage(db, job, body.stage, "MANUAL", user, trigger="MANUAL_CHANGE" + (" (conflicts with recorded milestones)" if conflict else ""), reason=body.reason.strip(), approval_ref=body.approval_ref)
+    jl.set_stage(db, job, body.stage, "MANUAL", user, trigger="MANUAL_CHANGE", reason=body.reason.strip(), approval_ref=body.approval_ref)
     db.commit()
     return lifecycle_out(db, job, user)
 
@@ -238,6 +262,7 @@ def close_job(job_number: str, body: CloseIn, user: User = Depends(get_current_u
                           reason=body.justification if exceptional else None, remarks=body.remarks, actor_id=user.id, actor_name=jl.display_name(user), approval_ref=approval_ref, checklist=snapshot,
                           final_buy=t["buy"], final_sell=t["sell"], final_margin=t["margin"], previous_closure_id=previous.id if previous else None, event_id=ev.id))
         job.closure_status, job.closure_cycle, job.last_closed_at, job.last_closed_by = "CLOSED", cycle, jl.now(), user.id
+        jl.set_stage(db, job, "Closed", "AUTO", user, trigger="JOB_CLOSED", correlation_id=corr)
         record_audit(db, "JOB_CLOSED", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "cycle": cycle, "exceptional": exceptional})
         db.commit()
     except IntegrityError:
@@ -266,7 +291,7 @@ def reopen_job(job_number: str, body: ReopenIn, user: User = Depends(get_current
                       remarks=body.remarks, actor_id=user.id, actor_name=jl.display_name(user), checklist=[], previous_closure_id=last_close.id if last_close else None, event_id=ev.id))
     job.closure_status, job.reopen_count = "REOPENED", job.reopen_count + 1
     record_audit(db, "JOB_REOPENED", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "reason": body.reason})
-    jl.recompute_stage(db, job, "REOPENED", user, corr)
+    jl.set_stage(db, job, "Reopened", "AUTO", user, trigger="JOB_REOPENED", reason=body.reason.strip(), correlation_id=corr)
     db.commit()
     return lifecycle_out(db, job, user)
 

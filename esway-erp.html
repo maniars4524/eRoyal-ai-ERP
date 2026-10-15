@@ -647,7 +647,10 @@ tbody tr:hover{background:var(--g0)}
 @media (max-width:480px){.chat-panel{width:calc(100vw - 24px);left:12px;right:12px;height:75vh}}
 .toast{background:var(--g8);color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.22);border-left:3px solid var(--gr);display:flex;gap:9px;align-items:flex-start;transform:translateX(115%);opacity:0;transition:transform .3s var(--ease),opacity .3s}
 .toast.show{transform:translateX(0);opacity:1}
-.toast.error{border-left-color:var(--rd)}
+.toast.success{border-left-color:#22C55E;background:linear-gradient(90deg,rgba(34,197,94,.18),transparent 55%),var(--g8);box-shadow:0 0 0 1px rgba(34,197,94,.45),0 0 18px rgba(34,197,94,.55),0 8px 24px rgba(0,0,0,.22)}
+.toast.success .ic:not(.toast-close){color:#22C55E;filter:drop-shadow(0 0 5px rgba(34,197,94,.9));width:17px;height:17px}
+.toast.error{border-left-color:var(--rd);box-shadow:0 0 0 1px rgba(239,68,68,.45),0 0 16px rgba(239,68,68,.45),0 8px 24px rgba(0,0,0,.22)}
+.toast.error .ic:not(.toast-close){color:#F87171}
 .toast.warn{border-left-color:var(--am)}
 .toast .ic{flex-shrink:0;margin-top:1px;width:14px;height:14px}
 .toast-msg{flex:1}
@@ -1914,52 +1917,9 @@ tbody tr:hover{background:var(--g0)}
 <div id="s-meetings" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="calendar-check" style="color:var(--tl)"></svg>Meeting Follow-ups</div><div class="ps">Today's schedule and follow-up notes</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
 
-<div class="card">
-<div class="ch"><div class="ct"><svg class="ic" data-icon="calendar-check" style="color:var(--tl)"></svg>Today · <span id="dashCalToday2"></span></div></div>
-<div>
-  <div style="display:flex;gap:12px;padding:14px;border-bottom:1px solid var(--g1);align-items:flex-start">
-    <div style="width:44px;text-align:center;flex-shrink:0"><div style="font-size:12px;font-weight:700;color:var(--bl)">11:00</div><div style="font-size:9.5px;color:var(--g5)">AM</div></div>
-    <div style="width:3px;align-self:stretch;background:var(--bl);border-radius:2px;flex-shrink:0"></div>
-    <div style="flex:1">
-      <div style="font-size:13px;font-weight:600;color:var(--g8)">Customer Meeting — Maersk Line</div>
-      <div style="font-size:11.5px;color:var(--g6);margin-top:2px">Quarterly business review · Rate contract renewal discussion</div>
-      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-        <span class="b b-bl" style="font-size:10px">Customer</span>
-        <span class="b b-gy" style="font-size:10px">Conference Room A</span>
-      </div>
-    </div>
-    <button class="btn btn-out btn-sm" data-go="org-list" style="font-size:11px">View Customer</button>
-  </div>
-  <div style="display:flex;gap:12px;padding:14px;border-bottom:1px solid var(--g1);align-items:flex-start">
-    <div style="width:44px;text-align:center;flex-shrink:0"><div style="font-size:12px;font-weight:700;color:var(--rd)">01:30</div><div style="font-size:9.5px;color:var(--g5)">PM</div></div>
-    <div style="width:3px;align-self:stretch;background:var(--rd);border-radius:2px;flex-shrink:0"></div>
-    <div style="flex:1">
-      <div style="font-size:13px;font-weight:600;color:var(--g8)">Operations Review</div>
-      <div style="font-size:11.5px;color:var(--g6);margin-top:2px">Weekly job pipeline review — pending customs exams, VGM cutoffs, detention cases</div>
-      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-        <span class="b b-rd" style="font-size:10px">Internal</span>
-        <span class="b b-gy" style="font-size:10px">Ops Team</span>
-      </div>
-    </div>
-    <button class="btn btn-out btn-sm" data-go="job-list" style="font-size:11px">View Jobs</button>
-  </div>
-  <div style="display:flex;gap:12px;padding:14px;align-items:flex-start">
-    <div style="width:44px;text-align:center;flex-shrink:0"><div style="font-size:12px;font-weight:700;color:var(--am)">04:00</div><div style="font-size:9.5px;color:var(--g5)">PM</div></div>
-    <div style="width:3px;align-self:stretch;background:var(--am);border-radius:2px;flex-shrink:0"></div>
-    <div style="flex:1">
-      <div style="font-size:13px;font-weight:600;color:var(--g8)">Finance Review</div>
-      <div style="font-size:11.5px;color:var(--g6);margin-top:2px">AR aging walkthrough, overdue collections, PI payment schedule</div>
-      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-        <span class="b b-am" style="font-size:10px">Internal</span>
-        <span class="b b-gy" style="font-size:10px">Finance Team</span>
-      </div>
-    </div>
-    <button class="btn btn-out btn-sm" data-go="pnl" style="font-size:11px">View Finance</button>
-  </div>
-</div>
+<div class="card"><div class="ch"><div class="ct">Today</div></div><div style="padding:24px;text-align:center;color:var(--g5);font-style:italic">No meetings scheduled yet.</div></div>
 </div>
 
-</div>
 <!-- ====== CRM MODULE ======
      Screens below are placeholders only — all content is rendered by the
      CRM JS module (see "CRM MODULE" section in the script) so the data
@@ -2394,84 +2354,8 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== EMPLOYEE DETAIL / PROFILE ====== -->
 <div id="s-emp-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="user" style="color:var(--bl)"></svg>Employee Profile</div><div class="ps">Complete employee record, attendance, leave, payroll and loan history</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="emp-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="printer"></svg> Print</button><button class="btn btn-pri btn-sm" data-go="emp-new"><svg class="ic" data-icon="edit"></svg> Edit Employee</button></div></div>
-
-<div class="card"><div class="cb" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-  <div class="emp-avatar lg">KS</div>
-  <div style="flex:1;min-width:220px">
-    <div style="font-size:17px;font-weight:700;color:var(--n)">Karthik Subramaniam <span class="b b-gr dot" style="margin-left:6px">Active</span></div>
-    <div style="color:var(--g5);font-size:12.5px;margin-top:2px">Operations Manager · <span class="chip">EMP-1001</span> · Operations Department</div>
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12.3px;color:var(--g5)">
-      <span><svg class="ic" data-icon="mail" style="width:13px;height:13px;vertical-align:-2px"></svg> karthik.s@eswayfreight.com</span>
-      <span><svg class="ic" data-icon="phone" style="width:13px;height:13px;vertical-align:-2px"></svg> +91 98400 12301</span>
-      <span><svg class="ic" data-icon="users" style="width:13px;height:13px;vertical-align:-2px"></svg> Reports to: Radha Krishnan</span>
-    </div>
-  </div>
-  <div class="emp-kpi-row">
-    <div class="ekpi"><div class="ekpi-l">Outstanding Loan</div><div class="ekpi-v an">₹42,000</div></div>
-    <div class="ekpi"><div class="ekpi-l">Current EMI</div><div class="ekpi-v">₹3,500 /mo</div></div>
-    <div class="ekpi"><div class="ekpi-l">Next Deduction</div><div class="ekpi-v">01 Aug 2026</div></div>
-    <div class="ekpi"><div class="ekpi-l">Leave Balance</div><div class="ekpi-v">14 days</div></div>
-  </div>
-</div></div>
-
-<div class="tabs" data-tabgroup="empd">
-  <button class="tbb on" data-tab="ed1">Personal</button>
-  <button class="tbb" data-tab="ed2">Official</button>
-  <button class="tbb" data-tab="ed3">Attendance</button>
-  <button class="tbb" data-tab="ed4">Leave</button>
-  <button class="tbb" data-tab="ed5">Payroll</button>
-  <button class="tbb" data-tab="ed6">Loan &amp; Advance</button>
-  <button class="tbb" data-tab="ed7">Documents</button>
-</div>
-
-<div id="ed1" class="tp on"><div class="card"><div class="ch"><div class="ct">Personal Information</div></div><div class="cb">
-<div class="fr"><div class="fg"><label class="fl">Date of Birth</label><input class="fc" value="14 May 1988" readonly></div><div class="fg"><label class="fl">Gender</label><input class="fc" value="Male" readonly></div><div class="fg"><label class="fl">Blood Group</label><input class="fc" value="B+" readonly></div><div class="fg"><label class="fl">Marital Status</label><input class="fc" value="Married" readonly></div></div>
-<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Current Address</label><input class="fc" value="14, Kamaraj Salai, Chennai 600041" readonly></div><div class="fg"><label class="fl">Emergency Contact</label><input class="fc" value="Sudha Subramaniam" readonly></div><div class="fg"><label class="fl">Emergency Mobile</label><input class="fc" value="+91 98400 55301" readonly></div></div>
-</div></div></div>
-
-<div id="ed2" class="tp"><div class="card"><div class="ch"><div class="ct">Official Information</div></div><div class="cb">
-<div class="fr"><div class="fg"><label class="fl">Department</label><input class="fc" value="Operations" readonly></div><div class="fg"><label class="fl">Designation</label><input class="fc" value="Operations Manager" readonly></div><div class="fg"><label class="fl">Employment Type</label><input class="fc" value="Permanent" readonly></div><div class="fg"><label class="fl">Grade</label><input class="fc" value="Grade 4" readonly></div></div>
-<div class="fr"><div class="fg"><label class="fl">Joining Date</label><input class="fc" value="12 Mar 2019" readonly></div><div class="fg"><label class="fl">Shift</label><input class="fc" value="General (9:30–18:30)" readonly></div><div class="fg"><label class="fl">Branch</label><input class="fc" value="Chennai HQ" readonly></div><div class="fg"><label class="fl">Status</label><input class="fc" value="Active" readonly></div></div>
-</div></div></div>
-
-<div id="ed3" class="tp"><div class="card"><div class="ch"><div class="ct">Attendance Summary — July 2026</div></div><div class="cb">
-<div class="fg2">
-  <div class="fi" style="cursor:default"><div class="flbl" style="font-size:20px;font-weight:700;color:var(--gr)">21</div><span class="flbl">Present</span></div>
-  <div class="fi" style="cursor:default"><div class="flbl" style="font-size:20px;font-weight:700;color:var(--rd)">1</div><span class="flbl">Absent</span></div>
-  <div class="fi" style="cursor:default"><div class="flbl" style="font-size:20px;font-weight:700;color:var(--am)">2</div><span class="flbl">Late Marks</span></div>
-  <div class="fi" style="cursor:default"><div class="flbl" style="font-size:20px;font-weight:700;color:var(--bl)">6.5h</div><span class="flbl">Overtime</span></div>
-</div>
-</div></div></div>
-
-<div id="ed4" class="tp"><div class="card"><div class="ch"><div class="ct">Leave Information</div></div><div class="cb">
-<div class="tw"><table><thead><tr><th>Leave Type</th><th>Entitled</th><th>Availed</th><th>Balance</th><th>Carry Forward</th></tr></thead><tbody>
-<tr><td>Casual Leave</td><td>12</td><td>5</td><td>7</td><td>—</td></tr>
-<tr><td>Sick Leave</td><td>10</td><td>3</td><td>7</td><td>—</td></tr>
-<tr><td>Earned Leave</td><td>15</td><td>15</td><td>0</td><td>5</td></tr>
-</tbody></table></div>
-</div></div></div>
-
-<div id="ed5" class="tp"><div class="card"><div class="ch"><div class="ct">Payroll Summary</div></div><div class="cb">
-<div class="fr"><div class="fg"><label class="fl">Basic Salary</label><input class="fc" value="₹35,000" readonly></div><div class="fg"><label class="fl">Gross Salary</label><input class="fc" value="₹52,000" readonly></div><div class="fg"><label class="fl">Deductions (incl. EMI)</label><input class="fc" value="₹6,700" readonly></div><div class="fg"><label class="fl">Net Salary</label><input class="fc" value="₹45,300" readonly></div></div>
-</div></div></div>
-
-<div id="ed6" class="tp"><div class="card"><div class="ch"><div class="ct"><svg class="ic" data-icon="credit-card" style="color:var(--bl)"></svg> Loan &amp; Advance History</div><button class="btn btn-pri btn-sm" id="empLoanNewBtn"><svg class="ic" data-icon="plus"></svg> New Loan / Advance</button></div>
-<div class="tw"><table><thead><tr><th>Loan No.</th><th>Type</th><th>Amount</th><th>EMI</th><th>Paid</th><th>Outstanding</th><th>Status</th></tr></thead><tbody>
-<tr><td class="mono">LN-2025-014</td><td>Personal Loan</td><td class="an">₹60,000</td><td>₹3,500</td><td class="ap">₹18,000</td><td class="an">₹42,000</td><td><span class="b b-am">Active</span></td></tr>
-<tr><td class="mono">AD-2024-092</td><td>Festival Advance</td><td class="an">₹10,000</td><td>₹2,500</td><td class="ap">₹10,000</td><td>₹0</td><td><span class="b b-bl">Closed</span></td></tr>
-</tbody></table></div>
-<div class="cf">Next salary deduction: <strong>₹3,500</strong> on <strong>01 Aug 2026</strong> from LN-2025-014</div>
-</div></div>
-
-<div id="ed7" class="tp"><div class="card"><div class="ch"><div class="ct">Documents</div></div><div class="cb">
-<div class="tw"><table><thead><tr><th>Document</th><th>Status</th><th class="no-print">Action</th></tr></thead><tbody>
-<tr><td>PAN Card</td><td><span class="b b-gr">Verified</span></td><td class="no-print"><button class="ta"><svg class="ic" data-icon="eye"></svg> Preview</button></td></tr>
-<tr><td>Aadhaar Card</td><td><span class="b b-gr">Verified</span></td><td class="no-print"><button class="ta"><svg class="ic" data-icon="eye"></svg> Preview</button></td></tr>
-<tr><td>Offer Letter</td><td><span class="b b-gr">Verified</span></td><td class="no-print"><button class="ta"><svg class="ic" data-icon="download"></svg> Download</button></td></tr>
-</tbody></table></div>
-</div></div></div>
-
+<div class="ph"><div><div class="pt">Employee Profile</div><div class="ps">Open an employee from the Employee Master</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="emp-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
+<div class="card"><div class="cb" style="padding:26px;text-align:center;color:var(--g5);font-style:italic">Select an employee in the Employee Master to see the profile.</div></div>
 </div>
 
 <!-- ====== TERMS & CONDITIONS SYSTEM MASTER ====== -->
@@ -3103,7 +2987,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="cargo-arrival"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('canPrintZone','CAN-PASFE0225-J0728')"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" onclick="printZone('canPrintZone','Cargo Arrival Notice')"><svg class="ic" data-icon="printer"></svg> Print</button>
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
@@ -3125,7 +3009,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="freight-cert"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('fcPrintZone','FC-RLPL-J0191')"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" onclick="printZone('fcPrintZone','Freight Certificate')"><svg class="ic" data-icon="printer"></svg> Print</button>
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
@@ -3136,7 +3020,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="tax-invoice-print"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('taxInvPrintZone','TaxInv-RLPL-J0191')"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" onclick="printZone('taxInvPrintZone','Tax Invoice')"><svg class="ic" data-icon="printer"></svg> Print</button>
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
@@ -3175,7 +3059,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="bl-draft"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('blDraftPrintZone','BL-Draft-PASFE0225-J0728')"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" onclick="printZone('blDraftPrintZone','Bill of Lading')"><svg class="ic" data-icon="printer"></svg> Print</button>
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
@@ -3186,7 +3070,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="freight-cert"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('fcPrintZone','FC-SEX-000047')"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" onclick="printZone('fcPrintZone','Freight Certificate')"><svg class="ic" data-icon="printer"></svg> Print</button>
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
@@ -3208,7 +3092,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="job-pl-report"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('plPrintZone','PL-SEX-000047')"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" onclick="printZone('plPrintZone','Job Profitability')"><svg class="ic" data-icon="printer"></svg> Print</button>
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
@@ -3295,7 +3179,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="cargo-arrival"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('canPrintZone','CAN-AirImp')"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" onclick="printZone('canPrintZone','Cargo Arrival Notice')"><svg class="ic" data-icon="printer"></svg> Print</button>
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
@@ -3328,7 +3212,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="tax-invoice-print"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('taxInvPrintZone','TaxInv-AirImp')"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" onclick="printZone('taxInvPrintZone','Tax Invoice')"><svg class="ic" data-icon="printer"></svg> Print</button>
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
@@ -3692,15 +3576,15 @@ tbody tr:hover{background:var(--g0)}
     <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_customerAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
   </div></div>
   <div class="card" style="margin:0"><div class="ch" style="background:#1FB6A8;color:#fff"><div class="ct" style="color:#fff">Shipper</div></div><div class="cb">
-    <div class="fg" style="margin-bottom:8px"><label class="fl">Shipper</label><select class="fc" id="bk_shipper"><option value="">--Select Shipper--</option><option>Tata Chemicals Ltd</option><option>Bremen Foods Machinery GmbH</option><option>Solvay SA</option></select></div>
+    <div class="fg" style="margin-bottom:8px"><label class="fl">Shipper</label><select class="fc" id="bk_shipper"><option value="">--Select Shipper--</option></select></div>
     <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_shipperAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
   </div></div>
   <div class="card" style="margin:0"><div class="ch" style="background:#3FAE6A;color:#fff"><div class="ct" style="color:#fff">Consignee</div></div><div class="cb">
-    <div class="fg" style="margin-bottom:8px"><label class="fl">Consignee</label><select class="fc" id="bk_consignee"><option value="">--Select Consignee--</option><option>Solvay SA</option><option>GEA Westfalia</option><option>Infosys BPO</option></select></div>
+    <div class="fg" style="margin-bottom:8px"><label class="fl">Consignee</label><select class="fc" id="bk_consignee"><option value="">--Select Consignee--</option></select></div>
     <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_consigneeAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
   </div></div>
   <div class="card" style="margin:0"><div class="ch" style="background:#C7C233;color:#fff"><div class="ct" style="color:#fff">Notify</div></div><div class="cb">
-    <div class="fg" style="margin-bottom:8px"><label class="fl">Notify</label><select class="fc" id="bk_notify"><option value="">--Select Notify--</option><option>Same as Consignee</option><option>NRS Freight System</option></select></div>
+    <div class="fg" style="margin-bottom:8px"><label class="fl">Notify</label><select class="fc" id="bk_notify"><option value="">--Select Notify--</option><option>Same as Consignee</option></select></div>
     <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_notifyAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
   </div></div>
 </div>
@@ -3854,7 +3738,7 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== RATE SHEET DETAIL (charge line breakdown) ====== -->
 <div id="s-rate-sheet-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Rate Sheet <span id="rsDetailNo">RGC-RC-2025-001</span></div><div class="ps" id="rsDetailSub">Tata Chemicals — Europe FCL · Sea Export · INMAA → BEANR</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="rate-master" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="edit"></svg> Edit</button><button class="btn btn-pri btn-sm" id="rsDetailApplyBtn"><svg class="ic" data-icon="check-circle"></svg> Apply to Quotation</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Rate Sheet <span id="rsDetailNo">—</span></div><div class="ps" id="rsDetailSub">—</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="rate-master" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="edit"></svg> Edit</button><button class="btn btn-pri btn-sm" id="rsDetailApplyBtn"><svg class="ic" data-icon="check-circle"></svg> Apply to Quotation</button></div></div>
 
 <div class="g2">
 <div class="card"><div class="ch"><div class="ct">Header Information</div></div><div class="cb">
@@ -4164,125 +4048,8 @@ tbody tr:hover{background:var(--g0)}
 <div id="s-purchase-invoice-new" class="scr"><div class="bk-host"></div></div>
 
 <div id="s-tax-invoice-print" class="scr">
-<!-- VOUCHER HEADING BANNER -->
-<div style="background:linear-gradient(135deg,#0B4F2A 50%,#0E8A7C);color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div style="width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="file-text" style="color:#fff;width:18px;height:18px"></svg></div>
-    <div>
-      <div style="font-size:11px;letter-spacing:.8px;opacity:.7;text-transform:uppercase">VOUCHER TYPE: TAX INVOICE — GST COMPLIANT (AR)</div>
-      <div style="font-size:16px;font-weight:800;letter-spacing:.3px">RLPL/INV/25-26/00091</div>
-    </div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <span style="font-size:11px;opacity:.7">Raghav Granites · RLPL/FI/J0191</span>
-    <span style="background:rgba(255,255,255,.25);color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Unpaid</span>
-    <span style="background:rgba(255,255,255,.15);color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">₹7,64,510.18</span>
-  </div>
-</div>
-<div class="ph" style="border-radius:0;margin-top:0">
-  <div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Tax Invoice (GST)</div><div class="ps">Print-quality GST tax invoice · Relay Logistics Private Limited · RLPL/FI/J0191</div></div>
-  <div class="pa">
-    <button class="btn btn-out btn-sm" data-go="invoice-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
-    <button class="btn btn-out btn-sm" id="taxInvEmailBtn"><svg class="ic" data-icon="mail"></svg> Email</button>
-    <button class="btn btn-out btn-sm" id="taxInvPrintBtn"><svg class="ic" data-icon="printer"></svg> Print / PDF</button>
-    <button class="btn btn-suc btn-sm" id="taxInvPostBtn"><svg class="ic" data-icon="check"></svg> Post to AR</button>
-  </div>
-</div>
-<div class="card" style="margin-bottom:12px"><div class="cb" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:12px 16px">
-  <div class="fg" style="min-width:200px"><label class="fl">Invoice No</label><select class="fc"><option>RLPL/INV/25-26/00091</option><option>RLPL/INV/25-26/00090</option></select></div>
-  <div class="fg" style="min-width:200px"><label class="fl">Job Reference</label><select class="fc"><option>RLPL/FI/J0191 — Raghav Granites</option></select></div>
-  <button class="btn btn-pri btn-sm" style="margin-bottom:2px">Load Invoice</button>
-</div></div>
-<div class="card" id="taxInvPrintZone" style="max-width:920px;margin:0 auto">
-<div class="cb" style="padding:30px 36px;font-family:Arial,sans-serif;color:#0B1F3A">
-<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:2.5px solid #0B1F3A;margin-bottom:20px">
-  <div style="display:flex;gap:14px;align-items:center">
-    <div style="width:52px;height:52px;border-radius:50%;background:#0B1F3A;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800">RL</div>
-    <div>
-      <div style="font-size:17px;font-weight:800;color:#0B1F3A">RELAY LOGISTICS PRIVATE LIMITED</div>
-      <div style="font-size:10.5px;color:#555">NO:223/109, THAMBU CHETTY STREET, GEORGE TOWN, CHENNAI - 600001, INDIA</div>
-      <div style="font-size:10.5px;color:#555">TEL: 044 - 4322 9839 | MAIL: INFO@RELAY-LOGISTICS.COM</div>
-      <div style="font-size:10.5px;color:#555">GSTIN: 33AALCR6369P1ZI | CIN: U63030TN2022PTC</div>
-    </div>
-  </div>
-  <div style="text-align:right">
-    <div style="font-size:22px;font-weight:800;color:#0B1F3A;letter-spacing:1px">TAX INVOICE</div>
-    <table style="font-size:11px;border-collapse:collapse;margin-left:auto;margin-top:8px">
-      <tr><td style="padding:2px 8px 2px 0;color:#666">Invoice No.</td><td style="font-weight:700;font-family:monospace">RLPL/INV/25-26/00091</td></tr>
-      <tr><td style="padding:2px 8px 2px 0;color:#666">Invoice Date</td><td style="font-weight:600">15-Jun-2026</td></tr>
-      <tr><td style="padding:2px 8px 2px 0;color:#666">Due Date</td><td>22-Jun-2026</td></tr>
-      <tr><td style="padding:2px 8px 2px 0;color:#666">Job No.</td><td style="font-family:monospace">RLPL/FI/J0191</td></tr>
-      <tr><td style="padding:2px 8px 2px 0;color:#666">Place of Supply</td><td>Tamil Nadu (33)</td></tr>
-    </table>
-  </div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:18px">
-  <div style="border:1px solid #ddd;border-radius:6px;padding:12px">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:#fff;background:#0B1F3A;padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:8px">BILL TO</div>
-    <div style="font-size:13px;font-weight:700">Raghav Granites</div>
-    <div style="font-size:11px;color:#555;line-height:1.8;margin-top:3px">No 135 Thygyarasanapalli Road, Shoolagiri Taluk,<br>Krishnagiri Dist, Tamil Nadu (INDIA) 635117</div>
-    <div style="font-size:11px;color:#666;margin-top:5px">GSTIN: 33XXXX1234F1ZX | PAN: XXXXX1234X</div>
-  </div>
-  <div style="border:1px solid #ddd;border-radius:6px;padding:12px">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:#fff;background:#0B1F3A;padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:8px">SHIPMENT DETAILS</div>
-    <table style="font-size:11px;border-collapse:collapse;width:100%">
-      <tr><td style="padding:2px 0;color:#666;width:48%">BL / MBL No.</td><td style="font-family:monospace;font-weight:500">RLHALMAA1002 / CAN0820723</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Vessel / Voyage</td><td>SPIRIT OF BERTRAM / 0ZNSFE1MA</td></tr>
-      <tr><td style="padding:2px 0;color:#666">POL to POD</td><td>HALIFAX-CAHAL to CHENNAI</td></tr>
-      <tr><td style="padding:2px 0;color:#666">ETD / ETA</td><td>07-Aug-2024 / 12-Oct-2024</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Container</td><td style="font-family:monospace">CAIU2170034 | 20GP | 87 CRATES</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Commodity</td><td>Cut to Size Granite Pieces</td></tr>
-    </table>
-  </div>
-</div>
-<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:6px">
-  <thead>
-    <tr style="background:#0B1F3A;color:#fff">
-      <th style="padding:8px 10px;text-align:left;width:30px">#</th>
-      <th style="padding:8px 10px;text-align:left">Description of Service</th>
-      <th style="padding:8px 10px;text-align:center">HSN/SAC</th>
-      <th style="padding:8px 10px;text-align:center">Qty</th>
-      <th style="padding:8px 10px;text-align:center">Unit</th>
-      <th style="padding:8px 10px;text-align:right">Rate (INR)</th>
-      <th style="padding:8px 10px;text-align:right">Amount (INR)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:7px 10px">1</td><td style="padding:7px 10px;font-weight:500">OCEAN FREIGHT CHARGES</td><td style="padding:7px 10px;text-align:center;font-family:monospace">996512</td><td style="padding:7px 10px;text-align:center">1</td><td style="padding:7px 10px;text-align:center">CTN</td><td style="padding:7px 10px;text-align:right">1,79,782.95</td><td style="padding:7px 10px;text-align:right;font-weight:600">1,79,782.95</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:7px 10px">2</td><td style="padding:7px 10px;font-weight:500">TERMINAL HANDLING CHARGES</td><td style="padding:7px 10px;text-align:center;font-family:monospace">996511</td><td style="padding:7px 10px;text-align:center">1</td><td style="padding:7px 10px;text-align:center">CTN</td><td style="padding:7px 10px;text-align:right">7,580.00</td><td style="padding:7px 10px;text-align:right;font-weight:600">7,580.00</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:7px 10px">3</td><td style="padding:7px 10px;font-weight:500">CONTAINER MAINTENANCE CHARGE</td><td style="padding:7px 10px;text-align:center;font-family:monospace">996511</td><td style="padding:7px 10px;text-align:center">1</td><td style="padding:7px 10px;text-align:center">CTN</td><td style="padding:7px 10px;text-align:right">3,475.00</td><td style="padding:7px 10px;text-align:right;font-weight:600">3,475.00</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:7px 10px">4</td><td style="padding:7px 10px;font-weight:500">IMPORT DOCUMENT FEE</td><td style="padding:7px 10px;text-align:center;font-family:monospace">998399</td><td style="padding:7px 10px;text-align:center">1</td><td style="padding:7px 10px;text-align:center">SHPT</td><td style="padding:7px 10px;text-align:right">7,250.00</td><td style="padding:7px 10px;text-align:right;font-weight:600">7,250.00</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:7px 10px">5</td><td style="padding:7px 10px;font-weight:500">DETENTION CHARGES (27.11.24 - 06.12.24)</td><td style="padding:7px 10px;text-align:center;font-family:monospace">996511</td><td style="padding:7px 10px;text-align:center">1</td><td style="padding:7px 10px;text-align:center">DOC</td><td style="padding:7px 10px;text-align:right">1,03,484.82</td><td style="padding:7px 10px;text-align:right;font-weight:600">1,03,484.82</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:7px 10px">6</td><td style="padding:7px 10px;font-weight:500">STORAGE CHARGES</td><td style="padding:7px 10px;text-align:center;font-family:monospace">996511</td><td style="padding:7px 10px;text-align:center">1</td><td style="padding:7px 10px;text-align:center">CTN</td><td style="padding:7px 10px;text-align:right">3,12,208.44</td><td style="padding:7px 10px;text-align:right;font-weight:600">3,12,208.44</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:7px 10px">7</td><td style="padding:7px 10px;font-weight:500">FUMIGATION CHARGES</td><td style="padding:7px 10px;text-align:center;font-family:monospace">996511</td><td style="padding:7px 10px;text-align:center">1</td><td style="padding:7px 10px;text-align:center">SHPT</td><td style="padding:7px 10px;text-align:right">34,108.77</td><td style="padding:7px 10px;text-align:right;font-weight:600">34,108.77</td></tr>
-  </tbody>
-</table>
-<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
-  <table style="font-size:11.5px;border-collapse:collapse;min-width:320px">
-    <tr style="border-top:1px solid #ddd"><td style="padding:5px 12px;color:#555">Subtotal (Taxable Value)</td><td style="padding:5px 12px;text-align:right;font-weight:600">Rs 6,47,889.98</td></tr>
-    <tr style="border-top:1px solid #ddd"><td style="padding:5px 12px;color:#555">IGST @ 18%</td><td style="padding:5px 12px;text-align:right;font-weight:600;color:#C0392B">Rs 1,16,620.20</td></tr>
-    <tr style="background:#0B1F3A;color:#fff"><td style="padding:9px 12px;font-size:13px;font-weight:700">TOTAL AMOUNT</td><td style="padding:9px 12px;text-align:right;font-size:14px;font-weight:800">Rs 7,64,510.18</td></tr>
-  </table>
-</div>
-<div style="font-size:11.5px;font-weight:600;color:#0B1F3A;margin-bottom:16px">Amount in Words: Indian Rupees Seven Lakh Sixty-Four Thousand Five Hundred Ten and Paise Eighteen Only</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;padding-top:14px;border-top:1px solid #e0e6ed;font-size:11px">
-  <div>
-    <div style="font-weight:700;margin-bottom:6px;color:#0B1F3A;font-size:11.5px">BANK DETAILS (INR)</div>
-    <table style="border-collapse:collapse;width:100%">
-      <tr><td style="padding:2px 0;color:#666;width:42%">Bank Name</td><td>HDFC Bank Ltd</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Account Name</td><td>Relay Logistics Private Limited</td></tr>
-      <tr><td style="padding:2px 0;color:#666">Account No.</td><td style="font-family:monospace">50200012345678</td></tr>
-      <tr><td style="padding:2px 0;color:#666">IFSC Code</td><td style="font-family:monospace">HDFC0001234</td></tr>
-    </table>
-    <div style="margin-top:10px;font-size:10px;color:#888">* GST applicable as per Government norms. Subject to Chennai jurisdiction only.</div>
-  </div>
-  <div style="text-align:right;display:flex;flex-direction:column;justify-content:flex-end">
-    <div style="font-size:12px;font-weight:600;color:#0B1F3A;margin-bottom:36px">For RELAY LOGISTICS PRIVATE LIMITED</div>
-    <div style="border-top:1px solid #aaa;padding-top:6px;font-size:11.5px;color:#555">Authorised Signatory</div>
-  </div>
-</div>
-</div>
-</div>
+<div class="ph"><div><div class="pt">Tax Invoice</div><div class="ps">Produced from the job's own data</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
+<div class="card" id="taxInvPrintZone" data-doc-shell="Tax Invoice" style="max-width:940px;margin:0 auto"><div class="cb"></div></div>
 </div>
 
 <!-- ====== QUOTATION PRINT ====== -->
@@ -4300,466 +4067,27 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== BL DRAFT ====== -->
 <div id="s-bl-draft" class="scr">
-<!-- DOCUMENT TYPE HEADING -->
-<div style="background:linear-gradient(135deg,#0B1F3A 50%,#1A3A5C);color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div style="width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="clipboard" style="color:#fff;width:18px;height:18px"></svg></div>
-    <div>
-      <div style="font-size:11px;letter-spacing:.8px;opacity:.7;text-transform:uppercase">DOCUMENT TYPE: HOUSE BILL OF LADING (HBL)</div>
-      <div style="font-size:16px;font-weight:800;letter-spacing:.3px">PASFE0225-J0728 &nbsp;·&nbsp; <span style="color:#FFD700;font-size:13px">DRAFT — NOT RELEASED</span></div>
-    </div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <span style="font-size:11px;opacity:.7">CAVITAK ENTERPRISE → M/S SIGMA JONES</span>
-    <span style="background:rgba(255,215,0,.2);color:#FFD700;border:1px solid #FFD700;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">DRAFT</span>
-    <span style="background:rgba(255,255,255,.15);color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;">Mumbai → Mombasa</span>
-  </div>
-</div>
-<div class="ph" style="border-radius:0;margin-top:0">
-  <div><div class="pt"><svg class="ic" data-icon="clipboard" style="color:var(--n)"></svg>BL Draft</div><div class="ps">House Bill of Lading / Multimodal Transport Document - PAS Freight Services Pvt Ltd</div></div>
-  <div class="pa">
-    <button class="btn btn-out btn-sm" data-go="job-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
-    <button class="btn btn-out btn-sm" id="blDraftEmailBtn"><svg class="ic" data-icon="mail"></svg> Send Draft to Shipper</button>
-    <button class="btn btn-out btn-sm" id="blDraftPrintBtn"><svg class="ic" data-icon="printer"></svg> Print / PDF</button>
-    <button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Release BL</button>
-  </div>
-</div>
-<div class="ib ib-am" style="max-width:940px;margin:0 auto 12px"><svg class="ic" data-icon="alert-triangle" style="margin-right:6px;color:var(--am)"></svg><strong>DRAFT</strong> - This BL has not been released. Shipper must verify all details before release. Container numbers and weights subject to confirmation.</div>
-<div class="card" id="blDraftPrintZone" style="max-width:940px;margin:0 auto">
-<div class="cb" style="padding:0;font-family:Arial,sans-serif;color:#0B1F3A;border:2px solid #0B1F3A;border-radius:6px;overflow:hidden">
-<div style="background:#0B1F3A;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
-  <div style="font-size:10px;letter-spacing:.5px">HOUSE MULTIMODAL TRANSPORT DOCUMENT (NON-NEGOTIABLE)</div>
-  <div style="font-size:13px;font-weight:700;letter-spacing:1px;color:#FFD700">DRAFT - NOT NEGOTIABLE</div>
-</div>
-<div style="padding:18px 20px">
-<div style="display:grid;grid-template-columns:1fr auto;gap:16px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #ddd">
-  <div style="display:flex;gap:12px;align-items:center">
-    <div style="width:44px;height:44px;border:2.5px solid #0B1F3A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0B1F3A">PAS</div>
-    <div>
-      <div style="font-size:15px;font-weight:800;color:#0B1F3A">PAS FREIGHT SERVICES PRIVATE LIMITED</div>
-      <div style="font-size:10px;color:#555">KODIGEHALLI, 19, NANJUNDAPPA I/O, NEAR TWIN TOWER, BANGALORE, KARNATAKA - 560092</div>
-    </div>
-  </div>
-  <div style="text-align:right">
-    <div style="font-size:10px;color:#666;margin-bottom:2px">BL NO</div>
-    <div style="font-size:14px;font-weight:800;font-family:monospace;color:#C0392B">[ DRAFT ]</div>
-    <div style="font-size:10px;color:#666;margin-top:4px">REFERENCE NO</div>
-    <div style="font-size:12px;font-weight:700;font-family:monospace">PASFE0225-J0728</div>
-  </div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ccc;margin-bottom:0;font-size:11px">
-  <div style="border-right:1px solid #ccc;padding:10px 12px;border-bottom:1px solid #ccc">
-    <div style="font-size:9.5px;font-weight:700;letter-spacing:.7px;color:#666;margin-bottom:5px">SHIPPER</div>
-    <div style="font-weight:700;font-size:12px">CAVITAK ENTERPRISE PTE. LTD.</div>
-    <div style="color:#555;line-height:1.7;margin-top:3px">101 CECIL STREET #14-05, TONG ENG BUILDING,<br>SINGAPORE (069533) | EMAIL: CONTACT@CAVITAK.SG</div>
-  </div>
-  <div style="padding:10px 12px;border-bottom:1px solid #ccc">
-    <div style="font-size:9.5px;font-weight:700;letter-spacing:.7px;color:#666;margin-bottom:5px">BL NO &nbsp;<span style="color:#C0392B">[ PENDING RELEASE ]</span></div>
-    <div style="font-size:9.5px;font-weight:700;letter-spacing:.7px;color:#666;margin:10px 0 5px">REFERENCE NO</div>
-    <div style="font-weight:700;font-family:monospace">PASFE0225-J0728</div>
-  </div>
-  <div style="border-right:1px solid #ccc;padding:10px 12px;border-bottom:1px solid #ccc">
-    <div style="font-size:9.5px;font-weight:700;letter-spacing:.7px;color:#666;margin-bottom:5px">CONSIGNEE</div>
-    <div style="font-weight:700;font-size:12px">M/S. SIGMA JONES AV LLP</div>
-    <div style="color:#555;line-height:1.7;margin-top:3px">494, 1ST CROSS, 1ST STAGE, 4TH BLOCK, HBR LAYOUT,<br>NEAR CAF COFFEE DAY, OPP HENNUR LAKE,<br>BIODIVERSITY PARK, BANGALORE - 560043 INDIA</div>
-  </div>
-  <div style="padding:10px 12px;border-bottom:1px solid #ccc;font-size:10.5px;line-height:1.7;color:#555">
-    Taken in charge in apparently good condition herein at the place of receipt for transport and delivery as mentioned above, unless otherwise stated. The MTO undertakes to perform the multimodal transport from the place at which the goods are taken in charge, to the place designated for delivery. One of the MTD(s) must be surrendered, duly endorsed in exchange for the goods.
-  </div>
-  <div style="border-right:1px solid #ccc;padding:10px 12px;border-bottom:1px solid #ccc">
-    <div style="font-size:9.5px;font-weight:700;letter-spacing:.7px;color:#666;margin-bottom:5px">NOTIFY</div>
-    <div style="font-weight:700;font-size:12px">SELECT TECHNOLOGIES PRIVATE LIMITED</div>
-    <div style="color:#555;line-height:1.7;margin-top:3px">H.NO. 8-2-428/1/7/22, PLOT NO. 22,<br>SELECT HOUSE, NAGARJUNA HILLS, PANJAGUTTA,<br>TELANGANA HYDERABAD 500082</div>
-  </div>
-  <div style="padding:10px 12px;border-bottom:1px solid #ccc">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
-      <div><div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:3px">PLACE OF RECEIPT</div><div style="font-weight:600">MUMBAI, INDIA</div></div>
-      <div><div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:3px">PLACE OF DELIVERY</div><div style="font-weight:600">MOMBASA, KENYA</div></div>
-      <div><div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:3px">PORT OF LOADING</div><div style="font-weight:600">MUMBAI (EX BOMBAY)</div></div>
-      <div><div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:3px">PORT OF DISCHARGE</div><div style="font-weight:600">MOMBASA</div></div>
-      <div><div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:3px">VESSEL</div><div style="font-weight:600">MSC ALPHA</div></div>
-      <div><div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:3px">VOYAGE</div><div style="font-weight:600">65E</div></div>
-    </div>
-  </div>
-</div>
-<table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ccc;border-top:none">
-  <thead>
-    <tr style="background:#f0f4f8">
-      <th style="padding:7px 10px;text-align:left;border-right:1px solid #ccc">MARKS AND NO</th>
-      <th style="padding:7px 10px;text-align:center;border-right:1px solid #ccc">NO OF PCS</th>
-      <th style="padding:7px 10px;text-align:left;border-right:1px solid #ccc">COMMODITY</th>
-      <th style="padding:7px 10px;text-align:right;border-right:1px solid #ccc">GROSS WEIGHT</th>
-      <th style="padding:7px 10px;text-align:right">MEASUREMENT (CBM)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr style="border-top:1px solid #ccc">
-      <td style="padding:8px 10px;border-right:1px solid #ccc;font-family:monospace;font-size:10.5px">IRNU5412094<br>20 GP | Seal: MI98002<br><br>FMSU2990034<br>20 GP | Seal: MI09903</td>
-      <td style="padding:8px 10px;border-right:1px solid #ccc;text-align:center;vertical-align:top">14 PACKAGES<br><br><br>10 PACKAGES</td>
-      <td style="padding:8px 10px;border-right:1px solid #ccc;vertical-align:top">
-        <div style="font-weight:600">TOTAL PACKAGE 24</div>
-        <div>POOJA ITEMS, AND SPARE PARTS</div>
-        <div style="color:#666;margin-top:4px;font-size:10px">IEC CODE: 1109873647</div>
-        <div style="color:#666;font-size:10px">INVOICE NO: EXP/0902-2022 : 01-02-2024</div>
-        <div style="color:#666;font-size:10px">SB.NO: 228880912 / 02/02/2024</div>
-        <div style="color:#666;margin-top:4px">NA (2nd Container)</div>
-      </td>
-      <td style="padding:8px 10px;border-right:1px solid #ccc;text-align:right;vertical-align:top">Total G.Weight:<br><strong>23,280.000 KG</strong><br><br>Total N.Weight:<br>20,500.000 KG</td>
-      <td style="padding:8px 10px;text-align:right;vertical-align:top">FMC</td>
-    </tr>
-  </tbody>
-</table>
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border:1px solid #ccc;border-top:none;font-size:10.5px">
-  <div style="padding:8px 10px;border-right:1px solid #ccc">
-    <div style="color:#666;margin-bottom:3px;font-size:9px;font-weight:700;letter-spacing:.5px">FREIGHT</div>
-    <div style="font-weight:600">COLLECT</div>
-    <div style="font-size:9px;color:#888;margin-top:3px">Freight Payable at Consignee (expressly agreed)</div>
-  </div>
-  <div style="padding:8px 10px;border-right:1px solid #ccc">
-    <div style="color:#666;margin-bottom:3px;font-size:9px;font-weight:700;letter-spacing:.5px">FREIGHT PAYABLE AT</div>
-    <div style="font-weight:600">MOMBASA, KENYA</div>
-  </div>
-  <div style="padding:8px 10px;border-right:1px solid #ccc">
-    <div style="color:#666;margin-bottom:3px;font-size:9px;font-weight:700;letter-spacing:.5px">NO OF ORIGINAL MTD</div>
-    <div style="font-weight:600">-</div>
-  </div>
-  <div style="padding:8px 10px">
-    <div style="color:#666;margin-bottom:3px;font-size:9px;font-weight:700;letter-spacing:.5px">PLACE AND DATE OF ISSUE</div>
-    <div style="font-weight:600">BANGALORE / <span style="color:#C0392B">DRAFT</span></div>
-    <div style="margin-top:16px;font-size:10px;color:#666">For Authorised Signatory</div>
-  </div>
-</div>
-</div>
-</div>
-</div>
+<div class="ph"><div><div class="pt">Bill of Lading / AWB</div><div class="ps">Produced from the job's own data</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
+<div class="card" id="blDraftPrintZone" data-doc-shell="Bill of Lading / AWB" style="max-width:940px;margin:0 auto"><div class="cb"></div></div>
 </div>
 
 <!-- ====== FREIGHT CERTIFICATE ====== -->
 <div id="s-freight-cert" class="scr">
-<div class="ph">
-  <div><div class="pt"><svg class="ic" data-icon="award" style="color:var(--gr)"></svg>Freight Certificate</div><div class="ps">Freight Certificate with charge details - Relay Logistics Pvt Ltd - RLPL/FI/J0191</div></div>
-  <div class="pa"><button class="btn btn-out btn-sm" data-go="job-detail" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
-    <button class="btn btn-out btn-sm" data-go="job-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
-    <button class="btn btn-out btn-sm" id="fcPrintBtn"><svg class="ic" data-icon="printer"></svg> Print / PDF</button>
-    <button class="btn btn-out btn-sm" id="fcEmailBtn"><svg class="ic" data-icon="mail"></svg> Email to Agent</button>
-  </div>
-</div>
-<div class="card" id="fcPrintZone" style="max-width:940px;margin:0 auto">
-<div class="cb" style="padding:24px 30px;font-family:Arial,sans-serif;color:#0B1F3A">
-<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2.5px solid #0B1F3A;margin-bottom:18px">
-  <div style="display:flex;gap:12px;align-items:center">
-    <div style="width:48px;height:48px;border-radius:50%;background:#0B1F3A;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:800">RL</div>
-    <div>
-      <div style="font-size:16px;font-weight:800">RELAY LOGISTICS PRIVATE LIMITED</div>
-      <div style="font-size:10px;color:#555">NO:223/109, THAMBU CHETTY STREET, GEORGE TOWN, CHENNAI - 600001, INDIA</div>
-      <div style="font-size:10px;color:#555">TEL: 044 - 4322 9839 | MAIL: INFO@RELAY-LOGISTICS.COM | GSTIN: 33AALCR6369P1ZI</div>
-    </div>
-  </div>
-  <div style="text-align:right"><div style="font-size:20px;font-weight:800;letter-spacing:1px;color:#0B1F3A">FREIGHT CERTIFICATE</div></div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ccc;font-size:11px;margin-bottom:16px">
-  <div style="display:grid;grid-template-columns:1fr 1fr;border-right:1px solid #ccc">
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">JOB NO</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-family:monospace;font-weight:700">RLPL/FI/J0191</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">BL NO</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-family:monospace">RLHALMAA1002</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">MBL NO</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-family:monospace">CAN0820723</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">PLACE OF RECEIPT</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-weight:500">HALIFAX, CANADA</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">PORT OF LOADING</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">HALIFAX-CAHAL</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">PORT OF DISCHARGE</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">CHENNAI (EX MADRAS)</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">VESSEL / VOYAGE</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-weight:500">SPIRIT OF BERTRAM / 0ZNSFE1MA</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">ETD</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">07-Aug-2024</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">ETA</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">12-Oct-2024</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">MOVEMENT TYPE</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">FCL / FCL</div>
-    <div style="padding:5px 9px;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">FREIGHT</div><div style="padding:5px 9px;font-weight:600;color:#C0392B">COLLECT</div>
-  </div>
-  <div>
-    <div style="padding:10px 12px;border-bottom:1px solid #ccc">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:5px">SHIPPER</div>
-      <div style="font-weight:700;font-size:12px">JBM GRANITE AND QUARTZ INC</div>
-      <div style="color:#555;line-height:1.7;font-size:11px">63 RUE MULBERRY DOLLARD, DES ORMEAUX H9A1Y6 CANADA</div>
-    </div>
-    <div style="padding:10px 12px;border-bottom:1px solid #ccc">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:5px">CONSIGNEE</div>
-      <div style="font-weight:700;font-size:12px">Raghav Granites</div>
-      <div style="color:#555;line-height:1.7;font-size:11px">No 135 Thygyarasanapalli Road, Shoolagiri Taluk,<br>Krishnagiri Dist, Tamil Nadu (INDIA) 635117</div>
-    </div>
-    <div style="padding:10px 12px;border-bottom:1px solid #ccc">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:5px">NOTIFY</div>
-      <div style="font-weight:600;font-size:11px">Raghav Granites</div>
-      <div style="color:#555;font-size:11px">No 135 Thygyarasanapalli Road, Shoolagiri Taluk, Krishnagiri Dist, Tamil Nadu (INDIA) 635117</div>
-    </div>
-    <div style="padding:10px 12px">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:5px">AGENT</div>
-      <div style="font-weight:700;font-size:12px">RELAY LINES CANADA INC</div>
-      <div style="color:#555;line-height:1.7;font-size:11px">17 SPLIT RAIL ROAD, BRAMPTON, ONTARIO - L6X4R8, CANADA<br>TEL: +1201 2388739 | MAIL: RYAN.PARKER@RELAY-LOGISTICS.COM</div>
-    </div>
-  </div>
-</div>
-<table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ccc;margin-bottom:16px">
-  <thead><tr style="background:#f0f4f8"><th style="padding:6px 10px;border-right:1px solid #ccc;text-align:left">CONTAINER</th><th style="padding:6px 10px;border-right:1px solid #ccc;text-align:center">TYPE</th><th style="padding:6px 10px;border-right:1px solid #ccc;text-align:center">PKG</th><th style="padding:6px 10px;border-right:1px solid #ccc;text-align:left">DESCRIPTION</th><th style="padding:6px 10px;text-align:right">G.WEIGHT</th></tr></thead>
-  <tbody><tr style="border-top:1px solid #ccc"><td style="padding:7px 10px;border-right:1px solid #ccc;font-family:monospace">CAIU2170034</td><td style="padding:7px 10px;border-right:1px solid #ccc;text-align:center">20 GP</td><td style="padding:7px 10px;border-right:1px solid #ccc;text-align:center">87 CRATES</td><td style="padding:7px 10px;border-right:1px solid #ccc">1X20GP FCL | CUT TO SIZE GRANITE PIECES | HS CODE: 6802 | FREIGHT COLLECT</td><td style="padding:7px 10px;text-align:right">23,400 KG</td></tr></tbody>
-</table>
-<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#fff;background:#0B1F3A;padding:5px 10px;border-radius:3px;margin-bottom:0;display:inline-block">CHARGE DETAILS</div>
-<table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ccc;margin-top:0">
-  <thead><tr style="background:#0B1F3A;color:#fff">
-    <th style="padding:7px 10px;text-align:left;border-right:1px solid #444">CHARGE NAME</th>
-    <th style="padding:7px 10px;text-align:center;border-right:1px solid #444">PPCC</th>
-    <th style="padding:7px 10px;text-align:center;border-right:1px solid #444">UNIT</th>
-    <th style="padding:7px 10px;text-align:center;border-right:1px solid #444">CURRENCY</th>
-    <th style="padding:7px 10px;text-align:right;border-right:1px solid #444">EX.RATE</th>
-    <th style="padding:7px 10px;text-align:right;border-right:1px solid #444">AMT/UNIT</th>
-    <th style="padding:7px 10px;text-align:right;border-right:1px solid #444">CRCY AMT</th>
-    <th style="padding:7px 10px;text-align:right">LOCAL AMT (INR)</th>
-  </tr></thead>
-  <tbody>
-    <tr style="background:#f9fbff;border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">OCEAN FREIGHT CHARGES</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd"><span style="background:#DCF5E7;color:#0E8A7C;border-radius:3px;padding:1px 5px;font-size:9.5px;font-weight:700">PREPAID</span></td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">1/CONTAINER</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">INR</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">87.699</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">2,050.00</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">2,050.00</td><td style="padding:6px 10px;text-align:right;font-weight:600">1,79,782.95</td></tr>
-    <tr style="border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">TERMINAL HANDLING CHARGES</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd"><span style="background:#FFF3CD;color:#856404;border-radius:3px;padding:1px 5px;font-size:9.5px;font-weight:700">COLLECT</span></td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">1/CONTAINER</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">INR</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">1.00</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">7,580.00</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">7,580.00</td><td style="padding:6px 10px;text-align:right;font-weight:600">7,580.00</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">DET CHG 27.11.24 - 06.12.24</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd"><span style="background:#FFF3CD;color:#856404;border-radius:3px;padding:1px 5px;font-size:9.5px;font-weight:700">COLLECT</span></td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">1/DOCUMENT</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">USD</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">87.699</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">1,180.00</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">1,180.00</td><td style="padding:6px 10px;text-align:right;font-weight:600">1,03,484.82</td></tr>
-    <tr style="border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">DET CHG 30.10.24 - 26.11.24</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd"><span style="background:#FFF3CD;color:#856404;border-radius:3px;padding:1px 5px;font-size:9.5px;font-weight:700">COLLECT</span></td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">1/DOCUMENT</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">USD</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">87.699</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">3,304.00</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">3,304.00</td><td style="padding:6px 10px;text-align:right;font-weight:600">2,89,757.50</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">HANDLING CHARGES</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd"><span style="background:#DCF5E7;color:#0E8A7C;border-radius:3px;padding:1px 5px;font-size:9.5px;font-weight:700">PREPAID</span></td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">1/CONTAINER</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">USD</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">87.699</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">25.00</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">25.00</td><td style="padding:6px 10px;text-align:right;font-weight:600">2,192.48</td></tr>
-    <tr style="border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">STORAGE CHARGES</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd"><span style="background:#DCF5E7;color:#0E8A7C;border-radius:3px;padding:1px 5px;font-size:9.5px;font-weight:700">PREPAID</span></td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">1/CONTAINER</td><td style="padding:6px 10px;text-align:center;border-right:1px solid #ddd">USD</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">87.699</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">3,560.00</td><td style="padding:6px 10px;text-align:right;border-right:1px solid #ddd">3,560.00</td><td style="padding:6px 10px;text-align:right;font-weight:600">3,12,208.44</td></tr>
-    <tr style="background:#0B1F3A;color:#fff"><td colspan="7" style="padding:8px 10px;text-align:right;font-weight:700;font-size:12px;border-right:1px solid #444">TOTAL (LOCAL AMT)</td><td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:800">Rs 10,35,743.30</td></tr>
-  </tbody>
-</table>
-<div style="text-align:right;margin-top:12px;font-size:10px;color:#888">Powered by eSway ERP 2.0 | Page 1 of 1</div>
-</div>
-</div>
+<div class="ph"><div><div class="pt">Freight Certificate</div><div class="ps">Produced from the job's own data</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
+<div class="card" id="fcPrintZone" data-doc-shell="Freight Certificate" style="max-width:940px;margin:0 auto"><div class="cb"></div></div>
 </div>
 
 <!-- ====== CARGO ARRIVAL NOTICE ====== -->
 <div id="s-cargo-arrival" class="scr">
-<!-- DOCUMENT TYPE HEADING -->
-<div style="background:linear-gradient(135deg,#0E4A7C 50%,#1A6FBF);color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div style="width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="package" style="color:#fff;width:18px;height:18px"></svg></div>
-    <div>
-      <div style="font-size:11px;letter-spacing:.8px;opacity:.7;text-transform:uppercase">DOCUMENT TYPE: CARGO ARRIVAL NOTICE (CAN)</div>
-      <div style="font-size:16px;font-weight:800;letter-spacing:.3px">PASFE0225-J0728 &nbsp;·&nbsp; <span style="color:#90EE90;font-size:13px">ETA: 26-Feb-2025</span></div>
-    </div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <span style="font-size:11px;opacity:.7">Consignee: M/S Sigma Jones AV LLP</span>
-    <span style="background:rgba(255,255,255,.25);color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Mumbai → Mombasa</span>
-    <span style="background:rgba(0,200,0,.2);color:#90EE90;border:1px solid #90EE90;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">MSC ALPHA / 65E</span>
-  </div>
-</div>
-<div class="ph" style="border-radius:0;margin-top:0">
-  <div><div class="pt"><svg class="ic" data-icon="package" style="color:var(--bl)"></svg>Cargo Arrival Notice (CAN)</div><div class="ps">Auto-generated CAN for consignee and notify party - PAS Freight Services Pvt Ltd</div></div>
-  <div class="pa">
-    <button class="btn btn-out btn-sm" data-go="job-list"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
-    <button class="btn btn-out btn-sm" id="canPrintBtn"><svg class="ic" data-icon="printer"></svg> Print / PDF</button>
-    <button class="btn btn-suc btn-sm" id="canEmailBtn"><svg class="ic" data-icon="mail"></svg> Send CAN to Consignee</button>
-  </div>
-</div>
-<div class="card" id="canPrintZone" style="max-width:940px;margin:0 auto">
-<div class="cb" style="padding:24px 28px;font-family:Arial,sans-serif;color:#0B1F3A">
-<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid #0B1F3A;margin-bottom:18px">
-  <div style="display:flex;gap:12px;align-items:center">
-    <div style="width:46px;height:46px;border-radius:50%;border:2.5px solid #0B1F3A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0B1F3A">PAS</div>
-    <div>
-      <div style="font-size:15px;font-weight:800">PAS FREIGHT SERVICES PRIVATE LIMITED</div>
-      <div style="font-size:10px;color:#555">KODIGEHALLI, 19, NANJUNDAPPA I/O, NEAR TWIN TOWER, BANGALORE, KARNATAKA - 560092</div>
-    </div>
-  </div>
-  <div style="text-align:right"><div style="font-size:22px;font-weight:800;letter-spacing:1px">CARGO ARRIVAL NOTICE</div></div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ccc;font-size:11px;margin-bottom:16px">
-  <div style="display:grid;grid-template-columns:1fr 1fr;border-right:1px solid #ccc">
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">JOB NO</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-family:monospace;font-weight:600">PASFE0225-J0728</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">BL NO</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-family:monospace">/</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">MBL NO</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-family:monospace">/</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">PLACE OF RECEIPT</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-weight:500">MUMBAI, INDIA</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">PORT OF LOADING</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">MUMBAI (EX BOMBAY)</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">PORT OF DISCHARGE</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-weight:500">MOMBASA</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">PLACE OF DELIVERY</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">MOMBASA, KENYA</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">VESSEL / VOYAGE</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-weight:500">MSC ALPHA / 65E</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">ETD</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">01-Feb-2025</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">ETA</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-weight:700;color:#C0392B">26-Feb-2025</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">MOVEMENT TYPE</div><div style="padding:5px 9px;border-bottom:1px solid #ccc">FCL / FCL</div>
-    <div style="padding:5px 9px;border-bottom:1px solid #ccc;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">FREIGHT</div><div style="padding:5px 9px;border-bottom:1px solid #ccc;font-weight:600;color:#C0392B">COLLECT</div>
-    <div style="padding:5px 9px;color:#666;font-size:9px;font-weight:700;letter-spacing:.5px">CONSIGNEE</div><div style="padding:5px 9px;font-weight:600">M/S. SIGMA JONES AV LLP</div>
-  </div>
-  <div>
-    <div style="padding:10px 12px;border-bottom:1px solid #ccc">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:5px">SHIPPER</div>
-      <div style="font-weight:700;font-size:12px">CAVITAK ENTERPRISE PTE. LTD.</div>
-      <div style="color:#555;font-size:11px;line-height:1.7;margin-top:3px">101 CECIL STREET #14-05, TONG ENG BUILDING,<br>SINGAPORE (069533) | EMAIL: CONTACT@CAVITAK.SG</div>
-    </div>
-    <div style="padding:10px 12px;border-bottom:1px solid #ccc">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:5px">CONSIGNEE</div>
-      <div style="font-weight:700;font-size:12px">M/S. SIGMA JONES AV LLP</div>
-      <div style="color:#555;font-size:11px;line-height:1.7;margin-top:3px">494, 1ST CROSS, 1ST STAGE, 4TH BLOCK, HBR LAYOUT,<br>NEAR CAF COFFEE DAY, OPP HENNUR LAKE,<br>BIODIVERSITY PARK, BANGALORE - 560043 INDIA</div>
-    </div>
-    <div style="padding:10px 12px;border-bottom:1px solid #ccc">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:5px">NOTIFY</div>
-      <div style="font-weight:600;font-size:11px">SELECT TECHNOLOGIES PRIVATE LIMITED</div>
-      <div style="color:#555;font-size:11px;line-height:1.7">H.NO. 8-2-428/1/7/22, PLOT NO. 22, SELECT HOUSE,<br>NAGARJUNA HILLS, PANJAGUTTA, HYDERABAD 500082</div>
-    </div>
-    <div style="padding:10px 12px">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:5px">AGENT</div>
-      <div style="font-weight:700;font-size:12px">DEUTSCHE INDIA PRIVATE LIMITED</div>
-      <div style="color:#555;font-size:11px;line-height:1.7">BLOCK B-7, 2/3 FLR, NIRLON KNOWLEDGE PARK,<br>WESTERN EXPRESS HIGHWAY, GOREGAON-E MUMBAI 400063</div>
-    </div>
-  </div>
-</div>
-<table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ccc;margin-bottom:16px">
-  <thead><tr style="background:#0B1F3A;color:#fff">
-    <th style="padding:7px 10px;border-right:1px solid #444;text-align:left">CONTAINER</th>
-    <th style="padding:7px 10px;border-right:1px solid #444;text-align:center">TYPE</th>
-    <th style="padding:7px 10px;border-right:1px solid #444;text-align:center">NO OF PKG</th>
-    <th style="padding:7px 10px;border-right:1px solid #444;text-align:left">DESCRIPTION</th>
-    <th style="padding:7px 10px;border-right:1px solid #444;text-align:right">N.WEIGHT</th>
-    <th style="padding:7px 10px;text-align:right">G.WEIGHT</th>
-  </tr></thead>
-  <tbody>
-    <tr style="border-bottom:1px solid #ddd"><td style="padding:8px 10px;border-right:1px solid #ddd;font-family:monospace">IRNU5412094</td><td style="padding:8px 10px;border-right:1px solid #ddd;text-align:center">20 GP</td><td style="padding:8px 10px;border-right:1px solid #ddd;text-align:center">14 PACKAGES</td><td style="padding:8px 10px;border-right:1px solid #ddd">TOTAL PACKAGE 24 - POOJA ITEMS AND SPARE PARTS<br><span style="font-size:10px;color:#666">IEC: 1109873647 | INV: EXP/0902-2022:01-02-2024 | SB: 228880912/02/02/2024</span></td><td style="padding:8px 10px;border-right:1px solid #ddd;text-align:right">11,000 KG</td><td style="padding:8px 10px;text-align:right">12,980 KG</td></tr>
-    <tr><td style="padding:8px 10px;border-right:1px solid #ddd;font-family:monospace">FMSU2990034</td><td style="padding:8px 10px;border-right:1px solid #ddd;text-align:center">20 GP</td><td style="padding:8px 10px;border-right:1px solid #ddd;text-align:center">10 PACKAGES</td><td style="padding:8px 10px;border-right:1px solid #ddd">NA</td><td style="padding:8px 10px;border-right:1px solid #ddd;text-align:right">9,500 KG</td><td style="padding:8px 10px;text-align:right">10,300 KG</td></tr>
-  </tbody>
-</table>
-<div style="background:#EBF4FF;border-left:4px solid #1A6FBF;padding:10px 14px;border-radius:0 4px 4px 0;font-size:11.5px;color:#0B1F3A;margin-bottom:12px">
-  <strong>Please arrange for clearance immediately upon arrival.</strong> Consignee to collect Delivery Order (DO) from local agent. Detention charges will apply after free days. Contact our office for DO release and port clearance assistance.
-</div>
-<div style="text-align:right;font-size:10px;color:#888">Powered by eSway ERP 2.0 | Page 1 of 1</div>
-</div>
-</div>
+<div class="ph"><div><div class="pt">Cargo Arrival Notice / Delivery Order</div><div class="ps">Produced from the job's own data</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
+<div class="card" id="canPrintZone" data-doc-shell="Cargo Arrival Notice / Delivery Order" style="max-width:940px;margin:0 auto"><div class="cb"></div></div>
 </div>
 
 <!-- ====== JOB P&L REPORT ====== -->
 <div id="s-job-pl-report" class="scr">
-<div class="ph">
-  <div><div class="pt"><svg class="ic" data-icon="trending-up" style="color:var(--gr)"></svg>Job Profit and Loss Report</div><div class="ps">Per-job P&L with provisional vs actual comparison - Relay Logistics Private Limited</div></div>
-  <div class="pa"><button class="btn btn-out btn-sm" data-go="pnl" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
-    <button class="btn btn-out btn-sm" data-go="pnl"><svg class="ic" data-icon="arrow-left"></svg> Back</button>
-    <button class="btn btn-out btn-sm" id="plPrintBtn"><svg class="ic" data-icon="printer"></svg> Print / PDF</button>
-    <button class="btn btn-out btn-sm" data-export="job-pl"><svg class="ic" data-icon="download"></svg> Export Excel</button>
-  </div>
+<div class="ph"><div><div class="pt">Job Profitability</div><div class="ps">Produced from the job's own data</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
+<div class="card" id="plPrintZone" data-doc-shell="Job Profitability" style="max-width:940px;margin:0 auto"><div class="cb"></div></div>
 </div>
-<div class="card" style="margin-bottom:12px"><div class="cb" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:12px 16px">
-  <div class="fg" style="min-width:220px"><label class="fl">Job No</label><select class="fc"><option>RLPL/FI/J0191 - Raghav Granites</option><option>PASFE0225-J0728 - Sigma Jones</option><option>SEX-25-000047 - Global Imports LLC</option></select></div>
-  <div class="fg" style="min-width:130px"><label class="fl">Period</label><select class="fc"><option>Jan 2026 - Mar 2026</option><option>Oct 2024 - Dec 2024</option><option>All Time</option></select></div>
-  <button class="btn btn-pri btn-sm" style="margin-bottom:2px">Load Report</button>
-</div></div>
-<div class="card" id="plPrintZone" style="max-width:960px;margin:0 auto">
-<div class="cb" style="padding:28px 32px;font-family:Arial,sans-serif;color:#0B1F3A">
-<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2.5px solid #0B1F3A;margin-bottom:20px">
-  <div style="display:flex;gap:12px;align-items:center">
-    <div style="width:46px;height:46px;border-radius:50%;background:#0B1F3A;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:800">RL</div>
-    <div>
-      <div style="font-size:16px;font-weight:800">RELAY LOGISTICS PRIVATE LIMITED</div>
-      <div style="font-size:10px;color:#555">NO:223/109, THAMBU CHETTY STREET, GEORGE TOWN, CHENNAI - 600001</div>
-    </div>
-  </div>
-  <div style="text-align:right">
-    <div style="font-size:18px;font-weight:800">JOB PROFIT AND LOSS</div>
-    <table style="font-size:11px;border-collapse:collapse;margin-left:auto;margin-top:6px">
-      <tr><td style="padding:1px 8px 1px 0;color:#666">Currency</td><td style="font-weight:600">INR</td></tr>
-      <tr><td style="padding:1px 8px 1px 0;color:#666">Report Date</td><td style="font-weight:600">25-Jun-2026</td></tr>
-    </table>
-  </div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-  <div style="border:1px solid #ddd;border-radius:5px;padding:10px 12px;font-size:11px">
-    <table style="border-collapse:collapse;width:100%">
-      <tr><td style="padding:3px 0;color:#666;width:50%;font-size:9.5px;font-weight:700;letter-spacing:.4px">JOB NO</td><td style="font-family:monospace;font-weight:700">RLPL/FI/J0191</td></tr>
-      <tr><td style="padding:3px 0;color:#666;font-size:9.5px;font-weight:700;letter-spacing:.4px">BOOKING NO</td><td style="font-family:monospace">RLHALMAA1002</td></tr>
-      <tr><td style="padding:3px 0;color:#666;font-size:9.5px;font-weight:700;letter-spacing:.4px">BL NO</td><td style="font-family:monospace">RLHALMAA1002</td></tr>
-      <tr><td style="padding:3px 0;color:#666;font-size:9.5px;font-weight:700;letter-spacing:.4px">PORT OF LOADING</td><td>HALIFAX-CAHAL</td></tr>
-      <tr><td style="padding:3px 0;color:#666;font-size:9.5px;font-weight:700;letter-spacing:.4px">PORT OF DISCHARGE</td><td>CHENNAI (EX MADRAS)</td></tr>
-      <tr><td style="padding:3px 0;color:#666;font-size:9.5px;font-weight:700;letter-spacing:.4px">VESSEL / VOYAGE</td><td style="font-weight:500">SPIRIT OF BERTRAM / 0ZNSFE1MA</td></tr>
-      <tr><td style="padding:3px 0;color:#666;font-size:9.5px;font-weight:700;letter-spacing:.4px">ETD / ETA</td><td>07-Aug-2024 / 12-Oct-2024</td></tr>
-      <tr><td style="padding:3px 0;color:#666;font-size:9.5px;font-weight:700;letter-spacing:.4px">FREIGHT</td><td style="font-weight:700;color:#C0392B">COLLECT</td></tr>
-    </table>
-  </div>
-  <div style="border:1px solid #ddd;border-radius:5px;padding:10px 12px;font-size:11px">
-    <div style="font-size:9.5px;font-weight:700;letter-spacing:.4px;color:#666;margin-bottom:5px">CUSTOMER</div>
-    <div style="font-weight:700;font-size:12px">Raghav Granites</div>
-    <div style="color:#555;line-height:1.7;margin-top:3px">No 135 Thygyarasanapalli Road, Shoolagiri Taluk,<br>Krishnagiri Dist, Tamil Nadu (INDIA) 635117</div>
-    <div style="margin-top:10px;font-size:9.5px;font-weight:700;letter-spacing:.4px;color:#666;margin-bottom:5px">SHIPPER / NOTIFY</div>
-    <div style="font-weight:700;font-size:12px">JBM GRANITE AND QUARTZ INC</div>
-    <div style="color:#555;font-size:11px">63 RUE MULBERRY DOLLARD, DES ORMEAUX H9A1Y6 CANADA</div>
-  </div>
-</div>
-<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#fff;background:#0B1F3A;padding:5px 10px;border-radius:3px;margin-bottom:0;display:inline-block">CHARGE DETAIL</div>
-<table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ccc;margin-top:0">
-  <thead>
-    <tr style="background:#0B1F3A;color:#fff">
-      <th style="padding:7px 10px;text-align:left;border-right:1px solid #444;min-width:200px">CHARGE</th>
-      <th style="padding:7px 10px;text-align:right;border-right:1px solid #444">P SALE</th>
-      <th style="padding:7px 10px;text-align:right;border-right:1px solid #444">P COST</th>
-      <th style="padding:7px 10px;text-align:right;border-right:1px solid #444">P GP</th>
-      <th style="padding:7px 10px;text-align:right;border-right:1px solid #444">A SALE</th>
-      <th style="padding:7px 10px;text-align:right;border-right:1px solid #444">A COST</th>
-      <th style="padding:7px 10px;text-align:right">A GP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">OCEAN FREIGHT CHARGES</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,79,782.95</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">-</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#0E8A7C;font-weight:700">1,79,782.95</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,79,782.95</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">-</td><td style="padding:6px 10px;text-align:right;color:#0E8A7C;font-weight:700">1,79,782.95</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">TERMINAL HANDLING CHARGES</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">7,580.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">7,580.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">0.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">7,580.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">7,580.00</td><td style="padding:6px 10px;text-align:right;color:#888">0.00</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">CONTAINER SERVICE CHARGE</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">800.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">800.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">0.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">800.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">800.00</td><td style="padding:6px 10px;text-align:right;color:#888">0.00</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">CONTAINER MAINTENANCE CHARGE</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">3,475.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">3,475.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">0.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">3,475.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">3,475.00</td><td style="padding:6px 10px;text-align:right;color:#888">0.00</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">IMPORT DOCUMENT FEE</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">7,250.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">7,250.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">0.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">7,250.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">7,250.00</td><td style="padding:6px 10px;text-align:right;color:#888">0.00</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">DET CHG 27.11.24 - 06.12.24</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,03,484.82</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,03,484.82</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">0.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,03,484.82</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,03,484.82</td><td style="padding:6px 10px;text-align:right;color:#888">0.00</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">DET CHG 07.10.24 - 09.12.24</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">31,045.45</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">31,045.446</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">0.004</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">31,045.45</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">31,045.446</td><td style="padding:6px 10px;text-align:right;color:#888">0.004</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">DO EXTENTION</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,300.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,300.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">0.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,300.00</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">1,300.00</td><td style="padding:6px 10px;text-align:right;color:#888">0.00</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">HANDLING CHARGES</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">2,192.475</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">-</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#0E8A7C;font-weight:700">2,192.475</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">2,192.475</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">-</td><td style="padding:6px 10px;text-align:right;color:#0E8A7C;font-weight:700">2,192.475</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">FUMIGATION (balance adjusted from)</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">34,108.772</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">33,997.149</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#0E8A7C;font-weight:700">111.623</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">34,108.772</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">34,108.772</td><td style="padding:6px 10px;text-align:right;color:#888">-</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">DET CHG 27.10.24 - 29.10.24</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">24,468.02</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">24,468.021</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#C0392B">-0.001</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">24,468.02</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">24,468.021</td><td style="padding:6px 10px;text-align:right;color:#C0392B">-0.001</td></tr>
-    <tr style="border-bottom:1px solid #e8eef5"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">DET CHG 30.10.24 - 26.11.24</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">2,89,757.50</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">2,89,757.496</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">0.004</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">2,89,757.50</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">2,89,757.496</td><td style="padding:6px 10px;text-align:right;color:#888">0.004</td></tr>
-    <tr style="background:#f9fbff;border-bottom:2px solid #0B1F3A"><td style="padding:6px 10px;border-right:1px solid #ddd;font-weight:500">STORAGE CHARGES</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">3,12,208.44</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">-</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#0E8A7C;font-weight:700">3,12,208.44</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right">3,12,208.44</td><td style="padding:6px 10px;border-right:1px solid #ddd;text-align:right;color:#888">-</td><td style="padding:6px 10px;text-align:right;color:#0E8A7C;font-weight:700">3,12,208.44</td></tr>
-    <tr style="background:#0B1F3A;color:#fff">
-      <td style="padding:8px 10px;font-weight:800;font-size:12.5px;border-right:1px solid #444">Total</td>
-      <td style="padding:8px 10px;text-align:right;font-weight:700;border-right:1px solid #444">10,35,743.3</td>
-      <td style="padding:8px 10px;text-align:right;border-right:1px solid #444">5,07,332.932</td>
-      <td style="padding:8px 10px;text-align:right;font-weight:700;color:#90EE90;border-right:1px solid #444">5,28,410.406</td>
-      <td style="padding:8px 10px;text-align:right;font-weight:700;border-right:1px solid #444">10,35,743.3</td>
-      <td style="padding:8px 10px;text-align:right;border-right:1px solid #444">4,73,335.783</td>
-      <td style="padding:8px 10px;text-align:right;font-weight:800;color:#90EE90">5,62,407.555</td>
-    </tr>
-  </tbody>
-</table>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
-  <div style="border:1.5px solid #0B1F3A;border-radius:6px;padding:14px 16px">
-    <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:#666;margin-bottom:10px">PROVISIONAL</div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span>Sale Total</span><span style="font-weight:600">Rs 10,35,743.30</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span>Cost Total</span><span style="font-weight:600">Rs 5,07,332.932</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:8px;padding-top:8px;border-top:1.5px solid #0B1F3A"><span style="font-weight:700">Gross Profit</span><span style="font-weight:800;color:#0E8A7C">Rs 5,28,410.41</span></div>
-    <div style="text-align:right;font-size:11px;color:#0E8A7C;font-weight:600;margin-top:2px">GP Margin: 51.02%</div>
-  </div>
-  <div style="border:1.5px solid #0E8A7C;border-radius:6px;padding:14px 16px;background:#F0FBF8">
-    <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:#0E8A7C;margin-bottom:10px">ACTUAL</div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span>Sale Total</span><span style="font-weight:600">Rs 10,35,743.30</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span>Cost Total</span><span style="font-weight:600">Rs 4,73,335.783</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:8px;padding-top:8px;border-top:1.5px solid #0E8A7C"><span style="font-weight:700">Gross Profit</span><span style="font-weight:800;color:#0E8A7C">Rs 5,62,407.555</span></div>
-    <div style="text-align:right;font-size:11px;color:#0E8A7C;font-weight:600;margin-top:2px">GP Margin: 54.30%</div>
-  </div>
-</div>
-<div style="border:1px solid #ddd;border-radius:5px;padding:10px 14px;margin-top:12px;font-size:11.5px;display:flex;gap:24px;background:#f9fbff">
-  <div><span style="color:#666">TAX - Sale:</span> <strong>Rs 1,63,062</strong></div>
-  <div><span style="color:#666">Cost:</span> <strong>Rs 91,319.93</strong></div>
-  <div><span style="color:#666">Net Tax Liability:</span> <strong style="color:#0E8A7C">Rs 71,742.07</strong></div>
-</div>
-<div style="margin-top:18px">
-<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#fff;background:#0B1F3A;padding:5px 10px;border-radius:3px;margin-bottom:0;display:inline-block">VENDOR COST BREAKDOWN (BILL TO)</div>
-<table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ccc;margin-top:0">
-  <thead><tr style="background:#f0f4f8"><th style="padding:7px 10px;border-right:1px solid #ccc;text-align:left">BILL TO (CUSTOMER)</th><th style="padding:7px 10px;text-align:right">P SALE</th></tr></thead>
-  <tbody><tr style="border-top:1px solid #ccc"><td style="padding:6px 10px;border-right:1px solid #ccc">Raghav Granites</td><td style="padding:6px 10px;text-align:right;font-weight:700">Rs 10,35,743.33</td></tr></tbody>
-</table>
-<table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #ccc;border-top:none">
-  <thead><tr style="background:#f0f4f8"><th style="padding:7px 10px;border-right:1px solid #ccc;text-align:left">VENDOR</th><th style="padding:7px 10px;border-right:1px solid #ccc;text-align:left">CHARGE</th><th style="padding:7px 10px;text-align:right">P COST</th></tr></thead>
-  <tbody>
-    <tr style="border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">CMA CGM Agencies (India)</td><td style="padding:6px 10px;border-right:1px solid #ddd">TERMINAL HANDLING</td><td style="padding:6px 10px;text-align:right;font-weight:600">7,580.00</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">CMA CGM Agencies (India)</td><td style="padding:6px 10px;border-right:1px solid #ddd">CONTAINER SERVICE</td><td style="padding:6px 10px;text-align:right;font-weight:600">800.00</td></tr>
-    <tr style="border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">CMA CGM Agencies (India)</td><td style="padding:6px 10px;border-right:1px solid #ddd">DET CHG 27.11.24-06.12.24</td><td style="padding:6px 10px;text-align:right;font-weight:600">1,03,484.82</td></tr>
-    <tr style="background:#f9fbff;border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">CMA CGM Agencies (India)</td><td style="padding:6px 10px;border-right:1px solid #ddd">DET CHG 30.10.24-26.11.24</td><td style="padding:6px 10px;text-align:right;font-weight:600">2,89,757.496</td></tr>
-    <tr style="border-bottom:1px solid #ddd"><td style="padding:6px 10px;border-right:1px solid #ddd">CMA CGM Agencies (India)</td><td style="padding:6px 10px;border-right:1px solid #ddd">FUMIGATION (balance)</td><td style="padding:6px 10px;text-align:right;font-weight:600">33,997.149</td></tr>
-    <tr style="background:#0B1F3A;color:#fff"><td colspan="2" style="padding:8px 10px;text-align:right;font-weight:700;border-right:1px solid #444">TOTAL VENDOR COST</td><td style="padding:8px 10px;text-align:right;font-weight:800">Rs 5,07,332.932</td></tr>
-  </tbody>
-</table>
-</div>
-<div style="text-align:right;margin-top:14px;font-size:10px;color:#888">Powered by eSway ERP 2.0 | Page 1 of 2</div>
-</div>
-</div>
-</div>
-
 
 <!-- ====== BRANCH MASTER LIST ====== -->
 <div id="s-branch-master" class="scr">
@@ -6038,18 +5366,12 @@ tbody tr:hover{background:var(--g0)}
 <div id="s-pnl" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="chart-bar" style="color:var(--gr)"></svg>Job Profitability Report</div><div class="ps">Gross profit per shipment — all modules combined</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="reports" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="pnl"><svg class="ic" data-icon="download"></svg> Export</button></div></div>
 <div class="kpi-row">
-<div class="kpi"><div class="kpi-lbl">Total Revenue MTD</div><div class="kpi-val">₹62.4L</div><div class="kpi-sub up">↑ 14%</div></div>
-<div class="kpi"><div class="kpi-lbl">Total Cost MTD</div><div class="kpi-val">₹49.8L</div><div class="kpi-sub">Direct costs</div></div>
-<div class="kpi"><div class="kpi-lbl">Gross Profit MTD</div><div class="kpi-val">₹12.6L</div><div class="kpi-sub up">20.2% margin</div></div>
-<div class="kpi"><div class="kpi-lbl">Jobs P&amp;L Locked</div><div class="kpi-val">31</div><div class="kpi-sub">Closed this month</div></div>
+<div class="kpi"><div class="kpi-lbl">Total Revenue MTD</div><div class="kpi-val">0</div><div class="kpi-sub up"></div></div>
+<div class="kpi"><div class="kpi-lbl">Total Cost MTD</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">Gross Profit MTD</div><div class="kpi-val">0</div><div class="kpi-sub up"></div></div>
+<div class="kpi"><div class="kpi-lbl">Jobs P&amp;L Locked</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
-<div class="card"><div class="tw"><table><thead><tr><th>Job No</th><th>Shipper</th><th>Mode</th><th>AR Billed</th><th>AP Cost</th><th>Gross Profit</th><th>GP %</th><th>Status</th></tr></thead><tbody>
-<tr><td class="mono ta" style="font-size:10px" data-go="job-detail" data-job="SEX-25-000047">IN-RGC-MAA-SEX-25-000047</td><td>Tata Chemicals</td><td><span class="b b-bl">Sea EXP FCL</span></td><td>₹1,85,496</td><td>₹1,12,560</td><td class="ap">₹72,936</td><td><span class="b b-gr">39.4%</span></td><td><span class="b b-am">Provisional</span></td></tr>
-<tr><td class="mono" style="font-size:10px">IN-RGC-MAA-AEX-25-000046</td><td>Infosys BPO</td><td><span class="b b-tl">Air EXP</span></td><td>₹56,876</td><td>₹44,200</td><td class="ap">₹12,676</td><td><span class="b b-am">22.3%</span></td><td><span class="b b-am">Provisional</span></td></tr>
-<tr><td class="mono" style="font-size:10px">IN-RGC-MAA-SIM-25-000045</td><td>GEA Westfalia</td><td><span class="b b-bl">Sea IMP FCL</span></td><td>₹1,24,018</td><td>₹1,15,000</td><td class="ap">₹9,018</td><td><span class="b b-rd">7.3%</span></td><td><span class="b b-am">Provisional</span></td></tr>
-<tr><td class="mono" style="font-size:10px">IN-RGC-MAA-CUS-25-000044</td><td>Ashok Leyland</td><td><span class="b b-gy">CHA</span></td><td>₹33,040</td><td>₹24,800</td><td class="ap">₹8,240</td><td><span class="b b-gr">24.9%</span></td><td><span class="b b-gr">Final</span></td></tr>
-<tr><td class="mono" style="font-size:10px">IN-RGC-MAA-TRP-25-000043</td><td>TVS Motor</td><td><span class="b b-am">Road</span></td><td>₹18,500</td><td>₹14,160</td><td class="ap">₹4,340</td><td><span class="b b-am">23.5%</span></td><td><span class="b b-gr">Final</span></td></tr>
-</tbody></table></div></div></div>
+<div class="card"><div class="tw"><table><thead><tr><th>Job No</th><th>Shipper</th><th>Mode</th><th>AR Billed</th><th>AP Cost</th><th>Gross Profit</th><th>GP %</th><th>Status</th></tr></thead><tbody><tr><td colspan="9" style="text-align:center;color:var(--g5);padding:16px;font-style:italic">Not available yet. Job-wise profit is calculated from each job's own charges.</td></tr></tbody></table></div></div></div>
 
 <!-- ====== MIS REPORTS ====== -->
 <div id="s-reports" class="scr">
@@ -6520,7 +5842,7 @@ function fmtNum(n){ return Number(n||0).toLocaleString("en-IN"); }
 function toast(title, msg, type){
   type = type || "success";
   const stack = $("#toastStack");
-  const t = el("div","toast "+(type==="error"?"error":type==="warn"?"warn":""));
+  const t = el("div","toast "+(type==="error"?"error":type==="warn"?"warn":"success"));
   const icoName = type==="error" ? "alert" : type==="warn" ? "alert" : "check-circle";
   t.innerHTML = `<svg class="ic" data-icon="${icoName}"></svg><div class="toast-msg"><strong style="display:block">${esc(title)}</strong>${msg?`<span style="color:#A8B3C7">${esc(msg)}</span>`:""}</div><svg class="ic toast-close" data-icon="close"></svg>`;
   stack.appendChild(t);
@@ -7587,22 +6909,17 @@ $("#notifMarkAll").addEventListener("click", ()=>{
 /* ============================================================
    6. ORG DETAIL — dynamic population by name (demo dataset)
    ============================================================ */
-const ORG_DB = {
-  "Tata Chemicals Ltd":{code:"TATACHEM", sub:"TATACHEM · Active Client · Shipper · AR · 🇮🇳 India"},
-  "MSC Mediterranean":{code:"MSCCHN", sub:"MSCCHN · Active Carrier · AP · 🇨🇭 Switzerland"},
-  "GEA Westfalia Sep (I)":{code:"GEAWES", sub:"GEAWES · Active Client · Consignee · AR · 🇮🇳 India"},
-  "Sea Air Marine Surveyors":{code:"SEAAIRMA", sub:"SEAAIRMA · Active CHA · Services · 🇮🇳 India"},
-  "TVS Motor Company":{code:"TVSMOT", sub:"TVSMOT · Active Client · Shipper · AR · 🇮🇳 India"},
-  "Infosys BPO Ltd":{code:"INFOBPO", sub:"INFOBPO · Active Client · Shipper · AR · 🇮🇳 India"},
-  "Hapag-Lloyd India":{code:"HAPAGIN", sub:"HAPAGIN · Active Carrier · AP · 🇩🇪 Germany"},
-  "Panalpina Belgium":{code:"PANBEL", sub:"PANBEL · Active Overseas Agent · 🇧🇪 Belgium"},
-  "Ashok Leyland Ltd":{code:"ASHLEY", sub:"ASHLEY · Active Client · Importer · AR · 🇮🇳 India"},
-  "Air India Cargo":{code:"AIRIND", sub:"AIRIND · Active Carrier · AP · 🇮🇳 India"},
-  "Chennai Container Freight Station":{code:"CHECFS", sub:"CHECFS · Active CFS · Services · 🇮🇳 India"},
-  "VRL Logistics (Transport)":{code:"VRLTRN", sub:"VRLTRN · Active Transport · Services · 🇮🇳 India"},
-  "NRS Freight System":{code:"NRSFRT", sub:"NRSFRT · Active Overseas Agent · 🇸🇬 Singapore"},
-  "Lufthansa Cargo AG":{code:"LUFTCG", sub:"LUFTCG · Active Carrier · AP · 🇩🇪 Germany"},
-  "Bremen Foods Machinery GmbH":{code:"BREFOOD", sub:"BREFOOD · Active Client · Shipper · AR · 🇩🇪 Germany"},
+const ORG_DB = {};
+/* the Organization Master, loaded from the server: feeds the party drop-downs of a job */
+window.orgDbRefresh = async function(){
+  const token = sessionStorage.getItem("esway_access_token"); if(!token) return;
+  try{
+    const r = await fetch("/api/customers", {headers:{Authorization:"Bearer "+token}}); if(!r.ok) return;
+    const rows = await r.json();
+    Object.keys(ORG_DB).forEach(k=> delete ORG_DB[k]);
+    rows.filter(c=>c.status === "ACTIVE").forEach(c=>{ ORG_DB[c.name] = {code:c.code, sub:c.code+" · "+(c.roles||[]).join(", ")+" · "+(c.country||"")}; });
+    if(typeof pcRenderPartySelects === "function" && document.getElementById("pc_shipper")) pcRenderPartySelects();
+  }catch(e){ /* the drop-downs stay empty until the next refresh */ }
 };
 function populateOrgDetail(name){
   const rec = ORG_DB[name];
@@ -7720,8 +7037,11 @@ function populateCustomerSelect(selectId){
    ============================================================ */
 /* Registry of real jobs loaded from /api/shipments (no demo records). */
 const JOB_DB = {};
+window.JOB_DB = JOB_DB;
 let currentJobManifestCtx = null;
 function populateJobDetail(jobNo){
+  window.__lastJobNo = jobNo;
+  if(window.orgDbRefresh) window.orgDbRefresh();
   const set = (id, v)=>{ const el = document.getElementById(id); if(el) el.textContent = (v===null || v===undefined || v==="") ? "—" : v; };
   const token = sessionStorage.getItem("esway_access_token");
   const finish = ()=>{
@@ -8410,12 +7730,7 @@ function renderJobParties(jobNo){
 /* ============================================================
    6c. INVOICE DETAIL — dynamic header (demo dataset)
    ============================================================ */
-const INV_DB = {
-  "RGC-INV-25-00847":{customer:"Tata Chemicals Ltd", job:"IN-RGC-MAA-SEX-25-000047", desc:"Sea Export FCL"},
-  "RGC-INV-25-00846":{customer:"Infosys BPO", job:"IN-RGC-MAA-AEX-25-000046", desc:"Air Export"},
-  "RGC-INV-25-00844":{customer:"TVS Motor Company", job:"IN-RGC-MAA-SEX-25-000043", desc:"Sea Export FCL"},
-  "RGC-INV-25-00842":{customer:"Ashok Leyland Ltd", job:"IN-RGC-MAA-CUS-25-000044", desc:"Customs / CHA"},
-};
+const INV_DB = {};
 function populateInvoiceDetail(invNo){
   const rec = INV_DB[invNo];
   $("#invDetailNo").textContent = invNo;
@@ -8565,15 +7880,15 @@ $("#portSaveBtn") && $("#portSaveBtn").addEventListener("click", ()=>{
 wireAction("jobSaveDraftBtn","Draft saved","Job saved as draft — continue later from Jobs list");
 wireAction("jobSendDocsBtn","Documents sent","Shipment documents emailed to consignee and agent");
 wireAction("invPrintBtn","Preparing print view","Opening print-ready invoice layout");
-wireAction("invEmailBtn","Invoice emailed","Sent to Tata Chemicals Ltd — accounts@tatachemicals.com");
-wireAction("dnEmailBtn","Debit Note emailed","Sent to Global Imports LLC — accounts@globalimports.ae");
-wireAction("dnApproveBtn","Debit Note issued","RTL/DN/2026/0058 marked as Sent — posted to customer ledger");
-wireAction("piApproveBtn","Purchase Invoice approved","PI-0002 approved — DR 4100 / CR 2101 posted");
-wireAction("taxInvEmailBtn","Tax Invoice emailed","Sent to Raghav Granites — accounts@raghavgranites.in");
-wireAction("taxInvPostBtn","Tax Invoice posted","RLPL/INV/25-26/00091 posted to AR — DR 1101 / CR 3100");
+wireAction("invEmailBtn","Invoice emailed");
+wireAction("dnEmailBtn","Debit Note emailed");
+wireAction("dnApproveBtn","Debit Note issued");
+wireAction("piApproveBtn","Purchase Invoice approved");
+wireAction("taxInvEmailBtn","Tax Invoice emailed");
+wireAction("taxInvPostBtn","Tax Invoice posted");
 wireAction("blDraftEmailBtn","BL Draft sent","Draft BL sent to CAVITAK ENTERPRISE PTE LTD for approval");
 wireAction("fcEmailBtn","Freight Certificate emailed","Sent to Relay Lines Canada Inc — ryan.parker@relay-logistics.com");
-wireAction("canEmailBtn","CAN sent","Cargo Arrival Notice sent to M/S Sigma Jones AV LLP and notify party");
+wireAction("canEmailBtn","CAN sent");
 
 // Generic print function
 /* ---- PRINT ZONE — blob URL method (popup-blocker safe) ---- */
@@ -8644,14 +7959,14 @@ ${z.innerHTML}
   }
 }
 
-if($("#taxInvPrintBtn")) $("#taxInvPrintBtn").addEventListener("click",()=>printZone("taxInvPrintZone","Tax Invoice - RLPL-INV-25-26-00091"));
-if($("#quotPrintBtn"))   $("#quotPrintBtn").addEventListener("click",()=>printZone("quotPrintZone","Quotation - QTN-CHN-25-26-000124"));
-if($("#blDraftPrintBtn")) $("#blDraftPrintBtn").addEventListener("click",()=>printZone("blDraftPrintZone","BL Draft - PASFE0225-J0728"));
-if($("#fcPrintBtn"))     $("#fcPrintBtn").addEventListener("click",()=>printZone("fcPrintZone","Freight Certificate - RLPL-FI-J0191"));
-if($("#canPrintBtn"))    $("#canPrintBtn").addEventListener("click",()=>printZone("canPrintZone","Cargo Arrival Notice - PASFE0225-J0728"));
-if($("#plPrintBtn"))     $("#plPrintBtn").addEventListener("click",()=>printZone("plPrintZone","Job PL Report - RLPL-FI-J0191"));
-if($("#dnPrintBtn"))     $("#dnPrintBtn").addEventListener("click",()=>printZone("dnPrintZone","Debit Note - RTL-DN-2026-0058"));
-if($("#piPrintBtn"))     $("#piPrintBtn").addEventListener("click",()=>printZone("piPrintZone","Purchase Invoice - PI-0002"));
+if($("#taxInvPrintBtn")) $("#taxInvPrintBtn").addEventListener("click",()=>printZone("taxInvPrintZone","Tax Invoice"));
+if($("#quotPrintBtn"))   $("#quotPrintBtn").addEventListener("click",()=>printZone("quotPrintZone","Quotation"));
+if($("#blDraftPrintBtn")) $("#blDraftPrintBtn").addEventListener("click",()=>printZone("blDraftPrintZone","Bill of Lading"));
+if($("#fcPrintBtn"))     $("#fcPrintBtn").addEventListener("click",()=>printZone("fcPrintZone","Freight Certificate"));
+if($("#canPrintBtn"))    $("#canPrintBtn").addEventListener("click",()=>printZone("canPrintZone","Cargo Arrival Notice"));
+if($("#plPrintBtn"))     $("#plPrintBtn").addEventListener("click",()=>printZone("plPrintZone","Job Profitability"));
+if($("#dnPrintBtn"))     $("#dnPrintBtn").addEventListener("click",()=>printZone("dnPrintZone","Debit Note"));
+if($("#piPrintBtn"))     $("#piPrintBtn").addEventListener("click",()=>printZone("piPrintZone","Purchase Invoice"));
 if($("#invPrintBtn"))    $("#invPrintBtn").addEventListener("click",()=>{ toast("Preparing print view","Opening print-ready invoice layout",""); });
 
 // Quick-access buttons in Job tabs linking to output docs
@@ -8978,38 +8293,7 @@ $("#routeSearch") && $("#routeSearch").addEventListener("input", filterRouteTabl
 /* Sample rate-sheet header + charge-line data, keyed by Rate No — same
    records shown in the Rate Sheets table, used both for the detail
    screen and for the Get Rate wizard's search results / apply step. */
-const RATE_SHEETS = {
-  "RGC-RC-2025-001":{name:"Tata Chemicals — Europe FCL", carrier:"MSC Mediterranean", mode:"Sea", dir:"Export", origin:"INMAA — Chennai", dest:"BEANR — Antwerp", route:"RT-SEA-001", eff:"01 Apr 2025", exp:"31 Mar 2026", ccy:"USD", version:"v3", approval:"Approved", status:"Active", transit:"24 days",
-    charges:[
-      {code:"OFR",name:"Ocean Freight",basis:"Per Container",buy:850,sell:950,ccy:"USD"},
-      {code:"BAF",name:"Bunker Adjustment Factor",basis:"Per Container",buy:65,sell:80,ccy:"USD"},
-      {code:"THC",name:"Terminal Handling",basis:"Per Container",buy:120,sell:150,ccy:"USD"},
-      {code:"DOC",name:"Documentation",basis:"Per BL",buy:30,sell:45,ccy:"USD"},
-    ]},
-  "RGC-RC-2025-002":{name:"General Tariff 25-26", carrier:"Hapag-Lloyd", mode:"Sea", dir:"Export", origin:"INMAA — Chennai", dest:"All Destinations", route:"RT-SEA-002", eff:"01 Apr 2025", exp:"31 Mar 2026", ccy:"USD", version:"v2", approval:"Approved", status:"Active", transit:"26 days",
-    charges:[
-      {code:"OFR",name:"Ocean Freight",basis:"Per Container",buy:780,sell:880,ccy:"USD"},
-      {code:"THC",name:"Terminal Handling",basis:"Per Container",buy:110,sell:140,ccy:"USD"},
-      {code:"DOC",name:"Documentation",basis:"Per BL",buy:30,sell:45,ccy:"USD"},
-    ]},
-  "RGC-RC-2025-003":{name:"TVS Motor — Air Spot", carrier:"Emirates SkyCargo", mode:"Air", dir:"Export", origin:"MAA — Chennai", dest:"All Destinations", route:"RT-AIR-001", eff:"15 Jun 2025", exp:"30 Jun 2025", ccy:"USD", version:"v1", approval:"Approved", status:"Active", transit:"18 hrs",
-    charges:[
-      {code:"AFR",name:"Air Freight",basis:"Per KG",buy:2.4,sell:3.1,ccy:"USD"},
-      {code:"FSC",name:"Fuel Surcharge",basis:"Per KG",buy:0.3,sell:0.45,ccy:"USD"},
-      {code:"DOC",name:"Documentation",basis:"Per AWB",buy:25,sell:40,ccy:"USD"},
-    ]},
-  "RGC-RC-2024-094":{name:"GEA Westfalia — Import FCL", carrier:"ONE Line", mode:"Sea", dir:"Import", origin:"EUR — Various", dest:"INMAA — Chennai", route:"RT-SEA-002", eff:"01 Oct 2024", exp:"30 Sep 2025", ccy:"USD", version:"v2", approval:"Approved", status:"Active", transit:"27 days",
-    charges:[
-      {code:"OFR",name:"Ocean Freight",basis:"Per Container",buy:900,sell:1020,ccy:"USD"},
-      {code:"THC",name:"Terminal Handling",basis:"Per Container",buy:130,sell:160,ccy:"USD"},
-      {code:"CFS",name:"CFS Handling",basis:"Per Container",buy:70,sell:95,ccy:"USD"},
-    ]},
-  "RGC-RC-2024-061":{name:"Infosys — Air Export Q4", carrier:"Air India", mode:"Air", dir:"Export", origin:"MAA — Chennai", dest:"EUR/UK", route:"RT-AIR-002", eff:"01 Jan 2025", exp:"31 Mar 2025", ccy:"INR", version:"v1", approval:"Approved", status:"Expired", transit:"11 hrs",
-    charges:[
-      {code:"AFR",name:"Air Freight",basis:"Per KG",buy:220,sell:280,ccy:"INR"},
-      {code:"DOC",name:"Documentation",basis:"Per AWB",buy:1800,sell:2500,ccy:"INR"},
-    ]},
-};
+const RATE_SHEETS = {};   /* filled from the Rate Master once it is built; no sample sheets */
 
 function populateRateSheetDetail(rateNo){
   const rs = RATE_SHEETS[rateNo];
@@ -9271,59 +8555,53 @@ document.addEventListener("click", e=>{
    ============================================================ */
 const REPORT_DEFS = {
   "gstr1":{title:"GSTR-1 — Outward Supply Return (June 2026)", cols:["Invoice No","Date","Customer","GSTIN","Place of Supply","Taxable Value","IGST","CGST","SGST","Total"],
-    rows:[["RLPL/INV/25-26/00091","15-Jun-26","Raghav Granites","33XXXX1234F1ZX","Tamil Nadu (33)","₹6,47,890","₹1,16,620","—","—","₹7,64,510"],["RGC-INV-25-00847","18-Jun-26","Tata Chemicals","27AAACT1234F1Z5","Maharashtra (27)","₹1,57,200","₹28,296","—","—","₹1,85,496"],["RGC-INV-25-00846","17-Jun-26","Infosys BPO","29AAACI1234F1Z2","Karnataka (29)","₹48,200","₹8,676","—","—","₹56,876"]]},
+    rows:[]},
   "gstr2":{title:"GSTR-2 — Inward Supply Return (June 2026)", cols:["Bill No","Date","Vendor","GSTIN","Taxable Value","IGST","CGST","SGST","Total","ITC Status"],
-    rows:[["PI-0002","02-Apr-26","Ocean Network Express","27ABCDE1234F2Z5","₹12,000","₹2,160","—","—","₹14,160","Eligible"],["PI-0003","05-May-26","MSC Mediterranean","27MSCAB1234F1Z9","₹95,390","₹17,170","—","—","₹1,12,560","Pending"]]},
+    rows:[]},
   "gstr2b":{title:"GSTR-2B — ITC Reconciliation (Auto-drafted)", cols:["Vendor","GSTIN","Invoice No","Date","Taxable Value","ITC Available","Matched in Books","Variance","Status"],
-    rows:[["Ocean Network Express","27ABCDE1234F2Z5","988","02-Apr-26","₹12,000","₹2,160","₹2,160","₹0","Matched"],["MSC Mediterranean","27MSCAB1234F1Z9","MSC-INV-9988","05-May-26","₹95,390","₹17,170","₹17,170","₹0","Matched"],["Sea Air Marine Surveyors","29SEAAB5678F1Z3","SEAAIR-2603","20-Mar-26","₹18,500","₹3,330","₹0","₹3,330","Not in Books"]]},
+    rows:[]},
   "gstr3b":{title:"GSTR-3B — Summary Return (June 2026)", cols:["Particulars","Taxable Value","IGST","CGST","SGST","Total Tax"],
-    rows:[["Outward Taxable Supplies","₹8,53,290","₹1,53,592","—","—","₹1,53,592"],["Inward Supplies (RCM)","₹0","₹0","—","—","₹0"],["ITC Available","₹1,07,390","₹19,330","—","—","₹19,330"],["Net Tax Payable","—","₹1,34,262","—","—","₹1,34,262"]]},
+    rows:[]},
   "hsn-summary":{title:"HSN/SAC Summary Report (June 2026)", cols:["HSN/SAC Code","Description","UQC","Total Qty","Taxable Value","IGST Rate","IGST Amount"],
-    rows:[["996511","Freight Transport — Road","NOS","12","₹4,52,800","18%","₹81,504"],["996512","Freight Transport — Sea","NOS","8","₹2,68,400","18%","₹48,312"],["996719","Other Supporting Transport Services","NOS","15","₹1,32,090","18%","₹23,776"]]},
+    rows:[]},
   "re-imprestment":{title:"Re-Imprestment Report — Petty Cash & Advance Recovery", cols:["Voucher No","Date","Employee/Branch","Purpose","Amount Issued","Amount Utilised","Balance","Status"],
-    rows:[["IMP-2026-014","20-Jun-26","Chennai HQ — Ops","Port handling petty cash","₹25,000","₹21,400","₹3,600","Pending Settlement"],["IMP-2026-013","12-Jun-26","Rajan Kumar","Customs documentation","₹10,000","₹10,000","₹0","Settled"],["IMP-2026-012","05-Jun-26","Bangalore Branch","Local transport advance","₹15,000","₹8,200","₹6,800","Pending Settlement"]]},
+    rows:[]},
   "tds-report":{title:"TDS Report (Section 194C/194J) — June 2026", cols:["Vendor","PAN","Section","Bill Amount","TDS Rate","TDS Deducted","Net Payable","Challan No","Status"],
-    rows:[["Ocean Network Express","ABCDE1234F","194C",12000,"2%","₹240","₹11,760","CHN-TDS-0089","Deposited"],["Sea Air Marine Surveyors","SEAAB5678F","194J","18,500","10%","₹1,850","₹16,650","CHN-TDS-0090","Deposited"],["TVS Logistics","TVSLG9012H","194C","42,000","2%","₹840","₹41,160","—","Pending"]]},
+    rows:[]},
   "tcs-report":{title:"TCS Report (Section 206C) — June 2026", cols:["Customer","PAN","Invoice No","Sale Value","TCS Rate","TCS Collected","Total Invoice","Status"],
-    rows:[["Raghav Granites","XXXXX1234X","RLPL/INV/25-26/00091","₹7,64,510","0.1%","₹765","₹7,65,275","Collected"],["Tata Chemicals","AAACT1234F","RGC-INV-25-00847","₹1,85,496","0.1%","₹185","₹1,85,681","Collected"]]},
+    rows:[]},
   "itc-mismatch":{title:"ITC Mismatch Report — Books vs GSTR-2B", cols:["Vendor","Invoice No","ITC as per Books","ITC as per GSTR-2B","Variance","Reason","Action Required"],
-    rows:[["Sea Air Marine Surveyors","SEAAIR-2603","₹3,330","₹0","₹3,330","Not filed by vendor","Follow up with vendor"],["TVS Logistics","TVS-INV-4521","₹1,890","₹1,750","₹140","Rate mismatch","Verify invoice"]]},
+    rows:[]},
   "jobs-summary":{title:"Jobs Summary (All Modes)", cols:["Job No","Mode","Direction","Shipper","Status","ETD"],
-    rows:[["SEX-25-000047","Sea","Export","Tata Chemicals","Booked","22 Jun 25"],["AEX-25-000046","Air","Export","Infosys BPO","In Transit","19 Jun 25"],["SIM-25-000045","Sea","Import","GEA Westfalia","Customs","—"],["CUS-25-000044","CHA","Domestic","Ashok Leyland","OOC","—"],["TRP-25-000043","Road","Domestic","TVS Motor","Delivered","14 Jun 25"]]},
+    rows:[]},
   "sea-export":{title:"Sea Export Summary", cols:["Job No","Shipper","POL","POD","Containers","Status"],
-    rows:[["SEX-25-000047","Tata Chemicals","INMAA","BEANR","2×40GP","Booked"],["SEX-25-000048","TVS Motor","INMAA","JPYOK","1×LCL","Open"],["SEX-25-000031","Tata Chemicals","INMAA","NLRTM","1×40GP","Closed"]]},
+    rows:[]},
   "air-export":{title:"Air Export Summary", cols:["Job No","Shipper","Origin","Destination","AWB No","Status"],
-    rows:[["AEX-25-000046","Infosys BPO","MAA","LHR","176-98765432","In Transit"],["AEX-25-000042","TVS Motor","MAA","FRA","176-87654321","Closed"]]},
+    rows:[]},
   "customs-status":{title:"Customs Status Report", cols:["Job No","Type","BE/SB No","Duty","Exam","Status"],
-    rows:[["SIM-25-000045","Bill of Entry","BE 2245999","₹2,34,500","RMS Check","Duty Pending"],["SEX-25-000047","Shipping Bill","SB 2245881","—","No Exam","LEO Received"],["CUS-25-000044","Bill of Entry","BE 2245881","₹33,040","No Exam","OOC"]]},
+    rows:[]},
   "tracking-report":{title:"Shipment Tracking Report", cols:["Job No","BL/AWB","Last Event","Date","Location"],
-    rows:[["SEX-25-000047","MSCU9988776","Loaded on Vessel","22 Jun 25","INMAA"],["AEX-25-000046","176-98765432","Departed MAA","19 Jun 25","In Air"],["SIM-25-000045","HLCUHAM2405","Discharged at Port","14 Jun 25","INMAA"]]},
+    rows:[]},
   "transport-delivery":{title:"Transport Delivery Report", cols:["Job No","LR No","Client","Vehicle","Delivery Date","POD"],
-    rows:[["TRP-25-000043","RGC-LR-25-0089","TVS Motor","TN09AQ1234","15 Jun 25","ePOD ✓"],["TRP-25-000039","RGC-LR-25-0085","Ashok Leyland","TN07BZ5678","11 Jun 25","ePOD ✓"]]},
+    rows:[]},
   "ar-register":{title:"Invoice Register (AR)", cols:["Invoice No","Date","Customer","Total","Balance","Status"],
-    rows:[["RGC-INV-25-00847","18 Jun","Tata Chemicals","₹1,85,496","₹1,85,496","Unpaid"],["RGC-INV-25-00846","17 Jun","Infosys BPO","₹56,876","₹56,876","Unpaid"],["RGC-INV-25-00844","10 Jun","TVS Motor","₹85,550","₹34,220","Partial"],["RGC-INV-25-00838","28 May","GEA Westfalia","₹1,24,018","₹0","Paid"]]},
+    rows:[]},
   "debit-note-register":{title:"Debit Note Register (International)", cols:["DN No","Date","Bill To","Job No","Vessel","Currency","Amount","Status"],
-    rows:[["RTL/DN/2026/0058","16-May-2026","Global Imports LLC, UAE","SEX-25-000047","MSC LORETO / V.2506E","USD","1,625.00","Issued"],["RTL/DN/2026/0054","28-Apr-2026","East Asia Freight Ltd","SEX-25-000041","EVER GOLDEN","USD","940.00","Issued"],["RTL/DN/2026/0051","02-Apr-2026","Global Imports LLC, UAE","SEX-25-000038","MSC ROMA","USD","480.00","Paid"],["RTL/DN/2026/0048","18-Mar-2026","Hapag Import GmbH","SIM-25-000036","CMA CGM MARGUERITE","USD","2,285.00","Issued"],["RTL/DN/2026/0042","05-Mar-2026","ONE Line Japan","SEX-25-000031","ONE COMMITMENT / 12W","USD","1,150.00","Paid"]]},
+    rows:[]},
   "job-pnl":{title:"Job P&L Summary Report", cols:["Job No","Customer","Mode","POL","POD","P Sale","P Cost","P GP","A Sale","A Cost","A GP","GP%"],
-    rows:[
-      ["RLPL/FI/J0191","Raghav Granites","Sea Import","Halifax","Chennai","10,35,743","5,07,333","5,28,410","10,35,743","4,73,336","5,62,408","54.3%"],
-      ["PASFE0225-J0728","Sigma Jones AV LLP","Sea Export","Mumbai","Mombasa","4,82,000","3,20,000","1,62,000","4,82,000","3,18,500","1,63,500","33.9%"],
-      ["SEX-25-000047","Global Imports LLC","Sea Export","Chennai","Jebel Ali","2,18,500","1,44,200","74,300","2,18,500","1,40,800","77,700","35.6%"],
-      ["AEX-25-000046","Infosys BPO","Air Export","Chennai","Frankfurt","56,876","38,200","18,676","56,876","37,500","19,376","34.1%"],
-      ["SIM-25-000045","TVS Motor Co","Sea Import","Hamburg","Chennai","1,85,500","1,22,960","62,540","1,85,500","1,21,200","64,300","34.7%"]
-    ]},
+    rows:[]},
   "ap-register":{title:"Vendor Bill Register (AP)", cols:["Bill No","Vendor","Type","Total","Due Date","Status"],
-    rows:[["RGC-AP-25-00312","MSC Mediterranean","Ocean Freight","₹1,12,560","22 Jul 25","Received"],["RGC-AP-25-00311","Sea Air Marine","CHA Service","₹21,830","15 Jul 25","Received"],["RGC-AP-25-00309","Hapag-Lloyd India","Ocean Freight","₹96,500","10 Jul 25","Approved"]]},
+    rows:[]},
   "payment-collection":{title:"Payment Collection Report", cols:["Payment No","Date","Type","Party","Amount","Status"],
-    rows:[["RGC-RCP-25-00089","17 Jun","AR Receipt","TVS Motor","₹51,330","Cleared"],["RGC-RCP-25-00088","15 Jun","AR Receipt","GEA Westfalia","₹1,24,018","Cleared"]]},
+    rows:[]},
   "ar-ageing":{title:"AR Ageing Analysis", cols:["Bucket","Invoice Count","Amount","% of Total"],
-    rows:[["0-30 days","11","₹7,42,500","40%"],["31-60 days","7","₹6,18,000","33%"],["61-90 days","4","₹3,24,800","17%"],[">90 days","2","₹1,88,200","10%"]]},
-  "ledger":{title:"Ledger Report — Sample (Tata Chemicals)", cols:["Date","Type","Reference","Debit","Credit","Balance"],
-    rows:[["18 Jun 25","Invoice","RGC-INV-25-00847","₹1,85,496","—","₹1,85,496 Dr"],["10 Jun 25","Receipt","RGC-RCP-25-00078","—","₹1,42,200","₹0 Dr"]]},
+    rows:[]},
+  "ledger":{title:"Ledger Report", cols:["Date","Type","Reference","Debit","Credit","Balance"],
+    rows:[]},
   "balance-sheet":{title:"Balance Sheet (Summary)", cols:["Head","Category","Amount"],
-    rows:[["Sundry Debtors","Assets","₹18,73,500"],["Cash & Bank","Assets","₹12,40,000"],["Sundry Creditors","Liabilities","₹9,80,200"],["GST Payable","Liabilities","₹3,21,400"],["Retained Earnings","Equity","₹17,12,000"]]},
+    rows:[]},
   "purchase-invoice-register":{title:"Purchase Invoice Register (AP)", cols:["PI No","Date","Vendor","Bill No","Job Ref","Description","Subtotal","IGST 18%","Total","Due Date","Status"],
-    rows:[["PI-0004","15-Jun-2026","MSC Mediterranean","MSC-INV-0912","SEX-25-000050","Ocean Freight 2x40GP","1,12,200","20,196","1,32,396","22-Jul-2026","Pending"],["PI-0003","05-May-2026","MSC Mediterranean","MSC-INV-9988","SEX-25-000047","Ocean Freight Cost","95,390","17,170","1,12,560","22-Jul-2026","Pending"],["PI-0002","02-Apr-2026","Ocean Network Express","988","SEX-25-000047","Liner Charges","12,000","2,160","14,160","15-Apr-2026","Paid"],["PI-0001","20-Mar-2026","Sea Air Marine Surveyors","SEAAIR-2603","SIM-25-000045","CHA Service","18,500","3,330","21,830","15-Apr-2026","Paid"]]},
+    rows:[]},
 };
 
 /* ---- render report ---- */
@@ -9337,7 +8615,7 @@ function renderReport(key){
   const head = $("#reportOutputHead");
   const body = $("#reportOutputBody");
   head.innerHTML = "<tr>" + def.cols.map(c=>`<th>${c}</th>`).join("") + "</tr>";
-  body.innerHTML = def.rows.map(r=>"<tr>" + r.map(c=>`<td>${c}</td>`).join("") + "</tr>").join("");
+  body.innerHTML = def.rows.length ? def.rows.map(r=>"<tr>" + r.map(c=>`<td>${c}</td>`).join("") + "</tr>").join("") : `<tr><td colspan="${def.cols.length}" style="text-align:center;color:var(--g5);padding:18px;font-style:italic">No data yet. This report is built from posted documents once the accounting module is complete.</td></tr>`;
   card.scrollIntoView({behavior:"smooth"});
 }
 document.querySelectorAll("[data-report]").forEach(btn=>{
@@ -9355,26 +8633,26 @@ if(rpb) rpb.addEventListener("click",()=>{
 
 /* ---- export stub ---- */
 document.querySelectorAll("[data-export]").forEach(btn=>{
-  btn.addEventListener("click",()=>toast("Export started","CSV download will begin shortly",""));
+  btn.addEventListener("click",()=>toast("Not available yet","Export for this screen is not built yet, so no file was produced.","warn"));
 });
 
 /* ---- wireAction helper ---- */
 function wireAction(id, title, msg){
   const el = $("#"+id);
-  if(el) el.addEventListener("click",()=>toast(title, msg||"Action completed",""));
+  if(el) el.addEventListener("click",()=>toast("Not available yet", title+" — this action is not built yet, so nothing was changed.", "warn"));
 }
 
 const nqb = $("#newQuoteBtn"); if(nqb) nqb.addEventListener("click", ()=> go("quotation-new"));
 wireAction("invPrintBtn","Preparing print view","Opening print-ready invoice layout");
-wireAction("invEmailBtn","Invoice emailed","Sent to Tata Chemicals Ltd");
-wireAction("dnEmailBtn","Debit Note emailed","Sent to Global Imports LLC");
-wireAction("dnApproveBtn","Debit Note issued","RTL/DN/2026/0058 marked as Sent");
-wireAction("piApproveBtn","Purchase Invoice approved","PI-0002 approved — DR 4100 / CR 2101 posted");
-wireAction("taxInvEmailBtn","Tax Invoice emailed","Sent to Raghav Granites");
-wireAction("taxInvPostBtn","Tax Invoice posted","RLPL/INV/25-26/00091 posted to AR");
+wireAction("invEmailBtn","Invoice emailed");
+wireAction("dnEmailBtn","Debit Note emailed");
+wireAction("dnApproveBtn","Debit Note issued");
+wireAction("piApproveBtn","Purchase Invoice approved");
+wireAction("taxInvEmailBtn","Tax Invoice emailed");
+wireAction("taxInvPostBtn","Tax Invoice posted");
 wireAction("blDraftEmailBtn","BL Draft sent","Draft BL sent to CAVITAK ENTERPRISE");
 wireAction("fcEmailBtn","Freight Certificate emailed","Sent to Relay Lines Canada Inc");
-wireAction("canEmailBtn","CAN sent","Cargo Arrival Notice sent to Sigma Jones AV LLP");
+wireAction("canEmailBtn","CAN sent");
 
 /* ---- Add container row ---- */
 const acb = $("#addContainerBtn");
@@ -10953,14 +10231,7 @@ if(document.readyState !== "loading") wireOrgCountryLogic();
    what "Vendor Ledger" / "Customer Ledger" now open, instead of the
    raw Chart of Accounts.
    ============================================================ */
-const PR_LEDGER_DATA = [
-  {type:"PAYABLE", voucherType:"PURCHASE INV", invNo:"2", invDate:"02-04-2026", billNo:"988", billDate:"02-04-2026", billAmt:14160.00, payVoucherNo:"0002", payDate:"16-04-2026", payAmt:14160.00, tds:240.00, mode:"Cash", jobNo:"16", party:"Ocean Network Express"},
-  {type:"PAYABLE", voucherType:"PURCHASE INV", invNo:"1", invDate:"01-04-2026", billNo:"1", billDate:"01-04-2026", billAmt:47200.00, payVoucherNo:"", payDate:"", payAmt:0, tds:0, mode:"", jobNo:"16", party:"Ocean Network Express"},
-  {type:"PAYABLE", voucherType:"PURCHASE INV", invNo:"3", invDate:"12-04-2026", billNo:"1042", billDate:"12-04-2026", billAmt:96500.00, payVoucherNo:"0145", payDate:"14-06-2026", payAmt:96500.00, tds:0, mode:"RTGS", jobNo:"22", party:"Hapag-Lloyd India"},
-  {type:"RECEIVABLE", voucherType:"TAX INVOICE", invNo:"RGC-INV-25-00847", invDate:"18-06-2026", billNo:"00847", billDate:"18-06-2026", billAmt:185496.00, payVoucherNo:"", payDate:"", payAmt:0, tds:0, mode:"", jobNo:"47", party:"Tata Chemicals Ltd"},
-  {type:"RECEIVABLE", voucherType:"TAX INVOICE", invNo:"RGC-INV-25-00792", invDate:"02-05-2026", billNo:"00792", billDate:"02-05-2026", billAmt:142200.00, payVoucherNo:"RGC-RCP-25-00078", payDate:"10-06-2026", payAmt:142200.00, tds:0, mode:"NEFT", jobNo:"31", party:"Tata Chemicals Ltd"},
-  {type:"RECEIVABLE", voucherType:"TAX INVOICE", invNo:"RGC-INV-25-00838", invDate:"09-06-2026", billNo:"00838", billDate:"09-06-2026", billAmt:124018.00, payVoucherNo:"RGC-RCP-25-00088", payDate:"15-06-2026", payAmt:124018.00, tds:0, mode:"RTGS", jobNo:"38", party:"GEA Westfalia"},
-];
+const PR_LEDGER_DATA = [];
 
 function prlPartyOptions(type){
   const names = [...new Set(PR_LEDGER_DATA.filter(r=>r.type===type).map(r=>r.party))];
@@ -11051,18 +10322,7 @@ function prlRenderRows(){
    Books) supply, each line carrying the HSN/SAC used on that
    charge/invoice/purchase line. Sales = CR, Purchases = DR.
    ============================================================ */
-const GST_REPORT_DATA = [
-  {subledger:"Tata Chemicals Ltd", gstNo:"33AAACT2727Q1ZN", hsn:"996511", voucherNo:"RGC-INV-25-00847", voucherType:"Tax Invoice", glDate:"2026-06-18", refNo:"SEX-25-000047", refDate:"2026-06-18", narration:"GST 18%", drCr:"CR", taxable:157200.00, nonTaxable:0, gstAmt:28296.00},
-  {subledger:"Tata Chemicals Ltd", gstNo:"33AAACT2727Q1ZN", hsn:"996812", voucherNo:"RGC-INV-25-00792", voucherType:"Tax Invoice", glDate:"2026-05-02", refNo:"SEX-25-000031", refDate:"2026-05-02", narration:"GST 18%", drCr:"CR", taxable:120508.47, nonTaxable:0, gstAmt:21691.53},
-  {subledger:"GEA Westfalia", gstNo:"27AAGCG1234B1Z5", hsn:"996511", voucherNo:"RGC-INV-25-00838", voucherType:"Tax Invoice", glDate:"2026-06-09", refNo:"SIM-25-000036", refDate:"2026-06-09", narration:"GST 18%", drCr:"CR", taxable:105100.85, nonTaxable:0, gstAmt:18917.15},
-  {subledger:"Ashok Leyland", gstNo:"33AABCA0333B1ZQ", hsn:"996511", voucherNo:"RGC-INV-25-00801", voucherType:"Tax Invoice", glDate:"2026-05-28", refNo:"SEX-25-000029", refDate:"2026-05-28", narration:"GST 5%", drCr:"CR", taxable:48200.00, nonTaxable:0, gstAmt:2410.00},
-  {subledger:"Hapag-Lloyd India", gstNo:"29AABCH5678C1ZP", hsn:"996511", voucherNo:"PUR-25-01042", voucherType:"Purchase Invoice", glDate:"2026-04-12", refNo:"AP-00309", refDate:"2026-04-12", narration:"GST 18%", drCr:"DR", taxable:81779.66, nonTaxable:0, gstAmt:14720.34},
-  {subledger:"Ocean Network Express", gstNo:"27AABCO9988D1ZR", hsn:"996521", voucherNo:"PUR-25-00988", voucherType:"Purchase Invoice", glDate:"2026-04-02", refNo:"AP-00301", refDate:"2026-04-02", narration:"GST 18%", drCr:"DR", taxable:40000.00, nonTaxable:0, gstAmt:7200.00},
-  {subledger:"TVS Logistics", gstNo:"33AABCT4567E1ZS", hsn:"996791", voucherNo:"PUR-25-00990", voucherType:"Purchase Invoice", glDate:"2026-06-14", refNo:"AP-00305", refDate:"2026-06-14", narration:"GST 12%", drCr:"DR", taxable:12643.00, nonTaxable:0, gstAmt:1517.00},
-  {subledger:"Global Imports LLC, UAE", gstNo:"—", hsn:"996511", voucherNo:"RTL/DN/2026/0058", voucherType:"Debit Note", glDate:"2026-05-16", refNo:"SEX-25-000047", refDate:"2026-05-16", narration:"Export — GST N/A", drCr:"DR", taxable:0, nonTaxable:1625.00, gstAmt:0},
-  {subledger:"East Asia Freight Ltd, Singapore", gstNo:"—", hsn:"996511", voucherNo:"RTL/DN/2026/0054", voucherType:"Debit Note", glDate:"2026-04-28", refNo:"SEX-25-000041", refDate:"2026-04-28", narration:"Export — GST N/A", drCr:"DR", taxable:0, nonTaxable:940.00, gstAmt:0},
-  {subledger:"Infosys BPO", gstNo:"29AAACI4741P1ZW", hsn:"996812", voucherNo:"RGC-CN-25-00012", voucherType:"Credit Note", glDate:"2026-05-30", refNo:"AEX-25-000046", refDate:"2026-05-30", narration:"GST 18%", drCr:"CR", taxable:-8500.00, nonTaxable:0, gstAmt:-1530.00},
-];
+const GST_REPORT_DATA = [];
 
 function gstApplyToolbarWiring(){
   if($("#gstSubmitBtn").dataset.wired) return;
@@ -12083,16 +11343,7 @@ if(document.readyState !== "loading") wireJobBlBookingType();
    ============================================================ */
 const BOOK_STEPS = ["Booking Details","Parties Details","Consignment Details","Costing Details","Booking Overview"];
 let bookStep = 1;
-const BK_PARTY_ADDR = {
-  "Tata Chemicals Ltd":"Cargo Complex, Chennai Port, Chennai 600001, India",
-  "GEA Westfalia":"Industriestrasse 12, 21107 Hamburg, Germany",
-  "Ashok Leyland":"Ennore Expressway, Chennai 600057, India",
-  "Infosys BPO":"Electronics City, Bengaluru 560100, India",
-  "Bremen Foods Machinery GmbH":"Hafenstrasse 5, 28217 Bremen, Germany",
-  "Solvay SA":"Rue de Ransbeek 310, 1120 Brussels, Belgium",
-  "Same as Consignee":"— same address as Consignee —",
-  "NRS Freight System":"37 Jalan Pemimpin, #04-10 MAPEX, Singapore 577177",
-};
+const BK_PARTY_ADDR = {};
 function renderBookStepBar(){
   const bar = $("#bookStepBar");
   if(!bar) return;
@@ -14289,7 +13540,8 @@ if(document.readyState !== "loading") initChatWidget();
     }
     return data;
   }
-  const say = (title, msg)=>{ if(typeof toast === "function") toast(title, msg); };
+  const FAILED = /^(could not|cannot|can't|failed|unable|not saved|.*\b(failed|not saved|was not|not changed|not created|not closed|not found|refused)\b)/i;
+  const say = (title, msg, type)=>{ if(typeof toast === "function") toast(title, msg, type === "warn" ? (FAILED.test(String(title)) ? "error" : "warn") : (type || (FAILED.test(String(title)) ? "error" : "success"))); };
 
   /* ---------- form helpers ---------- */
   function labelText(lab){
@@ -15499,7 +14751,7 @@ if(document.readyState !== "loading") initChatWidget();
   const dmy = v=> v ? new Date(v).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
   const money = v=> "₹" + (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
   const opt = (v, t, sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(t===undefined?v:t)+'</option>';
-  const STAGE_CLS = s=> /Ready for Closure|Delivered/.test(s) ? "b-gr" : /Financials/.test(s) ? "b-am" : /Customs|Cargo/.test(s) ? "b-am" : /Job Created/.test(s) ? "b-gy" : "b-bl";
+  const STAGE_CLS = s=> s === "Closed" ? "b-gy" : s === "Reopened" ? "b-am" : s === "On Transit" ? "b-bl" : s === "Confirmed" ? "b-gr" : "b-gy";
   const CLOSE_CLS = {OPEN:"b-bl", CLOSED:"b-gy", REOPENED:"b-am"};
   const stageChip = s=> '<span class="b '+STAGE_CLS(s)+'" title="Job stage">'+esc2(String(s).toUpperCase())+'</span>';
   const closeChip = s=> '<span class="b '+(CLOSE_CLS[s]||"b-gy")+'" title="Closure status"'+(s==="CLOSED"?' style="background:var(--n);color:#fff"':'')+'>'+esc2(s)+'</span>';
@@ -15536,17 +14788,34 @@ if(document.readyState !== "loading") initChatWidget();
     const title = document.getElementById("jobDetailNo"); if(!title) return;
     let chips = document.getElementById("jlChips");
     if(!chips){ chips = document.createElement("span"); chips.id = "jlChips"; chips.className = "jl-head-chips"; title.parentNode.insertBefore(chips, title.nextSibling); }
-    chips.innerHTML = '<span style="font-size:10px;color:var(--g5);font-weight:700">STAGE</span>'+stageChip(lc.job_stage)+(lc.stage_source==="MANUAL"?'<span class="b b-gy" title="'+esc2(lc.stage_reason||"")+'">manual</span>':'')+
-      '<span style="font-size:10px;color:var(--g5);font-weight:700;margin-left:6px">CLOSURE</span>'+closeChip(lc.closure_status)+
-      '<span style="font-size:10.5px;color:var(--g5)">Stage updated '+dmyt(lc.stage_updated_at)+(lc.last_closed_at ? " · Last closed "+dmyt(lc.last_closed_at)+" by "+esc2(lc.last_closed_by||"") : "")+'</span>';
+    chips.innerHTML = '<span style="font-size:10px;color:var(--g5);font-weight:700">STAGE</span>'+stageChip(lc.job_stage)+
+      '<span style="font-size:11px;color:var(--g5)">'+esc2(dmyt(lc.stage_updated_at))+(lc.stage_updated_by ? ' · by <b style="color:var(--g7)">'+esc2(lc.stage_updated_by)+'</b>' : '')+'</span>';
+    let src = document.getElementById("jlSourceLink");
+    if(!src){ src = document.createElement("div"); src.id = "jlSourceLink"; src.style.cssText = "margin-top:3px;font-size:11.5px"; const sub = document.getElementById("jobDetailSub"); if(sub) sub.parentNode.appendChild(src); }
+    src.innerHTML = '<a href="#" data-jl-source style="color:var(--bl);font-weight:600;text-decoration:none">ⓘ Source information</a>';
+    const strip = scr.querySelector(".sf");
+    if(strip){
+      const steps = ["Draft","Confirmed","On Transit", lc.job_stage === "Reopened" ? "Reopened" : "Closed"]; const at = steps.indexOf(lc.job_stage);
+      strip.innerHTML = steps.map((st, i)=>'<div class="sfn '+(i < at ? "done" : i === at ? "act" : "")+'"'+(i === steps.length-1 ? ' style="border-radius:0 4px 4px 0"' : "")+'>'+esc2(st)+'</div>'+(i < steps.length-1 ? '<div class="sfa '+(i < at ? "done" : i === at ? "act" : "pend")+'"></div>' : "")).join("");
+    }
     const bar = scr.querySelector(".ph .pa"); if(!bar) return;
     bar.querySelectorAll("[data-jl]").forEach(b=>b.remove());
     const add = (id, label, cls)=> { const b = document.createElement("button"); b.type = "button"; b.className = "btn btn-sm "+cls; b.dataset.jl = id; b.innerHTML = label; bar.appendChild(b); return b; };
     const a = lc.actions;
     if(a.can_change_stage) add("stage", "Change Stage", "btn-out");
-    if(a.can_close) add("close", "Close Job", lc.job_stage==="Ready for Closure" ? "btn-suc" : "btn-out");
+    if(a.can_close) add("close", "Close Job", "btn-out");
     if(a.can_reopen) add("reopen", "Reopen Job", "btn-pri");
     if(a.can_view_history) add("history", "🕘 Activity History <span class=\"b b-gy\" style=\"margin-left:4px\">"+lc.event_count+"</span>", "btn-out");
+  }
+
+  async function sourceDialog(){
+    const r = await req("GET", "/api/jobs/"+encodeURIComponent(J.job)+"/source"); if(!r.ok){ say("Could not load the source information", detailMsg(r)); return; }
+    const d = r.data; const row = (k, v)=> '<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--g1)"><div style="width:150px;color:var(--g5);font-size:11.5px">'+esc2(k)+'</div><div style="flex:1;font-weight:500">'+(v ? esc2(v) : '<span style="color:var(--g4)">—</span>')+'</div></div>';
+    let body = '<div class="ib ib-bl" style="margin-bottom:10px">Job <b>'+esc2(d.job_number)+'</b> was created <b>'+esc2(d.created_via === "Created directly" ? "directly" : "from a "+d.created_via.toLowerCase())+'</b>.</div>'+row("Created on", dmyt(d.created_at))+row("Created by", d.created_by)+row("Creation note", d.creation_note);
+    if(d.quotation) body += '<div class="fsec" style="margin-top:12px">Quotation</div>'+row("Quotation no", d.quotation.number)+row("Quotation date", dmy(d.quotation.date))+row("Customer", d.quotation.party)+row("Status", d.quotation.status)+row("Prepared by", d.quotation.prepared_by)+row("Approved by", d.quotation.approved_by)+row("Approved on", d.quotation.approved_at ? dmyt(d.quotation.approved_at) : "")+row("Valid until", d.quotation.valid_until ? dmy(d.quotation.valid_until) : "")+row("Reference", d.quotation.reference);
+    if(d.booking) body += '<div class="fsec" style="margin-top:12px">Booking</div>'+row("Booking no", d.booking.number)+row("Booking date", dmy(d.booking.date))+row("Status", d.booking.status)+row("Carrier", d.booking.carrier)+row("Services booked", d.booking.services)+row("Confirmed on", d.booking.confirmed_at ? dmyt(d.booking.confirmed_at) : "")+row("Booked by", d.booking.created_by);
+    if(!d.quotation && !d.booking) body += '<div style="margin-top:10px;color:var(--g5)">This job was not raised from a quotation or a booking.</div>';
+    openModal({title:"Source information", bodyHTML:body, footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button>'});
   }
 
   /* ---------- milestones (Tracking tab) ---------- */
@@ -15567,29 +14836,35 @@ if(document.readyState !== "loading") initChatWidget();
       const body = {actual_at:new Date(at).toISOString(), remarks:document.getElementById("jlMsRem").value || null}; if(m.done) body.correction_reason = (document.getElementById("jlMsWhy")||{}).value || null;
       const r = await req("PUT","/api/jobs/"+encodeURIComponent(J.job)+"/milestones/"+code, body);
       if(!r.ok){ say("Could not save the milestone", detailMsg(r)); return; }
-      closeModal(); say("Milestone saved", m.label); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
+      closeModal(); say("Job Updated Successfully!", m.label+" saved"); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
     });
   }
 
   /* ---------- manual stage ---------- */
   function stageDialog(){
     const lc = J.lc;
-    openModal({title:"Change Job Stage", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">A manual change records who changed it and why. It does <b>not</b> confirm any milestone or document.</div><div class="fr"><div class="fg"><label class="fl">Job</label><input class="fc" disabled value="'+esc2(lc.job_number)+'"></div><div class="fg"><label class="fl">Current stage</label><input class="fc" disabled value="'+esc2(lc.job_stage)+'"></div></div>'+
-      '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">New stage *</label><select class="fc" id="jlNewStage">'+lc.stages.map(s=>opt(s,s,s===lc.job_stage)).join("")+'</select></div></div><div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Reason for change *</label><input class="fc" id="jlStageWhy"></div></div><div id="jlStageWarn"></div>',
+    openModal({title:"Change Job Stage", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">Draft, Confirmed or On Transit. The change records who made it and why. <b>Closed</b> and <b>Reopened</b> are set by the Close Job and Reopen Job buttons.</div><div class="fr"><div class="fg"><label class="fl">Job</label><input class="fc" disabled value="'+esc2(lc.job_number)+'"></div><div class="fg"><label class="fl">Current stage</label><input class="fc" disabled value="'+esc2(lc.job_stage)+'"></div></div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">New stage *</label><select class="fc" id="jlNewStage">'+lc.manual_stages.map(s=>opt(s,s,s===lc.job_stage)).join("")+'</select></div></div><div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Reason for change *</label><input class="fc" id="jlStageWhy"></div></div><div id="jlStageWarn"></div>',
       footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="jlStageSave">Change Stage</button>'});
     let confirmed = false;
     document.getElementById("jlStageSave").addEventListener("click", async ()=>{
       const stage = document.getElementById("jlNewStage").value, reason = document.getElementById("jlStageWhy").value.trim();
       if(reason.length < 3){ say("Reason required", "Explain why the stage is being changed", "warn"); return; }
       const r = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/stage", {stage, reason, confirm_conflict:confirmed});
-      if(r.status === 409 && /STAGE_CONFLICT/.test(detailMsg(r))){ confirmed = true; document.getElementById("jlStageWarn").innerHTML = '<div class="ib ib-am">'+esc2(detailMsg(r).replace("STAGE_CONFLICT: ",""))+'</div>'; document.getElementById("jlStageSave").textContent = "Confirm anyway"; return; }
-      if(!r.ok){ say("Could not change the stage", detailMsg(r)); return; }
-      closeModal(); say("Stage changed", stage); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
+      if(!r.ok){ say("Could not change the stage", detailMsg(r), "error"); return; }
+      closeModal(); say("Job Stage Updated Successfully!", "Now "+stage); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
     });
   }
 
   /* ---------- close job ---------- */
   async function closeDialog(){
+    const pre = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/closure/validate", {no_buy_cost:false, accrual:false, cost_sheet_reviewed:true, discrepancy:false});
+    if(pre.ok && pre.data.ready){
+      const done = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/close", {ack:{cost_sheet_reviewed:true}, remarks:null}, {"Idempotency-Key":(window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now())+Math.random())});
+      if(!done.ok){ say("Job was not closed", detailMsg(done), "warn"); }
+      else { say("Job Closed Successfully!", J.job+" is now Closed. It can be reopened by an authorised user."); J.lc = done.data; renderHeader(); renderMilestones(); refreshAfter(); }
+      return;
+    }
     const ack = {no_buy_cost:false, accrual:false, cost_sheet_reviewed:false, discrepancy:false};
     let exceptional = false;
     async function evaluate(){
@@ -15612,14 +14887,14 @@ if(document.readyState !== "loading") initChatWidget();
       const ex = document.getElementById("jlExc"); if(ex) ex.onchange = ()=>{ exceptional = ex.checked; draw(); };
       modalBody.querySelectorAll("[data-jl-link]").forEach(a=> a.onclick = ()=>{ const [scr, tab] = a.dataset.jlLink.split(":"); closeModal(); const b = document.querySelector('[data-tab="'+tab+'"]'); if(b) b.click(); });
     }
-    openModal({title:"Close Job — validation checklist", size:"lg", bodyHTML:'<div style="padding:16px;color:var(--g5)">Checking the job…</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-suc" type="button" id="jlConfirmClose" disabled>CONFIRM JOB CLOSURE</button>'});
+    openModal({title:"⚠ Pending activities — the job cannot be closed yet", size:"lg", bodyHTML:'<div style="padding:16px;color:var(--g5)">Checking the job…</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-suc" type="button" id="jlConfirmClose" disabled>CONFIRM JOB CLOSURE</button>'});
     await draw();
     document.getElementById("jlConfirmClose").addEventListener("click", async ()=>{
       const btn = document.getElementById("jlConfirmClose"); btn.disabled = true;
       const body = {ack, remarks:(document.getElementById("jlCloseRem")||{}).value || null, exceptional, justification:(document.getElementById("jlExcWhy")||{}).value || null};
       const r = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/close", body, {"Idempotency-Key":(window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now())+Math.random())});
       if(!r.ok){ say("Job was not closed", detailMsg(r)); btn.disabled = false; await draw(); return; }
-      closeModal(); say("Job closed", J.job+" is now CLOSED. It can be reopened by an authorised user."); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
+      closeModal(); say("Job Closed Successfully!", J.job+" is now Closed. It can be reopened by an authorised user."); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
     });
   }
 
@@ -15632,7 +14907,7 @@ if(document.readyState !== "loading") initChatWidget();
     document.getElementById("jlReopenGo").addEventListener("click", async ()=>{
       const r = await req("POST","/api/jobs/"+encodeURIComponent(J.job)+"/reopen", {reason:document.getElementById("jlReopenWhy").value, remarks:document.getElementById("jlReopenRem").value || null}, {"Idempotency-Key":(window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now())+Math.random())});
       if(!r.ok){ say("Could not reopen the job", detailMsg(r)); return; }
-      closeModal(); say("Job reopened", J.job); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
+      closeModal(); say("Job Reopened Successfully!", J.job); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
     });
   }
   function refreshAfter(){ if(J.drawer.open) loadDrawer(true); if(window.populateJobDetail && J.job) { /* keep the page data in sync without losing the user's place */ } }
@@ -15706,7 +14981,7 @@ if(document.readyState !== "loading") initChatWidget();
       J.list.filters = true; const bar = document.querySelector("#s-job-list .card .ch > div"); if(bar){
         const mk = (id, html)=> { const s = document.createElement("select"); s.className = "fc"; s.id = id; s.style.cssText = "width:150px;padding:5px 7px"; s.innerHTML = html; s.onchange = applyListFilters; bar.appendChild(s); };
         mk("jlListStage", '<option value="">All stages</option>'+(J.stages||[]).map(s=>'<option>'+esc2(s)+'</option>').join(""));
-        mk("jlListClosure", '<option value="">All closure states</option><option value="OPEN">Open jobs</option><option value="CLOSED">Closed jobs</option><option value="REOPENED">Reopened jobs</option><option value="READY">Ready for closure</option><option value="DOCS">Documentation pending</option><option value="FIN">Financials pending</option>');
+        mk("jlListClosure", '<option value="">All closure states</option><option value="OPEN">Open jobs</option><option value="CLOSED">Closed jobs</option><option value="REOPENED">Reopened jobs</option>');
         const f = document.createElement("input"); f.type = "date"; f.className = "fc"; f.id = "jlListFrom"; f.title = "Last activity from"; f.style.cssText = "width:130px;padding:5px 7px"; f.onchange = applyListFilters; bar.appendChild(f);
         const t = document.createElement("input"); t.type = "date"; t.className = "fc"; t.id = "jlListTo"; t.title = "Last activity to"; t.style.cssText = "width:130px;padding:5px 7px"; t.onchange = applyListFilters; bar.appendChild(t);
       }
@@ -15729,9 +15004,6 @@ if(document.readyState !== "loading") initChatWidget();
       let show = true; const s = tr.dataset.jlStage || "", c = tr.dataset.jlClosure || "", act = (tr.dataset.jlActivity||"").slice(0,10);
       if(stage && s !== stage) show = false;
       if(cl === "OPEN" || cl === "CLOSED" || cl === "REOPENED"){ if(c !== cl) show = false; }
-      if(cl === "READY" && s !== "Ready for Closure") show = false;
-      if(cl === "FIN" && s !== "Financials Pending") show = false;
-      if(cl === "DOCS" && !["Job Created","Booking In Progress","Booking Confirmed","Documentation In Progress"].includes(s)) show = false;
       if(from && act < from) show = false; if(to && act > to) show = false;
       tr.classList.toggle("jl-hide", !show);
     });
@@ -15739,6 +15011,7 @@ if(document.readyState !== "loading") initChatWidget();
 
   /* ---------- wiring ---------- */
   document.addEventListener("click", e=>{
+    const srcLink = e.target.closest("[data-jl-source]"); if(srcLink){ e.preventDefault(); e.stopPropagation(); sourceDialog(); return; }
     const b = e.target.closest("[data-jl]"); if(b){ e.stopPropagation(); const k = b.dataset.jl; if(k==="history") return openDrawer(); if(k==="stage") return stageDialog(); if(k==="close") return closeDialog(); if(k==="reopen") return reopenDialog(); }
     const m = e.target.closest("[data-jl-ms]"); if(m){ e.stopPropagation(); return milestoneDialog(m.dataset.jlMs); }
     const h = e.target.closest("[data-jl-hist]"); if(h){ e.stopPropagation(); J.pendingHistory = h.dataset.jlHist; const c = document.querySelector('[data-job="'+h.dataset.jlHist+'"]'); if(c) c.click(); setTimeout(()=>{ const btn = document.querySelector('#s-job-detail [data-jl="history"]'); if(btn) btn.click(); }, 1500); }
@@ -16775,7 +16048,7 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       if(name === "back"){ if(Q.dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return; go("quotation"); return; }
       if(name === "changewiz"){ document.getElementById("quotFormWrap").style.display = "none"; document.getElementById("quotWizWrap").style.display = "block"; setActions(); return; }
-      if(name === "save"){ const wasLocked = !!(Q.rec && !(Q.rec.status === "DRAFT" && ["DRAFT","REJECTED"].includes(Q.rec.approval_status))); const r = await save(); if(r) say(wasLocked ? "Changes saved" : "Draft saved", wasLocked ? (r.number || "")+" keeps its number; the change is recorded in the audit trail" : "The quotation number is generated when it is approved"); return; }
+      if(name === "save"){ const wasLocked = !!(Q.rec && !(Q.rec.status === "DRAFT" && ["DRAFT","REJECTED"].includes(Q.rec.approval_status))); const r = await save(); if(r) say("Quotation Updated Successfully!", wasLocked ? (r.number || "")+" keeps its number; the change is recorded in the audit trail" : "The quotation number is generated when it is approved"); return; }
       if(name === "lost" || name === "cancelq"){ const kind = name === "lost" ? "lost" : "cancel"; const reason = window.prompt(kind === "lost" ? "Why was this quotation lost? (e.g. customer chose another forwarder, price too high)" : "Why is this quotation being cancelled?", ""); if(reason === null) return; if(reason.trim().length < 3){ say("Reason required", "Please type at least 3 characters", "warn"); return; } const c = await api("POST","/api/quotations/"+Q.rec.id+"/"+kind, {reason:reason.trim()}); say(kind === "lost" ? "Marked as lost" : "Quotation cancelled", (c.number || "Draft #"+c.id)+" — "+reason.trim()); go("quotation"); return; }
       if(name === "submit"){ if(!validate(true)) return; const r = await save(); if(!r) return; const s = await api("POST","/api/quotations/"+r.id+"/approval/submit"); Q.rec = s; renderAll(true); say("Submitted for approval", "An approver can now review it"); return; }
       if(name === "approve" || name === "reject"){
@@ -17502,7 +16775,7 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       const rec = BKG.rec ? await api("PATCH", "/api/bookings/"+BKG.rec.id, body) : await api("POST", "/api/bookings", body);
       BKG.rec = rec; setVal("bk_no", rec.number || ""); return rec;
-    }catch(e){ say("Could not save the booking", e.message, "warn"); return null; }
+    }catch(e){ say("Could not save the booking", e.message, "error"); return null; }
   };
   BKG.finish = async function(){
     const t = totals(chargeRows());
@@ -17510,11 +16783,11 @@ if(document.readyState !== "loading") initChatWidget();
     const rec = await BKG.save(); if(!rec) return;
     try{
       const done = await api("POST", "/api/bookings/"+rec.id+"/confirm");
-      say("Booking confirmed", done.number+" — create the job(s) from the booking page"); BKG.rec = null; BKG.quote = null; BKG.view(done.id);
-    }catch(e){ say("Booking saved as a draft", e.message, "warn"); }
+      say("Booking Confirmed Successfully!", done.number+" — create the job(s) from the booking page"); BKG.rec = null; BKG.quote = null; BKG.view(done.id);
+    }catch(e){ say("Booking not confirmed — saved as a draft", e.message, "error"); }
   };
   document.addEventListener("click", async e=>{
-    if(e.target.closest("#bk_saveBtn")){ const r = await BKG.save(); if(r){ say("Draft saved", "You can finish it later from the Bookings list"); } }
+    if(e.target.closest("#bk_saveBtn")){ const r = await BKG.save(); if(r){ say("Booking Updated Successfully!", "Your changes are saved. You can finish it later from the Bookings list"); } }
   });
 
   /* ---------- open: from the list, or prefilled from a quotation ---------- */
@@ -17601,18 +16874,18 @@ if(document.readyState !== "loading") initChatWidget();
     const cr = e.target.closest("[data-bkv-create]");
     if(cr){
       cr.disabled = true;
-      try{ const r = await api("POST", "/api/bookings/"+BKG.viewId+"/jobs", {service:cr.dataset.bkvCreate}); say("Job created", r.created_job+" under booking "+r.number); BKG.renderView(); }
-      catch(err){ say("Could not create the job", err.message, "warn"); cr.disabled = false; }
+      try{ const r = await api("POST", "/api/bookings/"+BKG.viewId+"/jobs", {service:cr.dataset.bkvCreate}); say("Job Created Successfully!", r.created_job+" under booking "+r.number); BKG.renderView(); }
+      catch(err){ say("Could not create the job", err.message, "error"); cr.disabled = false; }
       return;
     }
     const a = e.target.closest("[data-bkv]"); if(!a) return;
     try{
       if(a.dataset.bkv === "edit") return BKG.open(BKG.viewId);
       if(a.dataset.bkv === "dup"){ const r = await api("POST", "/api/bookings/"+BKG.viewId+"/duplicate"); say("Draft created", "A copy of the booking is open for editing"); BKG.rec = r; BKG.quote = null; return showForm(r); }
-      if(a.dataset.bkv === "cancel"){ if(!window.confirm("Cancel this booking?")) return; await api("POST", "/api/bookings/"+BKG.viewId+"/cancel"); say("Booking cancelled", ""); }
-      if(a.dataset.bkv === "release"){ if(!window.confirm("Release the booked space?")) return; await api("POST", "/api/bookings/"+BKG.viewId+"/release-space"); say("Space released", ""); }
+      if(a.dataset.bkv === "cancel"){ if(!window.confirm("Cancel this booking?")) return; await api("POST", "/api/bookings/"+BKG.viewId+"/cancel"); say("Booking Updated Successfully!", "The booking is cancelled"); }
+      if(a.dataset.bkv === "release"){ if(!window.confirm("Release the booked space?")) return; await api("POST", "/api/bookings/"+BKG.viewId+"/release-space"); say("Booking Updated Successfully!", "The booked space is released"); }
       BKG.renderView();
-    }catch(err){ say("Booking action failed", err.message, "warn"); }
+    }catch(err){ say("Booking action failed", err.message, "error"); }
   });
 
   /* ---------- list ---------- */
@@ -17637,9 +16910,9 @@ if(document.readyState !== "loading") initChatWidget();
     const [act, id] = b.dataset.bkAct.split(":");
     try{
       if(act === "open") return BKG.open(id);
-      if(act === "confirm"){ if(!window.confirm("Confirm this booking? It gets its booking number; the jobs are then created from the booking page.")) return; const r = await api("POST", "/api/bookings/"+id+"/confirm"); say("Booking confirmed", r.number); return BKG.view(r.id); }
-      if(act === "cancel"){ if(!window.confirm("Cancel this booking?")) return; await api("POST", "/api/bookings/"+id+"/cancel"); say("Booking cancelled", ""); }
-      if(act === "release"){ if(!window.confirm("Release the booked space?")) return; await api("POST", "/api/bookings/"+id+"/release-space"); say("Space released", "Re-book is required for this cargo"); }
+      if(act === "confirm"){ if(!window.confirm("Confirm this booking? It gets its booking number; the jobs are then created from the booking page.")) return; const r = await api("POST", "/api/bookings/"+id+"/confirm"); say("Booking Confirmed Successfully!", r.number); return BKG.view(r.id); }
+      if(act === "cancel"){ if(!window.confirm("Cancel this booking?")) return; await api("POST", "/api/bookings/"+id+"/cancel"); say("Booking Updated Successfully!", "The booking is cancelled"); }
+      if(act === "release"){ if(!window.confirm("Release the booked space?")) return; await api("POST", "/api/bookings/"+id+"/release-space"); say("Booking Updated Successfully!", "Space released: re-book is required for this cargo"); }
       if(act === "dup"){ const r = await api("POST", "/api/bookings/"+id+"/duplicate"); say("Draft created", "A copy of the booking is open for editing"); return BKG.open(r.id); }
       if(act === "delete"){ if(!window.confirm("Delete this draft booking?")) return; await api("DELETE", "/api/bookings/"+id); say("Draft deleted", ""); }
       BKG.loadList();
@@ -17681,6 +16954,31 @@ function makePrintFit(){
   }
   window.addEventListener("beforeprint", function(){ var r = documentRoot(); if(r){ active = r; PF.fit(r); } });
   window.addEventListener("afterprint", function(){ if(active){ PF.reset(active); active = null; } });
+})();
+</script>
+
+<script>
+/* ============================================================
+   DOCUMENT SHELLS: BL / AWB, freight certificate, arrival notice, tax invoice, job profitability.
+   No sample documents: each screen shows the job's own data and waits for the company's format.
+   ============================================================ */
+(function(){
+  "use strict";
+  const esc = s=> String(s == null ? "" : s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const SCREENS = {"bl-draft":"blDraftPrintZone", "freight-cert":"fcPrintZone", "cargo-arrival":"canPrintZone", "job-pl-report":"plPrintZone", "tax-invoice-print":"taxInvPrintZone"};
+  const fact = (k, v)=> '<div style="min-width:170px;flex:1"><div style="font-size:10.5px;color:var(--g5);font-weight:600;text-transform:uppercase;letter-spacing:.3px">'+esc(k)+'</div><div style="margin-top:2px">'+(v ? esc(v) : '<span style="color:var(--g4)">—</span>')+'</div></div>';
+  function render(zoneId){
+    const zone = document.getElementById(zoneId); if(!zone) return;
+    const body = zone.querySelector(".cb"); const title = zone.dataset.docShell || "Document";
+    const no = window.__lastJobNo; const j = no && window.JOB_DB ? window.JOB_DB[no] : null;
+    const notice = '<div class="ib ib-am" style="margin-bottom:14px"><b>'+esc(title)+'</b> — the format for this document has not been added yet. Once the company\'s format is set up it will be produced here from the job\'s own data. Nothing on this page is sample data.</div>';
+    if(!j){ body.innerHTML = '<div style="padding:22px">'+notice+'<div style="color:var(--g5)">Open a job and choose this document from its Output Documents.</div></div>'; return; }
+    body.innerHTML = '<div style="padding:22px">'+notice+'<div style="font-weight:700;margin-bottom:8px">Job '+esc(j.no || no)+'</div>'+
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">'+fact("Mode / direction", [j.mode, j.dir].filter(Boolean).join(" · "))+fact("Route", [j.pol, j.pod].filter(Boolean).join(" → "))+fact("Customer / shipper", j.shipper)+fact("Consignee", j.consignee)+'</div>'+
+      '<div style="display:flex;gap:14px;flex-wrap:wrap">'+fact("Packages", j.packages)+fact("Gross weight", j.grossWeight)+fact("Volume", j.volume)+fact("Commodity", j.commodity)+fact("BL / AWB no", j.blNo)+'</div></div>';
+  }
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(SCREENS[screen]) render(SCREENS[screen]); };
 })();
 </script>
 </body>

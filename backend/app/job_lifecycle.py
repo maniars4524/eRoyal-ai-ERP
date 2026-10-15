@@ -18,19 +18,18 @@ from sqlalchemy.orm import Session
 
 from .models import Booking, Document, JobCharge, JobEvent, JobMilestone, JobStageHistory, MasterRecord, Shipment, User
 
-STAGES = [
-    "Job Created", "Booking In Progress", "Booking Confirmed", "Documentation In Progress", "Documentation Completed", "Cargo Received", "Customs In Progress", "Customs Cleared",
-    "Departed / Sailed", "In Transit", "Arrived", "Delivery In Progress", "Delivered", "Financials Pending", "Ready for Closure",
-]
-RANK = {s: i for i, s in enumerate(STAGES)}
-# stage -> milestone code that evidences it (stages 14 and 15 are derived from the financial checklist)
+STAGES = ["Draft", "Confirmed", "On Transit", "Closed", "Reopened"]
+RANK = {"Draft": 0, "Confirmed": 1, "On Transit": 2, "Reopened": 3, "Closed": 3}
+MANUAL_STAGES = ["Draft", "Confirmed", "On Transit"]   # Closed and Reopened come only from the Close / Reopen actions
+# Activities (milestones) are confirmed in the Tracking tab; those that show the cargo is moving put the job On Transit.
 STAGE_MILESTONE = {
-    "Booking In Progress": "booking_started", "Booking Confirmed": "booking_confirmed", "Documentation In Progress": "documentation_started", "Documentation Completed": "documentation_completed",
+    "Job started": "booking_started", "Job confirmed": "booking_confirmed", "Documentation In Progress": "documentation_started", "Documentation Completed": "documentation_completed",
     "Cargo Received": "cargo_received", "Customs In Progress": "customs_started", "Customs Cleared": "customs_cleared", "Departed / Sailed": "departed", "In Transit": "in_transit",
     "Arrived": "arrived", "Delivery In Progress": "delivery_started", "Delivered": "delivered",
 }
-MILESTONES = {code: stage for stage, code in STAGE_MILESTONE.items()}
-MILESTONE_LABEL = {**{c: s for c, s in MILESTONES.items()}, "empty_returned": "Empty container returned"}
+TRANSIT_MILESTONES = {"departed", "in_transit", "arrived", "delivery_started", "delivered"}
+MILESTONES = {code: ('On Transit' if code in TRANSIT_MILESTONES else 'Confirmed') for code in STAGE_MILESTONE.values()}
+MILESTONE_LABEL = {**{c: s for s, c in STAGE_MILESTONE.items()}, "empty_returned": "Empty container returned"}
 ALL_MILESTONES = list(STAGE_MILESTONE.values()) + ["empty_returned"]
 CATEGORIES = ("JOB", "HEADER", "OPERATIONS", "DOCUMENTS", "BUYCOST", "SELLCOST", "FINANCE", "STAGE", "CLOSURE", "REOPEN", "APPROVAL", "SECURITY", "SYSTEM")
 
@@ -178,17 +177,18 @@ def operationally_complete(db: Session, job: Shipment) -> bool:
 
 
 def derive_stage(db: Session, job: Shipment) -> tuple[str, str]:
-    """Return (stage, trigger) from the actual data: highest-ranked evidenced stage; the financial stages once operations are complete."""
+    """Return (stage, trigger) from the job's actual data. Closed / Reopened follow the closure status; otherwise Draft -> Confirmed -> On Transit."""
+    if job.closure_status == "CLOSED":
+        return "Closed", "CLOSED"
+    if job.closure_status == "REOPENED":
+        return "Reopened", "REOPENED"
     ms = milestone_map(db, job)
-    reached = [(RANK[s], s, c) for s, c in STAGE_MILESTONE.items() if c in ms]
-    if operationally_complete(db, job):
-        cl = checklist(db, job, None, {"cost_sheet_reviewed": True})  # review is a closing-time confirmation, not a reason to stay in Financials Pending
-        non_op = [i for i in cl["blocking"] if not i["key"].startswith("ms_") and i["key"] not in ("docs_complete", "authorized") and not i.get("ack_key")]  # acknowledgeable items are decided at closing time
-        return ("Financials Pending", "FINANCIALS_OUTSTANDING") if non_op else ("Ready for Closure", "ALL_PREREQUISITES_MET")
-    if reached:
-        top = max(reached)
-        return top[1], "MILESTONE:" + top[2]
-    return "Job Created", "JOB_CREATED"
+    transit = sorted(c for c in ms if c in TRANSIT_MILESTONES)
+    if transit:
+        return "On Transit", "MILESTONE:" + transit[-1]
+    if job.booking_id or (job.status or "Draft") != "Draft" or "booking_confirmed" in ms:
+        return "Confirmed", "JOB_CONFIRMED"
+    return "Draft", "JOB_CREATED"
 
 
 def recompute_stage(db: Session, job: Shipment, trigger: str, user: User | None = None, correlation_id=None) -> bool:
@@ -196,6 +196,8 @@ def recompute_stage(db: Session, job: Shipment, trigger: str, user: User | None 
     if job.closure_status == "CLOSED":
         return False
     stage, why = derive_stage(db, job)
+    if job.closure_status == "REOPENED" or stage in ("Closed", "Reopened"):
+        return set_stage(db, job, stage, "AUTO", user, trigger=trigger[:170], correlation_id=correlation_id)
     if stage == job.job_stage:
         return False
     if job.stage_source == "MANUAL" and RANK[stage] <= RANK.get(job.job_stage, 0):
@@ -221,7 +223,7 @@ def on_job_created(db: Session, job: Shipment, user: User | None, via: str, deta
     corr = uuid.uuid4().hex[:16]
     ev = log_event(db, job, user, "JOB_CREATED", "JOB", f"Job {job.job_number} created ({via})", new=job.job_number, correlation_id=corr, source=via.upper().replace(" ", "_")[:20],
                    detail={"mode": job.mode, "direction": job.direction, "container_mode": job.container_mode, "job_type": job.job_type, **(detail or {})})
-    db.add(JobStageHistory(organization_id=job.organization_id, shipment_id=job.id, job_number=job.job_number, previous_stage=None, new_stage=job.job_stage or "Job Created", source="AUTO", trigger="JOB_CREATED",
+    db.add(JobStageHistory(organization_id=job.organization_id, shipment_id=job.id, job_number=job.job_number, previous_stage=None, new_stage=job.job_stage or "Draft", source="AUTO", trigger="JOB_CREATED",
                            actor_id=user.id if user else None, actor_name=display_name(user), event_id=ev.id))
     recompute_stage(db, job, "JOB_CREATED", user, corr)
 

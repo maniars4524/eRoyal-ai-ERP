@@ -79,57 +79,63 @@ ACK = {"ack": {"no_buy_cost": False, "accrual": True, "cost_sheet_reviewed": Tru
 def test_creation_initial_stage_event_and_separate_closure_status(h):
     jn = new_job(h, charges=False)
     lc = life(h, jn)
-    assert lc["job_stage"] == "Job Created" and lc["closure_status"] == "OPEN" and lc["closure_cycle"] == 0 and lc["event_count"] >= 1
+    assert lc["job_stage"] == "Draft" and lc["closure_status"] == "OPEN" and lc["closure_cycle"] == 0 and lc["event_count"] >= 1
+    assert lc["stages"] == ["Draft", "Confirmed", "On Transit", "Closed", "Reopened"] and lc["manual_stages"] == ["Draft", "Confirmed", "On Transit"]
+    assert lc["stage_updated_by"]  # who did it is shown with the date
     ev = events(h, jn)
     assert ev["total"] >= 1 and ev["items"][-1]["event_type"] == "JOB_CREATED" and ev["items"][-1]["actor"] and ev["items"][-1]["category"] == "JOB"
-    assert client.get(f"/api/jobs/{jn}/stage-history", headers=h).json()[-1]["new_stage"] == "Job Created"
+    assert client.get(f"/api/jobs/{jn}/stage-history", headers=h).json()[-1]["new_stage"] == "Draft"
 
 
 def test_milestones_drive_the_stage_never_planned_dates_or_the_future(h):
     jn = new_job(h)
     shipment = next(s for s in client.get("/api/shipments", headers=h).json() if s["job_number"] == jn)
     client.patch(f"/api/shipments/{shipment['id']}", json={"etd": "2020-01-01", "eta": "2020-02-01"}, headers=h)  # long-past PLANNED dates
-    assert life(h, jn)["job_stage"] == "Job Created"
+    assert life(h, jn)["job_stage"] == "Draft"
     assert ms(h, jn, "departed", (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()).status_code == 422  # not actual yet
     assert ms(h, jn, "in_transit").status_code == 200  # out-of-sequence is valid
-    assert life(h, jn)["job_stage"] == "In Transit"
+    assert life(h, jn)["job_stage"] == "On Transit"
     assert ms(h, jn, "documentation_started").status_code == 200
-    assert life(h, jn)["job_stage"] == "In Transit"  # a lower-ranked event never moves the stage back
+    assert life(h, jn)["job_stage"] == "On Transit"  # an activity that is not movement never moves the stage back
     dup = ms(h, jn, "documentation_started")
     assert dup.status_code == 409  # already confirmed: a correction needs a reason
     assert ms(h, jn, "documentation_started", correction_reason="Wrong day entered").status_code == 200
     hist = client.get(f"/api/jobs/{jn}/stage-history", headers=h).json()
-    assert [x["new_stage"] for x in hist][:1] == ["In Transit"] and hist[0]["source"] == "AUTO" and "MILESTONE:in_transit" in hist[0]["trigger"]
+    assert [x["new_stage"] for x in hist][:1] == ["On Transit"] and hist[0]["source"] == "AUTO" and "MILESTONE:in_transit" in hist[0]["trigger"]
     assert any(e["event_type"] == "MILESTONE_CORRECTED" and e["previous_value"] for e in events(h, jn)["items"])
     air = new_job(h, mode="Air", direction="Export", container_mode=None)
     assert ms(h, air, "empty_returned").status_code == 422  # not part of an air job
 
 
-def test_manual_stage_needs_reason_warns_on_conflict_and_does_not_fake_milestones(h, viewer):
+def test_manual_stage_needs_a_reason_and_only_draft_confirmed_on_transit(h, viewer):
     jn = new_job(h)
-    assert client.post(f"/api/jobs/{jn}/stage", json={"stage": "Documentation Completed", "reason": "x"}, headers=h).status_code == 422
-    r = client.post(f"/api/jobs/{jn}/stage", json={"stage": "Customs Cleared", "reason": "Customer confirmed docs"}, headers=h)
-    assert r.status_code == 409 and "STAGE_CONFLICT" in r.json()["detail"]
-    ok = client.post(f"/api/jobs/{jn}/stage", json={"stage": "Customs Cleared", "reason": "Customer confirmed docs", "confirm_conflict": True}, headers=h)
-    assert ok.status_code == 200 and ok.json()["job_stage"] == "Customs Cleared" and ok.json()["stage_source"] == "MANUAL"
+    assert client.post(f"/api/jobs/{jn}/stage", json={"stage": "Confirmed", "reason": "x"}, headers=h).status_code == 422
+    ok = client.post(f"/api/jobs/{jn}/stage", json={"stage": "Confirmed", "reason": "Customer confirmed the shipment"}, headers=h)
+    assert ok.status_code == 200 and ok.json()["job_stage"] == "Confirmed" and ok.json()["stage_source"] == "MANUAL" and ok.json()["stage_updated_by"]
+    for blocked in ("Closed", "Reopened"):
+        assert client.post(f"/api/jobs/{jn}/stage", json={"stage": blocked, "reason": "try it"}, headers=h).status_code == 422  # only Close / Reopen set these
+    assert client.post(f"/api/jobs/{jn}/stage", json={"stage": "Confirmed", "reason": "again"}, headers=h).status_code == 409
     mm = {m["code"]: m for m in life(h, jn)["milestones"]}
-    assert mm["customs_cleared"]["done"] is False and mm["documentation_completed"]["done"] is False  # nothing was completed behind the scenes
-    assert client.post(f"/api/jobs/{jn}/stage", json={"stage": "Delivered", "reason": "try"}, headers=viewer).status_code == 403
+    assert mm["departed"]["done"] is False  # a manual stage never fakes an activity
+    assert client.post(f"/api/jobs/{jn}/stage", json={"stage": "On Transit", "reason": "try"}, headers=viewer).status_code == 403
     assert any(e["event_type"] == "PERMISSION_DENIED" and e["result"] == "REJECTED" for e in events(h, jn)["items"])
-    ms(h, jn, "cargo_received")
-    lc = life(h, jn)
-    assert lc["job_stage"] == "Customs Cleared" and lc["stage_source"] == "MANUAL"  # lower evidence does not discard the manual stage
     ms(h, jn, "departed")
     lc = life(h, jn)
-    assert lc["job_stage"] == "Departed / Sailed" and lc["stage_source"] == "AUTO"
+    assert lc["job_stage"] == "On Transit" and lc["stage_source"] == "AUTO"  # real movement supersedes the manual stage
     hist = client.get(f"/api/jobs/{jn}/stage-history", headers=h).json()
-    assert "supersedes manual stage" in hist[0]["trigger"] and any(x["source"] == "MANUAL" and x["reason"] == "Customer confirmed docs" for x in hist)  # manual record kept
+    assert any(x["source"] == "MANUAL" and x["reason"] == "Customer confirmed the shipment" for x in hist)  # the manual record is kept
 
 
-def test_ready_for_closure_is_a_stage_and_the_job_stays_open(h):
+def test_the_job_source_says_how_it_was_created(h):
+    jn = new_job(h, charges=False)
+    src = client.get(f"/api/jobs/{jn}/source", headers=h).json()
+    assert src["created_via"] == "Created directly" and src["booking"] is None and src["quotation"] is None and src["created_by"]
+
+
+def test_a_finished_job_is_on_transit_and_stays_open_until_closed(h):
     jn, _ = ready_job(h)
     lc = life(h, jn)
-    assert lc["job_stage"] == "Ready for Closure" and lc["closure_status"] == "OPEN" and lc["actions"]["can_close"] is True
+    assert lc["job_stage"] == "On Transit" and lc["closure_status"] == "OPEN" and lc["actions"]["can_close"] is True
 
 
 def test_closure_checklist_blocks_until_requirements_are_met(h):
@@ -152,7 +158,7 @@ def test_manual_close_reopen_and_repeated_cycles_keep_every_record(h):
     jn, sid = ready_job(h)
     assert client.post(f"/api/jobs/{jn}/close", json={}, headers=h).status_code == 422  # acknowledgements still missing (cost sheet review)
     c1 = client.post(f"/api/jobs/{jn}/close", json=ACK, headers=h)
-    assert c1.status_code == 200 and c1.json()["closure_status"] == "CLOSED" and c1.json()["closure_cycle"] == 1 and c1.json()["job_stage"] == "Ready for Closure"
+    assert c1.status_code == 200 and c1.json()["closure_status"] == "CLOSED" and c1.json()["closure_cycle"] == 1 and c1.json()["job_stage"] == "Closed"
     assert client.post(f"/api/jobs/{jn}/close", json=ACK, headers=h).status_code == 409  # no duplicate closure
     # closed job: the controlled fields are read-only on the API
     assert client.patch(f"/api/shipments/{sid}", json={"consignee": "Changed"}, headers=h).status_code == 409
@@ -163,7 +169,7 @@ def test_manual_close_reopen_and_repeated_cycles_keep_every_record(h):
     # reopen
     assert client.post(f"/api/jobs/{jn}/reopen", json={"reason": "x"}, headers=h).status_code == 422
     r = client.post(f"/api/jobs/{jn}/reopen", json={"reason": "Additional Vendor Invoice Received", "remarks": "MSC sent a revised bill"}, headers=h)
-    assert r.status_code == 200 and r.json()["closure_status"] == "REOPENED" and r.json()["reopen_count"] == 1 and r.json()["job_number"] == jn
+    assert r.status_code == 200 and r.json()["closure_status"] == "REOPENED" and r.json()["job_stage"] == "Reopened" and r.json()["reopen_count"] == 1 and r.json()["job_number"] == jn
     assert client.post(f"/api/jobs/{jn}/reopen", json={"reason": "again"}, headers=h).status_code == 409  # only a closed job can be reopened
     assert client.patch(f"/api/shipments/{sid}", json={"consignee": "Corrected"}, headers=h).status_code == 200  # editing restored
     c2 = client.post(f"/api/jobs/{jn}/close", json=ACK, headers=h)

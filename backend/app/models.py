@@ -162,7 +162,7 @@ class Shipment(Base):
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
     party_branch_id: Mapped[int | None] = mapped_column(ForeignKey("org_branches.id", ondelete="SET NULL"))
     booking_id: Mapped[int | None] = mapped_column(ForeignKey("bookings.id", ondelete="SET NULL"), index=True)
-    job_stage: Mapped[str] = mapped_column(String(40), default="Job Created", server_default="Job Created", index=True)
+    job_stage: Mapped[str] = mapped_column(String(40), default="Draft", server_default="Draft", index=True)
     stage_source: Mapped[str] = mapped_column(String(10), default="AUTO", server_default="AUTO")
     stage_reason: Mapped[str | None] = mapped_column(Text)
     stage_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -36,14 +36,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const heads = Array.from(d.querySelectorAll("#jobTable thead th")).map(t => t.textContent.trim());
   check("job list keeps its columns and adds stage / closure / activity columns", heads.includes("Job No") && heads.includes("Status") && heads.includes("Job Stage") && heads.includes("Closure") && heads.includes("Last Activity") && heads.includes("Reopens"), heads.join("|"));
   const row = q("#jobTableBody tr[data-job-row]");
-  check("each job row shows its stage and closure status", row && /JOB CREATED/.test(row.textContent) && /OPEN/.test(row.textContent), row && row.textContent.slice(0, 200));
+  check("each job row shows its stage and closure status", row && /DRAFT/i.test(row.textContent) && /OPEN/.test(row.textContent), row && row.textContent.slice(0, 200));
   setf(q("#jlListClosure"), "CLOSED", "change"); await sleep(200);
   check("closure filter hides open jobs", q("#jobTableBody tr[data-job-row]").classList.contains("jl-hide"));
   setf(q("#jlListClosure"), "", "change");
 
   // ---------- header
   w.go("job-detail", { jobNo: jn }); await sleep(2800);
-  check("stage and closure status appear beside the job number, separately", /JOB CREATED/.test(text("#jlChips")) && /OPEN/.test(text("#jlChips")) && /Stage updated/.test(text("#jlChips")), text("#jlChips"));
+  check("stage and closure status appear beside the job number, separately", /DRAFT/.test(text("#jlChips")) && /by /.test(text("#jlChips")) && /2026|20\d\d/.test(text("#jlChips")), text("#jlChips"));
   const btns = Array.from(d.querySelectorAll("#s-job-detail [data-jl]")).map(b => b.dataset.jl);
   check("header offers Change Stage, Close Job and Activity History (not Reopen while open)", btns.includes("stage") && btns.includes("close") && btns.includes("history") && !btns.includes("reopen"), btns.join());
 
@@ -51,7 +51,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   q('[data-tab="jt6"]').click(); await sleep(300);
   check("tracking tab lists the milestones of a Sea Export FCL job", /cargo received/i.test(text("#jlMilestones")) && /Departed/.test(text("#jlMilestones")), text("#jlMilestones").slice(0, 200));
   for (const code of ["documentation_completed", "cargo_received", "customs_cleared", "departed"]) { q(`[data-jl-ms="${code}"]`).click(); await sleep(250); q("#jlMsSave").click(); await sleep(1000); }
-  check("confirming actual milestones moves the stage automatically", /DEPARTED|FINANCIALS|READY/.test(text("#jlChips")), text("#jlChips"));
+  check("confirming actual milestones moves the stage automatically", /ON TRANSIT/.test(text("#jlChips")), text("#jlChips"));
 
   // ---------- activity drawer
   q('#s-job-detail [data-jl="history"]').click(); await sleep(1300);
@@ -62,7 +62,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("search finds the matching events", /Documentation/.test(text("#jlDBody")) && /Showing \d+ of \d+/.test(text("#jlDCount")), text("#jlDBody").slice(0, 150));
   setf(q("#jlFq"), ""); await sleep(1000);
   q('[data-jl-tab="stages"]').click(); await sleep(1000);
-  check("stage history tab lists transitions with their trigger", /Job Created/.test(text("#jlDBody")) && /MILESTONE/.test(text("#jlDBody")), text("#jlDBody").slice(0, 200));
+  check("stage history tab lists transitions with their trigger", /Draft/.test(text("#jlDBody")) && /MILESTONE/.test(text("#jlDBody")), text("#jlDBody").slice(0, 200));
   q("#jlDClose").click();
   check("closing the drawer keeps the job screen as it was", !q("#jlDrawer").classList.contains("on") && q("#s-job-detail").classList.contains("on"));
 
@@ -75,7 +75,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const inv = await j("POST", "/api/documents/from-job", { job_number: jn, doc_type: "invoice" }, token);
   await j("POST", `/api/documents/${inv.body.id}/post`, null, token);
   w.go("job-detail", { jobNo: jn }); await sleep(2500);
-  check("with the invoice posted the stage becomes Ready for Closure but the job is still OPEN", /READY FOR CLOSURE/.test(text("#jlChips")) && /OPEN/.test(text("#jlChips")), text("#jlChips"));
+  check("with the invoice posted the job stays On Transit and is still open", /ON TRANSIT/.test(text("#jlChips")) && (await j("GET", `/api/jobs/${jn}/lifecycle`, null, token)).body.closure_status === "OPEN", text("#jlChips"));
   q('#s-job-detail [data-jl="close"]').click(); await sleep(1800);
   q('[data-jl-ack="cost_sheet_reviewed"]').click(); await sleep(1000);
   q('[data-jl-ack="accrual"]').click(); await sleep(1000);
@@ -107,12 +107,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const job2 = (await j("POST", "/api/shipments", { mode: "Air", direction: "Import", pol: "DEFRA", pod: "INMAA" }, token)).body;
   w.go("job-detail", { jobNo: job2.job_number }); await sleep(2800);
   q('#s-job-detail [data-jl="stage"]').click(); await sleep(700);
-  setf(q("#jlNewStage"), "Delivered", "change"); clearToasts(); q("#jlStageSave").click(); await sleep(500);
+  setf(q("#jlNewStage"), "On Transit", "change"); clearToasts(); q("#jlStageSave").click(); await sleep(500);
   check("a stage change needs a reason", toastsNow().some(t => /Reason required/i.test(t)), toastsNow().join(";"));
-  setf(q("#jlStageWhy"), "Customer confirmed delivery by phone"); q("#jlStageSave").click(); await sleep(1300);
-  check("conflict with the recorded milestones is warned about first", /does not complete any milestone|support/i.test(text("#jlStageWarn")) && /Confirm anyway/.test(text("#jlStageSave")), text("#jlStageWarn"));
-  q("#jlStageSave").click(); await sleep(1600);
-  check("confirmed manual stage is applied and marked manual", /DELIVERED/.test(text("#jlChips")) && /manual/.test(text("#jlChips")), text("#jlChips"));
+  setf(q("#jlStageWhy"), "Customer confirmed the cargo is moving"); q("#jlStageSave").click(); await sleep(1600);
+  check("the manual stage is applied and recorded as manual", /ON TRANSIT/.test(text("#jlChips")) && (await j("GET", `/api/jobs/${job2.job_number}/lifecycle`, null, token)).body.stage_source === "MANUAL", text("#jlChips"));
   const lc2 = (await j("GET", `/api/jobs/${job2.job_number}/lifecycle`, null, token)).body;
   check("no milestone was completed by the manual change", lc2.milestones.every(m => !m.done), JSON.stringify(lc2.milestones.filter(m => m.done)));
 

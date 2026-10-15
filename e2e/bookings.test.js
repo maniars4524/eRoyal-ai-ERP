@@ -58,6 +58,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the overview shows booking, parties, consignment and costing with the vendor", /Booking details/.test(text("#bk_overviewBody")) && /Acme Exports/.test(text("#bk_overviewBody")) && /12 Port Road/.test(text("#bk_overviewBody")) && /Ocean Freight/.test(text("#bk_overviewBody")) && /MSC Mediterranean/.test(text("#bk_overviewBody")), text("#bk_overviewBody").slice(0, 300));
   check("Consignment is ordered pieces, pack type, container type, container no", (() => { const ids = Array.from(d.querySelectorAll("#bpStep3 .fr:first-child .fg input, #bpStep3 .fr:first-child .fg select")).map(e => e.id); return ids.join(",") === "bk_pcs,bk_packtype,bk_conttype,bk_contno"; })());
   check("the Space / Equipment box no longer sits under every step", !d.getElementById("bk_spaceBox"));
+  // a failed save shows a red error and never the success message
+  const toastList = () => Array.from(d.querySelectorAll("#toastStack .toast"));
+  toastList().forEach(t => t.remove());
+  setf("bk_etd", "2030-03-10"); setf("bk_eta", "2030-03-01");
+  d.getElementById("bk_saveBtn").click(); await sleep(1200);
+  check("a failed save shows a red error toast and not the success message", toastList().some(t => t.classList.contains("error") && /Could not save the booking/.test(t.textContent) && /ETA cannot be earlier than ETD/.test(t.textContent)) && !toastList().some(t => /Updated Successfully/.test(t.textContent)), toastList().map(t => t.className + ":" + t.textContent).join("|"));
+  setf("bk_etd", "2030-01-10"); setf("bk_eta", "2030-02-05"); toastList().forEach(t => t.remove());
+  d.getElementById("bk_saveBtn").click(); await sleep(1200);
+  check("a successful save shows 'Booking Updated Successfully!' in green with a check", toastList().some(t => t.classList.contains("success") && /Booking Updated Successfully!/.test(t.textContent) && !!t.querySelector('svg[data-icon="check-circle"]')), toastList().map(t => t.className + ":" + t.textContent).join("|"));
   d.getElementById("bk_saveBtn").click(); await sleep(1200);
   const drafts = (await j("GET", "/api/bookings", null, token)).body;
   check("Save Draft stores it with the quotation link, parties and charges", drafts.length === 1 && drafts[0].status === "DRAFT" && drafts[0].quotation_id === q.id && drafts[0].carrier === "MSC Mediterranean" && drafts[0].data.consignee === "Acme Exports" && drafts[0].data.charges.length === 2, JSON.stringify(drafts[0] || {}).slice(0, 300));
