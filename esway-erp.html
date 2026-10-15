@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>eSway ERP 2.0 · RTS0001</title>
+<script>try{var __t=localStorage.getItem("esway_theme");if(__t)document.documentElement.setAttribute("data-theme",__t)}catch(e){}</script>
 <style>
 /* ============================================================
    eSway ERP 2.0 — Freight Forwarding & Logistics Management
@@ -31,7 +32,28 @@
   --wh:#fff;
   --hh:48px;--mh:42px;
   --ease:cubic-bezier(.4,0,.2,1);
-}
+--on-bl:#fff;--bl-ink:#0C447C;}
+/* ---------- THEMES: shared design tokens. Every screen reads these variables; a theme only changes their values. ---------- */
+:root[data-theme="navy"]{--n:#0B1F3A;--n2:#152B4E;--n3:#1E3A5F;--bl:#1A6FBF;--bl2:#2484D8;--blt:#E8F3FC;--on-bl:#FFFFFF;--bl-ink:#0C447C;--g0:#F8FAFC;--g1:#F1F5F9;--g2:#E2E8F0;--g3:#CBD5E1;--g4:#94A3B8;--g5:#64748B;--g6:#475569;--g7:#334155;--g8:#1E293B;--wh:#FFFFFF}
+:root[data-theme="brown"]{--n:#3E2723;--n2:#4E342E;--n3:#5D4037;--bl:#8A5A33;--bl2:#A06C45;--blt:#F3E9DC;--on-bl:#FFFFFF;--bl-ink:#5B3A1E;--g0:#FAF6EE;--g1:#F3ECDF;--g2:#E4D8C5;--g3:#D2C3AA;--g4:#A8987F;--g5:#7A6B56;--g6:#5F523E;--g7:#4A3F2E;--g8:#2E2519;--wh:#FFFDF8}
+:root[data-theme="charcoal"]{--n:#23272E;--n2:#2D3239;--n3:#3A4048;--bl:#4A5568;--bl2:#5A667A;--blt:#E6E9EE;--on-bl:#FFFFFF;--bl-ink:#2F3745;--g0:#F4F5F7;--g1:#ECEEF1;--g2:#DADDE2;--g3:#C5C9D0;--g4:#9AA0AA;--g5:#666D79;--g6:#545B67;--g7:#3F444E;--g8:#23272E;--wh:#FFFFFF}
+:root[data-theme="forest"]{--n:#1B3A2D;--n2:#24493A;--n3:#2F5A48;--bl:#2F7D52;--bl2:#348A5A;--blt:#E3F1E8;--on-bl:#FFFFFF;--bl-ink:#1A5236;--g0:#F9F7EC;--g1:#F1EEDD;--g2:#E0DCC4;--g3:#CBC6A8;--g4:#9C9877;--g5:#6E6B4F;--g6:#55533C;--g7:#403E2D;--g8:#262519;--wh:#FFFEF6}
+:root[data-theme="purple"]{--n:#2E1A5C;--n2:#3B2275;--n3:#4A2C8F;--bl:#6B3CC9;--bl2:#7F55D9;--blt:#EFE8FB;--on-bl:#FFFFFF;--bl-ink:#43238F;--g0:#F8F6FD;--g1:#F0ECF9;--g2:#E2DBF2;--g3:#CFC5E6;--g4:#9D93B8;--g5:#6E648C;--g6:#554C71;--g7:#3F3858;--g8:#241F36;--wh:#FFFFFF}
+:root[data-theme="teal"]{--n:#0F3D3E;--n2:#164B4C;--n3:#1E5A5B;--bl:#0B7F81;--bl2:#0C8B8D;--blt:#E0F4F4;--on-bl:#FFFFFF;--bl-ink:#07595B;--g0:#F6FAFA;--g1:#EDF4F4;--g2:#D9E7E7;--g3:#C0D5D5;--g4:#8FA9A9;--g5:#587575;--g6:#4B6464;--g7:#364B4B;--g8:#1D2D2D;--wh:#FFFFFF}
+:root[data-theme="burgundy"]{--n:#4A1426;--n2:#5C1A31;--n3:#70213C;--bl:#8E2444;--bl2:#A62E52;--blt:#F6E3E8;--on-bl:#FFFFFF;--bl-ink:#6B1A33;--g0:#FBF6EC;--g1:#F4ECDC;--g2:#E6D9BF;--g3:#D4C3A0;--g4:#A8987A;--g5:#7A6B52;--g6:#61543F;--g7:#493F2E;--g8:#2D2519;--wh:#FFFCF5}
+:root[data-theme="midnight"]{--n:#0D0D10;--n2:#17171C;--n3:#212128;--bl:#8A6508;--bl2:#946C0A;--blt:#F8EFD2;--on-bl:#FFFFFF;--bl-ink:#5C4305;--g0:#F7F5EF;--g1:#EFEBE0;--g2:#E0DAC8;--g3:#CBC3AB;--g4:#9C9479;--g5:#6F6850;--g6:#565040;--g7:#3D382B;--g8:#1F1C14;--wh:#FFFFFF}
+[id$="PrintZone"],#quotPrintZone,.qp-paper{--wh:#fff;--g0:#F8FAFC;--g1:#F1F5F9;--g2:#E2E8F0;--g3:#CBD5E1;--g4:#94A3B8;--g5:#64748B;--g6:#475569;--g7:#334155;--g8:#1E293B;--bl:#1A6FBF;--bl-ink:#0C447C;--blt:#E8F3FC;--on-bl:#fff;color-scheme:light}
+@media print{:root,:root[data-theme]{--wh:#fff;--g0:#fff}}
+body,.card,.modal-box,.fc,.kpi{transition:background-color .2s var(--ease),border-color .2s var(--ease),color .2s var(--ease)}
+.theme-card{border:1.5px solid var(--g2);border-radius:12px;background:var(--wh);padding:12px;cursor:pointer;position:relative;transition:box-shadow .15s,transform .15s,border-color .15s;text-align:left}
+.theme-card:hover{box-shadow:0 6px 18px rgba(15,23,42,.12);transform:translateY(-2px)}
+.theme-card:focus-visible{outline:2px solid var(--bl);outline-offset:2px}
+.theme-card.sel{border-color:var(--bl);box-shadow:0 0 0 3px var(--blt),0 6px 18px rgba(15,23,42,.10)}
+.theme-tick{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;background:var(--bl);color:var(--on-bl);display:none;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+.theme-card.sel .theme-tick{display:flex}
+.theme-sw{display:flex;border-radius:8px;overflow:hidden;height:22px;margin:10px 0 8px;border:1px solid rgba(0,0,0,.08)}
+.theme-sw span{flex:1}
+
 html,body{height:100%}
 body{background:var(--g0);color:var(--g8);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.001ms !important;animation-duration:.001ms !important}}
@@ -71,12 +93,12 @@ svg{display:block}
 .hdr-time{font-size:11px;color:var(--g4);white-space:nowrap;padding:0 8px}
 .hdr-user{display:flex;align-items:center;gap:7px;padding:4px 8px;border-radius:6px;cursor:pointer;position:relative;border:none;background:none}
 .hdr-user:hover{background:rgba(255,255,255,.06)}
-.hdr-avatar{width:28px;height:28px;background:var(--bl);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;flex-shrink:0}
+.hdr-avatar{width:28px;height:28px;background:var(--bl);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--on-bl);font-size:10px;font-weight:600;flex-shrink:0}
 .hdr-uname{font-size:12px;color:#fff;text-align:left;line-height:1.25}
 .hdr-urole{font-size:10px;color:var(--g4);text-align:left}
 
 /* header dropdown panels (notifications / user menu) */
-.hdr-pop{position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:0.5px solid var(--g2);border-radius:10px;box-shadow:0 12px 32px rgba(11,31,58,.18);width:320px;z-index:400;opacity:0;visibility:hidden;transform:translateY(-6px);transition:.16s var(--ease);overflow:hidden}
+.hdr-pop{position:absolute;top:calc(100% + 8px);right:0;background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;box-shadow:0 12px 32px rgba(11,31,58,.18);width:320px;z-index:400;opacity:0;visibility:hidden;transform:translateY(-6px);transition:.16s var(--ease);overflow:hidden}
 .hdr-pop.on{opacity:1;visibility:visible;transform:translateY(0)}
 .hdr-pop-head{padding:11px 14px;border-bottom:0.5px solid var(--g2);display:flex;align-items:center;justify-content:space-between}
 .hdr-pop-head strong{font-size:12.5px;color:var(--g8)}
@@ -97,7 +119,7 @@ svg{display:block}
 /* ============================================================
    TOP MENU BAR
    ============================================================ */
-.mnb-wrap{background:#fff;border-bottom:0.5px solid var(--g2);position:sticky;top:var(--hh);z-index:290}
+.mnb-wrap{background:var(--wh);border-bottom:0.5px solid var(--g2);position:sticky;top:var(--hh);z-index:290}
 .mnb{height:var(--mh);display:flex;align-items:stretch;padding:0 10px;overflow-x:auto;gap:0;scrollbar-width:thin}
 .mnb::-webkit-scrollbar{height:4px}
 .mnb::-webkit-scrollbar-thumb{background:var(--g3);border-radius:4px}
@@ -132,7 +154,7 @@ svg{display:block}
 .kpi-face-f{position:relative}
 .kpi-face-b{position:absolute;inset:0;transform:rotateY(180deg);display:flex;flex-direction:column}
 .kpi-flip-btn{position:absolute;bottom:10px;right:10px;z-index:6;width:25px;height:25px;border-radius:50%;border:none;background:rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(15,23,42,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--g6);transition:transform .3s var(--ease),background .15s,color .15s}
-.kpi-flip-btn:hover{background:#fff;color:var(--bl);transform:scale(1.12)}
+.kpi-flip-btn:hover{background:var(--wh);color:var(--bl);transform:scale(1.12)}
 .kpi-flip-btn .ic{width:12px;height:12px;pointer-events:none}
 .kpi-flip.is-flipped .kpi-flip-btn{transform:rotate(180deg)}
 .kpi-flip.is-flipped .kpi-flip-btn:hover{transform:rotate(180deg) scale(1.12)}
@@ -140,12 +162,12 @@ svg{display:block}
 .kpi-back-row:last-of-type{border-bottom:none}
 
 /* ================= SHIPMENT SELECTION WIZARD (New Job / Quotation / Booking) ================= */
-.wiz-wrap{background:#fff;border:0.5px solid var(--g2);border-radius:10px;padding:20px 22px;margin-bottom:14px}
+.wiz-wrap{background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;padding:20px 22px;margin-bottom:14px}
 /* Booking Process — 5-step bar (Booking Details / Parties / Consignment / Costing / Overview) */
 .bstep-bar{display:flex;align-items:center;background:var(--g0);border:0.5px solid var(--g2);border-radius:10px;padding:20px 24px;margin-bottom:16px}
 .bstep-item{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;position:relative;cursor:pointer}
-.bstep-dot{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--g3);display:flex;align-items:center;justify-content:center;transition:all .15s var(--ease);z-index:1}
-.bstep-item.current .bstep-dot{background:#fff;border-color:var(--bl);box-shadow:0 0 0 4px var(--blt)}
+.bstep-dot{width:16px;height:16px;border-radius:50%;background:var(--wh);border:2px solid var(--g3);display:flex;align-items:center;justify-content:center;transition:all .15s var(--ease);z-index:1}
+.bstep-item.current .bstep-dot{background:var(--wh);border-color:var(--bl);box-shadow:0 0 0 4px var(--blt)}
 .bstep-item.done .bstep-dot{background:var(--gr);border-color:var(--gr)}
 .bstep-item.done .bstep-dot::after{content:"✓";color:#fff;font-size:10px;font-weight:700}
 .bstep-lbl{font-size:11.5px;font-weight:600;color:var(--g5);text-align:center}
@@ -161,14 +183,14 @@ svg{display:block}
 .wiz-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .wiz-row-label{font-size:11.5px;font-weight:700;color:var(--g6);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.4px}
 .wiz-dir-row{display:flex;gap:8px;flex-wrap:wrap}
-.wiz-dir-pill{padding:9px 20px;border:1.5px solid var(--g2);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;color:var(--g6);background:#fff;transition:all .15s var(--ease)}
+.wiz-dir-pill{padding:9px 20px;border:1.5px solid var(--g2);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;color:var(--g6);background:var(--wh);transition:all .15s var(--ease)}
 .wiz-dir-pill:hover{border-color:var(--g4)}
 .wiz-dir-pill.sel{border-color:var(--bl);background:var(--blt);color:var(--bl)}
 @media (max-width:900px){.wiz-mode-grid,.wiz-type-grid{grid-template-columns:repeat(2,1fr)}}
-.wiz-card{position:relative;border:1.5px solid var(--g2);border-radius:10px;padding:16px 14px;text-align:center;cursor:pointer;transition:all .15s var(--ease);background:#fff}
+.wiz-card{position:relative;border:1.5px solid var(--g2);border-radius:10px;padding:16px 14px;text-align:center;cursor:pointer;transition:all .15s var(--ease);background:var(--wh)}
 .wiz-card:hover{border-color:var(--g4);transform:translateY(-2px);box-shadow:0 6px 16px rgba(11,31,58,.08)}
 .wiz-card.sel{border-color:var(--wc,var(--bl));background:color-mix(in srgb, var(--wc,var(--bl)) 6%, #fff)}
-.wiz-radio{position:absolute;top:10px;right:10px;width:17px;height:17px;border-radius:50%;border:1.5px solid var(--g3);background:#fff}
+.wiz-radio{position:absolute;top:10px;right:10px;width:17px;height:17px;border-radius:50%;border:1.5px solid var(--g3);background:var(--wh)}
 .wiz-card.sel .wiz-radio{border-color:var(--wc,var(--bl));border-width:5px}
 .wiz-ico{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 4px 10px -3px rgba(0,0,0,.35)}
 .wiz-ico .ic{width:22px;height:22px;color:#fff}
@@ -183,10 +205,10 @@ svg{display:block}
 
 /* ================= EXECUTIVE DASHBOARD CAROUSEL ================= */
 .dash-filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-.dash-filters select{padding:6px 9px;border:0.5px solid var(--g3);border-radius:6px;font-size:11.3px;background:#fff;color:var(--g7);cursor:pointer;outline:none}
+.dash-filters select{padding:6px 9px;border:0.5px solid var(--g3);border-radius:6px;font-size:11.3px;background:var(--wh);color:var(--g7);cursor:pointer;outline:none}
 .dash-filters select:focus{border-color:var(--bl)}
 .dash-carousel{display:flex;flex-direction:column;position:relative}
-.dash-carousel:fullscreen{background:#fff;padding:16px;display:flex;flex-direction:column}
+.dash-carousel:fullscreen{background:var(--wh);padding:16px;display:flex;flex-direction:column}
 .dash-carousel:fullscreen .dash-slide-viewport{flex:1}
 .dash-slide-viewport{position:relative;min-height:276px}
 .dash-slide{display:none}
@@ -198,9 +220,9 @@ svg{display:block}
 .dash-slide-body{padding:10px 14px 14px}
 .dash-slide-body canvas{width:100%;display:block}
 .dash-ctrl-bar{display:flex;align-items:center;gap:5px;padding:8px 12px;border-top:0.5px solid var(--g2);background:var(--g0);flex-wrap:wrap}
-.dash-ctrl-btn{width:27px;height:27px;border-radius:6px;border:0.5px solid var(--g3);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--g6);transition:all .12s var(--ease);flex-shrink:0}
+.dash-ctrl-btn{width:27px;height:27px;border-radius:6px;border:0.5px solid var(--g3);background:var(--wh);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--g6);transition:all .12s var(--ease);flex-shrink:0}
 .dash-ctrl-btn:hover{background:var(--g1);color:var(--bl);border-color:var(--bl)}
-.dash-ctrl-btn.active{background:var(--bl);color:#fff;border-color:var(--bl)}
+.dash-ctrl-btn.active{background:var(--bl);color:var(--on-bl);border-color:var(--bl)}
 .dash-ctrl-btn .ic{width:13px;height:13px}
 .dash-dots{display:flex;gap:4px;flex-wrap:wrap;flex:1;justify-content:center;min-width:0;overflow-x:auto;padding:2px 4px;scrollbar-width:none}
 .dash-dots::-webkit-scrollbar{display:none}
@@ -233,7 +255,7 @@ svg{display:block}
 .mn-arr{width:11px;height:11px;margin-left:1px;color:var(--g4);transition:transform .15s var(--ease)}
 .mn-drop.open > .mn-item{color:var(--bl);background:var(--blt)}
 .mn-drop.open .mn-arr{transform:rotate(180deg)}
-.mn-submenu{display:none;position:fixed;background:#fff;border:0.5px solid var(--g2);border-radius:10px;box-shadow:0 20px 50px rgba(11,31,58,.22);z-index:250;min-width:230px;max-height:80vh;overflow-y:auto;padding:8px;transform-origin:top center;backface-visibility:hidden}
+.mn-submenu{display:none;position:fixed;background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;box-shadow:0 20px 50px rgba(11,31,58,.22);z-index:250;min-width:230px;max-height:80vh;overflow-y:auto;padding:8px;transform-origin:top center;backface-visibility:hidden}
 .mn-drop.open .mn-submenu{display:block;animation:mnFlip .6s cubic-bezier(.22,.85,.32,1)}
 .mn-submenu-wide{min-width:520px}
 .mn-sub-section{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--g4);padding:6px 10px 4px}
@@ -267,7 +289,7 @@ svg{display:block}
    navigation, and a horizontally-scrollable / full-width-sheet
    layout on small screens.
    ============================================================ */
-.topnav-wrap{background:#fff;border-bottom:0.5px solid var(--g2);position:sticky;top:var(--hh);z-index:280}
+.topnav-wrap{background:var(--wh);border-bottom:0.5px solid var(--g2);position:sticky;top:var(--hh);z-index:280}
 .topnav-flyout{display:flex;align-items:stretch;height:var(--mh);padding:0 10px;overflow-x:auto;overflow-y:hidden;gap:0;scrollbar-width:thin}
 .topnav-flyout::-webkit-scrollbar{height:4px}
 .topnav-flyout::-webkit-scrollbar-thumb{background:var(--g3);border-radius:4px}
@@ -292,7 +314,7 @@ svg{display:block}
 
 /* flyout panels — the first (dropdown, below trigger) and every deeper
    level (flyout, beside trigger) share this look; JS decides position */
-.tn-panel{position:fixed;top:0;left:0;background:#fff;min-width:230px;max-width:300px;max-height:80vh;overflow-y:auto;border:0.5px solid var(--g2);border-radius:10px;box-shadow:0 20px 50px rgba(11,31,58,.22);padding:6px;z-index:281;display:none;scrollbar-width:thin}
+.tn-panel{position:fixed;top:0;left:0;background:var(--wh);min-width:230px;max-width:300px;max-height:80vh;overflow-y:auto;border:0.5px solid var(--g2);border-radius:10px;box-shadow:0 20px 50px rgba(11,31,58,.22);padding:6px;z-index:281;display:none;scrollbar-width:thin}
 .tn-panel::-webkit-scrollbar{width:4px}
 .tn-panel::-webkit-scrollbar-thumb{background:var(--g3);border-radius:4px}
 .tn-panel.on{display:block;animation:tnFlyIn .16s var(--ease)}
@@ -330,7 +352,7 @@ svg{display:block}
 
 /* ---------- KPI ---------- */
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:#fff;border:0.5px solid var(--g2);border-radius:10px;padding:12px 14px;position:relative;transition:box-shadow .15s,transform .15s}
+.kpi{background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;padding:12px 14px;position:relative;transition:box-shadow .15s,transform .15s}
 .kpi:hover{box-shadow:0 4px 14px rgba(11,31,58,.07);transform:translateY(-1px)}
 .kpi-lbl{font-size:10.3px;font-weight:600;color:var(--g5);text-transform:uppercase;letter-spacing:.5px}
 .kpi-val{font-size:21px;font-weight:600;color:var(--g8);margin:3px 0 1px;letter-spacing:-.6px}
@@ -340,7 +362,7 @@ svg{display:block}
 .up{color:var(--gr);font-weight:600}.dn{color:var(--rd);font-weight:600}
 
 /* ---------- CARD ---------- */
-.card{background:#fff;border:0.5px solid var(--g2);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.card{background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;margin-bottom:12px;overflow:hidden}
 .ch{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--g2);gap:10px;flex-wrap:wrap}
 .ct{font-size:13px;font-weight:600;color:var(--g8);display:flex;align-items:center}
 .ct .ic{margin-right:6px}
@@ -354,10 +376,10 @@ svg{display:block}
 /* ---------- BUTTONS ---------- */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:var(--font-sans);transition:all .12s var(--ease);white-space:nowrap}
 .btn .ic{width:14px;height:14px}
-.btn-pri{background:var(--bl);color:#fff}.btn-pri:hover{background:var(--bl2)}
-.btn-out{background:#fff;color:var(--g7);border:0.5px solid var(--g3)}.btn-out:hover{background:var(--g1);border-color:var(--g4)}
+.btn-pri{background:var(--bl);color:var(--on-bl)}.btn-pri:hover{background:var(--bl2)}
+.btn-out{background:var(--wh);color:var(--g7);border:0.5px solid var(--g3)}.btn-out:hover{background:var(--g1);border-color:var(--g4)}
 .btn-suc{background:var(--gr);color:#fff}.btn-suc:hover{background:#176339}
-.btn-dgr{background:#fff;color:var(--rd);border:0.5px solid #F0C9C4}.btn-dgr:hover{background:var(--rdt)}
+.btn-dgr{background:var(--wh);color:var(--rd);border:0.5px solid #F0C9C4}.btn-dgr:hover{background:var(--rdt)}
 .btn-sm{padding:4px 9px;font-size:11px}
 .btn-block{width:100%;justify-content:center}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -368,7 +390,7 @@ svg{display:block}
 .fg{display:flex;flex-direction:column;gap:3px;min-width:0}
 .fl{font-size:10px;font-weight:600;color:var(--g6);text-transform:uppercase;letter-spacing:.5px}
 .fl .r{color:var(--rd)}
-.fc{padding:6px 9px;border:0.5px solid var(--g3);border-radius:6px;font-size:12.5px;color:var(--g8);background:#fff;outline:none;font-family:var(--font-sans);width:100%}
+.fc{padding:6px 9px;border:0.5px solid var(--g3);border-radius:6px;font-size:12.5px;color:var(--g8);background:var(--wh);outline:none;font-family:var(--font-sans);width:100%}
 .fc:focus{border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,111,191,.1)}
 .fc:disabled,.fc[readonly]{background:var(--g1);color:var(--g6)}
 textarea.fc{resize:vertical;min-height:60px}
@@ -394,7 +416,7 @@ tbody tr:hover{background:var(--g0)}
 
 /* ---------- BADGES ---------- */
 .b{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;font-size:10.8px;font-weight:600;white-space:nowrap}
-.b-bl{background:var(--blt);color:#0C447C}.b-gr{background:var(--grt);color:#27500A}
+.b-bl{background:var(--blt);color:var(--bl-ink)}.b-gr{background:var(--grt);color:#27500A}
 .b-am{background:var(--amt);color:#633806}.b-rd{background:var(--rdt);color:#791F1F}
 .b-pu{background:var(--put);color:#3C3489}.b-gy{background:var(--g1);color:var(--g6)}
 .b-tl{background:var(--tlt);color:#085041}
@@ -408,21 +430,21 @@ tbody tr:hover{background:var(--g0)}
 .tabs2{border-bottom:0.5px solid var(--g2);margin-bottom:10px}
 .tbb2{padding:6px 11px;font-size:11.3px;font-weight:500;color:var(--g5);cursor:pointer;border:none;background:none;white-space:nowrap;flex-shrink:0;border-radius:6px 6px 0 0;transition:all .12s var(--ease)}
 .tbb2:hover{color:var(--bl);background:var(--blt)}
-.tbb2.on{color:#fff;background:var(--bl);font-weight:600}
+.tbb2.on{color:var(--on-bl);background:var(--bl);font-weight:600}
 .tp2{display:none}.tp2.on{display:block;animation:scrIn .18s var(--ease)}
 
 /* ---------- STATUS FLOW ---------- */
 .sf{display:flex;align-items:center;margin-bottom:12px;overflow-x:auto}
 .sfn{padding:4px 12px;font-size:10.8px;font-weight:600;background:var(--g1);color:var(--g5);border:0.5px solid var(--g3);flex-shrink:0;white-space:nowrap}
 .sfn.done{background:var(--grt);color:#27500A;border-color:#C0DD97}
-.sfn.act{background:var(--bl);color:#fff;border-color:var(--bl)}
+.sfn.act{background:var(--bl);color:var(--on-bl);border-color:var(--bl)}
 .sfn:first-child{border-radius:4px 0 0 4px}.sfn:last-child{border-radius:0 4px 4px 0}
 .sfa{width:12px;height:24px;clip-path:polygon(0 0,calc(100% - 3px) 0,100% 50%,calc(100% - 3px) 100%,0 100%,3px 50%);flex-shrink:0;margin-left:-0.5px}
 .sfa.done{background:var(--grt)}.sfa.act{background:var(--bl)}.sfa.pend{background:var(--g1)}
 
 /* ---------- INFO BOX ---------- */
 .ib{border-radius:6px;padding:9px 12px;font-size:12px;margin-bottom:10px;border-left:3px solid;line-height:1.55}
-.ib-bl{background:var(--blt);border-color:var(--bl);color:#0C447C}
+.ib-bl{background:var(--blt);border-color:var(--bl);color:var(--bl-ink)}
 .ib-gr{background:var(--grt);border-color:var(--gr);color:#27500A}
 .ib-am{background:var(--amt);border-color:var(--am);color:#633806}
 .ib-rd{background:var(--rdt);border-color:var(--rd);color:#791F1F}
@@ -435,7 +457,7 @@ tbody tr:hover{background:var(--g0)}
 .jc-head-item .jc-hv{font-size:13px;font-weight:600;color:var(--g8)}
 .jc-head-item select.fc{height:30px;font-size:12px}
 .jc-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
-.jc-kpi{background:#fff;border:0.5px solid var(--g2);border-radius:10px;padding:12px 14px}
+.jc-kpi{background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;padding:12px 14px}
 .jc-kpi .jc-kl{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--g5);margin-bottom:5px}
 .jc-kpi .jc-kv{font-size:19px;font-weight:700;color:var(--g8)}
 .jc-kpi.jc-kpi-cost .jc-kv{color:var(--rd)}
@@ -446,7 +468,7 @@ tbody tr:hover{background:var(--g0)}
 .jc-grid-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .jc-table{min-width:2000px}
 .jc-table thead th{white-space:nowrap}
-.jc-table thead th.jc-th-buy{background:var(--blt)!important;color:#0C447C!important}
+.jc-table thead th.jc-th-buy{background:var(--blt)!important;color:var(--bl-ink)!important}
 .jc-table thead th.jc-th-sell{background:var(--grt)!important;color:#27500A!important}
 .jc-table td{padding:5px 6px;vertical-align:middle}
 .jc-table input.fc,.jc-table select.fc{height:28px;padding:3px 6px;font-size:11.5px;min-width:64px}
@@ -458,9 +480,9 @@ tbody tr:hover{background:var(--g0)}
 .jc-party-toggle.jc-pt-vendor input{accent-color:#A9672F}
 .jc-party-toggle.jc-pt-client input{accent-color:var(--bl)}
 .jc-party-toggle.jc-pt-vendor.on{color:#8B5323}
-.jc-party-toggle.jc-pt-client.on{color:#0C447C}
+.jc-party-toggle.jc-pt-client.on{color:var(--bl-ink)}
 .jc-input-vendor-on{border-color:#C98B52!important;color:#7A4A1E!important;background:#FBF1E6!important;font-weight:600}
-.jc-input-client-on{border-color:var(--bl)!important;color:#0C447C!important;background:var(--blt)!important;font-weight:600}
+.jc-input-client-on{border-color:var(--bl)!important;color:var(--bl-ink)!important;background:var(--blt)!important;font-weight:600}
 .jc-input-party-off{opacity:.45}
 .jc-gp-pos{color:var(--gr)!important;font-weight:700}
 .jc-gp-neg{color:var(--rd)!important;font-weight:700}
@@ -486,17 +508,17 @@ tbody tr:hover{background:var(--g0)}
 /* ---- HR Module: employee grid/list toggle, cards, avatars, profile KPIs ----
    Additive only — reuses existing tokens (--bl/--n/--g*), .card/.b/.chip system. */
 .view-toggle{display:inline-flex;border:1px solid var(--g3);border-radius:7px;overflow:hidden;flex-shrink:0}
-.vt-btn{background:#fff;border:none;padding:6px 9px;cursor:pointer;color:var(--g5);display:flex;align-items:center;transition:all .12s var(--ease)}
+.vt-btn{background:var(--wh);border:none;padding:6px 9px;cursor:pointer;color:var(--g5);display:flex;align-items:center;transition:all .12s var(--ease)}
 .vt-btn .ic{width:15px;height:15px}
 .vt-btn:hover{background:var(--g0);color:var(--bl)}
 .vt-btn.on{background:var(--blt);color:var(--bl)}
 .vt-btn+.vt-btn{border-left:1px solid var(--g3)}
 
 .emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px}
-.emp-card{border:1px solid var(--g2);border-radius:10px;padding:14px;background:#fff;transition:box-shadow .15s var(--ease),transform .15s var(--ease)}
+.emp-card{border:1px solid var(--g2);border-radius:10px;padding:14px;background:var(--wh);transition:box-shadow .15s var(--ease),transform .15s var(--ease)}
 .emp-card:hover{box-shadow:0 8px 20px rgba(11,31,58,.1);transform:translateY(-2px)}
 .emp-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.emp-avatar{width:40px;height:40px;border-radius:50%;background:var(--bl);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.emp-avatar{width:40px;height:40px;border-radius:50%;background:var(--bl);color:var(--on-bl);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
 .emp-avatar.sm{width:26px;height:26px;font-size:11px}
 .emp-avatar.lg{width:64px;height:64px;font-size:22px}
 .emp-card-name{font-size:14px;font-weight:700;color:var(--n);margin-bottom:2px}
@@ -518,7 +540,7 @@ tbody tr:hover{background:var(--g0)}
 
 /* ---- Rate Master Hub quick-nav tiles ---- */
 .rm-hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
-.rm-hub-tile{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--g2);border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s var(--ease),transform .15s var(--ease),border-color .15s var(--ease)}
+.rm-hub-tile{display:flex;align-items:center;gap:10px;background:var(--wh);border:1px solid var(--g2);border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s var(--ease),transform .15s var(--ease),border-color .15s var(--ease)}
 .rm-hub-tile:hover{box-shadow:0 6px 16px rgba(11,31,58,.1);transform:translateY(-2px);border-color:var(--bl)}
 .rm-hub-tile.on{border-color:var(--pu);background:var(--put)}
 .rm-hub-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -550,19 +572,19 @@ tbody tr:hover{background:var(--g0)}
 .alert-row[data-go]:hover{background:var(--g0)}
 .tli::before{content:'';position:absolute;left:8px;top:20px;bottom:-10px;width:0.5px;background:var(--g2)}
 .tli:last-child::before{display:none}
-.tld{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--g3);background:#fff;flex-shrink:0;margin-top:3px;display:flex;align-items:center;justify-content:center;z-index:1}
+.tld{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--g3);background:var(--wh);flex-shrink:0;margin-top:3px;display:flex;align-items:center;justify-content:center;z-index:1}
 .tld.done{border-color:var(--gr);background:var(--gr);color:#fff}
-.tld.act{border-color:var(--bl);background:var(--bl);color:#fff}
+.tld.act{border-color:var(--bl);background:var(--bl);color:var(--on-bl)}
 .tld .ic{width:9px;height:9px;stroke-width:3}
 .tl-t{font-size:12.5px;font-weight:500;color:var(--g8)}
 .tl-m{font-size:11px;color:var(--g5)}
 
 .fg2{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:5px}
-.fi{display:flex;align-items:center;gap:7px;padding:6px 9px;border:0.5px solid var(--g2);border-radius:6px;background:#fff;cursor:pointer;transition:all .12s var(--ease)}
+.fi{display:flex;align-items:center;gap:7px;padding:6px 9px;border:0.5px solid var(--g2);border-radius:6px;background:var(--wh);cursor:pointer;transition:all .12s var(--ease)}
 .fi:hover,.fi.on{border-color:var(--bl);background:var(--blt)}
 .ftg{width:24px;height:14px;border-radius:7px;background:var(--g3);position:relative;flex-shrink:0;transition:background .15s}
 .fi.on .ftg{background:var(--bl)}
-.ftg::after{content:'';position:absolute;width:10px;height:10px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .15s}
+.ftg::after{content:'';position:absolute;width:10px;height:10px;background:var(--wh);border-radius:50%;top:2px;left:2px;transition:left .15s}
 .fi.on .ftg::after{left:12px}
 .flbl{font-size:11.3px;font-weight:500;color:var(--g7)}
 .fi.on .flbl{color:var(--bl)}
@@ -579,7 +601,7 @@ tbody tr:hover{background:var(--g0)}
 .sopb{padding:14px;display:none}.sopb.on{display:block}
 .sop-step{display:flex;gap:10px;margin-bottom:12px}
 .sop-step:last-child{margin-bottom:0}
-.sop-num{width:20px;height:20px;background:var(--bl);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;flex-shrink:0;margin-top:1px}
+.sop-num{width:20px;height:20px;background:var(--bl);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--on-bl);flex-shrink:0;margin-top:1px}
 .sop-c strong{font-size:12px;color:#fff;display:block;margin-bottom:2px}
 .sop-c p{font-size:11.5px;color:var(--g4);line-height:1.65;margin:0}
 .sop-c code{font-family:var(--font-mono);font-size:10px;background:rgba(255,255,255,.1);padding:1px 5px;border-radius:3px;color:#7DD3FC}
@@ -601,15 +623,15 @@ tbody tr:hover{background:var(--g0)}
 .toast-stack{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:999;width:300px}
 
 /* ================= AI SUPPORT CHAT WIDGET (independent component) ================= */
-.chat-launcher{position:fixed;left:20px;bottom:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--bl),#0E4E8A);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(26,111,191,.4);z-index:998;transition:transform .2s var(--ease)}
+.chat-launcher{position:fixed;left:20px;bottom:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--bl),var(--n3));display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(26,111,191,.4);z-index:998;transition:transform .2s var(--ease)}
 .chat-launcher:hover{transform:scale(1.08)}
 .chat-launcher .ic{width:26px;height:26px;color:#fff}
 .chat-badge{position:absolute;top:-2px;right:-2px;background:var(--rd);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff}
-.chat-panel{position:fixed;left:20px;bottom:88px;width:360px;height:520px;max-height:70vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(11,31,58,.25);z-index:998;display:flex;flex-direction:column;overflow:hidden;animation:chatIn .25s var(--ease)}
+.chat-panel{position:fixed;left:20px;bottom:88px;width:360px;height:520px;max-height:70vh;background:var(--wh);border-radius:14px;box-shadow:0 20px 60px rgba(11,31,58,.25);z-index:998;display:flex;flex-direction:column;overflow:hidden;animation:chatIn .25s var(--ease)}
 @keyframes chatIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .chat-panel.minimized{height:56px}
 .chat-panel.minimized .chat-body,.chat-panel.minimized .chat-quick,.chat-panel.minimized .chat-input-row{display:none}
-.chat-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,var(--bl),#0E4E8A);color:#fff;cursor:pointer;flex-shrink:0;transition:background .2s}
+.chat-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,var(--bl),var(--n3));color:var(--on-bl);cursor:pointer;flex-shrink:0;transition:background .2s}
 .chat-head.human{background:linear-gradient(135deg,var(--gr),#146238)}
 .chat-head-avatar{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .chat-head-info{flex:1;min-width:0}
@@ -626,21 +648,21 @@ tbody tr:hover{background:var(--g0)}
 .chat-msg.human .chat-msg-av{background:var(--grt)}
 .chat-msg-col{display:flex;flex-direction:column}
 .chat-msg.me .chat-msg-col{align-items:flex-end}
-.chat-msg-bubble{background:#fff;border:0.5px solid var(--g2);border-radius:12px;padding:8px 11px;font-size:12px;color:var(--g7);line-height:1.5}
-.chat-msg.me .chat-msg-bubble{background:var(--bl);color:#fff;border-color:var(--bl)}
+.chat-msg-bubble{background:var(--wh);border:0.5px solid var(--g2);border-radius:12px;padding:8px 11px;font-size:12px;color:var(--g7);line-height:1.5}
+.chat-msg.me .chat-msg-bubble{background:var(--bl);color:var(--on-bl);border-color:var(--bl)}
 .chat-msg-time{font-size:9px;color:var(--g4);margin-top:3px}
 .chat-sys{align-self:center;font-size:10.5px;color:var(--g5);background:var(--g1);padding:4px 12px;border-radius:20px;text-align:center}
 .chat-quick{display:flex;gap:6px;padding:8px 12px;flex-wrap:wrap;border-top:0.5px solid var(--g1);flex-shrink:0}
-.chat-quick button{font-size:10.5px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--g2);background:#fff;color:var(--bl);cursor:pointer;transition:background .1s}
+.chat-quick button{font-size:10.5px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--g2);background:var(--wh);color:var(--bl);cursor:pointer;transition:background .1s}
 .chat-quick button:hover{background:var(--blt)}
-.chat-input-row{display:flex;gap:6px;padding:10px 12px;border-top:0.5px solid var(--g2);flex-shrink:0;background:#fff}
-.chat-attach-btn,.chat-send-btn{width:32px;height:32px;border-radius:8px;border:0.5px solid var(--g2);background:#fff;color:var(--g6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-input-row{display:flex;gap:6px;padding:10px 12px;border-top:0.5px solid var(--g2);flex-shrink:0;background:var(--wh)}
+.chat-attach-btn,.chat-send-btn{width:32px;height:32px;border-radius:8px;border:0.5px solid var(--g2);background:var(--wh);color:var(--g6);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .chat-attach-btn:hover{background:var(--g0)}
-.chat-send-btn{background:var(--bl);border-color:var(--bl);color:#fff}
+.chat-send-btn{background:var(--bl);border-color:var(--bl);color:var(--on-bl)}
 .chat-send-btn:hover{background:#155a9e}
 .chat-input{flex:1;border:0.5px solid var(--g2);border-radius:8px;padding:0 10px;font-size:12px;outline:none;min-width:0}
 .chat-input:focus{border-color:var(--bl)}
-.chat-typing-dots{display:flex;gap:3px;padding:9px 12px;background:#fff;border:0.5px solid var(--g2);border-radius:12px;width:fit-content}
+.chat-typing-dots{display:flex;gap:3px;padding:9px 12px;background:var(--wh);border:0.5px solid var(--g2);border-radius:12px;width:fit-content}
 .chat-typing-dots span{width:5px;height:5px;border-radius:50%;background:var(--g4);animation:aitp 1.2s infinite}
 .chat-typing-dots span:nth-child(2){animation-delay:.2s}.chat-typing-dots span:nth-child(3){animation-delay:.4s}
 .chat-attach-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px}
@@ -660,7 +682,7 @@ tbody tr:hover{background:var(--g0)}
 /* ---------- MODAL ---------- */
 .modal-ovl{position:fixed;inset:0;background:rgba(11,31,58,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:18px;opacity:0;visibility:hidden;transition:.18s var(--ease)}
 .modal-ovl.on{opacity:1;visibility:visible}
-.modal-box{background:#fff;border-radius:12px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.25);transform:scale(.96) translateY(8px);transition:.2s var(--ease)}
+.modal-box{background:var(--wh);border-radius:12px;width:520px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.25);transform:scale(.96) translateY(8px);transition:.2s var(--ease)}
 .modal-ovl.on .modal-box{transform:scale(1) translateY(0)}
 .modal-box.lg{width:760px}
 .modal-head{padding:15px 18px;border-bottom:0.5px solid var(--g2);display:flex;align-items:center;justify-content:space-between}
@@ -672,7 +694,7 @@ tbody tr:hover{background:var(--g0)}
 
 /* ---------- PAGINATION ---------- */
 .pag{display:flex;align-items:center;gap:5px}
-.pag-btn{width:26px;height:26px;border-radius:6px;border:0.5px solid var(--g3);background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:var(--g6);font-weight:600}
+.pag-btn{width:26px;height:26px;border-radius:6px;border:0.5px solid var(--g3);background:var(--wh);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;color:var(--g6);font-weight:600}
 .pag-btn.on{background:var(--n);color:#fff;border-color:var(--n)}
 .pag-btn:hover:not(.on){background:var(--g1)}
 
@@ -701,7 +723,7 @@ tbody tr:hover{background:var(--g0)}
   tr{break-inside:avoid;page-break-inside:avoid}
   .hdr,.mnb-wrap,.bc-bar,.pa,.toast-stack,.modal-ovl,.no-print,.topnav-wrap{display:none !important}
   .main{padding:0;max-width:100%;margin-left:0!important;width:100%!important}
-  body{background:#fff}
+  body{background:var(--wh)}
   .card{break-inside:avoid}
 }
 
@@ -710,7 +732,7 @@ tbody tr:hover{background:var(--g0)}
    ============================================================ */
 #loginOverlay{
   position:fixed;inset:0;z-index:9999;
-  background:#F4F6FB;
+  background:var(--g0);
   display:grid;grid-template-columns:58% 42%;align-items:center;
   overflow:hidden;
   transition:opacity .5s var(--ease),visibility .5s;
@@ -724,7 +746,7 @@ tbody tr:hover{background:var(--g0)}
    premium abstract backdrop rather than a literal photo. Sits behind
    the login card at z-index:0; fades in on load rather than popping in. */
 .login-bg-scene{position:absolute;top:0;left:0;bottom:0;width:58%;z-index:0;overflow:hidden;display:block;
-  background:linear-gradient(135deg,#0B1F3A 0%,#152B4E 45%,#1A6FBF 78%,#6D28D9 100%);
+  background:linear-gradient(135deg,var(--n) 0%,var(--n2) 45%,var(--bl) 78%,#6D28D9 100%);
   opacity:0;animation:bgFadeIn .9s var(--ease) .05s forwards;
 }
 @keyframes bgFadeIn{to{opacity:1}}
@@ -851,7 +873,7 @@ tbody tr:hover{background:var(--g0)}
 }
 .login-info-panel .lip-divider{
   width:56px;height:3px;border-radius:3px;
-  background:linear-gradient(90deg,var(--bl,#1a6fbf),transparent);
+  background:linear-gradient(90deg,var(--bl,var(--bl)),transparent);
   margin:22px 0;
 }
 .login-info-panel .lip-tagline{
@@ -883,7 +905,7 @@ tbody tr:hover{background:var(--g0)}
 }
 @keyframes loginIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
 .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.login-logo-icon{width:44px;height:44px;background:#fff;border-radius:10px;padding:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 6px 16px rgba(26,111,191,.35)}
+.login-logo-icon{width:44px;height:44px;background:var(--wh);border-radius:10px;padding:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 6px 16px rgba(26,111,191,.35)}
 .login-logo-icon .ic{color:#fff;width:21px;height:21px}
 .login-logo-img{width:100%;height:100%;object-fit:contain;display:block;border-radius:7px}
 .login-logo-text{font-size:18px;font-weight:700;color:var(--n);letter-spacing:-.4px;line-height:1.2}
@@ -894,7 +916,7 @@ tbody tr:hover{background:var(--g0)}
 .login-label{font-size:10px;font-weight:700;color:var(--g6);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;display:block}
 .login-input{
   width:100%;padding:8px 12px;border:1.5px solid var(--g3);border-radius:8px;
-  font-size:13px;color:var(--g8);background:#fff;outline:none;font-family:inherit;
+  font-size:13px;color:var(--g8);background:var(--wh);outline:none;font-family:inherit;
   transition:border-color .15s,box-shadow .15s;
 }
 .login-input:focus{border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,111,191,.12)}
@@ -909,7 +931,7 @@ tbody tr:hover{background:var(--g0)}
 .login-select-wrap .sel-ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--g4);width:14px;height:14px;pointer-events:none}
 .login-select{
   width:100%;padding:8px 30px 8px 32px;border:1.5px solid var(--g3);border-radius:8px;
-  font-size:13px;color:var(--g8);background:#fff;outline:none;font-family:inherit;
+  font-size:13px;color:var(--g8);background:var(--wh);outline:none;font-family:inherit;
   appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:pointer;
   transition:border-color .15s,box-shadow .15s;
 }
@@ -950,7 +972,7 @@ tbody tr:hover{background:var(--g0)}
 @media (max-width:760px){
   #loginOverlay{
     display:block;overflow-y:auto;overflow-x:hidden;
-    background:#F4F6FB;
+    background:var(--g0);
   }
   .login-bg-scene,.login-bg-overlay{
     position:absolute;top:0;left:0;right:0;bottom:auto;width:100%;height:330px;
@@ -995,7 +1017,7 @@ tbody tr:hover{background:var(--g0)}
 .btn-back:hover{border-color:var(--bl);color:var(--bl);background:var(--blt)}
 
 /* ── Report output card close ── */
-#reportOutputCard .ch{position:sticky;top:0;z-index:2;background:#fff}
+#reportOutputCard .ch{position:sticky;top:0;z-index:2;background:var(--wh)}
 
 /* ── Voucher tabs scroll ── */
 #jt8{scroll-behavior:smooth}
@@ -1005,21 +1027,21 @@ tbody tr:hover{background:var(--g0)}
 .dd-cell:active{transform:translateY(0) scale(0.98)}
 
 /* ── AI Chat widget ── */
-#aiChatFab{position:fixed;bottom:22px;right:22px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#1A6FBF,#5B4DE0);box-shadow:0 6px 20px rgba(26,111,191,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:500;transition:transform .15s}
+#aiChatFab{position:fixed;bottom:22px;right:22px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--bl),#5B4DE0);box-shadow:0 6px 20px rgba(26,111,191,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:500;transition:transform .15s}
 #aiChatFab:hover{transform:scale(1.08)}
 #aiChatFab svg{color:#fff;width:26px;height:26px}
-#aiChatPanel{position:fixed;bottom:90px;right:22px;width:380px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 120px);background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:501;display:none;flex-direction:column;overflow:hidden;border:1px solid var(--g2)}
+#aiChatPanel{position:fixed;bottom:90px;right:22px;width:380px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 120px);background:var(--wh);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:501;display:none;flex-direction:column;overflow:hidden;border:1px solid var(--g2)}
 #aiChatPanel.open{display:flex;animation:chatIn .25s var(--ease)}
 @keyframes chatIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
-.ai-chat-head{background:linear-gradient(135deg,#0B1F3A,#1A6FBF);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px}
+.ai-chat-head{background:linear-gradient(135deg,var(--n),var(--bl));color:var(--on-bl);padding:14px 16px;display:flex;align-items:center;gap:10px}
 .ai-chat-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--g0)}
 .ai-msg{max-width:84%;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.5}
-.ai-msg.bot{background:#fff;border:1px solid var(--g2);align-self:flex-start;border-bottom-left-radius:3px}
-.ai-msg.user{background:var(--bl);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
-.ai-chat-input{display:flex;gap:8px;padding:10px;border-top:1px solid var(--g2);background:#fff}
+.ai-msg.bot{background:var(--wh);border:1px solid var(--g2);align-self:flex-start;border-bottom-left-radius:3px}
+.ai-msg.user{background:var(--bl);color:var(--on-bl);align-self:flex-end;border-bottom-right-radius:3px}
+.ai-chat-input{display:flex;gap:8px;padding:10px;border-top:1px solid var(--g2);background:var(--wh)}
 .ai-chat-input input{flex:1;border:1.5px solid var(--g2);border-radius:20px;padding:8px 14px;font-size:12.5px;outline:none}
 .ai-chat-input input:focus{border-color:var(--bl)}
-.ai-chat-input button{width:36px;height:36px;border-radius:50%;background:var(--bl);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-chat-input button{width:36px;height:36px;border-radius:50%;background:var(--bl);border:none;color:var(--on-bl);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ai-suggest{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
 .ai-suggest button{font-size:10.5px;padding:5px 10px;border-radius:14px;border:1px solid var(--bl);color:var(--bl);background:var(--blt);cursor:pointer}
 .ai-typing{display:flex;gap:3px;padding:9px 12px}
@@ -1031,13 +1053,13 @@ tbody tr:hover{background:var(--g0)}
 
 /* ================= ENTERPRISE SYSTEM CONFIGURATION ================= */
 .ec-search{position:relative;margin-bottom:14px}
-.ec-search input{width:100%;padding:10px 14px 10px 36px;border:0.5px solid var(--g3);border-radius:8px;font-size:13px;outline:none;background:#fff}
+.ec-search input{width:100%;padding:10px 14px 10px 36px;border:0.5px solid var(--g3);border-radius:8px;font-size:13px;outline:none;background:var(--wh)}
 .ec-search input:focus{border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,111,191,.1)}
 .ec-search .ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--g4)}
 .ec-stats{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.ec-stat{background:#fff;border:0.5px solid var(--g2);border-radius:8px;padding:8px 14px;font-size:11.5px;color:var(--g6);display:flex;align-items:center;gap:6px}
+.ec-stat{background:var(--wh);border:0.5px solid var(--g2);border-radius:8px;padding:8px 14px;font-size:11.5px;color:var(--g6);display:flex;align-items:center;gap:6px}
 .ec-stat b{color:var(--g8);font-size:14px}
-.ecgrp{background:#fff;border:0.5px solid var(--g2);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.ecgrp{background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;margin-bottom:10px;overflow:hidden}
 .ecgrp-h{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;transition:background .12s}
 .ecgrp-h:hover{background:var(--g0)}
 .ecgrp-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -1058,7 +1080,7 @@ tbody tr:hover{background:var(--g0)}
 /* Drawer */
 .drawer-ovl{position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s var(--ease)}
 .drawer-ovl.on{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;background:#fff;z-index:91;box-shadow:-8px 0 30px rgba(11,31,58,.18);transform:translateX(100%);transition:transform .22s var(--ease);display:flex;flex-direction:column}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;background:var(--wh);z-index:91;box-shadow:-8px 0 30px rgba(11,31,58,.18);transform:translateX(100%);transition:transform .22s var(--ease);display:flex;flex-direction:column}
 .drawer-ovl.on .drawer{transform:translateX(0)}
 .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:0.5px solid var(--g2);gap:10px}
 .drawer-head h3{font-size:14px;font-weight:600;color:var(--g8);display:flex;align-items:center;gap:8px}
@@ -1069,7 +1091,7 @@ tbody tr:hover{background:var(--g0)}
 .toggle-sw{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0}
 .toggle-sw input{opacity:0;width:0;height:0}
 .toggle-sw span{position:absolute;cursor:pointer;inset:0;background:var(--g3);border-radius:20px;transition:.15s}
-.toggle-sw span::before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}
+.toggle-sw span::before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:var(--wh);border-radius:50%;transition:.15s}
 .toggle-sw input:checked+span{background:var(--gr)}
 .toggle-sw input:checked+span::before{transform:translateX(16px)}
 .ai-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -1118,8 +1140,8 @@ tbody tr:hover{background:var(--g0)}
       document.write('<style id="loginOverlayPreHide">#loginOverlay{display:none!important}</style>');
       document.write('<style>' +
         '@keyframes sessionSpin{to{transform:rotate(360deg);}}' +
-        '#sessionLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#fff;}' +
-        '#sessionLoader .sl-disc{width:78px;height:78px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(15,23,42,.08),0 14px 28px -8px rgba(15,23,42,.18),inset 0 -2px 5px rgba(15,23,42,.06),inset 0 2px 4px rgba(255,255,255,.9);}' +
+        '#sessionLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--wh);}' +
+        '#sessionLoader .sl-disc{width:78px;height:78px;border-radius:50%;background:var(--wh);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(15,23,42,.08),0 14px 28px -8px rgba(15,23,42,.18),inset 0 -2px 5px rgba(15,23,42,.06),inset 0 2px 4px rgba(255,255,255,.9);}' +
         '#sessionLoader .sl-ring{width:56px;height:56px;animation:sessionSpin .9s linear infinite;}' +
         '</style>'
       );
@@ -1547,7 +1569,7 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-item" data-go="sop"><svg class="ic" data-icon="mail"></svg>Email Configuration</div>
       <div class="mn-sub-item" data-go="sop"><svg class="ic" data-icon="bell"></svg>SMS Configuration</div>
       <div class="mn-sub-item" data-go="sop"><svg class="ic" data-icon="gear"></svg>Preferences</div>
-      <div class="mn-sub-item" data-go="sop"><svg class="ic" data-icon="dashboard"></svg>Theme</div>
+      <div class="mn-sub-item" data-go="themes"><svg class="ic" data-icon="dashboard"></svg>Themes</div>
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">System</div>
       <div class="mn-sub-item" data-go="sop"><svg class="ic" data-icon="download"></svg>Backup</div>
@@ -2804,17 +2826,17 @@ tbody tr:hover{background:var(--g0)}
 <div style="background:var(--g0);border:1px solid var(--g2);border-radius:8px;padding:12px 14px">
   <div style="font-size:11px;font-weight:700;color:var(--g6);margin-bottom:8px">📐 Volumetric Weight Formulas (IATA Standard)</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:11px">
-    <div style="background:#fff;border-radius:6px;padding:10px;border-left:3px solid var(--tl)">
+    <div style="background:var(--wh);border-radius:6px;padding:10px;border-left:3px solid var(--tl)">
       <div style="font-weight:700;color:var(--tl);margin-bottom:4px">cm + kg</div>
       <div style="font-family:monospace;background:var(--g1);padding:5px 8px;border-radius:4px;font-size:12px;margin-bottom:4px">(L × W × H) ÷ 6,000</div>
       <div style="color:var(--g5)">Example: 120×80×50 = 480,000 ÷ 6,000 = <strong>80 kg</strong></div>
     </div>
-    <div style="background:#fff;border-radius:6px;padding:10px;border-left:3px solid var(--am)">
+    <div style="background:var(--wh);border-radius:6px;padding:10px;border-left:3px solid var(--am)">
       <div style="font-weight:700;color:var(--am);margin-bottom:4px">inches + lbs</div>
       <div style="font-family:monospace;background:var(--g1);padding:5px 8px;border-radius:4px;font-size:12px;margin-bottom:4px">(L × W × H) ÷ 166</div>
       <div style="color:var(--g5)">Example: 48×40×28 = 53,760 ÷ 166 = <strong>324 lbs</strong></div>
     </div>
-    <div style="background:#fff;border-radius:6px;padding:10px;border-left:3px solid var(--gr)">
+    <div style="background:var(--wh);border-radius:6px;padding:10px;border-left:3px solid var(--gr)">
       <div style="font-weight:700;color:var(--gr);margin-bottom:4px">cm → CBM</div>
       <div style="font-family:monospace;background:var(--g1);padding:5px 8px;border-radius:4px;font-size:12px;margin-bottom:4px">(L × W × H) × 167</div>
       <div style="color:var(--g5)">1 CBM of air cargo = <strong>167 kg</strong> chargeable</div>
@@ -2955,7 +2977,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- JT7B OUTPUT DOCS TAB — Smart mode-aware -->
 <div id="jt7b" class="tp">
 
-<div style="background:linear-gradient(135deg,#0B1F3A 50%,#1A6FBF);color:#fff;padding:12px 18px;border-radius:8px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+<div style="background:linear-gradient(135deg,var(--n) 50%,var(--bl));color:#fff;padding:12px 18px;border-radius:8px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
   <div>
     <div style="font-size:11px;opacity:.65;letter-spacing:.6px;text-transform:uppercase">Output Documents — Generate, View &amp; Print</div>
     <div style="font-size:15px;font-weight:700;margin-top:2px">Job: <span id="outDocJobNo">—</span> <span id="outDocMode" style="font-size:12px;background:rgba(255,255,255,.18);padding:2px 10px;border-radius:20px;margin-left:8px">Sea Export</span></div>
@@ -2976,7 +2998,7 @@ tbody tr:hover{background:var(--g0)}
 <div id="odSeaImportDocs" style="display:none">
 <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--gr);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--gr)">🚢 Sea Import — Output Documents</div>
 <div style="display:flex;flex-direction:column;gap:8px">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--bl)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--bl)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="package" style="color:var(--bl)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Cargo Arrival Notice (CAN)</div><div style="font-size:11px;color:var(--g5)">Notify consignee &amp; agents of vessel arrival · Auto-filled from job data</div></div>
@@ -2987,7 +3009,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--am)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--am)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--amt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="truck" style="color:var(--am)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Delivery Order (DO)</div><div style="font-size:11px;color:var(--g5)">Issue DO to consignee after payment clearance</div></div>
@@ -2998,7 +3020,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--grt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="award" style="color:var(--gr)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Freight Certificate</div><div style="font-size:11px;color:var(--g5)">Full freight details with charge breakdown · Import &amp; Export</div></div>
@@ -3009,7 +3031,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--tl)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--tl)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--tlt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="receipt" style="color:var(--tl)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Tax Invoice <span style="font-size:11px;font-weight:400;color:var(--g5)">(View Only)</span></div><div style="font-size:11px;color:var(--g5)">GST-compliant AR invoice for this job · View existing invoice</div></div>
@@ -3020,7 +3042,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--pu)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--pu)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--put);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="report" style="color:var(--pu)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Pre-Alert Report</div><div style="font-size:11px;color:var(--g5)">Advance shipment notice to overseas agent / consignee</div></div>
@@ -3031,7 +3053,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="calendar-check" style="color:var(--n)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Sailing Confirmation</div><div style="font-size:11px;color:var(--g5)">Vessel departure confirmation to shipper / notify party</div></div>
@@ -3048,7 +3070,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- SEA EXPORT docs -->
 <div id="odSeaExportDocs" style="display:flex;flex-direction:column;gap:8px">
 <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--bl);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--bl)">🚢 Sea Export — Output Documents</div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="clipboard" style="color:var(--n)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">BL Draft (HBL / MBL)</div><div style="font-size:11px;color:var(--g5)">House / Master Bill of Lading draft · Sea Export only</div></div>
@@ -3059,7 +3081,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--grt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="award" style="color:var(--gr)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Freight Certificate</div><div style="font-size:11px;color:var(--g5)">Complete freight &amp; charge details · Import &amp; Export</div></div>
@@ -3070,7 +3092,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="calendar-check" style="color:var(--n)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Sailing Confirmation</div><div style="font-size:11px;color:var(--g5)">Vessel departure notice to shipper · Pre-loading</div></div>
@@ -3081,7 +3103,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--pu)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--pu)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--put);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="trending-up" style="color:var(--pu)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">P&amp;L Report</div><div style="font-size:11px;color:var(--g5)">Job-wise profit &amp; loss with provisional vs actual</div></div>
@@ -3097,7 +3119,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- AIR EXPORT docs -->
 <div id="odAirExportDocs" style="display:none;flex-direction:column;gap:8px">
 <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--tl);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--tl)">✈ Air Export — Output Documents</div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--tl)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--tl)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--tlt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="clipboard" style="color:var(--tl)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">HAWB / MAWB Draft</div><div style="font-size:11px;color:var(--g5)">House &amp; Master Air Waybill · Air Export only</div></div>
@@ -3108,7 +3130,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--grt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="award" style="color:var(--gr)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Freight Certificate</div><div style="font-size:11px;color:var(--g5)">Charge breakdown certificate · Air &amp; Sea</div></div>
@@ -3119,7 +3141,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--tl)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--tl)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--tlt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="plane" style="color:var(--tl)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Loading Confirmation</div><div style="font-size:11px;color:var(--g5)">Cargo accepted &amp; loaded on flight confirmation</div></div>
@@ -3130,7 +3152,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="report" style="color:var(--n)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Air Manifest</div><div style="font-size:11px;color:var(--g5)">Consolidated air cargo manifest for customs &amp; airline</div></div>
@@ -3141,7 +3163,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--pu)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--pu)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--put);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="license" style="color:var(--pu)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Air Declaration</div><div style="font-size:11px;color:var(--g5)">Shipper's declaration for dangerous / restricted goods</div></div>
@@ -3152,7 +3174,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--am)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--am)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--amt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="tag" style="color:var(--am)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Label Form</div><div style="font-size:11px;color:var(--g5)">Shipping label / cargo label for carton / pallet marking</div></div>
@@ -3168,7 +3190,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- AIR IMPORT docs -->
 <div id="odAirImportDocs" style="display:none;flex-direction:column;gap:8px">
 <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--gr);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--gr)">✈ Air Import — Output Documents</div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--bl)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--bl)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="package" style="color:var(--bl)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Cargo Arrival Notice (CAN)</div><div style="font-size:11px;color:var(--g5)">Air freight arrival alert to consignee &amp; notify party</div></div>
@@ -3179,7 +3201,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--am)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--am)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--amt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="truck" style="color:var(--am)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Delivery Order (DO)</div><div style="font-size:11px;color:var(--g5)">Air cargo release order after customs clearance</div></div>
@@ -3190,7 +3212,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--grt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="award" style="color:var(--gr)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Freight Certificate</div><div style="font-size:11px;color:var(--g5)">Charge details certificate for air import job</div></div>
@@ -3201,7 +3223,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--tl)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--tl)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--tlt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="receipt" style="color:var(--tl)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Tax Invoice <span style="font-size:11px;font-weight:400;color:var(--g5)">(View Only)</span></div><div style="font-size:11px;color:var(--g5)">GST invoice for air import charges</div></div>
@@ -3212,7 +3234,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--pu)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--pu)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--put);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="report" style="color:var(--pu)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Pre-Alert Report</div><div style="font-size:11px;color:var(--g5)">Advance air cargo notice to destination agent</div></div>
@@ -3223,7 +3245,7 @@ tbody tr:hover{background:var(--g0)}
       <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="calendar-check" style="color:var(--n)"></svg></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--n)">Sailing Confirmation</div><div style="font-size:11px;color:var(--g5)">Flight departure confirmation to importer</div></div>
@@ -3674,7 +3696,7 @@ tbody tr:hover{background:var(--g0)}
 </tbody></table></div></div></div>
 <!-- ====== CHARGE MASTER ====== -->
 <div id="s-charge-master" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="adjustments" style="color:var(--bl)"></svg>Charge Master</div><div class="ps">Global charge code library — all modules, modes, AR/AP, COA mapping</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="importChargesBtn" title="Adds the standard freight-forwarding charges as INACTIVE entries for tax review"><svg class="ic" data-icon="download"></svg> Import Standard Freight Charges</button><button class="btn btn-pri btn-sm" id="newChargeBtn"><svg class="ic" data-icon="plus"></svg> New Charge Code</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="adjustments" style="color:var(--bl)"></svg>Charge Master</div><div class="ps">Global charge code library — all modules, modes, AR/AP, COA mapping</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="importChargesBtn" title="Adds the standard freight-forwarding charges as INACTIVE entries for tax review"><svg class="ic" data-icon="download"></svg> Import Standard Freight Charges</button><button class="btn btn-suc btn-sm" id="activateChargesBtn" title="Makes every inactive charge that has its SAC / HSN code and GST rate Active, so it appears on quotations, bookings and invoices"> Activate Ready Charges</button><button class="btn btn-pri btn-sm" id="newChargeBtn"><svg class="ic" data-icon="plus"></svg> New Charge Code</button></div></div>
 <div class="ib ib-rd" style="margin-bottom:10px"><svg class="ic" data-icon="alert-triangle" style="margin-right:6px;color:var(--rd)"></svg><strong>Mandatory:</strong> every charge must reference an HSN/SAC Code. Selecting a Charge anywhere in the ERP auto-fills its HSN/SAC + GST% — no manual tax lookup needed.</div>
 <div class="card"><div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>HSN/SAC</th><th>Module</th><th>Mode</th><th>UOM</th><th>AR/AP</th><th>COA Income</th><th>COA Expense</th><th>Tax</th></tr></thead><tbody></tbody></table></div></div></div>
 
@@ -5011,7 +5033,7 @@ tbody tr:hover{background:var(--g0)}
 <div style="display:grid;grid-template-columns:280px 1fr;gap:14px">
 <!-- Container visual -->
 <div class="card" style="margin:0"><div class="cb" style="padding:20px;text-align:center">
-  <div style="width:100%;height:140px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;font-weight:800;margin-bottom:12px">40HC</div>
+  <div style="width:100%;height:140px;background:linear-gradient(135deg,var(--bl),var(--n2));border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;font-weight:800;margin-bottom:12px">40HC</div>
   <button class="btn btn-out btn-sm" style="width:100%;margin-bottom:10px"><svg class="ic" data-icon="upload"></svg> Upload Image</button>
   <div style="font-size:11px;color:var(--g5);text-align:left">
     <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--g1)"><span>Status</span><span class="b b-gr">Active</span></div>
@@ -5423,6 +5445,12 @@ tbody tr:hover{background:var(--g0)}
 </div>
 </div>
 <!-- ====== SOPs ====== -->
+<div id="s-themes" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="dashboard" style="color:var(--bl)"></svg>Themes</div><div class="ps">Choose how eSway ERP looks. The whole application changes at once and your choice is remembered.</div></div></div>
+<div class="ib ib-bl" style="margin-bottom:14px" id="themeNow"></div>
+<div id="themeGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px"><button type="button" class="theme-card" data-theme-pick="navy" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="navy"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Navy Blue &amp; White</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Professional, corporate, clean and trustworthy.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="brown" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="brown"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Brown &amp; Cream</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Elegant, warm, premium and sophisticated.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="charcoal" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="charcoal"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Charcoal &amp; Silver</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Modern, minimal and professional.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="forest" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="forest"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Forest Green &amp; Ivory</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Natural, calm and refined.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="purple" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="purple"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Royal Purple &amp; White</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Premium, creative and elegant.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="teal" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="teal"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Teal &amp; Soft White</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Fresh, modern and balanced.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="burgundy" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="burgundy"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Burgundy &amp; Champagne</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Luxurious and executive.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="midnight" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="midnight"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Midnight Black &amp; Gold</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Bold, premium and high-end.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button></div>
+</div>
+
 <div id="s-sop" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="book2" style="color:var(--bl)"></svg>SOPs &amp; Workflow</div><div class="ps">Standard Operating Procedures — step-by-step guides for all ERP modules<div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div></div></div>
 
@@ -5970,6 +5998,7 @@ const SCREEN_META = {
   "quot-templates":{title:"Quotation Templates", crumb:"eSway ERP 2.0 / Settings / <strong>Quotation Templates</strong>", menu:"quot-templates"},
   "quotation-new":{title:"Quotation Preparation", crumb:"eSway ERP 2.0 / CRM / Quotation / <strong>Quotation Preparation</strong>", menu:"quotation"},
   "booking-new":{title:"New Booking", crumb:"eSway ERP 2.0 / Operations / Bookings / <strong>New Booking</strong>", menu:""},
+  "themes":{title:"Themes", crumb:"eSway ERP 2.0 / Settings / <strong>Themes</strong>", menu:""},
   "booking-view":{title:"Booking", crumb:"eSway ERP 2.0 / Operations / Bookings / <strong>Booking</strong>", menu:""},
 };
 
@@ -6347,7 +6376,7 @@ const TOPNAV_MENU = [
       {label:"Email Configuration", icon:"mail", go:"sop"},
       {label:"SMS Configuration", icon:"bell", go:"sop"},
       {label:"Preferences", icon:"gear", go:"sop"},
-      {label:"Theme", icon:"dashboard", go:"sop"},
+      {label:"Themes", icon:"dashboard", go:"themes"},
     ]},
     {label:"System", icon:"download", children:[
       {label:"Backup", icon:"download", go:"sop"},
@@ -6640,10 +6669,7 @@ $all(".hdr-menu-item[data-role]").forEach(item=>{
 
 /* ---------------- DARK MODE TOGGLE (demo placeholder) ---------------- */
 let darkOn = false;
-$("#darkBtn").addEventListener("click", ()=>{
-  darkOn = !darkOn;
-  toast(darkOn?"Dark mode on":"Dark mode off", "Theme preference saved", "success");
-});
+$("#darkBtn").addEventListener("click", ()=> go("themes"));
 $("#settingsBtn").addEventListener("click", ()=>{
   toast("Settings", "System configuration panel — numbering, tax, COA defaults", "success");
 });
@@ -6755,7 +6781,9 @@ const CHART_DATA = {
   revenue:[0,0,0,0,0,0]
 };
 
+window.addEventListener("esway-theme", ()=>{ try{ const on = document.querySelector("#s-dashboard.on"); if(on) renderDashChart(window.__dashMode || "volume"); }catch(e){} });
 function renderDashChart(mode){
+  window.__dashMode = mode;
   const svg = $("#dashChart");
   if(!svg) return;
   const W=1000,H=260,padL=54,padR=10,padT=14,padB=30;
@@ -6768,7 +6796,7 @@ function renderDashChart(mode){
   const maxV = Math.max(...vals)*1.18;
   const n = CHART_DATA.months.length;
   const barW = plotW/n*0.46;
-  const color = mode==="revenue" ? "#1A6FBF" : "#D97706";
+  const color = mode==="revenue" ? (getComputedStyle(document.documentElement).getPropertyValue("--bl").trim() || "#1A6FBF") : "#D97706";
 
   let grid="", ylab="";
   for(let i=0;i<=4;i++){
@@ -6792,7 +6820,7 @@ function renderDashChart(mode){
   let path = "M"+line.map(p=>p.join(",")).join(" L");
   let dots = line.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff" stroke="${color}" stroke-width="2.2"/>`).join("");
 
-  svg.innerHTML = grid+ylab+bars+`<path d="${path}" fill="none" stroke="#0B1F3A" stroke-width="1.6" stroke-dasharray="4,3" opacity=".5"/>`+dots+vlab+xlab;
+  svg.innerHTML = grid+ylab+bars+`<path d="${path}" fill="none" style="stroke:var(--n)" stroke-width="1.6" stroke-dasharray="4,3" opacity=".5"/>`+dots+vlab+xlab;
 }
 
 /* ============================================================
@@ -12188,6 +12216,7 @@ function buildDashSlides(){
 }
 
 let dashIdx = 0, dashUserPaused = false, dashHoverPaused = false, dashTimer = null;
+window.addEventListener("esway-theme", ()=>{ try{ if(document.querySelector("#s-dashboard.on")) dashRenderActive(); }catch(e){} });
 function dashRenderActive(){
   if(dashIdx===0){
     const activeTab = $("[data-chart].on");
@@ -13339,6 +13368,7 @@ if(document.readyState !== "loading") initChatWidget();
       const full = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "User";
       welcome.textContent = "Welcome back, " + cap(full) + " \u{1F44B}";
     }
+    if(window.ThemeKit) ThemeKit.fromAccount(user);
     if(window.dashKitLoad) setTimeout(window.dashKitLoad, 50);
   }
 
@@ -13764,7 +13794,7 @@ if(document.readyState !== "loading") initChatWidget();
   MK.register({type:"container_type", label:"Container Type", list:"container-master", detail:"container-detail", codeLabel:"Container Code", nameLabel:"Container Name",
     cardGrid:'div[style*="grid-template-columns:repeat(3"]',
     card:r=>{ const d = r.data||{}; const spec = [d.category, d.size_feet && (d.size_feet+" ft"), d.height_type].filter(Boolean).join(" · ") || "—"; const dims = d.internal_length_mm ? ("Int. "+d.internal_length_mm+" × "+d.internal_width_mm+" × "+d.internal_height_mm+" mm") : ""; const cap = [d.cubic_capacity_cbm && (d.cubic_capacity_cbm+" CBM"), d.payload_kg && ("payload "+Number(d.payload_kg).toLocaleString()+" kg")].filter(Boolean).join(" · ");
-      return '<div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer" data-mk-edit="'+r.id+'" data-mk-type="container_type"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="min-width:46px;padding:6px 8px;background:linear-gradient(135deg,#1A6FBF,#0E4A7C);border-radius:4px;color:#fff;font-size:10px;font-weight:800;text-align:center">'+esc2(r.code)+'</div>'+statusBadge(r.status)+'</div><div style="font-weight:700;font-size:13px">'+esc2(r.name)+'</div><div style="font-size:11px;color:var(--g5);margin-top:4px">'+esc2(spec)+'</div>'+(d.iso_6346_code ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">ISO 6346: <span class="mono">'+esc2(d.iso_6346_code)+'</span></div>' : "")+(dims ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">'+esc2(dims)+'</div>' : "")+(cap ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">'+esc2(cap)+'</div>' : "")+(d.system_default === "yes" ? '<div style="margin-top:8px;font-size:10.5px;color:var(--g4)">System type · deactivate only</div>' : '<div style="margin-top:8px"><button class="ta" data-mk-del="'+r.id+'" data-mk-type="container_type" style="color:var(--rd);font-size:11px">Delete</button></div>')+'</div>'; },
+      return '<div class="ctn-card" style="border:1px solid var(--g2);border-radius:10px;padding:14px;cursor:pointer" data-mk-edit="'+r.id+'" data-mk-type="container_type"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="min-width:46px;padding:6px 8px;background:linear-gradient(135deg,var(--bl),var(--n2));border-radius:4px;color:#fff;font-size:10px;font-weight:800;text-align:center">'+esc2(r.code)+'</div>'+statusBadge(r.status)+'</div><div style="font-weight:700;font-size:13px">'+esc2(r.name)+'</div><div style="font-size:11px;color:var(--g5);margin-top:4px">'+esc2(spec)+'</div>'+(d.iso_6346_code ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">ISO 6346: <span class="mono">'+esc2(d.iso_6346_code)+'</span></div>' : "")+(dims ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">'+esc2(dims)+'</div>' : "")+(cap ? '<div style="font-size:11px;color:var(--g5);margin-top:2px">'+esc2(cap)+'</div>' : "")+(d.system_default === "yes" ? '<div style="margin-top:8px;font-size:10.5px;color:var(--g4)">System type · deactivate only</div>' : '<div style="margin-top:8px"><button class="ta" data-mk-del="'+r.id+'" data-mk-type="container_type" style="color:var(--rd);font-size:11px">Delete</button></div>')+'</div>'; },
     extraFilter:r=>{ const cat = window.__ctnCat || "all"; const st = (document.getElementById("ctnStatusFilter")||{}).value || ""; const c = ((r.data||{}).category||""); return (cat === "all" || (window.CTN_CATS[cat]||"") === c) && (!st || r.status === st); },
     afterLoad:rows=>{ if(window.StdKit) StdKit.containerPills(rows); },
     kpis:rows=>[[rows.length,"Container types"],[count(rows,r=>(r.data||{}).category==="Dry Container"),"Dry"],[count(rows,r=>(r.data||{}).category==="Reefer"),"Reefer"],[count(rows,r=>["Tank","Special Equipment","Platform","Flat Rack","Open Top"].includes((r.data||{}).category)),"Special equipment"]]});
@@ -13859,6 +13889,26 @@ if(document.readyState !== "loading") initChatWidget();
   });
   const newChargeBtn = document.getElementById("newChargeBtn");
   if(newChargeBtn) newChargeBtn.addEventListener("click", ()=> openChargeModal(null));
+  const activateBtn = document.getElementById("activateChargesBtn");
+  if(activateBtn) activateBtn.addEventListener("click", async ()=>{
+    activateBtn.disabled = true;
+    try{
+      let r = await api("POST", "/api/masters/charge/activate", {});
+      let gst = null, sac = false;
+      const needRate = r.skipped.filter(x=>/GST rate/.test(x.reason));
+      if(needRate.length){
+        const v = window.prompt(needRate.length+" charge(s) have no GST rate yet (the rate depends on the service, so none was guessed)."+String.fromCharCode(10)+"Type the GST % to apply to them (for example 18), or leave it blank to skip them. You can change any charge later:", "");
+        if(v && /^[0-9]{1,3}([.][0-9]{1,2})?$/.test(v.trim())) gst = v.trim();
+      }
+      const needSac = r.skipped.filter(x=>/SAC/.test(x.reason));
+      if(needSac.length && window.confirm(needSac.length+" charge(s) have no SAC / HSN code."+String.fromCharCode(10,10)+"Apply the proposed SAC code of their category (Handling 996713, Documentation 996799, Customs house agent 996712, Warehouse 996729, Other 996799)? Each one is marked as proposed so it can be verified later."+String.fromCharCode(10,10)+"Choose Cancel to leave them inactive.")) sac = true;
+      if(gst || sac){ const r2 = await api("POST", "/api/masters/charge/activate", {default_gst:gst || undefined, suggest_sac:sac}); r = {activated:r.activated.concat(r2.activated), skipped:r2.skipped}; }
+      MK.loadList(MK.configs.charge);
+      say("Charges Activated Successfully!", r.activated.length+" charge(s) are now Active and available on quotations, bookings and invoices"+(r.skipped.length ? ". "+r.skipped.length+" still need attention." : "."));
+      if(r.skipped.length) openModal({title:"Charges still inactive", bodyHTML:'<div class="ib ib-am" style="margin-bottom:8px">These charges are missing something. Open each one, fill it in and set Status to Active.</div><div class="tw"><table><thead><tr><th>Code</th><th>Name</th><th>Missing</th></tr></thead><tbody>'+r.skipped.map(x=>'<tr><td class="mono">'+esc2(x.code)+'</td><td>'+esc2(x.name)+'</td><td>'+esc2(x.reason)+'</td></tr>').join("")+'</tbody></table></div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button>'});
+    }catch(err){ say("Could not activate the charges", err.message, "error"); }
+    activateBtn.disabled = false;
+  });
 })();
 
 </script>
@@ -14072,7 +14122,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(d && d.status !== "CANCELLED") actions.push('<button class="btn btn-out btn-sm" style="color:var(--rd)" data-bk="cancel">Cancel Document</button>');
     const refSelect = T.ref ? '<div class="fg"><label class="fl">Against '+esc2(TYPES[T.ref].label)+(T.refRequired?' <span class="r">*</span>':'')+'</label><select class="fc" data-bkh="ref_document_id"'+dis+'><option value="">— None —</option>'+S.refs.map(r=>opt(r.id, r.doc_number+" · "+r.party_name+" · "+inr(r.outstanding)+" due", String(r.id)===String(h.ref_document_id))).join("")+'</select></div>' : '';
     host.innerHTML =
-      '<div style="background:linear-gradient(135deg,#0B1F3A 60%,#1A6FBF);color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0"><div><div style="font-size:11px;letter-spacing:.8px;opacity:.7;text-transform:uppercase">'+esc2(T.label)+'</div><div style="font-size:16px;font-weight:800">'+esc2(num)+'</div></div><div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;opacity:.8">'+esc2(h.party_name||"—")+'</span>'+(d?badge(d):'<span class="b b-gy">New</span>')+'<span style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">'+money(shown.grand_total)+'</span></div></div>'+
+      '<div style="background:linear-gradient(135deg,var(--n) 60%,var(--bl));color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0"><div><div style="font-size:11px;letter-spacing:.8px;opacity:.7;text-transform:uppercase">'+esc2(T.label)+'</div><div style="font-size:16px;font-weight:800">'+esc2(num)+'</div></div><div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;opacity:.8">'+esc2(h.party_name||"—")+'</span>'+(d?badge(d):'<span class="b b-gy">New</span>')+'<span style="background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">'+money(shown.grand_total)+'</span></div></div>'+
       '<div class="ph" style="border-radius:0;border-top:none"><div><div class="pt">'+esc2(d ? T.label+" "+(d.doc_number||"(draft #"+d.id+")") : "New "+T.label)+'</div><div class="ps">'+esc2(d && d.status!=="DRAFT" ? "Posted documents are locked; correct them with a credit/debit note." : "Draft — numbers are assigned and the document is locked when you post it.")+'</div></div><div class="pa">'+actions.join("")+'</div></div>'+
       '<div class="g2"><div class="card"><div class="ch"><div class="ct">Header</div></div><div class="cb">'+
       '<div class="fr"><div class="fg"><label class="fl">Document No</label><input class="fc" value="'+esc2(num)+'" readonly style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Date <span class="r">*</span></label><input class="fc" type="date" data-bkh="doc_date" value="'+esc2(h.doc_date)+'"'+dis+'></div><div class="fg"><label class="fl">Due Date</label><input class="fc" type="date" data-bkh="due_date" value="'+esc2(h.due_date)+'"'+dis+'></div></div>'+
@@ -14455,7 +14505,7 @@ if(document.readyState !== "loading") initChatWidget();
   const DEPTS = ["Sales","Finance","Operations","Management","Documentation","Other"];
   const REASONS = ["Additional Vendor Invoice Received","Additional Customer Charges","Key account shipment","Payment in transit","Other"];
 
-  (function css(){ const st = document.createElement("style"); st.textContent = ".ox-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px}.ox-grid .s2{grid-column:span 2}.ox-grid .s4{grid-column:span 4}.oxg label{display:block;font-size:10.5px;font-weight:700;color:var(--g6);margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}.ox-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}.ox-kpi{border:1px solid var(--g2);border-radius:9px;padding:8px 11px;background:#fff}.ox-kpi .l{font-size:10px;color:var(--g5);text-transform:uppercase;font-weight:700}.ox-kpi .v{font-size:15px;font-weight:800;color:var(--n);margin-top:2px}.ox-tl{border-left:2px solid var(--g2);margin-left:6px;padding-left:12px}.ox-tl>div{position:relative;padding:4px 0;font-size:11.5px}.ox-tl>div:before{content:'';position:absolute;left:-18px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--bl)}@media(max-width:1100px){.ox-grid,.ox-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}"; document.head.appendChild(st); })();
+  (function css(){ const st = document.createElement("style"); st.textContent = ".ox-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px}.ox-grid .s2{grid-column:span 2}.ox-grid .s4{grid-column:span 4}.oxg label{display:block;font-size:10.5px;font-weight:700;color:var(--g6);margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}.ox-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}.ox-kpi{border:1px solid var(--g2);border-radius:9px;padding:8px 11px;background:var(--wh)}.ox-kpi .l{font-size:10px;color:var(--g5);text-transform:uppercase;font-weight:700}.ox-kpi .v{font-size:15px;font-weight:800;color:var(--n);margin-top:2px}.ox-tl{border-left:2px solid var(--g2);margin-left:6px;padding-left:12px}.ox-tl>div{position:relative;padding:4px 0;font-size:11.5px}.ox-tl>div:before{content:'';position:absolute;left:-18px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--bl)}@media(max-width:1100px){.ox-grid,.ox-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}"; document.head.appendChild(st); })();
 
   const gate = (el, saved)=> { if(!X.id){ el.innerHTML = '<div class="ib ib-bl">'+(saved||"Save the organization first, then add this information.")+'</div>'; return false; } return true; };
   const field = (label, html, cls)=> '<div class="oxg '+(cls||"")+'"><label>'+label+'</label>'+html+'</div>';
@@ -14753,9 +14803,9 @@ if(document.readyState !== "loading") initChatWidget();
   const closeChip = s=> '<span class="b '+(CLOSE_CLS[s]||"b-gy")+'" title="Closure status"'+(s==="CLOSED"?' style="background:var(--n);color:#fff"':'')+'>'+esc2(s)+'</span>';
 
   (function css(){ const st = document.createElement("style"); st.textContent = `
-  #jlDrawer{position:fixed;top:0;right:0;height:100vh;width:430px;max-width:96vw;background:#fff;box-shadow:-8px 0 28px rgba(11,31,58,.22);z-index:120;transform:translateX(105%);transition:transform .2s ease;display:flex;flex-direction:column}
+  #jlDrawer{position:fixed;top:0;right:0;height:100vh;width:430px;max-width:96vw;background:var(--wh);box-shadow:-8px 0 28px rgba(11,31,58,.22);z-index:120;transform:translateX(105%);transition:transform .2s ease;display:flex;flex-direction:column}
   #jlDrawer.on{transform:none}
-  #jlDrawer .jl-h{padding:12px 14px;background:linear-gradient(135deg,#0B1F3A 55%,#1A6FBF);color:#fff}
+  #jlDrawer .jl-h{padding:12px 14px;background:linear-gradient(135deg,var(--n) 55%,var(--bl));color:#fff}
   #jlDrawer .jl-body{flex:1;overflow:auto;padding:10px 14px}
   .jl-f{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 14px;border-bottom:1px solid var(--g1);background:var(--g0)}
   .jl-ev{border-left:2px solid var(--g2);margin-left:5px;padding:0 0 12px 12px;position:relative}
@@ -15687,7 +15737,7 @@ if(document.readyState !== "loading") initChatWidget();
     .qk-panes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
     .qk-panes.single{grid-template-columns:minmax(0,1fr)}
     @media(max-width:1180px){.qk-panes{grid-template-columns:minmax(0,1fr)}.qk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    .qk-pane{border:1px solid var(--g2);border-radius:10px;background:#fff;overflow:hidden}
+    .qk-pane{border:1px solid var(--g2);border-radius:10px;background:var(--wh);overflow:hidden}
     .qk-pane.sell{border-top:3px solid var(--bl)} .qk-pane.buy{border-top:3px solid var(--am)}
     .qk-pane-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--g1);flex-wrap:wrap}
     .qk-pane-h .t{font-weight:800;font-size:13px;color:var(--n)} .qk-pane-h .s{font-size:10.5px;color:var(--g5)}
@@ -15705,7 +15755,7 @@ if(document.readyState !== "loading") initChatWidget();
     .qk-dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 10px;align-items:end}
     .qk-dgrid label{font-size:9.5px;font-weight:700;color:var(--g5);text-transform:uppercase;display:block;margin-bottom:2px}
     .qk-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-    .qk-kpi{border:1px solid var(--g2);border-radius:9px;padding:9px 11px;background:#fff}
+    .qk-kpi{border:1px solid var(--g2);border-radius:9px;padding:9px 11px;background:var(--wh)}
     .qk-kpi .l{font-size:10px;color:var(--g5);text-transform:uppercase;font-weight:700;letter-spacing:.3px} .qk-kpi .v{font-size:17px;font-weight:800;color:var(--n);margin-top:2px}
     .qk-kpi.good{background:var(--grt);border-color:var(--gr)} .qk-kpi.bad{background:var(--rdt);border-color:var(--rd)}
     .qk-two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
@@ -15713,7 +15763,7 @@ if(document.readyState !== "loading") initChatWidget();
     .qk-tl{border-left:2px solid var(--g2);margin-left:6px;padding-left:12px} .qk-tl>div{position:relative;padding:5px 0;font-size:11.5px}
     .qk-tl>div:before{content:"";position:absolute;left:-18px;top:10px;width:9px;height:9px;border-radius:50%;background:var(--bl)}
     .qk-warn{color:var(--rd);font-weight:700}
-    .qk-menu{position:relative;display:inline-block} .qk-menu-pop{position:absolute;right:0;top:100%;z-index:60;background:#fff;border:1px solid var(--g2);border-radius:8px;box-shadow:0 8px 24px rgba(11,31,58,.14);min-width:200px;padding:4px;display:none}
+    .qk-menu{position:relative;display:inline-block} .qk-menu-pop{position:absolute;right:0;top:100%;z-index:60;background:var(--wh);border:1px solid var(--g2);border-radius:8px;box-shadow:0 8px 24px rgba(11,31,58,.14);min-width:200px;padding:4px;display:none}
     .qk-menu.on .qk-menu-pop{display:block} .qk-menu-pop button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;font-size:12px;cursor:pointer;border-radius:6px} .qk-menu-pop button:hover{background:var(--g0)}
     `;
     document.head.appendChild(s);
@@ -16150,7 +16200,7 @@ if(document.readyState !== "loading") initChatWidget();
     const termLines = String(q.terms || "").split(/\n+/).map(t=>t.replace(/^\s*\d+[\.\)]\s*/, "").trim()).filter(Boolean);
     const check = '<span style="color:#16A34A;font-weight:800">✓</span> ';
     const colspanTotal = withTax ? 8 : 6;
-    return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:#fff;max-width:980px;margin:0 auto;position:relative;padding:4px">'+watermark(q.mode)+'<div style="position:relative;z-index:1">'+
+    return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:var(--wh);max-width:980px;margin:0 auto;position:relative;padding:4px">'+watermark(q.mode)+'<div style="position:relative;z-index:1">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;gap:12px;align-items:center">'+logoBlock(org, Q.logo)+'<div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div><div style="font-size:10.5px;color:#475569">Freight Forwarding Quotation · '+e(q.mode)+'</div></div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
       '<table class="qp-card" style="width:100%;border-collapse:collapse;border-top:2px solid #111;border-bottom:1px solid #111"><tr><td style="padding:7px 8px;font-size:18px;font-weight:800;width:150px">Quotation No</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;'+(q.number ? "" : "color:#92400E")+'">'+e(number)+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:70px">Date</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.quote_date))+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:120px">Valid upto</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.valid_until))+'</td></tr></table>'+
       '<div class="qp-card" style="display:grid;grid-template-columns:1fr auto;gap:16px;padding:8px 8px 10px;border-bottom:1px solid #111"><div><div style="font-weight:800;font-size:13px">To,</div><div style="font-size:13px;font-weight:600">'+e(q.party_name)+'</div><div style="font-size:12px;white-space:pre-line">'+e(hd.billing_address || "")+'</div>'+
@@ -16160,7 +16210,7 @@ if(document.readyState !== "loading") initChatWidget();
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px;padding:8px 8px 10px;border-bottom:1px solid #111"><div>'+pair("Port of Loading", q.pol)+pair("Port of Discharge", q.pod)+pair("INCO Terms", hd.incoterm)+pair("Transit Time", hd.transit_days ? hd.transit_days+" days" : "")+pair("Carrier / Airline", hd.carrier)+pair("No. of Packages", hd.packages)+'</div><div>'+
           pair("Place of Receipt", hd.origin)+pair("Place of Delivery", hd.final_destination)+pair("Movement Type", hd.service_type)+pair("Gross Weight", hd.gross_weight ? num2(hd.gross_weight)+" KGS" : "")+pair("Commodity", hd.commodity)+pair("Volume", hd.volume ? Number(hd.volume)+" CBM" : "")+'</div><div>'+
           pair("Mode / Direction", [q.mode, q.direction].filter(Boolean).join(" · "))+pair("Cargo Type", q.shipment_type)+pair("Chrg. Weight", hd.chargeable_weight ? num2(hd.chargeable_weight)+" KGS" : "")+pair("Dimensions", hd.dimensions ? hd.dimensions+" CM" : "")+pair("Payment Terms", hd.payment_terms)+pair("Currency", docCcy)+'</div></div></div>'+
-      '<table class="qp-card" style="width:100%;border-collapse:collapse;margin-top:12px"><thead><tr style="background:#fff">'+th("Charge Name")+th("Unit Rate","right")+th("Qty","right")+th("Amount","right")+th("Cur","center")+th("Ex.Rat","right")+th("Amt (INR)","right")+(withTax ? th("GST%","right")+th("GST Amt","right")+th("Total Amt","right") : "")+'</tr></thead><tbody>'+rows+
+      '<table class="qp-card" style="width:100%;border-collapse:collapse;margin-top:12px"><thead><tr style="background:var(--wh)">'+th("Charge Name")+th("Unit Rate","right")+th("Qty","right")+th("Amount","right")+th("Cur","center")+th("Ex.Rat","right")+th("Amt (INR)","right")+(withTax ? th("GST%","right")+th("GST Amt","right")+th("Total Amt","right") : "")+'</tr></thead><tbody>'+rows+
         '<tr><td colspan="'+colspanTotal+'" style="padding:7px 8px;text-align:right;border:1px solid #111;font-weight:800">Total</td>'+td('<b>INR</b>', "center")+td('<b>'+num2(withTax ? sub + gst : sub)+'</b>', "right")+(withTax ? '' : '<td style="border:0"></td>')+'</tr></tbody></table>'+
       '<div class="qp-card" style="display:grid;grid-template-columns:1fr 340px;gap:14px;padding:12px 4px">'+
         '<div>'+(foreign.length ? '<table style="font-size:11px;border-collapse:collapse"><thead><tr style="color:#64748B"><th style="text-align:left;padding:3px 10px 3px 0">Currency</th><th style="text-align:right;padding:3px 10px">Amount</th><th style="text-align:right;padding:3px 10px">Rate to INR</th><th style="text-align:right;padding:3px 0 3px 10px">In INR</th></tr></thead><tbody>'+Object.values(byCcy).map(c=>'<tr><td style="padding:2px 10px 2px 0">'+e(c.ccy)+'</td><td style="text-align:right;padding:2px 10px">'+num2(c.fcy)+'</td><td style="text-align:right;padding:2px 10px">'+(c.ccy==="INR" ? "1.00" : num2(c.inr/c.fcy))+'</td><td style="text-align:right;padding:2px 0 2px 10px">'+num2(c.inr)+'</td></tr>').join("")+'</tbody></table>' : '')+
@@ -17055,6 +17105,66 @@ function makePrintFit(){
   });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>CUS.load(opts && opts.jobNo), 900); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   THEME KIT: eight themes built on shared design tokens (CSS variables).
+   A theme only changes variable values; screens never hard-code colours.
+   The choice is applied instantly, kept in this browser and saved on the user's account.
+   ============================================================ */
+(function(){
+  "use strict";
+  const META = [["navy", "Navy Blue & White", "Professional, corporate, clean and trustworthy."], ["brown", "Brown & Cream", "Elegant, warm, premium and sophisticated."], ["charcoal", "Charcoal & Silver", "Modern, minimal and professional."], ["forest", "Forest Green & Ivory", "Natural, calm and refined."], ["purple", "Royal Purple & White", "Premium, creative and elegant."], ["teal", "Teal & Soft White", "Fresh, modern and balanced."], ["burgundy", "Burgundy & Champagne", "Luxurious and executive."], ["midnight", "Midnight Black & Gold", "Bold, premium and high-end."]];
+  const PALETTE = {"navy": {"n": "#0B1F3A", "n2": "#152B4E", "n3": "#1E3A5F", "bl": "#1A6FBF", "bl2": "#2484D8", "blt": "#E8F3FC", "on": "#FFFFFF", "ink": "#0C447C", "g0": "#F8FAFC", "g1": "#F1F5F9", "g2": "#E2E8F0", "g3": "#CBD5E1", "g4": "#94A3B8", "g5": "#64748B", "g6": "#475569", "g7": "#334155", "g8": "#1E293B", "wh": "#FFFFFF"}, "brown": {"n": "#3E2723", "n2": "#4E342E", "n3": "#5D4037", "bl": "#8A5A33", "bl2": "#A06C45", "blt": "#F3E9DC", "on": "#FFFFFF", "ink": "#5B3A1E", "g0": "#FAF6EE", "g1": "#F3ECDF", "g2": "#E4D8C5", "g3": "#D2C3AA", "g4": "#A8987F", "g5": "#7A6B56", "g6": "#5F523E", "g7": "#4A3F2E", "g8": "#2E2519", "wh": "#FFFDF8"}, "charcoal": {"n": "#23272E", "n2": "#2D3239", "n3": "#3A4048", "bl": "#4A5568", "bl2": "#5A667A", "blt": "#E6E9EE", "on": "#FFFFFF", "ink": "#2F3745", "g0": "#F4F5F7", "g1": "#ECEEF1", "g2": "#DADDE2", "g3": "#C5C9D0", "g4": "#9AA0AA", "g5": "#666D79", "g6": "#545B67", "g7": "#3F444E", "g8": "#23272E", "wh": "#FFFFFF"}, "forest": {"n": "#1B3A2D", "n2": "#24493A", "n3": "#2F5A48", "bl": "#2F7D52", "bl2": "#348A5A", "blt": "#E3F1E8", "on": "#FFFFFF", "ink": "#1A5236", "g0": "#F9F7EC", "g1": "#F1EEDD", "g2": "#E0DCC4", "g3": "#CBC6A8", "g4": "#9C9877", "g5": "#6E6B4F", "g6": "#55533C", "g7": "#403E2D", "g8": "#262519", "wh": "#FFFEF6"}, "purple": {"n": "#2E1A5C", "n2": "#3B2275", "n3": "#4A2C8F", "bl": "#6B3CC9", "bl2": "#7F55D9", "blt": "#EFE8FB", "on": "#FFFFFF", "ink": "#43238F", "g0": "#F8F6FD", "g1": "#F0ECF9", "g2": "#E2DBF2", "g3": "#CFC5E6", "g4": "#9D93B8", "g5": "#6E648C", "g6": "#554C71", "g7": "#3F3858", "g8": "#241F36", "wh": "#FFFFFF"}, "teal": {"n": "#0F3D3E", "n2": "#164B4C", "n3": "#1E5A5B", "bl": "#0B7F81", "bl2": "#0C8B8D", "blt": "#E0F4F4", "on": "#FFFFFF", "ink": "#07595B", "g0": "#F6FAFA", "g1": "#EDF4F4", "g2": "#D9E7E7", "g3": "#C0D5D5", "g4": "#8FA9A9", "g5": "#587575", "g6": "#4B6464", "g7": "#364B4B", "g8": "#1D2D2D", "wh": "#FFFFFF"}, "burgundy": {"n": "#4A1426", "n2": "#5C1A31", "n3": "#70213C", "bl": "#8E2444", "bl2": "#A62E52", "blt": "#F6E3E8", "on": "#FFFFFF", "ink": "#6B1A33", "g0": "#FBF6EC", "g1": "#F4ECDC", "g2": "#E6D9BF", "g3": "#D4C3A0", "g4": "#A8987A", "g5": "#7A6B52", "g6": "#61543F", "g7": "#493F2E", "g8": "#2D2519", "wh": "#FFFCF5"}, "midnight": {"n": "#0D0D10", "n2": "#17171C", "n3": "#212128", "bl": "#8A6508", "bl2": "#946C0A", "blt": "#F8EFD2", "on": "#FFFFFF", "ink": "#5C4305", "g0": "#F7F5EF", "g1": "#EFEBE0", "g2": "#E0DAC8", "g3": "#CBC3AB", "g4": "#9C9479", "g5": "#6F6850", "g6": "#565040", "g7": "#3D382B", "g8": "#1F1C14", "wh": "#FFFFFF"}};
+  const THEMES = META.map(m=>({id:m[0], name:m[1], description:m[2], palette:PALETTE[m[0]]}));
+  const KEY = "esway_theme"; const DEFAULT = "navy";
+  const token = ()=> sessionStorage.getItem("esway_access_token");
+  const TK = window.ThemeKit = {THEMES, current:()=> document.documentElement.getAttribute("data-theme") || DEFAULT};
+  function preview(t){
+    const p = t.palette;
+    return '<div style="border-radius:9px;overflow:hidden;border:1px solid '+p.g2+';background:'+p.g0+'">'+
+      '<div style="background:'+p.n+';height:16px;display:flex;align-items:center;gap:4px;padding:0 6px"><span style="width:8px;height:8px;border-radius:2px;background:'+p.bl+'"></span><span style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.28)"></span></div>'+
+      '<div style="display:flex;gap:6px;padding:7px"><div style="width:26px;background:'+p.n2+';border-radius:4px"></div><div style="flex:1;background:'+p.wh+';border:1px solid '+p.g2+';border-radius:5px;padding:6px"><div style="height:5px;width:60%;border-radius:2px;background:'+p.g8+';margin-bottom:4px"></div><div style="height:4px;width:85%;border-radius:2px;background:'+p.g4+';margin-bottom:6px"></div><div style="display:flex;gap:4px"><span style="height:11px;width:34px;border-radius:3px;background:'+p.bl+'"></span><span style="height:11px;width:26px;border-radius:3px;background:'+p.blt+';border:1px solid '+p.bl+'"></span></div></div></div></div>'+
+      '<div class="theme-sw">'+[p.n, p.n3, p.bl, p.bl2, p.blt, p.g0, p.wh].map(c=>'<span style="background:'+c+'" title="'+c+'"></span>').join("")+'</div>';
+  }
+  function paint(){
+    const cur = TK.current(); const grid = document.getElementById("themeGrid"); if(!grid) return;
+    grid.querySelectorAll("[data-theme-pick]").forEach(card=>{
+      const t = THEMES.find(x=>x.id === card.dataset.themePick); const host = card.querySelector("[data-theme-preview]");
+      if(host && !host.dataset.done){ host.innerHTML = preview(t); host.dataset.done = "1"; }
+      const on = t.id === cur; card.classList.toggle("sel", on); card.setAttribute("aria-pressed", on ? "true" : "false");
+      card.querySelector(".theme-state").textContent = on ? "✓ Selected" : "";
+    });
+    const now = document.getElementById("themeNow"); const t = THEMES.find(x=>x.id === cur) || THEMES[0];
+    if(now) now.innerHTML = 'Current theme: <b>'+t.name+'</b> — '+t.description;
+  }
+  TK.apply = function(id, opts){
+    opts = opts || {}; if(!THEMES.some(t=>t.id === id)) id = DEFAULT;
+    document.documentElement.setAttribute("data-theme", id);
+    try{ localStorage.setItem(KEY, id); }catch(e){ /* private mode: still applied for this visit */ }
+    paint();
+    window.dispatchEvent(new CustomEvent("esway-theme", {detail:{theme:id}}));
+    if(opts.save && token()){
+      return fetch("/api/auth/preferences", {method:"PUT", headers:{"Content-Type":"application/json", Authorization:"Bearer "+token()}, body:JSON.stringify({theme:id})})
+        .then(r=>{ if(!r.ok) throw new Error("not saved"); return true; });
+    }
+    return Promise.resolve(true);
+  };
+  document.addEventListener("click", e=>{
+    const card = e.target.closest("[data-theme-pick]"); if(!card) return;
+    const id = card.dataset.themePick; const t = THEMES.find(x=>x.id === id); const before = TK.current();
+    TK.apply(id, {save:true}).then(()=>{ if(typeof toast === "function") toast("Theme Applied Successfully!", t.name+" is now active across the whole application.", "success"); })
+      .catch(()=>{ if(typeof toast === "function") toast("Theme applied here but not saved to your account", "It will stay on this browser. Sign in again and retry to save it.", "warn"); });
+  });
+  /* the user's saved theme (account) wins after sign-in; screens opened later simply read the same variables */
+  TK.fromAccount = function(user){ if(user && user.theme && user.theme !== TK.current()) TK.apply(user.theme); };
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "themes") paint(); };
+  /* charts read the variables when they draw: redraw them after a switch */
+  window.addEventListener("esway-theme", ()=>{ setTimeout(()=>{ try{ if(typeof window.dashRenderActive === "function") window.dashRenderActive(); if(typeof window.renderDashChart === "function" && document.getElementById("s-dashboard")) window.renderDashChart("volume"); }catch(e){} }, 30); });
+  paint();
 })();
 </script>
 </body>

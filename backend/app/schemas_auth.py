@@ -228,6 +228,7 @@ class SafeUser(BaseModel):
     roles: list[str]
     permissions: list[str]
     portal: str
+    theme: str | None = None
 
 
 class LoginResponse(BaseModel):

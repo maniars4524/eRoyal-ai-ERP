@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
@@ -93,6 +94,21 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     record_audit(db, "LOGIN", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "portal": portal})
     db.commit()
     return {"access_token": create_token(user.id, user.is_super_admin, user.organization_id, portal, sid), "user": safe_user(user)}
+
+
+THEMES = ("navy", "brown", "charcoal", "forest", "purple", "teal", "burgundy", "midnight")
+
+
+class Preferences(BaseModel):
+    theme: str = Field(pattern="^(navy|brown|charcoal|forest|purple|teal|burgundy|midnight)$")
+
+
+@router.put("/preferences")
+def save_preferences(body: Preferences, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """The user's own display preferences (the colour theme). It follows the account to every computer."""
+    user.profile = {**(user.profile or {}), "theme": body.theme}
+    db.commit()
+    return {"theme": body.theme}
 
 
 @router.get("/me", response_model=SafeUser)

@@ -63,7 +63,8 @@ TAX_TREATMENTS = ("taxable", "exempt", "nil_rated", "non_gst", "reverse_charge",
 
 
 def validate_activation(data: dict) -> None:
-    """Raise ValueError when a catalogue charge is activated without verified tax configuration."""
+    """A catalogue charge needs its SAC / HSN code and (when taxable) its GST rate before it can be used on a quotation or invoice.
+    The notification reference and effective date are recorded when known but no longer block activation."""
     if str(data.get("catalogue", "")).lower() != "yes":
         return
     treatment = str(data.get("tax_treatment") or "taxable").lower()
@@ -71,15 +72,11 @@ def validate_activation(data: dict) -> None:
         raise ValueError("Tax treatment must be taxable, exempt, nil_rated, non_gst, reverse_charge or zero_rated")
     missing = []
     if not str(data.get("hsn_code") or "").strip():
-        missing.append("the exact SAC / HSN code")
+        missing.append("the SAC / HSN code")
     if treatment == "taxable" and str(data.get("gst_percent") or "").strip() == "":
         missing.append("the GST rate")
-    if not str(data.get("notification_ref") or "").strip():
-        missing.append("the official notification reference")
-    if not str(data.get("effective_date") or "").strip():
-        missing.append("the effective date")
     if missing:
-        raise ValueError("Verify the tax configuration before activating this charge: " + ", ".join(missing) + " must be recorded")
+        raise ValueError("To activate this charge, enter " + " and ".join(missing) + " (open the charge, fill them in, set Status to Active)")
 
 
 # Standard SAC codes used by freight forwarders (code, description, GST rate or "" when the rate depends on the service, charge category).

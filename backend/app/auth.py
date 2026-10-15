@@ -85,4 +85,5 @@ def safe_user(user: User) -> dict:
         "roles": [role.name for role in user.roles],
         "permissions": sorted({permission.code for role in user.roles for permission in role.permissions}),
         "portal": portal_for(user),
+        "theme": (user.profile or {}).get("theme"),
     }

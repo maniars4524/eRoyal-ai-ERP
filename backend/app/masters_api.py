@@ -212,6 +212,45 @@ def import_charge_catalogue(user: User = Depends(permission_required("master.cre
     return {"charges_created": made, "charges_skipped": skipped, "headings_created": made_hsn, "note": "Charges are inactive until the SAC, rate, notification reference and effective date are verified and recorded."}
 
 
+# proposed SAC per charge category, taken from the standard SAC list (to be verified by the company)
+PROPOSED_SAC = {"Handling": "996713", "Documentation": "996799", "Customs": "996712", "Warehouse": "996729", "Other": "996799", "Freight": "9965", "Courier": "996812"}
+
+
+class ActivateCharges(BaseModel):
+    ids: list[int] | None = None
+    suggest_sac: bool = False   # give charges that have no SAC the proposed code of their category
+    default_gst: str | None = Field(default=None, pattern=r"^(100|[0-9]{1,2}(\.[0-9]{1,2})?)$")  # applied only to charges that have no rate yet (the user's own decision)
+
+
+@router.post("/charge/activate")
+def activate_charges(body: ActivateCharges, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
+    """Activate every inactive charge that has what it needs (SAC / HSN code and GST rate); the rest are listed with the reason, so nothing fails silently."""
+    org_id = _tenant(user)
+    query = select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "charge", MasterRecord.status == "INACTIVE")
+    if body.ids:
+        query = query.where(MasterRecord.id.in_(body.ids))
+    activated, skipped = [], []
+    for rec in db.scalars(query.order_by(MasterRecord.code)):
+        if body.suggest_sac and not str((rec.data or {}).get("hsn_code") or "").strip():
+            code = PROPOSED_SAC.get(str((rec.data or {}).get("category") or "Other"), "996799")
+            rec.data = {**(rec.data or {}), "hsn_code": code, "sac_source": "proposed from the charge category when activating (verify)"}
+        if body.default_gst is not None and str((rec.data or {}).get("gst_percent") or "").strip() == "" and str((rec.data or {}).get("tax_treatment") or "taxable").lower() == "taxable" and str((rec.data or {}).get("hsn_code") or "").strip():
+            rec.data = {**(rec.data or {}), "gst_percent": body.default_gst, "gst_source": "set when activating all charges (verify per charge)"}
+        try:
+            validate_activation(rec.data or {})
+        except ValueError as exc:
+            skipped.append({"id": rec.id, "code": rec.code, "name": rec.name, "reason": str(exc).replace("To activate this charge, enter ", "Missing: ").split(" (open")[0]})
+            continue
+        if not str((rec.data or {}).get("hsn_code") or "").strip() and str((rec.data or {}).get("catalogue", "")).lower() != "yes":
+            skipped.append({"id": rec.id, "code": rec.code, "name": rec.name, "reason": "Missing: the SAC / HSN code"})
+            continue
+        rec.status = "ACTIVE"
+        activated.append(rec.code)
+    record_audit(db, "CHARGES_ACTIVATED", "MASTER", user, org_id, "charge", "bulk", {"activated": len(activated), "skipped": len(skipped)})
+    db.commit()
+    return {"activated": activated, "skipped": skipped}
+
+
 @router.get("/currency/iso-reference")
 def currency_iso_reference(user: User = Depends(permission_required("master.read"))):
     """The ISO 4217 table the application validates against (code, name, 3-character numeric code, minor units)."""
