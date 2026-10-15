@@ -10,6 +10,7 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=256)
     license_number: str | None = Field(default=None, max_length=20)
     portal: str | None = Field(default=None, pattern="^(developer|erp|demo)$")
+    replace_session: bool = False
 
 
 class OrganizationAdminCreate(BaseModel):

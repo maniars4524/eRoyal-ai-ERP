@@ -5,11 +5,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from . import config
 from .db import get_db
 from .models import Role, User
 from .security import decode_token
 
 bearer = HTTPBearer(auto_error=False)
+SESSION_ENDED = "Your session was ended because this account signed in on another computer."
 
 
 def get_current_user(
@@ -26,6 +28,13 @@ def get_current_user(
     user = db.scalar(select(User).options(selectinload(User.organization), selectinload(User.roles).selectinload(Role.permissions)).where(User.id == user_id))
     if not user or user.status != "ACTIVE":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive or unavailable")
+    if config.SINGLE_SESSION:
+        if not claims.get("sid") or claims.get("sid") != user.session_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=SESSION_ENDED)
+        now = datetime.now(timezone.utc)
+        if not user.session_seen_at or (now - user.session_seen_at).total_seconds() > 30:
+            user.session_seen_at = now
+            db.commit()
     token_portal = claims.get("portal")
     if token_portal and token_portal != portal_for(user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Session is not valid for this account")

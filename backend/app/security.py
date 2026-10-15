@@ -36,7 +36,7 @@ def _encode(value: dict) -> str:
     return base64.urlsafe_b64encode(json.dumps(value, separators=(",", ":")).encode()).rstrip(b"=").decode()
 
 
-def create_token(user_id: int, is_super_admin: bool, organization_id: int | None, portal: str | None = None) -> str:
+def create_token(user_id: int, is_super_admin: bool, organization_id: int | None, portal: str | None = None, sid: str | None = None) -> str:
     now = datetime.now(timezone.utc)
     header = _encode({"alg": "HS256", "typ": "JWT"})
     payload = _encode({
@@ -44,6 +44,7 @@ def create_token(user_id: int, is_super_admin: bool, organization_id: int | None
         "super_admin": is_super_admin,
         "organization_id": organization_id,
         "portal": portal,
+        "sid": sid,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=JWT_EXPIRE_MINUTES)).timestamp()),
     })

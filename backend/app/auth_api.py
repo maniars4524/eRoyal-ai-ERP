@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -77,12 +78,21 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         record_audit(db, "LOGIN_WRONG_PORTAL", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "requested": payload.portal, "allowed": portal})
         db.commit()
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"This account cannot sign in to the {PORTAL_LABELS[payload.portal]} portal. Use the {PORTAL_LABELS[portal]} portal instead.")
+    sid = None
+    if config.SINGLE_SESSION:
+        live = user.session_id and user.session_seen_at and (now - user.session_seen_at).total_seconds() < config.SESSION_ACTIVE_MINUTES * 60
+        if live and not payload.replace_session:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "ALREADY_SIGNED_IN", "message": "This account is already signed in on another computer. Continuing will sign that computer out.", "ip": user.session_ip, "since": user.session_started_at.isoformat() if user.session_started_at else None})
+        if live:
+            record_audit(db, "SESSION_REPLACED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "previous_ip": user.session_ip})
+        sid = uuid.uuid4().hex
+        user.session_id, user.session_ip, user.session_started_at, user.session_seen_at = sid, meta["ip"], now, now
     user.failed_login_count = 0
     user.locked_until = None
     user.last_login_at = now
     record_audit(db, "LOGIN", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "portal": portal})
     db.commit()
-    return {"access_token": create_token(user.id, user.is_super_admin, user.organization_id, portal), "user": safe_user(user)}
+    return {"access_token": create_token(user.id, user.is_super_admin, user.organization_id, portal, sid), "user": safe_user(user)}
 
 
 @router.get("/me", response_model=SafeUser)
@@ -92,6 +102,7 @@ def me(user: User = Depends(get_current_user)):
 
 @router.post("/logout")
 def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user.session_id = user.session_ip = user.session_started_at = user.session_seen_at = None
     record_audit(db, "LOGOUT", "AUTHENTICATION", user, user.organization_id, "User", str(user.id))
     db.commit()
     return {"status": "ok"}

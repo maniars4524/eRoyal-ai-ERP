@@ -1079,6 +1079,28 @@ tbody tr:hover{background:var(--g0)}
    valid, hide the overlay synchronously (before first paint) and let the
    async restorePersistedSession() below either confirm it or reveal it again. */
 (function(){
+  /* One active sign-in per user: when another computer signs this account in, the next request here is refused. Tell the person, then return to the login screen. */
+  try{
+    var nativeFetch = window.fetch, ended = false;
+    var endSession = function(){
+      if(ended) return; ended = true;
+      try{ sessionStorage.removeItem("esway_access_token"); localStorage.removeItem("esway_persistent_token"); }catch(e){}
+      window.alert("Your session was ended because this account signed in on another computer.
+
+You have been signed out. Sign in again to continue.");
+      window.location.reload();
+    };
+    window.fetch = function(){
+      var target = String(arguments[0] && arguments[0].url || arguments[0]);
+      return nativeFetch.apply(this, arguments).then(function(r){
+        if(r.status === 401 && !/\/api\/auth\/login/.test(target)){
+          r.clone().json().then(function(d){ if(d && /signed in on another computer/.test(d.detail || "")) endSession(); }).catch(function(){});
+        }
+        return r;
+      });
+    };
+    setInterval(function(){ var t = sessionStorage.getItem("esway_access_token"); if(t && !ended) window.fetch("/api/auth/me", {headers:{Authorization:"Bearer " + t}}).catch(function(){}); }, 20000);
+  }catch(e){ /* fetch wrapper unavailable */ }
   /* Security: typing the address (or following a link) must always show the login screen. Only a reload / back-forward in the same tab keeps the session. */
   try{
     var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")[0]) || null;
@@ -14158,7 +14180,7 @@ if(document.readyState !== "loading") initChatWidget();
   if(userInp) userInp.addEventListener("input", clearErr);
   if(passInp) passInp.addEventListener("input", clearErr);
 
-  function doLogin(){
+  function doLogin(replaceSession){
     const lic = (licenseInp ? licenseInp.value : "").trim().toUpperCase();
     const u = (userInp ? userInp.value : "").trim().toLowerCase();
     const p = (passInp ? passInp.value : "").trim();
@@ -14173,10 +14195,10 @@ if(document.readyState !== "loading") initChatWidget();
     if(spinner)  spinner.style.display = "block";
     if(arrow)    arrow.style.display = "none";
 
-    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, portal:PORTAL, license_number:(P.needsLicense ? lic : undefined)})})
+    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, portal:PORTAL, license_number:(P.needsLicense ? lic : undefined), replace_session:replaceSession === true})})
       .then(async response=>{
         const data = await response.json().catch(()=>({}));
-        if(!response.ok){ const error = new Error(data.detail || "Invalid credentials"); error.status = response.status; throw error; }
+        if(!response.ok){ const error = new Error(typeof data.detail === "string" ? data.detail : "Invalid credentials"); error.status = response.status; if(data.detail && data.detail.code === "ALREADY_SIGNED_IN") error.conflict = data.detail; throw error; }
         return data;
       })
       .then(data=>{
@@ -14196,6 +14218,14 @@ if(document.readyState !== "loading") initChatWidget();
       })
           .catch(error=>{
         /* Failed — reset button and show error */
+        if(error.conflict){
+          const c = error.conflict, when = c.since ? new Date(c.since).toLocaleString() : "";
+          if(window.confirm("This user is already signed in on another computer" + (c.ip ? " (" + c.ip + ")" : "") + (when ? " since " + when : "") + ".
+
+If you continue, that computer will be signed out and any unsaved work there will be lost.
+
+Sign in here and sign the other computer out?")){ doLogin(true); return; }
+        }
         if(loginBtn) loginBtn.disabled = false;
         if(btnText)  btnText.textContent = P.btn;
         if(spinner)  spinner.style.display = "none";
@@ -14206,7 +14236,7 @@ if(document.readyState !== "loading") initChatWidget();
       });
   }
 
-  if(loginBtn) loginBtn.addEventListener("click", doLogin);
+  if(loginBtn) loginBtn.addEventListener("click", ()=>doLogin());
   if(userInp)  userInp.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
   if(passInp)  passInp.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 
