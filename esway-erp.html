@@ -6966,7 +6966,7 @@ window.orgDbRefresh = async function(){
     const r = await fetch("/api/customers", {headers:{Authorization:"Bearer "+token}}); if(!r.ok) return;
     const rows = await r.json();
     Object.keys(ORG_DB).forEach(k=> delete ORG_DB[k]);
-    rows.filter(c=>c.status === "ACTIVE").forEach(c=>{ ORG_DB[c.name] = {code:c.code, sub:c.code+" · "+(c.roles||[]).join(", ")+" · "+(c.country||"")}; });
+    rows.filter(c=>c.status === "ACTIVE").forEach(c=>{ ORG_DB[c.name] = {roles:(c.roles||[]), code:c.code, sub:c.code+" · "+(c.roles||[]).join(", ")+" · "+(c.country||"")}; });
     if(typeof pcRenderPartySelects === "function" && document.getElementById("pc_shipper")) pcRenderPartySelects();
   }catch(e){ /* the drop-downs stay empty until the next refresh */ }
 };
@@ -7680,14 +7680,17 @@ function pcGetState(jobNo){
   if(!JOB_PARTIES_DB[key]) JOB_PARTIES_DB[key] = pcDefaultState(jobNo);
   return JOB_PARTIES_DB[key];
 }
-function pcPartyOptions(selected, extra){
-  const names = (typeof ORG_DB!=="undefined") ? Object.keys(ORG_DB) : [];
+/* each party field lists only the Organization Master parties of its category */
+const PC_ROLES = {shipper:["shipper"], consignee:["consignee"], notify1:["consignee","agent"], notify2:["consignee","agent"], originAgent:["agent"], deliveryAgent:["agent"], coloader:["agent"], coloaderShipper:["agent"], coloaderConsignee:["agent"], billTo:["ar","shipper","consignee"], cfs:["ap","transporter"], cha:["cha"], transport:["transporter"]};
+function pcPartyOptions(selected, extra, field){
+  const roles = PC_ROLES[field];
+  const names = (typeof ORG_DB!=="undefined") ? Object.keys(ORG_DB).filter(n=> !roles || (ORG_DB[n].roles||[]).some(r=>roles.indexOf(r)>-1)) : [];
   let html = `<option value="">— Select from Master —</option>`;
   if(extra) html += extra;
   // If the job's existing party name isn't in the master yet, still show it
   // pre-selected (flagged) instead of silently falling back to blank.
   if(selected && names.indexOf(selected)===-1){
-    html += `<option value="${esc(selected)}" selected>${esc(selected)} (not in master)</option>`;
+    html += `<option value="${esc(selected)}" selected>${esc(selected)} ${(typeof ORG_DB!=="undefined" && ORG_DB[selected]) ? "(other category)" : "(not in master)"}</option>`;
   }
   html += names.map(n=>`<option ${n===selected?"selected":""}>${esc(n)}</option>`).join("");
   return html;
@@ -7697,11 +7700,12 @@ function pcRenderPartySelects(){
   const plain = ["shipper","consignee","notify1","notify2","originAgent","deliveryAgent","coloader","coloaderShipper","coloaderConsignee","cfs","cha","transport"];
   plain.forEach(f=>{
     const sel = document.getElementById("pc_"+f);
-    if(sel) sel.innerHTML = pcPartyOptions(st[f]);
+    if(sel) sel.innerHTML = pcPartyOptions(st[f], "", f);
   });
   const billToSel = document.getElementById("pc_billTo");
   if(billToSel){
-    const names = (typeof ORG_DB!=="undefined") ? Object.keys(ORG_DB) : [];
+    const names = (typeof ORG_DB!=="undefined") ? Object.keys(ORG_DB).filter(n=> (ORG_DB[n].roles||[]).some(r=>PC_ROLES.billTo.indexOf(r)>-1)) : [];
+    if(st.billTo && st.billTo.indexOf("__")!==0 && names.indexOf(st.billTo)===-1) names.push(st.billTo);
     billToSel.innerHTML = `<option value="">— Select —</option>`
       + `<option value="__SAME_SHIPPER__" ${st.billTo==="__SAME_SHIPPER__"?"selected":""}>Same as Shipper</option>`
       + `<option value="__SAME_CONSIGNEE__" ${st.billTo==="__SAME_CONSIGNEE__"?"selected":""}>Same as Consignee</option>`
@@ -16712,8 +16716,8 @@ if(document.readyState !== "loading") initChatWidget();
     BKG.m.packs = packs; BKG.m.conts = conts;
     const opts = (rows, first, val)=> '<option value="">'+first+'</option>'+rows.map(c=>'<option value="'+esc2(val(c))+'">'+esc2(c.name)+'</option>').join("");
     const cust = el("bk_customer"); if(cust){ const cur = cust.value; cust.innerHTML = opts(BKG.m.clients, "--Select Customer--", c=>c.id); cust.value = cur; }
-    ["bk_shipper","bk_consignee"].forEach(id=>{ const e = el(id); if(e){ const cur = e.value; e.innerHTML = opts(BKG.m.clients, "--Select "+(id === "bk_shipper" ? "Shipper" : "Consignee")+"--", c=>c.name); setVal(id, cur); } });
-    const nt = el("bk_notify"); if(nt){ const cur = nt.value; nt.innerHTML = '<option value="">--Select Notify--</option><option>Same as Consignee</option>'+BKG.m.clients.map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_notify", cur); }
+    ["bk_shipper","bk_consignee"].forEach(id=>{ const e = el(id); if(e){ const cur = e.value; e.innerHTML = opts(BKG.m.clients.filter(c=>(c.roles||[]).includes(id === "bk_shipper" ? "shipper" : "consignee")), "--Select "+(id === "bk_shipper" ? "Shipper" : "Consignee")+"--", c=>c.name); setVal(id, cur); } });
+    const nt = el("bk_notify"); if(nt){ const cur = nt.value; nt.innerHTML = '<option value="">--Select Notify--</option><option>Same as Consignee</option>'+BKG.m.clients.filter(c=>(c.roles||[]).some(r=>r === "consignee" || r === "agent")).map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_notify", cur); }
     const ca = el("bk_carrier"); if(ca){ const cur = ca.value; ca.innerHTML = '<option value="">— Select —</option>'+BKG.m.carriers.map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_carrier", cur && !/^—/.test(cur) ? cur : ""); }
     const pk = el("bk_packtype"); if(pk){ const cur = pk.value; pk.innerHTML = '<option value="">--Select Pack Type--</option>'+packs.filter(x=>x.status === "ACTIVE").map(x=>'<option value="'+esc2(x.name)+'">'+esc2(x.name)+'</option>').join(""); setVal("bk_packtype", cur); }
     const ct = el("bk_conttype"); if(ct){ const cur = ct.value; ct.innerHTML = '<option value="">--Select--</option>'+conts.filter(x=>x.status === "ACTIVE").map(x=>'<option value="'+esc2(x.code)+'">'+esc2(x.code+" — "+x.name)+'</option>').join(""); setVal("bk_conttype", cur); }

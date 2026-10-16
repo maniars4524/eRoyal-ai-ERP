@@ -16,6 +16,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const tag = Date.now().toString(36);
   const org = await j("POST", "/api/organizations", { code: "RTS" + tag.slice(-4).toUpperCase(), name: "JobDetails " + tag, admin_email: `jd${tag}@t.test`, admin_username: "jd" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "J" }, dev.body.access_token);
   const token = (await j("POST", "/api/auth/login", { identifier: "jd" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  for (const [c, n, r] of [["SH1", "Acme Exports", ["shipper"]], ["CN1", "Solvay Consignee", ["consignee"]], ["AG1", "Hamburg Agent GmbH", ["agent"]], ["CH1", "Fast CHA", ["cha"]], ["TR1", "Road Movers", ["transporter"]]]) await j("POST", "/api/customers", { code: c + tag.slice(-3).toUpperCase(), name: n, roles: r, data: {} }, token);
   const job = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA", pod: "SGSIN" }, token)).body;
   const open = async () => {
     const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
@@ -28,6 +29,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("every tab has a Save button before anything is saved", ["jtpc", "jt2", "jt3"].every(t => btn(t) && btn(t).textContent === "Save"), ["jtpc", "jt2", "jt3"].map(t => btn(t) && btn(t).textContent).join(","));
   check("the POL / POD code column shows the job's codes", q("#jobBl_polpod").value === "MAA / SIN", q("#jobBl_polpod").value);
 
+  const opts = id => Array.from(q("#" + id).options).map(x => x.value).filter(Boolean);
+  check("Shipper lists only shipper-category parties", JSON.stringify(opts("pc_shipper")) === JSON.stringify(["Acme Exports"]), opts("pc_shipper").join("|"));
+  check("Consignee lists only consignees", JSON.stringify(opts("pc_consignee")) === JSON.stringify(["Solvay Consignee"]), opts("pc_consignee").join("|"));
+  check("Agents (origin / delivery / co-loader) list only agents", ["pc_originAgent", "pc_deliveryAgent", "pc_coloader"].every(i => JSON.stringify(opts(i)) === JSON.stringify(["Hamburg Agent GmbH"])), opts("pc_originAgent").join("|"));
+  check("CHA and Transport list only their own categories", JSON.stringify(opts("pc_cha")) === JSON.stringify(["Fast CHA"]) && JSON.stringify(opts("pc_transport")) === JSON.stringify(["Road Movers"]), opts("pc_cha").join("|") + " / " + opts("pc_transport").join("|"));
   // Parties & cargo
   q("#pc_commodity").value = "Garments"; q("#pc_commodity").dispatchEvent(new w.Event("input", { bubbles: true }));
   q("#pc_pkgs").value = "120"; q("#pc_pkgs").dispatchEvent(new w.Event("input", { bubbles: true }));
