@@ -128,6 +128,15 @@ def job_source(job_number: str, user: User = Depends(permission_required("shipme
                           "reference": (quote.header or {}).get("reference_no")} if quote else None}
 
 
+def job_detail_snapshot(db: Session, job: Shipment) -> dict:
+    from .job_details_api import _row
+
+    row = _row(db, job)
+    if row is None:
+        return {"parties": {}, "cargo": {}, "containers": [], "dims": {}, "bl": {}}
+    return {"parties": row.parties or {}, "cargo": row.cargo or {}, "containers": row.containers or [], "dims": row.dims or {}, "bl": row.bl or {}}
+
+
 @router.get("/{job_number}/report-data")
 def report_data(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Everything the job documents need, taken from the booking, the job, the customs clearance bills and the posted invoices: BL / AWB, invoices, SB, BE."""
@@ -142,6 +151,7 @@ def report_data(job_number: str, user: User = Depends(permission_required("shipm
     return {"job_number": job.job_number, "job_type": job.job_type, "mode": job.mode, "direction": job.direction, "booking_number": booking.number if booking else None,
             "bl_awb": {"label": "AWB" if job.mode == "Air" else "BL", "number": job.bl_awb}, "pol": job.pol, "pod": job.pod, "packages": job.packages, "gross_weight": str(job.gross_weight) if job.gross_weight is not None else None,
             "volume": str(job.volume) if job.volume is not None else None, "commodity": job.commodity,
+            "details": job_detail_snapshot(db, job),
             "invoices": [{"doc_number": d.doc_number, "doc_type": d.doc_type, "doc_date": d.doc_date, "status": d.status, "total": str(d.grand_total)} for d in docs],
             "shipping_bills": [b for b in bills if b["bill_type"] == "SB"], "bills_of_entry": [b for b in bills if b["bill_type"] == "BE"], "customs_bill_count": cus["count"], "customs_jobs": cus["customs_jobs"]}
 

@@ -14,7 +14,20 @@ from .models import AuditLog, CreditFacility, CreditRequest, CrmRecord, Customer
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 CLOSED = {"Closed", "Cancelled"}
-PENDING = {"Draft", "Open"}
+PENDING_STAGES = {"Draft", "Reopened"}   # an active job that still needs action: not yet confirmed, or reopened
+
+
+def is_closed(job: Shipment) -> bool:
+    return job.closure_status == "CLOSED" or job.status == "Closed"
+
+
+def closed_this_month(job: Shipment, month_start: date) -> bool:
+    when = job.last_closed_at or job.updated_at
+    return is_closed(job) and bool(when) and when.date() >= month_start
+
+
+def is_pending(job: Shipment) -> bool:
+    return not is_closed(job) and job.job_stage in PENDING_STAGES
 TYPE_ORDER = ["Sea Export", "Sea Import", "Air Export", "Air Import", "Road / Transport"]
 
 
@@ -56,16 +69,16 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     jobs = list(db.scalars(select(Shipment).where(Shipment.organization_id == org_id))) if can_jobs else []
     names = {c.id: c.name for c in db.scalars(select(Customer).where(Customer.organization_id == org_id))} if can_jobs else {}
     live = [j for j in jobs if j.status != "Cancelled"]
-    active = [j for j in live if j.status not in CLOSED]
+    active = [j for j in live if not is_closed(j)]
 
     matrix = {label: {"active": 0, "closed_mtd": 0, "pending": 0} for label in TYPE_ORDER}
     for j in live:
         row = matrix.setdefault(_bucket(j), {"active": 0, "closed_mtd": 0, "pending": 0})
-        if j.status not in CLOSED:
+        if not is_closed(j):
             row["active"] += 1
-            if j.status in PENDING:
+            if is_pending(j):
                 row["pending"] += 1
-        elif j.status == "Closed" and j.updated_at and j.updated_at.date() >= month_start:
+        elif closed_this_month(j, month_start):
             row["closed_mtd"] += 1
     mix = Counter(_bucket(j) for j in live)
     lanes = Counter(f"{j.pol or '—'} → {j.pod or '—'}" for j in live if j.pol or j.pod)

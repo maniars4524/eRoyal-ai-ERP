@@ -203,6 +203,35 @@ class MasterRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class JobDetail(Base):
+    """What the user fills in on the job screens: parties, cargo, containers, air dimensions and the BL. One row per job; each section is saved on its own."""
+    __tablename__ = "job_details"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id", ondelete="CASCADE"), unique=True)
+    parties: Mapped[dict] = mapped_column(JSON, default=dict)
+    cargo: Mapped[dict] = mapped_column(JSON, default=dict)
+    containers: Mapped[list] = mapped_column(JSON, default=list)
+    dims: Mapped[dict] = mapped_column(JSON, default=dict)
+    bl: Mapped[dict] = mapped_column(JSON, default=dict)
+    saved_sections: Mapped[dict] = mapped_column(JSON, default=dict)
+    version: Mapped[int] = mapped_column(Integer, default=0)
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class HblCounter(Base):
+    __tablename__ = "hbl_counters"
+    __table_args__ = (UniqueConstraint("organization_id", "hbl_type", name="uq_hbl_counter"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    hbl_type: Mapped[str] = mapped_column(String(6))
+    last_no: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class CustomsBill(Base):
     """One customs clearance bill: a Shipping Bill (export) or a Bill of Entry (import). A booking / job can carry many; none is ever overwritten."""
     __tablename__ = "customs_bills"

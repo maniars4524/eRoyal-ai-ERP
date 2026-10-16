@@ -2445,6 +2445,7 @@ tbody tr:hover{background:var(--g0)}
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
     <select class="fc" id="jobModeFilter" style="width:100px;padding:5px 7px"><option value="">All Modes</option><option>Sea</option><option>Air</option><option>Road</option></select>
     <select class="fc" id="jobDirFilter" style="width:105px;padding:5px 7px"><option value="">All Directions</option><option>Export</option><option>Import</option></select>
+    <select class="fc" id="jobStateFilter" style="width:125px;padding:5px 7px"><option value="">All Jobs</option><option value="active">Active</option><option value="pending">Pending action</option><option value="closed">Closed</option></select>
     <select class="fc" id="jobStatusFilter" style="width:115px;padding:5px 7px"><option value="">All Statuses</option><option>Open</option><option>Booked</option><option>In Transit</option><option>Customs</option><option>Delivered</option></select>
     <input class="fc" id="jobSearchInput" placeholder="Search job / BL / shipper…" style="width:200px">
   </div>
@@ -2848,7 +2849,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <!-- JT3 BL/AWB -->
-<div id="jt3" class="tp"><div class="card"><div class="ch"><div class="ct">Bill of Lading / AWB</div><div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-go="bl-draft"><svg class="ic" data-icon="eye"></svg> View BL Draft</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="plus"></svg> Issue BL</button></div></div><div class="cb">
+<div id="jt3" class="tp"><div class="card"><div class="ch"><div class="ct">Bill of Lading / AWB</div><div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-go="bl-draft"><svg class="ic" data-icon="eye"></svg> View BL Draft</button></div></div><div class="cb">
 <div class="fr"><div class="fg"><label class="fl">Booking Type <span class="r">*</span></label><select class="fc" id="jobBlBookingType"><option value="Direct">Direct — Carrier's direct BL</option><option value="House" selected>House — Forwarder's own House BL</option></select></div>
 <div class="fg" id="jobBlHbltypeWrap" style="display:none"><label class="fl">House BL Type <span class="r">*</span></label><select class="fc" id="jobBlHbltype"><option value="">--Select--</option><option>OTL</option><option>FMC</option><option>MTO</option></select></div>
 <div class="fg" id="jobBlScacWrap" style="display:none"><label class="fl">SCAC Code <span class="r">*</span></label><select class="fc" id="jobBlScac"><option value="">--Select--</option><option>RTSU</option><option>ARKU</option><option>IGLU</option></select></div>
@@ -2863,12 +2864,12 @@ tbody tr:hover{background:var(--g0)}
 <!-- HOUSE: Master BL (manual, from carrier) + House BL (system running number) -->
 <div id="jobBlHouseWrap" style="display:none">
   <div class="fsec" style="margin-top:0">Master BL — from Carrier (manual entry)</div>
-  <div class="fr"><div class="fg"><label class="fl">Master BL No <span class="r">*</span></label><input class="fc" id="jobBl_mblNo" placeholder="Entered manually from carrier's BL" style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Master BL Date <span class="r">*</span></label><input class="fc" type="date" id="jobBl_mblDate"></div><div class="fg"><label class="fl">BL Status</label><select class="fc"><option>Draft</option><option>Original</option><option>Surrender</option><option>Telex</option><option>eBL</option></select></div></div>
+  <div class="fr"><div class="fg"><label class="fl">Master BL No <span class="r">*</span></label><input class="fc" id="jobBl_mblNo" placeholder="Entered manually from carrier's BL" style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Master BL Date <span class="r">*</span></label><input class="fc" type="date" id="jobBl_mblDate"></div><div class="fg"><label class="fl">BL Status</label><select class="fc" id="jobBl_mblStatus"><option>Draft</option><option>Original</option><option>Surrender</option><option>Telex</option><option>eBL</option></select></div></div>
   <div class="fsec">House BL — issued by us (system running number)</div>
-  <div class="fr"><div class="fg"><label class="fl">House BL No</label><input class="fc" id="jobBl_hblNo" readonly placeholder="Not generated yet" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">House BL Date</label><input class="fc" type="date" id="jobBl_hblDate"></div><div class="fg" style="display:flex;align-items:flex-end"><button class="btn btn-pri btn-sm" id="jobBl_genHblBtn"><svg class="ic" data-icon="refresh-cw"></svg> Generate HBL</button></div></div>
+  <div class="fr"><div class="fg"><label class="fl">House BL No</label><input class="fc" id="jobBl_hblNo" readonly placeholder="Not generated yet" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">POL / POD Code</label><input class="fc" id="jobBl_polpod" readonly placeholder="From the job" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">House BL Date</label><input class="fc" type="date" id="jobBl_hblDate"></div><div class="fg" style="display:flex;align-items:flex-end"><button class="btn btn-pri btn-sm" id="jobBl_genHblBtn"><svg class="ic" data-icon="refresh-cw"></svg> Generate HBL</button></div></div>
 </div>
 
-<div class="fr"><div class="fg"><label class="fl">Originals</label><input class="fc" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" value=""></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Originals</label><input class="fc" id="jobBl_originals" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc" id="jobBl_terms"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" id="jobBl_place" value=""></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date" id="jobBl_released"></div></div>
 <div class="ib ib-am" style="margin-top:8px"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg>Original BL is released only after full payment is confirmed by Accounts.</div>
 </div></div></div>
 
@@ -7021,6 +7022,11 @@ function renderJobRows(){
       const tr = document.createElement("tr");
       tr.dataset.jobRow = "1";
       tr.dataset.mode = j.mode; tr.dataset.dir = j.direction; tr.dataset.status = j.status;
+      const isClosed = j.closure_status === "CLOSED" || j.status === "Closed";
+      const closedAt = j.last_closed_at || j.updated_at; const now = new Date();
+      tr.dataset.bucket = (j.mode === "Road" || j.mode === "Rail") ? "Road / Transport" : j.mode + " " + j.direction;
+      tr.dataset.state = isClosed ? "closed" : (["Draft","Reopened"].includes(j.job_stage) ? "pending" : "active");
+      tr.dataset.closedMtd = (isClosed && closedAt && new Date(closedAt).getFullYear() === now.getFullYear() && new Date(closedAt).getMonth() === now.getMonth()) ? "1" : "";
       const badge = MODE_BADGE[j.mode] || "b-gy";
       const modeLabel = [j.mode, j.direction, j.container_mode].filter(Boolean).join(" ").toUpperCase();
       const shipper = j.customer_id && customerName[j.customer_id] ? customerName[j.customer_id] : "—";
@@ -7030,6 +7036,7 @@ function renderJobRows(){
       tr.innerHTML = `<td><span class="mono ta" style="font-size:10px" data-go="job-detail" data-job="${esc(j.job_number)}">${esc(j.job_number)}</span></td><td>${esc(shipper)}</td><td>${esc(j.consignee || "—")}</td><td><span class="b ${badge}">${esc(modeLabel)}</span></td><td>${esc(route)}</td><td>${esc(dates)}</td><td class="mono" style="font-size:10px">${esc(j.bl_awb || "—")}</td><td><span class="b b-gy dot">${esc(j.status)}</span></td><td class="ap">${ar}</td><td class="no-print"><button class="ta" data-go="job-detail" data-job="${esc(j.job_number)}">Open →</button></td>`;
       body.appendChild(tr);
     });
+    if(typeof filterJobTable === "function") filterJobTable();
     const total = jobs.length;
     const setTxt = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent = v; };
     setTxt("jobKpiTotal", total);
@@ -7037,9 +7044,9 @@ function renderJobRows(){
     setTxt("jobKpiSeaImp", jobs.filter(j=>j.mode==="Sea" && j.direction==="Import").length);
     setTxt("jobKpiAirExp", jobs.filter(j=>j.mode==="Air" && j.direction==="Export").length);
     setTxt("jobKpiCha", jobs.filter(j=>j.job_type==="Customs").length);
-    setTxt("jobKpiChaPending", jobs.filter(j=>j.job_type==="Customs" && j.status!=="Delivered" && j.status!=="Closed").length);
+    setTxt("jobKpiChaPending", jobs.filter(j=>j.job_type==="Customs" && j.status!=="Delivered" && j.status!=="Closed" && j.closure_status!=="CLOSED").length);
     setTxt("jobKpiTransport", jobs.filter(j=>j.mode==="Road").length);
-    if(footer) footer.textContent = `Showing ${total} of ${total} active jobs`;
+    if(typeof filterJobTable === "function") filterJobTable();   // sets the footer from what is really shown
   }).catch(()=>{ /* best-effort; empty state stays as-is */ });
 }
 
@@ -7759,6 +7766,9 @@ function pcWirePanel(){
     toast("Copied","Delivery Agent copied to Notify Party 2");
   });
 }
+window.pcSnapshot = function(jobNo){ const st = pcGetState(jobNo || jcCurrentJob || pcCurrentJob); const pick = ks => { const o = {}; ks.forEach(k=>{ o[k] = st[k]; }); return o; }; return {parties: Object.assign(pick(PC_FIELDS), {chaMode: st.chaMode}), cargo: pick(PC_CARGO_FIELDS)}; };
+window.pcApplySaved = function(jobNo, parties, cargo){ const st = pcGetState(jobNo); Object.keys(parties || {}).forEach(k=>{ st[k] = parties[k]; }); Object.keys(cargo || {}).forEach(k=>{ st[k] = cargo[k]; }); if((jcCurrentJob || pcCurrentJob) === jobNo) pcRenderPartySelects(); };
+window.populateJobDetail = populateJobDetail;
 function renderJobParties(jobNo){
   pcCurrentJob = jobNo || null;
   pcWirePanel();
@@ -8539,21 +8549,29 @@ $("#quotGetRateBtn") && $("#quotGetRateBtn").addEventListener("click", ()=>{
 });
 
 /* ---------- JOB LIST ---------- */
+window.JOB_VIEW = {bucket:"", state:"", closedMtd:false};
 function filterJobTable(){
   const q = ($("#jobSearchInput").value||"").toLowerCase();
   const mode = $("#jobModeFilter").value;
   const dir = $("#jobDirFilter").value;
   const status = $("#jobStatusFilter").value;
-  let visible = 0;
-  $all("#jobTableBody tr").forEach(tr=>{
+  const stateSel = $("#jobStateFilter") ? $("#jobStateFilter").value : "";
+  const V = window.JOB_VIEW;
+  const state = V.state || stateSel;
+  let visible = 0, total = 0;
+  $all("#jobTableBody tr[data-job-row]").forEach(tr=>{
+    total++;
     const text = tr.textContent.toLowerCase();
-    const show = (!q||text.includes(q)) && (!mode||tr.dataset.mode===mode) && (!dir||tr.dataset.dir===dir) && (!status||tr.dataset.status===status);
+    const st = tr.dataset.state;
+    const stateOk = !state || (state === "active" ? st !== "closed" : state === "pending" ? st === "pending" : state === "closed" ? (V.closedMtd ? tr.dataset.closedMtd === "1" : st === "closed") : true);
+    const show = (!q||text.includes(q)) && (!mode||tr.dataset.mode===mode) && (!dir||tr.dataset.dir===dir) && (!status||tr.dataset.status===status) && (!V.bucket||tr.dataset.bucket===V.bucket) && stateOk;
     tr.style.display = show ? "" : "none";
     if(show) visible++;
   });
-  $("#jobListFooter").textContent = `Showing ${visible} of 47 active jobs`;
+  const foot = $("#jobListFooter"); if(foot) foot.textContent = `Showing ${visible} of ${total} job${total === 1 ? "" : "s"}`;
 }
-["jobSearchInput","jobModeFilter","jobDirFilter","jobStatusFilter"].forEach(id=>{
+window.filterJobTable = filterJobTable;
+["jobSearchInput","jobModeFilter","jobDirFilter","jobStatusFilter","jobStateFilter"].forEach(id=>{
   const node = $("#"+id);
   if(node) node.addEventListener(id==="jobSearchInput"?"input":"change", filterJobTable);
 });
@@ -8695,18 +8713,6 @@ wireAction("taxInvPostBtn","Tax Invoice posted");
 wireAction("blDraftEmailBtn","BL Draft sent","Draft BL sent to CAVITAK ENTERPRISE");
 wireAction("fcEmailBtn","Freight Certificate emailed","Sent to Relay Lines Canada Inc");
 wireAction("canEmailBtn","CAN sent");
-
-/* ---- Add container row ---- */
-const acb = $("#addContainerBtn");
-if(acb) acb.addEventListener("click",()=>{
-  const tb = $("#containerTableBody");
-  if(!tb) return;
-  const n = tb.rows.length+1;
-  const tr = document.createElement("tr");
-  tr.innerHTML = `<td class="mono"><input class="fc" placeholder="XXXX0000000" style="width:120px"></td><td><select class="fc" style="width:70px"><option>40GP</option><option>20GP</option><option>40HC</option></select></td><td class="mono"><input class="fc" placeholder="SealNo" style="width:80px"></td><td><input class="fc" placeholder="0" style="width:70px"></td><td><input class="fc" type="date"></td><td><input class="fc" type="date"></td><td><input class="fc" type="date"></td><td><input class="fc" value="14" style="width:40px"></td><td><span class="b b-gy dot">Pending</span></td><td class="no-print"><button class="ta remove-row">x</button></td>`;
-  tb.appendChild(tr);
-  tr.querySelector(".remove-row").addEventListener("click",()=>tr.remove());
-});
 
 /* ---- Add charge line ---- */
 const addChBtn = $("#addChargeBtn");
@@ -11357,20 +11363,6 @@ function wireJobBlBookingType(){
       $("#jobBlScacWrap").style.display = (info && info.scac) ? "block" : "none";
     });
   }
-  const genBtn = $("#jobBl_genHblBtn");
-  if(genBtn){
-    genBtn.addEventListener("click", ()=>{
-      const hblType = $("#jobBlHbltype").value;
-      if(!hblType){ toast("House BL Type required", "Select OTL, FMC or MTO before generating the House BL", "error"); return; }
-      const info = HOUSE_BL_TYPES[hblType];
-      if(info.scac && !$("#jobBlScac").value){ toast("SCAC code required", hblType+" House BL needs a SCAC code from the carrier master", "error"); return; }
-      const hblNo = nextHblNumber(hblType);
-      $("#jobBl_hblNo").value = hblNo;
-      const dateEl = $("#jobBl_hblDate");
-      if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
-      toast("House BL generated", hblNo+" ("+hblType+(info.scac?" · "+$("#jobBlScac").value:"")+")");
-    });
-  }
   applyBookingTypeToBl(btSel.value);
 }
 document.addEventListener("DOMContentLoaded", wireJobBlBookingType);
@@ -11550,46 +11542,22 @@ function initApp(){
   });
 
   // ── Dashboard drill-down matrix cells → Job List with auto-filter ──
-  const FILTER_LABELS = {
-    'sea-export-active':  {mode:'Sea', dir:'Export', status:'', label:'Sea Export · Active Jobs'},
-    'sea-export-closed':  {mode:'Sea', dir:'Export', status:'Delivered', label:'Sea Export · Closed (MTD)'},
-    'sea-export-pending': {mode:'Sea', dir:'Export', status:'Customs', label:'Sea Export · Pending Action'},
-    'sea-import-active':  {mode:'Sea', dir:'Import', status:'', label:'Sea Import · Active Jobs'},
-    'sea-import-closed':  {mode:'Sea', dir:'Import', status:'Delivered', label:'Sea Import · Closed (MTD)'},
-    'sea-import-pending': {mode:'Sea', dir:'Import', status:'Customs', label:'Sea Import · Pending Action'},
-    'air-export-active':  {mode:'Air', dir:'Export', status:'', label:'Air Export · Active Jobs'},
-    'air-export-closed':  {mode:'Air', dir:'Export', status:'Delivered', label:'Air Export · Closed (MTD)'},
-    'air-export-pending': {mode:'Air', dir:'Export', status:'Customs', label:'Air Export · Pending Action'},
-    'air-import-active':  {mode:'Air', dir:'Import', status:'', label:'Air Import · Active Jobs'},
-    'air-import-closed':  {mode:'Air', dir:'Import', status:'Delivered', label:'Air Import · Closed (MTD)'},
-    'air-import-pending': {mode:'Air', dir:'Import', status:'Customs', label:'Air Import · Pending Action'},
-    'bl-pending':         {mode:'', dir:'', status:'', label:'BL Release Pending'},
-  };
-
-  function applyJobFilter(key){
-    const f = FILTER_LABELS[key];
-    if(!f) return;
-    setTimeout(()=>{
-      const modeSel = document.getElementById('jobModeFilter');
-      const dirSel  = document.getElementById('jobDirFilter');
-      const banner  = document.getElementById('jobFilterBanner');
-      const label   = document.getElementById('jobFilterLabel');
-      if(modeSel) modeSel.value = f.mode;
-      if(dirSel)  dirSel.value  = f.dir;
-      if(banner)  banner.style.display = 'flex';
-      if(label)   label.textContent = f.label;
-      // Trigger any existing filter logic if present
-      if(modeSel) modeSel.dispatchEvent(new Event('change'));
-      if(dirSel)  dirSel.dispatchEvent(new Event('change'));
-    }, 150);
+  const KIND_LABEL = {active:"Active Jobs", closed:"Closed (MTD)", pending:"Pending Action"};
+  function applyJobFilter(bucket, kind){
+    window.JOB_VIEW = {bucket, state:kind, closedMtd: kind === "closed"};
+    ["jobModeFilter","jobDirFilter","jobStatusFilter","jobStateFilter"].forEach(id=>{ const n = document.getElementById(id); if(n) n.value = ""; });
+    const banner = document.getElementById("jobFilterBanner"), label = document.getElementById("jobFilterLabel");
+    if(banner) banner.style.display = "flex";
+    if(label) label.textContent = bucket + " · " + KIND_LABEL[kind];
+    if(typeof filterJobTable === "function") filterJobTable();
   }
-
-  document.querySelectorAll('.dd-cell[data-filter]').forEach(cell=>{
-    cell.addEventListener('click', ()=>{
-      const key = cell.dataset.filter;
-      go('job-list');
-      applyJobFilter(key);
-    });
+  const BUCKETS = {"sea-export":"Sea Export", "sea-import":"Sea Import", "air-export":"Air Export", "air-import":"Air Import", "road-transport":"Road / Transport"};
+  document.addEventListener("click", e=>{
+    const cell = e.target.closest(".dd-cell[data-filter]"); if(!cell) return;
+    const m = /^(.*)-(active|closed|pending)$/.exec(cell.dataset.filter || ""); if(!m || !BUCKETS[m[1]]) return;
+    go("job-list");
+    applyJobFilter(BUCKETS[m[1]], m[2]);
+    setTimeout(()=> applyJobFilter(BUCKETS[m[1]], m[2]), 600);   // once more after the list has been redrawn from the server
   });
 
   // ── GST / Tax report menu items → navigate to Reports + auto-render ──
@@ -11606,11 +11574,13 @@ function initApp(){
     const dirSel  = document.getElementById('jobDirFilter');
     const statSel = document.getElementById('jobStatusFilter');
     const banner  = document.getElementById('jobFilterBanner');
+    window.JOB_VIEW = {bucket:"", state:"", closedMtd:false}; const stSel = document.getElementById('jobStateFilter'); if(stSel) stSel.value = '';
     if(modeSel) modeSel.value = '';
     if(dirSel)  dirSel.value  = '';
     if(statSel) statSel.value = '';
     if(banner)  banner.style.display = 'none';
     if(modeSel) modeSel.dispatchEvent(new Event('change'));
+    if(typeof filterJobTable === "function") filterJobTable();
   });
 
   // Init volumetric calculator
@@ -17179,6 +17149,152 @@ function makePrintFit(){
   });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>CUS.load(opts && opts.jobNo), 900); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   JOB DETAIL KIT: Parties & Cargo, Containers / Dimensions and BL / AWB are saved per job.
+   Each tab has a Save button (it reads "Save" until the tab has been saved once, then "Save Changes");
+   what is saved feeds the job, the job list and the documents. The House BL number is issued by the server:
+   company code + type + running number + POL code + POD code (e.g. RTSMTO001MAASIN).
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const JD = window.JobDetailKit = {job:null, data:null};
+  const TABS = {jtpc:"parties", jt2:"containers", jt3:"bl"};
+  const sectionOf = tab=> tab === "jt2" ? (JD.data && JD.data.mode === "Air" ? "dims" : "containers") : TABS[tab];
+
+  JD.load = async function(jobNo){
+    jobNo = jobNo || window.__lastJobNo; if(!jobNo) return; JD.job = jobNo;
+    try{ JD.data = await api("GET", "/api/jobs/"+encodeURIComponent(jobNo)+"/details"); }catch(e){ return; }
+    JD.apply(); JD.bars();
+  };
+  JD.apply = function(){
+    const d = JD.data; if(!d) return;
+    if(d.saved_sections.parties || d.saved_sections.cargo) window.pcApplySaved(d.job_number, Object.assign({}, d.parties), d.cargo);
+    JD.renderContainers(d.containers || []); JD.renderDims(d.dims || {});
+    const b = d.bl || {}; const set = (id, v)=>{ const n = el(id); if(n && v != null) n.value = v; };
+    const scac = el("jobBlScac"); if(scac && b.scac && ![].some.call(scac.options, o=>o.value === b.scac)) scac.add(new Option(b.scac, b.scac));
+    set("jobBlBookingType", b.bookingType || "House"); set("jobBlHbltype", b.hblType || "");
+    set("jobBlScac", b.scac || ""); set("jobBl_directNo", b.directNo || ""); set("jobBl_directDate", b.directDate || ""); set("blStatusSel", b.directStatus || "Draft");
+    set("jobBl_mblNo", b.mblNo || ""); set("jobBl_mblDate", b.mblDate || ""); set("jobBl_mblStatus", b.mblStatus || "Draft");
+    set("jobBl_hblNo", b.hblNo || ""); set("jobBl_hblDate", b.hblDate || ""); set("jobBl_originals", b.originals || "3"); set("jobBl_terms", b.terms || "Prepaid");
+    set("jobBl_place", b.place || ""); set("jobBl_released", b.released || "");
+    ["jobBlBookingType", "jobBlHbltype"].forEach(id=>{ const n = el(id); if(n) n.dispatchEvent(new Event("change")); });
+    set("jobBl_polpod", d.pol_code + " / " + d.pod_code);
+    const gen = el("jobBl_genHblBtn"); if(gen){ gen.disabled = !!b.hblNo; gen.style.opacity = b.hblNo ? ".5" : ""; gen.title = b.hblNo ? "A House BL number has already been issued for this job" : ""; }
+    const ht = el("jobBlHbltype"); if(ht){ ht.disabled = !!b.hblNo; }
+    JD.preview();
+  };
+  JD.preview = async function(){
+    const t = (el("jobBlHbltype") || {}).value, n = el("jobBl_hblNo"); if(!n || !JD.job || (JD.data && JD.data.bl && JD.data.bl.hblNo)) return;
+    n.placeholder = "Not generated yet";
+    if(!t) return;
+    try{ const r = await api("GET", "/api/jobs/"+encodeURIComponent(JD.job)+"/hbl-preview?hbl_type="+t); n.placeholder = "Next: "+r.preview; }catch(e){}
+  };
+
+  /* ---------------- containers ---------------- */
+  const stat = r=> r.gate_in ? "Gated In" : r.stuffed ? "Stuffed" : r.empty_pickup ? "Picked Up" : "Empty";
+  function contRow(r){
+    r = r || {}; const tr = document.createElement("tr"); tr.dataset.jdCont = "1";
+    const types = ["40GP", "20GP", "40HC", "20RF", "40RF", "20OT", "40OT"]; if(r.type && types.indexOf(r.type) < 0) types.push(r.type);
+    tr.innerHTML = '<td><input class="fc" data-k="container_no" placeholder="MSCU1234567" maxlength="11" style="font-family:var(--font-mono);width:120px;text-transform:uppercase" value="'+esc2(r.container_no || "")+'"></td>'+
+      '<td><select class="fc" data-k="type" style="width:78px">'+types.map(t=>'<option'+(t === (r.type || "40GP") ? " selected" : "")+'>'+t+'</option>').join("")+'</select></td>'+
+      '<td><input class="fc" data-k="seal_no" placeholder="Seal No" style="font-family:var(--font-mono);width:100px" value="'+esc2(r.seal_no || "")+'"></td>'+
+      '<td><input class="fc" data-k="vgm" placeholder="0" style="width:80px" value="'+esc2(r.vgm || "")+'"></td>'+
+      ["empty_pickup", "stuffed", "gate_in"].map(k=>'<td><input class="fc" data-k="'+k+'" type="date" style="width:110px" value="'+esc2(r[k] || "")+'"></td>').join("")+
+      '<td><input class="fc" data-k="free_days" placeholder="14" style="width:55px" value="'+esc2(r.free_days || "")+'"></td>'+
+      '<td><span class="b b-gy dot" data-jd-status>'+stat(r)+'</span></td><td class="no-print"><button class="ta" type="button" data-jd-del>✕</button></td>';
+    return tr;
+  }
+  function contFoot(){ const n = document.querySelectorAll("#containerTableBody tr[data-jd-cont]").length; const f = document.querySelector("#jt2Sea .cf"); if(f) f.textContent = "Total: "+n+" container"+(n === 1 ? "" : "s"); }
+  JD.renderContainers = function(rows){
+    const tb = el("containerTableBody"); if(!tb) return; tb.innerHTML = "";
+    if(!rows.length) tb.innerHTML = '<tr class="empty-row"><td colspan="10" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr>';
+    rows.forEach(r=> tb.appendChild(contRow(r))); contFoot();
+  };
+  JD.collectContainers = function(){
+    return [].map.call(document.querySelectorAll("#containerTableBody tr[data-jd-cont]"), tr=>{ const o = {}; tr.querySelectorAll("[data-k]").forEach(i=>{ o[i.dataset.k] = (i.value || "").trim(); }); return o; })
+      .filter(o=> o.container_no || o.seal_no || o.vgm);
+  };
+
+  /* ---------------- air dimensions ---------------- */
+  function dimRow(r, n){
+    r = r || {}; const tr = document.createElement("tr"); tr.setAttribute("data-row", n); tr.dataset.jdDim = "1";
+    const f = (c, v, w)=> '<td><input class="fc '+c+'" value="'+esc2(v == null ? "" : v)+'" style="width:'+w+'px" oninput="recalcRow(this)"></td>';
+    tr.innerHTML = '<td>'+n+'</td><td><input class="fc dim-desc" placeholder="Package description" style="width:140px" value="'+esc2(r.desc || "")+'"></td>'+f("dim-pkg", r.pkg == null ? 1 : r.pkg, 50)+f("dim-l", r.l || 0, 65)+f("dim-w", r.w || 0, 65)+f("dim-h", r.h || 0, 65)+f("dim-awt", r.awt || 0, 65)+
+      '<td class="dim-vw" style="font-weight:700;color:var(--tl);text-align:right">0.00</td><td class="dim-cw" style="font-weight:700;color:var(--gr);text-align:right">0.00</td><td class="no-print"><button class="ta" onclick="this.closest(\'tr\').remove();recalcDim()">✕</button></td>';
+    return tr;
+  }
+  JD.renderDims = function(d){
+    const tb = el("dimTableBody"); if(!tb) return; if(!d || !d.rows || !d.rows.length) return;
+    tb.innerHTML = ""; d.rows.forEach((r, i)=> tb.appendChild(dimRow(r, i+1)));
+    const u = el("dimUnit"); if(u && d.unit) u.value = d.unit; if(window.recalcDim) window.recalcDim();
+  };
+  JD.collectDims = function(){
+    const rows = [].map.call(document.querySelectorAll("#dimTableBody tr"), tr=>{ const g = c=> ((tr.querySelector(c) || {}).value || "").trim(); const desc = tr.querySelector("input:not([class*='dim-'])");
+      return {desc:(desc ? desc.value : g(".dim-desc")).trim(), pkg:g(".dim-pkg"), l:g(".dim-l"), w:g(".dim-w"), h:g(".dim-h"), awt:g(".dim-awt")}; });
+    return {unit:(el("dimUnit") || {}).value || "cm_kg", rows};
+  };
+
+  /* ---------------- BL ---------------- */
+  JD.collectBl = function(){
+    const g = id=> ((el(id) || {}).value || "").trim(); const b = {bookingType:g("jobBlBookingType")};
+    Object.assign(b, {hblType:g("jobBlHbltype"), scac:g("jobBlScac"), directNo:g("jobBl_directNo"), directDate:g("jobBl_directDate"), directStatus:g("blStatusSel"), mblNo:g("jobBl_mblNo"), mblDate:g("jobBl_mblDate"), mblStatus:g("jobBl_mblStatus"),
+      hblNo:g("jobBl_hblNo"), hblDate:g("jobBl_hblDate"), originals:g("jobBl_originals"), terms:g("jobBl_terms"), place:g("jobBl_place"), released:g("jobBl_released")});
+    return b;
+  };
+  async function generate(){
+    const type = (el("jobBlHbltype") || {}).value, scac = (el("jobBlScac") || {}).value;
+    if(!type){ say("House BL Type required", "Select OTL, FMC or MTO before generating the House BL", "error"); return; }
+    try{
+      const r = await api("POST", "/api/jobs/"+encodeURIComponent(JD.job)+"/hbl", {hbl_type:type, scac:scac || null});
+      JD.data = r; JD.apply(); JD.bars(); if(window.populateJobDetail) window.populateJobDetail(JD.job);
+      say(r.existing ? "House BL already issued" : "House BL Generated Successfully!", r.bl.hblNo, r.existing ? "warn" : "");
+    }catch(e){ say("Could not generate the House BL", e.message, "error"); }
+  }
+
+  /* ---------------- save bars ---------------- */
+  JD.bars = function(){
+    Object.keys(TABS).forEach(tab=>{
+      const pane = el(tab); if(!pane) return; let bar = pane.querySelector(".jd-bar");
+      if(!bar){ bar = document.createElement("div"); bar.className = "jd-bar"; bar.style.cssText = "display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:12px"; bar.innerHTML = '<span class="jd-note" style="font-size:11.5px;color:var(--g5)"></span><button class="btn btn-pri" type="button" data-jd-save="'+tab+'"></button>'; pane.appendChild(bar); }
+      const sec = sectionOf(tab), saved = JD.data && JD.data.saved_sections || {};
+      const done = tab === "jtpc" ? (saved.parties || saved.cargo) : saved[sec];
+      bar.querySelector("button").textContent = done ? "Save Changes" : "Save";
+      bar.querySelector(".jd-note").textContent = done ? "Last saved "+new Date(done).toLocaleString("en-IN")+(JD.data.updated_by ? " by "+JD.data.updated_by : "") : "Not saved yet";
+    });
+  };
+  async function put(sec, data){ return api("PUT", "/api/jobs/"+encodeURIComponent(JD.job)+"/details/"+sec, {data, expected_version:JD.data ? JD.data.version : null}); }
+  async function save(tab){
+    if(!JD.job){ say("Open a job first", "", "warn"); return; }
+    const wasSaved = (JD.data.saved_sections || {}); const first = tab === "jtpc" ? !(wasSaved.parties || wasSaved.cargo) : !wasSaved[sectionOf(tab)];
+    try{
+      if(tab === "jtpc"){ const s = window.pcSnapshot(JD.job); JD.data = await put("parties", s.parties); JD.data = await put("cargo", s.cargo); }
+      else if(tab === "jt2"){ const sec = sectionOf(tab); JD.data = await put(sec, sec === "dims" ? JD.collectDims() : JD.collectContainers()); }
+      else JD.data = await put("bl", JD.collectBl());
+      JD.apply(); JD.bars(); if(window.populateJobDetail) window.populateJobDetail(JD.job);
+      say(first ? "Job Details Saved Successfully!" : "Job Updated Successfully!", JD.job);
+    }catch(e){ say("Could not save the job details", e.message, "error"); if(/changed by someone else/i.test(e.message)) JD.load(JD.job); }
+  }
+
+  document.addEventListener("click", e=>{
+    const sv = e.target.closest("[data-jd-save]"); if(sv){ save(sv.dataset.jdSave); return; }
+    if(e.target.closest("#addContainerBtn")){ e.stopImmediatePropagation(); const tb = el("containerTableBody"); const empty = tb.querySelector(".empty-row"); if(empty) empty.remove(); tb.appendChild(contRow()); contFoot(); return; }
+    const del = e.target.closest("[data-jd-del]"); if(del){ const tr = del.closest("tr"); tr.remove(); const tb = el("containerTableBody"); if(!tb.children.length) JD.renderContainers([]); contFoot(); return; }
+    if(e.target.closest("#jobBl_genHblBtn")){ e.stopImmediatePropagation(); generate(); }
+  }, true);
+  document.addEventListener("input", e=>{
+    const tr = e.target.closest("tr[data-jd-cont]"); if(!tr) return;
+    if(e.target.dataset.k === "container_no") e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const r = {}; tr.querySelectorAll("[data-k]").forEach(i=>{ r[i.dataset.k] = i.value; }); tr.querySelector("[data-jd-status]").textContent = stat(r);
+  });
+  document.addEventListener("change", e=>{ if(e.target.id === "jobBlHbltype") JD.preview(); });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>JD.load(opts && opts.jobNo), 900); };
 })();
 </script>
 
