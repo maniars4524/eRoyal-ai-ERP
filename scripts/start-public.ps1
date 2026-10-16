@@ -36,7 +36,7 @@ for ($i = 0; $i -lt 30; $i++) {
 $cf = Join-Path $root "tools\cloudflared.exe"
 $tunnelLog = Join-Path $logs "tunnel.log"
 Remove-Item $tunnelLog -ErrorAction SilentlyContinue
-Start-Process -WindowStyle Hidden -FilePath $cf -ArgumentList "tunnel", "--no-autoupdate", "--url", "http://127.0.0.1:8001" -RedirectStandardError $tunnelLog
+Start-Process -WindowStyle Hidden -FilePath $cf -ArgumentList "tunnel", "--no-autoupdate", "--protocol", "http2", "--url", "http://127.0.0.1:8001" -RedirectStandardError $tunnelLog
 
 for ($i = 0; $i -lt 40; $i++) {
     Start-Sleep 2
