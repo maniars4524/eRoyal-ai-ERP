@@ -150,6 +150,10 @@ def _validate(section: str, data: Any) -> Any:
             for k, label in (("gross_wt", "Gross weight"), ("net_wt", "Net weight")):
                 if r.get(k) not in (None, "") and _num(r.get(k)) is None:
                     raise HTTPException(422, f"Container {i}: {label} must be a positive number")
+            if r.get("pkgs") not in (None, ""):
+                n = _num(r.get("pkgs"))
+                if n is None or n != int(n):
+                    raise HTTPException(422, f"Container {i}: packages must be a whole number")
             if _num(r.get("gross_wt")) is not None and _num(r.get("net_wt")) is not None and _num(r["net_wt"]) > _num(r["gross_wt"]):
                 raise HTTPException(422, f"Container {i}: net weight cannot be more than the gross weight")
         return data

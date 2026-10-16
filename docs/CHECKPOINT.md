@@ -111,3 +111,4 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Migrations 0029 (job_details, hbl_counters), 0030 (company_doc_profiles). Tests: 161 backend, e2e/jobdetails.test.js.
 - Pending: the user's BL sample was received on 2026-10-16 (IGL MTD image); OTL / FMC layouts reuse it with their own title/registration; SMTP credentials; rate sheets + Get Rate.
 - 2026-10-16 late: party drop-downs filtered by Organization Master category (job Parties & Cargo and booking shipper/consignee/notify): shipper→shipper, consignee→consignee, notify→consignee/agent, origin/delivery agent + co-loaders→agent, bill-to→ar/shipper/consignee, CFS→ap/transporter, CHA→cha, transport→transporter.
+- Containers tab: per-container packages + package type, Total Packages / type (sums), shown on the BL.

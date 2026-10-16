@@ -53,6 +53,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   no.value = "msku1234567"; no.dispatchEvent(new w.Event("input", { bubbles: true }));
   row.querySelector('[data-k="seal_no"]').value = "SL001";
   for (const [k, v] of [["gross_wt", "13451.780"], ["net_wt", "12347.080"]]) { const i = row.querySelector(`[data-k="${k}"]`); i.value = v; i.dispatchEvent(new w.Event("input", { bubbles: true })); }
+  { const pk = row.querySelector('[data-k="pkgs"]'); pk.value = "877"; pk.dispatchEvent(new w.Event("input", { bubbles: true })); const pt = row.querySelector('[data-k="pkg_type"]'); pt.value = "Carton"; pt.dispatchEvent(new w.Event("change", { bubbles: true })); }
+  check("container packages and type add up into Total Packages", q("#jc_pkgs").value === "877" && q("#jc_pkgType").value === "Carton" && q("#jc_pkgs").readOnly, q("#jc_pkgs").value + " " + q("#jc_pkgType").value);
   check("container weights add up into the totals", q("#jc_gwt").value === "13451.780" && q("#jc_nwt").value === "12347.080" && q("#jc_gwt").readOnly, q("#jc_gwt").value);
   q("#jc_marks").value = "1-877 CE NOS 1-877"; q("#jc_desc").value = "EIGHT HUNDRED CARTONS ONLY";
   btn("jt2").click(); await sleep(1500);
@@ -98,7 +100,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   d.getElementById("s-bl-draft"); w.go("bl-draft"); await sleep(2500);
   const doc = d.querySelector("#blDraftPrintZone .bldoc");
   check("net weight above gross is refused", (await j("PUT", `/api/jobs/${job.job_number}/details/containers`, { data: [{ container_no: "MSKU1234567", gross_wt: "10", net_wt: "20" }] }, token)).status === 422);
-  check("the BL document is produced in the MTD layout with the company registration, number, shipper and container", doc && /MULTIMODAL TRANSPORT DOCUMENT/.test(doc.textContent) && /OTI LICENCE NO\. 019654N/.test(doc.textContent) && doc.textContent.includes(code + "MTO001MAASIN") && /MSKU1234567/.test(doc.textContent) && /ORIGINAL/.test(doc.textContent) && /GR\. WT: 13451\.780/.test(doc.textContent) && /EIGHT HUNDRED/.test(doc.textContent) && /CE NOS 1-877/.test(doc.textContent), doc ? doc.textContent.slice(0, 200) : "no document");
+  check("the BL document is produced in the MTD layout with the company registration, number, shipper and container", doc && /MULTIMODAL TRANSPORT DOCUMENT/.test(doc.textContent) && /OTI LICENCE NO\. 019654N/.test(doc.textContent) && doc.textContent.includes(code + "MTO001MAASIN") && /MSKU1234567/.test(doc.textContent) && /ORIGINAL/.test(doc.textContent) && /GR\. WT: 13451\.780/.test(doc.textContent) && /877 CARTON/.test(doc.textContent) && /EIGHT HUNDRED/.test(doc.textContent) && /CE NOS 1-877/.test(doc.textContent), doc ? doc.textContent.slice(0, 200) : "no document");
   check("the document screen has Print, PDF and Send to customer", ["print", "pdf", "mail"].every(k => d.querySelector(`#s-bl-draft [data-bldoc="${k}"]`)));
   w.go("job-detail", { jobNo: job.job_number }); await sleep(3000);
   d.querySelector('#s-job-detail [data-jl="tracking"]').click(); await sleep(700);
@@ -108,7 +110,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("double-click opens the job's tracking page", d.getElementById("jt6").classList.contains("on") && !d.getElementById("modalOvl").classList.contains("on"));
 
   const rd = (await j("GET", `/api/jobs/${job.job_number}/report-data`, null, token)).body;
-  check("marks, description and weights are saved and shown on the BL", rd.details.cargo.marks.includes("CE NOS") && rd.details.cargo.cargoDesc.includes("EIGHT HUNDRED") && rd.details.containers[0].gross_wt === "13451.780", JSON.stringify(rd.details.cargo));
+  check("marks, description and weights are saved and shown on the BL", rd.details.cargo.marks.includes("CE NOS") && rd.details.cargo.cargoDesc.includes("EIGHT HUNDRED") && rd.details.containers[0].gross_wt === "13451.780" && rd.details.containers[0].pkgs === "877" && rd.details.cargo.pkgs === "877", JSON.stringify(rd.details.cargo));
   check("documents get the saved details", rd.details && rd.details.bl && rd.details.bl.hblNo === code + "MTO001MAASIN" && rd.details.containers.length === 1, JSON.stringify(rd.details).slice(0, 200));
   console.log(failures ? failures + " FAILED" : "ALL PASSED");
   process.exit(failures ? 1 : 0);
