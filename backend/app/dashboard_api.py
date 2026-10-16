@@ -2,14 +2,14 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .auth import get_current_user, has_permission
 from .billing import outstanding
 from .db import get_db
-from .models import Customer, Document, Shipment, User
+from .models import AuditLog, CreditFacility, CreditRequest, CrmRecord, Customer, Document, Quotation, Shipment, User
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -120,3 +120,67 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
         "alerts": {"overdue_invoices": overdue_count, "overdue_amount": s(sum(overdue_by_party.values(), Decimal(0))), "draft_documents": drafts or 0, "jobs_arriving_7d": [{"job_number": j.job_number, "eta": j.eta.isoformat(), "route": " → ".join(x for x in (j.pol, j.pod) if x) or "—"} for j in eta_soon[:10]]},
         "access": {"jobs": can_jobs, "billing": can_bill},
     }
+
+
+# ---------------------------------------------------------------- the dashboard side lists (tasks, approvals, notifications, activity)
+def _name(db: Session, cache: dict, uid: int | None) -> str:
+    if not uid:
+        return "System"
+    if uid not in cache:
+        u = db.get(User, uid)
+        cache[uid] = ((u.first_name + " " + (u.last_name or "")).strip() or u.username or u.email) if u else "—"
+    return cache[uid]
+
+
+def _words(action: str) -> str:
+    return action.replace("_", " ").capitalize()
+
+
+@router.get("/side")
+def side_lists(limit: int = Query(default=6, ge=1, le=300), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """What needs THIS user: today's tasks (follow-ups), approvals waiting for them, news about what they submitted, and recent activity. Tenant-scoped; nothing is shared across companies."""
+    if user.organization_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="The dashboard is tenant-scoped")
+    org_id, today, names = user.organization_id, date.today(), {}
+    out = {"tasks": [], "approvals": [], "notifications": [], "activity": []}
+
+    # tasks: this user's open follow-ups that are due today or overdue
+    for r in db.scalars(select(CrmRecord).where(CrmRecord.organization_id == org_id, CrmRecord.kind == "followup", CrmRecord.created_by == user.id).order_by(CrmRecord.id.desc())):
+        d = r.data or {}
+        due = str(d.get("due") or "")[:10]
+        if d.get("done") or not due or due > today.isoformat():
+            continue
+        out["tasks"].append({"ref": r.ref, "title": f"{d.get('type') or 'Follow-up'} — {d.get('relatedLabel') or r.company or ''}".strip(" —"), "due": due, "overdue": due < today.isoformat(), "notes": d.get("notes") or "", "go": "crm-engagement"})
+    out["tasks"].sort(key=lambda t: t["due"])
+
+    # approvals waiting for this user's decision
+    if _has(user, "quote.approve"):
+        for q in db.scalars(select(Quotation).where(Quotation.organization_id == org_id, Quotation.status == "DRAFT", Quotation.approval_status == "SUBMITTED").order_by(Quotation.submitted_at)):
+            out["approvals"].append({"type": "Quotation", "ref": q.number or f"Draft #{q.id}", "party": q.party_name, "by": _name(db, names, q.prepared_by), "at": q.submitted_at, "own": q.prepared_by == user.id, "id": q.id, "go": "quotation", "open": "quotation"})
+    if _has(user, "credit.approve"):
+        for f in db.scalars(select(CreditFacility).where(CreditFacility.organization_id == org_id, CreditFacility.status.in_(("SUBMITTED", "UNDER_REVIEW"))).order_by(CreditFacility.submitted_at)):
+            c = db.get(Customer, f.customer_id)
+            out["approvals"].append({"type": "Credit facility", "ref": f"Credit application #{f.id}", "party": c.name if c else "—", "by": _name(db, names, f.requested_by), "at": f.submitted_at, "own": f.requested_by == user.id, "id": f.customer_id, "go": "org-list", "open": "credit"})
+        for r in db.scalars(select(CreditRequest).where(CreditRequest.organization_id == org_id, CreditRequest.status == "PENDING").order_by(CreditRequest.id)):
+            c = db.get(Customer, r.customer_id)
+            out["approvals"].append({"type": "Credit request", "ref": f"Credit request #{r.id}", "party": c.name if c else "—", "by": _name(db, names, r.requested_by), "at": r.created_at if hasattr(r, "created_at") else None, "own": r.requested_by == user.id, "id": r.customer_id, "go": "org-list", "open": "credit"})
+
+    # news about what this user submitted: decided by someone else in the last 14 days
+    since = today - timedelta(days=14)
+    for q in db.scalars(select(Quotation).where(Quotation.organization_id == org_id, Quotation.prepared_by == user.id, Quotation.approval_status.in_(("APPROVED", "REJECTED")), Quotation.approved_at.is_not(None)).order_by(Quotation.approved_at.desc()).limit(40)):
+        if q.approved_at.date() >= since and q.approved_by != user.id:
+            out["notifications"].append({"text": f"Quotation {q.number or '#' + str(q.id)} was {q.approval_status.lower()} by {_name(db, names, q.approved_by)}", "at": q.approved_at, "kind": "ok" if q.approval_status == "APPROVED" else "bad", "id": q.id, "open": "quotation", "go": "quotation"})
+    for r in db.scalars(select(CreditRequest).where(CreditRequest.organization_id == org_id, CreditRequest.requested_by == user.id, CreditRequest.status != "PENDING", CreditRequest.decided_at.is_not(None)).order_by(CreditRequest.decided_at.desc()).limit(20)):
+        if r.decided_at.date() >= since and r.decided_by != user.id:
+            out["notifications"].append({"text": f"Credit request #{r.id} was {r.status.lower()} by {_name(db, names, r.decided_by)}", "at": r.decided_at, "kind": "ok" if r.status == "APPROVED" else "bad", "id": r.customer_id, "open": "credit", "go": "org-list"})
+    out["notifications"].sort(key=lambda n: n["at"], reverse=True)
+
+    # recent activity of the company (the audit trail, newest first)
+    for a in db.scalars(select(AuditLog).where(AuditLog.organization_id == org_id, AuditLog.module != "AUTHENTICATION").order_by(AuditLog.id.desc()).limit(limit if limit > 6 else 40)):
+        nv = a.new_value or {}
+        ref = nv.get("number") or nv.get("job_number") or nv.get("code") or nv.get("name") or ""
+        out["activity"].append({"text": _words(a.action) + (f" — {ref}" if ref else ""), "by": _name(db, names, a.user_id), "at": a.created_at, "module": a.module})
+    out["counts"] = {k: len(out[k]) for k in ("tasks", "approvals", "notifications", "activity")}
+    for k in ("tasks", "approvals", "notifications", "activity"):
+        out[k] = out[k][:limit]
+    return out

@@ -24,7 +24,7 @@ $py = Join-Path $root "backend\.venv\Scripts\python.exe"
 Push-Location (Join-Path $root "backend")
 & $py -m alembic upgrade head *> (Join-Path $logs "public-migrate.log")
 & $py -m app.seed *> (Join-Path $logs "public-seed.log")
-Start-Process -WindowStyle Hidden -FilePath $py -ArgumentList "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8001" `
+Start-Process -WindowStyle Hidden -FilePath $py -ArgumentList "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001" `
     -RedirectStandardOutput (Join-Path $logs "public-app.log") -RedirectStandardError (Join-Path $logs "public-app.err.log")
 Pop-Location
 
