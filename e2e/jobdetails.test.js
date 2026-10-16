@@ -46,6 +46,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("an invalid container number is refused and the button stays Save", btn("jt2").textContent === "Save", btn("jt2").textContent);
   no.value = "msku1234567"; no.dispatchEvent(new w.Event("input", { bubbles: true }));
   row.querySelector('[data-k="seal_no"]').value = "SL001";
+  for (const [k, v] of [["gross_wt", "13451.780"], ["net_wt", "12347.080"]]) { const i = row.querySelector(`[data-k="${k}"]`); i.value = v; i.dispatchEvent(new w.Event("input", { bubbles: true })); }
+  check("container weights add up into the totals", q("#jc_gwt").value === "13451.780" && q("#jc_nwt").value === "12347.080" && q("#jc_gwt").readOnly, q("#jc_gwt").value);
+  q("#jc_marks").value = "1-877 CE NOS 1-877"; q("#jc_desc").value = "EIGHT HUNDRED CARTONS ONLY";
   btn("jt2").click(); await sleep(1500);
   check("a valid container saves (Save Changes)", btn("jt2").textContent === "Save Changes" && no.value === "MSKU1234567", btn("jt2").textContent + " " + no.value);
 
@@ -66,7 +69,40 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     [d.querySelector("#pc_commodity").value, d.querySelector("#jobBl_hblNo").value, d.querySelector("#jobBl_mblNo").value].join("|"));
   check("buttons read Save Changes after reopening", ["jtpc", "jt2", "jt3"].every(t => d.querySelector(`#${t} [data-jd-save]`).textContent === "Save Changes"));
 
+  const bar = Array.from(d.querySelectorAll("#s-job-detail .ph .pa button")).map(b => b.textContent.trim());
+  check("the job header has no Create Invoice button", !bar.some(t => /Create Invoice/.test(t)), bar.join("|"));
+  check("Tracking sits after Close Job in the header", bar.findIndex(t => /Tracking/.test(t)) > bar.findIndex(t => /Close Job/.test(t)) && bar.findIndex(t => /Close Job/.test(t)) >= 0, bar.join("|"));
+  check("the stage strip shows Draft, Confirmed, On Transit, Closed, Re-open", Array.from(d.querySelectorAll("#s-job-detail .sf .sfn")).map(n => n.textContent.trim()).join(",") === "Draft,Confirmed,On Transit,Closed,Re-open", Array.from(d.querySelectorAll("#s-job-detail .sf .sfn")).map(n => n.textContent.trim()).join(","));
+
+
+  // ---- BL document, stages and Out Docs ----
+  await j("PUT", "/api/company/doc-profile", { reg_mto: "OTI LICENCE NO. 019654N", address: "Chennai, India", phone: "+91 44 1234", signatory: "Authorised Signatory" }, token);
+  check("the job header has no BL Draft button and the BL tab has no View BL Draft", !bar.some(t => /BL Draft/.test(t)) && !/View BL Draft/.test(d.getElementById("jt3").textContent));
+  check("Out Docs shows only the job's own documents (no four-way filter row)", d.getElementById("odModeRow").style.display === "none" && d.getElementById("odSeaExportDocs").style.display !== "none" && d.getElementById("odSeaImportDocs").style.display === "none" && d.getElementById("odAirExportDocs").style.display === "none", [d.getElementById("odSeaExportDocs").style.display, d.getElementById("odSeaImportDocs").style.display].join("|"));
+  q("#jobBl_confirmBtn").click(); await sleep(1500);
+  check("Confirm BL moves the stage to Confirmed", q("#jobBl_stage").value === "Confirmed", q("#jobBl_stage").value);
+  q("#jobBl_relType").value = "Original"; q("#jobBl_releaseBtn").click(); await sleep(1500);
+  check("Original release before payment is stopped, and the admin is offered the override with a reason", q("#jobBl_stage").value === "Confirmed" && d.getElementById("blOvReason") !== null && /full payment/.test(d.getElementById("modalBody").textContent), q("#jobBl_stage").value);
+  d.getElementById("blOvGo").click(); await sleep(500);
+  check("the override needs a reason", q("#jobBl_stage").value === "Confirmed");
+  d.getElementById("blOvReason").value = "Credit customer approved by MD"; d.getElementById("blOvGo").click(); await sleep(1800);
+  check("with a reason the Original BL is released", q("#jobBl_stage").value === "Released", q("#jobBl_stage").value);
+  const act = (await j("GET", `/api/jobs/${job.job_number}/activity?limit=50`, null, token)).body.items;
+  check("the override and its reason are in the job history", act.some(e => e.event_type === "BL_RELEASE_OVERRIDDEN" && /MD/.test(e.reason || "")), act.map(e => e.event_type).join(","));
+  d.getElementById("s-bl-draft"); w.go("bl-draft"); await sleep(2500);
+  const doc = d.querySelector("#blDraftPrintZone .bldoc");
+  check("net weight above gross is refused", (await j("PUT", `/api/jobs/${job.job_number}/details/containers`, { data: [{ container_no: "MSKU1234567", gross_wt: "10", net_wt: "20" }] }, token)).status === 422);
+  check("the BL document is produced in the MTD layout with the company registration, number, shipper and container", doc && /MULTIMODAL TRANSPORT DOCUMENT/.test(doc.textContent) && /OTI LICENCE NO\. 019654N/.test(doc.textContent) && doc.textContent.includes(code + "MTO001MAASIN") && /MSKU1234567/.test(doc.textContent) && /ORIGINAL/.test(doc.textContent) && /GR\. WT: 13451\.780/.test(doc.textContent) && /EIGHT HUNDRED/.test(doc.textContent) && /CE NOS 1-877/.test(doc.textContent), doc ? doc.textContent.slice(0, 200) : "no document");
+  check("the document screen has Print, PDF and Send to customer", ["print", "pdf", "mail"].every(k => d.querySelector(`#s-bl-draft [data-bldoc="${k}"]`)));
+  w.go("job-detail", { jobNo: job.job_number }); await sleep(3000);
+  d.querySelector('#s-job-detail [data-jl="tracking"]').click(); await sleep(700);
+  check("one click on Tracking opens the milestones as a pop-up (the page does not change tab)", d.getElementById("modalOvl").classList.contains("on") && /Operational Milestones/.test(d.getElementById("modalBody").textContent) && !d.getElementById("jt6").classList.contains("on"));
+  d.getElementById("modalOvl").classList.remove("on");
+  d.querySelector('#s-job-detail [data-jl="tracking"]').dispatchEvent(new w.MouseEvent("dblclick", { bubbles: true })); await sleep(500);
+  check("double-click opens the job's tracking page", d.getElementById("jt6").classList.contains("on") && !d.getElementById("modalOvl").classList.contains("on"));
+
   const rd = (await j("GET", `/api/jobs/${job.job_number}/report-data`, null, token)).body;
+  check("marks, description and weights are saved and shown on the BL", rd.details.cargo.marks.includes("CE NOS") && rd.details.cargo.cargoDesc.includes("EIGHT HUNDRED") && rd.details.containers[0].gross_wt === "13451.780", JSON.stringify(rd.details.cargo));
   check("documents get the saved details", rd.details && rd.details.bl && rd.details.bl.hblNo === code + "MTO001MAASIN" && rd.details.containers.length === 1, JSON.stringify(rd.details).slice(0, 200));
   console.log(failures ? failures + " FAILED" : "ALL PASSED");
   process.exit(failures ? 1 : 0);

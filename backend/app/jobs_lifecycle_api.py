@@ -128,13 +128,54 @@ def job_source(job_number: str, user: User = Depends(permission_required("shipme
                           "reference": (quote.header or {}).get("reference_no")} if quote else None}
 
 
-def job_detail_snapshot(db: Session, job: Shipment) -> dict:
-    from .job_details_api import _row
+def company_block(db: Session, job: Shipment) -> dict:
+    from .job_details_api import _profile, company_code
+    from .models import Organization
 
-    row = _row(db, job)
-    if row is None:
-        return {"parties": {}, "cargo": {}, "containers": [], "dims": {}, "bl": {}}
-    return {"parties": row.parties or {}, "cargo": row.cargo or {}, "containers": row.containers or [], "dims": row.dims or {}, "bl": row.bl or {}}
+    org = db.get(Organization, job.organization_id)
+    return {"name": org.legal_name or org.name, "logo": org.logo, "code": company_code(org), "profile": _profile(db, org.id)}
+
+
+def booking_block(db: Session, job: Shipment, b) -> dict:
+    d = (b.data if b else {}) or {}
+    return {"container_mode": job.container_mode, "number": b.number if b else None, "carrier": b.carrier if b else None, "vessel": b.vessel if b else None, "carrier_booking_no": b.carrier_booking_no if b else None, "etd": b.etd if b else job.etd, "eta": b.eta if b else job.eta,
+            "marks": d.get("marks"), "place_of_receipt": d.get("place_of_receipt"), "place_of_delivery": d.get("place_of_delivery"), "freight_pp": d.get("freight_pp"), "service_type": d.get("service_type")}
+
+
+def party_block(db: Session, job: Shipment, b) -> dict:
+    from .job_details_api import _out, _row
+
+    o = _out(db, job, _row(db, job))["parties"]
+    d = (b.data if b else {}) or {}
+    names = {"shipper": o.get("shipper"), "consignee": o.get("consignee"), "notify1": o.get("notify1"), "notify2": o.get("notify2"), "deliveryAgent": o.get("deliveryAgent"), "originAgent": o.get("originAgent")}
+    book_addr = {"shipper": d.get("shipper_address"), "consignee": d.get("consignee_address"), "notify1": d.get("notify_address")}
+    return {k: party_text(db, job.organization_id, v, book_addr.get(k)) for k, v in names.items()}
+
+
+def job_detail_snapshot(db: Session, job: Shipment) -> dict:
+    from .job_details_api import _out, _row
+
+    o = _out(db, job, _row(db, job))   # saved details, else what the booking already knows
+    return {k: o[k] for k in ("parties", "cargo", "containers", "dims", "bl")}
+
+
+def party_text(db: Session, org_id: int, name: str | None, fallback: str | None = None) -> str:
+    """Name and address lines of a party, from the Organization Master (first active branch with an address), else what the booking carried."""
+    from .models import Customer, OrgBranch
+
+    if not name or name.startswith("__"):
+        return ""
+    c = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == name))
+    b = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.address.is_not(None), OrgBranch.address != "").order_by(OrgBranch.sl_no, OrgBranch.id)) if c else None
+    lines = [name]
+    if b:
+        city = " ".join(x for x in (b.city, b.pincode) if x)
+        lines += [x for x in (b.address, b.address2, city, b.state, b.country) if x]
+        if b.phone:
+            lines.append("TEL: " + b.phone)
+    elif fallback:
+        lines.append(fallback)
+    return "\n".join(lines)
 
 
 @router.get("/{job_number}/report-data")
@@ -151,7 +192,7 @@ def report_data(job_number: str, user: User = Depends(permission_required("shipm
     return {"job_number": job.job_number, "job_type": job.job_type, "mode": job.mode, "direction": job.direction, "booking_number": booking.number if booking else None,
             "bl_awb": {"label": "AWB" if job.mode == "Air" else "BL", "number": job.bl_awb}, "pol": job.pol, "pod": job.pod, "packages": job.packages, "gross_weight": str(job.gross_weight) if job.gross_weight is not None else None,
             "volume": str(job.volume) if job.volume is not None else None, "commodity": job.commodity,
-            "details": job_detail_snapshot(db, job),
+            "details": job_detail_snapshot(db, job), "company": company_block(db, job), "booking": booking_block(db, job, booking), "party_text": party_block(db, job, booking),
             "invoices": [{"doc_number": d.doc_number, "doc_type": d.doc_type, "doc_date": d.doc_date, "status": d.status, "total": str(d.grand_total)} for d in docs],
             "shipping_bills": [b for b in bills if b["bill_type"] == "SB"], "bills_of_entry": [b for b in bills if b["bill_type"] == "BE"], "customs_bill_count": cus["count"], "customs_jobs": cus["customs_jobs"]}
 

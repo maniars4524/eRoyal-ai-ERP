@@ -1864,7 +1864,6 @@ tbody tr:hover{background:var(--g0)}
         <button class="btn btn-out btn-sm" data-go="job-new" style="font-size:11px;justify-content:flex-start"><svg class="ic" data-icon="plus" style="color:var(--bl)"></svg> New Job</button>
         <button class="btn btn-out btn-sm" data-go="quotation" style="font-size:11px;justify-content:flex-start"><svg class="ic" data-icon="file-text" style="color:var(--gr)"></svg> New Quote</button>
         <button class="btn btn-out btn-sm" data-go="invoice-list" style="font-size:11px;justify-content:flex-start"><svg class="ic" data-icon="receipt" style="color:var(--am)"></svg> Invoices</button>
-        <button class="btn btn-out btn-sm" data-go="bl-draft" style="font-size:11px;justify-content:flex-start"><svg class="ic" data-icon="clipboard" style="color:var(--n)"></svg> BL Draft</button>
         <button class="btn btn-out btn-sm" data-go="debit-note-list" style="font-size:11px;justify-content:flex-start"><svg class="ic" data-icon="file-minus" style="color:var(--am)"></svg> Debit Note</button>
         <button class="btn btn-out btn-sm" data-go="reports" style="font-size:11px;justify-content:flex-start"><svg class="ic" data-icon="chart-bar" style="color:var(--pu)"></svg> Reports</button>
       </div>
@@ -2582,7 +2581,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- ====== JOB DETAIL ====== -->
 
 <div id="s-job-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="clipboard" style="color:var(--bl)"></svg><span id="jobDetailNo">—</span></div><div class="ps" id="jobDetailSub">Loading job…</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="file"></svg> BL Draft</button><button class="btn btn-out btn-sm" id="jobSendDocsBtn"><svg class="ic" data-icon="mail"></svg> Send Docs</button><button class="btn btn-pri btn-sm" data-go="invoice-new"><svg class="ic" data-icon="receipt"></svg> Create Invoice</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="clipboard" style="color:var(--bl)"></svg><span id="jobDetailNo">—</span></div><div class="ps" id="jobDetailSub">Loading job…</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="jobSendDocsBtn"><svg class="ic" data-icon="mail"></svg> Send Docs</button></div></div>
 
 <div class="sf">
 <div class="sfn done">Open</div><div class="sfa done"></div>
@@ -2602,7 +2601,7 @@ tbody tr:hover{background:var(--g0)}
   <button class="tbb" data-tab="jt3">BL / AWB</button>
   <button class="tbb" data-tab="jt4">Customs</button>
   <button class="tbb" data-tab="jt5">Charges</button>
-  <button class="tbb" data-tab="jt6">Tracking</button>
+  <button class="tbb" data-tab="jt6" style="display:none">Tracking</button>
   <button class="tbb" data-tab="jt7">Documents</button>
   <button class="tbb" data-tab="jt7b" style="color:var(--bl);font-weight:700">📄 Output Docs</button>
   <button class="tbb" data-tab="jt8" style="color:var(--pu);font-weight:700">💰 Vouchers</button>
@@ -2716,7 +2715,10 @@ tbody tr:hover{background:var(--g0)}
   <div class="ct"><svg class="ic" data-icon="package" style="color:var(--bl)"></svg> Containers <span class="b b-bl" style="font-size:10px">Sea</span></div>
   <button class="btn btn-out btn-sm" id="addContainerBtn"><svg class="ic" data-icon="plus"></svg> Add Container</button>
 </div>
-<div class="tw"><table id="containerTable"><thead><tr><th>Container No</th><th>Type</th><th>Seal No</th><th>VGM (KG)</th><th>Empty Pickup</th><th>Stuffed</th><th>Gate-In</th><th>Free Days</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="containerTableBody"><tr class="empty-row"><td colspan="10" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr></tbody></table></div>
+<div class="cb" style="padding:10px 14px 4px"><div class="fsec" style="margin-top:0">Cargo as it appears on the BL</div>
+<div class="fr"><div class="fg" style="grid-column:span 1"><label class="fl">Marks and Numbers</label><textarea class="fc" id="jc_marks" rows="3" placeholder="e.g. 1-877&#10;CE NOS.: 1-877"></textarea></div><div class="fg" style="grid-column:span 2"><label class="fl">Cargo Description</label><textarea class="fc" id="jc_desc" rows="3" placeholder="Kind of packages and general description of goods (said to contain)"></textarea></div></div>
+<div class="fr"><div class="fg"><label class="fl">Total Gross Weight (KG)</label><input class="fc" id="jc_gwt" placeholder="0.000"></div><div class="fg"><label class="fl">Total Net Weight (KG)</label><input class="fc" id="jc_nwt" placeholder="0.000"></div><div class="fg" style="display:flex;align-items:flex-end;font-size:11px;color:var(--g5)" id="jc_wtNote">Totals add up the weights entered for each container below.</div></div></div>
+<div class="tw"><table id="containerTable"><thead><tr><th>Container No</th><th>Type</th><th>Seal No</th><th>VGM (KG)</th><th>Empty Pickup</th><th>Stuffed</th><th>Gate-In</th><th>Gross Wt (KG)</th><th>Net Wt (KG)</th><th>Free Days</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="containerTableBody"><tr class="empty-row"><td colspan="12" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr></tbody></table></div>
 <div class="cf">Total: 0 containers</div>
 </div>
 
@@ -2849,7 +2851,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <!-- JT3 BL/AWB -->
-<div id="jt3" class="tp"><div class="card"><div class="ch"><div class="ct">Bill of Lading / AWB</div><div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-go="bl-draft"><svg class="ic" data-icon="eye"></svg> View BL Draft</button></div></div><div class="cb">
+<div id="jt3" class="tp"><div class="card"><div class="ch"><div class="ct">Bill of Lading / AWB</div><div style="display:flex;gap:6px"></div></div><div class="cb">
 <div class="fr"><div class="fg"><label class="fl">Booking Type <span class="r">*</span></label><select class="fc" id="jobBlBookingType"><option value="Direct">Direct — Carrier's direct BL</option><option value="House" selected>House — Forwarder's own House BL</option></select></div>
 <div class="fg" id="jobBlHbltypeWrap" style="display:none"><label class="fl">House BL Type <span class="r">*</span></label><select class="fc" id="jobBlHbltype"><option value="">--Select--</option><option>OTL</option><option>FMC</option><option>MTO</option></select></div>
 <div class="fg" id="jobBlScacWrap" style="display:none"><label class="fl">SCAC Code <span class="r">*</span></label><select class="fc" id="jobBlScac"><option value="">--Select--</option><option>RTSU</option><option>ARKU</option><option>IGLU</option></select></div>
@@ -2870,7 +2872,10 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <div class="fr"><div class="fg"><label class="fl">Originals</label><input class="fc" id="jobBl_originals" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc" id="jobBl_terms"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" id="jobBl_place" value=""></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date" id="jobBl_released"></div></div>
-<div class="ib ib-am" style="margin-top:8px"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg>Original BL is released only after full payment is confirmed by Accounts.</div>
+<div class="fsec">BL stage and release</div>
+<div class="fr"><div class="fg"><label class="fl">BL Stage</label><input class="fc" id="jobBl_stage" readonly value="Draft" style="font-weight:700;background:var(--g0)"></div><div class="fg"><label class="fl">Release Type</label><select class="fc" id="jobBl_relType"><option>Original</option><option>Express Release</option><option>Telex Release</option><option>Surrender</option></select></div><div class="fg" style="display:flex;align-items:flex-end"><label style="display:flex;gap:6px;align-items:center;font-size:12px"><input type="checkbox" id="jobBl_digSign"> Apply digital signature &amp; seal</label></div></div>
+<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" id="jobBl_confirmBtn">Confirm BL</button><button class="btn btn-pri btn-sm" type="button" id="jobBl_releaseBtn">Release BL</button><button class="btn btn-out btn-sm" type="button" id="jobBl_draftBtn">Back to Draft</button><button class="btn btn-out btn-sm" type="button" data-doc-profile>Company letterhead &amp; registration</button></div>
+<div class="ib ib-am" id="jobBl_releaseNote" style="margin-top:8px"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg>Original BL is released only after full payment is confirmed by Accounts.</div>
 </div></div></div>
 
 <!-- JT4 CUSTOMS -->
@@ -2981,11 +2986,11 @@ tbody tr:hover{background:var(--g0)}
     <div style="font-size:11px;opacity:.65;letter-spacing:.6px;text-transform:uppercase">Output Documents — Generate, View &amp; Print</div>
     <div style="font-size:15px;font-weight:700;margin-top:2px">Job: <span id="outDocJobNo">—</span> <span id="outDocMode" style="font-size:12px;background:rgba(255,255,255,.18);padding:2px 10px;border-radius:20px;margin-left:8px">Sea Export</span></div>
   </div>
-  <div style="font-size:11px;opacity:.7">Documents appear based on shipment mode &amp; direction</div>
+  <div style="display:flex;align-items:center;gap:12px"><div style="font-size:11px;opacity:.7">Documents appear based on shipment mode &amp; direction</div><button class="btn btn-sm" type="button" data-doc-profile style="background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.4)">Company letterhead &amp; registration</button></div>
 </div>
 
 <!-- Mode tabs for filter -->
-<div style="display:flex;gap:6px;margin-bottom:16px">
+<div id="odModeRow" style="display:none;gap:6px;margin-bottom:16px">
   <span style="font-size:11px;color:var(--g5);align-self:center">Showing docs for:</span>
   <button class="btn btn-pri btn-sm" id="odSea" onclick="showOutDocs('sea-export')" style="font-size:11px">🚢 Sea Export</button>
   <button class="btn btn-out btn-sm" id="odSeaImp" onclick="showOutDocs('sea-import')" style="font-size:11px">🚢 Sea Import</button>
@@ -3072,12 +3077,13 @@ tbody tr:hover{background:var(--g0)}
   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--n)">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:38px;height:38px;background:var(--blt);border-radius:8px;display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="clipboard" style="color:var(--n)"></svg></div>
-      <div><div style="font-size:13px;font-weight:600;color:var(--n)">BL Draft (HBL / MBL)</div><div style="font-size:11px;color:var(--g5)">House / Master Bill of Lading draft · Sea Export only</div></div>
+      <div><div style="font-size:13px;font-weight:600;color:var(--n)">Bill of Lading / Multimodal Transport Document</div><div style="font-size:11px;color:var(--g5)">House BL (MTO / OTL / FMC) with company registration, logo and optional digital signature &amp; seal · Sea</div></div>
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-pri btn-sm" data-go="bl-draft"><svg class="ic" data-icon="eye"></svg> View</button>
-      <button class="btn btn-out btn-sm" onclick="printZone('blDraftPrintZone','Bill of Lading')"><svg class="ic" data-icon="printer"></svg> Print</button>
-      <button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> PDF</button>
+      <button class="btn btn-out btn-sm" data-bldoc="print"><svg class="ic" data-icon="printer"></svg> Print</button>
+      <button class="btn btn-out btn-sm" data-bldoc="pdf"><svg class="ic" data-icon="download"></svg> PDF</button>
+      <button class="btn btn-out btn-sm" data-bldoc="mail"><svg class="ic" data-icon="mail"></svg> Send</button>
     </div>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid var(--gr)">
@@ -7003,6 +7009,7 @@ const PORT_TYPE_SHORT = {"Sea Port":"Sea","Airport":"Air","ICD (Dry Port)":"ICD"
 function renderPortRows(){ if(window.PortKit) window.PortKit.load(); }
 
 const MODE_BADGE = {Sea:"b-bl", Air:"b-tl", Road:"b-am", Rail:"b-pu"};
+window.renderJobRows = function(){ return renderJobRows(); };
 function renderJobRows(){
   const body = document.getElementById("jobTableBody");
   const emptyRow = document.getElementById("noJobsRow");
@@ -7165,6 +7172,7 @@ function jcApi(method, path, body){
     if(!res.ok){
       let msg = "Request failed";
       if(typeof data.detail === "string") msg = data.detail;
+      else if(data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)) msg = data.detail.message || msg;
       else if(Array.isArray(data.detail)) msg = data.detail.map(x=> ((x.loc||[]).slice(-2).join(".")) + ": " + x.msg).join("; ");
       throw new Error(msg);
     }
@@ -13558,7 +13566,7 @@ if(document.readyState !== "loading") initChatWidget();
       let msg = "Request failed";
       if(typeof data.detail === "string") msg = data.detail;
       else if(Array.isArray(data.detail)) msg = data.detail.map(x=> ((x.loc||[]).slice(-1)[0]||"") + ": " + x.msg).join("; ");
-      const err = new Error(msg); err.status = res.status; throw err;
+      const err = new Error(msg); err.status = res.status; err.detail = data.detail; throw err;
     }
     return data;
   }
@@ -14837,8 +14845,8 @@ if(document.readyState !== "loading") initChatWidget();
     src.innerHTML = '<a href="#" data-jl-source style="color:var(--bl);font-weight:600;text-decoration:none">ⓘ Source information</a>';
     const strip = scr.querySelector(".sf");
     if(strip){
-      const steps = ["Draft","Confirmed","On Transit", lc.job_stage === "Reopened" ? "Reopened" : "Closed"]; const at = steps.indexOf(lc.job_stage);
-      strip.innerHTML = steps.map((st, i)=>'<div class="sfn '+(i < at ? "done" : i === at ? "act" : "")+'"'+(i === steps.length-1 ? ' style="border-radius:0 4px 4px 0"' : "")+'>'+esc2(st)+'</div>'+(i < steps.length-1 ? '<div class="sfa '+(i < at ? "done" : i === at ? "act" : "pend")+'"></div>' : "")).join("");
+      const steps = ["Draft","Confirmed","On Transit","Closed","Reopened"]; const at = steps.indexOf(lc.job_stage);
+      strip.innerHTML = steps.map((st, i)=>'<div class="sfn '+(i < at ? "done" : i === at ? "act" : "")+'"'+(i === steps.length-1 ? ' style="border-radius:0 4px 4px 0"' : "")+'>'+esc2(st === "Reopened" ? "Re-open" : st)+'</div>'+(i < steps.length-1 ? '<div class="sfa '+(i < at ? "done" : i === at ? "act" : "pend")+'"></div>' : "")).join("");
     }
     const bar = scr.querySelector(".ph .pa"); if(!bar) return;
     bar.querySelectorAll("[data-jl]").forEach(b=>b.remove());
@@ -14847,9 +14855,23 @@ if(document.readyState !== "loading") initChatWidget();
     if(a.can_change_stage) add("stage", "Change Stage", "btn-out");
     if(a.can_close) add("close", "Close Job", "btn-out");
     if(a.can_reopen) add("reopen", "Reopen Job", "btn-pri");
+    add("tracking", "📍 Tracking", "btn-out");
     if(a.can_view_history) add("history", "🕘 Activity History <span class=\"b b-gy\" style=\"margin-left:4px\">"+lc.event_count+"</span>", "btn-out");
   }
 
+  /* Tracking: one click opens the milestones as a pop-up; a double click opens the job's tracking page */
+  let trackTimer = null;
+  function trackingPopup(){
+    renderMilestones(); const card = document.getElementById("jlMilestones"); if(!card) return;
+    openModal({title:"Tracking — "+esc2(J.job || ""), size:"lg", bodyHTML:'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11.5px;color:var(--g5)">Double-click <b>Tracking</b> on the job screen to open the full tracking page.</div><div class="card" style="margin:0">'+card.innerHTML+'</div>', footHTML:'<button class="btn btn-out" type="button" id="jlTrackPage">Open tracking page</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+    const go = document.getElementById("jlTrackPage"); if(go) go.addEventListener("click", openTrackingPage);
+  }
+  function openTrackingPage(){
+    closeModal(); const t = document.querySelector('#s-job-detail .tbb[data-tab="jt6"]'); if(t) t.click();
+    renderMilestones(); window.scrollTo({top:0}); const scr = document.getElementById("s-job-detail"); if(scr) scr.scrollTop = 0; const p = document.getElementById("jt6"); if(p) p.scrollTop = 0;
+  }
+  function openTracking(){ clearTimeout(trackTimer); trackTimer = setTimeout(trackingPopup, 260); }
+  document.addEventListener("dblclick", e=>{ if(e.target.closest('[data-jl="tracking"]')){ clearTimeout(trackTimer); openTrackingPage(); } });
   async function sourceDialog(){
     const r = await req("GET", "/api/jobs/"+encodeURIComponent(J.job)+"/source"); if(!r.ok){ say("Could not load the source information", detailMsg(r)); return; }
     const d = r.data; const row = (k, v)=> '<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--g1)"><div style="width:150px;color:var(--g5);font-size:11.5px">'+esc2(k)+'</div><div style="flex:1;font-weight:500">'+(v ? esc2(v) : '<span style="color:var(--g4)">—</span>')+'</div></div>';
@@ -14952,7 +14974,12 @@ if(document.readyState !== "loading") initChatWidget();
       closeModal(); say("Job Reopened Successfully!", J.job); J.lc = r.data; renderHeader(); renderMilestones(); refreshAfter();
     });
   }
-  function refreshAfter(){ if(J.drawer.open) loadDrawer(true); if(window.populateJobDetail && J.job) { /* keep the page data in sync without losing the user's place */ } }
+  function refreshAfter(){
+    if(J.drawer.open) loadDrawer(true);
+    if(window.populateJobDetail && J.job) window.populateJobDetail(J.job);   /* overview, status and details follow the new stage */
+    if(window.renderJobRows) window.renderJobRows();                          /* the job list and its stage columns */
+    setTimeout(()=>{ decorateList().catch(()=>{}); if(window.JobDetailKit && window.JobDetailKit.job) window.JobDetailKit.load(J.job); }, 700);
+  }
 
   /* ---------- activity history drawer ---------- */
   function ensureDrawer(){
@@ -15054,7 +15081,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* ---------- wiring ---------- */
   document.addEventListener("click", e=>{
     const srcLink = e.target.closest("[data-jl-source]"); if(srcLink){ e.preventDefault(); e.stopPropagation(); sourceDialog(); return; }
-    const b = e.target.closest("[data-jl]"); if(b){ e.stopPropagation(); const k = b.dataset.jl; if(k==="history") return openDrawer(); if(k==="stage") return stageDialog(); if(k==="close") return closeDialog(); if(k==="reopen") return reopenDialog(); }
+    const b = e.target.closest("[data-jl]"); if(b){ e.stopPropagation(); const k = b.dataset.jl; if(k==="history") return openDrawer(); if(k==="stage") return stageDialog(); if(k==="close") return closeDialog(); if(k==="reopen") return reopenDialog(); if(k==="tracking") return openTracking(); }
     const m = e.target.closest("[data-jl-ms]"); if(m){ e.stopPropagation(); return milestoneDialog(m.dataset.jlMs); }
     const h = e.target.closest("[data-jl-hist]"); if(h){ e.stopPropagation(); J.pendingHistory = h.dataset.jlHist; const c = document.querySelector('[data-job="'+h.dataset.jlHist+'"]'); if(c) c.click(); setTimeout(()=>{ const btn = document.querySelector('#s-job-detail [data-jl="history"]'); if(btn) btn.click(); }, 1500); }
   }, true);
@@ -17066,7 +17093,7 @@ function makePrintFit(){
 (function(){
   "use strict";
   const esc = s=> String(s == null ? "" : s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-  const SCREENS = {"bl-draft":"blDraftPrintZone", "freight-cert":"fcPrintZone", "cargo-arrival":"canPrintZone", "job-pl-report":"plPrintZone", "tax-invoice-print":"taxInvPrintZone"};
+  const SCREENS = {"freight-cert":"fcPrintZone", "cargo-arrival":"canPrintZone", "job-pl-report":"plPrintZone", "tax-invoice-print":"taxInvPrintZone"};
   const fact = (k, v)=> '<div style="min-width:170px;flex:1"><div style="font-size:10.5px;color:var(--g5);font-weight:600;text-transform:uppercase;letter-spacing:.3px">'+esc(k)+'</div><div style="margin-top:2px">'+(v ? esc(v) : '<span style="color:var(--g4)">—</span>')+'</div></div>';
   function render(zoneId){
     const zone = document.getElementById(zoneId); if(!zone) return;
@@ -17174,8 +17201,9 @@ function makePrintFit(){
   };
   JD.apply = function(){
     const d = JD.data; if(!d) return;
-    if(d.saved_sections.parties || d.saved_sections.cargo) window.pcApplySaved(d.job_number, Object.assign({}, d.parties), d.cargo);
+    if(Object.keys(d.parties || {}).length || Object.keys(d.cargo || {}).length) window.pcApplySaved(d.job_number, Object.assign({}, d.parties), d.cargo);
     JD.renderContainers(d.containers || []); JD.renderDims(d.dims || {});
+    const cg = d.cargo || {}; [["jc_marks", cg.marks], ["jc_desc", cg.cargoDesc], ["jc_gwt", cg.gwt], ["jc_nwt", cg.nwt]].forEach(([id, v])=>{ const n = el(id); if(n) n.value = v == null ? "" : v; }); JD.totals();
     const b = d.bl || {}; const set = (id, v)=>{ const n = el(id); if(n && v != null) n.value = v; };
     const scac = el("jobBlScac"); if(scac && b.scac && ![].some.call(scac.options, o=>o.value === b.scac)) scac.add(new Option(b.scac, b.scac));
     set("jobBlBookingType", b.bookingType || "House"); set("jobBlHbltype", b.hblType || "");
@@ -17187,8 +17215,38 @@ function makePrintFit(){
     set("jobBl_polpod", d.pol_code + " / " + d.pod_code);
     const gen = el("jobBl_genHblBtn"); if(gen){ gen.disabled = !!b.hblNo; gen.style.opacity = b.hblNo ? ".5" : ""; gen.title = b.hblNo ? "A House BL number has already been issued for this job" : ""; }
     const ht = el("jobBlHbltype"); if(ht){ ht.disabled = !!b.hblNo; }
-    JD.preview();
+    JD.preview(); JD.stage(); JD.docs();
   };
+  JD.docs = function(){
+    const d = JD.data; if(!d || !window.showOutDocs) return;
+    const key = d.mode === "Sea" || d.mode === "Air" ? d.mode.toLowerCase()+"-"+(d.direction === "Import" ? "import" : "export") : "none";
+    window.showOutDocs(key);
+  };
+  JD.stage = function(){
+    const d = JD.data, b = d.bl || {}, r = d.release || {}, st = b.blStage || "Draft"; const set = (id, v)=>{ const n = el(id); if(n) n.value = v; };
+    set("jobBl_stage", st); if(b.releaseType) set("jobBl_relType", b.releaseType); const dg = el("jobBl_digSign"); if(dg) dg.checked = !!b.digitalSign;
+    const show = (id, on)=>{ const n = el(id); if(n) n.style.display = on ? "" : "none"; };
+    show("jobBl_confirmBtn", st === "Draft"); show("jobBl_releaseBtn", st === "Confirmed"); show("jobBl_draftBtn", st === "Confirmed");
+    ["jobBl_relType", "jobBl_digSign"].forEach(id=>{ const n = el(id); if(n) n.disabled = st === "Released"; });
+    const note = el("jobBl_releaseNote"); if(note){ note.className = "ib "+(r.payment_ok ? "ib-gr" : "ib-am"); note.innerHTML = "Original BL is released only after full payment is confirmed by Accounts. <b>"+esc2(r.message || "")+".</b>"+(b.releaseOverride ? " Released before payment by "+esc2(b.releaseOverride.by)+": "+esc2(b.releaseOverride.reason) : ""); }
+  };
+  async function stageTo(stage, extra){
+    try{ JD.data = await api("POST", "/api/jobs/"+encodeURIComponent(JD.job)+"/bl/stage", Object.assign({stage}, extra || {})); JD.apply(); JD.bars();
+      say(stage === "Released" ? "BL Released Successfully!" : stage === "Confirmed" ? "BL Confirmed Successfully!" : "BL Moved Back To Draft", (JD.data.bl.hblNo || JD.data.bl.directNo || JD.job)); return true;
+    }catch(e){ if(e.detail && e.detail.code === "PAYMENT_PENDING") return overrideDialog(stage, extra, e.detail); say("Could not change the BL stage", e.message, "error"); return false; }
+  }
+  function overrideDialog(stage, extra, det){
+    if(!det.can_override){ say("Original BL cannot be released yet", det.message+" Ask a user with the release-override right, or collect the payment.", "error"); return false; }
+    openModal({title:"Release Original BL before payment?", bodyHTML:'<div class="ib ib-am" style="margin-bottom:10px">'+esc2(det.message)+'</div><div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Reason for releasing before payment <span class="r">*</span></label><textarea class="fc" id="blOvReason" rows="3" placeholder="e.g. Approved credit customer, MD approval ref ..."></textarea></div></div><div style="font-size:11.5px;color:var(--g5)">Your name, the reason and the time are written to the job activity history.</div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="blOvGo">Release with override</button>'});
+    el("blOvGo").addEventListener("click", async ()=>{ const reason = el("blOvReason").value.trim(); if(reason.length < 5){ say("Reason required", "Give the reason for releasing before payment", "warn"); return; } closeModal(); await stageTo(stage, Object.assign({}, extra, {override:true, reason})); });
+    return false;
+  }
+  document.addEventListener("click", e=>{
+    if(e.target.closest("#jobBl_confirmBtn")) stageTo("Confirmed");
+    else if(e.target.closest("#jobBl_draftBtn")) stageTo("Draft");
+    else if(e.target.closest("#jobBl_releaseBtn")) stageTo("Released", {release_type:el("jobBl_relType").value, digital_sign:!!el("jobBl_digSign").checked});
+  });
   JD.preview = async function(){
     const t = (el("jobBlHbltype") || {}).value, n = el("jobBl_hblNo"); if(!n || !JD.job || (JD.data && JD.data.bl && JD.data.bl.hblNo)) return;
     n.placeholder = "Not generated yet";
@@ -17206,6 +17264,7 @@ function makePrintFit(){
       '<td><input class="fc" data-k="seal_no" placeholder="Seal No" style="font-family:var(--font-mono);width:100px" value="'+esc2(r.seal_no || "")+'"></td>'+
       '<td><input class="fc" data-k="vgm" placeholder="0" style="width:80px" value="'+esc2(r.vgm || "")+'"></td>'+
       ["empty_pickup", "stuffed", "gate_in"].map(k=>'<td><input class="fc" data-k="'+k+'" type="date" style="width:110px" value="'+esc2(r[k] || "")+'"></td>').join("")+
+      '<td><input class="fc" data-k="gross_wt" placeholder="0.000" style="width:90px" value="'+esc2(r.gross_wt || "")+'"></td><td><input class="fc" data-k="net_wt" placeholder="0.000" style="width:90px" value="'+esc2(r.net_wt || "")+'"></td>'+
       '<td><input class="fc" data-k="free_days" placeholder="14" style="width:55px" value="'+esc2(r.free_days || "")+'"></td>'+
       '<td><span class="b b-gy dot" data-jd-status>'+stat(r)+'</span></td><td class="no-print"><button class="ta" type="button" data-jd-del>✕</button></td>';
     return tr;
@@ -17213,12 +17272,24 @@ function makePrintFit(){
   function contFoot(){ const n = document.querySelectorAll("#containerTableBody tr[data-jd-cont]").length; const f = document.querySelector("#jt2Sea .cf"); if(f) f.textContent = "Total: "+n+" container"+(n === 1 ? "" : "s"); }
   JD.renderContainers = function(rows){
     const tb = el("containerTableBody"); if(!tb) return; tb.innerHTML = "";
-    if(!rows.length) tb.innerHTML = '<tr class="empty-row"><td colspan="10" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr>';
+    if(!rows.length) tb.innerHTML = '<tr class="empty-row"><td colspan="12" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr>';
     rows.forEach(r=> tb.appendChild(contRow(r))); contFoot();
+  };
+  const num = v=> { const n = parseFloat(String(v || "").replace(/,/g, "")); return isNaN(n) ? 0 : n; };
+  JD.totals = function(){
+    const rows = [].map.call(document.querySelectorAll("#containerTableBody tr[data-jd-cont]"), tr=>({g:(tr.querySelector('[data-k="gross_wt"]') || {}).value, n:(tr.querySelector('[data-k="net_wt"]') || {}).value}));
+    const any = rows.some(r=>num(r.g) || num(r.n)); const g = el("jc_gwt"), n = el("jc_nwt"); if(!g || !n) return;
+    g.readOnly = n.readOnly = any; g.style.background = n.style.background = any ? "var(--g0)" : "";
+    if(any){ g.value = rows.reduce((a, r)=>a + num(r.g), 0).toFixed(3); n.value = rows.reduce((a, r)=>a + num(r.n), 0).toFixed(3); }
+    const note = el("jc_wtNote"); if(note) note.textContent = any ? "Totals are the sum of the container weights below." : "No container weights entered: type the totals here.";
+  };
+  JD.collectCargo = function(){
+    const c = Object.assign({}, JD.data && JD.data.cargo || {}, window.pcSnapshot(JD.job).cargo);
+    return Object.assign(c, {marks:(el("jc_marks") || {}).value || "", cargoDesc:(el("jc_desc") || {}).value || "", gwt:(el("jc_gwt") || {}).value || "", nwt:(el("jc_nwt") || {}).value || ""});
   };
   JD.collectContainers = function(){
     return [].map.call(document.querySelectorAll("#containerTableBody tr[data-jd-cont]"), tr=>{ const o = {}; tr.querySelectorAll("[data-k]").forEach(i=>{ o[i.dataset.k] = (i.value || "").trim(); }); return o; })
-      .filter(o=> o.container_no || o.seal_no || o.vgm);
+      .filter(o=> o.container_no || o.seal_no || o.vgm || o.gross_wt || o.net_wt);
   };
 
   /* ---------------- air dimensions ---------------- */
@@ -17274,7 +17345,7 @@ function makePrintFit(){
     const wasSaved = (JD.data.saved_sections || {}); const first = tab === "jtpc" ? !(wasSaved.parties || wasSaved.cargo) : !wasSaved[sectionOf(tab)];
     try{
       if(tab === "jtpc"){ const s = window.pcSnapshot(JD.job); JD.data = await put("parties", s.parties); JD.data = await put("cargo", s.cargo); }
-      else if(tab === "jt2"){ const sec = sectionOf(tab); JD.data = await put(sec, sec === "dims" ? JD.collectDims() : JD.collectContainers()); }
+      else if(tab === "jt2"){ const sec = sectionOf(tab); JD.data = await put(sec, sec === "dims" ? JD.collectDims() : JD.collectContainers()); const cg = JD.collectCargo(); JD.data = await put("cargo", cg); window.pcApplySaved(JD.job, null, cg); }
       else JD.data = await put("bl", JD.collectBl());
       JD.apply(); JD.bars(); if(window.populateJobDetail) window.populateJobDetail(JD.job);
       say(first ? "Job Details Saved Successfully!" : "Job Updated Successfully!", JD.job);
@@ -17284,17 +17355,164 @@ function makePrintFit(){
   document.addEventListener("click", e=>{
     const sv = e.target.closest("[data-jd-save]"); if(sv){ save(sv.dataset.jdSave); return; }
     if(e.target.closest("#addContainerBtn")){ e.stopImmediatePropagation(); const tb = el("containerTableBody"); const empty = tb.querySelector(".empty-row"); if(empty) empty.remove(); tb.appendChild(contRow()); contFoot(); return; }
-    const del = e.target.closest("[data-jd-del]"); if(del){ const tr = del.closest("tr"); tr.remove(); const tb = el("containerTableBody"); if(!tb.children.length) JD.renderContainers([]); contFoot(); return; }
+    const del = e.target.closest("[data-jd-del]"); if(del){ const tr = del.closest("tr"); tr.remove(); JD.totals(); const tb = el("containerTableBody"); if(!tb.children.length) JD.renderContainers([]); contFoot(); return; }
     if(e.target.closest("#jobBl_genHblBtn")){ e.stopImmediatePropagation(); generate(); }
   }, true);
   document.addEventListener("input", e=>{
     const tr = e.target.closest("tr[data-jd-cont]"); if(!tr) return;
     if(e.target.dataset.k === "container_no") e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const r = {}; tr.querySelectorAll("[data-k]").forEach(i=>{ r[i.dataset.k] = i.value; }); tr.querySelector("[data-jd-status]").textContent = stat(r);
+    if(e.target.dataset.k === "gross_wt" || e.target.dataset.k === "net_wt") JD.totals();
   });
   document.addEventListener("change", e=>{ if(e.target.id === "jobBlHbltype") JD.preview(); });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>JD.load(opts && opts.jobNo), 900); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   BL / MTD DOCUMENT KIT: the Bill of Lading / Multimodal Transport Document of a sea job, produced from the job's own data
+   (saved parties, cargo, containers, BL tab, booking, company letterhead and registration numbers). It is viewed, printed,
+   downloaded as PDF and emailed from the job's Output Docs. BL stage (Draft / Confirmed / Released), release type and the
+   digital signature and seal are controlled on the job's BL tab.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const BD = window.BLDocKit = {};
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "";
+  const nl2br = t=> esc2(t || "").replace(/\n/g, "<br>");
+  const TYPE = {MTO:{title:"MULTIMODAL TRANSPORT DOCUMENT", no:"MTD Number", reg:"reg_mto", short:"MTD", who:"MTO"}, OTL:{title:"BILL OF LADING", no:"B/L Number", reg:"reg_otl", short:"B/L", who:"Carrier"}, FMC:{title:"BILL OF LADING", no:"B/L Number", reg:"reg_fmc", short:"B/L", who:"NVOCC"}};
+  const PREAMBLE = {
+    MTO:"Taken in charge in apparently good condition at the place of receipt for transport and delivery as mentioned above, unless otherwise stated. The MTO in accordance with the provisions contained in the MTD undertakes to perform or to procure the performance of the multimodal transport from the place at which the goods are taken in charge to the place designated for delivery and assumes responsibility for such transport. One of the MTD(s) must be surrendered, duly endorsed in exchange for the goods. In witness whereof the original MTD all of this tenor and date have been signed in the number indicated above one of which being accomplished the other(s) to be void.",
+    OTHER:"Received in apparent good order and condition, unless otherwise stated, the goods described herein for carriage from the place of receipt to the place of delivery, subject to the terms and conditions of this Bill of Lading. One of the original Bills of Lading must be surrendered, duly endorsed, in exchange for the goods. In witness whereof the original Bills of Lading all of this tenor and date have been signed in the number indicated above, one of which being accomplished the other(s) to be void."};
+  const CLAUSES = "By accepting this Bill of Lading shipper accepts to abide by all terms, conditions and clauses printed and stamped on the face or reverse side of this Bill of Lading. For freight collect shipments the shipper accepts his responsibility towards the carrier for payment of freight, detention, demurrage, reshipment costs and/or disposal costs, accrued governments costs etc., if the consignee fails to take delivery of the cargo within 90 days from the date the cargo reaches destination. Carrier reserves the right to repack the goods if the same are not in seaworthy packing, and the packing condition will be certified by the local bonded warehouse or surveyor and shipper by virtue of accepting this Bill of Lading accepts the liability towards the cost for the same. All charges are as per declared weight and volume from shipper / consignee as per the revised weight and volume whichever is higher.";
+
+  const cell = (label, body, style)=> '<div style="padding:4px 7px;'+(style || "")+'"><div style="font-size:9px;color:#444">'+label+'</div><div style="font-size:11.5px;line-height:1.35;margin-top:2px">'+(body || "&nbsp;")+'</div></div>';
+  const BORDER = "1px solid #000";
+
+  BD.html = function(rd){
+    const d = rd.details || {}, bl = d.bl || {}, p = d.parties || {}, c = d.cargo || {}, co = rd.company || {}, pr = co.profile || {}, bk = rd.booking || {}, pt = rd.party_text || {};
+    const type = bl.hblType && TYPE[bl.hblType] ? bl.hblType : "MTO"; const T = TYPE[type];
+    const stage = bl.blStage || "Draft";
+    const number = bl.bookingType === "Direct" ? bl.directNo : bl.hblNo;
+    const conts = (d.containers || []).filter(x=>x.container_no);
+    const contLines = conts.length ? conts.map(x=>"CONT NO: "+esc2(x.container_no)+(x.type ? "  "+esc2(x.type) : "")+(x.seal_no ? "<br>CARRIER SEAL: "+esc2(x.seal_no) : "")+(x.gross_wt ? "<br>GR. WT: "+esc2(x.gross_wt)+" KGS" : "")+(x.net_wt ? "<br>NET WT: "+esc2(x.net_wt)+" KGS" : "")).join("<br><br>") : "";
+    const sb = (rd.shipping_bills || []).map(b=>"SB NO: "+esc2(b.bill_no)+(b.bill_date ? " DT. "+dmy(b.bill_date) : "")).join("<br>");
+    const pk = c.pkgs ? esc2(c.pkgs)+" "+esc2((c.pkgType || "PACKAGES").toUpperCase()) : "";
+    const gw = c.gwt ? "GR. WT. KGS<br>"+esc2(c.gwt)+(c.nwt ? "<br>NET. WT. KGS<br>"+esc2(c.nwt) : "") : "";
+    const rel = bl.releaseType || ""; const express = /express|telex/i.test(rel);
+    const terms = bl.terms ? "FREIGHT "+esc2(String(bl.terms).toUpperCase()) : "";
+    const remarks = [terms, bk.container_mode ? esc2(bk.container_mode)+"/"+esc2(bk.container_mode) : "", stage === "Released" && rel ? esc2(rel.toUpperCase()) : ""].filter(Boolean).join("<br>");
+    const origNo = express ? "0 (ZERO)" : esc2(bl.originals || "");
+    const placeDate = [bl.place || "", bl.hblDate ? dmy(bl.hblDate) : ""].filter(Boolean).join(", ");
+    const sig = stage === "Released" && bl.digitalSign ? (pr.sign_image ? '<img src="'+pr.sign_image+'" style="max-height:54px;max-width:170px">' : "")+(pr.seal_image ? '<img src="'+pr.seal_image+'" style="max-height:70px;max-width:110px;margin-left:10px">' : "") : "";
+    const water = stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:110px;font-weight:700;color:rgba(0,0,0,.07);transform:rotate(-28deg)">DRAFT</div>' : "";
+    const reg = pr[T.reg] ? '<div style="margin:10px 0 6px;font-size:22px;font-weight:700;letter-spacing:.3px">'+esc2(pr[T.reg])+'</div>' : "";
+    const logo = co.logo ? '<img src="'+co.logo+'" style="max-height:110px;max-width:240px">' : "";
+    const contact = [pr.phone ? "Tel : "+esc2(pr.phone) : "", pr.fax ? "Fax : "+esc2(pr.fax) : "", pr.email ? "Email : "+esc2(pr.email) : "", pr.web ? "Web : "+esc2(pr.web) : ""].filter(Boolean).join(" &nbsp;&nbsp; ");
+    return '<div class="bldoc" style="position:relative;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;width:760px;margin:0 auto;border:2px solid #000">'+water+
+      '<div style="display:grid;grid-template-columns:55% 45%">'+
+        '<div style="border-right:'+BORDER+'"><div style="padding:8px 8px 4px;font-weight:700;font-size:14px;letter-spacing:.3px">'+T.title+'</div>'+
+          cell("Consignor / Shipper", nl2br(pt.shipper || p.shipper), "border-top:"+BORDER+";min-height:96px")+cell("Consignee (or order)", nl2br(pt.consignee || p.consignee), "border-top:"+BORDER+";min-height:96px")+cell("Notify Address", nl2br(pt.notify1 || p.notify1), "border-top:"+BORDER+";min-height:96px")+'</div>'+
+        '<div><div style="display:grid;grid-template-columns:38% 62%;border-bottom:'+BORDER+'"><div style="padding:8px;font-size:10px;text-align:center">'+T.no+'<br><br>Shipment reference no.</div><div><div style="border-left:'+BORDER+';border-bottom:'+BORDER+';padding:6px 8px;font-weight:700;min-height:34px">'+esc2(number || "")+'</div><div style="border-left:'+BORDER+';padding:6px 8px;min-height:34px">'+esc2(rd.job_number || "")+'</div></div></div>'+
+          '<div style="text-align:center;padding:8px 10px">'+logo+'<div style="font-size:17px;font-weight:700;margin-top:6px">'+esc2(co.name || "")+'</div>'+(pr.tagline ? '<div style="font-style:italic;font-size:13px">'+esc2(pr.tagline)+'</div>' : "")+'<div style="font-size:10.5px;margin-top:4px;line-height:1.4">'+nl2br(pr.address)+'</div><div style="font-size:10px;margin-top:3px">'+contact+'</div>'+reg+'</div>'+
+          '<div style="padding:0 10px 8px;font-size:9.5px;line-height:1.45;text-align:justify">'+esc2(type === "MTO" ? PREAMBLE.MTO : PREAMBLE.OTHER)+'</div></div></div>'+
+      '<div style="display:grid;grid-template-columns:33% 33% 34%;border-top:'+BORDER+'">'+cell("Place of Acceptance", esc2(bk.place_of_receipt || rd.pol), "border-right:"+BORDER)+cell("Date of Acceptance", dmy(bk.etd), "border-right:"+BORDER)+cell("Port of Loading", esc2(rd.pol))+'</div>'+
+      cell("Vessel Voy. No.", esc2(bk.vessel || ""), "border-top:"+BORDER+";min-height:44px")+
+      '<div style="display:grid;grid-template-columns:20% 20% 20% 20% 20%;border-top:'+BORDER+'">'+cell("Port of Discharge", esc2(rd.pod), "border-right:"+BORDER)+cell("Place of Delivery", esc2(bk.place_of_delivery || rd.pod), "border-right:"+BORDER)+cell("Date or Period of Delivery", dmy(bk.eta), "border-right:"+BORDER)+cell("Modes / Means of transport", "", "border-right:"+BORDER)+cell("Route / Place of Transhipment (if any)", "")+'</div>'+
+      '<div style="border-top:'+BORDER+';display:grid;grid-template-columns:21% 14% 31% 17% 17%;font-size:9px;text-align:center"><div style="padding:6px">Container No(s)</div><div style="padding:6px">Marks and Numbers</div><div style="padding:6px">Number of packages, kind of packages, general description of goods, (Said to contain)</div><div style="padding:6px">Gross Weight</div><div style="padding:6px">Measurement</div></div>'+
+      '<div style="display:grid;grid-template-columns:21% 14% 31% 17% 17%;font-size:11.5px;line-height:1.4;min-height:300px;padding:0 0 8px"><div style="padding:6px 7px">'+contLines+'</div><div style="padding:6px 7px">'+nl2br(c.marks || bk.marks || "")+'</div><div style="padding:6px 7px">'+pk+'<br>'+nl2br(c.cargoDesc || c.commodity || "")+(c.hscode ? "<br>HS CODE: "+esc2(c.hscode) : "")+'<br><br>'+sb+'<br><br>'+remarks+'</div><div style="padding:6px 7px">'+gw+'</div><div style="padding:6px 7px">'+(c.vol ? esc2(c.vol)+" CBM" : "")+'</div></div>'+
+      '<div style="display:grid;grid-template-columns:37% 25% 38%;border-top:'+BORDER+'"><div style="border-right:'+BORDER+'">'+cell("Delivery Agent", nl2br(pt.deliveryAgent || p.deliveryAgent), "min-height:118px")+'<div style="border-top:'+BORDER+';font-size:7px;line-height:1.3;padding:4px 5px;text-align:justify">'+esc2(pr.terms || CLAUSES)+'</div></div>'+
+        '<div style="border-right:'+BORDER+'">'+cell("Freight Amount", "", "min-height:60px")+'<div style="border-top:'+BORDER+'">'+cell("Freight Payable at", esc2(bl.terms === "Collect" ? "DESTINATION" : (bl.place || "")))+'</div><div style="border-top:'+BORDER+'">'+cell("Number of Original "+T.short+" (s)", origNo)+'</div></div>'+
+        '<div>'+cell("Place and date of issue", esc2(placeDate), "text-align:center;border-bottom:"+BORDER)+'<div style="padding:8px;text-align:center;min-height:130px;position:relative"><div style="font-weight:700;font-size:12px">For '+esc2(co.name || "")+'</div><div style="margin-top:8px;min-height:72px">'+sig+'</div><div style="position:absolute;bottom:6px;left:0;right:0;font-size:10px">'+esc2(pr.signatory || "Authorised Signatory")+'</div></div></div></div></div>';
+  };
+
+  BD.data = async function(jobNo){ return api("GET", "/api/jobs/"+encodeURIComponent(jobNo)+"/report-data"); };
+  BD.build = async function(jobNo){
+    const rd = await BD.data(jobNo); if(rd.mode !== "Sea") throw new Error("The Bill of Lading / Multimodal Transport Document is produced for sea jobs. Air jobs carry a House AWB");
+    return {rd, html:BD.html(rd), title:(((rd.details || {}).bl || {}).hblNo || ((rd.details || {}).bl || {}).directNo || rd.job_number)};
+  };
+  const jobNo = ()=> window.__lastJobNo;
+
+  /* ---- the document screen ---- */
+  BD.show = async function(){
+    const zone = el("blDraftPrintZone"); if(!zone) return; const body = zone.querySelector(".cb"); const no = jobNo();
+    if(!no){ body.innerHTML = '<div style="padding:22px;color:var(--g5)">Open a job and choose this document from its Output Docs.</div>'; return; }
+    body.innerHTML = '<div style="padding:22px;color:var(--g5)">Preparing the document…</div>';
+    try{ const b = await BD.build(no); body.innerHTML = '<div style="overflow:auto;padding:6px;background:#fff">'+b.html+'</div>'; BD.toolbar(); }
+    catch(e){ body.innerHTML = '<div class="ib ib-am" style="margin:16px">'+esc2(e.message)+'</div>'; }
+  };
+  BD.toolbar = function(){
+    const bar = document.querySelector("#s-bl-draft .ph .pa"); if(!bar || bar.querySelector("[data-bldoc]")) return;
+    bar.insertAdjacentHTML("beforeend", '<button class="btn btn-out btn-sm" data-bldoc="print">🖨 Print</button><button class="btn btn-out btn-sm" data-bldoc="pdf">⬇ PDF</button><button class="btn btn-pri btn-sm" data-bldoc="mail">✉ Send to customer</button>');
+  };
+
+  /* ---- print / pdf / mail ---- */
+  BD.print = async function(){
+    try{ const b = await BD.build(jobNo()); const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
+      w.document.write('<!doctype html><title>'+esc2(b.title)+'</title><style>@page{size:A4;margin:8mm}body{margin:0}.bldoc{width:100%!important;border-width:2px!important}</style>'+b.html); w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 700);
+    }catch(e){ say("Could not prepare the document", e.message, "error"); }
+  };
+  function loadScript(src){ return new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(s); }); }
+  BD.pdf = async function(){
+    const b = await BD.build(jobNo());
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff;padding:0"; host.innerHTML = b.html; document.body.appendChild(host);
+    try{
+      const canvas = await window.html2canvas(host.firstChild, {scale:2, backgroundColor:"#fff", useCORS:true}); const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4"});
+      const w = 194, h = canvas.height * w / canvas.width; const k = h > 281 ? 281 / h : 1;
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 8, 8, w * k, h * k);
+      return {pdf, filename:"BL-"+b.title+".pdf", title:b.title};
+    } finally { host.remove(); }
+  };
+  BD.download = async function(){ try{ const r = await BD.pdf(); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); }catch(e){ say("Could not make the PDF", e.message+" You can use Print and choose Save as PDF", "error"); } };
+  BD.mail = async function(){
+    let b; try{ b = await BD.build(jobNo()); }catch(e){ say("Could not prepare the document", e.message, "error"); return; }
+    const p = ((b.rd.details || {}).parties) || {}; const f = (id, label, val, ph)=> '<div class="fg" style="grid-column:span 3"><label class="fl">'+label+'</label><input class="fc" id="'+id+'" value="'+esc2(val || "")+'" placeholder="'+(ph || "")+'"></div>';
+    openModal({title:"Send Bill of Lading to customer", bodyHTML:'<div class="fr">'+f("blMailTo", "To (separate several with commas)", "", "customer@example.com")+'</div><div class="fr">'+f("blMailSub", "Subject", "Bill of Lading "+b.title+" — Job "+b.rd.job_number)+'</div><div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Message</label><textarea class="fc" id="blMailMsg" rows="4">Dear '+esc2(p.consignee || p.shipper || "Sir / Madam")+',\n\nPlease find attached the Bill of Lading '+esc2(b.title)+' for job '+esc2(b.rd.job_number)+'.\n\nRegards</textarea></div></div><div class="ib ib-bl">The document is attached as a PDF.</div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="blMailSend">Send</button>'});
+    el("blMailSend").addEventListener("click", async ()=>{
+      const btn = el("blMailSend"); btn.disabled = true; btn.textContent = "Sending…";
+      try{ const r = await BD.pdf(); const b64 = r.pdf.output("datauristring").split(",")[1];
+        await api("POST", "/api/jobs/"+encodeURIComponent(jobNo())+"/send-document", {to:el("blMailTo").value, subject:el("blMailSub").value, message:el("blMailMsg").value, filename:r.filename, pdf_base64:b64});
+        closeModal(); say("Document Sent Successfully!", "Emailed to "+el("blMailTo").value);
+      }catch(e){ btn.disabled = false; btn.textContent = "Send"; say("Could not send the document", e.message, "error"); }
+    });
+  };
+  document.addEventListener("click", e=>{
+    const b = e.target.closest("[data-bldoc]"); if(!b) return; e.stopPropagation(); const k = b.dataset.bldoc;
+    if(k === "print") BD.print(); else if(k === "pdf") BD.download(); else if(k === "mail") BD.mail();
+  }, true);
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "bl-draft") BD.show(); };
+
+  /* ---------------- company documents profile (letterhead, registration numbers, signature and seal) ---------------- */
+  const FIELDS = [["legal_name","Company name (as printed)"],["tagline","Tagline"],["phone","Telephone"],["fax","Fax"],["email","Email"],["web","Website"],["reg_mto","MTO registration (e.g. OTI LICENCE NO. 019654N)"],["reg_otl","OTL registration"],["reg_fmc","FMC registration"],["signatory","Signatory title (e.g. Authorised Signatory)"]];
+  function shrink(file, maxW){ return new Promise((ok, bad)=>{ const r = new FileReader(); r.onerror = ()=>bad(new Error("Could not read the file")); r.onload = ()=>{ const im = new Image(); im.onerror = ()=>bad(new Error("That is not an image")); im.onload = ()=>{ const k = Math.min(1, maxW / im.width); const c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/png")); }; im.src = r.result; }; r.readAsDataURL(file); }); }
+  BD.profile = async function(){
+    let d; try{ d = await api("GET", "/api/company/doc-profile"); }catch(e){ say("Could not open the company profile", e.message, "error"); return; }
+    const pr = d.profile || {}; const img = (id, label, v)=> '<div class="fg"><label class="fl">'+label+'</label><div id="'+id+'Prev" style="min-height:44px;border:1px dashed var(--g3);border-radius:6px;padding:4px;margin-bottom:4px;text-align:center">'+(v ? '<img src="'+v+'" style="max-height:60px;max-width:100%">' : '<span style="color:var(--g4);font-size:11px">none</span>')+'</div><input type="file" accept="image/png,image/jpeg,image/webp" id="'+id+'" class="fc"></div>';
+    openModal({title:"Company documents profile", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">Printed on the Bill of Lading / Multimodal Transport Document. The registration number printed depends on the House BL type (MTO, OTL or FMC).</div>'+
+      '<div class="fr">'+FIELDS.slice(0,2).map(([k,l])=>'<div class="fg"><label class="fl">'+l+'</label><input class="fc" id="cp_'+k+'" value="'+esc2(pr[k] != null ? pr[k] : (k === "legal_name" ? d.name : ""))+'"></div>').join("")+'</div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Address</label><textarea class="fc" id="cp_address" rows="3">'+esc2(pr.address || "")+'</textarea></div></div>'+
+      '<div class="fr">'+FIELDS.slice(2,6).map(([k,l])=>'<div class="fg"><label class="fl">'+l+'</label><input class="fc" id="cp_'+k+'" value="'+esc2(pr[k] || "")+'"></div>').join("")+'</div>'+
+      '<div class="fr">'+FIELDS.slice(6,9).map(([k,l])=>'<div class="fg"><label class="fl">'+l+'</label><input class="fc" id="cp_'+k+'" value="'+esc2(pr[k] || "")+'"></div>').join("")+'</div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">'+FIELDS[9][1]+'</label><input class="fc" id="cp_signatory" value="'+esc2(pr.signatory || "")+'"></div></div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Terms printed at the foot (leave blank for the standard clauses)</label><textarea class="fc" id="cp_terms" rows="3">'+esc2(pr.terms || "")+'</textarea></div></div>'+
+      '<div class="fr">'+img("cp_logo", "Company logo", d.logo)+img("cp_sign", "Digital signature (PNG with clear background)", pr.sign_image)+img("cp_seal", "Company seal", pr.seal_image)+'</div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="cpSave">Save Changes</button>'});
+    const pend = {};
+    [["cp_logo", 300, "logo"], ["cp_sign", 320, "sign_image"], ["cp_seal", 260, "seal_image"]].forEach(([id, w, key])=> el(id).addEventListener("change", async ev=>{ const f = ev.target.files[0]; if(!f) return; try{ pend[key] = await shrink(f, w); el(id+"Prev").innerHTML = '<img src="'+pend[key]+'" style="max-height:60px;max-width:100%">'; }catch(e){ say("Image not accepted", e.message, "error"); } }));
+    el("cpSave").addEventListener("click", async ()=>{
+      const body = {address:el("cp_address").value, terms:el("cp_terms").value}; FIELDS.forEach(([k])=>{ body[k] = el("cp_"+k).value; }); if(pend.sign_image) body.sign_image = pend.sign_image; if(pend.seal_image) body.seal_image = pend.seal_image;
+      try{ await api("PUT", "/api/company/doc-profile", body); if(pend.logo) await api("PUT", "/api/company/logo", {data_url:pend.logo}); closeModal(); say("Company Profile Updated Successfully!", "Used on every Bill of Lading from now on"); }
+      catch(e){ say("Could not save the company profile", e.message, "error"); }
+    });
+  };
+  document.addEventListener("click", e=>{ if(e.target.closest("[data-doc-profile]")) BD.profile(); });
 })();
 </script>
 

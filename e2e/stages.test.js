@@ -33,7 +33,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the job starts as Draft, with the date and who did it", /STAGE\s*DRAFT/i.test(text("#jlChips")) && /by Stella/.test(text("#jlChips")), text("#jlChips"));
   check("no old stage names or Closure chip are shown", !/Job Created|Booking Confirmed|CLOSURE/.test(text("#jlChips")));
   const steps = () => Array.from(d.querySelectorAll("#s-job-detail .sf .sfn")).map(n => n.textContent.trim() + (n.classList.contains("act") ? "*" : n.classList.contains("done") ? "+" : ""));
-  check("the progress strip is Draft > Confirmed > On Transit > Closed with Draft active", steps().join(",") === "Draft*,Confirmed,On Transit,Closed", steps().join(","));
+  check("the progress strip is Draft > Confirmed > On Transit > Closed > Re-open with Draft active", steps().join(",") === "Draft*,Confirmed,On Transit,Closed,Re-open", steps().join(","));
   check("a Source information link sits under the job", !!q$("[data-jl-source]"));
   q$("[data-jl-source]").click(); await sleep(1200);
   check("Source information pops up: created directly, by whom", /Source information/.test(text("#modalTitle")) && /directly/.test(text("#modalBody")) && /Stella/.test(text("#modalBody")), text("#modalBody").slice(0, 200));
@@ -44,7 +44,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the stage dialog offers Draft, Confirmed and On Transit only", Array.from(d.querySelectorAll("#jlNewStage option")).map(o => o.value).join(",") === "Draft,Confirmed,On Transit");
   setf(q$("#jlNewStage"), "Confirmed", "change"); setf(q$("#jlStageWhy"), "Customer confirmed the shipment");
   clearToasts(); q$("#jlStageSave").click(); await sleep(1500);
-  check("the stage becomes Confirmed and the strip follows", /STAGE\s*CONFIRMED/i.test(text("#jlChips")) && steps().join(",") === "Draft+,Confirmed*,On Transit,Closed", text("#jlChips") + " | " + steps().join(","));
+  check("the stage becomes Confirmed and the strip follows", /STAGE\s*CONFIRMED/i.test(text("#jlChips")) && steps().join(",") === "Draft+,Confirmed*,On Transit,Closed,Re-open", text("#jlChips") + " | " + steps().join(","));
   const ok = toasts().find(t => /Job Stage Updated Successfully!/.test(t.textContent));
   check("a green success toast with a check icon appears after the save", !!ok && ok.classList.contains("success") && !!ok.querySelector('svg[data-icon="check-circle"]'), toasts().map(t => t.className + ":" + t.textContent).join("|"));
 
@@ -71,7 +71,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // ---- reopen
   btn("Reopen Job").click(); await sleep(1500);
   clearToasts(); q$("#jlReopenGo").click(); await sleep(2000);
-  check("Reopen puts the job in the Reopened stage", /STAGE\s*REOPENED/i.test(text("#jlChips")) && steps().join(",").startsWith("Draft+,Confirmed+,On Transit+,Reopened"), text("#jlChips") + " | " + steps().join(","));
+  check("Reopen puts the job in the Reopened stage", /STAGE\s*REOPENED/i.test(text("#jlChips")) && steps().join(",").startsWith("Draft+,Confirmed+,On Transit+,Closed+,Re-open*"), text("#jlChips") + " | " + steps().join(","));
   check("Change Stage is not offered while the job is Reopened", !btn("Change Stage"));
 
   // ---- a job raised from a quotation and booking: Source information names both

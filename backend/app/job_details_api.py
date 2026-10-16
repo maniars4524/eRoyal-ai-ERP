@@ -10,11 +10,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import job_lifecycle as jl
-from .auth import permission_required
+from . import billing, job_lifecycle as jl
+from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
-from .models import HblCounter, JobDetail, Organization, Shipment, User
+from .models import Booking, CompanyDocProfile, Document, HblCounter, JobDetail, Organization, Shipment, User
 
 router = APIRouter(prefix="/api/jobs", tags=["job details"])
 
@@ -75,11 +75,49 @@ def hbl_preview(db: Session, job: Shipment, hbl_type: str, number: int | None = 
     return f"{company_code(org)}{hbl_type}{(number if number is not None else 0):03d}{location_code(job.pol)}{location_code(job.pod)}"
 
 
-def _out(db: Session, job: Shipment, row: JobDetail | None) -> dict:
+BL_STAGES = ("Draft", "Confirmed", "Released")
+RELEASE_TYPES = ("Original", "Express Release", "Telex Release", "Surrender")
+PROFILE_TEXT = ("tagline", "address", "phone", "fax", "email", "web", "reg_otl", "reg_mto", "reg_fmc", "signatory", "terms", "legal_name")
+PROFILE_IMAGES = ("sign_image", "seal_image")
+IMG_RE = re.compile(r"^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$")
+
+
+def release_check(db: Session, job: Shipment, user: User | None = None) -> dict:
+    """Is the job's money settled? An Original BL is released only after Accounts has confirmed full payment of every posted invoice / debit note of the job."""
+    docs = [d for d in db.scalars(select(Document).where(Document.organization_id == job.organization_id, Document.job_number == job.job_number, Document.doc_type.in_(("invoice", "debit_note")), Document.status == "POSTED"))]
+    owing = sum((billing.outstanding(d) for d in docs), start=0)
+    ok = bool(docs) and owing <= 0
+    why = "Full payment confirmed" if ok else ("No posted invoice for this job yet" if not docs else f"Outstanding payment of {owing:,.2f}")
+    return {"payment_ok": ok, "outstanding": str(owing), "invoices": len(docs), "message": why, "can_override": bool(user and has_permission(user, "bl.release_override"))}
+
+
+def booking_defaults(db: Session, job: Shipment) -> dict:
+    """What the booking already knows (parties, cargo, container), used until the user saves that tab on the job."""
+    b = db.get(Booking, job.booking_id) if job.booking_id else None
+    if not b:
+        return {"parties": {}, "cargo": {}, "containers": []}
+    d = b.data or {}
+    consignee = d.get("consignee") or ""
+    notify = d.get("notify") or ""
+    if notify.strip().lower() == "same as consignee":
+        notify = consignee
+    parties = {"shipper": d.get("shipper") or b.party_name or "", "consignee": consignee, "notify1": notify, "billTo": b.party_name or ""}
+    cargo = {"commodity": d.get("commodity") or d.get("marks") or "", "pkgs": d.get("pcs") or "", "pkgType": d.get("pack_type") or "", "gwt": d.get("gwt") or "", "nwt": d.get("nwt") or "", "vol": d.get("volume") or "", "marks": d.get("marks") or "", "cargoDesc": d.get("cargo_description") or ""}
+    containers = []
+    if d.get("container_no"):
+        containers = [{"container_no": str(d["container_no"]).upper().replace(" ", ""), "type": d.get("container_type") or ""}]
+    return {"parties": {k: v for k, v in parties.items() if v}, "cargo": {k: v for k, v in cargo.items() if v not in ("", None)}, "containers": containers}
+
+
+def _out(db: Session, job: Shipment, row: JobDetail | None, user: User | None = None) -> dict:
+    saved = (row.saved_sections if row else {}) or {}
+    pre = booking_defaults(db, job)
     by = db.get(User, row.updated_by) if row and row.updated_by else None
     return {"job_number": job.job_number, "mode": job.mode, "direction": job.direction, "pol": job.pol, "pod": job.pod, "pol_code": location_code(job.pol), "pod_code": location_code(job.pod),
             "company_code": company_code(db.get(Organization, job.organization_id)),
-            "parties": (row.parties if row else {}) or {}, "cargo": (row.cargo if row else {}) or {}, "containers": (row.containers if row else []) or [], "dims": (row.dims if row else {}) or {}, "bl": (row.bl if row else {}) or {},
+            "parties": ((row.parties if row else {}) or {}) if saved.get("parties") else pre["parties"], "cargo": ((row.cargo if row else {}) or {}) if saved.get("cargo") else pre["cargo"], "containers": ((row.containers if row else []) or []) if saved.get("containers") else pre["containers"],
+            "release": release_check(db, job, user),
+            "from_booking": {"parties": not saved.get("parties") and bool(pre["parties"]), "cargo": not saved.get("cargo") and bool(pre["cargo"])}, "dims": (row.dims if row else {}) or {}, "bl": (row.bl if row else {}) or {},
             "saved_sections": (row.saved_sections if row else {}) or {}, "version": row.version if row else 0, "updated_at": row.updated_at if row and row.version else None,
             "updated_by": jl.display_name(by) if by else None}
 
@@ -109,12 +147,19 @@ def _validate(section: str, data: Any) -> Any:
             seen.add(no)
             if r.get("vgm") not in (None, "") and _num(r.get("vgm")) is None:
                 raise HTTPException(422, f"Container {i}: VGM must be a number")
+            for k, label in (("gross_wt", "Gross weight"), ("net_wt", "Net weight")):
+                if r.get(k) not in (None, "") and _num(r.get(k)) is None:
+                    raise HTTPException(422, f"Container {i}: {label} must be a positive number")
+            if _num(r.get("gross_wt")) is not None and _num(r.get("net_wt")) is not None and _num(r["net_wt"]) > _num(r["gross_wt"]):
+                raise HTTPException(422, f"Container {i}: net weight cannot be more than the gross weight")
         return data
     if not isinstance(data, dict):
         raise HTTPException(422, f"The {section} section must be an object")
     if len(str(data)) > 40000:
         raise HTTPException(422, "Too much data in this section")
     if section == "cargo":
+        if _num(data.get("nwt")) is not None and _num(data.get("gwt")) is not None and _num(data["nwt"]) > _num(data["gwt"]):
+            raise HTTPException(422, "Net weight cannot be more than the gross weight")
         for k in ("pkgs", "gwt", "nwt", "vol"):
             if data.get(k) not in (None, "") and _num(data.get(k)) is None:
                 raise HTTPException(422, f"{ {'pkgs': 'No. of packages', 'gwt': 'Gross weight', 'nwt': 'Net weight', 'vol': 'Volume'}[k] } must be a positive number")
@@ -151,7 +196,7 @@ def _reflect(job: Shipment, row: JobDetail) -> None:
 @router.get("/{job_number}/details")
 def get_details(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)
-    return _out(db, job, _row(db, job))
+    return _out(db, job, _row(db, job), user)
 
 
 @router.put("/{job_number}/details/{section}")
@@ -165,10 +210,13 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
     if body.expected_version is not None and body.expected_version != row.version:
         raise HTTPException(409, "These details were changed by someone else. Reload the job and try again")
     if section == "bl":
-        keep = {k: v for k, v in (row.bl or {}).items() if k in ("hblNo", "hblDate", "hblIssuedFor") and not data.get(k)}
+        keep = {k: v for k, v in (row.bl or {}).items() if k in ("hblNo", "hblDate", "hblIssuedFor", "blStage", "releaseType", "digitalSign", "releasedAt", "releaseOverride") and not data.get(k)}
         data = {**data, **keep}   # the House BL number belongs to the system: a save never erases or replaces it
         if (row.bl or {}).get("hblNo"):
             data["hblType"] = (row.bl or {}).get("hblType") or data.get("hblType")
+        for k in ("blStage", "releaseType", "digitalSign", "releasedAt", "releaseOverride"):
+            if k in (row.bl or {}):
+                data[k] = row.bl[k]
     first = not (row.saved_sections or {}).get(section)
     setattr(row, section, data)
     row.saved_sections = {**(row.saved_sections or {}), section: datetime.now(timezone.utc).isoformat()}
@@ -178,7 +226,7 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
     jl.log_event(db, job, user, "JOB_DETAILS_SAVED" if first else "JOB_DETAILS_UPDATED", "HEADER", f"{section.capitalize()} {'saved' if first else 'updated'}", detail={"section": section, "version": row.version})
     record_audit(db, "JOB_DETAILS_SAVED", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "section": section})
     db.commit()
-    return _out(db, job, row)
+    return _out(db, job, row, user)
 
 
 @router.post("/{job_number}/hbl")
@@ -191,7 +239,7 @@ def issue_hbl(job_number: str, body: HblIn, user: User = Depends(permission_requ
     row = _row(db, job, create=True)
     bl = dict(row.bl or {})
     if bl.get("hblNo"):
-        return {**_out(db, job, row), "existing": True}
+        return {**_out(db, job, row, user), "existing": True}
     if HBL_TYPES[body.hbl_type]:
         scac = (body.scac or "").upper()
         if not SCAC.match(scac):
@@ -213,7 +261,7 @@ def issue_hbl(job_number: str, body: HblIn, user: User = Depends(permission_requ
     jl.log_event(db, job, user, "HBL_ISSUED", "DOCUMENTS", f"House BL {number} issued", new=number, detail={"hbl_type": body.hbl_type})
     record_audit(db, "HBL_ISSUED", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "hbl": number})
     db.commit()
-    return {**_out(db, job, row), "existing": False}
+    return {**_out(db, job, row, user), "existing": False}
 
 
 @router.get("/{job_number}/hbl-preview")
@@ -224,3 +272,174 @@ def hbl_next(job_number: str, hbl_type: str, user: User = Depends(permission_req
     job = _job(db, user, job_number)
     ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == job.organization_id, HblCounter.hbl_type == hbl_type))
     return {"preview": hbl_preview(db, job, hbl_type, (ctr.last_no if ctr else 0) + 1), "pol_code": location_code(job.pol), "pod_code": location_code(job.pod)}
+
+
+class BlStageIn(BaseModel):
+    stage: str = Field(pattern="^(Draft|Confirmed|Released)$")
+    release_type: str | None = None
+    digital_sign: bool = False
+    override: bool = False
+    reason: str | None = Field(default=None, max_length=1000)
+
+
+@router.post("/{job_number}/bl/stage")
+def bl_stage(job_number: str, body: BlStageIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+    """Draft -> Confirmed -> Released. An Original BL is released only after full payment; a user with the release-override right may release it earlier, with a reason that goes to the job history."""
+    job = _job(db, user, job_number, lock=True)
+    jl.assert_job_editable(job, "the BL")
+    row = _row(db, job, create=True)
+    bl = dict(row.bl or {})
+    cur = bl.get("blStage") or "Draft"
+    number = (bl.get("hblNo") if bl.get("bookingType", "House") == "House" else bl.get("directNo")) or None
+    if body.stage == cur:
+        raise HTTPException(409, f"The BL is already {cur}")
+    if cur == "Released":
+        raise HTTPException(409, "A released BL cannot be moved back")
+    if body.stage == "Released" and cur != "Confirmed":
+        raise HTTPException(409, "Confirm the BL before releasing it")
+    if body.stage in ("Confirmed", "Released") and not number:
+        raise HTTPException(422, "Generate the House BL number (or enter the carrier BL number) before confirming the BL")
+    event, text, detail = "BL_CONFIRMED", "BL confirmed", {}
+    if body.stage == "Draft":
+        event, text = "BL_RETURNED_TO_DRAFT", "BL returned to Draft"
+    if body.stage == "Released":
+        rtype = body.release_type or ""
+        if rtype not in RELEASE_TYPES:
+            raise HTTPException(422, "Choose the release type: Original, Express Release, Telex Release or Surrender")
+        if body.digital_sign:
+            prof = db.scalar(select(CompanyDocProfile).where(CompanyDocProfile.organization_id == job.organization_id))
+            pd = (prof.data if prof else {}) or {}
+            if not (pd.get("sign_image") or pd.get("seal_image")):
+                raise HTTPException(422, "Digital signature and seal need the company's signature or seal image. Add it under Company documents profile first")
+        rel = release_check(db, job, user)
+        event, text = "BL_RELEASED", f"BL released ({rtype})"
+        detail = {"release_type": rtype, "digital_sign": body.digital_sign, "payment_ok": rel["payment_ok"]}
+        if rtype == "Original" and not rel["payment_ok"]:
+            if not body.override:
+                raise HTTPException(409, {"message": f"Original BL is released only after full payment is confirmed by Accounts. {rel['message']}.", "can_override": rel["can_override"], "code": "PAYMENT_PENDING"})
+            if not rel["can_override"]:
+                raise HTTPException(403, "You do not have the right to release an Original BL before payment is confirmed")
+            if len((body.reason or "").strip()) < 5:
+                raise HTTPException(422, "Give the reason for releasing the Original BL before payment is confirmed")
+            event, text = "BL_RELEASE_OVERRIDDEN", f"Original BL released before payment confirmation ({rel['message']})"
+            detail.update({"override": True, "outstanding": rel["outstanding"]})
+            bl["releaseOverride"] = {"by": jl.display_name(user), "reason": body.reason.strip(), "at": datetime.now(timezone.utc).isoformat(), "outstanding": rel["outstanding"]}
+        bl.update({"releaseType": rtype, "digitalSign": body.digital_sign, "releasedAt": datetime.now(timezone.utc).isoformat()})
+        if not bl.get("released"):
+            bl["released"] = date.today().isoformat()
+    bl["blStage"] = body.stage
+    row.bl = bl
+    row.saved_sections = {**(row.saved_sections or {}), "bl": datetime.now(timezone.utc).isoformat()}
+    row.version = (row.version or 0) + 1
+    row.updated_by = user.id
+    jl.log_event(db, job, user, event, "DOCUMENTS", f"{text}: {number}", previous=cur, new=body.stage, reason=(body.reason or None), detail=detail)
+    record_audit(db, event, "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "bl": number, **detail})
+    db.commit()
+    return _out(db, job, row, user)
+
+
+# ---------------------------------------------------------------- company document profile (letterhead, registration numbers, signature and seal)
+def _profile(db: Session, org_id: int) -> dict:
+    p = db.scalar(select(CompanyDocProfile).where(CompanyDocProfile.organization_id == org_id))
+    return dict((p.data if p else {}) or {})
+
+
+company = APIRouter(prefix="/api/company", tags=["company documents"])
+
+
+@company.get("/doc-profile")
+def get_profile(user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+    org = db.get(Organization, _tenant(user))
+    return {"profile": _profile(db, org.id), "name": org.legal_name or org.name, "logo": org.logo, "company_code": company_code(org)}
+
+
+@company.put("/doc-profile")
+def put_profile(body: dict, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
+    import base64
+
+    org = db.get(Organization, _tenant(user))
+    p = db.scalar(select(CompanyDocProfile).where(CompanyDocProfile.organization_id == org.id))
+    data = dict((p.data if p else {}) or {})
+    for k in PROFILE_TEXT:
+        if k in body:
+            v = str(body[k] or "").strip()
+            if len(v) > 4000:
+                raise HTTPException(422, f"{k} is too long")
+            data[k] = v
+    for k in PROFILE_IMAGES:
+        if k in body:
+            v = body[k]
+            if not v:
+                data.pop(k, None)
+                continue
+            m = IMG_RE.match(str(v))
+            if not m:
+                raise HTTPException(422, "Signature and seal must be PNG, JPEG or WebP images")
+            import base64 as b64
+
+            try:
+                raw = b64.b64decode(m.group(2), validate=True)
+            except Exception:
+                raise HTTPException(422, "The image is damaged")
+            if len(raw) > 300_000:
+                raise HTTPException(422, "The image is larger than 300 KB")
+            data[k] = v
+    if p is None:
+        p = CompanyDocProfile(organization_id=org.id, data=data)
+        db.add(p)
+    p.data = data
+    p.updated_by = user.id
+    record_audit(db, "COMPANY_DOC_PROFILE_SAVED", "ORGANIZATION", user, org.id, "Organization", str(org.id), {"fields": sorted(k for k in body if k in PROFILE_TEXT + PROFILE_IMAGES)})
+    db.commit()
+    return {"profile": data}
+
+
+class SendDocIn(BaseModel):
+    to: str = Field(max_length=500)
+    subject: str = Field(min_length=1, max_length=200)
+    message: str = Field(default="", max_length=4000)
+    filename: str = Field(default="document.pdf", max_length=120)
+    pdf_base64: str = Field(max_length=8_000_000)
+
+
+@router.post("/{job_number}/send-document")
+def send_document(job_number: str, body: SendDocIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+    """Email a job document (the PDF made in the browser) to the customer. Needs SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASSWORD / SMTP_FROM in the server settings."""
+    import base64
+    import os
+    import smtplib
+    from email.message import EmailMessage
+
+    job = _job(db, user, job_number)
+    host = os.getenv("SMTP_HOST", "").strip()
+    if not host:
+        raise HTTPException(503, "Email is not set up on this server yet. Ask the administrator to add the SMTP mail settings; meanwhile download the PDF and send it from your own mail")
+    to = [a.strip() for a in re.split(r"[;,]", body.to) if a.strip()]
+    if not to or len(to) > 10 or not all(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", a) for a in to):
+        raise HTTPException(422, "Enter valid email addresses (up to 10, separated by commas)")
+    try:
+        raw = base64.b64decode(body.pdf_base64, validate=True)
+    except Exception:
+        raise HTTPException(422, "The attachment is damaged")
+    if not raw.startswith(b"%PDF") or len(raw) > 5_000_000:
+        raise HTTPException(422, "The attachment must be a PDF under 5 MB")
+    org = db.get(Organization, job.organization_id)
+    msg = EmailMessage()
+    msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "noreply@localhost"
+    msg["To"] = ", ".join(to)
+    msg["Subject"] = body.subject
+    msg["Reply-To"] = user.email
+    msg.set_content((body.message or "Please find the attached document.") + f"\n\n{org.legal_name or org.name}")
+    msg.add_attachment(raw, maintype="application", subtype="pdf", filename=re.sub(r"[^A-Za-z0-9._ -]", "_", body.filename))
+    try:
+        with smtplib.SMTP(host, int(os.getenv("SMTP_PORT", "587")), timeout=20) as s:
+            if os.getenv("SMTP_TLS", "true").lower() not in ("0", "false", "no"):
+                s.starttls()
+            if os.getenv("SMTP_USER"):
+                s.login(os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD", ""))
+            s.send_message(msg)
+    except Exception as e:
+        raise HTTPException(502, f"The mail server did not accept the message: {str(e)[:160]}")
+    jl.log_event(db, job, user, "DOCUMENT_EMAILED", "DOCUMENTS", f"{body.filename} emailed to {', '.join(to)}", detail={"to": to, "subject": body.subject})
+    db.commit()
+    return {"sent": True, "to": to}

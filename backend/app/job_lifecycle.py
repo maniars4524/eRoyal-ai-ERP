@@ -86,6 +86,9 @@ def log_event(db: Session, job: Shipment, user: User | None, event_type: str, ca
     return ev
 
 
+STAGE_STATUS = {"Draft": "Open", "Confirmed": "Booked", "On Transit": "In Transit", "Closed": "Closed", "Reopened": "Open"}
+
+
 def set_stage(db: Session, job: Shipment, new_stage: str, source: str, user: User | None, *, trigger=None, reason=None, related_ref=None, approval_ref=None, correlation_id=None) -> bool:
     """Change the stage and write the stage history + activity event. Returns False when nothing changed (no duplicate transitions)."""
     if job.job_stage == new_stage:
@@ -97,6 +100,8 @@ def set_stage(db: Session, job: Shipment, new_stage: str, source: str, user: Use
     db.add(JobStageHistory(organization_id=job.organization_id, shipment_id=job.id, job_number=job.job_number, previous_stage=previous, new_stage=new_stage, source=source, trigger=trigger, reason=reason,
                            actor_id=user.id if user else None, actor_name=display_name(user), related_ref=related_ref, approval_ref=approval_ref, event_id=ev.id))
     job.job_stage, job.stage_source, job.stage_reason, job.stage_updated_at = new_stage, source, reason, now()
+    if job.status != "Cancelled" and new_stage in STAGE_STATUS:
+        job.status = STAGE_STATUS[new_stage]   # the Status column follows the stage
     return True
 
 

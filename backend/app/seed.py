@@ -47,6 +47,7 @@ PERMISSIONS = [
     ("job.change_stage", "Manually change the job stage", "job", "change_stage"),
     ("job.close", "Close a job (manual closure)", "job", "close"),
     ("job.reopen", "Reopen a closed job", "job", "reopen"),
+    ("bl.release_override", "Release an Original BL before full payment is confirmed (logged with a reason)", "bl", "release_override"),
     ("job.exceptional_close", "Approve an exceptional job closure", "job", "exceptional_close"),
     ("sequence.view", "View Sequence Setting", "sequence", "view"),
     ("sequence.create", "Create numbering sequences", "sequence", "create"),
