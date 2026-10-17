@@ -7,3 +7,4 @@ python-dotenv>=1.0,<2
 alembic>=1.14,<2
 pytest>=8,<9
 httpx>=0.28,<1
+segno>=1.6,<2

@@ -101,6 +101,29 @@ STANDARD_SAC = [
     ("996769", "Other supporting services for air transport", "18%", "Handling"),
     ("996791", "Goods transport agency (GTA) services", "", "Freight"),
     ("996799", "Other supporting transport services n.e.c. (forwarding, documentation)", "18%", "Documentation"),
+    ("998541", "Packaging and crating services", "18%", "Handling"),
+    ("997134", "Marine, aviation and other transport insurance services", "18%", "Other"),
     ("9968", "Postal and courier services (heading)", "18%", "Courier"),
     ("996812", "Courier services", "18%", "Courier"),
 ]
+
+
+# The specific SAC of every catalogue charge, with its tax treatment: code -> (SAC, tax treatment, GST %).
+# PROPOSED defaults from the standard freight-forwarding practice in India (international import freight is exempt, export freight is zero-rated,
+# statutory recoveries are outside GST); the company confirms them against the current notification and edits them in the Charge Master.
+CHARGE_SAC = {
+    "AIR-FRT-DOM": ("996531", "taxable", 18), "AIR-FRT-IMP": ("996531", "exempt", 0), "AIR-FRT-EXP": ("996531", "zero_rated", 0),
+    "SEA-FRT-DOM": ("996521", "taxable", 5), "SEA-FRT-IMP": ("996521", "exempt", 0), "SEA-FRT-EXP": ("996521", "zero_rated", 0),
+    "ROAD-NGTA": ("996511", "taxable", 18), "ROAD-GTA": ("996791", "taxable", 5), "RAIL-FRT": ("996512", "taxable", 5), "MULTIMODAL": ("996521", "taxable", 12),
+    "CONT-TRANSPORT": ("996511", "taxable", 18), "COURIER": ("996812", "taxable", 18), "FFC": ("996799", "taxable", 18), "CUSTOMS-CLR": ("996712", "taxable", 18),
+    "DOC": ("996799", "taxable", 18), "BL-CHG": ("996799", "taxable", 18), "DO-CHG": ("996799", "taxable", 18), "DOC-AMEND": ("996799", "taxable", 18),
+    "PORT-AGENCY": ("996759", "taxable", 18), "EXP-DOC": ("996799", "taxable", 18), "IMP-DOC": ("996799", "taxable", 18), "CB-SERVICE": ("996712", "taxable", 18),
+    "THC": ("996711", "taxable", 18), "STUFFING": ("996711", "taxable", 18), "DESTUFFING": ("996711", "taxable", 18), "CFS": ("996713", "taxable", 18),
+    "ICD-HANDLING": ("996713", "taxable", 18), "LOADING": ("996713", "taxable", 18), "UNLOADING": ("996713", "taxable", 18), "PALLETIZATION": ("998541", "taxable", 18),
+    "PACKING": ("998541", "taxable", 18), "WAREHOUSING": ("996729", "taxable", 18), "STORAGE": ("996729", "taxable", 18), "VGM": ("996713", "taxable", 18),
+    "EXAM-HANDLING": ("996713", "taxable", 18), "CONT-SURVEY": ("996713", "taxable", 18), "CONT-CLEANING": ("996713", "taxable", 18), "INSURANCE": ("997134", "taxable", 18),
+    "DEMURRAGE": ("996799", "taxable", 18), "DETENTION": ("996799", "taxable", 18), "VEHICLE-HIRE": ("996601", "taxable", 18), "COURIER-DOC": ("996812", "taxable", 18),
+    "REPACKING": ("998541", "taxable", 18), "LABOUR": ("996713", "taxable", 18), "MISC-LOGISTICS": ("996799", "taxable", 18), "DUTY-RECOVERY": ("996712", "non_gst", 0),
+    "GOVT-FEE-RECOVERY": ("996759", "non_gst", 0),
+}
+assert set(CHARGE_SAC) == {c[0] for c in CATALOGUE}, "every catalogue charge needs a SAC"

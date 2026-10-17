@@ -68,3 +68,23 @@ def doc_side(doc_type: str) -> str:
     if doc_type not in DOC_TYPES:
         raise HTTPException(status_code=422, detail="Unknown document type")
     return DOC_TYPES[doc_type][1]
+
+
+# Invoice kinds, decided by the tax type of the charge entries:
+#   TAX          Taxable and Non-Taxable entries together (Tax Invoice)
+#   NON_TAXABLE  only Non-Taxable entries (Non-Taxable Invoice)
+#   PURE_AGENT   only Pure Agent (reimbursement) entries, no tax, tax type P
+#   RCM          only Reverse Charge (RCM) entries, tax is paid by the recipient
+KIND_OF_TYPE = {"Taxable": "TAX", "Non-Taxable": "NON_TAXABLE", "Pure Agent": "PURE_AGENT", "RCM": "RCM"}
+
+
+def invoice_kind(tax_types) -> str:
+    kinds = {KIND_OF_TYPE.get(t, "TAX") for t in tax_types}
+    if kinds <= {"TAX", "NON_TAXABLE"}:
+        return "NON_TAXABLE" if kinds == {"NON_TAXABLE"} else "TAX"
+    return "MIXED" if len(kinds) > 1 else next(iter(kinds))
+
+
+def line_group(tax_type: str) -> str:
+    """Entries of the same group may share one invoice; pure agent and RCM entries are always billed separately."""
+    return {"Pure Agent": "PURE_AGENT", "RCM": "RCM"}.get(tax_type, "TAX")

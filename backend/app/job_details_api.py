@@ -18,7 +18,7 @@ from .models import Booking, CompanyDocProfile, Document, HblCounter, JobDetail,
 
 router = APIRouter(prefix="/api/jobs", tags=["job details"])
 
-SECTIONS = ("parties", "cargo", "containers", "dims", "bl")
+SECTIONS = ("parties", "cargo", "containers", "dims", "bl", "impdocs")
 HBL_TYPES = {"OTL": True, "FMC": True, "MTO": False}   # type -> needs a SCAC code
 CONTAINER_NO = re.compile(r"^[A-Z]{4}[0-9]{7}$")
 SCAC = re.compile(r"^[A-Z]{4}$")
@@ -77,7 +77,8 @@ def hbl_preview(db: Session, job: Shipment, hbl_type: str, number: int | None = 
 
 BL_STAGES = ("Draft", "Confirmed", "Released")
 RELEASE_TYPES = ("Original", "Express Release", "Telex Release", "Surrender")
-PROFILE_TEXT = ("tagline", "address", "phone", "fax", "email", "web", "reg_otl", "reg_mto", "reg_fmc", "signatory", "terms", "legal_name")
+PROFILE_TEXT = ("tagline", "address", "phone", "mobile", "fax", "email", "web", "reg_otl", "reg_mto", "reg_fmc", "signatory", "signatory_name", "terms", "legal_name", "gstin", "pan", "cin", "state", "state_code",
+                "bank_name", "bank_account", "bank_ifsc", "bank_swift", "bank_branch", "payment_modes", "tracking_url", "invoice_terms", "do_terms", "eoe", "footer_note", "usd_bank_name", "usd_bank_account", "usd_bank_swift", "usd_bank_address", "usd_bank_intermediary")
 PROFILE_IMAGES = ("sign_image", "seal_image")
 IMG_RE = re.compile(r"^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$")
 
@@ -117,7 +118,7 @@ def _out(db: Session, job: Shipment, row: JobDetail | None, user: User | None = 
             "company_code": company_code(db.get(Organization, job.organization_id)),
             "parties": ((row.parties if row else {}) or {}) if saved.get("parties") else pre["parties"], "cargo": ((row.cargo if row else {}) or {}) if saved.get("cargo") else pre["cargo"], "containers": ((row.containers if row else []) or []) if saved.get("containers") else pre["containers"],
             "release": release_check(db, job, user),
-            "from_booking": {"parties": not saved.get("parties") and bool(pre["parties"]), "cargo": not saved.get("cargo") and bool(pre["cargo"])}, "dims": (row.dims if row else {}) or {}, "bl": (row.bl if row else {}) or {},
+            "from_booking": {"parties": not saved.get("parties") and bool(pre["parties"]), "cargo": not saved.get("cargo") and bool(pre["cargo"])}, "dims": (row.dims if row else {}) or {}, "bl": (row.bl if row else {}) or {}, "impdocs": (row.impdocs if row else {}) or {},
             "saved_sections": (row.saved_sections if row else {}) or {}, "version": row.version if row else 0, "updated_at": row.updated_at if row and row.version else None,
             "updated_by": jl.display_name(by) if by else None}
 
@@ -447,3 +448,41 @@ def send_document(job_number: str, body: SendDocIn, user: User = Depends(permiss
     jl.log_event(db, job, user, "DOCUMENT_EMAILED", "DOCUMENTS", f"{body.filename} emailed to {', '.join(to)}", detail={"to": to, "subject": body.subject})
     db.commit()
     return {"sent": True, "to": to}
+
+
+@router.post("/{job_number}/do-issue")
+def issue_do(job_number: str, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+    """The Delivery Order number: a running number per company, given once to a job."""
+    job = _job(db, user, job_number, lock=True)
+    jl.assert_job_editable(job, "the Delivery Order")
+    if job.direction != "Import":
+        raise HTTPException(422, "A Delivery Order is issued for import jobs")
+    row = _row(db, job, create=True)
+    d = dict(row.impdocs or {})
+    if d.get("do_no"):
+        return {**_out(db, job, row, user), "existing": True}
+    ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == job.organization_id, HblCounter.hbl_type == "DO").with_for_update())
+    if ctr is None:
+        ctr = HblCounter(organization_id=job.organization_id, hbl_type="DO", last_no=0)
+        db.add(ctr)
+        db.flush()
+    ctr.last_no += 1
+    d.update({"do_no": str(ctr.last_no), "do_date": date.today().isoformat()})
+    row.impdocs = d
+    row.saved_sections = {**(row.saved_sections or {}), "impdocs": datetime.now(timezone.utc).isoformat()}
+    row.version = (row.version or 0) + 1
+    row.updated_by = user.id
+    jl.log_event(db, job, user, "DO_ISSUED", "DOCUMENTS", f"Delivery Order {d['do_no']} issued", new=d["do_no"])
+    db.commit()
+    return {**_out(db, job, row, user), "existing": False}
+
+
+@company.get("/party-text")
+def party_text_api(name: str, user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+    from .jobs_lifecycle_api import party_text
+    from .models import Customer, OrgBranch
+
+    org_id = _tenant(user)
+    c = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == name))
+    b = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.address.is_not(None), OrgBranch.address != "").order_by(OrgBranch.sl_no, OrgBranch.id)) if c else None
+    return {"text": party_text(db, org_id, name), "gstin": (b.gstin if b and b.gstin else (c.gstin if c else None)) or "", "phone": (b.phone if b else "") or ""}

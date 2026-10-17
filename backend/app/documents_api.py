@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, object_session, selectinload
 
 from .auth import permission_required
 from .auth_api import record_audit
-from .billing import CREDIT_TARGET, DOC_TYPES, calc_line, doc_side, next_number, outstanding, payment_status, q2
+from .billing import CREDIT_TARGET, DOC_TYPES, calc_line, doc_side, fiscal_year, invoice_kind, line_group, next_number, outstanding, payment_status, q2
 from .db import get_db
 from . import job_lifecycle as jl
 from .models import Customer, Document, DocumentLine, JobCharge, Shipment, User, OrgBranch
@@ -28,7 +28,7 @@ class LineIn(BaseModel):
     ccy: str = Field(default="INR", pattern="^[A-Z]{3}$")
     exch: Decimal = Field(default=Decimal("1"), ge=0, max_digits=14, decimal_places=6)
     rate: Decimal = Field(default=Decimal("0"), ge=0, max_digits=16, decimal_places=4)
-    tax_type: str = Field(default="Taxable", pattern="^(Taxable|Non-Taxable)$")
+    tax_type: str = Field(default="Taxable", pattern="^(Taxable|Non-Taxable|Pure Agent|RCM)$")
     tax_pct: Decimal = Field(default=Decimal("0"), ge=0, le=100, max_digits=6, decimal_places=2)
 
 
@@ -79,14 +79,20 @@ def _money(v) -> str:
     return str(v)
 
 
-def _out(doc: Document, with_lines: bool = False) -> dict:
+def proforma_required(db: Session, org_id: int) -> bool:
+    """Company setting INVOICE_REQUIRES_PROFORMA: a customer invoice (Tax Invoice) can be generated only from a confirmed Proforma Invoice."""
+    return jl.setting_enabled(db, org_id, "INVOICE_REQUIRES_PROFORMA")
+
+
+def _out(doc: Document, with_lines: bool = False, required: bool | None = None) -> dict:
     data = {
         "id": doc.id, "doc_type": doc.doc_type, "doc_number": doc.doc_number, "status": doc.status, "payment_status": payment_status(doc),
         "doc_date": doc.doc_date, "due_date": doc.due_date, "job_number": doc.job_number, "customer_id": doc.customer_id, "party_name": doc.party_name,
         "party_gstin": doc.party_gstin, "place_of_supply": doc.place_of_supply, "supply_type": doc.supply_type, "ref_document_id": doc.ref_document_id,
         "remarks": doc.remarks, "header": doc.header or {}, "subtotal": _money(doc.subtotal), "tax_total": _money(doc.tax_total), "grand_total": _money(doc.grand_total),
         "paid_amount": _money(doc.paid_amount), "credited_amount": _money(doc.credited_amount), "outstanding": _money(outstanding(doc)),
-        "posted_at": doc.posted_at, "created_at": doc.created_at,
+        "posted_at": doc.posted_at, "created_at": doc.created_at, "proforma_required": bool(required) if doc.doc_type == "invoice" else False,
+        "invoice_kind": invoice_kind([l.tax_type for l in doc.lines]) if doc.lines else "TAX",
     }
     if doc.supply_type == "intra":
         half = q2(doc.tax_total / 2)
@@ -106,10 +112,12 @@ def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
     session = object_session(doc)
     if session is not None:
         session.flush()  # delete the old lines first so line numbers can be reused
+    if doc.doc_type in ("invoice", "debit_note", "credit_note") and len({line_group(l.tax_type) for l in lines}) > 1:
+        raise HTTPException(status_code=422, detail="Pure Agent (reimbursement) and RCM entries are billed on their own invoice. Keep Taxable / Non-Taxable entries together and move the Pure Agent or RCM entries to a separate invoice")
     subtotal = tax = Decimal(0)
     for index, line in enumerate(lines, start=1):
         c = calc_line(line.qty, line.ccy, Decimal(1) if line.ccy == "INR" else line.exch, line.rate, line.tax_type, line.tax_pct if line.tax_type == "Taxable" else Decimal(0))
-        doc.lines.append(DocumentLine(line_no=index, charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=line.tax_pct if line.tax_type == "Taxable" else Decimal(0), **c))
+        doc.lines.append(DocumentLine(line_no=index, charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=line.tax_pct if line.tax_type in ("Taxable", "RCM") else Decimal(0), **c))
         subtotal += c["amount"]
         tax += c["tax_amount"]
     doc.subtotal, doc.tax_total, doc.grand_total = subtotal, tax, subtotal + tax
@@ -166,7 +174,7 @@ def _new_document(db: Session, user: User, org_id: int, payload: DocumentIn) -> 
 @router.get("")
 def list_documents(
     doc_type: str | None = Query(default=None, pattern=DOC_TYPE_PATTERN),
-    status_filter: str | None = Query(default=None, alias="status", pattern="^(DRAFT|POSTED|CANCELLED)$"),
+    status_filter: str | None = Query(default=None, alias="status", pattern="^(DRAFT|CONFIRMED|POSTED|CANCELLED)$"),
     job_number: str | None = Query(default=None, max_length=40),
     q: str | None = Query(default=None, max_length=100),
     limit: int = Query(default=200, ge=1, le=1000),
@@ -209,7 +217,7 @@ def create_document(payload: DocumentIn, user: User = Depends(permission_require
     doc = _new_document(db, user, org_id, payload)
     record_audit(db, "DOCUMENT_CREATED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"party": doc.party_name})
     db.commit()
-    return _out(_load(db, org_id, doc.id), True)
+    return _out(_load(db, org_id, doc.id), True, proforma_required(db, org_id))
 
 
 @router.post("/from-job", status_code=201)
@@ -237,20 +245,38 @@ def from_job(payload: FromJob, user: User = Depends(permission_required("billing
             customer = db.get(Customer, job.customer_id) if job.customer_id else None
             clients = sorted({c.client for c in usable if c.client})
             party = customer.name if customer else (clients[0] if clients else "")
-    existing = db.scalar(select(Document).where(Document.organization_id == org_id, Document.shipment_id == job.id, Document.doc_type == payload.doc_type, Document.status != "CANCELLED", Document.party_name == party))
-    if existing:
-        raise HTTPException(status_code=409, detail=f"A {payload.doc_type.replace('_', ' ')} already exists for this job and party ({existing.doc_number or 'draft #' + str(existing.id)}). Cancel it first, or issue a debit/credit note.")
-    lines = [LineIn(charge_name=c.charge_name, description=c.description, hsn=c.hsn, uom=c.uom, qty=c.qty, ccy=(c.sell_ccy if sell else c.buy_ccy), exch=(c.sell_exch if sell else c.buy_exch), rate=(c.sell_rate if sell else c.buy_rate), tax_type=(c.sell_tax_type if sell else c.buy_tax_type), tax_pct=(c.sell_tax_pct if sell else c.buy_tax_pct)) for c in usable]
+    def make_line(c):
+        return LineIn(charge_name=c.charge_name, description=c.description, hsn=c.hsn, uom=c.uom, qty=c.qty, ccy=(c.sell_ccy if sell else c.buy_ccy), exch=(c.sell_exch if sell else c.buy_exch), rate=(c.sell_rate if sell else c.buy_rate),
+                      tax_type=(c.sell_tax_type if sell else c.buy_tax_type), tax_pct=(c.sell_tax_pct if sell else c.buy_tax_pct))
+
+    groups: dict[str, list] = {}
+    for c in usable:
+        groups.setdefault(line_group(c.sell_tax_type if sell else c.buy_tax_type), []).append(make_line(c))
     today = date.today()
-    doc = _new_document(db, user, org_id, DocumentIn(doc_type=payload.doc_type, doc_date=today, due_date=today + timedelta(days=payload.due_days), job_number=job.job_number, party_name=party, lines=lines))
-    record_audit(db, "DOCUMENT_CREATED_FROM_JOB", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"job_number": job.job_number, "party": party, "lines": len(lines)})
+    made, skipped = [], []
+    existing = list(db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.shipment_id == job.id, Document.doc_type == payload.doc_type, Document.status != "CANCELLED", Document.party_name == party)))
+    have = {line_group(l.tax_type) for d in existing for l in d.lines}
+    for grp in ("TAX", "PURE_AGENT", "RCM"):
+        if grp not in groups:
+            continue
+        if grp in have:
+            skipped.append(grp)
+            continue
+        doc = _new_document(db, user, org_id, DocumentIn(doc_type=payload.doc_type, doc_date=today, due_date=today + timedelta(days=payload.due_days), job_number=job.job_number, party_name=party, lines=groups[grp]))
+        record_audit(db, "DOCUMENT_CREATED_FROM_JOB", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"job_number": job.job_number, "party": party, "lines": len(groups[grp]), "kind": grp})
+        made.append(doc)
+    if not made:
+        first = existing[0]
+        raise HTTPException(status_code=409, detail=f"A {payload.doc_type.replace('_', ' ')} already exists for this job and party ({first.doc_number or 'draft #' + str(first.id)}). Cancel it first, or issue a debit/credit note.")
     db.commit()
-    return _out(_load(db, org_id, doc.id), True)
+    out = _out(_load(db, org_id, made[0].id), True, proforma_required(db, org_id))
+    out["also_created"] = [{"id": d.id, "invoice_kind": invoice_kind([l.tax_type for l in _load(db, org_id, d.id).lines])} for d in made[1:]]
+    return out
 
 
 @router.get("/{doc_id}")
 def get_document(doc_id: int, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
-    return _out(_load(db, _tenant(user), doc_id), True)
+    return _out(_load(db, _tenant(user), doc_id), True, proforma_required(db, _tenant(user)))
 
 
 @router.patch("/{doc_id}")
@@ -273,7 +299,7 @@ def update_document(doc_id: int, payload: DocumentPatch, user: User = Depends(pe
         _apply_lines(doc, lines)
     record_audit(db, "DOCUMENT_UPDATED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"fields": sorted(k for k in changes if k != "lines"), "lines": None if lines is None else len(lines)})
     db.commit()
-    return _out(_load(db, org_id, doc_id), True)
+    return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
 
 
 @router.post("/{doc_id}/post")
@@ -281,8 +307,10 @@ def post_document(doc_id: int, user: User = Depends(permission_required("billing
     """DRAFT -> POSTED: assigns the legal document number and freezes the document."""
     org_id = _tenant(user)
     doc = _load(db, org_id, doc_id, lock=True)
-    if doc.status != "DRAFT":
+    if doc.status not in ("DRAFT", "CONFIRMED"):
         raise HTTPException(status_code=409, detail="Only draft documents can be posted")
+    if doc.doc_type == "invoice" and doc.status == "DRAFT" and proforma_required(db, org_id):
+        raise HTTPException(status_code=409, detail="Confirm the Proforma Invoice first. The Tax Invoice is generated only from a confirmed proforma")
     jl.guard_document_job(db, doc.shipment_id)
     if not doc.lines or doc.grand_total <= 0:
         raise HTTPException(status_code=422, detail="A document needs at least one line with a positive total before posting")
@@ -316,7 +344,102 @@ def post_document(doc_id: int, user: User = Depends(permission_required("billing
     jl.doc_hook(db, doc, user, "POSTED")
     record_audit(db, "DOCUMENT_POSTED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number, "total": str(doc.grand_total)})
     db.commit()
-    return _out(_load(db, org_id, doc_id), True)
+    return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
+
+
+def _proforma_checks(doc: Document) -> None:
+    if not doc.lines or doc.grand_total <= 0:
+        raise HTTPException(status_code=422, detail="A proforma needs at least one line with a positive total before it is confirmed")
+    if not doc.party_name:
+        raise HTTPException(status_code=422, detail="Party name is required before the proforma is confirmed")
+
+
+@router.post("/{doc_id}/confirm")
+def confirm_proforma(doc_id: int, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    """DRAFT proforma -> CONFIRMED proforma (the customer has agreed). Gives it a proforma number; the Tax Invoice is generated from it."""
+    from .models import HblCounter
+
+    org_id = _tenant(user)
+    doc = _load(db, org_id, doc_id, lock=True)
+    if doc.doc_type != "invoice":
+        raise HTTPException(status_code=422, detail="Only a customer invoice has a proforma stage")
+    if doc.status != "DRAFT":
+        raise HTTPException(status_code=409, detail="Only a draft proforma can be confirmed")
+    jl.guard_document_job(db, doc.shipment_id)
+    _proforma_checks(doc)
+    header = dict(doc.header or {})
+    if not header.get("proforma_no"):
+        ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == org_id, HblCounter.hbl_type == "PF").with_for_update())
+        if ctr is None:
+            ctr = HblCounter(organization_id=org_id, hbl_type="PF", last_no=0)
+            db.add(ctr)
+            db.flush()
+        ctr.last_no += 1
+        header["proforma_no"] = f"PF/{fiscal_year(doc.doc_date)}/{ctr.last_no:05d}"
+    header.update({"proforma_date": date.today().isoformat(), "proforma_confirmed_by": user.id})
+    doc.header = header
+    doc.status = "CONFIRMED"
+    record_audit(db, "PROFORMA_CONFIRMED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"proforma_no": header["proforma_no"], "total": str(doc.grand_total)})
+    db.commit()
+    return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
+
+
+@router.post("/{doc_id}/reopen-proforma")
+def reopen_proforma(doc_id: int, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    org_id = _tenant(user)
+    doc = _load(db, org_id, doc_id, lock=True)
+    if doc.doc_type != "invoice" or doc.status != "CONFIRMED":
+        raise HTTPException(status_code=409, detail="Only a confirmed proforma can be reopened for changes")
+    doc.status = "DRAFT"
+    record_audit(db, "PROFORMA_REOPENED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"proforma_no": (doc.header or {}).get("proforma_no")})
+    db.commit()
+    return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
+
+
+@router.post("/{doc_id}/e-invoice")
+def create_einvoice(doc_id: int, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    """e-Invoice for a posted B2B Tax Invoice (on the customer's request): the IRN and the QR code printed on the original.
+    The IRN is computed here as a SHA-256 hash of supplier GSTIN, financial year, document type and document number. A legally valid IRN is the one issued by the GST
+    e-invoice portal (IRP); it is registered only when the company's GSP credentials are connected, so until then it is marked as not yet registered."""
+    import hashlib
+    import io
+    import json
+
+    import segno
+
+    from .models import CompanyDocProfile, Organization
+
+    org_id = _tenant(user)
+    doc = _load(db, org_id, doc_id, lock=True)
+    if doc.doc_type not in ("invoice", "debit_note", "credit_note") or doc.status != "POSTED":
+        raise HTTPException(status_code=409, detail="An e-Invoice is created from a posted Tax Invoice, Debit Note or Credit Note")
+    if invoice_kind([l.tax_type for l in doc.lines]) != "TAX":
+        raise HTTPException(status_code=422, detail="An e-Invoice applies to taxable B2B tax documents. Non-taxable, pure agent (reimbursement) and RCM invoices do not carry an IRN")
+    header = dict(doc.header or {})
+    if header.get("einvoice"):
+        return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
+    prof = db.scalar(select(CompanyDocProfile).where(CompanyDocProfile.organization_id == org_id))
+    pd = (prof.data if prof else {}) or {}
+    seller = str(pd.get("gstin") or "").strip().upper()
+    buyer = str(doc.party_gstin or "").strip().upper()
+    if not seller:
+        raise HTTPException(status_code=422, detail="Enter the company's GSTIN in the Company letterhead & registration profile first")
+    if not buyer:
+        raise HTTPException(status_code=422, detail="An e-Invoice is for a registered (GSTIN) customer. This invoice has no customer GSTIN")
+    fy = "20" + fiscal_year(doc.doc_date)[:2] + "-" + fiscal_year(doc.doc_date)[3:]
+    dtype = {"invoice": "INV", "debit_note": "DBN", "credit_note": "CRN"}[doc.doc_type]
+    irn = hashlib.sha256(f"{seller}{fy}{dtype}{doc.doc_number}".encode()).hexdigest()
+    irn_dt = datetime.now(timezone.utc)
+    main_hsn = next((l.hsn for l in sorted(doc.lines, key=lambda x: -x.amount) if l.hsn), "")
+    payload = {"SellerGstin": seller, "BuyerGstin": buyer, "DocNo": doc.doc_number, "DocTyp": dtype, "DocDt": doc.doc_date.strftime("%d/%m/%Y"), "TotInvVal": float(doc.grand_total), "ItemCnt": len(doc.lines), "MainHsnCode": main_hsn, "Irn": irn, "IrnDt": irn_dt.strftime("%Y-%m-%d %H:%M:%S")}
+    buf = io.BytesIO()
+    segno.make(json.dumps(payload, separators=(",", ":")), error="m").save(buf, kind="svg", scale=4, border=1, xmldecl=False, svgns=True, nl=False)
+    qr = "data:image/svg+xml;base64," + __import__("base64").b64encode(buf.getvalue()).decode()
+    header["einvoice"] = {"irn": irn, "irn_date": irn_dt.isoformat(), "qr": qr, "qr_payload": payload, "ack_no": None, "source": "LOCAL", "registered": False, "created_by": user.id}
+    doc.header = header
+    record_audit(db, "EINVOICE_CREATED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number, "irn": irn, "registered": False})
+    db.commit()
+    return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
 
 
 @router.post("/{doc_id}/cancel")
@@ -340,4 +463,4 @@ def cancel_document(doc_id: int, user: User = Depends(permission_required("billi
     jl.doc_hook(db, doc, user, "CANCELLED")
     record_audit(db, "DOCUMENT_CANCELLED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number})
     db.commit()
-    return _out(_load(db, org_id, doc_id), True)
+    return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))

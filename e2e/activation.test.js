@@ -26,10 +26,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const text = s => ((q$(s) || {}).textContent || "").replace(/\s+/g, " ");
 
   const before = (await j("GET", "/api/masters/charge?status=ACTIVE", null, token)).body.length;
-  check("a freshly imported catalogue has no active charges", before === 0);
+  check("a freshly imported catalogue is fully active with its SAC", before === 47);
   w.go("quotation-new"); await sleep(1500);
   const names = () => Array.from(d.querySelectorAll('select[data-ql$=":charge_name"] option')).map(o => o.value).filter(Boolean);
-  check("so no charge is offered on a quotation yet", w.QK.m.charges.length === 0, String(w.QK.m.charges.length));
+  check("so all 47 charges are offered on a quotation", w.QK.m.charges.length === 47, String(w.QK.m.charges.length));
 
   w.go("charge-master"); await sleep(1500);
   check("the Charge Master has an Activate Ready Charges button", !!q$("#activateChargesBtn"));

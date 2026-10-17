@@ -226,6 +226,7 @@ class JobDetail(Base):
     containers: Mapped[list] = mapped_column(JSON, default=list)
     dims: Mapped[dict] = mapped_column(JSON, default=dict)
     bl: Mapped[dict] = mapped_column(JSON, default=dict)
+    impdocs: Mapped[dict] = mapped_column(JSON, default=dict)
     saved_sections: Mapped[dict] = mapped_column(JSON, default=dict)
     version: Mapped[int] = mapped_column(Integer, default=0)
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

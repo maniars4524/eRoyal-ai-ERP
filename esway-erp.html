@@ -4095,6 +4095,12 @@ tbody tr:hover{background:var(--g0)}
 <div class="card" id="blDraftPrintZone" data-doc-shell="Bill of Lading / AWB" style="max-width:940px;margin:0 auto"><div class="cb"></div></div>
 </div>
 
+<!-- ====== DOCUMENT VIEWER (freight certificate, CAN, DO, invoices, debit / credit notes, purchase invoice) ====== -->
+<div id="s-doc-view" class="scr">
+<div class="ph"><div><div class="pt" id="docViewTitle">Document</div><div class="ps">Produced from the job's and the billing document's own data (A4)</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-detail" title="Back to the job"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="docEditBtn" data-dk="edit" style="display:none">Edit details</button><button class="btn btn-out btn-sm" data-dk="print">🖨 Print</button><button class="btn btn-out btn-sm" data-dk="pdf">⬇ PDF</button><button class="btn btn-pri btn-sm" data-dk="mail">✉ Send to customer</button></div></div>
+<div class="card" id="docViewZone" style="max-width:860px;margin:0 auto"></div>
+</div>
+
 <!-- ====== FREIGHT CERTIFICATE ====== -->
 <div id="s-freight-cert" class="scr">
 <div class="ph"><div><div class="pt">Freight Certificate</div><div class="ps">Produced from the job's own data</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
@@ -5999,6 +6005,7 @@ const SCREEN_META = {
   "tax-invoice-print":{title:"Tax Invoice", crumb:"eSway ERP 2.0 / Invoices / <strong>Tax Invoice</strong>", menu:"invoice-list"},
   "quotation-print":{title:"Quotation Print", crumb:"eSway ERP 2.0 / CRM / Quotation / <strong>Preview</strong>", menu:"quotation"},
   "bl-draft":{title:"BL Draft", crumb:"eSway ERP 2.0 / Jobs / <strong>BL Draft</strong>", menu:"job-list"},
+  "doc-view":{title:"Document", crumb:"eSway ERP 2.0 / Jobs / <strong>Document</strong>", menu:"job-list"},
   "freight-cert":{title:"Freight Certificate", crumb:"eSway ERP 2.0 / Jobs / <strong>Freight Certificate</strong>", menu:"job-list"},
   "cargo-arrival":{title:"Cargo Arrival Notice", crumb:"eSway ERP 2.0 / Jobs / <strong>Cargo Arrival Notice</strong>", menu:"job-list"},
   "job-pl-report":{title:"Job P&L Report", crumb:"eSway ERP 2.0 / <strong>Job P&amp;L Report</strong>", menu:"pnl"},
@@ -7362,8 +7369,8 @@ function jcRenderRows(){
       <td class="jc-col-buy"><select class="fc" data-jc-f="buy.ccy" data-jc-id="${r.id}">${buyCcyOpts}</select></td>
       <td class="jc-col-buy"><input class="fc" type="number" step="0.0001" style="width:72px" data-jc-f="buy.exch" data-jc-id="${r.id}" value="${r.buy.exch}" ${r.buy.ccy==="INR"?"disabled":""}></td>
       <td class="jc-col-buy"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="buy.rate" data-jc-id="${r.id}" value="${r.buy.rate}"></td>
-      <td class="jc-col-buy"><select class="fc" data-jc-f="buy.taxType" data-jc-id="${r.id}" style="width:86px"><option ${r.buy.taxType==="Taxable"?"selected":""}>Taxable</option><option ${r.buy.taxType==="Non-Taxable"?"selected":""}>Non-Taxable</option></select></td>
-      <td class="jc-col-buy"><input class="fc" type="number" style="width:48px" data-jc-f="buy.taxPct" data-jc-id="${r.id}" value="${r.buy.taxPct}" ${r.buy.taxType!=="Taxable"?"disabled":""}></td>
+      <td class="jc-col-buy"><select class="fc" data-jc-f="buy.taxType" data-jc-id="${r.id}" style="width:86px">${["Taxable","Non-Taxable","Pure Agent","RCM"].map(t=>`<option ${r.buy.taxType===t?"selected":""}>${t}</option>`).join("")}</select></td>
+      <td class="jc-col-buy"><input class="fc" type="number" style="width:48px" data-jc-f="buy.taxPct" data-jc-id="${r.id}" value="${r.buy.taxPct}" ${r.buy.taxType!=="Taxable" && r.buy.taxType!=="RCM"?"disabled":""}></td>
       <td class="jc-col-buy mono">${jcFmtMoney(jcRowCalc(r).buyAmt)}</td>
       <td class="jc-col-buy mono" style="font-weight:600">${jcFmtMoney(jcRowCalc(r).buyINR)}</td>
       <td class="jc-col-buy"><div class="jc-party-cell">
@@ -7373,8 +7380,8 @@ function jcRenderRows(){
       <td class="jc-col-sell"><select class="fc" data-jc-f="sell.ccy" data-jc-id="${r.id}">${sellCcyOpts}</select></td>
       <td class="jc-col-sell"><input class="fc" type="number" step="0.0001" style="width:72px" data-jc-f="sell.exch" data-jc-id="${r.id}" value="${r.sell.exch}" ${r.sell.ccy==="INR"?"disabled":""}></td>
       <td class="jc-col-sell"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="sell.rate" data-jc-id="${r.id}" value="${r.sell.rate}"></td>
-      <td class="jc-col-sell"><select class="fc" data-jc-f="sell.taxType" data-jc-id="${r.id}" style="width:86px"><option ${r.sell.taxType==="Taxable"?"selected":""}>Taxable</option><option ${r.sell.taxType==="Non-Taxable"?"selected":""}>Non-Taxable</option></select></td>
-      <td class="jc-col-sell"><input class="fc" type="number" style="width:48px" data-jc-f="sell.taxPct" data-jc-id="${r.id}" value="${r.sell.taxPct}" ${r.sell.taxType!=="Taxable"?"disabled":""}></td>
+      <td class="jc-col-sell"><select class="fc" data-jc-f="sell.taxType" data-jc-id="${r.id}" style="width:86px">${["Taxable","Non-Taxable","Pure Agent","RCM"].map(t=>`<option ${r.sell.taxType===t?"selected":""}>${t}</option>`).join("")}</select></td>
+      <td class="jc-col-sell"><input class="fc" type="number" style="width:48px" data-jc-f="sell.taxPct" data-jc-id="${r.id}" value="${r.sell.taxPct}" ${r.sell.taxType!=="Taxable" && r.sell.taxType!=="RCM"?"disabled":""}></td>
       <td class="jc-col-sell mono">${jcFmtMoney(jcRowCalc(r).sellAmt)}</td>
       <td class="jc-col-sell mono" style="font-weight:600">${jcFmtMoney(jcRowCalc(r).sellINR)}</td>
       <td class="jc-col-sell"><div class="jc-party-cell">
@@ -7612,7 +7619,7 @@ function wireJobChargesPanel(){
 
   const withSave = fn=> { if(!jcCurrentJob){ return; } jcPersist(jcCurrentJob, false).then(()=>{ if(window.BK) fn(jcCurrentJob); }); };
   const genMap = {invoice: j=> BK.fromJob(j, "invoice"), purInvoice: j=> BK.fromJob(j, "purchase_invoice"),
-    creditNote: j=> BK.openNew("credit_note", {job_number:j}), purCreditNote: j=> BK.openNew("purchase_credit_note", {job_number:j}), debitNote: j=> BK.openNew("debit_note", {job_number:j})};
+    creditNote: j=> window.VoucherKit.start("credit_note", j), purCreditNote: j=> window.VoucherKit.start("purchase_credit_note", j), debitNote: j=> window.VoucherKit.start("debit_note", j)};
   const genRowEl = document.getElementById("jc_genRow");
   if(genRowEl) genRowEl.addEventListener("click", e=>{
     const btn = e.target.closest("[data-jc-gendoc]"); if(!btn) return;
@@ -8909,7 +8916,7 @@ const BACK_MAP = {
   's-invoice-new':'invoice-list',
   's-tax-invoice-print':'invoice-list',
   's-quotation-print':'quotation',
-  's-bl-draft':'job-detail',
+  's-bl-draft':'job-detail', 's-doc-view':'job-detail',
   's-freight-cert':'job-detail',
   's-cargo-arrival':'job-detail',
   's-job-pl-report':'pnl',
@@ -11619,7 +11626,7 @@ function initApp(){
         's-quotation-print':'quotation','s-freight-cert':'job-detail',
         's-job-pl-report':'pnl','s-coa':'dashboard','s-pnl':'reports',
         's-reports':'dashboard','s-sop':'dashboard',
-        's-tax-invoice-print':'invoice-list','s-bl-draft':'job-detail',
+        's-tax-invoice-print':'invoice-list','s-bl-draft':'job-detail','s-doc-view':'job-detail',
         's-cargo-arrival':'job-detail','s-debit-note-detail':'debit-note-list',
         's-purchase-invoice-detail':'purchase-invoice-list',
         's-invoice-new':'invoice-list',
@@ -13852,7 +13859,7 @@ if(document.readyState !== "loading") initChatWidget();
           '<div class="fg"><label class="fl">GST % <span class="r">*</span></label><div style="display:flex;gap:6px"><select class="fc" id="nc_gst_pick" style="width:96px">'+[["","Choose"],["0","0%"],["3","3%"],["5","5%"],["12","12%"],["18","18%"],["28","28%"],["other","Other"]].map(o=>'<option value="'+o[0]+'"'+(String(d.gst_percent||"")===o[0]&&o[0]!==""?" selected":"")+'>'+o[1]+'</option>').join("")+'</select><input class="fc" id="nc_gst" type="number" min="0" max="100" step="0.01" placeholder="e.g. 18" value="'+esc2(d.gst_percent||"")+'"></div><span style="font-size:10.5px;color:var(--g5)">Pick a slab or type any rate. It fills from the HSN master when the code has one.</span></div></div>'+
           '<div class="fr"><div class="fg"><label class="fl">Category</label>'+sel("nc_cat",CHARGE_CATEGORIES,d.category)+'</div><div class="fg"><label class="fl">AR / AP</label>'+sel("nc_arap",["Both","AR","AP"],d.ar_ap)+'</div><div class="fg"><label class="fl">UOM</label>'+sel("nc_uom",["Flat","Per Container","Per KG","Per CBM","Per Job","Per BL","Per AWB"],d.uom)+'</div></div>'+
           '<div class="fr"><div class="fg"><label class="fl">Module</label>'+sel("nc_mod",["FOR","CUS","TRP","WHS","ALL"],d.module)+'</div><div class="fg"><label class="fl">Mode</label>'+sel("nc_mode",["ALL","SEA","AIR","ROAD","RAIL"],d.mode)+'</div><div class="fg"><label class="fl">Status</label>'+sel("nc_status",["Active","Inactive"],rec&&rec.status!=="ACTIVE"?"Inactive":"Active")+'</div></div>'+
-          '<div class="fsec" style="margin-top:6px">Tax verification '+(d.tax_status==='REVIEW_REQUIRED' ? '<span class="b b-am">Review required</span>' : '')+'</div>'+
+          '<div class="fsec" style="margin-top:6px">Tax verification '+(d.tax_status==='REVIEW_REQUIRED' || d.tax_status==='PROPOSED_VERIFY' ? '<span class="b b-am">Proposed — verify</span>' : '')+'</div>'+
           (d.tax_note ? '<div class="ib ib-am" style="margin-bottom:6px">Proposed default: '+esc2(d.classification||'')+' — '+esc2(d.tax_note)+'. Confirm the exact SAC, rate and conditions against the official notification before activating.</div>' : '')+
           '<div class="fr"><div class="fg"><label class="fl">Tax Treatment</label>'+sel('nc_treat',['taxable','exempt','nil_rated','non_gst','reverse_charge','zero_rated'],d.tax_treatment||'taxable')+'</div><div class="fg" style="grid-column:span 2"><label class="fl">Notification Reference</label><input class="fc" id="nc_notif" value="'+esc2(d.notification_ref||'')+'" placeholder="e.g. Notification No. 11/2017-Central Tax (Rate)"></div><div class="fg"><label class="fl">Effective Date</label><input class="fc" id="nc_eff" type="date" value="'+esc2(d.effective_date||'')+'"></div></div>'+
           '<div class="fr"><div class="fg"><label class="fl">COA Income Account</label><input class="fc" id="nc_coai" value="'+esc2(d.coa_income||"")+'"></div><div class="fg"><label class="fl">COA Expense Account</label><input class="fc" id="nc_coae" value="'+esc2(d.coa_expense||"")+'"></div></div>',
@@ -13873,7 +13880,7 @@ if(document.readyState !== "loading") initChatWidget();
         if(manual && !/^[0-9A-Z]{4,12}$/.test(hsnCode)){ say("HSN/SAC code looks wrong", "Use 4 to 12 letters or digits, e.g. 996511", "warn"); return; }
         if(v("nc_gst") === "" || isNaN(Number(v("nc_gst"))) || Number(v("nc_gst")) < 0 || Number(v("nc_gst")) > 100){ say("GST % required", "Choose a GST slab or type a rate between 0 and 100", "warn"); return; }
         const body = {code:v("nc_code"), name:v("nc_name"), status:v("nc_status")==="Inactive"?"INACTIVE":"ACTIVE", data:Object.assign({}, d, {hsn_code:hsnCode, gst_percent:v("nc_gst"), category:v("nc_cat"), ar_ap:v("nc_arap"), uom:v("nc_uom"), module:v("nc_mod"), mode:v("nc_mode"), coa_income:v("nc_coai"), coa_expense:v("nc_coae"), tax_treatment:v("nc_treat"), notification_ref:v("nc_notif"), effective_date:v("nc_eff")})};
-        if(body.data.tax_status === "REVIEW_REQUIRED" && body.status === "ACTIVE" && body.data.notification_ref && body.data.effective_date) body.data.tax_status = "VERIFIED";
+        if((body.data.tax_status === "REVIEW_REQUIRED" || body.data.tax_status === "PROPOSED_VERIFY") && body.status === "ACTIVE" && body.data.notification_ref && body.data.effective_date) body.data.tax_status = "VERIFIED";
         try{
           if(manual && document.getElementById("nc_hsn_add").checked && !act.some(h=>h.code===hsnCode)){
             try{ await api("POST","/api/masters/hsn", {code:hsnCode, name:v("nc_name"), data:{code_type:"SAC (Services)", gst_rate:v("nc_gst")+"%", tax_category:"Entered manually from the Charge Master", source:"manual"}}); }catch(e2){ /* already exists: fine */ }
@@ -14062,8 +14069,9 @@ if(document.readyState !== "loading") initChatWidget();
   const blankLine = ()=> ({charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:"Taxable", tax_pct:"18"});
   const badge = d=>{
     const s = d.status === "POSTED" ? d.payment_status : d.status;
-    const cls = {PAID:"b-gr", PARTIAL:"b-am", UNPAID:"b-rd", POSTED:"b-bl", DRAFT:"b-gy", CANCELLED:"b-gy"}[s] || "b-gy";
-    return '<span class="b '+cls+' dot">'+esc2(s.charAt(0)+s.slice(1).toLowerCase())+'</span>';
+    const cls = {PAID:"b-gr", PARTIAL:"b-am", UNPAID:"b-rd", POSTED:"b-bl", CONFIRMED:"b-am", DRAFT:"b-gy", CANCELLED:"b-gy"}[s] || "b-gy";
+    const text = d.doc_type === "invoice" && s === "DRAFT" ? "Proforma" : d.doc_type === "invoice" && s === "CONFIRMED" ? "Proforma confirmed" : s.charAt(0)+s.slice(1).toLowerCase();
+    return '<span class="b '+cls+' dot">'+esc2(text)+'</span>';
   };
   const calc = l=>{
     const qty = Number(l.qty)||0, rate = Number(l.rate)||0, exch = l.ccy === "INR" ? 1 : (Number(l.exch)||0);
@@ -14103,9 +14111,9 @@ if(document.readyState !== "loading") initChatWidget();
   }
   function renderEditor(){
     const S = BK.state, T = TYPES[S.type], host = editorHost(S.screen), d = S.doc, h = S.head;
-    const editable = !d || d.status === "DRAFT";
+    const editable = !d || d.status === "DRAFT"; const proformaFlow = S.type === "invoice";
     const dis = editable ? "" : " disabled";
-    const num = d && d.doc_number ? d.doc_number : "Assigned on posting";
+    const num = d && d.doc_number ? d.doc_number : (d && (d.header || {}).proforma_no ? d.header.proforma_no+" (proforma)" : "Assigned on posting");
     const opt = (v,l,sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(l)+'</option>';
     const partyList = S.customers.map(c=>c.name);
     const lineRows = S.lines.map((l,i)=>{
@@ -14113,7 +14121,7 @@ if(document.readyState !== "loading") initChatWidget();
       const inp = (f,w,ty)=> '<input class="fc" data-bkl="'+i+'" data-f="'+f+'" '+(ty?'type="'+ty+'" ':'')+'style="'+(w?'width:'+w+'px':'min-width:90px')+'" value="'+esc2(l[f])+'"'+dis+'>';
       return '<tr><td>'+(i+1)+'</td><td><input class="fc" list="bkCharges_'+S.screen+'" data-bkl="'+i+'" data-f="charge_name" style="min-width:140px" value="'+esc2(l.charge_name)+'"'+dis+'></td><td>'+inp("description")+'</td><td>'+inp("hsn",74)+'</td><td>'+inp("qty",58,"number")+'</td><td>'+inp("uom",92)+'</td>'+
         '<td><select class="fc" data-bkl="'+i+'" data-f="ccy" style="width:66px"'+dis+'>'+["INR","USD","EUR","GBP","AED","SGD","JPY"].map(x=>opt(x,x,x===l.ccy)).join("")+'</select></td><td>'+inp("exch",70,"number")+'</td><td>'+inp("rate",84,"number")+'</td>'+
-        '<td><select class="fc" data-bkl="'+i+'" data-f="tax_type" style="width:96px"'+dis+'>'+["Taxable","Non-Taxable"].map(x=>opt(x,x,x===l.tax_type)).join("")+'</select></td><td>'+inp("tax_pct",52,"number")+'</td>'+
+        '<td><select class="fc" data-bkl="'+i+'" data-f="tax_type" style="width:96px"'+dis+'>'+["Taxable","Non-Taxable","Pure Agent","RCM"].map(x=>opt(x,x,x===l.tax_type)).join("")+'</select></td><td>'+inp("tax_pct",52,"number")+'</td>'+
         '<td class="mono" style="text-align:right">'+inr(c.amount)+'</td><td class="mono" style="text-align:right">'+inr(c.tax)+'</td><td class="mono" style="text-align:right;font-weight:600">'+inr(c.total)+'</td><td>'+(editable?'<button class="ta" data-bkdel="'+i+'">✕</button>':'')+'</td></tr>';
     }).join("");
     const sub = S.lines.reduce((a,l)=>a+calc(l).amount,0), tax = S.lines.reduce((a,l)=>a+calc(l).tax,0);
@@ -14122,9 +14130,12 @@ if(document.readyState !== "loading") initChatWidget();
     const money = v=> inr(v);
     const actions = [];
     actions.push('<button class="btn btn-out btn-sm" data-bk="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button>');
-    if(d && d.status !== "DRAFT") actions.push('<button class="btn btn-out btn-sm" data-bk="print"><svg class="ic" data-icon="printer"></svg> Print</button>');
+    if(d && d.status !== "DRAFT" && d.status !== "CONFIRMED") actions.push('<button class="btn btn-out btn-sm" data-bk="print"><svg class="ic" data-icon="printer"></svg> Print</button>');
     if(editable) actions.push('<button class="btn btn-out btn-sm" data-bk="save"><svg class="ic" data-icon="check"></svg> Save Draft</button>');
-    if(editable) actions.push('<button class="btn btn-suc btn-sm" data-bk="post"><svg class="ic" data-icon="check"></svg> Post Document</button>');
+    if(editable && proformaFlow) actions.push('<button class="btn btn-suc btn-sm" data-bk="confirm"><svg class="ic" data-icon="check"></svg> Confirm Proforma</button>');
+    if(editable && !(proformaFlow && d && d.proforma_required)) actions.push('<button class="btn btn-'+(proformaFlow ? "pri" : "suc")+' btn-sm" data-bk="post"><svg class="ic" data-icon="check"></svg> '+(proformaFlow ? "Generate Tax Invoice" : "Post Document")+'</button>');
+    if(d && d.status === "CONFIRMED") { actions.push('<button class="btn btn-pri btn-sm" data-bk="post"><svg class="ic" data-icon="check"></svg> Generate Tax Invoice</button>'); actions.push('<button class="btn btn-out btn-sm" data-bk="reopenpf">Reopen Proforma</button>'); }
+    if(d && d.status === "POSTED" && S.type === "invoice" && d.party_gstin && !(d.header || {}).einvoice) actions.push('<button class="btn btn-out btn-sm" data-bk="einvoice">Create e-Invoice</button>');
     if(d && d.status === "POSTED" && T.ar && ["invoice"].includes(S.type) && Number(d.outstanding) > 0) actions.push('<button class="btn btn-pri btn-sm" data-bk="receipt">Record Receipt</button>');
     if(d && d.status === "POSTED" && S.type === "purchase_invoice" && Number(d.outstanding) > 0) actions.push('<button class="btn btn-pri btn-sm" data-bk="pay">Record Payment</button>');
     if(d && d.status === "POSTED" && (S.type === "invoice" || S.type === "purchase_invoice")) actions.push('<button class="btn btn-out btn-sm" data-bk="note">Issue Credit Note</button>');
@@ -14173,7 +14184,15 @@ if(document.readyState !== "loading") initChatWidget();
       if(name === "save"){ const d = await save(); say(T.label+" draft saved", "Draft #"+d.id+" saved"); return; }
       if(name === "post"){
         readHead(); if(!window.confirm("Post this "+T.label.toLowerCase()+"? A number will be assigned and it can no longer be edited.")) return;
-        const d = await save(); const posted = await api("POST","/api/documents/"+d.id+"/post"); S.doc = posted; renderEditor(); say(T.label+" posted", posted.doc_number); return;
+        const d = S.doc && S.doc.status !== "DRAFT" ? S.doc : await save(); const posted = await api("POST","/api/documents/"+d.id+"/post"); S.doc = posted; renderEditor(); say(T.label+" posted", posted.doc_number); return;
+      }
+      if(name === "confirm"){
+        readHead(); const d = await save(); const c = await api("POST","/api/documents/"+d.id+"/confirm"); S.doc = c; renderEditor(); say("Proforma Confirmed Successfully!", (c.header || {}).proforma_no || ""); return;
+      }
+      if(name === "reopenpf"){ S.doc = await api("POST","/api/documents/"+S.doc.id+"/reopen-proforma"); renderEditor(); say("Proforma Reopened", "It can be edited again"); return; }
+      if(name === "einvoice"){
+        if(!window.confirm("Create the e-Invoice (IRN and QR code) for this invoice? Do this only when the customer needs an e-Invoice.")) return;
+        S.doc = await api("POST","/api/documents/"+S.doc.id+"/e-invoice"); renderEditor(); say("e-Invoice Created Successfully!", "IRN "+S.doc.header.einvoice.irn.slice(0, 16)+"…"); return;
       }
       if(name === "cancel"){
         if(!window.confirm("Cancel this document? This cannot be undone.")) return;
@@ -17499,29 +17518,570 @@ function makePrintFit(){
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "bl-draft") BD.show(); };
 
   /* ---------------- company documents profile (letterhead, registration numbers, signature and seal) ---------------- */
-  const FIELDS = [["legal_name","Company name (as printed)"],["tagline","Tagline"],["phone","Telephone"],["fax","Fax"],["email","Email"],["web","Website"],["reg_mto","MTO registration (e.g. OTI LICENCE NO. 019654N)"],["reg_otl","OTL registration"],["reg_fmc","FMC registration"],["signatory","Signatory title (e.g. Authorised Signatory)"]];
+  const GROUPS = [
+    ["Company", [["legal_name", "Company name (as printed)"], ["tagline", "Tagline"], ["address", "Registered address", "area"], ["phone", "Telephone"], ["mobile", "Mobile"], ["fax", "Fax"], ["email", "Email"], ["web", "Website"]]],
+    ["Tax and registration", [["gstin", "GSTIN"], ["pan", "PAN"], ["cin", "CIN"], ["state", "State"], ["state_code", "State code"], ["reg_mto", "MTO registration (e.g. OTI LICENCE NO. 019654N)"], ["reg_otl", "OTL registration"], ["reg_fmc", "FMC registration"]]],
+    ["Bank (INR account)", [["bank_name", "Bank name"], ["bank_account", "Account number"], ["bank_ifsc", "IFSC code"], ["bank_swift", "SWIFT / BIC code"], ["bank_branch", "Branch name and address", "area"], ["payment_modes", "Accepted payment modes (one per line)", "area"], ["tracking_url", "Invoice tracking URL"]]],
+    ["Bank (foreign currency account, printed on international debit notes)", [["usd_bank_name", "Bank name"], ["usd_bank_account", "Account number"], ["usd_bank_swift", "SWIFT code"], ["usd_bank_address", "Bank address", "area"], ["usd_bank_intermediary", "Intermediary bank and SWIFT", "area"]]],
+    ["Printed wording", [["invoice_terms", "Invoice / debit note terms and conditions (one per line)", "area"], ["do_terms", "Delivery Order note (one per line)", "area"], ["terms", "Bill of Lading clauses (blank = standard clauses)", "area"], ["eoe", "E. & O.E. line"], ["footer_note", "Footer line"], ["signatory", "Signatory title (e.g. Authorised Signatory)"], ["signatory_name", "Signatory name"]]]];
   function shrink(file, maxW){ return new Promise((ok, bad)=>{ const r = new FileReader(); r.onerror = ()=>bad(new Error("Could not read the file")); r.onload = ()=>{ const im = new Image(); im.onerror = ()=>bad(new Error("That is not an image")); im.onload = ()=>{ const k = Math.min(1, maxW / im.width); const c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/png")); }; im.src = r.result; }; r.readAsDataURL(file); }); }
   BD.profile = async function(){
     let d; try{ d = await api("GET", "/api/company/doc-profile"); }catch(e){ say("Could not open the company profile", e.message, "error"); return; }
+    const settings = await api("GET", "/api/masters/setting").catch(()=>[]); const pfSet = settings.find(x=>x.code === "INVOICE_REQUIRES_PROFORMA"); const pfOn = !!pfSet && pfSet.status === "ACTIVE" && /^(yes|true|1)$/i.test(String((pfSet.data || {}).enabled || ""));
     const pr = d.profile || {}; const img = (id, label, v)=> '<div class="fg"><label class="fl">'+label+'</label><div id="'+id+'Prev" style="min-height:44px;border:1px dashed var(--g3);border-radius:6px;padding:4px;margin-bottom:4px;text-align:center">'+(v ? '<img src="'+v+'" style="max-height:60px;max-width:100%">' : '<span style="color:var(--g4);font-size:11px">none</span>')+'</div><input type="file" accept="image/png,image/jpeg,image/webp" id="'+id+'" class="fc"></div>';
-    openModal({title:"Company documents profile", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">Printed on the Bill of Lading / Multimodal Transport Document. The registration number printed depends on the House BL type (MTO, OTL or FMC).</div>'+
-      '<div class="fr">'+FIELDS.slice(0,2).map(([k,l])=>'<div class="fg"><label class="fl">'+l+'</label><input class="fc" id="cp_'+k+'" value="'+esc2(pr[k] != null ? pr[k] : (k === "legal_name" ? d.name : ""))+'"></div>').join("")+'</div>'+
-      '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Address</label><textarea class="fc" id="cp_address" rows="3">'+esc2(pr.address || "")+'</textarea></div></div>'+
-      '<div class="fr">'+FIELDS.slice(2,6).map(([k,l])=>'<div class="fg"><label class="fl">'+l+'</label><input class="fc" id="cp_'+k+'" value="'+esc2(pr[k] || "")+'"></div>').join("")+'</div>'+
-      '<div class="fr">'+FIELDS.slice(6,9).map(([k,l])=>'<div class="fg"><label class="fl">'+l+'</label><input class="fc" id="cp_'+k+'" value="'+esc2(pr[k] || "")+'"></div>').join("")+'</div>'+
-      '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">'+FIELDS[9][1]+'</label><input class="fc" id="cp_signatory" value="'+esc2(pr.signatory || "")+'"></div></div>'+
-      '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Terms printed at the foot (leave blank for the standard clauses)</label><textarea class="fc" id="cp_terms" rows="3">'+esc2(pr.terms || "")+'</textarea></div></div>'+
-      '<div class="fr">'+img("cp_logo", "Company logo", d.logo)+img("cp_sign", "Digital signature (PNG with clear background)", pr.sign_image)+img("cp_seal", "Company seal", pr.seal_image)+'</div>',
+    const fld = ([k, l, t])=> '<div class="fg"'+(t === "area" ? ' style="grid-column:span 3"' : "")+'><label class="fl">'+esc2(l)+'</label>'+(t === "area" ? '<textarea class="fc" id="cp_'+k+'" rows="3">'+esc2(pr[k] || "")+'</textarea>' : '<input class="fc" id="cp_'+k+'" value="'+esc2(pr[k] != null ? pr[k] : (k === "legal_name" ? d.name : ""))+'">')+'</div>';
+    openModal({title:"Company documents profile", size:"lg", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">Printed on the Bill of Lading, Delivery Order, Cargo Arrival Notice, Freight Certificate, invoices, debit and credit notes. A line left empty is not printed; nothing is invented.</div><div style="max-height:62vh;overflow:auto;padding-right:6px">'+
+      GROUPS.map(([t, fs])=>'<div class="fsec">'+esc2(t)+'</div><div class="fr">'+fs.map(fld).join("")+'</div>').join("")+
+      '<div class="fsec">Invoice workflow</div><div class="fr"><div class="fg" style="grid-column:span 3"><label style="display:flex;gap:8px;align-items:center;font-size:12px"><input type="checkbox" id="cp_proforma" '+(pfOn ? "checked" : "")+'> A Tax Invoice can be generated only from a confirmed Proforma Invoice</label></div></div>'+
+      '<div class="fsec">Logo, digital signature and seal</div><div class="fr">'+img("cp_logo", "Company logo", d.logo)+img("cp_sign", "Digital signature (PNG with clear background)", pr.sign_image)+img("cp_seal", "Company seal", pr.seal_image)+'</div></div>',
       footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="cpSave">Save Changes</button>'});
     const pend = {};
     [["cp_logo", 300, "logo"], ["cp_sign", 320, "sign_image"], ["cp_seal", 260, "seal_image"]].forEach(([id, w, key])=> el(id).addEventListener("change", async ev=>{ const f = ev.target.files[0]; if(!f) return; try{ pend[key] = await shrink(f, w); el(id+"Prev").innerHTML = '<img src="'+pend[key]+'" style="max-height:60px;max-width:100%">'; }catch(e){ say("Image not accepted", e.message, "error"); } }));
     el("cpSave").addEventListener("click", async ()=>{
-      const body = {address:el("cp_address").value, terms:el("cp_terms").value}; FIELDS.forEach(([k])=>{ body[k] = el("cp_"+k).value; }); if(pend.sign_image) body.sign_image = pend.sign_image; if(pend.seal_image) body.seal_image = pend.seal_image;
-      try{ await api("PUT", "/api/company/doc-profile", body); if(pend.logo) await api("PUT", "/api/company/logo", {data_url:pend.logo}); closeModal(); say("Company Profile Updated Successfully!", "Used on every Bill of Lading from now on"); }
+      const body = {}; GROUPS.forEach(([t, fs])=> fs.forEach(([k])=>{ body[k] = el("cp_"+k).value; })); if(pend.sign_image) body.sign_image = pend.sign_image; if(pend.seal_image) body.seal_image = pend.seal_image;
+      try{ await api("PUT", "/api/company/doc-profile", body);
+        const want = el("cp_proforma").checked; if(want !== pfOn || (want && !pfSet)){ const data = {enabled: want ? "yes" : "no"}; if(pfSet) await api("PATCH", "/api/masters/setting/"+pfSet.id, {status:"ACTIVE", data:Object.assign({}, pfSet.data || {}, data)}); else await api("POST", "/api/masters/setting", {code:"INVOICE_REQUIRES_PROFORMA", name:"Invoice requires a confirmed proforma", data}); }
+        if(pend.logo) await api("PUT", "/api/company/logo", {data_url:pend.logo}); closeModal(); say("Company Profile Updated Successfully!", "Used on every document from now on"); }
       catch(e){ say("Could not save the company profile", e.message, "error"); }
     });
   };
   document.addEventListener("click", e=>{ if(e.target.closest("[data-doc-profile]")) BD.profile(); });
+})();
+</script>
+
+<script>
+/* ============================================================
+   DOCUMENT KIT: A4 print documents produced from the job's and the invoice's own data.
+   Freight Certificate, Cargo Arrival Notice, Delivery Order (sea and air import), Tax Invoice / Proforma Invoice,
+   Debit Note / Credit Note and Purchase Invoice. Every value comes from the ERP (job, saved job details, booking,
+   billing document, company letterhead profile); an empty value is simply left out. The same page set is viewed on
+   screen, printed, saved as PDF and emailed from the job's Output Docs.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const DK = window.DocKit = {};
+  const NAVY = "#0A2A5E", LINE = "#9fb0c8", SOFT = "#eef3fa";
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "";
+  const num = v=> { const n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isNaN(n) ? 0 : n; };
+  const fmt = (v, d)=> num(v).toLocaleString("en-US", {minimumFractionDigits:d == null ? 2 : d, maximumFractionDigits:d == null ? 2 : d});
+  const nl2br = t=> esc2(t || "").replace(/\n/g, "<br>");
+  const first = (...a)=> { for(const x of a) if(x !== undefined && x !== null && String(x).trim() !== "") return x; return ""; };
+  const lines = t=> String(t || "").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const today = ()=> new Date().toISOString().slice(0, 10);
+
+  /* ---------- amount in words ---------- */
+  const ONES = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const TENS = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+  const below100 = n=> n < 20 ? ONES[n] : TENS[Math.floor(n / 10)] + (n % 10 ? " " + ONES[n % 10] : "");
+  const below1000 = n=> (n >= 100 ? ONES[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " " : "") : "") + (n % 100 ? below100(n % 100) : "");
+  function intWords(n, indian){
+    if(n === 0) return "Zero";
+    const parts = []; const u = indian ? [[10000000, "Crore"], [100000, "Lakh"], [1000, "Thousand"]] : [[1000000000, "Billion"], [1000000, "Million"], [1000, "Thousand"]];
+    u.forEach(([v, name])=>{ const q = Math.floor(n / v); if(q){ parts.push(intWords(q, indian) + " " + name); n -= q * v; } });
+    if(n) parts.push(below1000(n)); return parts.join(" ");
+  }
+  const CCY_NAME = {INR:["Indian Rupees", "Paise"], USD:["US Dollars", "Cents"], EUR:["Euros", "Cents"], GBP:["Pounds Sterling", "Pence"], AED:["UAE Dirhams", "Fils"], SGD:["Singapore Dollars", "Cents"]};
+  DK.words = function(v, ccy){
+    const n = Math.round(Math.abs(num(v)) * 100) / 100; const whole = Math.floor(n), minor = Math.round((n - whole) * 100); const nm = CCY_NAME[ccy] || [ccy || "", "Minor units"];
+    return nm[0] + " " + intWords(whole, ccy === "INR" || !ccy) + (minor ? " and " + intWords(minor, false) + " " + nm[1] : "") + " Only";
+  };
+
+  /* ---------- page furniture ---------- */
+  const PG = 'class="pg" style="width:794px;height:1123px;box-sizing:border-box;padding:20px 28px 34px;position:relative;overflow:hidden;background:#fff;color:#14213d;font-family:Arial,Helvetica,sans-serif;font-size:9.5px;line-height:1.35;page-break-after:always;break-after:page"';
+  function header(co, compact){
+    const p = co.profile || {}; const contact = [["Phone", p.phone], ["Mobile", p.mobile], ["Fax", p.fax], ["Email", p.email], ["Website", p.web]].filter(x=>x[1]);
+    const ids = [p.gstin ? "GSTIN: <b>"+esc2(p.gstin)+"</b>" : "", p.pan ? "PAN: <b>"+esc2(p.pan)+"</b>" : "", p.cin ? "CIN: "+esc2(p.cin) : ""].filter(Boolean).join(" &nbsp;|&nbsp; ");
+    const ids2 = [p.state ? "State: "+esc2(p.state) : "", p.state_code ? "State Code: "+esc2(p.state_code) : ""].filter(Boolean).join(" &nbsp;|&nbsp; ");
+    return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding-bottom:7px;border-bottom:1.5px solid '+NAVY+';margin-bottom:8px">'+
+      '<div style="min-width:90px">'+(co.logo ? '<img src="'+co.logo+'" style="max-height:'+(compact ? 48 : 64)+'px;max-width:150px;object-fit:contain">' : "")+'</div>'+
+      '<div style="flex:1;text-align:right"><div style="font-size:'+(compact ? 15 : 18)+'px;font-weight:800;color:'+NAVY+';line-height:1.15">'+esc2(p.legal_name || co.name || "")+'</div>'+(p.tagline ? '<div style="font-style:italic;font-size:9px">'+esc2(p.tagline)+'</div>' : "")+
+      '<div style="font-size:8.5px;margin-top:2px">'+nl2br(p.address)+'</div>'+(ids ? '<div style="font-size:8.5px">'+ids+'</div>' : "")+(ids2 ? '<div style="font-size:8.5px">'+ids2+'</div>' : "")+
+      (contact.length ? '<div style="font-size:8.3px;color:#33415c;margin-top:1px">'+contact.map(([k, v])=>k+": "+esc2(v)).join(" &nbsp;|&nbsp; ")+'</div>' : "")+'</div></div>';
+  }
+  const footer = (n, N, note)=> '<div style="position:absolute;left:30px;right:30px;bottom:12px;display:flex;justify-content:space-between;font-size:8px;color:#52627d;border-top:1px solid '+LINE+';padding-top:3px"><span>'+esc2(note || "")+'</span><span>Page '+n+' of '+N+'</span></div>';
+  const bar = t=> '<div style="background:'+NAVY+';color:#fff;font-weight:700;letter-spacing:.4px;padding:4px 8px;font-size:9.5px">'+esc2(t)+'</div>';
+  const titleBar = t=> '<div style="background:'+NAVY+';color:#fff;font-weight:800;letter-spacing:.8px;padding:7px;font-size:17px;text-align:center;margin:6px 0 8px;border-radius:2px">'+esc2(t)+'</div>';
+  const kv = (rows, lw)=> '<div style="display:grid;grid-template-columns:'+(lw || 120)+'px 1fr;column-gap:6px;row-gap:3px;padding:6px 8px">'+rows.filter(r=>r && r[1] !== "" && r[1] != null).map(([k, v])=>'<div style="font-weight:700">'+esc2(k)+'</div><div>: '+v+'</div>').join("")+'</div>';
+  const kvAll = (rows, lw)=> '<div style="display:grid;grid-template-columns:'+(lw || 120)+'px 1fr;column-gap:6px;row-gap:4px;padding:6px 8px">'+rows.map(([k, v])=>'<div style="font-weight:700">'+esc2(k)+'</div><div>: '+(v || "")+'</div>').join("")+'</div>';
+  const box = (inner, extra)=> '<div style="border:1px solid '+LINE+';border-radius:3px;overflow:hidden;'+(extra || "")+'">'+inner+'</div>';
+  const sigBlock = (co, withImages, who, h)=> { const p = co.profile || {}; return '<div style="text-align:center;min-width:200px"><div style="font-weight:700">For '+esc2(p.legal_name || co.name || "")+'</div><div style="min-height:'+(h || 62)+'px;margin:2px 0">'+(withImages ? (p.sign_image ? '<img src="'+p.sign_image+'" style="max-height:56px;max-width:150px">' : "")+(p.seal_image ? '<img src="'+p.seal_image+'" style="max-height:64px;max-width:90px;margin-left:8px">' : "") : "")+'</div><div style="border-top:1px solid #333;padding-top:2px;font-weight:700">'+esc2(who || "Authorised Signatory")+'</div>'+(p.signatory_name ? '<div style="font-size:8.5px">Name: '+esc2(p.signatory_name)+'</div>' : "")+'</div>'; };
+  /* measured height of a page's content (0 when the browser has no layout, e.g. in tests: then the estimate is used) */
+  const INNER = 1123 - 20 - 34 - 4;
+  function measure(inner){ try{ const h = document.createElement("div"); h.style.cssText = "position:absolute;left:-10000px;top:0;width:734px;font-family:Arial,Helvetica,sans-serif;font-size:9.5px;line-height:1.35"; h.innerHTML = inner; document.body.appendChild(h); const H = h.offsetHeight; h.remove(); return H; }catch(e){ return 0; } }
+  function place(pages, closing, estimate, again){
+    const parts = Array.isArray(closing) ? closing : [closing]; const est = Array.isArray(estimate) ? estimate : [estimate]; let lp = pages[pages.length - 1]; let used = lp.used;
+    parts.forEach((part, i)=>{ const m = measure(lp.html + part); const fits = m ? m <= INNER : used + est[i] <= INNER; if(fits){ lp.html += part; used += est[i]; } else { lp = {html:again + part, used:est[i] + 60}; pages.push(lp); used = lp.used; } });
+  }
+  const wrapPages = (pages, co, note)=> { const N = pages.length; return pages.map((h, i)=>'<div '+PG+'>'+h+footer(i + 1, N, note)+'</div>').join(""); };
+
+  /* ---------- shared job facts ---------- */
+  function facts(rd){
+    const d = rd.details || {}, bl = d.bl || {}, c = d.cargo || {}, bk = rd.booking || {}, im = d.impdocs || {}; const conts = (d.containers || []).filter(x=>x.container_no); const air = rd.mode === "Air";
+    const sum = k=> conts.reduce((a, x)=>a + num(x[k]), 0);
+    const bills = (rd.shipping_bills || []).concat(rd.bills_of_entry || []);
+    const types = Array.from(new Set(conts.map(x=>x.type).filter(Boolean)));
+    return {air, bl, c, bk, im, conts, bills, d, types,
+      mbl: bl.mblNo || (bl.bookingType === "Direct" ? bl.directNo : ""), mblDate: bl.mblDate || bl.directDate || "", hbl: bl.hblNo || "", hblDate: bl.hblDate || "",
+      pkgs: first(c.pkgs, sum("pkgs") || ""), pkgType: first(c.pkgType), gw: first(c.gwt, sum("gross_wt") || ""), nw: first(c.nwt, sum("net_wt") || ""), vol: first(c.vol),
+      vessel: bk.vessel || "", carrier: bk.carrier || "", por: first(bk.place_of_receipt, rd.pol), pol: rd.pol || "", pod: rd.pod || "", pld: first(bk.place_of_delivery, rd.pod),
+      etd: bk.etd, eta: bk.eta, movement: bk.container_mode ? bk.container_mode+"/"+bk.container_mode : "", freight: (bl.terms || bk.freight_pp || ""),
+      desc: first(c.cargoDesc, c.commodity, rd.commodity), marks: first(c.marks, bk.marks), party: rd.party_text || {}, p: (d.parties || {})};
+  }
+  const contType = x=> [x.type].filter(Boolean).join(" ");
+
+  /* ---------- FREIGHT CERTIFICATE ---------- */
+  DK.freightCert = function(rd){
+    const co = rd.company || {}, f = facts(rd); const P = co.profile || {};
+    const sums = re=> { const m = {}; (rd.job_charges || []).filter(x=>re.test(x.name)).forEach(x=>{ m[x.ccy] = (m[x.ccy] || 0) + num(x.amount); }); return Object.keys(m).map(k=>fmt(m[k])+" "+k).join(" + "); };
+    const to = lines(f.party.consignee || f.p.consignee)[0] || "";
+    const row = (k, v)=> '<div style="font-weight:700;color:'+NAVY+';padding:6px 4px">'+k+'</div><div style="padding:6px 4px">: '+(v || "")+'</div>';
+    const cont = f.conts.map(x=>esc2(x.container_no)+" "+esc2(contType(x))+(rd.container_mode || f.bk.container_mode ? " "+esc2(f.bk.container_mode || "") : "")).join("<br>");
+    const body = header(co)+titleBar("FREIGHT CERTIFICATE")+
+      '<div style="display:flex;justify-content:space-between;margin:6px 0 12px"><div style="font-weight:700;font-size:11px">To,<br>'+esc2(to)+'</div><div style="border:1px solid '+LINE+';background:'+SOFT+';padding:8px 14px;border-radius:3px;font-weight:700;height:fit-content">Date &nbsp;: '+dmy(today())+'</div></div>'+
+      box('<div style="display:grid;grid-template-columns:150px 1fr;padding:6px 10px;font-size:10.5px">'+
+        row(f.air ? "AIR FREIGHT" : "OCEAN FREIGHT", esc2(sums(/freight/i)))+row("EX-WORKS", esc2(sums(/ex.?works/i)))+row(f.air ? "Flight / Date" : "Vessel Name", esc2(f.vessel))+row(f.air ? "HAWB No" : "HBL No", esc2(f.hbl))+row(f.air ? "MAWB No" : "MBL No", esc2(f.mbl))+
+        row("Description", esc2(f.desc))+row("POL", esc2(f.pol))+row("POD", esc2(f.pod))+row("No Of PKGS", f.pkgs ? esc2(f.pkgs)+" "+esc2(f.pkgType.toUpperCase() || "PKG") : "")+row("Gross Weight", f.gw ? esc2(fmt(f.gw))+" KGS" : "")+row("E.T.A", esc2(dmy(f.eta)))+(f.air ? "" : row("Container No.", cont))+'</div>')+
+      '<div style="margin-top:30px;font-size:10.5px">Thanking You,<br><b>'+esc2(P.legal_name || co.name || "")+'</b><br>'+esc2(P.signatory || "Manager")+'</div>'+
+      '<div style="position:absolute;left:30px;right:30px;bottom:34px;text-align:center;font-size:8.5px;border-top:1px solid '+LINE+';padding-top:4px">This is a computer-generated document. No seal or signature is required.</div>';
+    return wrapPages([body], co, P.footer_note);
+  };
+
+  /* ---------- DELIVERY ORDER ---------- */
+  DK.deliveryOrder = function(rd){
+    const co = rd.company || {}, f = facts(rd), im = f.im, P = co.profile || {}; const air = f.air;
+    const to = first(im.to_name, "The Manager");
+    const cont = f.conts.map(x=>esc2(x.container_no)+"-"+esc2(contType(x))+" / "+esc2(contType(x))).join("<br>");
+    const notes = lines(P.do_terms);
+    const f1 = [[air ? "HAWB No." : "B/L No.", esc2(f.hbl || f.mbl), air ? "AWB Date" : "BL Date", esc2(dmy(f.hblDate || f.mblDate))], [air ? "Master AWB No." : "Master B/L No.", esc2(f.mbl)], air ? null : ["Container no(s).", cont], ["Consignee", esc2(lines(f.party.consignee || f.p.consignee)[0] || "")], ["CHA", esc2(f.p.cha || "")], ["Cargo Description", esc2(f.desc)],
+      ["Delivery", esc2(im.delivery || "")], ["No.Of.Packages", f.pkgs ? esc2(f.pkgs)+" "+esc2((f.pkgType || "PKG").toUpperCase()) : ""], ["Measurement", f.vol ? esc2(fmt(f.vol, 3))+" CBM" : ""], ["Gross Wt.", f.gw ? esc2(fmt(f.gw))+" KGS" : ""], [air ? "Flight / Date" : "Vessel/Voyage", esc2(f.vessel)],
+      ["IGM No.", esc2(im.igm_no || ""), "IGM Date", esc2(dmy(im.igm_date))], ["Sub-Line No.", esc2(im.sub_line || "")], ["Marks & Nos.", nl2br(f.marks)]].filter(Boolean);
+    const lab = t=> '<div style="font-weight:700;color:'+NAVY+'">'+esc2(t)+'</div>';
+    const body = header(co)+titleBar("DELIVERY ORDER")+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div style="font-weight:700;font-size:11px">To,<br>'+esc2(to)+'</div><div style="border:1px solid '+LINE+';background:'+SOFT+';padding:6px 12px;border-radius:3px;font-weight:700;min-width:200px"><div style="display:flex;justify-content:space-between"><span>D.O. No</span><span>: '+esc2(im.do_no || "")+'</span></div><div style="display:flex;justify-content:space-between"><span>D.O. Date</span><span>: '+esc2(dmy(im.do_date))+'</span></div></div></div>'+
+      '<div style="font-size:10.5px;margin-bottom:8px"><b>Dear Sir,</b><br>You are requested to kindly make delivery of the below mentioned '+(air ? "consignment" : "container(s)")+',<br>Whose details are as follows :</div>'+
+      box('<div style="display:grid;grid-template-columns:130px 1fr 90px 150px;column-gap:6px;row-gap:5px;padding:8px 10px;font-size:10px">'+f1.map(r=> lab(r[0])+'<div style="grid-column:span '+(r[2] ? 1 : 3)+'">: '+(r[1] || "")+'</div>'+(r[2] ? lab(r[2])+'<div>: '+(r[3] || "")+'</div>' : "")).join("")+'</div>')+
+      box('<div style="padding:7px 10px;font-weight:700;color:'+NAVY+'">This delivery order is valid till : '+esc2(dmy(im.valid_till))+'</div>', "margin-top:8px;background:"+SOFT)+
+      (notes.length ? '<div style="margin-top:8px;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("NOTE:")+'<ol style="margin:0;padding:6px 8px 6px 24px;font-size:9px;line-height:1.5">'+notes.map(n=>"<li>"+esc2(n.replace(/^\d+[\.\)]\s*/, ""))+"</li>").join("")+'</ol></div>' : "")+
+      '<div style="margin-top:12px;font-size:10px"><div style="display:flex;justify-content:space-between;color:#52627d;font-size:9px"><span>Report Date: '+dmy(today())+'</span></div><div style="margin-top:10px">Thanking you<br><b>Yours Faithfully</b></div><div style="margin-top:6px">'+sigBlock(co, !!im.sign, "Authorised signatory").replace("text-align:center", "text-align:left")+'</div></div>';
+    return wrapPages([body], co, P.footer_note);
+  };
+
+  /* ---------- CARGO ARRIVAL NOTICE ---------- */
+  DK.arrivalNotice = function(rd){
+    const co = rd.company || {}, f = facts(rd), P = co.profile || {}, air = f.air; const pt = f.party;
+    const partyBox = (t, txt)=> '<div style="border:1px solid '+LINE+';border-radius:3px;overflow:hidden;margin-bottom:6px">'+bar(t)+'<div style="padding:6px 8px;min-height:30px"><b>'+esc2(lines(txt)[0] || "")+'</b><br>'+lines(txt).slice(1).map(esc2).join("<br>")+'</div></div>';
+    const chargeRows = (rd.job_charges || []);
+    const contRows = f.conts.length ? f.conts.map((x, i)=>'<tr><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+esc2(x.container_no)+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+esc2(contType(x))+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+(x.pkgs ? esc2(x.pkgs)+" "+esc2((x.pkg_type || "PACKAGES").toUpperCase()) : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+(i === 0 ? (f.pkgs ? "TOTAL PACKAGE "+esc2(f.pkgs)+"<br>" : "")+esc2(f.desc)+(f.bills.length ? "<br>"+f.bills.map(b=>(b.bill_type === "BE" ? "BE NO: " : "SB NO: ")+esc2(b.bill_no)+(b.bill_date ? " /"+esc2(dmy(b.bill_date)) : "")).join("<br>") : "") : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:center">-</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:right">'+(x.net_wt ? esc2(fmt(x.net_wt, 0))+" KG" : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:right">'+(x.gross_wt ? esc2(fmt(x.gross_wt, 0))+" KG" : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:center">'+(i === 0 && f.vol ? esc2(fmt(f.vol, 3)) : "-")+'</td></tr>').join("")
+      : '<tr><td colspan="8" style="padding:8px;text-align:center;border-top:1px solid '+LINE+'">'+esc2(f.desc || "")+(f.pkgs ? " — "+esc2(f.pkgs)+" "+esc2(f.pkgType) : "")+(f.gw ? " — "+esc2(fmt(f.gw))+" KG gross" : "")+'</td></tr>';
+    const th = t=> '<th style="padding:5px;text-align:'+(/WEIGHT|VOLUME/.test(t) ? "right" : "left")+';font-size:8.5px;color:'+NAVY+'">'+t+'</th>';
+    const body = header(co, true)+
+      '<div style="border:1px solid '+LINE+';background:'+SOFT+';border-radius:3px;padding:6px 10px;width:290px;margin-bottom:6px;font-size:10.5px;font-weight:700"><div>JOB NO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : <span style="font-weight:400">'+esc2(rd.job_number)+'</span></div><div>'+(air ? "HAWB NO" : "BL NO")+' &nbsp;&nbsp;&nbsp;&nbsp; : <span style="font-weight:400">'+esc2(f.hbl || "/")+'</span></div><div>'+(air ? "MAWB NO" : "MBL NO")+' &nbsp;&nbsp; : <span style="font-weight:400">'+esc2(f.mbl || "/")+'</span></div></div>'+
+      titleBar("CARGO ARRIVAL NOTICE")+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div>'+box(bar("SHIPMENT DETAILS")+kvAll([["PLACE OF RECEIPT", esc2(f.por)], [air ? "AIRPORT OF DEPARTURE" : "PORT OF LOADING", esc2(f.pol)], [air ? "AIRPORT OF ARRIVAL" : "PORT OF DISCHARGE", esc2(f.pod)], ["PLACE OF DELIVERY", esc2(f.pld)], [air ? "FLIGHT / DATE" : "VESSEL/VOYAGE", esc2(f.vessel)], ["ETD", esc2(dmy(f.etd))], ["ETA", esc2(dmy(f.eta))], [air ? "SERVICE" : "MOVEMENT TYPE", esc2(f.movement || f.bk.service_type || "")], ["FREIGHT", esc2(String(f.freight).toUpperCase())], ["CFS", esc2(f.p.cfs || f.im.cfs || "")]], 120))+
+        box('<div style="padding:6px 8px;background:'+SOFT+'">'+kvAll([["CONSIGNEE", esc2(lines(pt.consignee || f.p.consignee)[0] || "")], ["NOTIFY", nl2br(pt.notify1 || f.p.notify1)]], 80).replace(/padding:6px 8px/, "padding:2px 0")+'</div>', "margin-top:10px")+'</div>'+
+        '<div>'+partyBox("SHIPPER", pt.shipper || f.p.shipper)+partyBox("CONSIGNEE", pt.consignee || f.p.consignee)+partyBox("NOTIFY PARTY", pt.notify1 || f.p.notify1)+partyBox("AGENT", pt.originAgent || f.p.originAgent || pt.deliveryAgent || f.p.deliveryAgent)+'</div></div>'+
+      '<div style="margin-top:10px;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar(air ? "CARGO DETAILS" : "CONTAINER DETAILS")+'<table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:'+SOFT+'">'+[air ? "PACKAGES" : "CONTAINER", "TYPE", "NO OF PKG", "DESCRIPTION", "CHARGEABLE", "N.WEIGHT", "G.WEIGHT", "VOLUME"].map(th).join("")+'</tr></thead><tbody>'+contRows+'</tbody></table></div>'+
+      '<div style="margin-top:10px;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar(air ? "FLIGHT DETAIL" : "VESSEL DETAIL")+'<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;padding:6px 8px;font-size:10px"><div><b>'+(air ? "FLIGHT / DATE" : "VESSEL / VOYAGE")+'</b> &nbsp; '+esc2(f.vessel)+'</div><div><b>ETD</b> &nbsp; : '+esc2(dmy(f.etd))+'</div><div><b>ETA</b> &nbsp; : '+esc2(dmy(f.eta))+'</div></div></div>'+
+      '<div style="margin-top:10px;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("CHARGE DETAILS")+'<table style="width:100%;border-collapse:collapse;font-size:9.5px"><thead><tr style="background:'+SOFT+'"><th style="padding:5px;text-align:center;color:'+NAVY+'">DESCRIPTION</th><th style="padding:5px;text-align:center;color:'+NAVY+'">CURRENCY</th><th style="padding:5px;text-align:center;color:'+NAVY+'">AMOUNT</th></tr></thead><tbody>'+
+        (chargeRows.length ? chargeRows.map(c=>'<tr><td style="padding:4px 8px;border-top:1px solid '+LINE+'">'+esc2(c.name)+'</td><td style="padding:4px 8px;border-top:1px solid '+LINE+';text-align:center">'+esc2(c.ccy)+'</td><td style="padding:4px 8px;border-top:1px solid '+LINE+';text-align:right">'+fmt(c.amount)+'</td></tr>').join("") : '<tr><td style="padding:5px;text-align:center;border-top:1px solid '+LINE+'">-</td><td style="text-align:center;border-top:1px solid '+LINE+'">-</td><td style="text-align:center;border-top:1px solid '+LINE+'">-</td></tr>')+'</tbody></table></div>';
+    return wrapPages([body], co, P.footer_note || (P.legal_name || co.name || ""));
+  };
+
+  /* ---------- billing documents ---------- */
+  const TAXCODE = {"Taxable":"T", "Non-Taxable":"N", "Pure Agent":"P", "RCM":"R", "Exempt":"X", "Zero Rated":"Z", "Export":"E"};
+  function docLines(doc){
+    const intra = doc.supply_type === "intra";
+    return (doc.lines || []).map(l=>{ const tax = num(l.tax_amount); const half = Math.round(tax * 50) / 100; const cg = intra ? half : 0, sg = intra ? Math.round((tax - half) * 100) / 100 : 0, ig = intra ? 0 : tax;
+      return Object.assign({}, l, {fc:num(l.qty) * num(l.rate), inr:num(l.amount), taxable:l.tax_type === "Taxable" ? num(l.amount) : 0, cgst:cg, sgst:sg, igst:ig, pct:num(l.tax_pct)}); });
+  }
+  function hsnSummary(ls){ const m = {}; ls.forEach(l=>{ const k = (l.hsn || "—")+"|"+l.pct; const r = m[k] || (m[k] = {hsn:l.hsn || "—", pct:l.pct, taxable:0, cgst:0, sgst:0, igst:0}); r.taxable += l.taxable || l.inr; r.cgst += l.cgst; r.sgst += l.sgst; r.igst += l.igst; }); return Object.values(m); }
+  const chunk = (a, n)=> { const o = []; for(let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o.length ? o : [[]]; };
+  const rowH = (l, w)=> 20 + 9 * Math.max(0, Math.max(Math.ceil(String(l.charge_name || "").length / (w || 34)), Math.ceil(String(l.description || "").length / 26)) - 1);
+
+  const KIND = {
+    TAX:{title:"TAX INVOICE", sub:""}, NON_TAXABLE:{title:"NON-TAXABLE INVOICE", sub:"No GST is charged on this invoice"}, PURE_AGENT:{title:"PURE AGENT INVOICE", sub:"Reimbursement of expenses incurred as a pure agent. No GST is charged"},
+    RCM:{title:"INVOICE — REVERSE CHARGE (RCM)", sub:"GST on these services is payable by the recipient under reverse charge"}};
+  const kindOf = doc=> { const t = Array.from(new Set((doc.lines || []).map(l=>l.tax_type))); const g = t.map(x=> x === "Pure Agent" ? "PURE_AGENT" : x === "RCM" ? "RCM" : x === "Non-Taxable" ? "NON_TAXABLE" : "TAX"); const u = Array.from(new Set(g)); if(u.length === 1) return u[0]; return u.indexOf("PURE_AGENT") > -1 ? "PURE_AGENT" : u.indexOf("RCM") > -1 ? "RCM" : "TAX"; };
+  DK.invoiceTitle = function(doc){ const proforma = doc.doc_type === "invoice" && doc.status !== "POSTED"; const k = kindOf(doc); return proforma ? "PROFORMA INVOICE" : (KIND[k] || KIND.TAX).title; };
+  DK.PER_PAGE = 12;   // charge entries on a page; entry 13 onwards continues on the next page
+
+  DK.invoice = function(doc, rd, extra){
+    extra = extra || {}; const co = rd.company || {}, P = co.profile || {}, f = facts(rd);
+    const posted = doc.status === "POSTED"; const kind = kindOf(doc); const K = KIND[kind]; const title = DK.invoiceTitle(doc); const proforma = !posted;
+    const ls = docLines(doc), intra = doc.supply_type === "intra"; const ccys = Array.from(new Set(ls.map(l=>l.ccy))); const ccy = ccys[0] || "INR"; const multi = ccys.length > 1;
+    const hd = doc.header || {}; const ei = hd.einvoice || null; const taxCols = kind === "TAX";
+    const num2 = n=> fmt(n);
+    /* ---------- title row: workflow chips and the original mark ---------- */
+    const stage = proforma ? ["PROFORMA INVOICE", "#8a6d00", doc.status === "CONFIRMED" ? "Customer confirmed" : "Awaiting customer confirmation"] : ei ? ["E-INVOICE", "#1f7a4d", ei.registered ? "IRN + QR (IRP signed)" : "IRN + QR Code"] : ["TAX INVOICE", NAVY, "Original"];
+    const badge = '<div style="text-align:center">'+(posted ? '<div style="border:1.5px solid #c1272d;color:#c1272d;padding:4px 14px;text-align:center;font-weight:800;border-radius:4px;font-size:13px;letter-spacing:.4px">ORIGINAL<div style="font-size:8px;font-weight:400">For Recipient</div></div>' : '<div style="border:1.5px solid #8a6d00;color:#8a6d00;padding:4px 12px;text-align:center;font-weight:800;border-radius:4px;font-size:11px">PROFORMA<div style="font-size:8px;font-weight:400">Not a tax document</div></div>')+
+      '<div style="margin-top:3px;border:1px solid '+stage[1]+';color:'+stage[1]+';border-radius:3px;padding:2px 8px;font-size:8.5px;font-weight:800">'+stage[0]+'<div style="font-size:6.8px;font-weight:400">'+stage[2]+'</div></div></div>';
+    const titleRow = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 4px"><div style="font-size:'+(title.length > 20 ? 16 : 22)+'px;font-weight:800;color:'+NAVY+';letter-spacing:.3px;line-height:1.05">'+esc2(title)+(((proforma ? "" : K.sub)) ? '<div style="font-size:7.8px;font-weight:400;color:#52627d;letter-spacing:0;margin-top:2px;max-width:300px">'+esc2(K.sub)+'</div>' : "")+'</div>'+badge+'</div>';
+    /* ---------- invoice particulars and the e-invoice verification ---------- */
+    const pfNo = hd.proforma_no ? esc2(hd.proforma_no) : "";
+    const days = doc.due_date && doc.doc_date ? Math.round((new Date(doc.due_date) - new Date(doc.doc_date)) / 86400000) : null;
+    const left = posted ? [["Invoice No.", "<b>"+esc2(doc.doc_number || "")+"</b>"], ["Invoice Date", esc2(dmy(doc.doc_date))], ["Due Date", esc2(dmy(doc.due_date))], ["Currency", esc2(multi ? "Multiple (see lines)" : ccy)]].concat(pfNo ? [["Proforma Ref.", pfNo]] : [])
+      : [["Proforma No.", "<b>"+(pfNo || "Draft")+"</b>"], ["Proforma Date", esc2(dmy(hd.proforma_date || doc.doc_date))], ["Valid Till", esc2(dmy(doc.due_date))], ["Currency", esc2(multi ? "Multiple (see lines)" : ccy)]];
+    if(!multi && ccy !== "INR" && ls[0]) left.push(["Exchange Rate", "₹ "+esc2(fmt(ls[0].exch))]);
+    const mid = [["Payment Terms", days != null && days >= 0 ? days+" Days" : ""], ["Mode of Payment", esc2(lines(P.payment_modes)[0] || "")], ["Place of Supply", esc2(doc.place_of_supply || "")], ["Supply Type", doc.party_gstin ? "B2B" : "B2C"], ["Type of Invoice", intra ? "Regular (CGST + SGST)" : "Inter-State (IGST)"]];
+    const eiBox = (posted && ei) ? box('<div style="padding:3px 8px"><div style="font-weight:800;color:'+NAVY+';font-size:9.5px;margin-bottom:2px">E-INVOICE VERIFICATION</div><div style="display:flex;gap:8px;align-items:flex-start"><div style="text-align:center"><img src="'+ei.qr+'" style="width:64px;height:64px;image-rendering:pixelated"><div style="font-size:6.5px;font-weight:700;color:'+NAVY+'">QR Code ('+(ei.registered ? "IRP Signed" : "IRP registration pending")+')</div></div><div style="flex:1;font-size:8px;line-height:1.4"><b>IRN :</b><div style="font-size:7px;word-break:break-all;font-weight:700">'+esc2(ei.irn)+'</div>'+'<div style="margin-top:3px"><b>Ack No. :</b> '+(ei.ack_no ? esc2(ei.ack_no) : '<span style="color:#8a6d00">Pending IRP registration</span>')+'</div><div style="margin-top:2px"><b>Ack Date :</b> '+esc2(String(ei.ack_date || ei.irn_date || "").slice(0, 16).replace("T", " "))+'</div></div></div></div>', "width:250px") : "";
+    const info = '<div style="display:flex;gap:6px;margin-bottom:4px;align-items:stretch">'+box('<div style="display:grid;grid-template-columns:1fr 1fr;font-size:8.4px;height:100%"><div style="padding:3px 9px;border-right:1px solid '+LINE+'">'+kvAll(left, 78).replace("padding:6px 8px", "padding:0").replace("row-gap:4px", "row-gap:1px")+'</div><div style="padding:3px 9px">'+kv(mid, 90).replace("padding:6px 8px", "padding:0").replace("row-gap:3px", "row-gap:1px")+'</div></div>', "flex:1")+eiBox+'</div>';
+    /* ---------- bill to and shipper ---------- */
+    const partyBox = (t, who, fallbackName)=> { const txt = who && who.text ? lines(who.text) : (fallbackName ? [fallbackName] : []); if(!txt.length) return "";
+      return '<div style="flex:1;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar(t)+'<div style="padding:3px 8px;font-size:8px;line-height:1.3"><b style="font-size:9.5px;color:'+NAVY+'">'+esc2(txt[0])+'</b><br>'+txt.slice(1).map(esc2).join(", ")+(who && who.gstin ? '<div style="margin-top:2px"><b>GSTIN / Tax ID :</b> '+esc2(who.gstin)+'</div>' : "")+(who && who.phone ? '<div><b>Phone :</b> '+esc2(who.phone)+'</div>' : "")+'</div></div>'; };
+    const billTo = Object.assign({gstin:doc.party_gstin}, extra.billTo || {}); if(!billTo.gstin) billTo.gstin = doc.party_gstin;
+    const parties = '<div style="display:flex;gap:6px;margin-bottom:4px">'+partyBox("BILL TO / CUSTOMER DETAILS", billTo, doc.party_name)+partyBox("SHIPPER DETAILS", extra.shipper || {text:f.party.shipper || f.p.shipper || ""}, f.p.shipper)+'</div>';
+    /* ---------- shipment and job references ---------- */
+    const sbs = (rd.shipping_bills || []), bes = (rd.bills_of_entry || []);
+    const cargo = [f.pkgs ? fmt(f.pkgs, 0)+" "+(f.pkgType || "pkgs") : "", f.gw ? fmt(f.gw, 3)+" KGS" : "", f.vol ? fmt(f.vol, 3)+" CBM" : ""].filter(Boolean).join(" · ");
+    const cs = (function(){ const m = {}; f.conts.forEach(x=>{ const k = x.type || "—"; m[k] = (m[k] || 0) + 1; }); return Object.keys(m).map(k=>m[k]+" × "+k).join(", "); })();
+    const refPanel = (t, rows)=> { rows = rows.filter(r=>r[1]); if(!rows.length) return ""; return '<div style="flex:1;border:1px solid '+LINE+';border-radius:3px;overflow:hidden"><div style="background:#e8eef7;color:'+NAVY+';font-weight:800;font-size:8px;padding:3px 7px;letter-spacing:.4px">'+t+'</div><table style="width:100%;border-collapse:collapse;font-size:7.3px;line-height:1.15">'+rows.map(([k, v])=>'<tr><td style="padding:.8px 6px;font-weight:700;width:38%;background:#f6f8fc;border-top:1px solid #e3e9f3">'+esc2(k)+'</td><td style="padding:.8px 6px;border-top:1px solid #e3e9f3">'+v+'</td></tr>').join("")+'</table></div>'; };
+    const refs = '<div style="border:1px solid '+LINE+';border-radius:3px;overflow:hidden;margin-bottom:4px">'+bar("SHIPMENT & JOB REFERENCES")+'<div style="display:flex;gap:6px;padding:3px">'+
+      refPanel("DOCUMENT REFERENCES", [["Job Reference", esc2(rd.job_number)], ["Shipment Type", esc2([rd.mode, rd.direction, f.bk.container_mode].filter(Boolean).join(" · "))], [f.air ? "House AWB" : "House B/L", esc2([f.hbl, f.hblDate ? "("+dmy(f.hblDate)+")" : ""].filter(Boolean).join(" "))], [f.air ? "Master AWB" : "Master B/L", esc2([f.mbl, f.mblDate ? "("+dmy(f.mblDate)+")" : ""].filter(Boolean).join(" "))],
+        ["Shipping Bill", esc2(sbs.map(b=>b.bill_no+(b.bill_date ? " ("+dmy(b.bill_date)+")" : "")).join(", "))], ["Bill of Entry", esc2(bes.map(b=>b.bill_no+(b.bill_date ? " ("+dmy(b.bill_date)+")" : "")).join(", "))], ["Customer Ref.", esc2(hd.customer_ref || hd.reference || "")], ["EGM No.", esc2(hd.egm_no || "")]])+
+      refPanel(f.air ? "FLIGHT & TRANSPORT DETAILS" : "VESSEL & TRANSPORT DETAILS", [[f.air ? "Airline" : "Shipping Line", esc2(f.carrier)], [f.air ? "Flight / Date" : "Vessel / Voyage", esc2(f.vessel)], ["Container Summary", esc2(cs)], ["Container No.(s)", esc2(f.conts.map(x=>x.container_no).join(", "))], ["Movement Type", esc2(f.movement)], ["Cargo", esc2(cargo)]])+
+      refPanel("PORTS & ROUTING", [["Place of Receipt", esc2(f.por)], ["Port of Loading", esc2(f.pol)], ["Port of Discharge", esc2(f.pod)], ["Place of Delivery", esc2(f.pld)], ["Final Destination", esc2(f.pld)], ["Incoterms", esc2([f.bk.incoterm, f.bk.incoterm_desc].filter(Boolean).join(" — "))]])+'</div></div>';
+    const top = titleRow+info+parties+refs;
+    /* ---------- charges ---------- */
+    const th = (t, a)=> '<th style="padding:2.5px 3px;font-size:7px;text-align:'+(a || "center")+';border:1px solid #1d3f78">'+t+'</th>';
+    const cols = [["S.No.", ""], ["HSN/SAC", ""], ["Description of Service", "left"], ["Cur.", ""], ["Exch.<br>Rate", ""], ["UOM", ""], ["Qty", ""], ["Rate<br>(FC)", ""], ["Amount<br>(FC)", ""], ["Tax<br>Type", ""]]
+      .concat(taxCols ? [["Taxable<br>Value (INR)", ""], ["GST<br>%", ""]].concat(intra ? [["CGST<br>(INR)", ""], ["SGST<br>(INR)", ""]] : [["IGST<br>(INR)", ""]]) : kind === "RCM" ? [["RCM GST<br>%", ""], ["RCM Tax (INR)<br>by recipient", ""]] : [["Amount<br>(INR)", ""]]).concat([["Total<br>(INR)", ""]]);
+    const head = '<tr style="background:'+NAVY+';color:#fff">'+cols.map(c=>th(c[0], c[1] || "center")).join("")+'</tr>';
+    const td = (v, a, x)=> '<td style="padding:1.6px 3px;font-size:7.5px;border:1px solid '+LINE+';text-align:'+(a || "right")+';vertical-align:middle;'+(x || "")+'">'+v+'</td>';
+    const uom = l=> /container/i.test(l.uom) ? "Per Cont" : /shipment|bl/i.test(l.uom) ? "Per BL" : /kg/i.test(l.uom) ? "Per KG" : /cbm/i.test(l.uom) ? "Per CBM" : esc2(l.uom || "");
+    const rowTotal = l=> kind === "RCM" ? l.inr : l.inr + l.cgst + l.sgst + l.igst;
+    const row = (l, n)=> '<tr style="page-break-inside:avoid">'+td(n, "center")+td(esc2(l.hsn), "center")+td('<b>'+esc2(l.charge_name)+'</b>', "left")+td(esc2(l.ccy), "center")+td(fmt(l.exch), "right")+td(uom(l), "center")+td(fmt(l.qty, 0), "center")+td(fmt(l.rate))+td(fmt(l.fc))+td(TAXCODE[l.tax_type] || "", "center")+
+      (taxCols ? td(fmt(l.taxable))+td(fmt(l.pct, 0)+"%", "center")+(intra ? td(fmt(l.cgst))+td(fmt(l.sgst)) : td(fmt(l.igst))) : kind === "RCM" ? td(fmt(l.pct, 0)+"%", "center")+td(fmt(l.inr * l.pct / 100)) : td(fmt(l.inr)))+td('<b>'+fmt(rowTotal(l))+'</b>')+'</tr>';
+    const note = '<div style="font-size:7.4px;margin-top:2px"><b>Note:</b> '+(multi ? "Charges are in the currencies shown. " : ccy !== "INR" ? "All charges are in "+esc2(ccy)+". " : "")+(multi || ccy !== "INR" ? "Conversion to INR is as per the exchange rate shown. " : "")+'Tax Type: T – Taxable | N – Non-Taxable | P – Pure Agent (Reimbursement) | R – Reverse Charge (RCM)</div>';
+    const tblHtml = (rows, start, last)=> '<div style="border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("DESCRIPTION OF SERVICES & CHARGES")+'<table style="width:100%;border-collapse:collapse"><thead>'+head+'</thead><tbody>'+rows.map((l, i)=>row(l, start + i + 1)).join("")+'</tbody></table></div>'+(last ? note : "");
+    /* ---------- tax summary and invoice value summary ---------- */
+    const hs = (function(){ const m = {}; ls.forEach(l=>{ const k = (l.hsn || "—")+"|"+l.pct; const r = m[k] || (m[k] = {hsn:l.hsn || "—", name:l.charge_name, pct:l.pct, taxable:0, tax:0, rcm:0}); r.taxable += kind === "RCM" ? l.inr : (l.taxable || (l.tax_type === "Taxable" ? l.inr : 0)); r.tax += l.cgst + l.sgst + l.igst; if(l.tax_type === "RCM") r.rcm += l.inr * l.pct / 100; if(r.name !== l.charge_name && r.name.indexOf("…") < 0) r.name += " …"; }); return Object.values(m); })();
+    const rcmTaxAmt = ls.reduce((a, l)=>a + (l.tax_type === "RCM" ? l.inr * l.pct / 100 : 0), 0);
+    const gross = num(doc.subtotal), taxTotal = num(doc.tax_total);
+    const taxableValue = ls.reduce((a, l)=>a + (l.tax_type === "Taxable" ? l.inr : 0), 0);
+    const received = num(doc.paid_amount) + num(doc.credited_amount); const outstanding = num(doc.outstanding != null ? doc.outstanding : doc.grand_total);
+    const gt = num(doc.grand_total); const grand = Math.round(gt); const roundOff = Math.round((grand - gt) * 100) / 100;
+    const sumBy = k=> ls.reduce((a, l)=>a + l[k], 0);
+    const hth = (t, a)=> '<th style="padding:2px 5px;text-align:'+(a || "right")+';font-size:7.4px;border-bottom:1px solid '+LINE+'">'+t+'</th>', htd = (v, a, b)=> '<td style="padding:1.5px 5px;text-align:'+(a || "right")+';font-size:7.7px;'+(b ? "font-weight:800;" : "")+'">'+v+'</td>';
+    const taxSum = '<div style="flex:1.1;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("HSN / SAC WISE TAX SUMMARY")+'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+SOFT+'">'+hth("HSN/SAC", "left")+hth("Description", "left")+hth("Taxable Value (INR)")+hth("GST %")+hth("Tax Amount (INR)")+'</tr></thead><tbody>'+
+      hs.map(r=>'<tr style="border-bottom:1px solid #eef1f6">'+htd(esc2(r.hsn), "left")+htd(esc2(r.name), "left")+htd(fmt(r.taxable))+htd(fmt(r.pct, 0)+"%")+htd(fmt(r.tax))+'</tr>').join("")+
+      '<tr style="background:'+SOFT+'">'+htd("Total", "left", 1)+htd("")+htd(fmt(hs.reduce((a, r)=>a + r.taxable, 0)), "right", 1)+htd("")+htd(fmt(taxTotal), "right", 1)+'</tr></tbody></table><div style="padding:4px 7px;font-size:7.8px;color:#33415c">GST on Reverse Charge (RCM) : '+fmt(rcmTaxAmt)+' &nbsp;|&nbsp; Round Off : '+(roundOff < 0 ? "("+fmt(Math.abs(roundOff))+")" : fmt(roundOff))+'</div></div>';
+    const vrow = (k, v, b)=> '<div style="display:flex;justify-content:space-between;padding:.8px 8px;font-size:7.8px'+(b ? ";font-weight:800" : "")+'"><span>'+k+'</span><span>'+v+'</span></div>';
+    const fin = '<div style="width:290px;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("INVOICE VALUE SUMMARY")+'<div style="display:flex;justify-content:space-between;padding:2px 8px;background:'+SOFT+';font-weight:700;font-size:8px"><span>Particulars</span><span>Amount (INR)</span></div>'+
+      vrow("Gross Service Value", fmt(gross))+vrow("Discount", fmt(0))+vrow("Taxable Value", fmt(taxableValue))+(intra ? vrow("CGST", fmt(sumBy("cgst")))+vrow("SGST", fmt(sumBy("sgst"))) : vrow("IGST", fmt(sumBy("igst"))))+vrow("Cess", fmt(0))+vrow("RCM Tax (Memo Only)", fmt(rcmTaxAmt))+vrow("Round Off", roundOff < 0 ? "("+fmt(Math.abs(roundOff))+")" : fmt(roundOff))+
+      '<div style="display:flex;justify-content:space-between;padding:4px 8px;background:'+NAVY+';color:#fff;font-size:11.5px;font-weight:800;margin-top:2px"><span>'+(proforma ? "Proforma Total" : "Grand Total")+'</span><span>₹ '+fmt(grand)+'</span></div>'+
+      (received && !proforma ? vrow("Less: Received / Credited", "("+fmt(received)+")")+vrow("NET PAYABLE", fmt(Math.round(outstanding)), 1) : "")+
+      '<div style="padding:2px 8px;font-size:7.6px"><b>Amount in Words:</b><br><b>'+esc2(DK.words(grand, "INR"))+'</b>'+(hd.reverse_charge ? '<br>Tax Payable on Reverse Charge: '+esc2(hd.reverse_charge) : "")+'</div></div>';
+    const dash = v=> v ? esc2(v) : '<span style="color:#9aa5b8">—</span>';
+    const bank = [["Beneficiary Name", P.legal_name || co.name], ["Bank Name", P.bank_name], ["Account Number", P.bank_account], ["IFSC / SWIFT", [P.bank_ifsc, P.bank_swift].filter(Boolean).join(" / ")], ["Branch", P.bank_branch], ["Payment Terms", days != null && days >= 0 ? days+" Days" : ""]];
+    const bankBox = '<div style="flex:1.1;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("BANK & PAYMENT DETAILS")+'<div style="padding:2px 8px;font-size:7.6px">'+bank.map(([k, v])=>'<div style="display:flex;border-bottom:1px solid #eef1f6;padding:.6px 0"><span style="min-width:92px;font-weight:700">'+k+'</span><span>: '+dash(v)+'</span></div>').join("")+(P.payment_modes ? '<div style="margin-top:3px"><b>Accepted:</b> '+lines(P.payment_modes).map(esc2).join(" / ")+'</div>' : "")+(P.tracking_url ? '<div><b>Track online:</b> '+esc2(P.tracking_url)+'</div>' : "")+'</div></div>';
+    const terms = lines(P.invoice_terms);
+    const tcBox = '<div style="flex:1.3;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("TERMS & CONDITIONS")+(terms.length ? '<ol style="margin:0;padding:2px 8px 2px 22px;font-size:7.2px;line-height:1.3">'+terms.map(t=>"<li>"+esc2(t.replace(/^\d+[\.\)]\s*/, ""))+"</li>").join("")+'</ol>' : '<div style="padding:6px 8px;font-size:8px">'+dash("")+'</div>')+'</div>';
+    const sigBox = '<div style="flex:.9;border:1px solid '+LINE+';border-radius:3px;padding:3px 8px;text-align:center;display:flex;flex-direction:column;justify-content:space-between"><div style="font-weight:700;font-size:8.5px">For '+esc2(P.legal_name || co.name || "")+'</div><div style="min-height:30px">'+(posted ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:32px;max-width:120px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:38px;max-width:60px;margin-left:6px">' : "") : "")+'</div><div style="border-top:1px solid #333;padding-top:2px;font-weight:700;font-size:8.5px">Authorized Signatory</div>'+(P.signatory_name ? '<div style="font-size:7.8px">'+esc2(P.signatory_name)+'</div>' : "")+'</div>';
+    const closing = ['<div style="display:flex;gap:6px;margin-top:4px;align-items:flex-start">'+taxSum+fin+'</div>', '<div style="display:flex;gap:6px;margin-top:4px;align-items:stretch">'+bankBox+tcBox+sigBox+'</div>'];
+    const closingH = [60 + hs.length * 16 + 120, 130 + Math.max(0, terms.length - 5) * 12];
+    /* ---------- pages: the same top on every page, 12 entries a page, summaries after the last entry ---------- */
+    const chunks = chunk(ls, DK.PER_PAGE); const topH = 560 + (ei && posted ? 0 : 0); const pages = [];
+    chunks.forEach((g, gi)=>{ pages.push({html:header(co, true)+top+'<div style="margin-top:4px">'+tblHtml(g, gi * DK.PER_PAGE, gi === chunks.length - 1)+'</div>', used:topH + 40 + g.length * 26}); });
+    place(pages, closing, closingH, header(co, true)+top);
+    return wrapPages(pages.map(p=>p.html), co, P.footer_note || "Computer Generated Document");
+  };
+
+  /* ---------- DEBIT NOTE / CREDIT NOTE ---------- */
+  DK.debitNote = function(doc, rd, billTo){
+    const co = rd.company || {}, P = co.profile || {}, f = facts(rd); const ls = docLines(doc); const ccy = (ls[0] || {}).ccy || "INR"; const credit = doc.doc_type === "credit_note"; const label = credit ? "CREDIT NOTE" : "DEBIT NOTE"; const intl = ccy !== "INR";
+    const hd = doc.header || {};
+    const refInv = hd.ref_invoice_no || hd.invoice_no || ""; const refDate = hd.ref_invoice_date || hd.invoice_date || "";
+    const grid = (rows)=> '<div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid '+LINE+'">'+rows.map(([k, v], i)=>'<div style="display:flex;border-bottom:1px solid '+LINE+(i % 2 === 0 ? ";border-right:1px solid "+LINE : "")+'"><div style="width:42%;padding:3px 6px;font-weight:700;background:#f6f8fc">'+esc2(k)+'</div><div style="flex:1;padding:3px 6px">'+(v || "")+'</div></div>').join("")+'</div>';
+    const metaBox = '<div style="border:1px solid '+LINE+';min-width:230px">'+[[label+" No.", doc.doc_number || "Draft"], [label+" Date", dmy(doc.doc_date)], ["Invoice No. (Ref.)", refInv], ["Invoice Date (Ref.)", dmy(refDate)]].map(([k, v])=>'<div style="display:flex;border-bottom:1px solid '+LINE+'"><div style="width:48%;padding:4px 6px;font-weight:700">'+k+'</div><div style="flex:1;padding:4px 6px;border-left:1px solid '+LINE+'">'+esc2(v)+'</div></div>').join("")+'</div>';
+    const ship = [["MBL No. / Date", esc2([f.mbl, dmy(f.mblDate)].filter(Boolean).join(" / "))], ["ETD (Estimated Time of Departure)", esc2(dmy(f.etd))], ["HBL No. / Date", esc2([f.hbl, dmy(f.hblDate)].filter(Boolean).join(" / "))], ["ETA (Estimated Time of Arrival)", esc2(dmy(f.eta))], ["Vessel / Voyage", esc2(f.vessel)], ["Commodity", esc2(f.desc)], ["POL (Port of Loading)", esc2(f.pol)], ["", ""], ["POD (Port of Discharge)", esc2(f.pod)], ["", ""]].filter((r, i, a)=> r[0] || a[i - 1] && a[i - 1][0]);
+    const cont = f.conts.length ? '<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:9px"><thead><tr style="background:'+NAVY+';color:#fff">'+["Container No.", "Type / Size", "Pkg", "Weight", "Commodity"].map(t=>'<th style="padding:4px;border:1px solid #fff">'+t+'</th>').join("")+'</tr></thead><tbody>'+f.conts.map(x=>'<tr>'+[x.container_no, contType(x), x.pkgs ? esc2(x.pkgs)+" "+esc2((x.pkg_type || "PKGS").toUpperCase()) : "", x.gross_wt ? esc2(fmt(x.gross_wt))+" KGS" : "", f.desc].map(v=>'<td style="padding:4px;text-align:center;border:1px solid '+LINE+'">'+(typeof v === "string" ? esc2(v) : v)+'</td>').join("")+'</tr>').join("")+'</tbody></table>' : "";
+    const th = (t, a)=> '<th style="padding:5px;border:1px solid #fff;text-align:'+(a || "center")+'">'+t+'</th>';
+    const rowDn = (l, n)=> '<tr style="page-break-inside:avoid">'+[n, esc2(l.charge_name), fmt(l.qty, 0 === 1 ? 0 : 0), esc2(/container/i.test(l.uom) ? "CTN" : /shipment|job|bl|document/i.test(l.uom) ? "SHPT" : l.uom), fmt(l.rate), fmt(l.fc)].map((v, i)=>'<td style="padding:5px 6px;border:1px solid '+LINE+';text-align:'+(i === 1 ? "left" : i >= 4 ? "right" : "center")+'">'+v+'</td>').join("")+'</tr>';
+    const tot = ls.reduce((a, l)=>a + l.fc, 0); const taxTot = num(doc.tax_total);
+    const bankRows = intl ? [["Bank Name", P.usd_bank_name], ["Account No.", P.usd_bank_account], ["SWIFT Code", P.usd_bank_swift], ["Bank Address", P.usd_bank_address], ["Intermediary Bank", P.usd_bank_intermediary]] : [["Bank Name", P.bank_name], ["Account No.", P.bank_account], ["IFSC Code", P.bank_ifsc], ["SWIFT / BIC Code", P.bank_swift], ["Branch", P.bank_branch]];
+    const bank = bankRows.filter(r=>r[1]);
+    const terms = lines(P.invoice_terms);
+    const closing = '<div style="display:flex;justify-content:flex-end;border:1px solid '+LINE+';border-top:0;font-weight:800;color:'+NAVY+';font-size:11px"><div style="padding:6px 10px;border-left:1px solid '+LINE+'">TOTAL AMOUNT ('+esc2(ccy)+')</div><div style="padding:6px 10px;border-left:1px solid '+LINE+';min-width:140px;text-align:right">'+fmt(tot)+'</div></div>'+(taxTot ? '<div style="text-align:right;font-size:9px;padding:3px 6px">Tax: '+fmt(taxTot)+' INR &nbsp; | &nbsp; Grand Total: '+fmt(doc.grand_total)+' INR</div>' : "")+
+      '<div style="border:1px solid '+LINE+';margin-top:6px;padding:5px 8px;font-size:9px"><b style="color:'+NAVY+'">AMOUNT IN WORDS :</b> '+esc2(DK.words(tot, ccy).toUpperCase())+'</div>'+
+      '<div style="display:grid;grid-template-columns:42% 58%;gap:8px;margin-top:8px"><div>'+(terms.length ? box(bar("TERMS & CONDITIONS")+'<ol style="margin:0;padding:4px 8px 4px 22px;font-size:8.2px;line-height:1.4">'+terms.map(t=>"<li>"+esc2(t.replace(/^\d+[\.\)]\s*/, ""))+"</li>").join("")+'</ol>') : "")+(bank.length ? box(bar("BANK DETAILS"+(intl ? " ("+ccy+" ACCOUNT)" : ""))+'<div style="font-size:8.5px">'+bank.map(([k, v])=>'<div style="display:flex;border-top:1px solid '+LINE+'"><div style="width:38%;padding:2px 6px;font-weight:700">'+k+'</div><div style="flex:1;padding:2px 6px">'+nl2br(v)+'</div></div>').join("")+'</div>', "margin-top:6px") : "")+'</div>'+
+      '<div style="border:1px solid '+LINE+';display:flex;align-items:flex-end;justify-content:center;min-height:170px;padding:10px">'+sigBlock(co, doc.status === "POSTED", "Authorized Signatory")+'</div></div>';
+    const groups = chunk(ls, 10); const pages = []; const usable = 1123 - 26 - 38 - 20;
+    const tbl = (g, start)=> '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:9.5px"><thead><tr style="background:'+NAVY+';color:#fff">'+th("S.No.")+th("Description of Charges")+th("QTY (UNIT)")+th("Unit")+th("Rate ("+esc2(ccy)+")")+th("Amount ("+esc2(ccy)+")")+'</tr></thead><tbody>'+g.map((l, i)=>rowDn(l, start + i + 1)).join("")+'</tbody></table>';
+    groups.forEach((g, gi)=>{ const top = gi === 0 ? header(co, false)+'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div style="flex:1;text-align:center;padding-top:4px"><div style="font-size:22px;font-weight:800;color:'+NAVY+'">'+label+'</div>'+(intl ? '<div style="font-size:12px;font-weight:700">(INTERNATIONAL)</div>' : "")+'</div>'+metaBox+'</div>'+
+        '<div style="display:grid;grid-template-columns:40% 60%;gap:8px"><div style="border:1px solid '+LINE+';border-radius:3px;min-height:120px"><div style="display:inline-block;background:'+NAVY+';color:#fff;padding:3px 10px;font-weight:700;border-bottom-right-radius:8px">'+(credit ? "CREDIT TO :" : "BILL TO :")+'</div><div style="padding:6px 8px;font-size:9.5px"><b style="font-size:11px">'+esc2(lines(billTo)[0] || doc.party_name || "")+'</b><br>'+lines(billTo).slice(1).map(esc2).join("<br>")+(doc.party_gstin ? '<br><b>GSTIN :</b> '+esc2(doc.party_gstin) : "")+'</div></div><div style="border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("SHIPMENT DETAILS")+grid(ship.map(r=>r.slice()))+'</div></div>'+cont : header(co, true)+'<div style="font-size:9px;margin:2px 0">'+label+' '+esc2(doc.doc_number || "")+' — continued</div>';
+      pages.push({html:top+tbl(g, gi * 10), used:(gi === 0 ? 420 + f.conts.length * 18 : 90) + g.length * 24}); });
+    const cl = 90 + 60 + (terms.length * 12 + 30) + (bank.length * 14 + 30) + 40; place(pages, closing, Math.max(cl, 260), header(co, true));
+    return wrapPages(pages.map(p=>p.html), co, P.footer_note);
+  };
+
+  /* ---------- PURCHASE INVOICE ---------- */
+  DK.purchaseInvoice = function(doc, rd, vendorText){
+    const co = (rd && rd.company) || DK.co || {}, P = co.profile || {}; const ls = docLines(doc); const hd = doc.header || {}; const intra = doc.supply_type === "intra"; const ccy = (ls[0] || {}).ccy || "INR";
+    const taxByPct = {}; ls.forEach(l=>{ if(l.cgst + l.sgst + l.igst){ const k = intra ? "CGST+SGST @ "+(l.pct / 2)+"% each" : "IGST @ "+l.pct+"%"; taxByPct[k] = (taxByPct[k] || 0) + l.cgst + l.sgst + l.igst; } });
+    const vend = lines(vendorText || doc.party_name); const th = (t, a)=> '<th style="padding:7px 8px;text-align:'+(a || "left")+';font-size:11px">'+t+'</th>';
+    const rowP = (l, n)=> '<tr>'+[n, esc2(l.charge_name)+(l.description && l.description !== l.charge_name ? '<div style="font-size:8.5px;color:#52627d">'+esc2(l.description)+'</div>' : ""), esc2(l.hsn), fmt(l.qty, 0), esc2(l.ccy)+" "+fmt(l.rate), esc2(l.ccy)+" "+fmt(l.fc)].map((v, i)=>'<td style="padding:7px 8px;border:1px solid '+LINE+';text-align:'+(i === 1 ? "left" : i === 0 || i === 2 || i === 3 ? "center" : "right")+';'+(i === 5 ? "font-weight:700" : "")+'">'+v+'</td>').join("")+'</tr>';
+    const groups = chunk(ls, 10); const pages = [];
+    const buyer = [P.legal_name || co.name, P.address].filter(Boolean).join("\n");
+    const closing = '<div style="border:1px solid '+LINE+';border-top:0"><div style="display:flex;justify-content:flex-end;gap:30px;padding:6px 10px;font-size:11px"><span>Subtotal:</span><b style="min-width:130px;text-align:right">'+esc2(ccy)+' '+fmt(doc.subtotal)+'</b></div>'+Object.keys(taxByPct).map(k=>'<div style="display:flex;justify-content:flex-end;gap:30px;padding:2px 10px;font-size:10.5px"><span>'+esc2(k)+' :</span><b style="min-width:130px;text-align:right">'+esc2(ccy)+' '+fmt(taxByPct[k])+'</b></div>').join("")+'<div style="display:flex;justify-content:flex-end;gap:30px;padding:6px 10px;font-size:14px;font-weight:800;color:'+NAVY+'"><span>Total:</span><span style="min-width:130px;text-align:right">'+esc2(ccy)+' '+fmt(doc.grand_total)+'</span></div></div>'+
+      '<div style="margin-top:10px;font-size:11px"><b>Amount in Words:</b> '+esc2(DK.words(doc.grand_total, ccy))+'</div>'+
+      '<div style="margin-top:10px;border-top:1px solid '+LINE+';padding-top:6px;font-size:10.5px"><b>Payment Terms:</b> '+(doc.due_date ? "Due on "+esc2(dmy(doc.due_date)) : "")+(doc.remarks ? '<div style="margin-top:4px">'+nl2br(doc.remarks)+'</div>' : "")+'</div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:34px;padding-top:6px;border-top:1px solid '+LINE+';font-size:11px;font-weight:700"><span>Prepared By ______________</span><span style="font-weight:400;color:#52627d">'+esc2(P.web || "")+'</span><span>Accepted By ______________</span></div>';
+    groups.forEach((g, gi)=>{ const top = gi === 0 ? header(co, false)+'<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px"><div style="font-size:24px;font-weight:800;color:'+NAVY+'">PURCHASE INVOICE</div><div style="font-size:11px;line-height:1.7;text-align:right"><span style="color:#52627d">Invoice No.:</span> <b>'+esc2(doc.doc_number || "Draft")+'</b><br><span style="color:#52627d">Date :</span> <b>'+esc2(dmy(doc.doc_date))+'</b>'+(hd.bill_no ? '<br><span style="color:#52627d">Bill No.:</span> <b>'+esc2(hd.bill_no)+'</b>' : "")+(hd.bill_date ? '<br><span style="color:#52627d">Bill Date :</span> <b>'+esc2(dmy(hd.bill_date))+'</b>' : "")+'</div></div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;margin:10px 0;font-size:10.5px"><div style="padding-right:12px;border-right:1px solid '+LINE+'"><div style="font-weight:800;color:'+NAVY+';font-size:12px;margin-bottom:3px">Vendor Details:</div><b style="font-size:12px;color:'+NAVY+'">'+esc2(vend[0] || "")+'</b><br>'+vend.slice(1).map(esc2).join("<br>")+(doc.party_gstin ? '<br><b>GSTIN:</b> '+esc2(doc.party_gstin) : "")+'</div><div style="padding-left:14px"><div style="font-weight:800;color:'+NAVY+';font-size:12px;margin-bottom:3px">Buyer Details:</div><b style="font-size:12px;color:'+NAVY+'">'+esc2(P.legal_name || co.name || "")+'</b><br>'+nl2br(P.address)+(P.gstin ? '<br><b>GSTIN:</b> '+esc2(P.gstin) : "")+(P.pan ? '<br><b>PAN:</b> '+esc2(P.pan) : "")+'</div></div>' : header(co, true)+'<div style="font-size:9px;margin:2px 0">Purchase Invoice '+esc2(doc.doc_number || "")+' — continued</div>';
+      pages.push({html:top+'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+NAVY+';color:#fff">'+th("Sl. No.", "center")+th("Description")+th("HSN/SAC", "center")+th("Qty", "center")+th("Rate", "right")+th("Amount", "right")+'</tr></thead><tbody>'+g.map((l, i)=>rowP(l, gi * 10 + i + 1)).join("")+'</tbody></table>', used:(gi === 0 ? 330 : 80) + g.length * 36}); });
+    place(pages, closing, 260, header(co, true));
+    return wrapPages(pages.map(p=>p.html), co, P.footer_note);
+  };
+
+  /* ---------- context, viewer, print / pdf / mail ---------- */
+  DK.KINDS = {fc:"Freight Certificate", can:"Cargo Arrival Notice", do:"Delivery Order", doc:"Billing document"};
+  DK.build = async function(kind, opt){
+    let doc = null, rd = null, billTo = "";
+    if(kind === "doc"){ doc = await api("GET", "/api/documents/"+opt.docId); }
+    const job = opt.job || (doc && doc.job_number) || window.__lastJobNo;
+    if(job) rd = await api("GET", "/api/jobs/"+encodeURIComponent(job)+"/report-data");
+    else { const prof = await api("GET", "/api/company/doc-profile"); rd = {company:{name:prof.name, logo:prof.logo, profile:prof.profile}, details:{}, booking:{}, party_text:{}, job_charges:[], invoices:[], shipping_bills:[], bills_of_entry:[]}; }
+    if(kind === "do" && rd.direction === "Import" && !((rd.details || {}).impdocs || {}).do_no){ const r = await api("POST", "/api/jobs/"+encodeURIComponent(job)+"/do-issue"); rd.details.impdocs = r.impdocs; }
+    let html, title;
+    if(kind === "fc"){ html = DK.freightCert(rd); title = "Freight Certificate "+rd.job_number; }
+    else if(kind === "can"){ html = DK.arrivalNotice(rd); title = "Cargo Arrival Notice "+rd.job_number; }
+    else if(kind === "do"){ html = DK.deliveryOrder(rd); title = "Delivery Order "+(((rd.details || {}).impdocs || {}).do_no || rd.job_number); }
+    else {
+      if(doc.doc_type === "purchase_invoice" || doc.doc_type === "purchase_credit_note"){ const vt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(doc.party_name || "")).catch(()=>({text:""})); html = DK.purchaseInvoice(doc, rd, vt.text); title = "Purchase Invoice "+(doc.doc_number || ""); }
+      else if(doc.doc_type === "debit_note" || doc.doc_type === "credit_note"){ const bt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(doc.party_name || "")).catch(()=>({text:""})); html = DK.debitNote(doc, rd, bt.text); title = (doc.doc_type === "credit_note" ? "Credit Note " : "Debit Note ")+(doc.doc_number || ""); }
+      else {
+        const pt = async n=> n ? await api("GET", "/api/company/party-text?name="+encodeURIComponent(n)).catch(()=>({text:"", gstin:"", phone:""})) : {text:"", gstin:"", phone:""};
+        const shipperName = (((rd.details || {}).parties) || {}).shipper;
+        const [bt, sp] = await Promise.all([pt(doc.party_name), pt(shipperName)]);
+        html = DK.invoice(doc, rd, {billTo:bt, shipper:sp.text ? sp : undefined}); title = DK.invoiceTitle(doc)+" "+(doc.doc_number || (doc.header || {}).proforma_no || ""); }
+    }
+    return {html, title, rd, doc, kind, opt};
+  };
+  const stash = {cur:null};
+  DK.view = async function(kind, opt){
+    window.__docKind = {kind, opt}; go("doc-view");
+  };
+  DK.show = async function(){
+    const zone = el("docViewZone"); if(!zone) return; const k = window.__docKind; if(!k){ zone.innerHTML = '<div style="padding:22px;color:var(--g5)">Open a document from the job\'s Output Docs.</div>'; return; }
+    zone.innerHTML = '<div style="padding:22px;color:var(--g5)">Preparing the document…</div>';
+    try{ const b = await DK.build(k.kind, k.opt); stash.cur = b; el("docViewTitle").textContent = b.title; zone.innerHTML = '<div style="overflow:auto;background:#d9dee7;padding:10px"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>'; const ed = el("docEditBtn"); if(ed) ed.style.display = (k.kind === "do" || k.kind === "can") ? "" : "none"; }
+    catch(e){ zone.innerHTML = '<div class="ib ib-am" style="margin:16px">'+esc2(e.message)+'</div>'; }
+  };
+  function loadScript(src){ return new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(s); }); }
+  DK.print = function(b){ const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
+    w.document.write('<!doctype html><title>'+esc2(b.title)+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.pg{margin:0!important;box-shadow:none!important}</style>'+b.html); w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 700); };
+  DK.pdf = async function(b){
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff"; host.innerHTML = b.html; document.body.appendChild(host);
+    try{ const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4"}); const pages = host.querySelectorAll(".pg");
+      for(let i = 0; i < pages.length; i++){ const c = await window.html2canvas(pages[i], {scale:2, backgroundColor:"#fff", useCORS:true}); if(i) pdf.addPage("a4"); pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297); }
+      return {pdf, filename:b.title.replace(/[^A-Za-z0-9._ -]/g, "_")+".pdf"};
+    } finally { host.remove(); }
+  };
+  DK.mail = async function(b){
+    const f = (id, label, val)=> '<div class="fg" style="grid-column:span 3"><label class="fl">'+label+'</label><input class="fc" id="'+id+'" value="'+esc2(val || "")+'"></div>'; const p = ((b.rd && b.rd.details) || {}).parties || {};
+    openModal({title:"Send "+esc2(b.title)+" to customer", bodyHTML:'<div class="fr">'+f("dkMailTo", "To (separate several with commas)", "")+'</div><div class="fr">'+f("dkMailSub", "Subject", b.title+(b.rd && b.rd.job_number ? " — Job "+b.rd.job_number : ""))+'</div><div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Message</label><textarea class="fc" id="dkMailMsg" rows="4">Dear '+esc2(b.doc && b.doc.party_name || p.consignee || "Sir / Madam")+',\n\nPlease find attached '+esc2(b.title)+'.\n\nRegards</textarea></div></div><div class="ib ib-bl">The document is attached as a PDF.</div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="dkMailSend">Send</button>'});
+    el("dkMailSend").addEventListener("click", async ()=>{ const btn = el("dkMailSend"); btn.disabled = true; btn.textContent = "Sending…";
+      try{ const r = await DK.pdf(b); const b64 = r.pdf.output("datauristring").split(",")[1]; const job = (b.rd && b.rd.job_number) || window.__lastJobNo;
+        await api("POST", "/api/jobs/"+encodeURIComponent(job)+"/send-document", {to:el("dkMailTo").value, subject:el("dkMailSub").value, message:el("dkMailMsg").value, filename:r.filename, pdf_base64:b64}); closeModal(); say("Document Sent Successfully!", "Emailed to "+el("dkMailTo").value);
+      }catch(e){ btn.disabled = false; btn.textContent = "Send"; say("Could not send the document", e.message, "error"); } });
+  };
+  async function act(kind, opt, what){
+    try{ const b = (what === "view") ? null : await DK.build(kind, opt);
+      if(what === "view") return DK.view(kind, opt);
+      if(what === "print") DK.print(b); else if(what === "pdf"){ const r = await DK.pdf(b); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); } else if(what === "mail") DK.mail(b);
+    }catch(e){ say("Could not prepare the document", e.message, "error"); }
+  }
+  document.addEventListener("click", e=>{
+    const b = e.target.closest("[data-od]"); if(!b) return; e.stopPropagation();
+    act(b.dataset.od, b.dataset.docId ? {docId:b.dataset.docId} : {job:window.__lastJobNo}, b.dataset.act);
+  }, true);
+  document.addEventListener("click", e=>{
+    const t = e.target.closest("[data-dk]"); if(!t || !stash.cur) return; const w = t.dataset.dk;
+    if(w === "print") DK.print(stash.cur); else if(w === "mail") DK.mail(stash.cur); else if(w === "pdf") act(stash.cur.kind, stash.cur.opt, "pdf"); else if(w === "edit") DK.editDetails();
+  });
+
+  /* ---------- import document details (DO validity, delivery, IGM, sub-line ...) ---------- */
+  DK.editDetails = async function(){
+    const b = stash.cur; if(!b) return; const job = b.rd.job_number; const d = await api("GET", "/api/jobs/"+encodeURIComponent(job)+"/details"); const im = d.impdocs || {};
+    const f = (id, label, val, type)=> '<div class="fg"><label class="fl">'+label+'</label><input class="fc" id="'+id+'" type="'+(type || "text")+'" value="'+esc2(val || "")+'"></div>';
+    openModal({title:"Delivery Order / Arrival Notice details", bodyHTML:'<div class="fr">'+f("im_to", "Delivery Order addressed to", im.to_name || "The Manager")+f("im_delivery", "Delivery (e.g. FACTORY DESTUFFING)", im.delivery)+f("im_valid", "Valid till", im.valid_till, "date")+'</div><div class="fr">'+f("im_igm", "IGM No.", im.igm_no)+f("im_igmd", "IGM Date", im.igm_date, "date")+f("im_sub", "Sub-Line No.", im.sub_line)+'</div><div class="fr">'+f("im_cfs", "CFS", im.cfs)+'<div class="fg" style="display:flex;align-items:flex-end"><label style="display:flex;gap:6px;align-items:center;font-size:12px"><input type="checkbox" id="im_sign" '+(im.sign ? "checked" : "")+'> Apply digital signature &amp; seal</label></div></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="imSave">Save Changes</button>'});
+    el("imSave").addEventListener("click", async ()=>{ const g = id=> el(id).value.trim();
+      const data = Object.assign({}, im, {to_name:g("im_to"), delivery:g("im_delivery"), valid_till:g("im_valid"), igm_no:g("im_igm"), igm_date:g("im_igmd"), sub_line:g("im_sub"), cfs:g("im_cfs"), sign:el("im_sign").checked});
+      try{ await api("PUT", "/api/jobs/"+encodeURIComponent(job)+"/details/impdocs", {data}); closeModal(); say("Job Updated Successfully!", job); DK.show(); }catch(e){ say("Could not save the details", e.message, "error"); } });
+  };
+
+  /* ---------- Out Docs: uniform buttons, only this job's documents, billing documents of the job ---------- */
+  const ROWMAP = [[/Cargo Arrival Notice/i, "can"], [/Delivery Order/i, "do"], [/Freight Certificate/i, "fc"]];
+  const btns = (kind, id)=> ['view', 'print', 'pdf', 'mail'].map((a, i)=>'<button class="btn btn-'+(i === 0 ? "pri" : "out")+' btn-sm" type="button" data-od="'+kind+'" data-act="'+a+'"'+(id ? ' data-doc-id="'+id+'"' : "")+'>'+({view:"View", print:"Print", pdf:"PDF", mail:"Send"})[a]+'</button>').join("");
+  DK.wireOutDocs = function(){
+    ["odSeaExportDocs", "odSeaImportDocs", "odAirExportDocs", "odAirImportDocs"].forEach(pid=>{ const p = el(pid); if(!p) return;
+      p.querySelectorAll(":scope > div:not(:first-child)").forEach(row=>{ const t = (row.querySelector("div > div > div") || {}).textContent || ""; const m = ROWMAP.find(r=>r[0].test(t)); if(!m) return;
+        const holder = row.lastElementChild; if(holder && !holder.dataset.dk){ holder.dataset.dk = "1"; holder.innerHTML = btns(m[1]); } }); });
+  };
+  const DOCNAME = {invoice:"Tax Invoice", debit_note:"Debit Note", credit_note:"Credit Note", purchase_invoice:"Purchase Invoice", purchase_credit_note:"Purchase Credit Note"};
+  const KINDNAME = {TAX:"Tax Invoice", NON_TAXABLE:"Non-Taxable Invoice", PURE_AGENT:"Pure Agent Invoice", RCM:"RCM Invoice"};
+  const docName = d=> d.doc_type !== "invoice" ? (DOCNAME[d.doc_type] || d.doc_type) : (d.status === "POSTED" ? (KINDNAME[d.kind] || "Tax Invoice") : "Proforma Invoice");
+  async function docAct(what, id, rdReq){
+    try{
+      if(what === "confirm"){ await api("POST", "/api/documents/"+id+"/confirm"); say("Proforma Confirmed Successfully!", "The Tax Invoice can now be generated"); }
+      else if(what === "reopen"){ await api("POST", "/api/documents/"+id+"/reopen-proforma"); say("Proforma Reopened", "It can be edited again"); }
+      else if(what === "tax"){ if(!window.confirm("Generate the Tax Invoice from this proforma? A legal invoice number is assigned and it can no longer be edited.")) return; const r = await api("POST", "/api/documents/"+id+"/post"); say("Tax Invoice Generated Successfully!", r.doc_number); }
+      else if(what === "einv"){ if(!window.confirm("Create the e-Invoice (IRN and QR code) for this invoice? Do this only when the customer needs an e-Invoice.")) return; const r = await api("POST", "/api/documents/"+id+"/e-invoice"); say("e-Invoice Created Successfully!", "IRN "+r.header.einvoice.irn.slice(0, 16)+"…"); }
+      DK.billing(); if(window.VoucherKit) window.VoucherKit.load();
+    }catch(e){ say("Could not complete the action", e.message, "error"); }
+  }
+  document.addEventListener("click", e=>{ const b = e.target.closest("[data-doc-act]"); if(!b) return; e.stopPropagation(); docAct(b.dataset.docAct, b.dataset.docId); }, true);
+  DK.billing = async function(){
+    const no = window.__lastJobNo; const tab = el("jt7b"); if(!tab || !no) return; let host = el("odBilling");
+    if(!host){ host = document.createElement("div"); host.id = "odBilling"; host.style.marginTop = "18px"; tab.appendChild(host); }
+    let rd; try{ rd = await api("GET", "/api/jobs/"+encodeURIComponent(no)+"/report-data"); }catch(e){ return; }
+    const docs = rd.invoices || []; const act = (w, id, label, cls)=> '<button class="btn btn-'+(cls || "out")+' btn-sm" type="button" data-doc-act="'+w+'" data-doc-id="'+id+'">'+label+'</button>';
+    host.innerHTML = '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:var(--n);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--n)">Billing documents of this job</div>'+
+      (docs.length ? '<div style="display:flex;flex-direction:column;gap:8px">'+docs.map(d=>{ const name = docName(d); const inv = d.doc_type === "invoice";
+        const flow = !inv ? "" : d.status === "DRAFT" ? act("confirm", d.id, "Confirm Proforma", "suc")+(rd.proforma_required ? "" : act("tax", d.id, "Generate Tax Invoice", "pri")) : d.status === "CONFIRMED" ? act("tax", d.id, "Generate Tax Invoice", "pri")+act("reopen", d.id, "Reopen Proforma") : (d.status === "POSTED" && d.party_gstin && !d.einvoice ? act("einv", d.id, "Create e-Invoice") : "");
+        const refNo = d.status === "POSTED" ? d.doc_number : (d.proforma_no || "Draft");
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 16px;background:var(--wh);border:1px solid var(--g2);border-radius:8px;border-left:4px solid '+(d.status === "POSTED" ? "var(--gr)" : "var(--am)")+'"><div><div style="font-size:13px;font-weight:600;color:var(--n)">'+esc2(name)+' <span class="mono" style="font-weight:700">'+esc2(refNo)+'</span>'+(d.einvoice ? ' <span class="b b-bl">e-Invoice</span>' : "")+'</div><div style="font-size:11px;color:var(--g5)">'+esc2(d.party || "")+' · '+esc2(dmy(d.doc_date))+' · '+fmt(d.total)+' · '+esc2(d.status === "DRAFT" ? "Proforma — draft" : d.status === "CONFIRMED" ? "Proforma — confirmed" : d.status)+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">'+btns("doc", d.id)+flow+'</div></div>'; }).join("")+'</div>'
+        : '<div style="color:var(--g5);font-style:italic;padding:6px 2px">No invoice, debit note or credit note has been raised for this job yet. Raise it from the Charges tab or the billing screens; it appears here.</div>');
+  };
+  DK.panels = function(){
+    const rd = window.JOB_DB && window.JOB_DB[window.__lastJobNo]; if(!rd) return; DK.wireOutDocs(); DK.billing();
+  };
+  document.addEventListener("click", e=>{ if(e.target.closest('.tbb[data-tab="jt7b"]')) setTimeout(DK.panels, 100); });
+
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "doc-view") DK.show(); if(screen === "job-detail") setTimeout(DK.panels, 1500); if(screen === "tax-invoice-print"){ const z = el("taxInvPrintZone"); if(z && !window.__docKind) z.querySelector(".cb").innerHTML = '<div style="padding:22px;color:var(--g5)">Open the invoice from its job\'s Output Docs, or from the invoice register.</div>'; } };
+})();
+</script>
+
+<script>
+/* ============================================================
+   JOB VOUCHER KIT: the vouchers of a job (proforma / tax invoice, debit notes, credit notes against an invoice, purchase invoices,
+   purchase credit notes against a purchase invoice) are listed live on the job's Vouchers tab, can be raised from the Charges tab or here,
+   and are the same records the Accounts registers, receipts and payments work on.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const VK = window.VoucherKit = {job:null, docs:[]};
+  const fmt = v=> (Number(v) || 0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "";
+  const KIND = {TAX:"Tax Invoice", NON_TAXABLE:"Non-Taxable Invoice", PURE_AGENT:"Pure Agent Invoice", RCM:"RCM Invoice"};
+  const label = d=> d.doc_type === "invoice" ? (d.status === "POSTED" ? (KIND[d.invoice_kind] || "Tax Invoice") : "Proforma Invoice") : ({debit_note:"Debit Note", credit_note:"Credit Note", purchase_invoice:"Purchase Invoice", purchase_credit_note:"Purchase Credit Note"})[d.doc_type];
+  const number = d=> d.doc_number || (d.header && d.header.proforma_no) || ("Draft #"+d.id);
+  const stat = d=> d.status === "POSTED" ? (d.payment_status === "POSTED" ? "Posted" : d.payment_status.charAt(0)+d.payment_status.slice(1).toLowerCase()) : d.status === "DRAFT" ? (d.doc_type === "invoice" ? "Proforma — draft" : "Draft") : d.status === "CONFIRMED" ? "Proforma — confirmed" : "Cancelled";
+  const cls = d=> d.status === "CANCELLED" ? "b-gy" : d.status === "POSTED" ? ({PAID:"b-gr", PARTIAL:"b-am", UNPAID:"b-rd"})[d.payment_status] || "b-bl" : "b-gy";
+  const live = d=> d.status !== "CANCELLED";
+  const posted = d=> d.status === "POSTED";
+
+  VK.load = async function(job){
+    job = job || window.__lastJobNo; if(!job) return; VK.job = job;
+    try{ VK.docs = await api("GET", "/api/documents?job_number="+encodeURIComponent(job)+"&limit=500"); }catch(e){ return; }
+    VK.render();
+  };
+  function section(startsWith){ return Array.from(document.querySelectorAll("#jt8 > .card")).find(c=> ((c.querySelector(".ct") || {}).textContent || "").trim().indexOf(startsWith) === 0); }
+  function actions(d){
+    const b = (a, t, extra)=> '<button class="btn btn-out btn-sm" type="button" '+a+'>'+t+'</button>';
+    let h = b('data-vk="open" data-id="'+d.id+'"', "Open")+b('data-od="doc" data-act="view" data-doc-id="'+d.id+'"', "View")+b('data-od="doc" data-act="print" data-doc-id="'+d.id+'"', "Print")+b('data-od="doc" data-act="pdf" data-doc-id="'+d.id+'"', "PDF")+b('data-od="doc" data-act="mail" data-doc-id="'+d.id+'"', "Send");
+    if(d.doc_type === "invoice"){
+      if(d.status === "DRAFT") h += b('data-doc-act="confirm" data-doc-id="'+d.id+'"', "Confirm Proforma");
+      if(d.status === "CONFIRMED") h += b('data-doc-act="tax" data-doc-id="'+d.id+'"', "Generate Tax Invoice");
+      if(posted(d)) h += b('data-vk="credit" data-id="'+d.id+'"', "Credit Note")+b('data-vk="debit" data-id="'+d.id+'"', "Debit Note");
+    }
+    if(d.doc_type === "purchase_invoice" && posted(d)) h += b('data-vk="pcredit" data-id="'+d.id+'"', "Purchase Credit Note");
+    if(d.status === "DRAFT" || d.status === "CONFIRMED") h += '<button class="btn btn-out btn-sm" style="color:var(--rd)" type="button" data-vk="cancel" data-id="'+d.id+'">Cancel</button>';
+    return h;
+  }
+  function fill(sec, headers, rows, colspan, empty){
+    if(!sec) return; const tb = sec.querySelector("tbody"); if(!tb) return;
+    tb.innerHTML = rows.length ? rows.join("") : '<tr class="empty-row"><td colspan="'+colspan+'" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">'+empty+'</td></tr>';
+  }
+  const td = (v, a)=> '<td'+(a ? ' style="text-align:'+a+'"' : "")+'>'+v+'</td>';
+  VK.render = function(){
+    const D = VK.docs.filter(live); const by = t=> VK.docs.filter(d=>d.doc_type === t);
+    const sum = ds=> ds.filter(posted).reduce((a, d)=>a + Number(d.grand_total), 0);
+    const paid = ds=> ds.filter(posted).reduce((a, d)=>a + Number(d.paid_amount), 0);
+    const inv = by("invoice"), dn = by("debit_note"), cn = by("credit_note"), pi = by("purchase_invoice"), pcn = by("purchase_credit_note");
+    const ar = sum(inv) + sum(dn) - sum(cn), ap = sum(pi) - sum(pcn), gp = ar - ap;
+    const pills = document.querySelectorAll("#jt8 > div:first-of-type > div:last-child span");
+    if(pills.length >= 3){ pills[0].textContent = "AR: ₹"+fmt(ar); pills[1].textContent = "AP: ₹"+fmt(ap); pills[2].textContent = "GP: ₹"+fmt(gp); }
+    const cards = document.querySelectorAll("#jt8 > div:nth-of-type(2) > .card");
+    const setCard = (i, n, amt)=>{ const c = cards[i]; if(!c) return; const v = c.querySelectorAll(".cb > div"); if(v[1]) v[1].textContent = n; if(v[3]) v[3].textContent = amt; };
+    setCard(0, inv.filter(live).length, "₹"+fmt(sum(inv))); setCard(1, dn.filter(live).length, "₹"+fmt(sum(dn))); setCard(2, cn.filter(live).length, cn.length ? "₹"+fmt(sum(cn)) : "—"); setCard(3, pi.filter(live).length, "₹"+fmt(sum(pi))); setCard(4, pcn.filter(live).length, pcn.length ? "₹"+fmt(sum(pcn)) : "—");
+    if(cards[5]){ const v = cards[5].querySelectorAll(".cb > div"); if(v[3]) v[3].textContent = "GP ₹"+fmt(gp); }
+    const link = d=> '<span class="mono" style="font-weight:700">'+esc2(number(d))+'</span>';
+    const badge = d=> '<span class="b '+cls(d)+' dot">'+esc2(stat(d))+'</span>';
+    const act = d=> '<td class="no-print"><div style="display:flex;gap:4px;flex-wrap:wrap">'+actions(d)+'</div></td>';
+    const refNo = d=> { const r = VK.docs.find(x=>x.id === d.ref_document_id); return r ? esc2(number(r)) : "—"; };
+    const heads = {tax:["Invoice No", "Date", "Bill To", "Type", "Taxable Value", "Tax", "Total Amount", "Due Date", "Paid", "Balance", "Status", ""], dn:["DN No", "Date", "Bill To", "Ref Invoice", "Currency", "Amount", "Total (INR)", "Status", ""],
+      cn:["CN No", "Date", "Bill To", "Against Invoice", "Amount", "Status", ""], pi:["PI No", "Date", "Vendor", "Bill No", "Subtotal", "Tax", "Total", "Due Date", "Paid", "Status", ""], pcn:["PCN No", "Date", "Vendor", "Against PI", "Amount", "Status", ""]};
+    const setHead = (sec, h)=>{ const tr = sec && sec.querySelector("thead tr"); if(tr) tr.innerHTML = h.map(x=>'<th'+(x ? "" : ' class="no-print"')+'>'+x+'</th>').join(""); };
+    const secs = {tax:section("Tax Invoices"), dn:section("Debit Notes"), cn:section("Credit Notes"), pi:section("Purchase Invoices"), pcn:section("Purchase Credit Notes")};
+    Object.keys(secs).forEach(k=> setHead(secs[k], heads[k]));
+    const cur = d=> ((d.lines && d.lines[0]) ? d.lines[0].ccy : "INR");
+    fill(secs.tax, 0, inv.map(d=>'<tr'+(d.status === "CANCELLED" ? ' style="opacity:.5"' : "")+'>'+td(link(d))+td(dmy(d.doc_date))+td(esc2(d.party_name))+td(esc2(d.doc_type === "invoice" && d.status !== "POSTED" ? "Proforma" : (KIND[d.invoice_kind] || "Tax Invoice")))+td(fmt(d.subtotal), "right")+td(fmt(d.tax_total), "right")+td('<b>'+fmt(d.grand_total)+'</b>', "right")+td(dmy(d.due_date))+td(fmt(d.paid_amount), "right")+td(fmt(d.outstanding), "right")+td(badge(d))+act(d)+'</tr>'), 12, "No invoice or proforma raised for this job yet");
+    fill(secs.dn, 0, dn.map(d=>'<tr'+(d.status === "CANCELLED" ? ' style="opacity:.5"' : "")+'>'+td(link(d))+td(dmy(d.doc_date))+td(esc2(d.party_name))+td(refNo(d))+td(esc2(d.lines && d.lines[0] ? d.lines[0].ccy : "INR"))+td(fmt(d.subtotal), "right")+td('<b>'+fmt(d.grand_total)+'</b>', "right")+td(badge(d))+act(d)+'</tr>'), 9, "No debit notes issued for this job");
+    fill(secs.cn, 0, cn.map(d=>'<tr'+(d.status === "CANCELLED" ? ' style="opacity:.5"' : "")+'>'+td(link(d))+td(dmy(d.doc_date))+td(esc2(d.party_name))+td(refNo(d))+td('<b>'+fmt(d.grand_total)+'</b>', "right")+td(badge(d))+act(d)+'</tr>'), 7, "No credit notes issued for this job");
+    fill(secs.pi, 0, pi.map(d=>'<tr'+(d.status === "CANCELLED" ? ' style="opacity:.5"' : "")+'>'+td(link(d))+td(dmy(d.doc_date))+td(esc2(d.party_name))+td(esc2((d.header || {}).bill_no || ""))+td(fmt(d.subtotal), "right")+td(fmt(d.tax_total), "right")+td('<b>'+fmt(d.grand_total)+'</b>', "right")+td(dmy(d.due_date))+td(fmt(d.paid_amount), "right")+td(badge(d))+act(d)+'</tr>'), 11, "No purchase invoices raised for this job yet");
+    fill(secs.pcn, 0, pcn.map(d=>'<tr'+(d.status === "CANCELLED" ? ' style="opacity:.5"' : "")+'>'+td(link(d))+td(dmy(d.doc_date))+td(esc2(d.party_name))+td(refNo(d))+td('<b>'+fmt(d.grand_total)+'</b>', "right")+td(badge(d))+act(d)+'</tr>'), 7, "No purchase credit notes for this job");
+    const foot = (sec, text)=>{ const f = sec && sec.querySelector(".cf"); if(f) f.textContent = text; };
+    foot(secs.tax, "Total AR invoiced: ₹"+fmt(sum(inv))+" · Collected: ₹"+fmt(paid(inv))+" · Outstanding: ₹"+fmt(sum(inv) - paid(inv) - sum(cn)));
+    foot(secs.dn, "Total debit notes issued: ₹"+fmt(sum(dn))+" · Paid: ₹"+fmt(paid(dn)));
+    foot(secs.pi, "Total AP: ₹"+fmt(sum(pi))+" · Paid: ₹"+fmt(paid(pi))+" · Outstanding: ₹"+fmt(sum(pi) - paid(pi) - sum(pcn)));
+    // the section buttons raise documents for this job
+    const set = (sec, text, key)=>{ const b = sec && sec.querySelector(".ch button"); if(b){ b.removeAttribute("data-go"); b.setAttribute("data-vk-new", key); b.textContent = text; } };
+    set(secs.tax, "＋ New Invoice / Proforma", "invoice"); set(secs.dn, "＋ Issue Debit Note", "debit_note"); set(secs.cn, "＋ Issue Credit Note", "credit_note"); set(secs.pi, "＋ New Purchase Invoice", "purchase_invoice"); set(secs.pcn, "＋ Purchase Credit Note", "purchase_credit_note");
+    VK.syncToJob();
+  };
+  VK.syncToJob = function(){ const st = window.__jcDocIds = {}; /* the Charges tab buttons open an existing document instead of raising a second one */ };
+
+  /* ---- raising documents for the job ---- */
+  const fromInvoice = d=> d.lines.map(l=>({charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct}));
+  function pickInvoice(kind, job, preId){
+    const srcType = kind === "credit_note" ? "invoice" : "purchase_invoice"; const label2 = kind === "credit_note" ? "invoice" : "purchase invoice";
+    const cands = VK.docs.filter(d=>d.doc_type === srcType && posted(d) && Number(d.outstanding) + Number(d.credited_amount || 0) >= 0);
+    if(!cands.length){ say("No "+label2+" to credit", "A credit note is issued against a posted "+label2+" of this job. Post one first", "warn"); return; }
+    const sel = preId ? cands.find(d=>d.id === preId) : null;
+    const go2 = async (d, full)=> { closeModal(); let src = d; if(full){ try{ src = await api("GET", "/api/documents/"+d.id); }catch(e){ say("Could not read the document", e.message, "error"); return; } } window.BK.openNew(kind, {party_name:d.party_name, ref_document_id:d.id, job_number:job, lines:full ? fromInvoice(src) : undefined}); };
+    if(sel){ choose(sel); return; }
+    function choose(d){
+      openModal({title:(kind === "credit_note" ? "Credit Note" : "Purchase Credit Note")+" against "+esc2(number(d)), bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">Use this when a '+label2+' was raised wrongly or part of it must be reversed. The credit note is linked to '+esc2(number(d))+' ('+esc2(d.party_name)+', total '+fmt(d.grand_total)+', outstanding '+fmt(d.outstanding)+').</div>'+
+        '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Credit</label><select class="fc" id="vkMode"><option value="full">The full '+label2+' (all lines are copied; edit if needed)</option><option value="part">Only some lines (start with an empty note)</option></select></div></div>',
+        footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="vkGo">Continue</button>'});
+      el("vkGo").addEventListener("click", ()=> go2(d, el("vkMode").value === "full"));
+    }
+    if(cands.length === 1){ choose(cands[0]); return; }
+    openModal({title:"Choose the "+label2+" to credit", bodyHTML:'<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">'+(kind === "credit_note" ? "Invoice" : "Purchase invoice")+'</label><select class="fc" id="vkInv">'+cands.map(d=>'<option value="'+d.id+'">'+esc2(number(d))+" — "+esc2(d.party_name)+" — "+fmt(d.grand_total)+" ("+esc2(stat(d))+")</option>").join("")+'</select></div></div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="vkPick">Next</button>'});
+    el("vkPick").addEventListener("click", ()=>{ const d = cands.find(x=>String(x.id) === el("vkInv").value); closeModal(); setTimeout(()=>choose(d), 50); });
+  }
+  VK.start = async function(kind, job, preId){
+    job = job || window.__lastJobNo; if(!job){ say("Open a job first", "", "warn"); return; }
+    await VK.load(job);
+    if(kind === "credit_note" || kind === "purchase_credit_note") return pickInvoice(kind, job, preId);
+    if(kind === "debit_note"){
+      const inv = VK.docs.find(d=>d.id === preId) || VK.docs.filter(d=>d.doc_type === "invoice" && posted(d))[0];
+      return window.BK.openNew("debit_note", {job_number:job, party_name:inv ? inv.party_name : undefined, ref_document_id:inv ? inv.id : undefined, lines:[{charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:"Taxable", tax_pct:"18"}]});
+    }
+    if(kind === "invoice"){ window.BK.fromJob ? window.BK.fromJob(job, "invoice") : window.BK.openNew("invoice", {job_number:job}); return; }
+    if(kind === "purchase_invoice"){ window.BK.fromJob ? window.BK.fromJob(job, "purchase_invoice") : window.BK.openNew("purchase_invoice", {job_number:job}); return; }
+  };
+  document.addEventListener("click", async e=>{
+    const n = e.target.closest("[data-vk-new]"); if(n){ e.stopPropagation(); VK.start(n.dataset.vkNew); return; }
+    const b = e.target.closest("[data-vk]"); if(!b) return; e.stopPropagation(); const id = Number(b.dataset.id), k = b.dataset.vk;
+    if(k === "open") return window.BK.openDoc(id);
+    if(k === "credit") return VK.start("credit_note", VK.job, id);
+    if(k === "pcredit") return VK.start("purchase_credit_note", VK.job, id);
+    if(k === "debit") return VK.start("debit_note", VK.job, id);
+    if(k === "cancel"){ if(!window.confirm("Cancel this document? This cannot be undone.")) return; try{ await api("POST", "/api/documents/"+id+"/cancel"); say("Document Cancelled", ""); VK.load(VK.job); }catch(err){ say("Could not cancel the document", err.message, "error"); } }
+  }, true);
+  document.addEventListener("click", e=>{ if(e.target.closest('.tbb[data-tab="jt8"]')) setTimeout(()=>VK.load(), 100); });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>VK.load(opts && opts.jobNo), 1700); };
 })();
 </script>
 

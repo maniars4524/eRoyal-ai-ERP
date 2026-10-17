@@ -221,3 +221,61 @@ def test_editing_a_draft_replaces_lines_and_recalculates(h):
     assert body["tax_breakup"] == {"cgst": "18.00", "sgst": "18.00", "igst": "0.00"}
     again = client.patch(f"/api/documents/{d['id']}", json={"lines": [{"charge_name": "x", "rate": "1"}, {"charge_name": "y", "rate": "2"}, {"charge_name": "z", "rate": "3"}]}, headers=h)
     assert again.status_code == 200 and len(again.json()["lines"]) == 3
+
+
+def test_proforma_must_be_confirmed_before_the_tax_invoice_and_einvoice_is_optional(h):
+    from app.job_lifecycle import setting_enabled  # noqa: F401
+
+    cust = client.post("/api/customers", json={"code": "PFC" + uuid.uuid4().hex[:4].upper(), "name": "Proforma Customer", "roles": ["shipper"], "data": {}}, headers=h).json()
+    line = {"charge_name": "Ocean Freight", "description": "", "hsn": "996521", "uom": "Per Shipment", "qty": "1", "ccy": "INR", "exch": "1", "rate": "10000", "tax_type": "Taxable", "tax_pct": "18"}
+    mk = lambda: client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Proforma Customer", "customer_id": cust["id"], "party_gstin": "27ABCDE1234F1Z5", "lines": [line]}, headers=h).json()
+    d0 = mk()
+    assert client.post(f"/api/documents/{d0['id']}/post", headers=h).status_code == 200      # the rule is off until the company switches it on
+    client.post("/api/masters/setting", json={"code": "INVOICE_REQUIRES_PROFORMA", "name": "Invoice requires a confirmed proforma", "data": {"enabled": "yes"}}, headers=h)
+    d = mk()
+    assert d["proforma_required"] is True
+    blocked = client.post(f"/api/documents/{d['id']}/post", headers=h)
+    assert blocked.status_code == 409 and "Proforma" in blocked.json()["detail"]
+    c = client.post(f"/api/documents/{d['id']}/confirm", headers=h)
+    assert c.status_code == 200 and c.json()["status"] == "CONFIRMED" and c.json()["header"]["proforma_no"].startswith("PF/")
+    assert client.patch(f"/api/documents/{d['id']}", json={"remarks": "x"}, headers=h).status_code == 409   # a confirmed proforma is locked
+    assert client.post(f"/api/documents/{d['id']}/e-invoice", headers=h).status_code == 409                  # not a posted tax invoice yet
+    back = client.post(f"/api/documents/{d['id']}/reopen-proforma", headers=h)
+    assert back.status_code == 200 and back.json()["status"] == "DRAFT"
+    client.post(f"/api/documents/{d['id']}/confirm", headers=h)
+    posted = client.post(f"/api/documents/{d['id']}/post", headers=h)
+    assert posted.status_code == 200 and posted.json()["status"] == "POSTED" and posted.json()["header"]["proforma_no"]
+    no_gstin = client.post(f"/api/documents/{d['id']}/e-invoice", headers=h)
+    assert no_gstin.status_code == 422 and "GSTIN" in no_gstin.json()["detail"]                              # the company GSTIN is needed
+    client.put("/api/company/doc-profile", json={"gstin": "33AAACS1234A1Z5"}, headers=h)
+    e = client.post(f"/api/documents/{d['id']}/e-invoice", headers=h)
+    assert e.status_code == 200, e.text
+    ei = e.json()["header"]["einvoice"]
+    assert len(ei["irn"]) == 64 and ei["qr"].startswith("data:image/svg+xml;base64,") and ei["registered"] is False and ei["qr_payload"]["DocNo"] == posted.json()["doc_number"]
+    assert client.post(f"/api/documents/{d['id']}/e-invoice", headers=h).json()["header"]["einvoice"]["irn"] == ei["irn"]   # one IRN per invoice
+
+
+def test_invoice_kinds_from_the_charge_entries_and_separate_pure_agent_and_rcm(h):
+    cust = client.post("/api/customers", json={"code": "KND" + uuid.uuid4().hex[:4].upper(), "name": "Kind Customer", "roles": ["shipper"], "data": {}}, headers=h).json()
+    jn = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "container_mode": "FCL", "pol": "INMAA", "pod": "SGSIN", "customer_id": cust["id"]}, headers=h).json()["job_number"]
+    side = lambda tt, pct="0": {"ccy": "INR", "rate": "1000", "tax_type": tt, "tax_pct": pct, "party": "Kind Customer"}
+    rows = [("Ocean Freight", "Taxable", "18"), ("Bill of Lading Fee", "Non-Taxable", "0"), ("Port Fee Reimbursed", "Pure Agent", "0"), ("Foreign Agent Fee", "RCM", "18")]
+    lines = [{"charge_name": n, "qty": "1", "hsn": "996799", "sell": side(t, p), "buy": {"ccy": "INR", "rate": "0", "tax_type": "Non-Taxable", "tax_pct": "0", "party": ""}} for n, t, p in rows]
+    assert client.put(f"/api/shipments/by-number/{jn}/charges", json={"lines": lines}, headers=h).status_code == 200
+    r = client.post("/api/documents/from-job", json={"job_number": jn, "doc_type": "invoice"}, headers=h)
+    assert r.status_code == 201, r.text
+    first = r.json()
+    assert first["invoice_kind"] == "TAX" and {l["tax_type"] for l in first["lines"]} == {"Taxable", "Non-Taxable"}     # taxable and non-taxable travel together
+    assert float(first["tax_total"]) == 180.0 and float(first["grand_total"]) == 2180.0
+    kinds = {x["invoice_kind"] for x in first["also_created"]}
+    assert kinds == {"PURE_AGENT", "RCM"}                                                                                # each on its own invoice
+    pa = client.get(f"/api/documents/{[x for x in first['also_created'] if x['invoice_kind'] == 'PURE_AGENT'][0]['id']}", headers=h).json()
+    assert float(pa["tax_total"]) == 0 and pa["lines"][0]["tax_type"] == "Pure Agent"
+    rcm = client.get(f"/api/documents/{[x for x in first['also_created'] if x['invoice_kind'] == 'RCM'][0]['id']}", headers=h).json()
+    assert float(rcm["tax_total"]) == 0 and rcm["lines"][0]["tax_pct"] in ("18.00", "18")                                 # tax is the recipient's: not added, rate kept for information
+    again = client.post("/api/documents/from-job", json={"job_number": jn, "doc_type": "invoice"}, headers=h)
+    assert again.status_code == 409
+    mixed = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Kind Customer", "lines": [{"charge_name": "A", "hsn": "9967", "qty": "1", "rate": "10", "tax_type": "Taxable", "tax_pct": "18"}, {"charge_name": "B", "hsn": "9967", "qty": "1", "rate": "10", "tax_type": "Pure Agent"}]}, headers=h)
+    assert mixed.status_code == 422 and "own invoice" in mixed.json()["detail"]
+    only_non = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Kind Customer", "lines": [{"charge_name": "A", "hsn": "9967", "qty": "1", "rate": "10", "tax_type": "Non-Taxable"}]}, headers=h).json()
+    assert only_non["invoice_kind"] == "NON_TAXABLE"

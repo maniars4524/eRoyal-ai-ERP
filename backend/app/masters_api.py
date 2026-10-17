@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -193,6 +193,71 @@ def import_sac_master(user: User = Depends(permission_required("master.create"))
     return {"created": created, "enriched": enriched, "skipped": skipped, "note": "GST rates are not part of the file; set or confirm them from the current official notification."}
 
 
+HEADING_CODES = {"9965", "9967", "9968"}
+
+
+def _ensure_hsn_records(db: Session, org_id: int, user: User, codes: set[str]) -> int:
+    """Every SAC a charge points to also exists in the HSN / SAC master."""
+    have = {r.code for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "hsn"))}
+    names = {c: (n, r, cat_) for c, n, r, cat_ in STANDARD_SAC}
+    made = 0
+    for code in sorted(codes - have):
+        n, rate, cat_ = names.get(code, ("Service accounting code " + code, "", ""))
+        db.add(MasterRecord(organization_id=org_id, master_type="hsn", code=code, name=n[:200], status="ACTIVE", created_by=user.id,
+                            data={"code_type": "SAC (Services)", "gst_rate": rate, "charge_category": cat_, "source": "standard", "tax_category": "Proposed rate - verify against the current notification"}))
+        made += 1
+    return made
+
+
+@router.post("/charge/complete-hsn")
+def complete_charge_hsn(user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
+    """Give every charge its SAC / HSN code (the specific standard SAC for the catalogue charges, the proposed code of its category for any other charge without one),
+    record the tax treatment and GST rate where missing, make sure the code exists in the HSN / SAC master, and activate the charge so it is offered everywhere charges are added."""
+    from .charge_catalogue import CHARGE_SAC
+
+    org_id = _tenant(user)
+    done = []
+    codes: set[str] = set()
+    for rec in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "charge").order_by(MasterRecord.code)):
+        data = dict(rec.data or {})
+        have = str(data.get("hsn_code") or "").strip()
+        change = []
+        spec = CHARGE_SAC.get(rec.code)
+        if spec:
+            sac, treatment, pct = spec
+            if not have or have in HEADING_CODES:
+                data["hsn_code"] = sac
+                change.append("SAC " + sac)
+            if not str(data.get("tax_treatment") or "").strip() or str(data.get("tax_status") or "") == "REVIEW_REQUIRED":
+                data["tax_treatment"] = treatment
+                change.append("treatment " + treatment)
+            if str(data.get("gst_percent") or "").strip() == "":
+                data["gst_percent"] = str(pct)
+                change.append(f"GST {pct}%")
+            data["catalogue"] = "yes"
+        elif not have:
+            data["hsn_code"] = PROPOSED_SAC.get(str(data.get("category") or "Other"), "996799")
+            data["sac_source"] = "proposed from the charge category (verify)"
+            change.append("SAC " + data["hsn_code"] + " (proposed from its category)")
+            if str(data.get("gst_percent") or "").strip() == "" and str(data.get("tax_treatment") or "taxable").lower() == "taxable":
+                data["gst_percent"] = "18"
+                change.append("GST 18%")
+        if data.get("tax_status") == "REVIEW_REQUIRED":
+            data["tax_status"] = "PROPOSED_VERIFY"
+        if rec.status != "ACTIVE":
+            change.append("activated")
+        if change:
+            rec.data = data
+            rec.status = "ACTIVE"
+            done.append({"code": rec.code, "name": rec.name, "changes": change})
+        codes.add(str(data.get("hsn_code") or "").strip())
+    made = _ensure_hsn_records(db, org_id, user, {c for c in codes if c})
+    record_audit(db, "CHARGES_HSN_COMPLETED", "MASTER", user, org_id, "charge", "complete-hsn", {"charges": len(done), "hsn_created": made})
+    db.commit()
+    total = db.scalar(select(func.count()).select_from(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "charge", MasterRecord.status == "ACTIVE"))
+    return {"updated": done, "hsn_created": made, "active_charges": total}
+
+
 @router.post("/charge/catalogue/import", status_code=201)
 def import_charge_catalogue(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     """Create the standard freight charge catalogue (inactive, tax review required). Existing codes are left untouched."""
@@ -203,13 +268,18 @@ def import_charge_catalogue(user: User = Depends(permission_required("master.cre
         if db.scalar(select(MasterRecord.id).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "charge", MasterRecord.code == code)):
             skipped += 1
             continue
-        data = {"catalogue": "yes", "tax_status": "REVIEW_REQUIRED", "hsn_code": sac, "gst_percent": "" if pct is None else str(pct), "category": group, "classification": note, "tax_note": config,
-                "tax_treatment": "taxable", "ar_ap": "Both", "uom": "Flat", "module": "ALL", "mode": "ALL"}
-        db.add(MasterRecord(organization_id=org_id, master_type="charge", code=code, name=name, status="INACTIVE", created_by=user.id, data=data))
+        from .charge_catalogue import CHARGE_SAC
+
+        sac2, treatment, pct2 = CHARGE_SAC[code]
+        data = {"catalogue": "yes", "tax_status": "PROPOSED_VERIFY", "hsn_code": sac2, "gst_percent": str(pct2), "category": group, "classification": note, "tax_note": config,
+                "tax_treatment": treatment, "ar_ap": "Both", "uom": "Flat", "module": "ALL", "mode": "ALL"}
+        db.add(MasterRecord(organization_id=org_id, master_type="charge", code=code, name=name, status="ACTIVE", created_by=user.id, data=data))
         made += 1
     record_audit(db, "CHARGE_CATALOGUE_IMPORTED", "MASTER", user, org_id, "charge", "catalogue", {"charges": made, "skipped": skipped, "headings": made_hsn})
     db.commit()
-    return {"charges_created": made, "charges_skipped": skipped, "headings_created": made_hsn, "note": "Charges are inactive until the SAC, rate, notification reference and effective date are verified and recorded."}
+    made_hsn += _ensure_hsn_records(db, org_id, user, {v[0] for v in __import__("app.charge_catalogue", fromlist=["CHARGE_SAC"]).CHARGE_SAC.values()})
+    db.commit()
+    return {"charges_created": made, "charges_skipped": skipped, "headings_created": made_hsn, "note": "Every charge has its proposed SAC, tax treatment and GST rate and is active. Verify them against the current notification and edit any in the Charge Master."}
 
 
 # proposed SAC per charge category, taken from the standard SAC list (to be verified by the company)

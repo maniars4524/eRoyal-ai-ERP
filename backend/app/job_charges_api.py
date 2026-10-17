@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/shipments", tags=["job-charges"])
 
 TWO = Decimal("0.01")
 MAX_LINES = 200
-TAX_TYPES = "^(Taxable|Non-Taxable)$"
+TAX_TYPES = "^(Taxable|Non-Taxable|Pure Agent|RCM)$"
 
 
 def q2(value: Decimal) -> Decimal:
@@ -116,8 +116,8 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
     for index, line in enumerate(payload.lines, start=1):
         row = JobCharge(
             organization_id=job.organization_id, shipment_id=job.id, line_no=index, charge_name=line.charge_name.strip(), description=line.description.strip(), uom=line.uom, qty=line.qty, hsn=line.hsn.strip(),
-            buy_ccy=line.buy.ccy, buy_exch=Decimal(1) if line.buy.ccy == "INR" else line.buy.exch, buy_rate=line.buy.rate, buy_tax_type=line.buy.tax_type, buy_tax_pct=line.buy.tax_pct if line.buy.tax_type == "Taxable" else Decimal(0), vendor=line.buy.party.strip(), use_vendor=line.buy.use_party,
-            sell_ccy=line.sell.ccy, sell_exch=Decimal(1) if line.sell.ccy == "INR" else line.sell.exch, sell_rate=line.sell.rate, sell_tax_type=line.sell.tax_type, sell_tax_pct=line.sell.tax_pct if line.sell.tax_type == "Taxable" else Decimal(0), client=line.sell.party.strip(), use_client=line.sell.use_party,
+            buy_ccy=line.buy.ccy, buy_exch=Decimal(1) if line.buy.ccy == "INR" else line.buy.exch, buy_rate=line.buy.rate, buy_tax_type=line.buy.tax_type, buy_tax_pct=line.buy.tax_pct if line.buy.tax_type in ("Taxable", "RCM") else Decimal(0), vendor=line.buy.party.strip(), use_vendor=line.buy.use_party,
+            sell_ccy=line.sell.ccy, sell_exch=Decimal(1) if line.sell.ccy == "INR" else line.sell.exch, sell_rate=line.sell.rate, sell_tax_type=line.sell.tax_type, sell_tax_pct=line.sell.tax_pct if line.sell.tax_type in ("Taxable", "RCM") else Decimal(0), client=line.sell.party.strip(), use_client=line.sell.use_party,
         )
         db.add(row)
         rows.append(row)

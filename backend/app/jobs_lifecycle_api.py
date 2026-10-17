@@ -128,6 +128,17 @@ def job_source(job_number: str, user: User = Depends(permission_required("shipme
                           "reference": (quote.header or {}).get("reference_no")} if quote else None}
 
 
+def job_charges_block(db: Session, job: Shipment) -> list[dict]:
+    from .models import JobCharge
+
+    rows = db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id).order_by(JobCharge.line_no))
+    out = []
+    for r in rows:
+        if (r.sell_rate or 0) > 0:
+            out.append({"name": r.charge_name, "ccy": r.sell_ccy, "qty": str(r.qty), "rate": str(r.sell_rate), "amount": str((r.qty or 0) * (r.sell_rate or 0)), "uom": r.uom})
+    return out
+
+
 def company_block(db: Session, job: Shipment) -> dict:
     from .job_details_api import _profile, company_code
     from .models import Organization
@@ -139,7 +150,7 @@ def company_block(db: Session, job: Shipment) -> dict:
 def booking_block(db: Session, job: Shipment, b) -> dict:
     d = (b.data if b else {}) or {}
     return {"container_mode": job.container_mode, "number": b.number if b else None, "carrier": b.carrier if b else None, "vessel": b.vessel if b else None, "carrier_booking_no": b.carrier_booking_no if b else None, "etd": b.etd if b else job.etd, "eta": b.eta if b else job.eta,
-            "marks": d.get("marks"), "place_of_receipt": d.get("place_of_receipt"), "place_of_delivery": d.get("place_of_delivery"), "freight_pp": d.get("freight_pp"), "service_type": d.get("service_type")}
+            "marks": d.get("marks"), "incoterm": d.get("incoterm"), "incoterm_desc": d.get("incoterm_desc"), "commodity": d.get("commodity"), "flight": d.get("flight_no") or d.get("flight"), "place_of_receipt": d.get("place_of_receipt"), "place_of_delivery": d.get("place_of_delivery"), "freight_pp": d.get("freight_pp"), "service_type": d.get("service_type")}
 
 
 def party_block(db: Session, job: Shipment, b) -> dict:
@@ -156,7 +167,7 @@ def job_detail_snapshot(db: Session, job: Shipment) -> dict:
     from .job_details_api import _out, _row
 
     o = _out(db, job, _row(db, job))   # saved details, else what the booking already knows
-    return {k: o[k] for k in ("parties", "cargo", "containers", "dims", "bl")}
+    return {k: o[k] for k in ("parties", "cargo", "containers", "dims", "bl", "impdocs")}
 
 
 def party_text(db: Session, org_id: int, name: str | None, fallback: str | None = None) -> str:
@@ -182,6 +193,8 @@ def party_text(db: Session, org_id: int, name: str | None, fallback: str | None 
 def report_data(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Everything the job documents need, taken from the booking, the job, the customs clearance bills and the posted invoices: BL / AWB, invoices, SB, BE."""
     from . import customs_api
+    from .billing import invoice_kind
+    from .documents_api import proforma_required
     from .models import Booking, Document
 
     job = _job(db, user, job_number)
@@ -193,7 +206,10 @@ def report_data(job_number: str, user: User = Depends(permission_required("shipm
             "bl_awb": {"label": "AWB" if job.mode == "Air" else "BL", "number": job.bl_awb}, "pol": job.pol, "pod": job.pod, "packages": job.packages, "gross_weight": str(job.gross_weight) if job.gross_weight is not None else None,
             "volume": str(job.volume) if job.volume is not None else None, "commodity": job.commodity,
             "details": job_detail_snapshot(db, job), "company": company_block(db, job), "booking": booking_block(db, job, booking), "party_text": party_block(db, job, booking),
-            "invoices": [{"doc_number": d.doc_number, "doc_type": d.doc_type, "doc_date": d.doc_date, "status": d.status, "total": str(d.grand_total)} for d in docs],
+            "invoices": [{"id": d.id, "doc_number": d.doc_number, "doc_type": d.doc_type, "doc_date": d.doc_date, "status": d.status, "total": str(d.grand_total), "party": d.party_name, "party_gstin": d.party_gstin,
+                          "proforma_no": (d.header or {}).get("proforma_no"), "einvoice": bool((d.header or {}).get("einvoice")), "kind": invoice_kind([l.tax_type for l in d.lines]) if d.lines else "TAX"} for d in docs],
+            "proforma_required": proforma_required(db, job.organization_id),
+            "job_charges": job_charges_block(db, job), "job_status": job.status, "job_stage": job.job_stage,
             "shipping_bills": [b for b in bills if b["bill_type"] == "SB"], "bills_of_entry": [b for b in bills if b["bill_type"] == "BE"], "customs_bill_count": cus["count"], "customs_jobs": cus["customs_jobs"]}
 
 
