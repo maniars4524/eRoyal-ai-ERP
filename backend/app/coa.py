@@ -45,6 +45,8 @@ SYSTEM_LEDGERS = {
     "in_igst": ("Input IGST", ("ASSETS", "CURRENT ASSETS", "DUTIES & TAXES")),
     "tds_recv": ("TDS Receivable", ("ASSETS", "CURRENT ASSETS", "TDS RECEIVABLES")),
     "tds_pay": ("TDS Payable", ("LIABILITIES", "CURRENT LIABILITIES", "TDS PAYABLE")),
+    "tcs_recv": ("TCS Receivable", ("ASSETS", "CURRENT ASSETS", "TDS RECEIVABLES")),
+    "tcs_pay": ("TCS Payable", ("LIABILITIES", "CURRENT LIABILITIES", "TDS PAYABLE")),
     "round_off": ("Round Off", ("EXPENSES", "INDIRECT EXPENSES")),
     "pure_agent": ("Pure Agent Reimbursement", ("LIABILITIES", "CURRENT LIABILITIES")),
     "capital": ("Capital Account", ("LIABILITIES", "CAPITAL ACCOUNT")),

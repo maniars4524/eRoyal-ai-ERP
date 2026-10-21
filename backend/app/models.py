@@ -281,6 +281,21 @@ class AccEntry(Base):
     voucher: Mapped[AccVoucher] = relationship(back_populates="entries")
 
 
+class GstFiling(Base):
+    """A GST return that has been filed on the portal (the company records the date and the acknowledgement number)."""
+    __tablename__ = "gst_filings"
+    __table_args__ = (UniqueConstraint("organization_id", "period", "return_type", name="uq_gst_filing"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    period: Mapped[str] = mapped_column(String(7))   # YYYY-MM of the supplies
+    return_type: Mapped[str] = mapped_column(String(10))   # GSTR1 | GSTR3B
+    filed_on: Mapped[date] = mapped_column(Date)
+    ack_no: Mapped[str | None] = mapped_column(String(40))
+    filed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class CompanyDocProfile(Base):
     """Letterhead and registration details printed on the company's documents (BL / MTD): address, contacts, OTL / MTO / FMC registration numbers, signatory, signature and seal images."""
     __tablename__ = "company_doc_profiles"

@@ -100,6 +100,7 @@ def _count(n: dict) -> int:
 def tree(user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     coa.ensure_tree(db, org_id)
+    db.commit()
     if not db.scalar(select(func.count()).select_from(AccLedger).where(AccLedger.organization_id == org_id, AccLedger.source_type.isnot(None))):
         coa.sync_all(db, org_id, user.id)   # a company that had masters before the chart existed gets their ledgers once
     db.commit()
@@ -118,6 +119,7 @@ def tree(user: User = Depends(permission_required("billing.read")), db: Session 
 def search(q: str = Query(min_length=1, max_length=100), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     coa.ensure_tree(db, org_id)
+    db.commit()
     like = f"%{q.strip()}%"
     out = []
     for l in db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id, (AccLedger.name.ilike(like)) | (AccLedger.code.ilike(like)) | (AccLedger.alias.ilike(like))).order_by(AccLedger.code).limit(100)):
@@ -133,6 +135,7 @@ def ledgers(group_id: int | None = None, source_type: str | None = None, user: U
     """Flat ledger list for pickers (journal voucher, opening balances) and reports."""
     org_id = _tenant(user)
     coa.ensure_tree(db, org_id)
+    db.commit()
     q = select(AccLedger).where(AccLedger.organization_id == org_id)
     if group_id:
         q = q.where(AccLedger.group_id == group_id)

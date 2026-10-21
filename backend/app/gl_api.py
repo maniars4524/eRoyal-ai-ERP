@@ -34,6 +34,7 @@ def _s(v) -> str:
 def _prep(db: Session, user: User) -> int:
     org_id = _tenant(user)
     coa.ensure_tree(db, org_id)
+    db.commit()
     gl.ensure_posted(db, org_id, user.id)
     return org_id
 
@@ -556,3 +557,163 @@ def payroll(body: PayrollIn, user: User = Depends(permission_required("billing.p
     record_audit(db, "PAYROLL_POSTED", "ACCOUNTS", user, org_id, "AccVoucher", str(v.id), {"kind": body.kind, "employee": emp.name, "amount": str(body.amount)})
     db.commit()
     return _voucher_out(db, v)
+
+
+# ---------------------------------------------------------------- opening balance import
+class OpeningRow(BaseModel):
+    code: str | None = Field(default=None, max_length=20)
+    name: str | None = Field(default=None, max_length=200)
+    debit: Decimal = Field(default=Decimal(0), ge=0, max_digits=16, decimal_places=2)
+    credit: Decimal = Field(default=Decimal(0), ge=0, max_digits=16, decimal_places=2)
+
+
+class OpeningImport(BaseModel):
+    rows: list[OpeningRow] = Field(min_length=1, max_length=5000)
+    apply: bool = False
+
+
+@router.post("/opening-import")
+def opening_import(body: OpeningImport, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    """Set ledger opening balances from rows (code or name, debit, credit). With apply=false it only checks the rows. A row replaces that ledger's opening balance; ledgers that are not listed are left alone."""
+    org_id = _tenant(user)
+    coa.ensure_tree(db, org_id)
+    db.commit()
+    leds = list(db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id)))
+    by_code = {l.code.upper(): l for l in leds}
+    by_name: dict[str, list[AccLedger]] = {}
+    for l in leds:
+        by_name.setdefault(l.name.strip().lower(), []).append(l)
+    out, ok, dr, cr = [], [], ZERO, ZERO
+    seen: set[int] = set()
+    for i, r in enumerate(body.rows, start=1):
+        led, why = None, None
+        if r.code and r.code.strip().upper() in by_code:
+            led = by_code[r.code.strip().upper()]
+        elif r.name and len(by_name.get(r.name.strip().lower(), [])) == 1:
+            led = by_name[r.name.strip().lower()][0]
+        elif r.name and len(by_name.get(r.name.strip().lower(), [])) > 1:
+            why = "Several ledgers have this name. Use the ledger code"
+        else:
+            why = "No ledger with this code or name"
+        if led is not None and led.id in seen:
+            led, why = None, "The same ledger appears twice"
+        if led is not None and r.debit > 0 and r.credit > 0:
+            led, why = None, "A row carries either a debit or a credit"
+        status = "OK" if led is not None else "ERROR"
+        if led is not None:
+            seen.add(led.id)
+            ok.append((led, r))
+            dr += r.debit
+            cr += r.credit
+        out.append({"row": i, "code": led.code if led else r.code, "name": led.name if led else r.name, "debit": _s(r.debit), "credit": _s(r.credit), "status": status, "message": why or ""})
+    # the books as they would stand: listed ledgers replaced, the others as they are
+    total_dr = ZERO
+    total_cr = ZERO
+    new = {l.id: (r.debit, r.credit) for l, r in ok}
+    for l in leds:
+        if l.id in new:
+            d, c = new[l.id]
+        else:
+            v = Decimal(l.opening_balance or 0)
+            d, c = (v, ZERO) if l.opening_side == "Dr" else (ZERO, v)
+        total_dr += d
+        total_cr += c
+    result = {"rows": out, "valid": len(ok), "errors": len(out) - len(ok), "imported_debit": _s(dr), "imported_credit": _s(cr), "books_debit": _s(total_dr), "books_credit": _s(total_cr), "difference": _s(total_dr - total_cr), "applied": False}
+    if body.apply:
+        if result["errors"]:
+            raise HTTPException(422, f"{result['errors']} row(s) have errors. Correct them or remove them and try again")
+        for l, r in ok:
+            l.opening_balance, l.opening_side = (r.debit, "Dr") if r.debit > 0 or r.credit == 0 else (r.credit, "Cr")
+        record_audit(db, "OPENING_BALANCES_IMPORTED", "ACCOUNTS", user, org_id, "AccLedger", "bulk", {"ledgers": len(ok), "debit": str(dr), "credit": str(cr)})
+        db.commit()
+        result["applied"] = True
+    return result
+
+
+# ---------------------------------------------------------------- GST filing calendar and TCS
+GST_DUE = {"GSTR1": 11, "GSTR3B": 20}      # monthly filers: day of the month after the supply period
+
+
+def _month_end(y: int, m: int) -> date:
+    return date(y + (m == 12), m % 12 + 1, 1)
+
+
+@router.get("/gst-calendar")
+def gst_calendar(fy: int | None = Query(default=None, ge=2000, le=2100), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """The twelve periods of a financial year (fy = the year it starts in) with the GSTR-1 and GSTR-3B due dates, what has been filed and the tax of the period."""
+    from .models import GstFiling
+
+    org_id = _prep(db, user)
+    today = date.today()
+    fy = fy or (today.year if today.month >= 4 else today.year - 1)
+    filed = {(f.period, f.return_type): f for f in db.scalars(select(GstFiling).where(GstFiling.organization_id == org_id))}
+    ids = {l.system_key: l.id for l in db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id, AccLedger.system_key.in_(("out_cgst", "out_sgst", "out_igst", "in_cgst", "in_sgst", "in_igst"))))}
+    rows = []
+    for k in range(12):
+        y, m = (fy, 4 + k) if 4 + k <= 12 else (fy + 1, 4 + k - 12)
+        period = f"{y}-{m:02d}"
+        start, end = date(y, m, 1), _month_end(y, m)
+        end = date.fromordinal(end.toordinal() - 1)
+        agg = _agg(db, org_id, start, end)
+        out_tax = sum((agg.get(ids[k2], (ZERO, ZERO))[1] - agg.get(ids[k2], (ZERO, ZERO))[0] for k2 in ("out_cgst", "out_sgst", "out_igst")), ZERO)
+        in_tax = sum((agg.get(ids[k2], (ZERO, ZERO))[0] - agg.get(ids[k2], (ZERO, ZERO))[1] for k2 in ("in_cgst", "in_sgst", "in_igst")), ZERO)
+        returns = []
+        for rt, day in GST_DUE.items():
+            ny, nm = (y, m + 1) if m < 12 else (y + 1, 1)
+            due = date(ny, nm, day)
+            f = filed.get((period, rt))
+            if f:
+                status = "FILED_LATE" if f.filed_on > due else "FILED"
+            elif today > due:
+                status = "OVERDUE"
+            elif (due - today).days <= 7 and start <= today:
+                status = "DUE_SOON"
+            else:
+                status = "UPCOMING"
+            returns.append({"type": rt, "due": due, "status": status, "days_left": (due - today).days, "filed_on": f.filed_on if f else None, "ack_no": f.ack_no if f else None})
+        rows.append({"period": period, "label": start.strftime("%b %Y"), "output_tax": _s(out_tax), "input_tax": _s(in_tax), "net_payable": _s(out_tax - in_tax), "returns": returns})
+    return {"fy": fy, "fy_label": f"{fy}-{str(fy + 1)[2:]}", "periods": rows, "note": "Due dates are for monthly filers (GSTR-1 on the 11th, GSTR-3B on the 20th). Quarterly (QRMP) dates, extensions and notified waivers are not applied."}
+
+
+class FilingIn(BaseModel):
+    period: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    return_type: str = Field(pattern="^(GSTR1|GSTR3B)$")
+    filed_on: date | None = None   # None removes the record
+    ack_no: str | None = Field(default=None, max_length=40)
+
+
+@router.post("/gst-calendar/mark")
+def gst_mark(body: FilingIn, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    from .models import GstFiling
+
+    org_id = _tenant(user)
+    f = db.scalar(select(GstFiling).where(GstFiling.organization_id == org_id, GstFiling.period == body.period, GstFiling.return_type == body.return_type))
+    if body.filed_on is None:
+        if f:
+            db.delete(f)
+    else:
+        if f is None:
+            f = GstFiling(organization_id=org_id, period=body.period, return_type=body.return_type, filed_on=body.filed_on, filed_by=user.id)
+            db.add(f)
+        f.filed_on, f.ack_no = body.filed_on, (body.ack_no or "").strip() or None
+    record_audit(db, "GST_FILING_MARKED", "ACCOUNTS", user, org_id, "GstFiling", f"{body.period}/{body.return_type}", {"filed_on": str(body.filed_on), "ack": body.ack_no})
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/tcs")
+def tcs_report(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Tax collected at source: movement of the TCS Receivable and TCS Payable ledgers (post them with a journal voucher)."""
+    org_id = _prep(db, user)
+    out = {"date_from": date_from, "date_to": date_to}
+    for key, name in (("tcs_recv", "receivable"), ("tcs_pay", "payable")):
+        led = coa.sys_ledger(db, org_id, key)
+        q = select(AccEntry, AccVoucher).join(AccVoucher, AccVoucher.id == AccEntry.voucher_id).where(AccEntry.ledger_id == led.id, AccVoucher.status == "POSTED").order_by(AccVoucher.vdate, AccVoucher.id)
+        if date_from:
+            q = q.where(AccVoucher.vdate >= date_from)
+        if date_to:
+            q = q.where(AccVoucher.vdate <= date_to)
+        rows = [{"date": v.vdate, "voucher_id": v.id, "number": v.number, "party": v.party_name, "narration": e.narration or v.narration, "debit": _s(e.debit), "credit": _s(e.credit)} for e, v in db.execute(q)]
+        d, c = sum((Decimal(r["debit"]) for r in rows), ZERO), sum((Decimal(r["credit"]) for r in rows), ZERO)
+        out[name] = {"ledger": led.name, "ledger_id": led.id, "entries": rows, "debit": _s(d), "credit": _s(c), "net": _s(d - c if name == "receivable" else c - d)}
+    return out

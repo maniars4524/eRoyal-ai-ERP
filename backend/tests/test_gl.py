@@ -228,3 +228,43 @@ def test_hsn_summary_cash_flow_and_payroll(h):
     assert lrep(h, "Staff Advance - Emp " + uid)["closing"] == "3000.00"
     exp = ledger_of(h, "Other Direct Expenses")
     assert client.post("/api/gl/payroll", json={"kind": "SALARY", "employee_id": emp.json()["id"], "amount": "10", "pay_ledger_id": exp["id"]}, headers=h).status_code == 422
+
+
+def test_opening_balance_import_preview_apply_and_guards(h):
+    uid = uuid.uuid4().hex[:4]
+    g = next(x for x in client.get("/api/coa/tree", headers=h).json()["groups"][0]["groups"][0]["groups"] if x["name"] == "LOANS & ADVANCES")
+    a = client.post("/api/coa/ledgers", json={"group_id": g["id"], "name": "Ob Asset " + uid}, headers=h).json()
+    cap = ledger_of(h, "Capital Account")
+    rows = [{"code": a["code"], "debit": "7000"}, {"name": "Capital Account", "credit": "7000"}, {"name": "No Such Ledger", "debit": "1"}, {"code": a["code"], "debit": "5"}, {"name": "Cash in Hand", "debit": "3", "credit": "3"}]
+    pre = client.post("/api/gl/opening-import", json={"rows": rows}, headers=h).json()
+    assert pre["valid"] == 2 and pre["errors"] == 3 and pre["applied"] is False
+    assert {r["message"] for r in pre["rows"] if r["status"] == "ERROR"} == {"No ledger with this code or name", "The same ledger appears twice", "A row carries either a debit or a credit"}
+    assert client.post("/api/gl/opening-import", json={"rows": rows, "apply": True}, headers=h).status_code == 422      # nothing is applied while rows have errors
+    assert lrep(h, "Ob Asset " + uid)["opening"] == "0.00"
+    good = client.post("/api/gl/opening-import", json={"rows": rows[:2], "apply": True}, headers=h).json()
+    assert good["applied"] is True and good["imported_debit"] == "7000.00" and good["imported_credit"] == "7000.00"
+    assert lrep(h, "Ob Asset " + uid)["opening"] == "7000.00" and lrep(h, "Capital Account")["opening"] in ("-7000.00",)
+
+
+def test_gst_calendar_marking_and_tcs_report(h):
+    cal = client.get("/api/gl/gst-calendar?fy=2026", headers=h).json()
+    assert cal["fy_label"] == "2026-27" and len(cal["periods"]) == 12 and cal["periods"][0]["period"] == "2026-04" and cal["periods"][-1]["period"] == "2027-03"
+    apr = cal["periods"][0]["returns"]
+    assert {r["type"]: r["due"] for r in apr} == {"GSTR1": "2026-05-11", "GSTR3B": "2026-05-20"}
+    assert cal["periods"][8]["returns"][0]["due"] == "2027-01-11" and cal["periods"][9]["returns"][1]["due"] == "2027-02-20"      # Dec 2026 is due in Jan; Jan 2027 in Feb
+    assert all(r["status"] == "OVERDUE" for r in apr)                  # April 2026 is long past (the suite runs in or after Oct 2026)
+    assert client.post("/api/gl/gst-calendar/mark", json={"period": "2026-04", "return_type": "GSTR1", "filed_on": "2026-05-09", "ack_no": "AA270526"}, headers=h).status_code == 200
+    one = client.get("/api/gl/gst-calendar?fy=2026", headers=h).json()["periods"][0]["returns"][0]
+    assert one["status"] == "FILED" and one["ack_no"] == "AA270526"
+    client.post("/api/gl/gst-calendar/mark", json={"period": "2026-04", "return_type": "GSTR1", "filed_on": "2026-05-14"}, headers=h)
+    assert client.get("/api/gl/gst-calendar?fy=2026", headers=h).json()["periods"][0]["returns"][0]["status"] == "FILED_LATE"
+    client.post("/api/gl/gst-calendar/mark", json={"period": "2026-04", "return_type": "GSTR1"}, headers=h)
+    assert client.get("/api/gl/gst-calendar?fy=2026", headers=h).json()["periods"][0]["returns"][0]["status"] == "OVERDUE"
+    assert client.post("/api/gl/gst-calendar/mark", json={"period": "2026-13", "return_type": "GSTR1", "filed_on": "2026-05-09"}, headers=h).status_code == 422
+    # TCS: a journal that books TCS collected from a customer shows in the report
+    tcs = ledger_of(h, "TCS Receivable")
+    cash = ledger_of(h, "Cash in Hand")
+    jv = client.post("/api/gl/vouchers", json={"voucher_type": "JOURNAL", "narration": "TCS test", "lines": [{"ledger_id": tcs["id"], "debit": "40"}, {"ledger_id": cash["id"], "credit": "40"}]}, headers=h)
+    assert jv.status_code == 201, jv.text
+    r = client.get("/api/gl/tcs", headers=h).json()
+    assert any(e["narration"] == "TCS test" for e in r["receivable"]["entries"]) and D(r["receivable"]["net"]) >= D("40.00") and r["payable"]["ledger"] == "TCS Payable"

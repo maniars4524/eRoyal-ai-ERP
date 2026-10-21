@@ -92,6 +92,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   q("#jv_payroll").click(); await sleep(1800);
   q("#pr_amt").value = "12000"; q("#pr_go").click(); await sleep(2000);
   check("salary posts as a journal voucher against the employee", /JV\/\d\d-\d\d\/\d{5}/.test(q("#jv_body").textContent) && /Salary - Ui Employee/.test(q("#jv_body").textContent), q("#jv_body").textContent.slice(0, 200));
+  // ---- GST calendar and TCS
+  w.go("gl-reports", { glTab: "cal" }); await sleep(2500);
+  check("GST calendar lists twelve periods with GSTR-1 and GSTR-3B due dates", qa("#gl_table tbody tr").length === 12 && /Due \d\d-\d\d-\d{4}/.test(q("#gl_table").textContent), q("#gl_body").textContent.slice(0, 160));
+  qa("[data-cal-mark]")[0].click(); await sleep(500);
+  q("#cal_ack").value = "AA2700001"; q("#cal_save").click(); await sleep(1800);
+  check("marking a return filed records the date and ARN", /AA2700001/.test(q("#gl_body").textContent) && /Filed/.test(q("#gl_body").textContent), q("#gl_body").textContent.slice(0, 200));
+  w.go("gl-reports", { glTab: "tcs" }); await sleep(2200);
+  check("TCS tab shows both TCS ledgers", /TCS receivable/.test(q("#gl_body").textContent) && /TCS payable/.test(q("#gl_body").textContent), q("#gl_body").textContent.slice(0, 160));
   // ---- the receipt dialog offers the bank account
   const bankLedger = (await j("GET", "/api/coa/ledgers?source_type=bank", null, token)).body;
   check("the bank master created its ledger under Bank Accounts", bankLedger.length === 1 && /BANK ACCOUNTS/.test(bankLedger[0].path) && bankLedger[0].opening_balance === "20000.00");
