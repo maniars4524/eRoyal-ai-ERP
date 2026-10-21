@@ -401,3 +401,158 @@ def gst_report(date_from: date | None = None, date_to: date | None = None, user:
     in_tax = tot["purchases"][2] + tot["purchases"][3] + tot["purchases"][4]
     return {"date_from": date_from, "date_to": date_to, "sales": sales, "purchases": purchases, "sales_total": out_t, "purchases_total": in_t, "output_tax": _s(out_tax), "input_tax": _s(in_tax), "net_payable": _s(out_tax - in_tax),
             "ledger_output": _s(led_out), "ledger_input": _s(led_in), "agrees_with_ledger": led_out == out_tax and led_in == in_tax}
+
+
+# ---------------------------------------------------------------- TDS and RCM
+@router.get("/tds")
+def tds_report(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """TDS deducted by customers on our receipts (receivable, claimed against our tax) and TDS we deducted on vendor payments (payable to the department)."""
+    from .models import Document, Payment
+
+    org_id = _prep(db, user)
+    q = select(Payment).options(selectinload(Payment.allocations)).where(Payment.organization_id == org_id, Payment.status == "POSTED").order_by(Payment.pay_date, Payment.id)
+    if date_from:
+        q = q.where(Payment.pay_date >= date_from)
+    if date_to:
+        q = q.where(Payment.pay_date <= date_to)
+    docs = {d.id: d for d in db.scalars(select(Document).where(Document.organization_id == org_id))}
+    recv, pay = [], []
+    for p in db.scalars(q):
+        for a in p.allocations:
+            if not a.tds_amount:
+                continue
+            d = docs.get(a.document_id)
+            (recv if p.direction == "RECEIPT" else pay).append({"date": p.pay_date, "voucher": p.pay_number, "party": p.party_name, "document": d.doc_number if d else None, "document_total": _s(d.grand_total) if d else "0.00",
+                                                                  "received": _s(a.amount), "tds": _s(a.tds_amount), "tds_percent": _s(a.tds_amount * 100 / (d.subtotal or 1)) if d and d.subtotal else "0.00"})
+    tr, tp = sum((Decimal(r["tds"]) for r in recv), ZERO), sum((Decimal(r["tds"]) for r in pay), ZERO)
+    agg = _agg(db, org_id, date_from, date_to)
+    ids = {l.system_key: l.id for l in db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id, AccLedger.system_key.in_(("tds_recv", "tds_pay"))))}
+    lr = agg.get(ids["tds_recv"], (ZERO, ZERO)); lp = agg.get(ids["tds_pay"], (ZERO, ZERO))
+    return {"date_from": date_from, "date_to": date_to, "receivable": recv, "payable": pay, "total_receivable": _s(tr), "total_payable": _s(tp), "agrees_with_ledger": lr[0] - lr[1] == tr and lp[1] - lp[0] == tp}
+
+
+@router.get("/rcm")
+def rcm_report(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Reverse-charge (RCM) entries on posted documents: the recipient, not the supplier, pays the GST on these."""
+    from .models import Document
+
+    org_id = _prep(db, user)
+    q = select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.status == "POSTED").order_by(Document.doc_date, Document.id)
+    if date_from:
+        q = q.where(Document.doc_date >= date_from)
+    if date_to:
+        q = q.where(Document.doc_date <= date_to)
+    rows, total_v, total_t = [], ZERO, ZERO
+    for d in db.scalars(q):
+        sign = -1 if d.doc_type in ("credit_note", "purchase_credit_note") else 1
+        for l in d.lines:
+            if l.tax_type != "RCM":
+                continue
+            tax = (l.amount * (l.tax_pct or ZERO) / 100).quantize(Decimal("0.01"))
+            rows.append({"date": d.doc_date, "number": d.doc_number, "type": d.doc_type, "party": d.party_name, "gstin": d.party_gstin, "charge": l.charge_name, "hsn": l.hsn, "value": _s(sign * l.amount), "rate": _s(l.tax_pct), "tax": _s(sign * tax),
+                         "intra": d.supply_type == "intra"})
+            total_v += sign * l.amount
+            total_t += sign * tax
+    return {"date_from": date_from, "date_to": date_to, "rows": rows, "total_value": _s(total_v), "total_tax": _s(total_t)}
+
+
+# ---------------------------------------------------------------- HSN / SAC summary and cash flow
+@router.get("/hsn-summary")
+def hsn_summary(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Outward supplies by HSN / SAC: quantity, taxable value and GST (invoices and debit notes less credit notes)."""
+    from .models import Document
+
+    org_id = _prep(db, user)
+    q = select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.status == "POSTED", Document.doc_type.in_(("invoice", "debit_note", "credit_note"))).order_by(Document.doc_date)
+    if date_from:
+        q = q.where(Document.doc_date >= date_from)
+    if date_to:
+        q = q.where(Document.doc_date <= date_to)
+    agg: dict = {}
+    for d in db.scalars(q):
+        sign = -1 if d.doc_type == "credit_note" else 1
+        for l in d.lines:
+            k = (l.hsn or "-", l.uom)
+            a = agg.setdefault(k, {"hsn": k[0], "uom": k[1], "description": l.charge_name, "qty": ZERO, "value": ZERO, "cgst": ZERO, "sgst": ZERO, "igst": ZERO, "documents": set()})
+            a["qty"] += sign * l.qty
+            a["value"] += sign * l.amount
+            if d.supply_type == "intra":
+                half = (l.tax_amount / 2).quantize(Decimal("0.01"))
+                a["cgst"] += sign * half
+                a["sgst"] += sign * (l.tax_amount - half)
+            else:
+                a["igst"] += sign * l.tax_amount
+            a["documents"].add(d.id)
+    rows = [{"hsn": a["hsn"], "uom": a["uom"], "description": a["description"], "documents": len(a["documents"]), "qty": str(a["qty"].normalize() if a["qty"] else 0), "value": _s(a["value"]), "cgst": _s(a["cgst"]), "sgst": _s(a["sgst"]),
+             "igst": _s(a["igst"]), "tax": _s(a["cgst"] + a["sgst"] + a["igst"])} for a in sorted(agg.values(), key=lambda x: x["hsn"])]
+    return {"date_from": date_from, "date_to": date_to, "rows": rows, "total_value": _s(sum((Decimal(r["value"]) for r in rows), ZERO)), "total_tax": _s(sum((Decimal(r["tax"]) for r in rows), ZERO))}
+
+
+@router.get("/cash-flow")
+def cash_flow(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Cash and bank movement of the period by kind of voucher. Transfers between cash and bank (contra) are not a flow and are left out."""
+    org_id = _prep(db, user)
+    leds = [l for l in db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id)) if db.get(AccGroup, l.group_id).name in ("BANK ACCOUNTS", "CASH-IN-HAND")]
+    ids = [l.id for l in leds]
+    if not ids:
+        return {"opening": "0.00", "inflows": [], "outflows": [], "total_in": "0.00", "total_out": "0.00", "net": "0.00", "closing": "0.00", "date_from": date_from, "date_to": date_to}
+    prior = _agg(db, org_id, before=date_from) if date_from else {}
+    opening = sum((_opening(l) + prior.get(l.id, (ZERO, ZERO))[0] - prior.get(l.id, (ZERO, ZERO))[1] for l in leds), ZERO)
+    q = select(AccVoucher.voucher_type, func.coalesce(func.sum(AccEntry.debit), 0), func.coalesce(func.sum(AccEntry.credit), 0)).join(AccVoucher, AccVoucher.id == AccEntry.voucher_id).where(AccEntry.ledger_id.in_(ids), AccVoucher.status == "POSTED", AccVoucher.voucher_type != "CONTRA")
+    if date_from:
+        q = q.where(AccVoucher.vdate >= date_from)
+    if date_to:
+        q = q.where(AccVoucher.vdate <= date_to)
+    ins, outs = [], []
+    for vt, d, c in db.execute(q.group_by(AccVoucher.voucher_type)):
+        if d:
+            ins.append({"type": gl.VOUCHER_LABEL.get(vt, vt), "amount": _s(d)})
+        if c:
+            outs.append({"type": gl.VOUCHER_LABEL.get(vt, vt), "amount": _s(c)})
+    ti, to = sum((Decimal(x["amount"]) for x in ins), ZERO), sum((Decimal(x["amount"]) for x in outs), ZERO)
+    return {"date_from": date_from, "date_to": date_to, "opening": _s(opening), "inflows": ins, "outflows": outs, "total_in": _s(ti), "total_out": _s(to), "net": _s(ti - to), "closing": _s(opening + ti - to)}
+
+
+# ---------------------------------------------------------------- staff salary and advances
+class PayrollIn(BaseModel):
+    kind: str = Field(pattern="^(SALARY|ADVANCE|RECOVERY)$")
+    employee_id: int
+    amount: Decimal = Field(gt=0, max_digits=16, decimal_places=2)
+    pay_ledger_id: int
+    vdate: date | None = None
+    narration: str | None = Field(default=None, max_length=400)
+
+
+@router.post("/payroll", status_code=201)
+def payroll(body: PayrollIn, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    """Salary paid (Dr the employee's salary ledger, Cr cash / bank), an advance given to staff (Dr the employee's advance ledger, Cr cash / bank) or an advance repaid (Dr cash / bank, Cr the advance ledger)."""
+    from .models import MasterRecord
+
+    org_id = _prep(db, user)
+    emp = db.get(MasterRecord, body.employee_id)
+    if emp is None or emp.organization_id != org_id or emp.master_type != "employee":
+        raise HTTPException(404, "Employee not found")
+    pay = db.get(AccLedger, body.pay_ledger_id)
+    if pay is None or pay.organization_id != org_id or db.get(AccGroup, pay.group_id).name not in ("BANK ACCOUNTS", "CASH-IN-HAND"):
+        raise HTTPException(422, "Pay from a cash or bank ledger")
+    sal = coa.sync_employee(db, emp, user.id)
+    if body.kind == "SALARY":
+        dr, cr, label = sal, pay, "Salary"
+    else:
+        adv = coa.staff_advance_ledger(db, emp, user.id)
+        dr, cr, label = (adv, pay, "Advance") if body.kind == "ADVANCE" else (pay, adv, "Advance repaid")
+    vdate = body.vdate or date.today()
+    ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == org_id, HblCounter.hbl_type == "JV").with_for_update())
+    if ctr is None:
+        ctr = HblCounter(organization_id=org_id, hbl_type="JV", last_no=0)
+        db.add(ctr)
+        db.flush()
+    ctr.last_no += 1
+    v = AccVoucher(organization_id=org_id, voucher_type="JOURNAL", number=f"JV/{fiscal_year(vdate)}/{ctr.last_no:05d}", vdate=vdate, narration=body.narration or f"{label} - {emp.name}", party_name=emp.name, total=body.amount, created_by=user.id)
+    v.entries.append(AccEntry(organization_id=org_id, ledger_id=dr.id, debit=body.amount, credit=ZERO, narration=label))
+    v.entries.append(AccEntry(organization_id=org_id, ledger_id=cr.id, debit=ZERO, credit=body.amount, narration=label))
+    db.add(v)
+    db.flush()
+    record_audit(db, "PAYROLL_POSTED", "ACCOUNTS", user, org_id, "AccVoucher", str(v.id), {"kind": body.kind, "employee": emp.name, "amount": str(body.amount)})
+    db.commit()
+    return _voucher_out(db, v)

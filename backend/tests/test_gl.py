@@ -179,3 +179,52 @@ def test_gst_report_agrees_with_the_tax_ledgers_and_bank_reconciliation(h):
     assert client.get(f"/api/gl/bank-recon?ledger_id={bank['id']}", headers=h).json()["balance_as_per_bank"] == "1000.00"
     assert client.get(f"/api/gl/bank-recon?ledger_id={cash['id']}", headers=h).status_code == 422      # cash is not reconciled against a statement
     assert v["number"].startswith("CT/")
+
+
+def test_tds_and_rcm_reports(h):
+    uid = uuid.uuid4().hex[:5]
+    party = "Gl Tds " + uid
+    client.post("/api/customers", json={"code": "GT" + uid.upper(), "name": party, "roles": ["shipper"], "data": {}}, headers=h)
+    inv = invoice(h, party, "1000", tax="18")
+    assert client.post("/api/payments", json={"direction": "RECEIPT", "party_name": party, "method": "Cash", "amount": "900", "kind": "part", "allocations": [{"document_id": inv["id"], "amount": "900", "tds": "20"}]}, headers=h).status_code == 201
+    t = client.get("/api/gl/tds", headers=h).json()
+    mine = [r for r in t["receivable"] if r["party"] == party]
+    assert len(mine) == 1 and mine[0]["tds"] == "20.00" and mine[0]["document"] == inv["doc_number"] and t["agrees_with_ledger"] is True
+    vend = "Gl Rcm " + uid
+    client.post("/api/customers", json={"code": "GM" + uid.upper(), "name": vend, "roles": ["transporter"], "data": {}}, headers=h)
+    d = client.post("/api/documents", json={"doc_type": "purchase_invoice", "party_name": vend, "lines": [{"charge_name": "Transport", "qty": "1", "rate": "10000", "tax_type": "RCM", "tax_pct": "5"}]}, headers=h)
+    assert d.status_code == 201, d.text
+    assert client.post(f"/api/documents/{d.json()['id']}/post", headers=h).status_code == 200
+    r = client.get("/api/gl/rcm", headers=h).json()
+    mine = [x for x in r["rows"] if x["party"] == vend]
+    assert len(mine) == 1 and mine[0]["value"] == "10000.00" and mine[0]["tax"] == "500.00"
+
+
+def test_hsn_summary_cash_flow_and_payroll(h):
+    uid = uuid.uuid4().hex[:5]
+    party = "Gl Hsn " + uid
+    client.post("/api/customers", json={"code": "GH" + uid.upper(), "name": party, "roles": ["shipper"], "data": {}}, headers=h)
+    d = client.post("/api/documents", json={"doc_type": "invoice", "party_name": party, "supply_type": "intra", "lines": [{"charge_name": "Hsn Test", "hsn": "998888", "qty": "2", "rate": "500", "tax_type": "Taxable", "tax_pct": "18"}]}, headers=h).json()
+    client.post(f"/api/documents/{d['id']}/post", headers=h)
+    r = client.get("/api/gl/hsn-summary", headers=h).json()
+    row = next(x for x in r["rows"] if x["hsn"] == "998888")
+    assert D(row["value"]) >= D("1000.00") and D(row["cgst"]) >= D("90.00") and D(row["tax"]) == D(row["cgst"]) + D(row["sgst"]) + D(row["igst"])
+    # cash flow: a cash receipt is an inflow, the contra between cash and bank is not a flow
+    inv = invoice(h, party, "3000", tax="0", kind="Non-Taxable")
+    client.post("/api/payments", json={"direction": "RECEIPT", "party_name": party, "method": "Cash", "amount": "3000", "kind": "full", "allocations": [{"document_id": inv["id"], "amount": "3000"}]}, headers=h)
+    cf = client.get("/api/gl/cash-flow", headers=h).json()
+    assert any(x["type"] == "Receipt Voucher" and D(x["amount"]) >= D("3000.00") for x in cf["inflows"])
+    assert D(cf["closing"]) == D(cf["opening"]) + D(cf["total_in"]) - D(cf["total_out"]) and not any(x["type"] == "Contra Voucher" for x in cf["inflows"] + cf["outflows"])
+    # payroll
+    emp = client.post("/api/masters/employee", json={"code": "E" + uid.upper(), "name": "Emp " + uid, "data": {}}, headers=h)
+    assert emp.status_code == 201, emp.text
+    cash = ledger_of(h, "Cash in Hand")
+    sal = client.post("/api/gl/payroll", json={"kind": "SALARY", "employee_id": emp.json()["id"], "amount": "25000", "pay_ledger_id": cash["id"]}, headers=h)
+    assert sal.status_code == 201, sal.text
+    assert lrep(h, "Salary - Emp " + uid)["closing"] == "25000.00"
+    client.post("/api/gl/payroll", json={"kind": "ADVANCE", "employee_id": emp.json()["id"], "amount": "5000", "pay_ledger_id": cash["id"]}, headers=h)
+    assert lrep(h, "Staff Advance - Emp " + uid)["closing"] == "5000.00"
+    client.post("/api/gl/payroll", json={"kind": "RECOVERY", "employee_id": emp.json()["id"], "amount": "2000", "pay_ledger_id": cash["id"]}, headers=h)
+    assert lrep(h, "Staff Advance - Emp " + uid)["closing"] == "3000.00"
+    exp = ledger_of(h, "Other Direct Expenses")
+    assert client.post("/api/gl/payroll", json={"kind": "SALARY", "employee_id": emp.json()["id"], "amount": "10", "pay_ledger_id": exp["id"]}, headers=h).status_code == 422

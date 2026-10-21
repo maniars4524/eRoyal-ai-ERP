@@ -81,6 +81,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("marking the entry cleared moves the bank balance", /Balanceasperbank21,500\.00/.test(txt.replace(/ /g, "")), txt.slice(0, 250));
   const st = q("#rc_stmt"); st.value = "21500"; st.dispatchEvent(new w.Event("input", { bubbles: true }));
   check("a matching statement balance says Reconciled", /Reconciled/.test(q("#rc_diff").textContent));
+  // ---- TDS, RCM, HSN, cash flow tabs and the payroll dialog
+  for (const [tab, re, label] of [["tds", /TDS receivable[^]*TDS payable/, "TDS tab shows receivable and payable"], ["rcm", /Reverse-charge/, "RCM tab explains and lists reverse-charge entries"], ["hsn", /Taxable value[^]*Ocean Freight|Taxable value/, "HSN / SAC summary lists the supplies"], ["cash", /Money in[^]*Money out[^]*Cash inflows/, "Cash Flow shows inflows and outflows"]]) {
+    w.go("gl-reports", { glTab: tab }); await sleep(2200);
+    check(label, re.test(q("#gl_body").textContent), q("#gl_body").textContent.slice(0, 160));
+  }
+  check("cash flow counts the receipt and not the contra", /Receipt Voucher/.test(q("#gl_body").textContent) && !/Contra Voucher/.test(q("#gl_body").textContent));
+  await j("POST", "/api/masters/employee", { code: "UIE1", name: "Ui Employee", data: {} }, token);
+  item("Journal Voucher").click(); await sleep(1500);
+  q("#jv_payroll").click(); await sleep(1800);
+  q("#pr_amt").value = "12000"; q("#pr_go").click(); await sleep(2000);
+  check("salary posts as a journal voucher against the employee", /JV\/\d\d-\d\d\/\d{5}/.test(q("#jv_body").textContent) && /Salary - Ui Employee/.test(q("#jv_body").textContent), q("#jv_body").textContent.slice(0, 200));
   // ---- the receipt dialog offers the bank account
   const bankLedger = (await j("GET", "/api/coa/ledgers?source_type=bank", null, token)).body;
   check("the bank master created its ledger under Bank Accounts", bankLedger.length === 1 && /BANK ACCOUNTS/.test(bankLedger[0].path) && bankLedger[0].opening_balance === "20000.00");

@@ -1447,7 +1447,7 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Tax</div>
       <div class="mn-sub-item" data-go="hsn-master"><svg class="ic" data-icon="license"></svg>Tax Master (SAC / HSN)</div>
-      <div class="mn-sub-item" data-soon="TDS return and challan screens are not built yet. TDS deducted by customers is already recorded on every receipt"><svg class="ic" data-icon="percent"></svg>TDS</div>
+      <div class="mn-sub-item" data-go="gl-reports" data-gltab="tds"><svg class="ic" data-icon="percent"></svg>TDS Report</div>
       <div class="mn-sub-item" data-soon="Financial year closing is not built yet"><svg class="ic" data-icon="calendar-check"></svg>Financial Year Closing</div>
     </div>
   </div>
@@ -1509,7 +1509,7 @@ tbody tr:hover{background:var(--g0)}
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="tb"><svg class="ic" data-icon="chart-bar"></svg>Trial Balance</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="pl"><svg class="ic" data-icon="trending-up"></svg>Profit &amp; Loss</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="bs"><svg class="ic" data-icon="chart-pie"></svg>Balance Sheet</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="cash"></svg>Cash Flow</div>
+          <div class="mn-sub-item" data-go="gl-reports" data-gltab="cash"><svg class="ic" data-icon="cash"></svg>Cash Flow</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="recon"><svg class="ic" data-icon="book"></svg>Bank Reconciliation</div>
           <div class="mn-sub-sep"></div>
           <div class="mn-sub-section">Vouchers</div>
@@ -1524,9 +1524,9 @@ tbody tr:hover{background:var(--g0)}
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="gst"><svg class="ic" data-icon="receipt" style="color:var(--gr)"></svg>GSTR-2 (Inward Supply)</div>
           <div class="mn-sub-item" data-go="reports" data-preload-report="gstr2b"><svg class="ic" data-icon="receipt" style="color:var(--gr)"></svg>GSTR-2B (ITC Reconciliation)</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="gst"><svg class="ic" data-icon="receipt" style="color:var(--gr)"></svg>GSTR-3B (Summary Return)</div>
-          <div class="mn-sub-item" data-go="reports" data-preload-report="hsn-summary"><svg class="ic" data-icon="license" style="color:var(--gr)"></svg>HSN/SAC Summary Report</div>
+          <div class="mn-sub-item" data-go="gl-reports" data-gltab="hsn"><svg class="ic" data-icon="license" style="color:var(--gr)"></svg>HSN/SAC Summary Report</div>
           <div class="mn-sub-item" data-go="reports" data-preload-report="re-imprestment"><svg class="ic" data-icon="refresh-cw" style="color:var(--gr)"></svg>Re-Imprestment Report</div>
-          <div class="mn-sub-item" data-go="reports" data-preload-report="tds-report"><svg class="ic" data-icon="percent" style="color:var(--gr)"></svg>TDS Report</div>
+          <div class="mn-sub-item" data-go="gl-reports" data-gltab="tds"><svg class="ic" data-icon="percent" style="color:var(--gr)"></svg>TDS Report</div>
           <div class="mn-sub-item" data-go="reports" data-preload-report="tcs-report"><svg class="ic" data-icon="percent" style="color:var(--gr)"></svg>TCS Report</div>
           <div class="mn-sub-item" data-go="reports" data-preload-report="itc-mismatch"><svg class="ic" data-icon="alert" style="color:var(--gr)"></svg>ITC Mismatch Report</div>
           <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="bank" style="color:var(--gr)"></svg>Bank Statement (Tax)</div>
@@ -3879,7 +3879,7 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== JOURNAL VOUCHER ====== -->
 <div id="s-journal-voucher" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Journal Voucher</div><div class="ps">Adjustments between any two or more ledgers. Debits must equal credits. Posted to the general ledger at once</div></div><div class="pa"><button class="btn btn-pri btn-sm" id="jv_new"><svg class="ic" data-icon="plus"></svg> New Journal Voucher</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Journal Voucher</div><div class="ps">Adjustments between any two or more ledgers. Debits must equal credits. Posted to the general ledger at once</div></div><div class="pa"><button class="btn btn-out btn-sm" id="jv_payroll">Salary / Staff Advance</button><button class="btn btn-pri btn-sm" id="jv_new"><svg class="ic" data-icon="plus"></svg> New Journal Voucher</button></div></div>
 <div class="card"><div class="cb"><input class="fc" id="jv_q" placeholder="Search voucher no or narration" style="width:260px;margin-bottom:8px"></div><div class="tw"><table><thead><tr><th>Voucher No</th><th>Date</th><th>Narration</th><th style="text-align:right">Amount</th><th>Status</th></tr></thead><tbody id="jv_body"></tbody></table></div></div></div>
 
 <!-- ====== CONTRA VOUCHER ====== -->
@@ -3890,7 +3890,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- ====== LEDGER REPORTS ====== -->
 <div id="s-gl-reports" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="book" style="color:var(--bl)"></svg>Ledger Reports</div><div class="ps">General ledger, trial balance, group summary, profit and loss, balance sheet and day book, from the vouchers posted by invoices, notes, receipts, payments, journals and contras</div></div><div class="pa"><button class="btn btn-out btn-sm" id="gl_rebuild" title="Post every invoice and receipt into the ledger again">Refresh ledger</button><button class="btn btn-out btn-sm" id="gl_csv">Export CSV</button><button class="btn btn-out btn-sm" id="gl_print">🖨 Print</button></div></div>
-<div class="card"><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-sm btn-out" data-gl-tab="ledger">General Ledger</button><button class="btn btn-sm btn-pri" data-gl-tab="tb">Trial Balance</button><button class="btn btn-sm btn-out" data-gl-tab="group">Group Summary</button><button class="btn btn-sm btn-out" data-gl-tab="pl">Profit &amp; Loss</button><button class="btn btn-sm btn-out" data-gl-tab="bs">Balance Sheet</button><button class="btn btn-sm btn-out" data-gl-tab="day">Day Book</button><button class="btn btn-sm btn-out" data-gl-tab="gst">GST</button><button class="btn btn-sm btn-out" data-gl-tab="recon">Bank Reconciliation</button></div>
+<div class="card"><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-sm btn-out" data-gl-tab="ledger">General Ledger</button><button class="btn btn-sm btn-pri" data-gl-tab="tb">Trial Balance</button><button class="btn btn-sm btn-out" data-gl-tab="group">Group Summary</button><button class="btn btn-sm btn-out" data-gl-tab="pl">Profit &amp; Loss</button><button class="btn btn-sm btn-out" data-gl-tab="bs">Balance Sheet</button><button class="btn btn-sm btn-out" data-gl-tab="day">Day Book</button><button class="btn btn-sm btn-out" data-gl-tab="gst">GST</button><button class="btn btn-sm btn-out" data-gl-tab="recon">Bank Reconciliation</button><button class="btn btn-sm btn-out" data-gl-tab="tds">TDS</button><button class="btn btn-sm btn-out" data-gl-tab="rcm">RCM</button><button class="btn btn-sm btn-out" data-gl-tab="hsn">HSN / SAC</button><button class="btn btn-sm btn-out" data-gl-tab="cash">Cash Flow</button></div>
 <div class="fr"><div class="fg" id="gl_ledgerWrap" style="display:none;grid-column:span 2"><label class="fl">Ledger</label><select class="fc" id="gl_ledger"></select></div><div class="fg" id="gl_groupWrap" style="display:none;grid-column:span 2"><label class="fl">Group</label><select class="fc" id="gl_group"></select></div><div class="fg" id="gl_typeWrap" style="display:none"><label class="fl">Voucher type</label><select class="fc" id="gl_type"><option value="">All</option><option value="SALES">Sales Invoice</option><option value="DEBIT_NOTE">Debit Note</option><option value="CREDIT_NOTE">Credit Note</option><option value="PURCHASE">Purchase Invoice</option><option value="PURCHASE_CREDIT_NOTE">Purchase Credit Note</option><option value="RECEIPT">Receipt Voucher</option><option value="PAYMENT">Payment Voucher</option><option value="JOURNAL">Journal Voucher</option><option value="CONTRA">Contra Voucher</option></select></div><div class="fg" id="gl_fromWrap"><label class="fl">From</label><input class="fc" type="date" id="gl_from"></div><div class="fg"><label class="fl" id="gl_toLbl">To</label><input class="fc" type="date" id="gl_to"></div></div></div><div id="gl_body"></div></div>
 </div>
 
@@ -6149,7 +6149,7 @@ const TOPNAV_MENU = [
     ]},
     {label:"Tax", icon:"license", children:[
       {label:"Tax Master (SAC / HSN)", icon:"license", go:"hsn-master"},
-      {label:"TDS", icon:"percent", soon:"TDS return and challan screens are not built yet. TDS deducted by customers is already recorded on every receipt"},
+      {label:"TDS Report", icon:"percent", go:"gl-reports", gltab:"tds"},
       {label:"Financial Year Closing", icon:"calendar-check", soon:"Financial year closing is not built yet"},
     ]},
   ]},
@@ -6226,12 +6226,12 @@ const TOPNAV_MENU = [
       {label:"Profit & Loss", icon:"trending-up", go:"gl-reports", gltab:"pl"},
       {label:"Balance Sheet", icon:"chart-pie", go:"gl-reports", gltab:"bs"},
       {label:"Group Summary", icon:"chart-pie", go:"gl-reports", gltab:"group"},
-      {label:"Cash Flow", icon:"cash", go:"reports"},
+      {label:"Cash Flow", icon:"cash", go:"gl-reports", gltab:"cash"},
       {label:"Bank Reconciliation", icon:"book", go:"gl-reports", gltab:"recon"},
       {label:"Bank Statement", icon:"bank", go:"gl-reports", gltab:"ledger"},
       {label:"Accounts Statement", icon:"receipt", go:"gl-reports", gltab:"ledger"},
       {label:"Accounts Statement (AR/AP)", icon:"receipt", go:"pr-ledger"},
-      {label:"Combined OS (Currency)", icon:"cash", go:"pr-ledger"},
+      {label:"Combined OS (Currency)", icon:"cash", go:"acc-reports"},
       {label:"Day Book", icon:"book", go:"gl-reports", gltab:"day"},
       {label:"General Ledger", icon:"book", go:"gl-reports", gltab:"ledger"},
       {label:"Journal Register", icon:"file-text", go:"journal-voucher"},
@@ -6273,12 +6273,12 @@ const TOPNAV_MENU = [
       {label:"GSTR-2 (Inward Supply)", icon:"receipt", go:"gl-reports", gltab:"gst"},
       {label:"GSTR-2B (ITC Reconciliation)", icon:"receipt", go:"gst-report"},
       {label:"GSTR-3B (Summary Return)", icon:"receipt", go:"gl-reports", gltab:"gst"},
-      {label:"HSN/SAC Summary Report", icon:"license", go:"gst-report"},
+      {label:"HSN/SAC Summary Report", icon:"license", go:"gl-reports", gltab:"hsn"},
       {label:"GST Summary", icon:"receipt", go:"gl-reports", gltab:"gst"},
       {label:"Tax Register", icon:"receipt", go:"gl-reports", gltab:"gst"},
       {label:"Input Tax Credit", icon:"receipt", go:"gl-reports", gltab:"gst"},
       {label:"Output Tax", icon:"receipt", go:"gl-reports", gltab:"gst"},
-      {label:"RCM Report", icon:"refresh-cw", go:"gst-report"},
+      {label:"RCM Report", icon:"refresh-cw", go:"gl-reports", gltab:"rcm"},
       {label:"Nil Rated Report", icon:"receipt", go:"gst-report"},
       {label:"Exempt Supply", icon:"receipt", go:"gst-report"},
       {label:"Export Without GST", icon:"globe", go:"gst-report"},
@@ -6287,7 +6287,7 @@ const TOPNAV_MENU = [
       {label:"Customer GST Summary", icon:"user", go:"gl-reports", gltab:"gst"},
       {label:"Vendor GST Summary", icon:"building", go:"gl-reports", gltab:"gst"},
       {label:"Re-Imprestment Report", icon:"refresh-cw", go:"gst-report"},
-      {label:"TDS Report", icon:"percent", go:"gst-report"},
+      {label:"TDS Report", icon:"percent", go:"gl-reports", gltab:"tds"},
       {label:"TCS Report", icon:"percent", go:"gst-report"},
       {label:"ITC Mismatch Report", icon:"alert", go:"gst-report"},
       {label:"Bank Statement (Tax)", icon:"bank", go:"gst-report"},
@@ -18316,7 +18316,7 @@ function makePrintFit(){
   const td = (t, r, b)=> '<td style="'+(r ? "text-align:right;" : "")+(b ? "font-weight:700" : "")+'">'+t+'</td>';
   const drcr = v=> num(v) === 0 ? "0.00" : fmt(Math.abs(num(v)))+(num(v) > 0 ? " Dr" : " Cr");
   const empty = (cols, t)=> '<tr><td colspan="'+cols+'" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">'+t+'</td></tr>';
-  const TABS = {ledger:"General Ledger", tb:"Trial Balance", group:"Group Summary", pl:"Profit & Loss", bs:"Balance Sheet", day:"Day Book", gst:"GST", recon:"Bank Reconciliation"};
+  const TABS = {ledger:"General Ledger", tb:"Trial Balance", group:"Group Summary", pl:"Profit & Loss", bs:"Balance Sheet", day:"Day Book", gst:"GST", recon:"Bank Reconciliation", tds:"TDS", rcm:"RCM", hsn:"HSN / SAC", cash:"Cash Flow"};
   const TYPES = {SALES:"Sales Invoice", DEBIT_NOTE:"Debit Note", CREDIT_NOTE:"Credit Note", PURCHASE:"Purchase Invoice", PURCHASE_CREDIT_NOTE:"Purchase Credit Note", RECEIPT:"Receipt Voucher", PAYMENT:"Payment Voucher", JOURNAL:"Journal Voucher", CONTRA:"Contra Voucher"};
 
   G.loadLedgers = async function(force){
@@ -18379,6 +18379,20 @@ function makePrintFit(){
         const reg = (title, rows, t)=> '<div class="tw" style="margin-top:8px"><div style="font-weight:800;padding:4px 8px">'+title+'</div><table><thead><tr>'+th("Date")+th("Document")+th("Party")+th("GSTIN")+th("Taxable", 1)+th("Non-taxable", 1)+th("CGST", 1)+th("SGST", 1)+th("IGST", 1)+th("Total", 1)+'</tr></thead><tbody>'+(rows.map(x=>'<tr>'+td(dmy(x.date))+td(esc2(x.number || ""))+td(esc2(x.party))+td(esc2(x.gstin || ""))+td(fmt(x.taxable), 1)+td(fmt(x.non_taxable), 1)+td(fmt(x.cgst), 1)+td(fmt(x.sgst), 1)+td(fmt(x.igst), 1)+td(fmt(x.total), 1)+'</tr>').join("") || empty(10, "No documents in this period"))+
           '<tr style="font-weight:800;background:var(--g0)"><td colspan="4">Total</td>'+td(fmt(t.taxable), 1)+td(fmt(t.non_taxable), 1)+td(fmt(t.cgst), 1)+td(fmt(t.sgst), 1)+td(fmt(t.igst), 1)+td("", 1)+'</tr></tbody></table></div>';
         box.innerHTML = '<div class="kpi-row" style="margin:10px 0"><div class="kpi"><div class="kpi-lbl">Output GST (sales)</div><div class="kpi-val">'+fmt(r.output_tax)+'</div></div><div class="kpi"><div class="kpi-lbl">Input GST (purchases)</div><div class="kpi-val">'+fmt(r.input_tax)+'</div></div><div class="kpi"><div class="kpi-lbl">'+(num(r.net_payable) >= 0 ? "Net GST payable" : "Net input credit")+'</div><div class="kpi-val" style="color:'+(num(r.net_payable) >= 0 ? "var(--rd)" : "var(--gr)")+'">'+fmt(Math.abs(num(r.net_payable)))+'</div></div></div><div class="ib '+(r.agrees_with_ledger ? "ib-gr" : "ib-am")+'" style="margin-bottom:6px">'+(r.agrees_with_ledger ? "Agrees with the Output / Input GST ledgers." : "Differs from the GST ledgers (output "+fmt(r.ledger_output)+", input "+fmt(r.ledger_input)+"). Use Refresh ledger.")+'</div><div id="gl_table">'+reg("Sales register (invoices, debit notes less credit notes)", r.sales, r.sales_total)+reg("Purchase register (purchase invoices less credit notes)", r.purchases, r.purchases_total)+'</div>';
+      } else if(G.tab === "tds"){
+        const r = await api("GET", "/api/gl/tds?"+range());
+        const tbl = (title, note, rows, tot)=> '<div class="tw" style="margin-top:8px"><div style="font-weight:800;padding:4px 8px">'+title+' <span class="coa-note">'+note+'</span></div><table><thead><tr>'+th("Date")+th("Voucher")+th("Party")+th("Document")+th("Document total", 1)+th("Money received / paid", 1)+th("TDS", 1)+th("TDS % of value", 1)+'</tr></thead><tbody>'+(rows.map(x=>'<tr>'+td(dmy(x.date))+td(esc2(x.voucher))+td(esc2(x.party))+td(esc2(x.document || ""))+td(fmt(x.document_total), 1)+td(fmt(x.received), 1)+td(fmt(x.tds), 1)+td(x.tds_percent+"%", 1)+'</tr>').join("") || empty(8, "None in this period"))+'<tr style="font-weight:800;background:var(--g0)"><td colspan="6">Total</td>'+td(fmt(tot), 1)+td("", 1)+'</tr></tbody></table></div>';
+        box.innerHTML = '<div class="ib '+(r.agrees_with_ledger ? "ib-gr" : "ib-am")+'" style="margin:10px 0 0">'+(r.agrees_with_ledger ? "Agrees with the TDS Receivable and TDS Payable ledgers." : "Differs from the TDS ledgers. Use Refresh ledger.")+'</div><div id="gl_table">'+tbl("TDS receivable", "deducted by customers on our receipts, claimed against our tax", r.receivable, r.total_receivable)+tbl("TDS payable", "deducted by us on vendor payments, to be paid to the department", r.payable, r.total_payable)+'</div>';
+      } else if(G.tab === "hsn"){
+        const r = await api("GET", "/api/gl/hsn-summary?"+range());
+        box.innerHTML = '<div class="tw"><table id="gl_table"><thead><tr>'+th("HSN / SAC")+th("Description")+th("UOM")+th("Documents", 1)+th("Quantity", 1)+th("Taxable value", 1)+th("CGST", 1)+th("SGST", 1)+th("IGST", 1)+th("Total GST", 1)+'</tr></thead><tbody>'+(r.rows.map(x=>'<tr>'+td('<span class="mono">'+esc2(x.hsn)+'</span>')+td(esc2(x.description))+td(esc2(x.uom))+td(x.documents, 1)+td(x.qty, 1)+td(fmt(x.value), 1)+td(fmt(x.cgst), 1)+td(fmt(x.sgst), 1)+td(fmt(x.igst), 1)+td(fmt(x.tax), 1, 1)+'</tr>').join("") || empty(10, "No outward supplies in this period"))+'<tr style="font-weight:800;background:var(--g0)"><td colspan="5">Total</td>'+td(fmt(r.total_value), 1)+td("", 1)+td("", 1)+td("", 1)+td(fmt(r.total_tax), 1)+'</tr></tbody></table></div>';
+      } else if(G.tab === "cash"){
+        const r = await api("GET", "/api/gl/cash-flow?"+range());
+        const rows = a=> a.map(x=>'<tr>'+td(esc2(x.type))+td(fmt(x.amount), 1)+'</tr>').join("");
+        box.innerHTML = '<div class="kpi-row" style="margin:10px 0"><div class="kpi"><div class="kpi-lbl">Opening cash and bank</div><div class="kpi-val">'+fmt(r.opening)+'</div></div><div class="kpi"><div class="kpi-lbl">Money in</div><div class="kpi-val" style="color:var(--gr)">'+fmt(r.total_in)+'</div></div><div class="kpi"><div class="kpi-lbl">Money out</div><div class="kpi-val" style="color:var(--rd)">'+fmt(r.total_out)+'</div></div><div class="kpi"><div class="kpi-lbl">Closing cash and bank</div><div class="kpi-val">'+fmt(r.closing)+'</div></div></div><div id="gl_table" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="tw"><table><thead><tr><th>Cash inflows</th>'+th("Amount", 1)+'</tr></thead><tbody>'+(rows(r.inflows) || empty(2, "None"))+'<tr style="font-weight:800;background:var(--g0)"><td>Total in</td>'+td(fmt(r.total_in), 1)+'</tr></tbody></table></div><div class="tw"><table><thead><tr><th>Cash outflows</th>'+th("Amount", 1)+'</tr></thead><tbody>'+(rows(r.outflows) || empty(2, "None"))+'<tr style="font-weight:800;background:var(--g0)"><td>Total out</td>'+td(fmt(r.total_out), 1)+'</tr></tbody></table></div></div><div class="coa-note" style="margin:6px 8px">Transfers between cash and bank (contra vouchers) are not counted.</div>';
+      } else if(G.tab === "rcm"){
+        const r = await api("GET", "/api/gl/rcm?"+range());
+        box.innerHTML = '<div class="ib ib-bl" style="margin:10px 0">Reverse-charge entries: the GST on these is paid by us as the recipient. Tax is worked out at the rate on each line.</div><div class="tw"><table id="gl_table"><thead><tr>'+th("Date")+th("Document")+th("Supplier")+th("GSTIN")+th("Charge")+th("HSN / SAC")+th("Value", 1)+th("Rate", 1)+th("GST", 1)+'</tr></thead><tbody>'+(r.rows.map(x=>'<tr>'+td(dmy(x.date))+td(esc2(x.number || ""))+td(esc2(x.party))+td(esc2(x.gstin || ""))+td(esc2(x.charge))+td(esc2(x.hsn || ""))+td(fmt(x.value), 1)+td(x.rate+"%", 1)+td(fmt(x.tax), 1)+'</tr>').join("") || empty(9, "No reverse-charge entries in this period"))+'<tr style="font-weight:800;background:var(--g0)"><td colspan="6">Total</td>'+td(fmt(r.total_value), 1)+td("", 1)+td(fmt(r.total_tax), 1)+'</tr></tbody></table></div>';
       } else if(G.tab === "recon"){
         const id = el("gl_ledger").value; if(!id){ box.innerHTML = '<div class="ib ib-bl" style="margin:10px">Pick the bank account to reconcile with its statement</div>'; return; }
         const r = await api("GET", "/api/gl/bank-recon?ledger_id="+id+"&"+range()); G.recon = r;
@@ -18437,6 +18451,16 @@ function makePrintFit(){
     });
   };
 
+  G.payroll = async function(){
+    let emps = [], leds = []; try{ [emps, leds] = await Promise.all([api("GET", "/api/masters/employee?status=ACTIVE"), G.loadLedgers(true)]); }catch(e){ say("Could not load", e.message, "error"); return; }
+    if(!emps.length){ say("Add an employee first", "Salary and advances are posted against the Employee master", "warn"); return; }
+    const pay = leds.filter(l=>/BANK ACCOUNTS|CASH-IN-HAND/.test(l.path) && l.status === "ACTIVE");
+    openModal({title:"Salary / Staff Advance", bodyHTML:'<div class="fr"><div class="fg"><label class="fl">Entry</label><select class="fc" id="pr_kind"><option value="SALARY">Salary paid</option><option value="ADVANCE">Advance given to staff</option><option value="RECOVERY">Advance repaid by staff</option></select></div><div class="fg" style="grid-column:span 2"><label class="fl">Employee <span class="r">*</span></label><select class="fc" id="pr_emp">'+emps.map(x=>'<option value="'+x.id+'">'+esc2(x.code+" — "+x.name)+'</option>').join("")+'</select></div></div><div class="fr"><div class="fg"><label class="fl">Amount <span class="r">*</span></label><input class="fc" type="number" min="0" step="0.01" id="pr_amt"></div><div class="fg"><label class="fl" id="pr_payLbl">Paid from</label><select class="fc" id="pr_pay">'+pay.map(x=>'<option value="'+x.id+'">'+esc2(x.name)+'</option>').join("")+'</select></div><div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="pr_date" value="'+today()+'"></div></div><div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Narration</label><input class="fc" id="pr_nar" maxlength="400"></div></div><div class="coa-note">Salary is charged to the employee\'s salary ledger; advances sit in the employee\'s own advance ledger under Loans &amp; Advances until repaid.</div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="pr_go">Post</button>'});
+    el("pr_kind").addEventListener("change", ()=>{ el("pr_payLbl").textContent = el("pr_kind").value === "RECOVERY" ? "Received in" : "Paid from"; });
+    el("pr_go").addEventListener("click", async ()=>{ const amt = Number(el("pr_amt").value); if(!(amt > 0)){ say("Enter the amount", "", "warn"); return; }
+      try{ const v = await api("POST", "/api/gl/payroll", {kind:el("pr_kind").value, employee_id:Number(el("pr_emp").value), amount:amt.toFixed(2), pay_ledger_id:Number(el("pr_pay").value), vdate:el("pr_date").value || null, narration:el("pr_nar").value.trim() || null}); closeModal(); say("Posted", v.number+" — "+v.narration); G.ledgers = null; G.loadVouchers("JOURNAL"); }catch(e){ say("Could not post", e.message, "error"); } });
+  };
   document.addEventListener("click", async e=>{
     const v = e.target.closest("[data-gl-voucher]"); if(v){ e.preventDefault(); e.stopPropagation(); G.viewVoucher(v.dataset.glVoucher); return; }
     const l = e.target.closest("[data-gl-ledger]"); if(l){ e.preventDefault(); e.stopPropagation(); closeModal(); G.tab = "ledger"; el("gl_ledger").value = l.dataset.glLedger; if(!el("s-gl-reports").classList.contains("on")) go("gl-reports", {glTab:"ledger"}); else G.paint(); setTimeout(()=>{ el("gl_ledger").value = l.dataset.glLedger; G.paint(); }, 600); return; }
@@ -18448,6 +18472,7 @@ function makePrintFit(){
     if(e.target.closest("#gl_rebuild")){ try{ const r = await api("POST", "/api/gl/rebuild"); say("Ledger refreshed", r.documents+" invoices / notes and "+r.payments+" receipts / payments posted"); G.load(); }catch(err){ say("Could not refresh", err.message, "error"); } }
     const rc = e.target.closest("#rc_clear, #rc_unclear"); if(rc){ const ids = Array.from(document.querySelectorAll("[data-rc-entry]:checked")).map(x=>Number(x.dataset.rcEntry)); if(!ids.length){ say("Select the entries first", "", "warn"); return; }
       try{ await api("POST", "/api/gl/bank-recon/clear", {ledger_id:Number(el("gl_ledger").value), entry_ids:ids, cleared_date:rc.id === "rc_clear" ? (el("rc_date").value || today()) : null}); say(rc.id === "rc_clear" ? "Marked as cleared" : "Marked as not cleared", ids.length+" entries"); G.load(); }catch(err){ say("Could not update", err.message, "error"); } return; }
+    if(e.target.closest("#jv_payroll")) G.payroll();
     if(e.target.closest("#jv_new")) G.newVoucher("JOURNAL"); if(e.target.closest("#cv_new")) G.newVoucher("CONTRA");
   }, true);
   document.addEventListener("change", e=>{ if(["gl_from", "gl_to", "gl_ledger", "gl_group", "gl_type"].indexOf(e.target.id) > -1) G.load(); });

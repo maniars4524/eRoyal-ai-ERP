@@ -220,10 +220,20 @@ def charge_ledger(db: Session, org_id: int, charge_name: str, side: str, fallbac
 
 def sync_employee(db: Session, rec: MasterRecord, user_id=None) -> AccLedger:
     ensure_tree(db, rec.organization_id)
-    led = db.scalar(select(AccLedger).where(AccLedger.organization_id == rec.organization_id, AccLedger.source_type == "employee", AccLedger.source_id == rec.id))
+    led = db.scalar(select(AccLedger).where(AccLedger.organization_id == rec.organization_id, AccLedger.source_type == "employee", AccLedger.source_id == rec.id, AccLedger.source_role == "salary"))
     if led is None:
         g = _find_group(db, rec.organization_id, ("EXPENSES", "INDIRECT EXPENSES", "STAFF SALARY"))
         led = _make_ledger(db, rec.organization_id, g, "Salary - " + rec.name, source_type="employee", source_id=rec.id, source_role="salary", user_id=user_id)
+    return led
+
+
+def staff_advance_ledger(db: Session, rec: MasterRecord, user_id=None) -> AccLedger:
+    """The employee's advance account (an asset: money the staff member owes the company), under Loans & Advances."""
+    ensure_tree(db, rec.organization_id)
+    led = db.scalar(select(AccLedger).where(AccLedger.organization_id == rec.organization_id, AccLedger.source_type == "employee", AccLedger.source_id == rec.id, AccLedger.source_role == "advance"))
+    if led is None:
+        g = _find_group(db, rec.organization_id, ("ASSETS", "CURRENT ASSETS", "LOANS & ADVANCES"))
+        led = _make_ledger(db, rec.organization_id, g, "Staff Advance - " + rec.name, source_type="employee", source_id=rec.id, source_role="advance", user_id=user_id)
     return led
 
 
