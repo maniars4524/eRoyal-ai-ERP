@@ -153,3 +153,17 @@ def test_express_release_with_digital_signature_and_company_profile(h):
     assert r.status_code == 200 and r.json()["bl"]["digitalSign"] is True and r.json()["bl"]["releaseType"] == "Express Release"
     rd = client.get(f"/api/jobs/{j}/report-data", headers=h).json()
     assert rd["company"]["profile"]["reg_mto"] == "OTI LICENCE NO. 019654N" and rd["company"]["code"] and "party_text" in rd and "booking" in rd
+
+
+def test_air_job_gets_a_house_awb_number_company_hawb_running_pol_pod(h):
+    j = job(h, mode="Air", pol="MAA(CHENNAI INTERNATIONAL AIRPORT)", pod="FRA(FRANKFURT)")
+    assert client.post(f"/api/jobs/{j}/hbl", json={"hbl_type": "MTO"}, headers=h).status_code == 422       # a sea type on an air job
+    r = client.post(f"/api/jobs/{j}/hbl", json={"hbl_type": "HAWB"}, headers=h)
+    assert r.status_code == 200, r.text
+    no = r.json()["bl"]["hblNo"]
+    assert no.endswith("HAWB001MAAFRA") and r.json()["bl"]["hblType"] == "HAWB"
+    assert client.post(f"/api/jobs/{j}/hbl", json={"hbl_type": "HAWB"}, headers=h).json()["existing"] is True
+    sea = job(h)
+    assert client.post(f"/api/jobs/{sea}/hbl", json={"hbl_type": "HAWB"}, headers=h).status_code == 422     # an air type on a sea job
+    saved = client.put(f"/api/jobs/{j}/details/bl", json={"data": {"bookingType": "House", "mblNo": "020-12345678", "awb": {"rate": "185.5", "payment": "Prepaid"}}}, headers=h).json()
+    assert saved["bl"]["hblNo"] == no and saved["bl"]["awb"]["rate"] == "185.5" and saved["bl"]["mblNo"] == "020-12345678"

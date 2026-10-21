@@ -258,6 +258,45 @@ def complete_charge_hsn(user: User = Depends(permission_required("master.update"
     return {"updated": done, "hsn_created": made, "active_charges": total}
 
 
+COUNTRY_FILE = __import__("pathlib").Path(__file__).resolve().parents[1] / "data" / "countries.csv"
+
+
+def flag_emoji(alpha2: str) -> str:
+    return "".join(chr(0x1F1E6 + ord(c) - 65) for c in alpha2.upper()) if len(alpha2) == 2 and alpha2.isalpha() else ""
+
+
+@router.post("/country/import", status_code=201)
+def import_country_master(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+    """Load the full ISO 3166-1 country list (249 countries: alpha-2, alpha-3, numeric, name, flag) into the Country Master. Idempotent: existing countries keep what the company entered."""
+    import csv
+
+    org_id = _tenant(user)
+    if not COUNTRY_FILE.exists():
+        raise HTTPException(status_code=500, detail="The country file is missing on the server")
+    existing = {r.code: r for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "country"))}
+    created = enriched = 0
+    with open(COUNTRY_FILE, encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            code = row["alpha2"].strip().upper()
+            info = {"iso_alpha3": row["alpha3"], "iso_numeric_code": row["numeric"], "country_flag_emoji": flag_emoji(code)}
+            rec = existing.get(code)
+            if rec is None:
+                db.add(MasterRecord(organization_id=org_id, master_type="country", code=code, name=row["name"][:200], status="ACTIVE", created_by=user.id, data={**info, "source": "iso3166"}))
+                created += 1
+            else:
+                data = dict(rec.data or {})
+                for k, v in info.items():
+                    if not data.get(k):
+                        data[k] = v
+                if data != (rec.data or {}):
+                    rec.data = data
+                    enriched += 1
+    record_audit(db, "COUNTRY_MASTER_IMPORTED", "MASTER", user, org_id, "country", "iso3166", {"created": created, "enriched": enriched})
+    db.commit()
+    total = db.scalar(select(func.count()).select_from(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "country"))
+    return {"created": created, "enriched": enriched, "total": total}
+
+
 @router.post("/charge/catalogue/import", status_code=201)
 def import_charge_catalogue(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     """Create the standard freight charge catalogue (inactive, tax review required). Existing codes are left untouched."""

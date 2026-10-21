@@ -397,6 +397,7 @@ class Payment(Base):
     status: Mapped[str] = mapped_column(String(20), default="POSTED")
     idempotency_key: Mapped[str | None] = mapped_column(String(80))
     remarks: Mapped[str | None] = mapped_column(Text)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)   # transaction details: cheque no / date / bank, UTR, deposit or paying account, settlement FULL / PART
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     allocations: Mapped[list["PaymentAllocation"]] = relationship(back_populates="payment", cascade="all, delete-orphan")
@@ -410,6 +411,7 @@ class PaymentAllocation(Base):
     payment_id: Mapped[int] = mapped_column(ForeignKey("payments.id", ondelete="CASCADE"), index=True)
     document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), index=True)
     amount = mapped_column(Numeric(16, 2))
+    tds_amount = mapped_column(Numeric(16, 2), default=0, server_default="0")   # tax deducted at source by the customer: settles the invoice but is not cash received
     payment: Mapped[Payment] = relationship(back_populates="allocations")
 
 

@@ -279,3 +279,84 @@ def test_invoice_kinds_from_the_charge_entries_and_separate_pure_agent_and_rcm(h
     assert mixed.status_code == 422 and "own invoice" in mixed.json()["detail"]
     only_non = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Kind Customer", "lines": [{"charge_name": "A", "hsn": "9967", "qty": "1", "rate": "10", "tax_type": "Non-Taxable"}]}, headers=h).json()
     assert only_non["invoice_kind"] == "NON_TAXABLE"
+
+
+def test_a_document_lists_its_receipts_with_transaction_details_and_partial_payments_make_several(h):
+    cust = client.post("/api/customers", json={"code": "RCT" + uuid.uuid4().hex[:4].upper(), "name": "Receipt Customer", "roles": ["shipper"], "data": {}}, headers=h).json()
+    line = {"charge_name": "Freight", "description": "", "hsn": "996521", "uom": "Per Shipment", "qty": "1", "ccy": "INR", "exch": "1", "rate": "1000", "tax_type": "Non-Taxable", "tax_pct": "0"}
+    d = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Receipt Customer", "customer_id": cust["id"], "lines": [line]}, headers=h).json()
+    client.post(f"/api/documents/{d['id']}/confirm", headers=h)   # the proforma rule may be on for this company
+    assert client.post(f"/api/documents/{d['id']}/post", headers=h).status_code == 200
+    for amt, ref in (("400", "UTR-1"), ("600", "UTR-2")):
+        r = client.post("/api/payments", json={"direction": "RECEIPT", "party_name": "Receipt Customer", "method": "Bank Transfer", "reference": ref, "amount": amt, "allocations": [{"document_id": d["id"], "amount": amt}]}, headers=h)
+        assert r.status_code == 201, r.text
+    info = client.get(f"/api/documents/{d['id']}/payments", headers=h).json()
+    assert [p["reference"] for p in info["payments"]] == ["UTR-1", "UTR-2"] and [p["applied_to_this"] for p in info["payments"]] == ["400.00", "600.00"]
+    assert float(info["outstanding"]) == 0 and info["payments"][0]["against"][0]["doc_number"] == info["doc_number"]
+
+
+def test_receipt_modes_need_their_transaction_details_full_vs_part_and_the_voucher(h):
+    cust = client.post("/api/customers", json={"code": "TXN" + uuid.uuid4().hex[:4].upper(), "name": "Txn Customer", "roles": ["shipper"], "data": {}}, headers=h).json()
+    line = lambda rate: {"charge_name": "Freight", "description": "", "hsn": "996521", "uom": "Per Shipment", "qty": "1", "ccy": "INR", "exch": "1", "rate": rate, "tax_type": "Non-Taxable", "tax_pct": "0"}
+    docs = []
+    for rate in ("1000", "500"):
+        d = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Txn Customer", "customer_id": cust["id"], "lines": [line(rate)]}, headers=h).json()
+        client.post(f"/api/documents/{d['id']}/confirm", headers=h)
+        assert client.post(f"/api/documents/{d['id']}/post", headers=h).status_code == 200
+        docs.append(d["id"])
+    pay = lambda **b: client.post("/api/payments", json={"direction": "RECEIPT", "party_name": "Txn Customer", **b}, headers=h)
+    assert pay(method="Cheque", amount="100", allocations=[{"document_id": docs[0], "amount": "100"}]).status_code == 422                  # cheque number and date are needed
+    assert pay(method="NEFT", amount="100", allocations=[{"document_id": docs[0], "amount": "100"}]).status_code == 422                    # UTR is needed
+    assert pay(method="NEFT", reference="UTR9", amount="100", kind="full", allocations=[{"document_id": docs[0], "amount": "100"}]).status_code == 422   # not the whole balance
+    part = pay(method="Cheque", amount="400", details={"cheque_no": "123456", "cheque_date": "2026-10-01", "bank_name": "HDFC", "account": "HDFC Current"}, allocations=[{"document_id": docs[0], "amount": "400"}])
+    assert part.status_code == 201 and part.json()["details"]["settlement"] == "PART" and part.json()["details"]["cheque_no"] == "123456"
+    both = pay(method="NEFT", reference="UTR-ALL", amount="1100", kind="full", allocations=[{"document_id": docs[0], "amount": "600"}, {"document_id": docs[1], "amount": "500"}])    # one payment, several invoices
+    assert both.status_code == 201 and both.json()["details"]["settlement"] == "FULL"
+    v = client.get(f"/api/payments/{part.json()['id']}/voucher", headers=h).json()
+    assert v["lines"][0]["total"] == "1000.00" and v["lines"][0]["applied"] == "400.00" and v["lines"][0]["balance_after"] == "600.00"
+    v2 = client.get(f"/api/payments/{both.json()['id']}/voucher", headers=h).json()
+    assert len(v2["lines"]) == 2 and v2["lines"][0]["balance_after"] == "0.00"
+    led = client.get("/api/accounts/party-ledger", params={"party": "Txn Customer"}, headers=h).json()
+    assert float(led["closing"]) == 0 and len(led["entries"]) == 4 and float(led["total_debit"]) == 1500 and float(led["total_credit"]) == 1500
+    cb = client.get("/api/accounts/cash-book", headers=h).json()
+    assert any(e["reference"] == "UTR-ALL" and e["book"] == "bank" for e in cb["entries"]) and any(e["reference"] == "123456" for e in cb["entries"])
+    ar = client.get("/api/accounts/outstanding", params={"side": "AR"}, headers=h).json()
+    assert all(p["party"] != "Txn Customer" for p in ar["parties"])                                                                         # fully paid: not outstanding
+
+
+def test_job_profit_and_loss_has_provisional_actual_tax_revenue_and_expense(h):
+    cust = client.post("/api/customers", json={"code": "PNL" + uuid.uuid4().hex[:4].upper(), "name": "Pnl Customer", "roles": ["shipper"], "data": {}}, headers=h).json()
+    jn = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "container_mode": "FCL", "pol": "INMAA", "pod": "SGSIN", "customer_id": cust["id"]}, headers=h).json()["job_number"]
+    sell = {"ccy": "INR", "rate": "10000", "tax_type": "Taxable", "tax_pct": "18", "party": "Pnl Customer"}
+    buy = {"ccy": "INR", "rate": "7000", "tax_type": "Taxable", "tax_pct": "18", "party": "MSC Lines"}
+    client.put(f"/api/shipments/by-number/{jn}/charges", json={"lines": [{"charge_name": "Ocean Freight", "qty": "1", "hsn": "996521", "sell": sell, "buy": buy}]}, headers=h)
+    r = client.get(f"/api/accounts/job/{jn}/profit-loss", headers=h).json()
+    assert r["totals"]["p_sale"] == "10000.00" and r["totals"]["p_cost"] == "7000.00" and r["totals"]["p_gp"] == "3000.00" and r["provisional_pct"] == "30.00"
+    assert r["tax"] == {"sale": "1800.00", "cost": "1260.00", "net": "540.00"} and r["revenue"][0]["bill_to"] == "Pnl Customer" and r["expense"][0]["vendor"] == "MSC Lines" and r["totals"]["a_sale"] == "0.00"
+
+
+def test_tds_deducted_by_the_customer_settles_the_invoice_but_is_not_cash(h):
+    cust = client.post("/api/customers", json={"code": "TDS" + uuid.uuid4().hex[:4].upper(), "name": "Tds Customer", "roles": ["shipper"], "data": {}}, headers=h).json()
+    line = {"charge_name": "Freight", "description": "", "hsn": "996521", "uom": "Per Shipment", "qty": "1", "ccy": "INR", "exch": "1", "rate": "10000", "tax_type": "Non-Taxable", "tax_pct": "0"}
+    docs = []
+    for _ in range(2):
+        d = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Tds Customer", "customer_id": cust["id"], "lines": [line]}, headers=h).json()
+        client.post(f"/api/documents/{d['id']}/confirm", headers=h)
+        assert client.post(f"/api/documents/{d['id']}/post", headers=h).status_code == 200
+        docs.append(d["id"])
+    pay = lambda **b: client.post("/api/payments", json={"direction": "RECEIPT", "party_name": "Tds Customer", **b}, headers=h)
+    too_much = pay(method="NEFT", reference="U1", amount="9900", allocations=[{"document_id": docs[0], "amount": "9900", "tds": "200"}])
+    assert too_much.status_code == 422                                                                   # amount + TDS beyond the invoice
+    both = pay(method="NEFT", reference="UTR-TDS", amount="19800", kind="full", allocations=[{"document_id": docs[0], "amount": "9900", "tds": "100"}, {"document_id": docs[1], "amount": "9900", "tds": "100"}])
+    assert both.status_code == 201, both.text
+    b = both.json()
+    assert b["amount"] == "19800.00" and b["tds"] == "200.00" and b["settled"] == "20000.00" and b["details"]["settlement"] == "FULL" and b["details"]["tds_total"] == "200.00"
+    assert client.get(f"/api/documents/{docs[0]}", headers=h).json()["payment_status"] == "PAID"
+    v = client.get(f"/api/payments/{b['id']}/voucher", headers=h).json()
+    assert [l["tds"] for l in v["lines"]] == ["100.00", "100.00"] and [l["balance_after"] for l in v["lines"]] == ["0.00", "0.00"]
+    led = client.get("/api/accounts/party-ledger", params={"party": "Tds Customer"}, headers=h).json()
+    assert float(led["closing"]) == 0 and "TDS" in led["entries"][-1]["narration"]                       # the ledger credits cash + TDS
+    cb = client.get("/api/accounts/cash-book", headers=h).json()
+    assert [e["receipt"] for e in cb["entries"] if e["reference"] == "UTR-TDS"] == ["19800.00"]            # the bank only received the cash
+    assert client.post(f"/api/payments/{b['id']}/cancel", headers=h).status_code == 200
+    assert float(client.get(f"/api/documents/{docs[0]}", headers=h).json()["outstanding"]) == 10000       # cancelling gives back cash and TDS

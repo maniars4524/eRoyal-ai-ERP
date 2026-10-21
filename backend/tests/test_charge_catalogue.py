@@ -63,3 +63,13 @@ def test_activation_of_a_catalogue_charge_still_needs_its_sac_and_rate(h):
     assert r.status_code == 201, r.text
     blocked = client.patch(f"/api/masters/charge/{r.json()['id']}", json={"status": "ACTIVE"}, headers=h)
     assert blocked.status_code == 422 and "SAC" in blocked.json()["detail"]
+
+
+def test_country_master_import_loads_all_iso_countries_and_is_idempotent(h):
+    before = len(client.get("/api/masters/country", headers=h).json())
+    r = client.post("/api/masters/country/import", headers=h)
+    assert r.status_code == 201 and r.json()["total"] >= 249 and r.json()["created"] >= 249 - before
+    again = client.post("/api/masters/country/import", headers=h).json()
+    assert again["created"] == 0
+    rows = {c["code"]: c for c in client.get("/api/masters/country", headers=h).json()}
+    assert rows["IN"]["name"] == "India" and rows["IN"]["data"]["iso_alpha3"] == "IND" and rows["IN"]["data"]["country_flag_emoji"] and rows["US"]["data"]["iso_numeric_code"] == "840" and "SG" in rows and "AE" in rows

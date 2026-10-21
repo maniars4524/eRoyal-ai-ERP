@@ -30,7 +30,9 @@ const DUMMY = /PAS Freight|PAS FREIGHT|RLPL|Tata Chem|GEA West|Infosys|Ashok Ley
   for (const [screen, zone, name] of [["bl-draft", "blDraftPrintZone", "Bill of Lading / AWB"], ["freight-cert", "fcPrintZone", "Freight Certificate"], ["cargo-arrival", "canPrintZone", "Cargo Arrival Notice"], ["job-pl-report", "plPrintZone", "Job Profitability"], ["tax-invoice-print", "taxInvPrintZone", "Tax Invoice"]]) {
     w.go(screen); await sleep(700);
     const t = text("#" + zone);
-    check(`${name}: no sample document, only this job's own data`, !DUMMY.test(t.replace(/Nothing on this page is sample data/, "")) && t.includes(job.job_number) && /Real Exports Pvt Ltd/.test(t) && /INMAA/.test(t) && /not been added yet/.test(t), t.slice(0, 220));
+    const produced = screen === "bl-draft";   // the BL / MTD is now produced from the job's data (no placeholder notice)
+    const opens = screen === "tax-invoice-print";   // invoices open from the job's Output Docs
+    check(`${name}: no sample document, only this job's own data`, !DUMMY.test(t.replace(/Nothing on this page is sample data/, "")) && (opens ? /Open the invoice from its job/.test(t) : produced ? t.includes(job.job_number) && /INMAA/.test(t) : t.includes(job.job_number) && /Real Exports Pvt Ltd/.test(t) && /INMAA/.test(t) && /not been added yet/.test(t)), t.slice(0, 220));
     check(`${name}: no fake action buttons (Release BL, Send Draft ...)`, !/Release BL|Send Draft|Approve/.test(text("#s-" + (screen === "cargo-arrival" ? "cargo-arrival" : screen))));
   }
   w.go("bl-draft"); await sleep(300);

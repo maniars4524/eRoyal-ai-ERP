@@ -442,6 +442,29 @@ def create_einvoice(doc_id: int, user: User = Depends(permission_required("billi
     return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
 
 
+@router.get("/{doc_id}/payments")
+def document_payments(doc_id: int, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """The receipts (or payments) settled against this document, one row per receipt with its transaction details, and the credit notes adjusted against it."""
+    from .models import Payment, PaymentAllocation
+
+    org_id = _tenant(user)
+    doc = _load(db, org_id, doc_id)
+    rows = []
+    for a in db.scalars(select(PaymentAllocation).where(PaymentAllocation.document_id == doc.id).order_by(PaymentAllocation.id)):
+        p = db.get(Payment, a.payment_id)
+        if not p or p.organization_id != org_id:
+            continue
+        others = []
+        for b in p.allocations:
+            d2 = db.get(Document, b.document_id)
+            others.append({"document_id": b.document_id, "doc_number": d2.doc_number if d2 else None, "doc_type": d2.doc_type if d2 else None, "job_number": d2.job_number if d2 else None, "amount": str(b.amount)})
+        rows.append({"payment_id": p.id, "pay_number": p.pay_number, "pay_date": p.pay_date, "direction": p.direction, "method": p.method, "reference": p.reference, "party_name": p.party_name, "status": p.status, "remarks": p.remarks,
+                     "total_amount": str(p.amount), "applied_to_this": str(a.amount), "tds_to_this": str(a.tds_amount or 0), "details": p.details or {}, "against": others})
+    credits = [{"id": c.id, "doc_number": c.doc_number, "doc_type": c.doc_type, "doc_date": c.doc_date, "amount": str(c.grand_total), "status": c.status}
+               for c in db.scalars(select(Document).where(Document.organization_id == org_id, Document.ref_document_id == doc.id, Document.status != "CANCELLED").order_by(Document.id))]
+    return {"document_id": doc.id, "doc_number": doc.doc_number, "total": str(doc.grand_total), "paid": str(doc.paid_amount), "credited": str(doc.credited_amount), "outstanding": str(outstanding(doc)), "payments": rows, "credit_notes": credits}
+
+
 @router.post("/{doc_id}/cancel")
 def cancel_document(doc_id: int, user: User = Depends(permission_required("billing.cancel")), db: Session = Depends(get_db)):
     org_id = _tenant(user)

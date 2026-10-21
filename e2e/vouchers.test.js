@@ -97,6 +97,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // 6. e-Invoice
   const ei = await j("POST", `/api/documents/${posted.id}/e-invoice`, null, token);
   check("e-Invoice needs the customer's GSTIN", ei.status === 422 && /GSTIN/.test(JSON.stringify(ei.body)), JSON.stringify(ei.body).slice(0, 120));
+  // 7. part payments: one voucher each, with transaction details, and the Preview of the document
+  const piTotal = Number(pi.body.grand_total);
+  const part1 = (piTotal * 0.4).toFixed(2), part2 = (piTotal - Number(part1)).toFixed(2);
+  for (const [amt, ref] of [[part1, "UTR-A1"], [part2, "UTR-A2"]]) await j("POST", "/api/payments", { direction: "PAYMENT", party_name: "MSC Lines", method: "Bank Transfer", reference: ref, amount: amt, allocations: [{ document_id: pi.body.id, amount: amt }] }, token);
+  w.BK.openDoc(pi.body.id); await sleep(3500);
+  check("the purchase invoice screen has a Preview button", !!q('#s-purchase-invoice-new [data-bk="preview"]'));
+  check("two part payments show as two vouchers with their references", d.querySelectorAll("#bkReceiptsBody tbody tr").length === 2 && /UTR-A1/.test(q("#bkReceiptsBody").textContent) && /UTR-A2/.test(q("#bkReceiptsBody").textContent), q("#bkReceiptsBody") && q("#bkReceiptsBody").textContent.slice(0, 200));
+  q("[data-bk-txn]").click(); await sleep(300);
+  check("Transaction details shows the voucher, mode, reference and the vouchers it is against", /Transaction details/.test(d.getElementById("modalTitle").textContent) && /UTR-A1/.test(d.getElementById("modalBody").textContent) && /Against vouchers/.test(d.getElementById("modalBody").textContent) && /Bank Transfer/.test(d.getElementById("modalBody").textContent));
+  d.getElementById("modalOvl").classList.remove("on");
+  q('#s-purchase-invoice-new [data-bk="preview"]').click(); await sleep(3500);
+  check("Preview opens the A4 Purchase Invoice", /PURCHASE INVOICE/.test(d.getElementById("docViewZone").innerHTML), d.getElementById("docViewZone").innerHTML.slice(0, 300) + " | on=" + d.querySelector(".scr.on").id + " | kind=" + JSON.stringify(w.__docKind));
+  q('#s-doc-view [data-go]').click(); await sleep(2500);
+  check("Back returns to the purchase invoice screen", !!q('#s-purchase-invoice-new [data-bk="preview"]') && d.getElementById("s-purchase-invoice-new").classList.contains("on"));
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });

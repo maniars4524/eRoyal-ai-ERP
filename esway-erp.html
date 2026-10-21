@@ -1420,6 +1420,7 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <div class="mn-submenu" id="subAccounts">
       <div class="mn-sub-section">Ledger</div>
+      <div class="mn-sub-item" data-go="acc-reports"><svg class="ic" data-icon="book"></svg>Party Ledger, Cash Book &amp; Outstanding</div>
       <div class="mn-sub-item" data-go="coa"><svg class="ic" data-icon="book"></svg>Chart of Accounts</div>
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Vouchers</div>
@@ -2858,6 +2859,21 @@ tbody tr:hover{background:var(--g0)}
 <div class="fg" id="jobBlScacWrap" style="display:none"><label class="fl">SCAC Code <span class="r">*</span></label><select class="fc" id="jobBlScac"><option value="">--Select--</option><option>RTSU</option><option>ARKU</option><option>IGLU</option></select></div>
 </div>
 <div class="ib ib-bl" id="jobBlBookingTypeNote" style="margin-bottom:10px"></div>
+<div id="jobAwbBlock" style="display:none">
+<div class="fsec" style="margin-top:0">House Air Waybill (HAWB) — issued by us</div>
+<div class="fr"><div class="fg"><label class="fl">House AWB No</label><input class="fc" id="jobAwb_hawbNo" readonly placeholder="Not generated yet" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">House AWB Date</label><input class="fc" id="jobAwb_hawbDate" type="date"></div><div class="fg" style="display:flex;align-items:flex-end"><button class="btn btn-pri btn-sm" id="jobAwb_genBtn" type="button"><svg class="ic" data-icon="refresh-cw"></svg> Generate HAWB</button></div></div>
+<div class="fsec">Master AWB — from the airline (manual entry)</div>
+<div class="fr"><div class="fg"><label class="fl">Master AWB No</label><input class="fc" id="jobAwb_mawb" placeholder="e.g. 020-12345678" style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Master AWB Date</label><input class="fc" id="jobAwb_mawbDate" type="date"></div><div class="fg"><label class="fl">Airline / First carrier</label><input class="fc" id="jobAwb_airline" ></div></div>
+<div class="fr"><div class="fg"><label class="fl">Routing: to (airport code)</label><input class="fc" id="jobAwb_to" ></div><div class="fg"><label class="fl">Flight No.</label><input class="fc" id="jobAwb_flight" ></div><div class="fg"><label class="fl">Flight date</label><input class="fc" id="jobAwb_flightDate" type="date"></div></div>
+<div class="fsec">Charges and declarations</div>
+<div class="fr"><div class="fg"><label class="fl">Declared value for carriage</label><input class="fc" id="jobAwb_declCarriage" value="NVD"></div><div class="fg"><label class="fl">Declared value for customs</label><input class="fc" id="jobAwb_declCustoms" value="NCV"></div><div class="fg"><label class="fl">Amount of insurance</label><input class="fc" id="jobAwb_insurance" value="NIL"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Rate class</label><input class="fc" id="jobAwb_rateClass" value="N" style="width:70px"></div><div class="fg"><label class="fl">Rate per kg</label><input class="fc" id="jobAwb_rate" type="number" step="0.01" placeholder="0.00"></div><div class="fg"><label class="fl">Chargeable weight (blank = highest of actual and volumetric)</label><input class="fc" id="jobAwb_chg" type="number" step="0.001"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Charges</label><select class="fc" id="jobAwb_payment"><option>Prepaid</option><option>Collect</option></select></div><div class="fg"><label class="fl">Other charges due agent</label><input class="fc" id="jobAwb_other" type="number" step="0.01" placeholder="0.00"></div><div class="fg"><label class="fl">Currency</label><input class="fc" id="jobAwb_currency" value="INR" style="width:80px"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Place of issue</label><input class="fc" id="jobAwb_place" ></div><div class="fg"><label class="fl">Executed on</label><input class="fc" id="jobAwb_execDate" type="date"></div></div>
+<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Handling information</label><textarea class="fc" id="jobAwb_handling" rows="2"></textarea></div></div>
+<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Accounting information</label><textarea class="fc" id="jobAwb_accounting" rows="2"></textarea></div></div>
+</div>
+
 
 <!-- DIRECT: one BL, given by the carrier, manual entry -->
 <div id="jobBlDirectWrap" style="display:none">
@@ -2872,7 +2888,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="fr"><div class="fg"><label class="fl">House BL No</label><input class="fc" id="jobBl_hblNo" readonly placeholder="Not generated yet" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">POL / POD Code</label><input class="fc" id="jobBl_polpod" readonly placeholder="From the job" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">House BL Date</label><input class="fc" type="date" id="jobBl_hblDate"></div><div class="fg" style="display:flex;align-items:flex-end"><button class="btn btn-pri btn-sm" id="jobBl_genHblBtn"><svg class="ic" data-icon="refresh-cw"></svg> Generate HBL</button></div></div>
 </div>
 
-<div class="fr"><div class="fg"><label class="fl">Originals</label><input class="fc" id="jobBl_originals" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc" id="jobBl_terms"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" id="jobBl_place" value=""></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date" id="jobBl_released"></div></div>
+<div class="fr" id="jobBlGenericRow"><div class="fg"><label class="fl">Originals</label><input class="fc" id="jobBl_originals" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc" id="jobBl_terms"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" id="jobBl_place" value=""></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date" id="jobBl_released"></div></div>
 <div class="fsec">BL stage and release</div>
 <div class="fr"><div class="fg"><label class="fl">BL Stage</label><input class="fc" id="jobBl_stage" readonly value="Draft" style="font-weight:700;background:var(--g0)"></div><div class="fg"><label class="fl">Release Type</label><select class="fc" id="jobBl_relType"><option>Original</option><option>Express Release</option><option>Telex Release</option><option>Surrender</option></select></div><div class="fg" style="display:flex;align-items:flex-end"><label style="display:flex;gap:6px;align-items:center;font-size:12px"><input type="checkbox" id="jobBl_digSign"> Apply digital signature &amp; seal</label></div></div>
 <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" id="jobBl_confirmBtn">Confirm BL</button><button class="btn btn-pri btn-sm" type="button" id="jobBl_releaseBtn">Release BL</button><button class="btn btn-out btn-sm" type="button" id="jobBl_draftBtn">Back to Draft</button><button class="btn btn-out btn-sm" type="button" data-doc-profile>Company letterhead &amp; registration</button></div>
@@ -3822,6 +3838,13 @@ tbody tr:hover{background:var(--g0)}
 <div class="kpi"><div class="kpi-lbl">Pending Allocations</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 <div class="card"><div class="tw"><table><thead><tr><th>Payment No</th><th>Date</th><th>Type</th><th>Party</th><th>Mode</th><th>UTR / Ref</th><th>Amount</th><th>Allocated To</th><th>Status</th></tr></thead><tbody></tbody></table></div></div></div>
+
+<!-- ====== ACCOUNTS REPORTS ====== -->
+<div id="s-acc-reports" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="book" style="color:var(--bl)"></svg>Accounts Reports</div><div class="ps">Party ledger · cash and bank book · outstanding with ageing. Built from the same vouchers as the job screens</div></div><div class="pa"><button class="btn btn-out btn-sm" id="ar_print">🖨 Print</button></div></div>
+<div class="card"><div class="cb"><div style="display:flex;gap:6px;margin-bottom:10px"><button class="btn btn-sm btn-pri" data-ar-tab="ledger">Party Ledger</button><button class="btn btn-sm btn-out" data-ar-tab="cash">Cash / Bank Book</button><button class="btn btn-sm btn-out" data-ar-tab="outstanding">Outstanding (AR / AP)</button></div>
+<div class="fr"><div class="fg" id="ar_partyWrap"><label class="fl">Party</label><select class="fc" id="ar_party"></select></div><div class="fg" id="ar_sideWrap" style="display:none"><label class="fl">Side</label><select class="fc" id="ar_side"><option value="AR">Receivables (customers)</option><option value="AP">Payables (vendors)</option></select></div><div class="fg"><label class="fl">From</label><input class="fc" type="date" id="ar_from"></div><div class="fg"><label class="fl">To</label><input class="fc" type="date" id="ar_to"></div></div></div><div id="ar_body"></div></div>
+</div>
 
 <!-- ====== JOURNAL VOUCHER — LIST ====== -->
 <div id="s-journal-voucher" class="scr">
@@ -6005,6 +6028,7 @@ const SCREEN_META = {
   "tax-invoice-print":{title:"Tax Invoice", crumb:"eSway ERP 2.0 / Invoices / <strong>Tax Invoice</strong>", menu:"invoice-list"},
   "quotation-print":{title:"Quotation Print", crumb:"eSway ERP 2.0 / CRM / Quotation / <strong>Preview</strong>", menu:"quotation"},
   "bl-draft":{title:"BL Draft", crumb:"eSway ERP 2.0 / Jobs / <strong>BL Draft</strong>", menu:"job-list"},
+  "acc-reports":{title:"Accounts Reports", crumb:"eSway ERP 2.0 / Accounts / <strong>Accounts Reports</strong>", menu:"invoice-list"},
   "doc-view":{title:"Document", crumb:"eSway ERP 2.0 / Jobs / <strong>Document</strong>", menu:"job-list"},
   "freight-cert":{title:"Freight Certificate", crumb:"eSway ERP 2.0 / Jobs / <strong>Freight Certificate</strong>", menu:"job-list"},
   "cargo-arrival":{title:"Cargo Arrival Notice", crumb:"eSway ERP 2.0 / Jobs / <strong>Cargo Arrival Notice</strong>", menu:"job-list"},
@@ -14071,7 +14095,8 @@ if(document.readyState !== "loading") initChatWidget();
     const s = d.status === "POSTED" ? d.payment_status : d.status;
     const cls = {PAID:"b-gr", PARTIAL:"b-am", UNPAID:"b-rd", POSTED:"b-bl", CONFIRMED:"b-am", DRAFT:"b-gy", CANCELLED:"b-gy"}[s] || "b-gy";
     const text = d.doc_type === "invoice" && s === "DRAFT" ? "Proforma" : d.doc_type === "invoice" && s === "CONFIRMED" ? "Proforma confirmed" : s.charAt(0)+s.slice(1).toLowerCase();
-    return '<span class="b '+cls+' dot">'+esc2(text)+'</span>';
+    const touch = d.status === "POSTED" && Number(d.paid_amount) > 0 ? ' data-vch-doc="'+d.id+'" style="cursor:pointer" title="Open the receipt voucher"' : "";
+    return '<span class="b '+cls+' dot"'+touch+'>'+esc2(text)+'</span>';
   };
   const calc = l=>{
     const qty = Number(l.qty)||0, rate = Number(l.rate)||0, exch = l.ccy === "INR" ? 1 : (Number(l.exch)||0);
@@ -14130,14 +14155,15 @@ if(document.readyState !== "loading") initChatWidget();
     const money = v=> inr(v);
     const actions = [];
     actions.push('<button class="btn btn-out btn-sm" data-bk="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button>');
+    if(d) actions.push('<button class="btn btn-out btn-sm" data-bk="preview"><svg class="ic" data-icon="eye"></svg> Preview</button>');
     if(d && d.status !== "DRAFT" && d.status !== "CONFIRMED") actions.push('<button class="btn btn-out btn-sm" data-bk="print"><svg class="ic" data-icon="printer"></svg> Print</button>');
     if(editable) actions.push('<button class="btn btn-out btn-sm" data-bk="save"><svg class="ic" data-icon="check"></svg> Save Draft</button>');
     if(editable && proformaFlow) actions.push('<button class="btn btn-suc btn-sm" data-bk="confirm"><svg class="ic" data-icon="check"></svg> Confirm Proforma</button>');
     if(editable && !(proformaFlow && d && d.proforma_required)) actions.push('<button class="btn btn-'+(proformaFlow ? "pri" : "suc")+' btn-sm" data-bk="post"><svg class="ic" data-icon="check"></svg> '+(proformaFlow ? "Generate Tax Invoice" : "Post Document")+'</button>');
     if(d && d.status === "CONFIRMED") { actions.push('<button class="btn btn-pri btn-sm" data-bk="post"><svg class="ic" data-icon="check"></svg> Generate Tax Invoice</button>'); actions.push('<button class="btn btn-out btn-sm" data-bk="reopenpf">Reopen Proforma</button>'); }
     if(d && d.status === "POSTED" && S.type === "invoice" && d.party_gstin && !(d.header || {}).einvoice) actions.push('<button class="btn btn-out btn-sm" data-bk="einvoice">Create e-Invoice</button>');
-    if(d && d.status === "POSTED" && T.ar && ["invoice"].includes(S.type) && Number(d.outstanding) > 0) actions.push('<button class="btn btn-pri btn-sm" data-bk="receipt">Record Receipt</button>');
-    if(d && d.status === "POSTED" && S.type === "purchase_invoice" && Number(d.outstanding) > 0) actions.push('<button class="btn btn-pri btn-sm" data-bk="pay">Record Payment</button>');
+    if(d && d.status === "POSTED" && T.ar && ["invoice"].includes(S.type) && Number(d.outstanding) > 0) actions.push('<button class="btn btn-pri btn-sm" data-bk="receipt">Mark as Paid</button>');
+    if(d && d.status === "POSTED" && S.type === "purchase_invoice" && Number(d.outstanding) > 0) actions.push('<button class="btn btn-pri btn-sm" data-bk="pay">Mark as Paid</button>');
     if(d && d.status === "POSTED" && (S.type === "invoice" || S.type === "purchase_invoice")) actions.push('<button class="btn btn-out btn-sm" data-bk="note">Issue Credit Note</button>');
     if(d && d.status !== "CANCELLED") actions.push('<button class="btn btn-out btn-sm" style="color:var(--rd)" data-bk="cancel">Cancel Document</button>');
     const refSelect = T.ref ? '<div class="fg"><label class="fl">Against '+esc2(TYPES[T.ref].label)+(T.refRequired?' <span class="r">*</span>':'')+'</label><select class="fc" data-bkh="ref_document_id"'+dis+'><option value="">— None —</option>'+S.refs.map(r=>opt(r.id, r.doc_number+" · "+r.party_name+" · "+inr(r.outstanding)+" due", String(r.id)===String(h.ref_document_id))).join("")+'</select></div>' : '';
@@ -14157,9 +14183,28 @@ if(document.readyState !== "loading") initChatWidget();
       (d && d.status==="POSTED" ? '<div class="divider"></div><div class="sr"><span class="lbl">Paid</span><span style="color:var(--gr)">'+money(d.paid_amount)+'</span></div><div class="sr"><span class="lbl">Credited</span><span>'+money(d.credited_amount)+'</span></div><div class="sr"><span class="lbl" style="font-weight:600">Outstanding</span><span style="font-weight:700;color:var(--rd)">'+money(d.outstanding)+'</span></div>' : '')+
       '<div class="ib ib-bl" style="margin-top:10px">Totals shown after saving are calculated by the server; they cannot be changed from the browser.</div></div></div></div>'+
       '<div class="card"><div class="ch"><div class="ct">Line Items</div>'+(editable?'<button class="btn btn-out btn-sm" data-bk="addline"><svg class="ic" data-icon="plus"></svg> Add Line</button>':'')+'</div><div class="tw"><table><thead><tr><th>#</th><th>Charge</th><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>UOM</th><th>CCY</th><th>Exch</th><th>Rate</th><th>Tax</th><th>GST%</th><th>Amount (₹)</th><th>Tax (₹)</th><th>Total (₹)</th><th></th></tr></thead><tbody>'+lineRows+'</tbody></table></div></div>'+
+      (d && d.status === "POSTED" ? '<div class="card" id="bkReceipts"><div class="ch"><div class="ct">'+(S.type === "purchase_invoice" ? "Payments made" : "Receipts")+' against this '+esc2(T.label.toLowerCase())+'</div></div><div class="cb" id="bkReceiptsBody" style="color:var(--g5)">Loading…</div></div>' : '')+
       '<datalist id="bkCharges_'+S.screen+'">'+S.charges.map(c=>'<option value="'+esc2(c.name)+'">').join("")+'</datalist><datalist id="bkParties_'+S.screen+'">'+partyList.map(n=>'<option value="'+esc2(n)+'">').join("")+'</datalist>';
     if(window.renderIcons) renderIcons(host);
+    if(d && d.status === "POSTED") loadReceipts(d, T);
   }
+  async function loadReceipts(d, T){
+    const body = document.getElementById("bkReceiptsBody"); if(!body) return;
+    let r; try{ r = await api("GET", "/api/documents/"+d.id+"/payments"); }catch(e){ body.textContent = e.message; return; }
+    const inr2 = v=> inr(Number(v) || 0); const dm = x=> x ? String(x).slice(8,10)+"-"+String(x).slice(5,7)+"-"+String(x).slice(0,4) : "";
+    const rows = r.payments.map(p=>'<tr><td class="mono" style="font-weight:700">'+esc2(p.pay_number)+'</td><td>'+dm(p.pay_date)+'</td><td>'+esc2(p.method)+'</td><td>'+esc2(p.reference || "—")+'</td><td style="text-align:right">'+inr2(p.total_amount)+'</td><td style="text-align:right;font-weight:700">'+inr2(p.applied_to_this)+(Number(p.tds_to_this) > 0 ? '<div style="font-size:10px;font-weight:400;color:var(--g5)">+ TDS '+inr2(p.tds_to_this)+'</div>' : "")+'</td><td><span class="b '+(p.status === "POSTED" ? "b-gr" : "b-gy")+' dot">'+esc2(p.status.charAt(0)+p.status.slice(1).toLowerCase())+'</span></td><td style="white-space:nowrap"><button class="btn btn-pri btn-sm" type="button" data-bk-voucher="'+p.payment_id+'">Voucher</button> <button class="btn btn-out btn-sm" type="button" data-bk-txn="'+p.payment_id+'">Transaction details</button></td></tr>').join("");
+    const cn = r.credit_notes.map(c=>'<tr><td class="mono" style="font-weight:700">'+esc2(c.doc_number || "Draft")+'</td><td>'+dm(c.doc_date)+'</td><td>'+esc2(c.doc_type.replace(/_/g, " "))+'</td><td>—</td><td style="text-align:right">'+inr2(c.amount)+'</td><td style="text-align:right;font-weight:700">'+inr2(c.amount)+'</td><td>'+esc2(c.status.charAt(0)+c.status.slice(1).toLowerCase())+'</td><td><button class="btn btn-out btn-sm" type="button" data-bk-opendoc="'+c.id+'">Open</button></td></tr>').join("");
+    BK.receipts = r;
+    body.innerHTML = '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px;font-size:12px"><span>Invoice total <b>'+inr2(r.total)+'</b></span><span>Received <b style="color:var(--gr)">'+inr2(r.paid)+'</b></span><span>Credited <b>'+inr2(r.credited)+'</b></span><span>Outstanding <b style="color:var(--rd)">'+inr2(r.outstanding)+'</b></span></div>'+
+      ((rows || cn) ? '<div class="tw"><table><thead><tr><th>'+(S_label(T))+' No</th><th>Date</th><th>Mode</th><th>Reference / UTR</th><th style="text-align:right">Voucher amount</th><th style="text-align:right">Applied here</th><th>Status</th><th></th></tr></thead><tbody>'+rows+cn+'</tbody></table></div>' : '<div style="font-style:italic;color:var(--g5)">Nothing has been received yet. Use Record '+(T.label.indexOf("Purchase") === 0 ? "Payment" : "Receipt")+'; a part payment makes one receipt and the balance another, each with its own voucher.</div>');
+  }
+  const S_label = T=> T.label.indexOf("Purchase") === 0 ? "Payment" : "Receipt";
+  document.addEventListener("click", async e=>{
+    const t = e.target.closest("[data-bk-txn]"); if(t){ const p = ((BK.receipts || {}).payments || []).find(x=>String(x.payment_id) === t.dataset.bkTxn); if(!p) return; const dm = x=> x ? String(x).slice(8,10)+"-"+String(x).slice(5,7)+"-"+String(x).slice(0,4) : "";
+      openModal({title:"Transaction details — "+esc2(p.pay_number), bodyHTML:'<div style="display:grid;grid-template-columns:150px 1fr;gap:5px 10px;font-size:12px;margin-bottom:10px"><b>Voucher no</b><span class="mono">'+esc2(p.pay_number)+'</span><b>Date</b><span>'+dm(p.pay_date)+'</span><b>Party</b><span>'+esc2(p.party_name || "")+'</span><b>Mode</b><span>'+esc2(p.method)+'</span><b>Reference / UTR</b><span>'+esc2(p.reference || "—")+'</span><b>Voucher amount</b><span>'+inr(Number(p.total_amount))+'</span>'+(Number(p.tds_to_this) > 0 ? '<b>TDS on this invoice</b><span>'+inr(Number(p.tds_to_this))+'</span>' : "")+(p.details && p.details.account ? '<b>Account</b><span>'+esc2(p.details.account)+'</span>' : "")+(p.details && p.details.bank_name ? '<b>Bank</b><span>'+esc2(p.details.bank_name)+'</span>' : "")+(p.details && p.details.cheque_date ? '<b>Cheque date</b><span>'+dm(p.details.cheque_date)+'</span>' : "")+(p.details && p.details.settlement ? '<b>Settlement</b><span>'+(p.details.settlement === "FULL" ? "Full payment" : "Part payment")+'</span>' : "")+'<b>Status</b><span>'+esc2(p.status)+'</span>'+(p.remarks ? '<b>Narration</b><span>'+esc2(p.remarks)+'</span>' : "")+'</div>'+
+        '<div class="fsec">Against vouchers</div><div class="tw"><table><thead><tr><th>Voucher no</th><th>Type</th><th>Job</th><th style="text-align:right">Against amount</th></tr></thead><tbody>'+p.against.map(a=>'<tr><td class="mono">'+esc2(a.doc_number || "")+'</td><td>'+esc2(String(a.doc_type || "").replace(/_/g, " "))+'</td><td>'+esc2(a.job_number || "")+'</td><td style="text-align:right">'+inr(Number(a.amount))+'</td></tr>').join("")+'</tbody></table></div>', footHTML:'<button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'}); return; }
+    const o = e.target.closest("[data-bk-opendoc]"); if(o) BK.openDoc(Number(o.dataset.bkOpendoc));
+  });
   function readHead(){ const S = BK.state; document.querySelectorAll("#s-"+S.screen+" [data-bkh]").forEach(el=>{ S.head[el.dataset.bkh] = el.value; }); }
   function payload(){
     const S = BK.state, h = S.head; readHead();
@@ -14186,6 +14231,7 @@ if(document.readyState !== "loading") initChatWidget();
         readHead(); if(!window.confirm("Post this "+T.label.toLowerCase()+"? A number will be assigned and it can no longer be edited.")) return;
         const d = S.doc && S.doc.status !== "DRAFT" ? S.doc : await save(); const posted = await api("POST","/api/documents/"+d.id+"/post"); S.doc = posted; renderEditor(); say(T.label+" posted", posted.doc_number); return;
       }
+      if(name === "preview"){ if(!S.doc) return; if(window.DocKit) window.DocKit.view("doc", {docId:S.doc.id, back:"bk"}); return; }
       if(name === "confirm"){
         readHead(); const d = await save(); const c = await api("POST","/api/documents/"+d.id+"/confirm"); S.doc = c; renderEditor(); say("Proforma Confirmed Successfully!", (c.header || {}).proforma_no || ""); return;
       }
@@ -14299,7 +14345,7 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       const [pays, docs] = await Promise.all([api("GET","/api/payments"), api("GET","/api/documents").catch(()=>[])]);
       const num = Object.fromEntries(docs.map(d=>[d.id, d.doc_number||("#"+d.id)]));
-      tbody.innerHTML = pays.length ? pays.map(p=>'<tr><td class="mono" style="color:var(--bl);font-weight:600">'+esc2(p.pay_number)+'</td><td>'+dmy(p.pay_date)+'</td><td><span class="b '+(p.direction==="RECEIPT"?"b-gr":"b-am")+'">'+(p.direction==="RECEIPT"?"AR Receipt":"AP Payment")+'</span></td><td>'+esc2(p.party_name||"—")+'</td><td>'+esc2(p.method)+'</td><td>'+esc2(p.reference||"—")+'</td><td style="text-align:right">'+inr(p.amount)+'</td><td>'+esc2(p.allocations.map(a=>num[a.document_id]).join(", ")||"Unallocated")+'</td><td><span class="b '+(p.status==="POSTED"?"b-gr":"b-gy")+'">'+esc2(p.status.charAt(0)+p.status.slice(1).toLowerCase())+'</span>'+(p.status==="POSTED"?' <button class="ta" data-pay-cancel="'+p.id+'" style="color:var(--rd)">Cancel</button>':'')+'</td></tr>').join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No payments recorded yet.</td></tr>';
+      tbody.innerHTML = pays.length ? pays.map(p=>'<tr><td class="mono" style="color:var(--bl);font-weight:600;cursor:pointer" data-vch-pay="'+p.id+'" title="Open the voucher">'+esc2(p.pay_number)+'</td><td>'+dmy(p.pay_date)+'</td><td><span class="b '+(p.direction==="RECEIPT"?"b-gr":"b-am")+'">'+(p.direction==="RECEIPT"?"AR Receipt":"AP Payment")+'</span></td><td>'+esc2(p.party_name||"—")+'</td><td>'+esc2(p.method)+'</td><td>'+esc2(p.reference||"—")+'</td><td style="text-align:right">'+inr(p.amount)+'</td><td>'+esc2(p.allocations.map(a=>num[a.document_id]).join(", ")||"Unallocated")+'</td><td><span class="b '+(p.status==="POSTED"?"b-gr":"b-gy")+'">'+esc2(p.status.charAt(0)+p.status.slice(1).toLowerCase())+'</span>'+(p.status==="POSTED"?' <button class="ta" data-pay-cancel="'+p.id+'" style="color:var(--rd)">Cancel</button>':'')+'</td></tr>').join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No payments recorded yet.</td></tr>';
       const m = today().slice(0,7), live = pays.filter(p=>p.status==="POSTED"), mo = live.filter(p=>(p.pay_date||"").startsWith(m));
       const sum = a=> a.reduce((x,p)=>x+Number(p.amount),0);
       const kpis = scr.querySelectorAll(".kpi"); const set = (i,v,s)=>{ const k = kpis[i]; if(!k) return; const a = k.querySelector(".kpi-val"), b = k.querySelector(".kpi-sub"); if(a) a.textContent = v; if(b) b.textContent = s||""; };
@@ -17240,7 +17286,19 @@ function makePrintFit(){
     set("jobBl_polpod", d.pol_code + " / " + d.pod_code);
     const gen = el("jobBl_genHblBtn"); if(gen){ gen.disabled = !!b.hblNo; gen.style.opacity = b.hblNo ? ".5" : ""; gen.title = b.hblNo ? "A House BL number has already been issued for this job" : ""; }
     const ht = el("jobBlHbltype"); if(ht){ ht.disabled = !!b.hblNo; }
-    JD.preview(); JD.stage(); JD.docs();
+    JD.airMode(); JD.preview(); JD.stage(); JD.docs();
+  };
+  JD.airMode = function(){
+    const d = JD.data, air = d && d.mode === "Air", b = d.bl || {}, a = b.awb || {}; const show = (id, on)=>{ const n = el(id); if(n) n.style.display = on ? "" : "none"; };
+    show("jobAwbBlock", air);
+    if(!air) return;
+    const typeRow = el("jobBlBookingType") && el("jobBlBookingType").closest(".fr"); if(typeRow) typeRow.style.display = "none";
+    ["jobBlDirectWrap", "jobBlHouseWrap", "jobBlHbltypeWrap", "jobBlScacWrap", "jobBlBookingTypeNote", "jobBlGenericRow"].forEach(id=> show(id, false));
+    const set = (id, v)=>{ const n = el(id); if(n && v != null && v !== "") n.value = v; };
+    set("jobAwb_hawbNo", b.hblNo); set("jobAwb_hawbDate", b.hblDate); set("jobAwb_mawb", b.mblNo); set("jobAwb_mawbDate", b.mblDate); set("jobAwb_airline", a.airline); set("jobAwb_to", a.routingTo); set("jobAwb_flight", a.flight); set("jobAwb_flightDate", a.flightDate);
+    set("jobAwb_declCarriage", a.declCarriage); set("jobAwb_declCustoms", a.declCustoms); set("jobAwb_insurance", a.insurance); set("jobAwb_rateClass", a.rateClass); set("jobAwb_rate", a.rate); set("jobAwb_chg", a.chargeableWt); set("jobAwb_payment", a.payment);
+    set("jobAwb_other", a.otherCharges); set("jobAwb_currency", a.currency); set("jobAwb_place", a.place); set("jobAwb_execDate", a.execDate); set("jobAwb_handling", a.handling); set("jobAwb_accounting", a.accounting);
+    const gen = el("jobAwb_genBtn"); if(gen){ gen.disabled = !!b.hblNo; gen.style.opacity = b.hblNo ? ".5" : ""; }
   };
   JD.docs = function(){
     const d = JD.data; if(!d || !window.showOutDocs) return;
@@ -17273,6 +17331,7 @@ function makePrintFit(){
     else if(e.target.closest("#jobBl_releaseBtn")) stageTo("Released", {release_type:el("jobBl_relType").value, digital_sign:!!el("jobBl_digSign").checked});
   });
   JD.preview = async function(){
+    if(JD.data && JD.data.mode === "Air"){ const n = el("jobAwb_hawbNo"); if(!n || !JD.job || (JD.data.bl && JD.data.bl.hblNo)) return; try{ const r = await api("GET", "/api/jobs/"+encodeURIComponent(JD.job)+"/hbl-preview?hbl_type=HAWB"); n.placeholder = "Next: "+r.preview; }catch(e){} return; }
     const t = (el("jobBlHbltype") || {}).value, n = el("jobBl_hblNo"); if(!n || !JD.job || (JD.data && JD.data.bl && JD.data.bl.hblNo)) return;
     n.placeholder = "Not generated yet";
     if(!t) return;
@@ -17341,18 +17400,24 @@ function makePrintFit(){
 
   /* ---------------- BL ---------------- */
   JD.collectBl = function(){
-    const g = id=> ((el(id) || {}).value || "").trim(); const b = {bookingType:g("jobBlBookingType")};
+    const g = id=> ((el(id) || {}).value || "").trim();
+    if(JD.data && JD.data.mode === "Air"){
+      return {bookingType:"House", mblNo:g("jobAwb_mawb"), mblDate:g("jobAwb_mawbDate"), hblDate:g("jobAwb_hawbDate"), originals:g("jobBl_originals"), terms:g("jobAwb_payment"), place:g("jobAwb_place"), released:g("jobBl_released"),
+        awb:{airline:g("jobAwb_airline"), routingTo:g("jobAwb_to"), flight:g("jobAwb_flight"), flightDate:g("jobAwb_flightDate"), declCarriage:g("jobAwb_declCarriage"), declCustoms:g("jobAwb_declCustoms"), insurance:g("jobAwb_insurance"), rateClass:g("jobAwb_rateClass"), rate:g("jobAwb_rate"), chargeableWt:g("jobAwb_chg"),
+          payment:g("jobAwb_payment"), otherCharges:g("jobAwb_other"), currency:g("jobAwb_currency"), place:g("jobAwb_place"), execDate:g("jobAwb_execDate"), handling:(el("jobAwb_handling") || {}).value || "", accounting:(el("jobAwb_accounting") || {}).value || ""}};
+    }
+    const b = {bookingType:g("jobBlBookingType")};
     Object.assign(b, {hblType:g("jobBlHbltype"), scac:g("jobBlScac"), directNo:g("jobBl_directNo"), directDate:g("jobBl_directDate"), directStatus:g("blStatusSel"), mblNo:g("jobBl_mblNo"), mblDate:g("jobBl_mblDate"), mblStatus:g("jobBl_mblStatus"),
       hblNo:g("jobBl_hblNo"), hblDate:g("jobBl_hblDate"), originals:g("jobBl_originals"), terms:g("jobBl_terms"), place:g("jobBl_place"), released:g("jobBl_released")});
     return b;
   };
   async function generate(){
-    const type = (el("jobBlHbltype") || {}).value, scac = (el("jobBlScac") || {}).value;
+    const air = JD.data && JD.data.mode === "Air"; const type = air ? "HAWB" : (el("jobBlHbltype") || {}).value, scac = (el("jobBlScac") || {}).value;
     if(!type){ say("House BL Type required", "Select OTL, FMC or MTO before generating the House BL", "error"); return; }
     try{
       const r = await api("POST", "/api/jobs/"+encodeURIComponent(JD.job)+"/hbl", {hbl_type:type, scac:scac || null});
       JD.data = r; JD.apply(); JD.bars(); if(window.populateJobDetail) window.populateJobDetail(JD.job);
-      say(r.existing ? "House BL already issued" : "House BL Generated Successfully!", r.bl.hblNo, r.existing ? "warn" : "");
+      say(r.existing ? (air ? "House AWB already issued" : "House BL already issued") : (air ? "House AWB Generated Successfully!" : "House BL Generated Successfully!"), r.bl.hblNo, r.existing ? "warn" : "");
     }catch(e){ say("Could not generate the House BL", e.message, "error"); }
   }
 
@@ -17384,7 +17449,7 @@ function makePrintFit(){
     const sv = e.target.closest("[data-jd-save]"); if(sv){ save(sv.dataset.jdSave); return; }
     if(e.target.closest("#addContainerBtn")){ e.stopImmediatePropagation(); const tb = el("containerTableBody"); const empty = tb.querySelector(".empty-row"); if(empty) empty.remove(); tb.appendChild(contRow()); contFoot(); return; }
     const del = e.target.closest("[data-jd-del]"); if(del){ const tr = del.closest("tr"); tr.remove(); JD.totals(); const tb = el("containerTableBody"); if(!tb.children.length) JD.renderContainers([]); contFoot(); return; }
-    if(e.target.closest("#jobBl_genHblBtn")){ e.stopImmediatePropagation(); generate(); }
+    if(e.target.closest("#jobBl_genHblBtn") || e.target.closest("#jobAwb_genBtn")){ e.stopImmediatePropagation(); generate(); }
   }, true);
   document.addEventListener("input", e=>{
     const tr = e.target.closest("tr[data-jd-cont]"); if(!tr) return;
@@ -17835,18 +17900,108 @@ function makePrintFit(){
     return wrapPages(pages.map(p=>p.html), co, P.footer_note);
   };
 
+  /* ---------- HOUSE AIR WAYBILL (HAWB) ---------- */
+  DK.awbWeights = function(d){
+    const dims = (d && d.dims) || {}; const rows = dims.rows || []; const unit = dims.unit || "cm_kg"; let act = 0, vol = 0, pk = 0;
+    rows.forEach(r=>{ const p = num(r.pkg) || 1, l = num(r.l), w = num(r.w), h = num(r.h); act += num(r.awt) * p; pk += p; vol += unit === "cm_kg" ? l * w * h / 6000 * p : unit === "in_lbs" ? l * w * h / 166 * p : l * w * h / 1000000 * 167 * p; });
+    return {act, vol, pk, rows, unit, lbs:unit === "in_lbs"};
+  };
+  DK.awb = function(rd){
+    const co = rd.company || {}, P = co.profile || {}, f = facts(rd); const bl = f.bl || {}; const a = bl.awb || {}; const stage = bl.blStage || "Draft";
+    const wt = DK.awbWeights(f.d); const gross = num(first(f.gw, wt.act)); const chargeable = num(first(a.chargeableWt, Math.max(gross, wt.vol))); const rate = num(a.rate); const wtCharge = rate * chargeable; const other = num(a.otherCharges);
+    const pc = (a.payment || "Prepaid") === "Prepaid"; const total = wtCharge + other; const money = v=> v ? fmt(v) : "";
+    const hawb = f.hbl || ""; const cell = (label, inner, st)=> '<div style="border:1px solid #333;padding:2px 5px;'+(st || "")+'"><div style="font-size:6.8px;color:#444;line-height:1.1">'+label+'</div><div style="font-size:9px;line-height:1.3;margin-top:1px">'+(inner || "&nbsp;")+'</div></div>';
+    const partyTxt = t=> { const l = lines(t); return l.length ? "<b>"+esc2(l[0])+"</b><br>"+l.slice(1).map(esc2).join("<br>") : ""; };
+    const watermark = stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:110px;font-weight:700;color:rgba(0,0,0,.06);transform:rotate(-28deg)">DRAFT</div>' : "";
+    const dimsTxt = wt.rows.filter(r=>r.l || r.w || r.h).map(r=>esc2((r.pkg || 1)+" pcs × "+r.l+"×"+r.w+"×"+r.h+(wt.lbs ? " in" : " cm"))).join("<br>");
+    const row = (cols, cells)=> '<div style="display:grid;grid-template-columns:'+cols+'">'+cells.join("")+'</div>';
+    const body = header(co, true)+'<div style="position:relative">'+watermark+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px"><div><div style="font-size:9px;color:#444">House Air Waybill No.</div><div style="font-size:16px;font-weight:800;letter-spacing:.5px">'+esc2(hawb || "—")+'</div></div><div style="text-align:center"><div style="font-size:17px;font-weight:800;color:'+NAVY+'">HOUSE AIR WAYBILL</div><div style="font-size:8px">Not negotiable</div></div><div style="text-align:right"><div style="font-size:9px;color:#444">Master AWB No.</div><div style="font-size:13px;font-weight:700">'+esc2(f.mbl || "—")+'</div></div></div>'+
+      row("55% 45%", [cell("Shipper's Name and Address", partyTxt(f.party.shipper || f.p.shipper), "min-height:70px"), cell("Issued by", '<b>'+esc2(P.legal_name || co.name || "")+'</b><br>'+nl2br(P.address), "min-height:70px")])+
+      row("55% 45%", [cell("Consignee's Name and Address", partyTxt(f.party.consignee || f.p.consignee), "min-height:70px"), cell("Issuing Carrier's Agent — Name and City", '<b>'+esc2(P.legal_name || co.name || "")+'</b>'+(P.state ? "<br>"+esc2(P.state) : ""), "min-height:70px")])+
+      row("55% 45%", [cell("Notify Party", partyTxt(f.party.notify1 || f.p.notify1), "min-height:38px"), cell("Accounting Information", esc2(a.accounting || ""), "min-height:38px")])+
+      row("55% 45%", [cell("Airport of Departure (Address of first carrier) and requested routing", esc2(f.pol)), cell("Reference Number / Optional Shipping Information", esc2(rd.job_number))])+
+      row("12% 15% 28% 45%", [cell("To", esc2(a.routingTo || "")), cell("By first carrier", esc2(a.airline || f.carrier)), cell("Routing and Flight / Date", esc2([f.vessel, a.flight].filter(Boolean).join("  ")) ), '<div style="display:grid;grid-template-columns:14% 14% 14% 14% 22% 22%">'+[cell("Currency", esc2(a.currency || "INR")), cell("CHGS code", pc ? "PP" : "CC"), cell("WT/VAL", pc ? "PPD" : "COLL"), cell("Other", pc ? "PPD" : "COLL"), cell("Declared value for carriage", esc2(a.declCarriage || "NVD")), cell("Declared value for customs", esc2(a.declCustoms || "NCV"))].join("")+'</div>'])+
+      row("55% 20% 25%", [cell("Airport of Destination", esc2(f.pod)), cell("Flight / Date", esc2(a.flightDate || dmy(f.etd))), cell("Amount of insurance", esc2(a.insurance || "NIL"))])+
+      row("100%", [cell("Handling Information", nl2br(a.handling || ""), "min-height:42px")])+
+      '<div style="display:grid;grid-template-columns:9% 12% 5% 9% 12% 11% 12% 30%;border:1px solid #333;border-bottom:0;margin-top:3px;font-size:6.8px;text-align:center;background:#f3f6fb">'+["No. of pieces RCP", "Gross weight", "kg / lb", "Rate class", "Chargeable weight", "Rate / Charge", "Total", "Nature and quantity of goods (incl. dimensions or volume)"].map(t=>'<div style="padding:3px 2px;border-right:1px solid #333">'+t+'</div>').join("")+'</div>'+
+      '<div style="display:grid;grid-template-columns:9% 12% 5% 9% 12% 11% 12% 30%;border:1px solid #333;font-size:9px;min-height:150px">'+[esc2(first(f.pkgs, wt.pk) || ""), gross ? fmt(gross, 3) : "", wt.lbs ? "L" : "K", esc2(a.rateClass || "N"), chargeable ? fmt(chargeable, 3) : "", rate ? fmt(rate) : "", wtCharge ? fmt(wtCharge) : "", esc2(f.desc)+(dimsTxt ? "<br><span style='font-size:8px'>Dimensions:</span><br><span style='font-size:8px'>"+dimsTxt+"</span>" : "")+(f.marks ? "<br>Marks: "+esc2(f.marks) : "")].map((v, i)=>'<div style="padding:4px;border-right:1px solid #333;text-align:'+(i === 7 ? "left" : "center")+'">'+v+'</div>').join("")+'</div>'+
+      '<div style="display:grid;grid-template-columns:50% 50%">'+
+        '<div>'+''+
+          [["Weight charge", wtCharge], ["Valuation charge", 0], ["Tax", 0], ["Total other charges due agent", other], ["Total other charges due carrier", 0], ["TOTAL", total]].map(([k, v])=>'<div style="display:grid;grid-template-columns:50% 25% 25%;border:1px solid #333;border-top:0;font-size:8.5px"><div style="padding:2px 5px;'+(k === "TOTAL" ? "font-weight:800" : "")+'">'+k+'</div><div style="padding:2px 5px;text-align:right;border-left:1px solid #333">'+(pc ? money(v) : "")+'</div><div style="padding:2px 5px;text-align:right;border-left:1px solid #333">'+(!pc ? money(v) : "")+'</div></div>').join("")+'<div style="display:grid;grid-template-columns:50% 25% 25%;border:1px solid #333;border-top:0;font-size:7px;text-align:center;background:#f3f6fb"><div></div><div style="border-left:1px solid #333">Prepaid</div><div style="border-left:1px solid #333">Collect</div></div></div>'+
+        '<div style="border:1px solid #333;border-left:0;padding:5px 7px;font-size:7.4px;line-height:1.35;min-height:100px">Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Regulations.<div style="margin-top:24px;border-top:1px solid #333;padding-top:2px;font-weight:700">Signature of Shipper or his Agent</div></div></div>'+
+      row("50% 50%", [cell("Executed on (date) at (place)", esc2([dmy(a.execDate || bl.hblDate), a.place || bl.place].filter(Boolean).join("  at ")), "min-height:46px"), '<div style="border:1px solid #333;border-left:0;padding:3px 7px;min-height:46px;text-align:center"><div style="min-height:26px">'+(stage === "Released" && bl.digitalSign ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:30px;max-width:130px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:34px;max-width:70px;margin-left:6px">' : "") : "")+'</div><div style="font-size:7.4px;font-weight:700;border-top:1px solid #333;padding-top:1px">Signature of Issuing Carrier or its Agent — '+esc2(P.legal_name || co.name || "")+'</div></div>'])+
+      '</div>';
+    return wrapPages([body], co, P.footer_note || "HAWB — "+(hawb || rd.job_number));
+  };
+
+  /* ---------- RECEIPT / PAYMENT VOUCHER ---------- */
+  DK.receipt = function(v, rd, partyText){
+    const co = rd.company || {}, P = co.profile || {}; const recv = v.direction === "RECEIPT"; const d = v.details || {}; const lines2 = v.lines || [];
+    const settle = d.settlement === "FULL" ? "Full payment" : "Part payment"; const bal = lines2.reduce((a, l)=>a + num(l.balance_after), 0); const tdsTot = lines2.reduce((a, l)=>a + num(l.tds), 0); const against = lines2.map(l=>l.doc_number).filter(Boolean).join(", ");
+    const title = recv ? "RECEIPT VOUCHER" : "PAYMENT VOUCHER"; const party = lines(partyText);
+    const detRows = [["Mode of "+(recv ? "receipt" : "payment"), esc2(v.method)], [v.method === "Cheque" || v.method === "Demand Draft" ? (v.method === "Cheque" ? "Cheque No." : "Draft No.") : "Transaction / UTR Ref.", esc2(d.cheque_no || v.reference || d.txn_ref || "")], v.method === "Cheque" ? ["Cheque Date", esc2(dmy(d.cheque_date))] : null, ["Drawn on / Bank", esc2(d.bank_name || "")], [recv ? "Deposited in" : "Paid from", esc2(d.account || (v.method === "Cash" ? "Cash in hand" : ""))], ["Narration", esc2(d.narration || v.remarks || "")]].filter(r=>r && r[1]);
+    const th = (t, a)=> '<th style="padding:5px 6px;font-size:8.5px;text-align:'+(a || "right")+';border:1px solid #1d3f78">'+t+'</th>';
+    const td = (x, a, b)=> '<td style="padding:5px 6px;font-size:9px;border:1px solid '+LINE+';text-align:'+(a || "right")+';'+(b ? "font-weight:800;" : "")+'">'+x+'</td>';
+    const typeName = t=> ({invoice:"Tax Invoice", debit_note:"Debit Note", purchase_invoice:"Purchase Invoice", credit_note:"Credit Note"})[t] || String(t || "").replace(/_/g, " ");
+    const rows = lines2.map((l, i)=>'<tr>'+td(i + 1, "center")+td(esc2(l.doc_number || "")+'<div style="font-size:7.5px;color:#52627d">'+esc2(typeName(l.doc_type))+'</div>', "left")+td(esc2(dmy(l.doc_date)), "center")+td(esc2(l.job_number || ""), "center")+td(fmt(l.total))+(tdsTot > 0.004 ? td(fmt(l.tds)) : "")+td(fmt(l.applied), "right", 1)+td(num(l.balance_after) > 0.004 ? '<span style="color:#b32525;font-weight:700">'+fmt(l.balance_after)+'</span>' : '<span style="color:#1f7a4d;font-weight:700">Nil</span>')+'</tr>').join("");
+    const unalloc = num(v.unallocated);
+    const body = header(co)+titleBar(title)+
+      '<div style="display:flex;gap:10px;margin-bottom:8px"><div style="flex:1;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar(recv ? "RECEIVED FROM" : "PAID TO")+'<div style="padding:7px 9px;font-size:10px;line-height:1.45"><b style="font-size:12px;color:'+NAVY+'">'+esc2(party[0] || v.party_name)+'</b><br>'+party.slice(1).map(esc2).join("<br>")+'</div></div>'+
+      '<div style="width:260px;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("VOUCHER")+kvAll([["Voucher No.", "<b>"+esc2(v.pay_number)+"</b>"], ["Date", esc2(dmy(v.pay_date))], ["Against", "<b>"+esc2(against || "On account")+"</b>"], ["Received", "<b>₹ "+fmt(v.amount)+"</b>"]].concat(tdsTot > 0.004 ? [["TDS deducted", "₹ "+fmt(tdsTot)], ["Total settled", "<b>₹ "+fmt(num(v.amount) + tdsTot)+"</b>"]] : []).concat([["Settlement", '<b style="color:'+(d.settlement === "FULL" ? "#1f7a4d" : "#8a6d00")+'">'+settle+"</b>"], ["Status", esc2(v.status)]]), 76)+'</div></div>'+
+      '<div style="border:1px solid '+LINE+';border-radius:3px;overflow:hidden;margin-bottom:8px">'+bar("TRANSACTION DETAILS")+kvAll(detRows, 150)+'</div>'+
+      '<div style="border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("SETTLED AGAINST")+'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+NAVY+';color:#fff">'+th("S.No.", "center")+th("Voucher", "left")+th("Date", "center")+th("Job", "center")+th("Voucher Total")+(tdsTot > 0.004 ? th("TDS Deducted") : "")+th("Received Now")+th("Balance Outstanding")+'</tr></thead><tbody>'+(rows || '<tr><td colspan="8" style="padding:8px;text-align:center;color:#52627d">On account — not yet allocated to a voucher</td></tr>')+
+      '<tr style="background:'+SOFT+'">'+td("", "center")+td("Total", "left", 1)+td("")+td("")+td(fmt(lines2.reduce((a, l)=>a + num(l.total), 0)), "right", 1)+(tdsTot > 0.004 ? td(fmt(tdsTot), "right", 1) : "")+td(fmt(lines2.reduce((a, l)=>a + num(l.applied), 0)), "right", 1)+td(fmt(bal), "right", 1)+'</tr></tbody></table></div>'+
+      (unalloc > 0.004 ? '<div style="margin-top:6px;font-size:9px;color:#8a6d00"><b>On account:</b> '+fmt(unalloc)+' is not yet allocated to a voucher.</div>' : "")+
+      '<div style="margin-top:10px;border:1px solid '+LINE+';border-radius:3px;padding:6px 9px;font-size:10px"><b style="color:'+NAVY+'">Amount in words :</b> '+esc2(DK.words(v.amount, "INR"))+'</div>'+
+      (d.settlement !== "FULL" && bal > 0.004 ? '<div style="margin-top:6px;font-size:10px;font-weight:700;color:#b32525">Part payment — balance outstanding after this voucher: ₹ '+fmt(bal)+'</div>' : "")+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;font-size:9px"><div style="text-align:center;min-width:170px"><div style="border-top:1px solid #333;padding-top:2px;font-weight:700">'+(recv ? "Received by" : "Prepared by")+'</div></div>'+sigBlock(co, v.status === "POSTED", "Authorised Signatory", 40)+'</div>';
+    return wrapPages([body], co, P.footer_note || "Computer generated voucher");
+  };
+
+  /* ---------- JOB PROFIT AND LOSS ---------- */
+  DK.jobPL = function(pl, rd){
+    const co = rd.company || {}, P = co.profile || {}, f = facts(rd); const t = pl.totals; const air = f.air;
+    const lab = (k, v)=> v ? '<div style="display:flex;border-bottom:1px solid #d8e0ec"><div style="width:112px;padding:3px 7px;font-weight:700;background:#f3f6fb">'+k+'</div><div style="flex:1;padding:3px 7px">'+v+'</div></div>' : "";
+    const pbox = (k, txt)=> { const l = lines(txt); return l.length ? '<div style="border-bottom:1px solid #d8e0ec"><div style="background:#f3f6fb;padding:3px 7px;font-weight:700">'+k+'</div><div style="padding:3px 7px;line-height:1.35"><b>'+esc2(l[0])+'</b><br>'+l.slice(1).map(esc2).join("<br>")+'</div></div>' : ""; };
+    const pt = f.party;
+    const left = '<div style="flex:1;border:1px solid '+LINE+';border-right:0">'+[["JOB NO", esc2(rd.job_number)], ["BOOKING NO", esc2((rd.booking || {}).number || "")], [air ? "HAWB NO" : "BL NO", esc2(f.hbl || f.mbl)], ["PLACE OF RECEIPT", esc2(f.por)], [air ? "AIRPORT OF DEPARTURE" : "PORT OF LOADING", esc2(f.pol)], [air ? "AIRPORT OF ARRIVAL" : "PORT OF DISCHARGE", esc2(f.pod)], ["PLACE OF DELIVERY", esc2(f.pld)], [air ? "FLIGHT" : "VESSEL / VOYAGE", esc2(f.vessel)], ["ETD", esc2(dmy(f.etd))], ["ETA", esc2(dmy(f.eta))], ["FREIGHT", esc2(String(f.freight || "").toUpperCase())], ["DELIVERY AGENT", esc2(lines(pt.deliveryAgent || f.p.deliveryAgent)[0] || "")]].map(r=>lab(r[0], r[1])).join("")+'</div>';
+    const right = '<div style="flex:1;border:1px solid '+LINE+'"><div style="text-align:center;font-size:17px;font-weight:800;padding:14px 6px;border-bottom:1px solid #d8e0ec;color:'+NAVY+'">JOB PROFIT AND LOSS</div>'+pbox("CUSTOMER", pt.shipper || f.p.shipper)+pbox("SHIPPER", pt.shipper || f.p.shipper)+pbox("CONSIGNEE", pt.consignee || f.p.consignee)+pbox("NOTIFY", pt.notify1 || f.p.notify1)+'</div>';
+    const cont = f.conts.length ? '<table style="width:100%;border-collapse:collapse;font-size:8.5px;margin-top:6px"><thead><tr style="background:#e8eef7">'+["CONTAINER", "TYPE", "NO OF PKG", "DESCRIPTION", "N.WEIGHT", "G.WEIGHT", "VOLUME"].map(h=>'<th style="padding:3px 5px;text-align:left;border:1px solid '+LINE+'">'+h+'</th>').join("")+'</tr></thead><tbody>'+f.conts.map((x, i)=>'<tr>'+[esc2(x.container_no), esc2(x.type), x.pkgs ? esc2(x.pkgs)+" "+esc2((x.pkg_type || "PKGS").toUpperCase()) : "", i === 0 ? esc2(f.desc) : "", x.net_wt ? esc2(fmt(x.net_wt))+" KG" : "", x.gross_wt ? esc2(fmt(x.gross_wt))+" KG" : "", i === 0 && f.vol ? esc2(fmt(f.vol, 3)) : ""].map(v=>'<td style="padding:3px 5px;border:1px solid '+LINE+'">'+v+'</td>').join("")+'</tr>').join("")+'</tbody></table>' : "";
+    const th = (x, a)=> '<th style="padding:4px 6px;font-size:8.5px;text-align:'+(a || "right")+';background:#cfe0f5;border:1px solid '+LINE+'">'+x+'</th>';
+    const td = (x, a, b, c)=> '<td style="padding:3px 6px;font-size:8.8px;border:1px solid '+LINE+';text-align:'+(a || "right")+';'+(b ? "font-weight:800;" : "")+(c ? "color:#b32525;" : "")+'">'+x+'</td>';
+    const gpc = v=> num(v) < 0;
+    const chargeRow = r=> '<tr>'+td(esc2(r.charge), "left")+td(fmt(r.p_sale))+td(fmt(r.p_cost))+td(fmt(r.p_gp), "right", 0, gpc(r.p_gp))+td(num(r.a_sale) ? fmt(r.a_sale) : "")+td(num(r.a_cost) ? fmt(r.a_cost) : "")+td(fmt(r.a_gp), "right", 0, gpc(r.a_gp))+'</tr>';
+    const summary_ = '<tr style="background:#eef3fa">'+td("Total", "center", 1)+td(fmt(t.p_sale), "right", 1)+td(fmt(t.p_cost), "right", 1)+td(fmt(t.p_gp), "right", 1, gpc(t.p_gp))+td(fmt(t.a_sale), "right", 1)+td(fmt(t.a_cost), "right", 1)+td(fmt(t.a_gp), "right", 1, gpc(t.a_gp))+'</tr>'+
+      '<tr><td colspan="2" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">PROVISIONAL</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">'+fmt(t.p_gp)+' ('+pl.provisional_pct+'%)</td><td style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">ACTUAL</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">'+fmt(t.a_gp)+' ('+pl.actual_pct+'%)</td></tr>'+
+      '<tr><td colspan="2" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">TAX</td><td colspan="2" style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Sale: '+fmt(pl.tax.sale)+'</td><td colspan="2" style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Cost: '+fmt(pl.tax.cost)+'</td><td style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Net: '+fmt(pl.tax.net)+'</td></tr>'+
+      '<tr><td colspan="2" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">CASH POSITION</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">Invoiced: '+fmt(pl.invoiced)+'</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">Received: '+fmt(pl.cash.received)+'</td><td style="padding:5px;text-align:center;border:1px solid '+LINE+'">Paid: '+fmt(pl.cash.paid)+'</td></tr>';
+    const chargeTable = (rows, last)=> '<div style="font-weight:800;margin:8px 0 2px;font-size:9px">CHARGE DETAIL</div><table style="width:100%;border-collapse:collapse"><thead><tr>'+th("CHARGE", "left")+th("P SALE")+th("P COST")+th("P GP")+th("A SALE")+th("A COST")+th("A GP")+'</tr></thead><tbody>'+rows.map(chargeRow).join("")+(last ? summary_ : "")+'</tbody></table>';
+    const revExp = '<div style="display:flex;gap:0;margin-top:8px"><div style="width:34%"><div style="background:#cfe0f5;text-align:center;font-weight:800;padding:4px;border:1px solid '+LINE+'">REVENUE</div><table style="width:100%;border-collapse:collapse"><thead><tr>'+th("BILL TO", "left")+th("P SALE")+'</tr></thead><tbody>'+pl.revenue.map(r=>'<tr>'+td(esc2(r.bill_to), "left")+td(fmt(r.p_sale))+'</tr>').join("")+'</tbody></table></div>'+
+      '<div style="flex:1"><div style="background:#cfe0f5;text-align:center;font-weight:800;padding:4px;border:1px solid '+LINE+';border-left:0">EXPENSE</div><table style="width:100%;border-collapse:collapse"><thead><tr>'+th("VENDOR", "left")+th("CHARGE", "left")+th("P COST")+'</tr></thead><tbody>'+pl.expense.map(r=>'<tr>'+td(esc2(r.vendor), "left")+td(esc2(r.charge), "left")+td(fmt(r.p_cost))+'</tr>').join("")+'</tbody></table></div></div>';
+    const per = 22, chunks = []; for(let i = 0; i < pl.lines.length; i += per) chunks.push(pl.lines.slice(i, i + per)); if(!chunks.length) chunks.push([]);
+    const pages = chunks.map((g, gi)=>({html:(gi === 0 ? header(co)+'<div style="display:flex;margin-top:2px">'+left+right+'</div>'+cont : header(co, true))+chargeTable(g, gi === chunks.length - 1 && false), used:(gi === 0 ? 420 + f.conts.length * 20 : 90) + g.length * 20}));
+    { const h = pages[pages.length - 1].html; const i = h.lastIndexOf("</tbody></table>"); pages[pages.length - 1].html = h.slice(0, i) + summary_ + h.slice(i); }
+    pages[pages.length - 1].used += 130;
+    place(pages, [revExp], [60 + (pl.expense.length + 1) * 18], header(co, true));
+    return wrapPages(pages.map(p=>p.html), co, P.footer_note || "Job Profit and Loss — "+rd.job_number+" · printed "+dmy(today()));
+  };
+
   /* ---------- context, viewer, print / pdf / mail ---------- */
-  DK.KINDS = {fc:"Freight Certificate", can:"Cargo Arrival Notice", do:"Delivery Order", doc:"Billing document"};
+  DK.KINDS = {fc:"Freight Certificate", can:"Cargo Arrival Notice", do:"Delivery Order", awb:"House Air Waybill", doc:"Billing document"};
   DK.build = async function(kind, opt){
     let doc = null, rd = null, billTo = "";
     if(kind === "doc"){ doc = await api("GET", "/api/documents/"+opt.docId); }
-    const job = opt.job || (doc && doc.job_number) || window.__lastJobNo;
+    const job = kind === "receipt" ? null : (opt.job || (doc && doc.job_number) || window.__lastJobNo);
     if(job) rd = await api("GET", "/api/jobs/"+encodeURIComponent(job)+"/report-data");
     else { const prof = await api("GET", "/api/company/doc-profile"); rd = {company:{name:prof.name, logo:prof.logo, profile:prof.profile}, details:{}, booking:{}, party_text:{}, job_charges:[], invoices:[], shipping_bills:[], bills_of_entry:[]}; }
     if(kind === "do" && rd.direction === "Import" && !((rd.details || {}).impdocs || {}).do_no){ const r = await api("POST", "/api/jobs/"+encodeURIComponent(job)+"/do-issue"); rd.details.impdocs = r.impdocs; }
     let html, title;
     if(kind === "fc"){ html = DK.freightCert(rd); title = "Freight Certificate "+rd.job_number; }
     else if(kind === "can"){ html = DK.arrivalNotice(rd); title = "Cargo Arrival Notice "+rd.job_number; }
+    else if(kind === "receipt"){ const v = await api("GET", "/api/payments/"+opt.paymentId+"/voucher"); const pt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(v.party_name || "")).catch(()=>({text:""})); html = DK.receipt(v, rd, pt.text); title = (v.direction === "RECEIPT" ? "Receipt Voucher " : "Payment Voucher ")+v.pay_number; }
+    else if(kind === "pl"){ const pl = await api("GET", "/api/accounts/job/"+encodeURIComponent(job)+"/profit-loss"); html = DK.jobPL(pl, rd); title = "Job Profit and Loss "+rd.job_number; }
+    else if(kind === "awb"){ if(rd.mode !== "Air") throw new Error("The House Air Waybill is produced for air jobs. A sea job carries a Bill of Lading"); html = DK.awb(rd); title = "HAWB "+((((rd.details || {}).bl) || {}).hblNo || rd.job_number); }
     else if(kind === "do"){ html = DK.deliveryOrder(rd); title = "Delivery Order "+(((rd.details || {}).impdocs || {}).do_no || rd.job_number); }
     else {
       if(doc.doc_type === "purchase_invoice" || doc.doc_type === "purchase_credit_note"){ const vt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(doc.party_name || "")).catch(()=>({text:""})); html = DK.purchaseInvoice(doc, rd, vt.text); title = "Purchase Invoice "+(doc.doc_number || ""); }
@@ -17899,6 +18054,7 @@ function makePrintFit(){
     const b = e.target.closest("[data-od]"); if(!b) return; e.stopPropagation();
     act(b.dataset.od, b.dataset.docId ? {docId:b.dataset.docId} : {job:window.__lastJobNo}, b.dataset.act);
   }, true);
+  document.addEventListener("click", e=>{ const bk = e.target.closest("#s-doc-view [data-go]"); const k = window.__docKind; if(bk && k && k.opt && k.opt.back === "bk" && window.BK){ e.stopImmediatePropagation(); e.preventDefault(); window.BK.openDoc(k.opt.docId); } }, true);
   document.addEventListener("click", e=>{
     const t = e.target.closest("[data-dk]"); if(!t || !stash.cur) return; const w = t.dataset.dk;
     if(w === "print") DK.print(stash.cur); else if(w === "mail") DK.mail(stash.cur); else if(w === "pdf") act(stash.cur.kind, stash.cur.opt, "pdf"); else if(w === "edit") DK.editDetails();
@@ -17916,7 +18072,7 @@ function makePrintFit(){
   };
 
   /* ---------- Out Docs: uniform buttons, only this job's documents, billing documents of the job ---------- */
-  const ROWMAP = [[/Cargo Arrival Notice/i, "can"], [/Delivery Order/i, "do"], [/Freight Certificate/i, "fc"]];
+  const ROWMAP = [[/P&L Report|Profit/i, "pl"], [/HAWB|Air Waybill/i, "awb"], [/Cargo Arrival Notice/i, "can"], [/Delivery Order/i, "do"], [/Freight Certificate/i, "fc"]];
   const btns = (kind, id)=> ['view', 'print', 'pdf', 'mail'].map((a, i)=>'<button class="btn btn-'+(i === 0 ? "pri" : "out")+' btn-sm" type="button" data-od="'+kind+'" data-act="'+a+'"'+(id ? ' data-doc-id="'+id+'"' : "")+'>'+({view:"View", print:"Print", pdf:"PDF", mail:"Send"})[a]+'</button>').join("");
   DK.wireOutDocs = function(){
     ["odSeaExportDocs", "odSeaImportDocs", "odAirExportDocs", "odAirImportDocs"].forEach(pid=>{ const p = el(pid); if(!p) return;
@@ -18015,7 +18171,7 @@ function makePrintFit(){
     setCard(0, inv.filter(live).length, "₹"+fmt(sum(inv))); setCard(1, dn.filter(live).length, "₹"+fmt(sum(dn))); setCard(2, cn.filter(live).length, cn.length ? "₹"+fmt(sum(cn)) : "—"); setCard(3, pi.filter(live).length, "₹"+fmt(sum(pi))); setCard(4, pcn.filter(live).length, pcn.length ? "₹"+fmt(sum(pcn)) : "—");
     if(cards[5]){ const v = cards[5].querySelectorAll(".cb > div"); if(v[3]) v[3].textContent = "GP ₹"+fmt(gp); }
     const link = d=> '<span class="mono" style="font-weight:700">'+esc2(number(d))+'</span>';
-    const badge = d=> '<span class="b '+cls(d)+' dot">'+esc2(stat(d))+'</span>';
+    const badge = d=> '<span class="b '+cls(d)+' dot"'+(posted(d) && Number(d.paid_amount) > 0 ? ' data-vch-doc="'+d.id+'" style="cursor:pointer" title="Open the receipt voucher"' : "")+'>'+esc2(stat(d))+'</span>';
     const act = d=> '<td class="no-print"><div style="display:flex;gap:4px;flex-wrap:wrap">'+actions(d)+'</div></td>';
     const refNo = d=> { const r = VK.docs.find(x=>x.id === d.ref_document_id); return r ? esc2(number(r)) : "—"; };
     const heads = {tax:["Invoice No", "Date", "Bill To", "Type", "Taxable Value", "Tax", "Total Amount", "Due Date", "Paid", "Balance", "Status", ""], dn:["DN No", "Date", "Bill To", "Ref Invoice", "Currency", "Amount", "Total (INR)", "Status", ""],
@@ -18036,8 +18192,19 @@ function makePrintFit(){
     // the section buttons raise documents for this job
     const set = (sec, text, key)=>{ const b = sec && sec.querySelector(".ch button"); if(b){ b.removeAttribute("data-go"); b.setAttribute("data-vk-new", key); b.textContent = text; } };
     set(secs.tax, "＋ New Invoice / Proforma", "invoice"); set(secs.dn, "＋ Issue Debit Note", "debit_note"); set(secs.cn, "＋ Issue Credit Note", "credit_note"); set(secs.pi, "＋ New Purchase Invoice", "purchase_invoice"); set(secs.pcn, "＋ Purchase Credit Note", "purchase_credit_note");
+    VK.billingBar({ar:ar, inv:sum(inv), received:paid(inv), cn:sum(cn), dn:sum(dn), pi:sum(pi), pcn:sum(pcn), paidAp:paid(pi), pending:inv.filter(d=>d.status === "DRAFT" || d.status === "CONFIRMED").length});
     VK.syncToJob();
   };
+  /* the Charges tab shows where the job stands in billing: invoices, receipts, purchase invoices and payments raised anywhere (job screens or Accounts menu) */
+  VK.billingBar = function(t){
+    const tab = el("jt5"); if(!tab) return; let bar = el("jcBillBar");
+    if(!bar){ bar = document.createElement("div"); bar.id = "jcBillBar"; const head = tab.querySelector(".jc-kpis"); if(head) head.parentNode.insertBefore(bar, head.nextSibling); else tab.insertBefore(bar, tab.firstChild); }
+    const out = t.inv - t.received - t.cn, apOut = t.pi - t.paidAp - t.pcn; const cell = (k, v, c)=> '<div style="flex:1;min-width:120px;padding:6px 10px;border-right:1px solid var(--g2)"><div style="font-size:10px;color:var(--g5);font-weight:700;text-transform:uppercase">'+k+'</div><div style="font-size:13px;font-weight:800;color:'+(c || "var(--n)")+'">₹'+fmt(v)+'</div></div>';
+    bar.innerHTML = '<div class="card" style="margin-bottom:12px"><div class="cb" style="padding:0;display:flex;flex-wrap:wrap;align-items:stretch">'+cell("Invoiced (AR)", t.inv)+cell("Received", t.received, "var(--gr)")+cell("Credit notes", t.cn)+cell("Receivable", out, out > 0.004 ? "var(--rd)" : "var(--gr)")+cell("Purchase invoices (AP)", t.pi)+cell("Paid", t.paidAp, "var(--gr)")+cell("Payable", apOut, apOut > 0.004 ? "var(--am)" : "var(--gr)")+
+      '<div style="padding:6px 10px;display:flex;align-items:center;gap:8px">'+(t.pending ? '<span class="b b-am">'+t.pending+' proforma pending</span>' : "")+'<button class="btn btn-out btn-sm" type="button" data-vk-open-tab="jt8">Open vouchers</button></div></div></div>';
+  };
+  document.addEventListener("click", e=>{ const t = e.target.closest("[data-vk-open-tab]"); if(t){ const b = document.querySelector('#s-job-detail .tbb[data-tab="'+t.dataset.vkOpenTab+'"]'); if(b) b.click(); } });
+  document.addEventListener("click", e=>{ if(e.target.closest('.tbb[data-tab="jt5"]')) setTimeout(()=>VK.load(), 150); });
   VK.syncToJob = function(){ const st = window.__jcDocIds = {}; /* the Charges tab buttons open an existing document instead of raising a second one */ };
 
   /* ---- raising documents for the job ---- */
@@ -18082,6 +18249,176 @@ function makePrintFit(){
   document.addEventListener("click", e=>{ if(e.target.closest('.tbb[data-tab="jt8"]')) setTimeout(()=>VK.load(), 100); });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>VK.load(opts && opts.jobNo), 1700); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   PAYMENT KIT: Mark as paid / Record receipt and payment vouchers. Choose full or part payment, one voucher for several invoices of the same party,
+   the mode (cash, cheque, NEFT, RTGS, UPI ...) with its transaction details; the voucher is printed from them and feeds the party ledger,
+   the cash / bank book, the outstanding reports and the job profit and loss. Touching "Paid" on an invoice opens its receipt vouchers.
+   Accounts reports (party ledger, cash and bank book, outstanding) are on the Accounts Reports screen.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const PK = window.PayKit = {};
+  const fmt = v=> (Number(v) || 0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "";
+  const today = ()=> new Date().toISOString().slice(0, 10);
+  const MODES = ["Cash", "Cheque", "NEFT", "RTGS", "IMPS", "UPI", "Bank Transfer", "Card", "Demand Draft"];
+
+  PK.open = async function(direction, doc){
+    const recv = direction === "RECEIPT"; const types = recv ? ["invoice", "debit_note"] : ["purchase_invoice"];
+    let docs = [];
+    try{ docs = [].concat(...await Promise.all(types.map(t=>api("GET", "/api/documents?status=POSTED&doc_type="+t+"&limit=1000")))).filter(d=>Number(d.outstanding) > 0).sort((a, b)=>(a.doc_date || "").localeCompare(b.doc_date || "")); }
+    catch(e){ say("Could not load the open documents", e.message, "error"); return; }
+    const parties = Array.from(new Set(docs.map(d=>d.party_name))).sort();
+    let party = doc ? doc.party_name : (parties[0] || ""); const key = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : String(Date.now())+Math.random();
+    const opt = (v, sel)=> '<option'+(sel ? " selected" : "")+'>'+esc2(v)+'</option>';
+    const field = (id, label, extra, wide)=> '<div class="fg"'+(wide ? ' style="grid-column:span '+wide+'"' : "")+'><label class="fl">'+label+'</label>'+extra+'</div>';
+    openModal({title:recv ? "Mark as Paid — Receipt voucher" : "Record Payment voucher", size:"lg", bodyHTML:
+      '<div class="fr">'+field("pk_party", recv ? "Received from" : "Paid to", '<select class="fc" id="pk_party">'+parties.map(p=>opt(p, p === party)).join("")+'</select>')+field("pk_date", "Date", '<input class="fc" type="date" id="pk_date" value="'+today()+'">')+
+        field("pk_kind", "Payment", '<div style="display:flex;gap:14px;align-items:center;padding-top:6px"><label><input type="radio" name="pk_kind" value="full" checked> Full payment</label><label><input type="radio" name="pk_kind" value="part"> Part payment</label></div>')+'</div>'+
+      '<div class="fr">'+field("pk_mode", "Mode of "+(recv ? "receipt" : "payment"), '<select class="fc" id="pk_mode">'+MODES.map((m, i)=>opt(m, i === 2)).join("")+'</select>')+field("pk_acc", recv ? "Deposited in (bank / cash account)" : "Paid from (bank / cash account)", '<input class="fc" id="pk_acc" placeholder="e.g. HDFC Current A/c 1234 or Cash in hand">')+
+        field("pk_amount", "Amount", '<input class="fc" type="number" step="0.01" id="pk_amount" readonly style="font-weight:800">')+'</div>'+
+      '<div class="fr" id="pk_mode_fields"></div>'+
+      '<div class="fr">'+field("pk_nar", "Narration", '<input class="fc" id="pk_nar" placeholder="Optional">', 3)+'</div>'+
+      '<div class="fsec">Settle these '+(recv ? "invoices" : "purchase invoices")+' <span style="font-weight:400;color:var(--g5)">(one voucher can settle several of the same party)</span></div><div id="pk_tdsnote" style="font-size:11.5px;color:var(--g6);margin:2px 0 4px;min-height:14px"></div><div class="tw" style="max-height:230px;overflow:auto"><table><thead><tr><th>Voucher</th><th>Job</th><th>Due</th><th style="text-align:right">Outstanding</th>'+(recv ? '<th style="text-align:right">TDS deducted</th>' : "")+'<th style="text-align:right">'+(recv ? "Received now" : "Paid now")+'</th><th></th></tr></thead><tbody id="pk_rows"></tbody></table></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="pk_go">Record '+(recv ? "Receipt" : "Payment")+'</button>'});
+    const kind = ()=> document.querySelector('input[name="pk_kind"]:checked').value;
+    const rowsOf = ()=> Array.from(document.querySelectorAll("#pk_rows [data-pk-doc]"));
+    function drawRows(){
+      party = el("pk_party").value; const list = docs.filter(d=>d.party_name === party);
+      el("pk_rows").innerHTML = list.length ? list.map(d=>'<tr><td class="mono" style="font-weight:700">'+esc2(d.doc_number)+'</td><td>'+esc2(d.job_number || "")+'</td><td>'+dmy(d.due_date)+'</td><td style="text-align:right">'+fmt(d.outstanding)+'</td>'+(recv ? '<td style="text-align:right"><input class="fc" type="number" min="0" step="0.01" style="width:90px;text-align:right" data-pk-tds="'+d.id+'" placeholder="0.00"></td>' : "")+'<td style="text-align:right"><input class="fc" type="number" min="0" step="0.01" style="width:110px;text-align:right" data-pk-doc="'+d.id+'" data-max="'+d.outstanding+'"></td><td><label style="font-size:11px"><input type="checkbox" data-pk-pick="'+d.id+'"> Select</label></td></tr>').join("") : '<tr><td colspan="6" style="text-align:center;color:var(--g5);padding:12px;font-style:italic">Nothing is outstanding for this party</td></tr>';
+      list.forEach(d=>{ if(doc && d.id === doc.id){ const c = document.querySelector('[data-pk-pick="'+d.id+'"]'); if(c) c.checked = true; } });
+      sync(true);
+    }
+    const tdsOf = id=> { const t = document.querySelector('[data-pk-tds="'+id+'"]'); return t ? (Number(t.value) || 0) : 0; };
+    function sync(fromPick){
+      rowsOf().forEach(i=>{ const pick = document.querySelector('[data-pk-pick="'+i.dataset.pkDoc+'"]'); const max = Number(i.dataset.max), tds = tdsOf(i.dataset.pkDoc); const t = document.querySelector('[data-pk-tds="'+i.dataset.pkDoc+'"]'); if(t && !pick.checked && fromPick === true) t.value = "";
+        if(kind() === "full"){ i.value = pick.checked ? Math.max(0, max - tds).toFixed(2) : ""; i.readOnly = true; } else { i.readOnly = false; if(fromPick === true && pick.checked && !i.value) i.value = Math.max(0, max - tds).toFixed(2); if(!pick.checked && fromPick === true) i.value = ""; } });
+      el("pk_amount").value = rowsOf().reduce((a, i)=>a + (Number(i.value) || 0), 0).toFixed(2);
+      const tds = rowsOf().reduce((a, i)=>a + tdsOf(i.dataset.pkDoc), 0); const hint = el("pk_tdsnote"); if(hint) hint.textContent = tds > 0 ? "TDS deducted "+fmt(tds)+" + received "+fmt(el("pk_amount").value)+" = settled "+fmt(tds + Number(el("pk_amount").value)) : "";
+    }
+    function modeFields(){
+      const m = el("pk_mode").value; const f = (id, label, ph, type)=> field(id, label, '<input class="fc" id="'+id+'" type="'+(type || "text")+'" placeholder="'+(ph || "")+'">');
+      el("pk_mode_fields").innerHTML = m === "Cash" ? '<div class="fg" style="grid-column:span 3;color:var(--g5);font-size:12px">Cash receipt: no transaction reference is needed.</div>'
+        : m === "Cheque" || m === "Demand Draft" ? f("pk_chq", (m === "Cheque" ? "Cheque" : "Draft")+" number *", "6 digits")+(m === "Cheque" ? f("pk_chqd", "Cheque date *", "", "date") : "")+f("pk_bank", "Drawn on bank", "e.g. HDFC Bank")
+        : f("pk_ref", (m === "UPI" ? "UPI transaction id" : m === "Card" ? "Card approval / RRN" : "UTR / transaction reference")+(m === "Bank Transfer" ? "" : " *"), "")+f("pk_bank", "Customer's bank", "e.g. ICICI Bank");
+      if(!el("pk_acc").value) el("pk_acc").value = m === "Cash" ? "Cash in hand" : "";
+    }
+    el("pk_party").addEventListener("change", drawRows); el("pk_mode").addEventListener("change", modeFields);
+    document.querySelectorAll('input[name="pk_kind"]').forEach(r=> r.addEventListener("change", ()=>sync(true)));
+    el("pk_rows").addEventListener("input", e=>{ if(e.target.dataset.pkDoc) sync(false); else if(e.target.dataset.pkTds) sync(false); });
+    el("pk_rows").addEventListener("change", e=>{ if(e.target.dataset.pkPick) sync(true); });
+    modeFields(); drawRows();
+    el("pk_go").addEventListener("click", async ev=>{
+      const btn = ev.target; const g = id=> ((el(id) || {}).value || "").trim(); const mode = g("pk_mode");
+      const allocations = rowsOf().filter(i=>Number(i.value) > 0).map(i=>({document_id:Number(i.dataset.pkDoc), amount:Number(i.value).toFixed(2), tds:tdsOf(i.dataset.pkDoc).toFixed(2)}));
+      if(!allocations.length){ say("Select a voucher", "Select the invoice(s) this "+(recv ? "receipt" : "payment")+" settles and the amount", "warn"); return; }
+      const details = {account:g("pk_acc"), bank_name:g("pk_bank"), narration:g("pk_nar")}; let reference = g("pk_ref");
+      if(mode === "Cheque" || mode === "Demand Draft"){ details.cheque_no = g("pk_chq"); details.cheque_date = g("pk_chqd"); reference = g("pk_chq"); }
+      btn.disabled = true;
+      try{
+        const res = await fetch("/api/payments", {method:"POST", headers:{Authorization:"Bearer "+sessionStorage.getItem("esway_access_token"), "Content-Type":"application/json", "Idempotency-Key":key}, body:JSON.stringify({direction, pay_date:g("pk_date"), party_name:party, method:mode, reference:reference || null, amount:el("pk_amount").value, kind:kind(), details, allocations})});
+        const data = await res.json().catch(()=>({}));
+        if(!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : (Array.isArray(data.detail) ? data.detail.map(x=>x.msg).join("; ") : "Invalid details"));
+        closeModal(); say((recv ? "Receipt" : "Payment")+" Recorded Successfully!", data.pay_number+" · ₹"+fmt(data.amount)+(data.details && data.details.settlement === "PART" ? " (part payment)" : "")+(Number(data.tds) > 0 ? " · TDS ₹"+fmt(data.tds) : ""));
+        if(window.BK && window.BK.state && window.BK.state.doc && el("s-"+window.BK.state.screen).classList.contains("on")) window.BK.openDoc(window.BK.state.doc.id);
+        if(window.VoucherKit) window.VoucherKit.load();
+        PK.viewVoucher(data.id);
+      }catch(err){ say("Could not record the "+(recv ? "receipt" : "payment"), err.message, "error"); btn.disabled = false; }
+    });
+  };
+  if(window.BK) window.BK.openPayment = PK.open;
+  PK.viewVoucher = function(id){ const st = window.BK && window.BK.state; const fromEditor = st && st.doc && el("s-"+st.screen) && el("s-"+st.screen).classList.contains("on"); if(window.DocKit) window.DocKit.view("receipt", fromEditor ? {paymentId:id, back:"bk", docId:st.doc.id} : {paymentId:id}); };
+
+  /* touching "Paid" / "Partial" on a document opens its receipt voucher(s) */
+  PK.vouchersOf = async function(docId){
+    let r; try{ r = await api("GET", "/api/documents/"+docId+"/payments"); }catch(e){ say("Could not load the vouchers", e.message, "error"); return; }
+    const live = r.payments.filter(p=>p.status === "POSTED");
+    if(!live.length){ say("No receipt yet", "Nothing has been received against this document. Use Mark as Paid to record it", "warn"); return; }
+    if(live.length === 1){ PK.viewVoucher(live[0].payment_id); return; }
+    openModal({title:"Receipt vouchers — "+esc2(r.doc_number || ""), bodyHTML:'<div style="display:flex;gap:16px;margin-bottom:8px;font-size:12px"><span>Total <b>'+fmt(r.total)+'</b></span><span>Received <b style="color:var(--gr)">'+fmt(r.paid)+'</b></span><span>Outstanding <b style="color:var(--rd)">'+fmt(r.outstanding)+'</b></span></div><div class="tw"><table><thead><tr><th>Voucher</th><th>Date</th><th>Mode</th><th>Reference</th><th style="text-align:right">Applied</th><th></th></tr></thead><tbody>'+live.map(p=>'<tr><td class="mono" style="font-weight:700">'+esc2(p.pay_number)+'</td><td>'+dmy(p.pay_date)+'</td><td>'+esc2(p.method)+'</td><td>'+esc2(p.reference || "—")+'</td><td style="text-align:right">'+fmt(p.applied_to_this)+'</td><td><button class="btn btn-pri btn-sm" type="button" data-pk-view="'+p.payment_id+'">View voucher</button></td></tr>').join("")+'</tbody></table></div>', footHTML:'<button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+  };
+  document.addEventListener("click", e=>{
+    const v = e.target.closest("[data-pk-view]"); if(v){ closeModal(); PK.viewVoucher(v.dataset.pkView); return; }
+    const b = e.target.closest("[data-vch-doc]"); if(b){ e.stopPropagation(); PK.vouchersOf(b.dataset.vchDoc); return; }
+    const p = e.target.closest("[data-vch-pay]"); if(p){ e.stopPropagation(); PK.viewVoucher(p.dataset.vchPay); return; }
+    const m = e.target.closest("[data-bk-voucher]"); if(m){ PK.viewVoucher(m.dataset.bkVoucher); }
+  }, true);
+
+  /* ---------------- Accounts reports ---------------- */
+  const AR = window.AccountsReports = {tab:"ledger"};
+  AR.show = async function(){
+    const scr = el("s-acc-reports"); if(!scr) return; let parties = [];
+    try{ const [c, dc] = await Promise.all([api("GET", "/api/customers").catch(()=>[]), api("GET", "/api/documents?limit=1000").catch(()=>[])]); parties = Array.from(new Set(c.map(x=>x.name).concat(dc.map(x=>x.party_name)).filter(Boolean))).sort(); }catch(e){}
+    const sel = el("ar_party"); if(sel && (!sel.dataset.filled || sel.options.length !== parties.length)){ sel.innerHTML = parties.map(p=>'<option>'+esc2(p)+'</option>').join(""); sel.dataset.filled = "1"; }
+    AR.load();
+  };
+  AR.load = async function(){
+    const body = el("ar_body"); if(!body) return; const tab = AR.tab; const from = (el("ar_from") || {}).value || "", to = (el("ar_to") || {}).value || ""; const qs = (from ? "&date_from="+from : "")+(to ? "&date_to="+to : "");
+    document.querySelectorAll("#s-acc-reports [data-ar-tab]").forEach(b=>{ b.className = "btn btn-sm "+(b.dataset.arTab === tab ? "btn-pri" : "btn-out"); });
+    el("ar_partyWrap").style.display = tab === "ledger" ? "" : "none"; el("ar_sideWrap").style.display = tab === "outstanding" ? "" : "none";
+    const th = (t, a)=> '<th style="text-align:'+(a || "left")+'">'+t+'</th>', td = (v, a, b)=> '<td style="text-align:'+(a || "left")+';'+(b ? "font-weight:700" : "")+'">'+v+'</td>';
+    try{
+      if(tab === "ledger"){
+        const party = (el("ar_party") || {}).value; if(!party){ body.innerHTML = '<div style="padding:14px;color:var(--g5)">Choose a party.</div>'; return; }
+        const r = await api("GET", "/api/accounts/party-ledger?party="+encodeURIComponent(party)+qs);
+        body.innerHTML = '<div class="ib ib-bl" style="margin:10px">Ledger of <b>'+esc2(r.party)+'</b> · opening '+fmt(r.opening)+' · closing <b>'+fmt(r.closing)+'</b> (positive = the party owes us)</div><div class="tw"><table><thead><tr>'+th("Date")+th("Voucher")+th("Type")+th("Job")+th("Narration")+th("Debit", "right")+th("Credit", "right")+th("Balance", "right")+'</tr></thead><tbody>'+
+          (r.entries.map(x=>'<tr>'+td(dmy(x.date))+td('<span class="mono" style="font-weight:700">'+esc2(x.voucher || "")+'</span>')+td(esc2(String(x.type).replace(/_/g, " ")))+td(esc2(x.job_number || ""))+td(esc2(x.narration))+td(Number(x.debit) ? fmt(x.debit) : "", "right")+td(Number(x.credit) ? fmt(x.credit) : "", "right")+td(fmt(x.balance), "right", 1)+'</tr>').join("") || '<tr><td colspan="8" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">No vouchers</td></tr>')+
+          '<tr style="background:var(--g0);font-weight:800"><td colspan="5">Total</td>'+td(fmt(r.total_debit), "right", 1)+td(fmt(r.total_credit), "right", 1)+td(fmt(r.closing), "right", 1)+'</tr></tbody></table></div>';
+      } else if(tab === "cash"){
+        const r = await api("GET", "/api/accounts/cash-book?"+qs.slice(1));
+        body.innerHTML = '<div class="ib ib-bl" style="margin:10px">Opening — cash '+fmt(r.opening.cash)+' · bank '+fmt(r.opening.bank)+' &nbsp;|&nbsp; Closing — cash <b>'+fmt(r.closing.cash)+'</b> · bank <b>'+fmt(r.closing.bank)+'</b></div><div class="tw"><table><thead><tr>'+th("Date")+th("Voucher")+th("Party")+th("Book")+th("Mode")+th("Reference")+th("Account")+th("Receipt", "right")+th("Payment", "right")+th("Balance", "right")+'</tr></thead><tbody>'+
+          (r.entries.map(x=>'<tr>'+td(dmy(x.date))+td('<span class="mono" style="font-weight:700">'+esc2(x.voucher)+'</span>')+td(esc2(x.party))+td(x.book === "cash" ? "Cash" : "Bank")+td(esc2(x.method))+td(esc2(x.reference))+td(esc2(x.account))+td(Number(x.receipt) ? fmt(x.receipt) : "", "right")+td(Number(x.payment) ? fmt(x.payment) : "", "right")+td(fmt(x.balance), "right", 1)+'</tr>').join("") || '<tr><td colspan="10" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">No receipts or payments</td></tr>')+
+          '<tr style="background:var(--g0);font-weight:800"><td colspan="7">Total</td>'+td(fmt(r.total_receipts), "right", 1)+td(fmt(r.total_payments), "right", 1)+td("")+'</tr></tbody></table></div>';
+      } else {
+        const side = (el("ar_side") || {}).value || "AR"; const r = await api("GET", "/api/accounts/outstanding?side="+side);
+        body.innerHTML = '<div class="ib ib-bl" style="margin:10px">'+(side === "AR" ? "Customers owe us" : "We owe vendors")+' <b>'+fmt(r.total_outstanding)+'</b> as on '+dmy(r.as_on)+'</div><div class="tw"><table><thead><tr>'+th("Party")+th("Documents", "right")+th("Total", "right")+th("Not due", "right")+th("1–30", "right")+th("31–60", "right")+th("61–90", "right")+th("Over 90", "right")+th("Outstanding", "right")+'</tr></thead><tbody>'+
+          (r.parties.map(x=>'<tr>'+td(esc2(x.party))+td(x.documents, "right")+td(fmt(x.total), "right")+td(fmt(x.current), "right")+td(fmt(x.d1_30), "right")+td(fmt(x.d31_60), "right")+td(fmt(x.d61_90), "right")+td(fmt(x.d90), "right")+td(fmt(x.outstanding), "right", 1)+'</tr>').join("") || '<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">Nothing outstanding</td></tr>')+'</tbody></table></div>';
+      }
+    }catch(err){ body.innerHTML = '<div class="ib ib-am" style="margin:10px">'+esc2(err.message)+'</div>'; }
+  };
+  document.addEventListener("click", e=>{ const t = e.target.closest("[data-ar-tab]"); if(t){ AR.tab = t.dataset.arTab; AR.load(); } if(e.target.closest("#ar_print")) window.print(); });
+  document.addEventListener("change", e=>{ if(["ar_party", "ar_from", "ar_to", "ar_side"].indexOf(e.target.id) > -1) AR.load(); });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "acc-reports") AR.show(); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   COUNTRY KIT: the Country Master holds all 249 ISO 3166-1 countries (loaded for the company on first use) and every country pick-list reads from it.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const CK = window.CountryKit = {rows:null};
+  CK.load = async function(force){
+    if(CK.rows && !force) return CK.rows;
+    let rows = []; try{ rows = await api("GET", "/api/masters/country"); }catch(e){ return CK.rows || []; }
+    if(rows.length < 200){ try{ await api("POST", "/api/masters/country/import"); rows = await api("GET", "/api/masters/country"); }catch(e){} }
+    CK.rows = rows.filter(r=>r.status === "ACTIVE"); return CK.rows;
+  };
+  CK.fill = async function(){
+    const rows = await CK.load(); if(!rows.length) return;
+    ["org_country", "org_addr_country"].forEach(id=>{ const sel = document.getElementById(id); if(!sel || sel.dataset.ckFilled === String(rows.length)) return; const cur = sel.value || "India (IN)";
+      sel.innerHTML = rows.map(r=>'<option>'+esc2(r.name+" ("+r.code+")")+'</option>').join(""); if(Array.from(sel.options).some(o=>o.value === cur)) sel.value = cur; sel.dataset.ckFilled = String(rows.length); });
+  };
+  CK.footer = function(){
+    const f = document.querySelector("#s-country-master .cf"); if(!f || !CK.rows) return;
+    const n = CK.rows.length; f.innerHTML = "Showing all "+n+" countries of the ISO 3166-1 list in your master";
+  };
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    prev(screen, opts);
+    if(screen === "country-master") CK.load().then(()=>{ MK.loadList(MK.configs.country); setTimeout(CK.footer, 600); });
+    if(/^org-/.test(screen) || screen === "org-list") CK.fill();
+  };
+  setTimeout(CK.fill, 2500);
 })();
 </script>
 

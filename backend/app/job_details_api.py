@@ -19,7 +19,7 @@ from .models import Booking, CompanyDocProfile, Document, HblCounter, JobDetail,
 router = APIRouter(prefix="/api/jobs", tags=["job details"])
 
 SECTIONS = ("parties", "cargo", "containers", "dims", "bl", "impdocs")
-HBL_TYPES = {"OTL": True, "FMC": True, "MTO": False}   # type -> needs a SCAC code
+HBL_TYPES = {"OTL": True, "FMC": True, "MTO": False, "HAWB": False}   # type -> needs a SCAC code (HAWB is the House Air Waybill of an air job)
 CONTAINER_NO = re.compile(r"^[A-Z]{4}[0-9]{7}$")
 SCAC = re.compile(r"^[A-Z]{4}$")
 
@@ -30,7 +30,7 @@ class SectionIn(BaseModel):
 
 
 class HblIn(BaseModel):
-    hbl_type: str = Field(pattern="^(OTL|FMC|MTO)$")
+    hbl_type: str = Field(pattern="^(OTL|FMC|MTO|HAWB)$")
     scac: str | None = Field(default=None, max_length=4)
 
 
@@ -170,7 +170,7 @@ def _validate(section: str, data: Any) -> Any:
                 raise HTTPException(422, f"{ {'pkgs': 'No. of packages', 'gwt': 'Gross weight', 'nwt': 'Net weight', 'vol': 'Volume'}[k] } must be a positive number")
     if section == "bl":
         if data.get("hblType") and data["hblType"] not in HBL_TYPES:
-            raise HTTPException(422, "House BL type must be OTL, FMC or MTO")
+            raise HTTPException(422, "House BL type must be OTL, FMC or MTO (HAWB for air)")
         if data.get("scac") and not SCAC.match(str(data["scac"]).upper()):
             raise HTTPException(422, "SCAC code is 4 capital letters")
     return data
@@ -239,8 +239,12 @@ def issue_hbl(job_number: str, body: HblIn, user: User = Depends(permission_requ
     """Issue the House BL number: company code + type + running number + POL code + POD code (e.g. RTSMTO001MAASIN). A job gets one; asking again returns it."""
     job = _job(db, user, job_number, lock=True)
     jl.assert_job_editable(job, "the House BL")
-    if job.mode != "Sea":
-        raise HTTPException(422, "A House BL is issued for sea jobs; air jobs carry a House AWB")
+    if job.mode == "Air" and body.hbl_type != "HAWB":
+        raise HTTPException(422, "An air job carries a House AWB (HAWB)")
+    if job.mode != "Air" and body.hbl_type == "HAWB":
+        raise HTTPException(422, "The House AWB is for air jobs; a sea job carries a House BL (OTL, FMC or MTO)")
+    if job.mode not in ("Sea", "Air"):
+        raise HTTPException(422, "A House BL is issued for sea jobs and a House AWB for air jobs")
     row = _row(db, job, create=True)
     bl = dict(row.bl or {})
     if bl.get("hblNo"):
@@ -273,7 +277,7 @@ def issue_hbl(job_number: str, body: HblIn, user: User = Depends(permission_requ
 def hbl_next(job_number: str, hbl_type: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """What the next House BL number of this type would look like for this job (not issued)."""
     if hbl_type not in HBL_TYPES:
-        raise HTTPException(422, "House BL type must be OTL, FMC or MTO")
+        raise HTTPException(422, "House BL type must be OTL, FMC or MTO (HAWB for air)")
     job = _job(db, user, job_number)
     ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == job.organization_id, HblCounter.hbl_type == hbl_type))
     return {"preview": hbl_preview(db, job, hbl_type, (ctr.last_no if ctr else 0) + 1), "pol_code": location_code(job.pol), "pod_code": location_code(job.pod)}
