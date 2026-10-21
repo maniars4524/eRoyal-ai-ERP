@@ -175,6 +175,7 @@ def _new_document(db: Session, user: User, org_id: int, payload: DocumentIn) -> 
     _apply_lines(doc, payload.lines)
     db.add(doc)
     db.flush()
+    assign_proforma_no(db, org_id, doc)
     jl.doc_hook(db, doc, user, "DRAFT_CREATED")
     return doc
 
@@ -218,6 +219,24 @@ def summary(user: User = Depends(permission_required("billing.read")), db: Sessi
     billed = sum((d.subtotal for d in docs if d.doc_type == "invoice" and d.doc_date >= month_start), Decimal(0))
     return {"receivable_outstanding": str(ar), "payable_outstanding": str(ap), "receivable_overdue": str(overdue), "invoiced_this_month": str(billed),
             "open_invoices": sum(1 for d in docs if d.doc_type == "invoice" and outstanding(d) > 0)}
+
+
+def assign_proforma_no(db: Session, org_id: int, doc: Document) -> None:
+    """A customer invoice carries its proforma number from the moment the draft is saved (PF/<fiscal year>/<running no>); the number never changes afterwards."""
+    from .models import HblCounter
+
+    header = dict(doc.header or {})
+    if doc.doc_type != "invoice" or header.get("proforma_no"):
+        return
+    ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == org_id, HblCounter.hbl_type == "PF").with_for_update())
+    if ctr is None:
+        ctr = HblCounter(organization_id=org_id, hbl_type="PF", last_no=0)
+        db.add(ctr)
+        db.flush()
+    ctr.last_no += 1
+    header["proforma_no"] = f"PF/{fiscal_year(doc.doc_date)}/{ctr.last_no:05d}"
+    header.setdefault("proforma_date", date.today().isoformat())
+    doc.header = header
 
 
 @router.post("", status_code=201)
@@ -285,6 +304,10 @@ def from_job(payload: FromJob, user: User = Depends(permission_required("billing
 
 @router.get("/{doc_id}")
 def get_document(doc_id: int, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    d = _load(db, _tenant(user), doc_id, lock=True)
+    if d.doc_type == "invoice" and d.status == "DRAFT" and not (d.header or {}).get("proforma_no"):   # a draft saved before proforma numbers existed
+        assign_proforma_no(db, _tenant(user), d)
+        db.commit()
     return _out(_load(db, _tenant(user), doc_id), True, proforma_required(db, _tenant(user)))
 
 
@@ -300,14 +323,18 @@ def update_document(doc_id: int, payload: DocumentPatch, user: User = Depends(pe
     if "ref_document_id" in changes:
         _check_reference(db, org_id, doc.doc_type, changes["ref_document_id"])
     lines = payload.lines
+    kept = {k: v for k, v in (doc.header or {}).items() if k in ("proforma_no", "proforma_date")}
     for key, value in changes.items():
         if key == "lines" or (value is None and key not in ("due_date", "customer_id", "ref_document_id", "remarks", "party_gstin", "place_of_supply")):
             continue
         setattr(doc, key, value)
+    if kept and "header" in changes:
+        doc.header = {**(doc.header or {}), **kept}
     if lines is not None:
         _apply_lines(doc, lines)
     elif "header" in changes and doc.lines:   # e.g. the round-off switch: the totals are worked out again from the same lines
         _apply_lines(doc, [LineIn(charge_name=l.charge_name, description=l.description, hsn=l.hsn, uom=l.uom, qty=l.qty, ccy=l.ccy, exch=l.exch, rate=l.rate, tax_type=l.tax_type, tax_pct=l.tax_pct, job_number=l.job_number) for l in doc.lines])
+    assign_proforma_no(db, org_id, doc)   # drafts saved before proforma numbers existed get theirs on the next save
     record_audit(db, "DOCUMENT_UPDATED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"fields": sorted(k for k in changes if k != "lines"), "lines": None if lines is None else len(lines)})
     db.commit()
     return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
@@ -378,15 +405,8 @@ def confirm_proforma(doc_id: int, user: User = Depends(permission_required("bill
         raise HTTPException(status_code=409, detail="Only a draft proforma can be confirmed")
     jl.guard_document_job(db, doc.shipment_id)
     _proforma_checks(doc)
+    assign_proforma_no(db, org_id, doc)
     header = dict(doc.header or {})
-    if not header.get("proforma_no"):
-        ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == org_id, HblCounter.hbl_type == "PF").with_for_update())
-        if ctr is None:
-            ctr = HblCounter(organization_id=org_id, hbl_type="PF", last_no=0)
-            db.add(ctr)
-            db.flush()
-        ctr.last_no += 1
-        header["proforma_no"] = f"PF/{fiscal_year(doc.doc_date)}/{ctr.last_no:05d}"
     header.update({"proforma_date": date.today().isoformat(), "proforma_confirmed_by": user.id})
     doc.header = header
     doc.status = "CONFIRMED"

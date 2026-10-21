@@ -621,6 +621,9 @@ tbody tr:hover{background:var(--g0)}
 .coa-grp{font-weight:600;padding:2px 0}
 .coa-acc{padding-left:20px;color:var(--g7)}
 .coa-note{color:var(--g5);font-family:var(--font-sans);font-size:11px}
+.coa-row{padding:1px 6px;cursor:pointer;border-radius:4px;line-height:1.9;font-family:var(--font-sans);font-size:12px}
+.coa-row:hover{background:var(--g0)}
+.coa-row.sel{background:var(--blt, #e3edff);outline:1px solid var(--bl)}
 
 /* ---------- TOAST ---------- */
 .toast-stack{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:999;width:300px}
@@ -1425,21 +1428,21 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Vouchers</div>
       <div class="mn-sub-item" data-go="invoice-list"><svg class="ic" data-icon="receipt"></svg>Tax Invoices (AR) <span class="mn-badge" id="badgeInv">5</span></div>
-      <div class="mn-sub-item" data-go="invoice-list"><svg class="ic" data-icon="cash"></svg>Receipt Voucher</div>
-      <div class="mn-sub-item" data-go="payment"><svg class="ic" data-icon="cash"></svg>Payment Voucher</div>
+      <div class="mn-sub-item" data-go="receipt-voucher"><svg class="ic" data-icon="cash"></svg>Receipt Voucher</div>
+      <div class="mn-sub-item" data-go="payment-voucher"><svg class="ic" data-icon="cash"></svg>Payment Voucher</div>
       <div class="mn-sub-item" data-go="journal-voucher"><svg class="ic" data-icon="file-text"></svg>Journal Voucher</div>
       <div class="mn-sub-item" data-go="contra-voucher"><svg class="ic" data-icon="refresh-cw"></svg>Contra Voucher</div>
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Payables &amp; Receivables</div>
       <div class="mn-sub-item" data-go="vendor-bill"><svg class="ic" data-icon="bank"></svg>Vendor Bills</div>
-      <div class="mn-sub-item" data-go="payment"><svg class="ic" data-icon="cash"></svg>Customer Receipts</div>
+      <div class="mn-sub-item" data-go="receipt-voucher"><svg class="ic" data-icon="cash"></svg>Customer Receipts</div>
       <div class="mn-sub-item" data-go="debit-note-list"><svg class="ic" data-icon="file-minus"></svg>Debit Notes</div>
       <div class="mn-sub-item" data-go="purchase-invoice-list"><svg class="ic" data-icon="file-plus"></svg>Purchase Invoices</div>
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Tax</div>
-      <div class="mn-sub-item" data-go="coa"><svg class="ic" data-icon="license"></svg>Tax Master</div>
-      <div class="mn-sub-item" data-go="coa"><svg class="ic" data-icon="percent"></svg>TDS</div>
-      <div class="mn-sub-item" data-go="coa"><svg class="ic" data-icon="calendar-check"></svg>Financial Year Closing</div>
+      <div class="mn-sub-item" data-go="hsn-master"><svg class="ic" data-icon="license"></svg>Tax Master (SAC / HSN)</div>
+      <div class="mn-sub-item" data-soon="TDS return and challan screens are not built yet. TDS deducted by customers is already recorded on every receipt"><svg class="ic" data-icon="percent"></svg>TDS</div>
+      <div class="mn-sub-item" data-soon="Financial year closing is not built yet"><svg class="ic" data-icon="calendar-check"></svg>Financial Year Closing</div>
     </div>
   </div>
 
@@ -3839,6 +3842,28 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <div class="card"><div class="tw"><table><thead><tr><th>Payment No</th><th>Date</th><th>Type</th><th>Party</th><th>Mode</th><th>UTR / Ref</th><th>Amount</th><th>Allocated To</th><th>Status</th></tr></thead><tbody></tbody></table></div></div></div>
 
+<!-- ====== RECEIPT VOUCHERS ====== -->
+<div id="s-receipt-voucher" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="cash" style="color:var(--bl)"></svg>Receipt Vouchers</div><div class="ps">Money received from customers · open a voucher to view or print it · TDS and round off are shown per voucher</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="rvNewBtn"><svg class="ic" data-icon="plus"></svg> New Receipt</button></div></div>
+<div class="kpi-row">
+<div class="kpi"><div class="kpi-lbl">AR Receipts MTD</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">AP Payments MTD</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">Bank Balance</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">Pending Allocations</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+</div>
+<div class="card"><div class="tw"><table><thead><tr><th>Payment No</th><th>Date</th><th>Party</th><th>Mode</th><th>UTR / Ref</th><th>Amount</th><th>Allocated To</th><th>Status</th></tr></thead><tbody></tbody></table></div></div></div>
+
+<!-- ====== PAYMENT VOUCHERS ====== -->
+<div id="s-payment-voucher" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="cash" style="color:var(--bl)"></svg>Payment Vouchers</div><div class="ps">Money paid to vendors · open a voucher to view or print it</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="pvNewBtn"><svg class="ic" data-icon="plus"></svg> New Payment</button></div></div>
+<div class="kpi-row">
+<div class="kpi"><div class="kpi-lbl">AR Receipts MTD</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">AP Payments MTD</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">Bank Balance</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+<div class="kpi"><div class="kpi-lbl">Pending Allocations</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
+</div>
+<div class="card"><div class="tw"><table><thead><tr><th>Payment No</th><th>Date</th><th>Party</th><th>Mode</th><th>UTR / Ref</th><th>Amount</th><th>Allocated To</th><th>Status</th></tr></thead><tbody></tbody></table></div></div></div>
+
 <!-- ====== ACCOUNTS REPORTS ====== -->
 <div id="s-acc-reports" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="book" style="color:var(--bl)"></svg>Accounts Reports</div><div class="ps">Party ledger · cash and bank book · outstanding with ageing. Built from the same vouchers as the job screens</div></div><div class="pa"><button class="btn btn-out btn-sm" id="ar_print">🖨 Print</button></div></div>
@@ -5371,50 +5396,13 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== COA ====== -->
 <div id="s-coa" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="book" style="color:var(--bl)"></svg>Chart of Accounts</div><div class="ps">4-Level: Category → Group → Sub Group → Account (Ledger)</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="coaExpandBtn">Expand All</button><button class="btn btn-pri btn-sm" id="newCoaBtn"><svg class="ic" data-icon="plus"></svg> New Account</button></div></div>
-<div class="card"><div class="ch"><div class="ct">COA Tree — RG Cargo Services Pvt Ltd</div></div><div class="cb">
-<div class="coa-tree" id="coaTree">
-
-<div class="coa-cat" data-coa-toggle><svg class="ic ic-sm" data-icon="chevron-down"></svg> 1000 — ASSETS &nbsp;<span class="b b-bl" style="font-size:10px">DR Normal</span></div>
-<div class="coa-kids">
-  <div class="coa-grp">&nbsp;&nbsp;<span class="b b-gr" style="font-size:10px">Control</span> <strong>1100 — Sundry Debtors (AR)</strong> &nbsp;<span class="coa-note">← is_receivable links here</span></div>
-  <div class="coa-acc">&nbsp;&nbsp;1101 — Customer Receivables &nbsp;<span class="coa-note">Auto-created per client org</span></div>
-  <div class="coa-acc">&nbsp;&nbsp;1102 — Agent Receivables</div>
-  <div class="coa-grp">&nbsp;&nbsp;<strong>1200 — Cash &amp; Bank</strong></div>
-  <div class="coa-acc">&nbsp;&nbsp;1201 — Petty Cash</div>
-  <div class="coa-acc">&nbsp;&nbsp;1202 — Current Account HDFC Chennai</div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="book" style="color:var(--bl)"></svg>Chart of Accounts</div><div class="ps">Main groups &gt; sub groups &gt; G/L accounts. Account codes are generated by the system. Parties, charges, banks and employees create their own ledgers from their masters</div></div><div class="pa"><button class="btn btn-out btn-sm" data-coa-act="sy" title="Create any ledger that is missing for the existing masters">Refresh from masters</button><button class="btn btn-out btn-sm" data-coa-act="ex">Export</button></div></div>
+<div class="card"><div class="cb">
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><button class="btn btn-pri btn-sm" data-coa-act="ng">New Group</button><button class="btn btn-pri btn-sm" data-coa-act="nl">New G/L</button><button class="btn btn-out btn-sm" data-coa-act="ed">Edit</button><button class="btn btn-out btn-sm" data-coa-act="mv">Move</button><button class="btn btn-out btn-sm" data-coa-act="all">Expand all</button><button class="btn btn-out btn-sm" data-coa-act="none">Collapse</button>
+<label style="font-size:11px;margin-left:8px">Show <select class="fc" id="coaShow" style="width:auto;display:inline-block"><option value="ALL">All</option><option value="ACTIVE">Active only</option><option value="INACTIVE">Inactive only</option></select></label><input class="fc" id="coaSearch" placeholder="Search code, name or alias" style="width:220px;margin-left:auto"></div>
+<div style="display:grid;grid-template-columns:minmax(320px,1.4fr) minmax(260px,1fr);gap:12px;align-items:start"><div class="coa-tree" id="coaTree" style="max-height:62vh;overflow:auto;border:1px solid var(--g2);border-radius:6px;padding:6px"></div><div style="border:1px solid var(--g2);border-radius:6px;padding:8px"><div style="font-weight:800;margin-bottom:4px">Details</div><div id="coaDetails" style="font-size:12px"></div></div></div>
+</div></div>
 </div>
-
-<div class="coa-cat" data-coa-toggle style="color:var(--rd)"><svg class="ic ic-sm" data-icon="chevron-down"></svg> 2000 — LIABILITIES &nbsp;<span class="b b-rd" style="font-size:10px">CR Normal</span></div>
-<div class="coa-kids">
-  <div class="coa-grp">&nbsp;&nbsp;<span class="b b-rd" style="font-size:10px">Control</span> <strong>2100 — Sundry Creditors (AP)</strong> &nbsp;<span class="coa-note">← is_payable links here</span></div>
-  <div class="coa-acc">&nbsp;&nbsp;2101 — Vendor Payables (Shipping Lines)</div>
-  <div class="coa-acc">&nbsp;&nbsp;2102 — CHA / Broker Payables</div>
-  <div class="coa-acc">&nbsp;&nbsp;2104 — Transport Vendor Payables</div>
-  <div class="coa-grp">&nbsp;&nbsp;<strong>2200 — GST Tax Liabilities</strong></div>
-  <div class="coa-acc">&nbsp;&nbsp;2201 — CGST · 2202 — SGST · 2203 — IGST Payable</div>
-</div>
-
-<div class="coa-cat" data-coa-toggle style="color:var(--gr)"><svg class="ic ic-sm" data-icon="chevron-down"></svg> 3000 — INCOME &nbsp;<span class="b b-gr" style="font-size:10px">CR Normal</span></div>
-<div class="coa-kids">
-  <div class="coa-acc">&nbsp;&nbsp;3100 — Freight Income (Sea) · 3200 — Freight Income (Air)</div>
-  <div class="coa-acc">&nbsp;&nbsp;3300 — CHA Service Income · 3400 — Transport Income · 3500 — Warehouse Income</div>
-</div>
-
-<div class="coa-cat" data-coa-toggle style="color:var(--am)"><svg class="ic ic-sm" data-icon="chevron-down"></svg> 4000 — DIRECT EXPENSES &nbsp;<span class="b b-am" style="font-size:10px">DR Normal</span></div>
-<div class="coa-kids">
-  <div class="coa-acc">&nbsp;&nbsp;4100 — Ocean Freight Cost · 4200 — Air Freight Cost</div>
-  <div class="coa-acc">&nbsp;&nbsp;4300 — Customs Duty &amp; Taxes · 4400 — Transport Cost · 4500 — Port/CFS Charges</div>
-</div>
-
-<div class="coa-cat" data-coa-toggle style="color:var(--g6)"><svg class="ic ic-sm" data-icon="chevron-down"></svg> 5000 — INDIRECT EXPENSES &nbsp;·&nbsp; 6000 — EQUITY / CAPITAL</div>
-<div class="coa-kids">
-  <div class="coa-acc">&nbsp;&nbsp;5100 — Salaries &amp; Wages · 5200 — Rent · 5300 — Office Admin</div>
-  <div class="coa-acc">&nbsp;&nbsp;6100 — Share Capital · 6200 — Retained Earnings</div>
-</div>
-
-</div></div></div></div>
-
 <!-- ====== P&L ====== -->
 <div id="s-pnl" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="chart-bar" style="color:var(--gr)"></svg>Job Profitability Report</div><div class="ps">Gross profit per shipment — all modules combined</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="reports" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" data-export="pnl"><svg class="ic" data-icon="download"></svg> Export</button></div></div>
@@ -6013,6 +6001,8 @@ const SCREEN_META = {
   "purchase-invoice-new":{title:"New Purchase Invoice", crumb:"eSway ERP 2.0 / Purchase Invoices / <strong>New</strong>", menu:"purchase-invoice-list"},
   "vendor-bill":{title:"Vendor Bills", crumb:"eSway ERP 2.0 / <strong>Vendor Bills</strong>", menu:"vendor-bill"},
   "payment":{title:"Payments", crumb:"eSway ERP 2.0 / <strong>Payments</strong>", menu:"payment"},
+  "receipt-voucher":{title:"Receipt Vouchers", crumb:"eSway ERP 2.0 / Accounts / <strong>Receipt Vouchers</strong>", menu:"receipt-voucher"},
+  "payment-voucher":{title:"Payment Vouchers", crumb:"eSway ERP 2.0 / Accounts / <strong>Payment Vouchers</strong>", menu:"payment-voucher"},
   "journal-voucher":{title:"Journal Voucher", crumb:"eSway ERP 2.0 / Accounts / <strong>Journal Voucher</strong>", menu:"journal-voucher"},
   "journal-voucher-new":{title:"Journal Voucher — New", crumb:"eSway ERP 2.0 / Accounts / Journal Voucher / <strong>New</strong>", menu:"journal-voucher"},
   "contra-voucher":{title:"Contra Voucher", crumb:"eSway ERP 2.0 / Accounts / <strong>Contra Voucher</strong>", menu:"contra-voucher"},
@@ -6229,21 +6219,21 @@ const TOPNAV_MENU = [
     ]},
     {label:"Vouchers", icon:"receipt", children:[
       {label:"Tax Invoices (AR)", icon:"receipt", go:"invoice-list", badge:"badgeInv"},
-      {label:"Receipt Voucher", icon:"cash", go:"invoice-list"},
-      {label:"Payment Voucher", icon:"cash", go:"payment"},
+      {label:"Receipt Voucher", icon:"cash", go:"receipt-voucher"},
+      {label:"Payment Voucher", icon:"cash", go:"payment-voucher"},
       {label:"Journal Voucher", icon:"file-text", go:"journal-voucher"},
       {label:"Contra Voucher", icon:"refresh-cw", go:"contra-voucher"},
     ]},
     {label:"Payables & Receivables", icon:"bank", children:[
       {label:"Vendor Bills", icon:"bank", go:"vendor-bill"},
-      {label:"Customer Receipts", icon:"cash", go:"payment"},
+      {label:"Customer Receipts", icon:"cash", go:"receipt-voucher"},
       {label:"Debit Notes", icon:"file-minus", go:"debit-note-list"},
       {label:"Purchase Invoices", icon:"file-plus", go:"purchase-invoice-list"},
     ]},
     {label:"Tax", icon:"license", children:[
-      {label:"Tax Master", icon:"license", go:"coa"},
-      {label:"TDS", icon:"percent", go:"coa"},
-      {label:"Financial Year Closing", icon:"calendar-check", go:"coa"},
+      {label:"Tax Master (SAC / HSN)", icon:"license", go:"hsn-master"},
+      {label:"TDS", icon:"percent", soon:"TDS return and challan screens are not built yet. TDS deducted by customers is already recorded on every receipt"},
+      {label:"Financial Year Closing", icon:"calendar-check", soon:"Financial year closing is not built yet"},
     ]},
   ]},
   {id:"perf", label:"Performance", icon:"chart-pie", children:[
@@ -6331,9 +6321,9 @@ const TOPNAV_MENU = [
       {label:"Journal Register", icon:"file-text", go:"journal-voucher"},
       {label:"Outstanding Receivable", icon:"user", go:"pr-ledger", prltype:"RECEIVABLE"},
       {label:"Outstanding Payable", icon:"bank", go:"pr-ledger", prltype:"PAYABLE"},
-      {label:"Ageing Report", icon:"chart-bar", go:"pr-ledger"},
-      {label:"Receipt Register", icon:"cash", go:"invoice-list"},
-      {label:"Payment Register", icon:"cash", go:"payment"},
+      {label:"Ageing Report", icon:"chart-bar", go:"acc-reports"},
+      {label:"Receipt Register", icon:"cash", go:"receipt-voucher"},
+      {label:"Payment Register", icon:"cash", go:"payment-voucher"},
       {label:"Ledger Statement", icon:"book", go:"pr-ledger"},
       {label:"Accounts Payable", icon:"bank", children:[
         {label:"A/P Customer wise OS Report", icon:"bank", go:"pr-ledger", prltype:"PAYABLE"},
@@ -6349,8 +6339,8 @@ const TOPNAV_MENU = [
     {label:"Vouchers", icon:"receipt", children:[
       {label:"Sales Invoice", icon:"receipt", go:"invoice-list"},
       {label:"Purchase Invoice", icon:"file-plus", go:"purchase-invoice-list"},
-      {label:"Receipt Voucher", icon:"cash", go:"invoice-list"},
-      {label:"Payment Voucher", icon:"cash", go:"payment"},
+      {label:"Receipt Voucher", icon:"cash", go:"receipt-voucher"},
+      {label:"Payment Voucher", icon:"cash", go:"payment-voucher"},
       {label:"Journal Voucher", icon:"file-text", go:"journal-voucher"},
       {label:"Contra Voucher", icon:"refresh-cw", go:"contra-voucher"},
       {label:"Credit Note", icon:"file-text", go:"reports"},
@@ -6458,6 +6448,7 @@ function tnBuildLevel(nodes, depth){
     row.setAttribute("role","menuitem");
     if(node.go) row.dataset.go = node.go;
     if(node.prltype) row.dataset.prltype = node.prltype;
+    if(node.soon) row.dataset.soon = node.soon;
     row.innerHTML = '<svg class="ic" data-icon="'+esc(node.icon||"file")+'"></svg>'
       +'<span class="tn-label">'+esc(node.label)+'</span>'
       +(node.badge ? '<span class="tn-badge" id="'+node.badge+'-sf">•</span>' : '')
@@ -6791,19 +6782,7 @@ document.addEventListener("click", e=>{
   arrow.classList.toggle("open", !isOpen);
 });
 
-/* ============================================================
-   4c. COA TREE TOGGLE
-   ============================================================ */
-document.addEventListener("click", e=>{
-  const cat = e.target.closest("[data-coa-toggle]");
-  if(!cat) return;
-  cat.classList.toggle("collapsed");
-});
-$("#coaExpandBtn").addEventListener("click", ()=>{
-  const anyCollapsed = $all("[data-coa-toggle]").some(c=>c.classList.contains("collapsed"));
-  $all("[data-coa-toggle]").forEach(c=>c.classList.toggle("collapsed", !anyCollapsed));
-  $("#coaExpandBtn").textContent = anyCollapsed ? "Collapse All" : "Expand All";
-});
+/* 4c. The chart of accounts tree is drawn by CoaKit (live from /api/coa) */
 
 /* ============================================================
    4d. ROLE FLAG TOGGLES (Org New screen)
@@ -14354,16 +14333,18 @@ if(document.readyState !== "loading") initChatWidget();
         if(!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Invalid payment details");
         closeModal(); say("Payment recorded", data.pay_number+" · "+inr(data.amount));
         if(BK.state && BK.state.doc && document.getElementById("s-"+BK.state.screen).classList.contains("on")) BK.openDoc(BK.state.doc.id);
-        else if(document.getElementById("s-payment").classList.contains("on")) loadPayments();
+        else reloadVouchers();
       }catch(err){ say("Could not record payment", err.message); btn.disabled = false; }
     });
   };
-  async function loadPayments(){
-    const scr = document.getElementById("s-payment"); const tbody = scr && scr.querySelector("tbody"); if(!tbody) return;
+  const VOUCHER_SCREENS = {"s-payment":null, "s-receipt-voucher":"RECEIPT", "s-payment-voucher":"PAYMENT"};
+  async function loadPayments(sid, dir){
+    sid = sid || "s-payment"; if(dir === undefined) dir = VOUCHER_SCREENS[sid];
+    const scr = document.getElementById(sid); const tbody = scr && scr.querySelector("tbody"); if(!tbody) return; const typed = sid === "s-payment";
     try{
-      const [pays, docs] = await Promise.all([api("GET","/api/payments"), api("GET","/api/documents").catch(()=>[])]);
+      const [pays, docs] = await Promise.all([api("GET","/api/payments"+(dir ? "?direction="+dir : "")), api("GET","/api/documents").catch(()=>[])]);
       const num = Object.fromEntries(docs.map(d=>[d.id, d.doc_number||("#"+d.id)]));
-      tbody.innerHTML = pays.length ? pays.map(p=>'<tr><td class="mono" style="color:var(--bl);font-weight:600;cursor:pointer" data-vch-pay="'+p.id+'" title="Open the voucher">'+esc2(p.pay_number)+'</td><td>'+dmy(p.pay_date)+'</td><td><span class="b '+(p.direction==="RECEIPT"?"b-gr":"b-am")+'">'+(p.direction==="RECEIPT"?"AR Receipt":"AP Payment")+'</span></td><td>'+esc2(p.party_name||"—")+'</td><td>'+esc2(p.method)+'</td><td>'+esc2(p.reference||"—")+'</td><td style="text-align:right">'+inr(p.amount)+'</td><td>'+esc2(p.allocations.map(a=>num[a.document_id]).join(", ")||"Unallocated")+'</td><td><span class="b '+(p.status==="POSTED"?"b-gr":"b-gy")+'">'+esc2(p.status.charAt(0)+p.status.slice(1).toLowerCase())+'</span>'+(p.status==="POSTED"?' <button class="ta" data-pay-cancel="'+p.id+'" style="color:var(--rd)">Cancel</button>':'')+'</td></tr>').join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No payments recorded yet.</td></tr>';
+      tbody.innerHTML = pays.length ? pays.map(p=>'<tr><td class="mono" style="color:var(--bl);font-weight:600;cursor:pointer" data-vch-pay="'+p.id+'" title="Open the voucher">'+esc2(p.pay_number)+'</td><td>'+dmy(p.pay_date)+'</td>'+(typed ? '<td><span class="b '+(p.direction==="RECEIPT"?"b-gr":"b-am")+'">'+(p.direction==="RECEIPT"?"AR Receipt":"AP Payment")+'</span></td>' : "")+'<td>'+esc2(p.party_name||"—")+'</td><td>'+esc2(p.method)+'</td><td>'+esc2(p.reference||"—")+'</td><td style="text-align:right">'+inr(p.amount)+'</td><td>'+esc2(p.allocations.map(a=>num[a.document_id]).join(", ")||"Unallocated")+'</td><td><span class="b '+(p.status==="POSTED"?"b-gr":"b-gy")+'">'+esc2(p.status.charAt(0)+p.status.slice(1).toLowerCase())+'</span>'+(p.status==="POSTED"?' <button class="ta" data-pay-cancel="'+p.id+'" style="color:var(--rd)">Cancel</button>':'')+'</td></tr>').join("") : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">'+(dir === "RECEIPT" ? "No receipts recorded yet." : dir === "PAYMENT" ? "No payments recorded yet." : "No payments recorded yet.")+'</td></tr>';
       const m = today().slice(0,7), live = pays.filter(p=>p.status==="POSTED"), mo = live.filter(p=>(p.pay_date||"").startsWith(m));
       const sum = a=> a.reduce((x,p)=>x+Number(p.amount),0);
       const kpis = scr.querySelectorAll(".kpi"); const set = (i,v,s)=>{ const k = kpis[i]; if(!k) return; const a = k.querySelector(".kpi-val"), b = k.querySelector(".kpi-sub"); if(a) a.textContent = v; if(b) b.textContent = s||""; };
@@ -14373,8 +14354,12 @@ if(document.readyState !== "loading") initChatWidget();
   document.addEventListener("click", async e=>{
     const c = e.target.closest("[data-pay-cancel]"); if(!c) return; e.stopPropagation();
     if(!window.confirm("Cancel this payment? Its allocations are released.")) return;
-    try{ await api("POST","/api/payments/"+c.dataset.payCancel+"/cancel"); say("Payment cancelled", ""); loadPayments(); }catch(err){ say("Could not cancel", err.message); }
+    try{ await api("POST","/api/payments/"+c.dataset.payCancel+"/cancel"); say("Payment cancelled", ""); reloadVouchers(); }catch(err){ say("Could not cancel", err.message); }
   }, true);
+  function reloadVouchers(){ Object.keys(VOUCHER_SCREENS).forEach(id=>{ const e = document.getElementById(id); if(e && e.classList.contains("on")) loadPayments(id); }); }
+  function wireVoucherScreens(){
+    [["rvNewBtn", "RECEIPT"], ["pvNewBtn", "PAYMENT"]].forEach(([id, dir])=>{ const b = document.getElementById(id); if(b && !b.dataset.bkWired){ b.dataset.bkWired = "1"; b.addEventListener("click", ev=>{ ev.stopImmediatePropagation(); BK.openPayment(dir, null); }, true); } });
+  }
   function wirePaymentButtons(){
     const scr = document.getElementById("s-payment"); if(!scr || scr.dataset.bkWired) return; scr.dataset.bkWired = "1";
     const ap = document.getElementById("newApPaymentBtn"), ar = document.getElementById("newArReceiptBtn");
@@ -14403,6 +14388,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(SCREEN_DEFAULT[screen]) showEditor(screen);
     if(LISTS[screen]){ wireListButtons(screen); loadList(screen); }
     if(screen === "payment"){ wirePaymentButtons(); loadPayments(); }
+    if(screen === "receipt-voucher" || screen === "payment-voucher"){ wireVoucherScreens(); loadPayments("s-"+screen); }
   };
 })();
 
@@ -18439,8 +18425,115 @@ function makePrintFit(){
   };
   document.addEventListener("click", e=>{ const t = e.target.closest("[data-ar-tab]"); if(t){ AR.tab = t.dataset.arTab; AR.load(); } if(e.target.closest("#ar_print")) window.print(); });
   document.addEventListener("change", e=>{ if(["ar_party", "ar_from", "ar_to", "ar_side"].indexOf(e.target.id) > -1) AR.load(); });
+  document.addEventListener("click", e=>{ const t = e.target.closest("[data-soon]"); if(t){ e.preventDefault(); e.stopPropagation(); say(t.textContent.trim() || "Not available yet", t.dataset.soon, "info"); } }, true);
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "acc-reports") AR.show(); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   COA KIT: chart of accounts. Main groups (Assets, Liabilities, Income, Expenses) > sub groups > ledgers with system generated codes.
+   Parties, charges, banks and employees get their ledgers from their masters. Tree, details, new group / G/L, edit, move, search, export.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const C = window.CoaKit = {tree:[], sel:null, show:"ALL", open:{}};
+  const fmt = n=> Number(n || 0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const NAT = {ASSETS:"#1f5fbf", LIABILITIES:"#c1272d", INCOME:"#1f7a4d", EXPENSES:"#8a6d00"};
+  function walk(nodes, fn){ nodes.forEach(n=>{ fn(n); walk(n.groups, fn); }); }
+  function find(kind, id){ let hit = null; walk(C.tree, g=>{ if(kind === "group" && g.id === id) hit = g; g.ledgers.forEach(l=>{ if(kind === "ledger" && l.id === id) hit = l; }); }); return hit; }
+  function openUp(gid){ while(gid){ C.open[gid] = true; const g = find("group", gid); gid = g ? g.parent_id : null; } }
+  C.load = async function(keep){
+    const box = el("coaTree"); if(!box) return; if(!keep){ C.show = "ALL"; const sh = el("coaShow"); if(sh) sh.value = "ALL"; }
+    try{ const r = await api("GET", "/api/coa/tree"); C.tree = r.groups; }catch(e){ box.innerHTML = '<div class="ib ib-am">'+esc2(e.message)+'</div>'; return; }
+    if(!keep) walk(C.tree, g=>{ if(C.open[g.id] === undefined) C.open[g.id] = g.level <= 2; });
+    C.draw();
+  };
+  C.draw = function(){
+    const box = el("coaTree"); if(!box) return;
+    const showOk = s=> C.show === "ALL" || (C.show === "ACTIVE" && s === "ACTIVE") || (C.show === "INACTIVE" && s !== "ACTIVE");
+    const row = (n, depth)=>{
+      const sel = C.sel && C.sel.kind === "group" && C.sel.id === n.id; const open = C.open[n.id];
+      let h = '<div class="coa-row'+(sel ? " sel" : "")+'" data-coa-g="'+n.id+'" style="padding-left:'+(depth * 18 + 4)+'px"><span data-coa-tg="'+n.id+'" style="cursor:pointer;display:inline-block;width:14px">'+(open ? "▾" : "▸")+'</span> <b style="color:'+(NAT[n.nature] || "inherit")+'">'+esc2(n.name)+'</b> <span class="coa-note">'+esc2(n.code)+' · L'+n.level+' · '+n.ledger_count+' ledger'+(n.ledger_count === 1 ? "" : "s")+'</span>'+(n.status !== "ACTIVE" ? ' <span class="b b-gy" style="font-size:9px">Inactive</span>' : "")+'</div>';
+      if(open){
+        n.groups.forEach(k=>{ h += row(k, depth + 1); });
+        n.ledgers.filter(l=>showOk(l.status)).forEach(l=>{ const s2 = C.sel && C.sel.kind === "ledger" && C.sel.id === l.id;
+          h += '<div class="coa-row'+(s2 ? " sel" : "")+'" data-coa-l="'+l.id+'" style="padding-left:'+((depth + 1) * 18 + 22)+'px"><span class="mono" style="color:var(--g6)">'+esc2(l.code)+'</span> — '+esc2(l.name)+(l.status !== "ACTIVE" ? ' <span class="b b-gy" style="font-size:9px">Inactive</span>' : "")+(l.source_type ? ' <span class="coa-note">'+esc2(l.source_type === "customer" ? "from party master" : "from "+l.source_type+" master")+'</span>' : l.system ? ' <span class="coa-note">system</span>' : "")+'</div>'; });
+      }
+      return h;
+    };
+    box.innerHTML = C.tree.map(n=>row(n, 0)).join("") || '<div class="coa-note">No accounts</div>';
+    C.details();
+  };
+  C.details = function(){
+    const d = el("coaDetails"); if(!d) return;
+    if(!C.sel){ d.innerHTML = '<div class="coa-note" style="padding:10px">Select a group or a ledger on the left to see its details</div>'; return; }
+    const x = find(C.sel.kind, C.sel.id); if(!x){ C.sel = null; return C.details(); }
+    const kv = (a, b)=> '<div style="display:flex;padding:3px 0;border-bottom:1px solid var(--g1)"><div style="width:150px;color:var(--g5)">'+a+'</div><div style="flex:1;font-weight:600">'+b+'</div></div>';
+    if(C.sel.kind === "group") d.innerHTML = kv("Type", "Group (level "+x.level+")")+kv("Name", esc2(x.name))+kv("Code prefix", esc2(x.code))+kv("Main group", esc2(x.nature))+kv("Path", esc2(x.path))+kv("Ledgers inside", x.ledger_count)+kv("Status", esc2(x.status))+kv("Standard group", x.system ? "Yes" : "No");
+    else d.innerHTML = kv("Type", "Ledger (G/L)")+kv("Code", '<span class="mono">'+esc2(x.code)+'</span> <span class="coa-note">system generated</span>')+kv("Name", esc2(x.name))+kv("Alias", esc2(x.alias || ""))+kv("Group", esc2(x.path))+kv("Currency", esc2(x.currency))+kv("Opening balance", fmt(x.opening_balance)+" "+esc2(x.opening_side))+kv("Source", esc2(x.source_type ? "Created from the "+(x.source_type === "customer" ? "party" : x.source_type)+" master" : x.system ? "System ledger" : "Entered here"))+kv("Status", esc2(x.status));
+  };
+  const groupsFlat = ()=>{ const out = []; walk(C.tree, g=>out.push(g)); return out; };
+  const gOpt = g=> '<option value="'+g.id+'">'+esc2(g.path)+'</option>';
+  const baseGroup = ()=> C.sel ? (C.sel.kind === "group" ? C.sel.id : (find("ledger", C.sel.id) || {}).group_id) : null;
+  C.newGroup = function(){
+    const base = baseGroup();
+    openModal({title:"New Group", bodyHTML:'<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Parent group <span class="r">*</span></label><select class="fc" id="cg_parent">'+groupsFlat().map(gOpt).join("")+'</select></div></div><div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Group name <span class="r">*</span></label><input class="fc" id="cg_name" maxlength="120"></div><div class="fg"><label class="fl">Code prefix</label><input class="fc" id="cg_code" maxlength="12" placeholder="from the parent"></div></div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="cg_go">Create Group</button>'});
+    if(base) el("cg_parent").value = String(base);
+    el("cg_go").addEventListener("click", async ()=>{ const name = el("cg_name").value.trim(); if(!name){ say("Group name required", "", "warn"); return; } const parent = Number(el("cg_parent").value);
+      try{ const r = await api("POST", "/api/coa/groups", {parent_id:parent, name, code:el("cg_code").value.trim() || null}); closeModal(); say("Group created", r.name); C.sel = {kind:"group", id:r.id}; C.open[parent] = true; await C.load(true); }catch(e){ say("Could not create the group", e.message, "error"); } });
+  };
+  C.newLedger = function(){
+    const base = baseGroup(); const subs = groupsFlat().filter(g=>g.level >= 2);
+    openModal({title:"New G/L Account", bodyHTML:'<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Group <span class="r">*</span></label><select class="fc" id="cl_group">'+subs.map(gOpt).join("")+'</select></div></div><div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Account name <span class="r">*</span></label><input class="fc" id="cl_name" maxlength="200"></div><div class="fg"><label class="fl">Alias</label><input class="fc" id="cl_alias" maxlength="120"></div></div><div class="fr"><div class="fg"><label class="fl">Currency</label><input class="fc" id="cl_ccy" value="INR" maxlength="8"></div><div class="fg"><label class="fl">Opening balance</label><input class="fc" type="number" min="0" step="0.01" id="cl_ob" value="0"></div><div class="fg"><label class="fl">Dr / Cr</label><select class="fc" id="cl_side"><option>Dr</option><option>Cr</option></select></div></div><div class="coa-note">The account code is generated by the system from the group prefix.</div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="cl_go">Create G/L</button>'});
+    if(base && subs.some(g=>g.id === base)) el("cl_group").value = String(base);
+    el("cl_go").addEventListener("click", async ()=>{ const name = el("cl_name").value.trim(); if(!name){ say("Account name required", "", "warn"); return; }
+      try{ const r = await api("POST", "/api/coa/ledgers", {group_id:Number(el("cl_group").value), name, alias:el("cl_alias").value.trim() || null, currency:el("cl_ccy").value.trim() || "INR", opening_balance:String(el("cl_ob").value || 0), opening_side:el("cl_side").value}); closeModal(); say("G/L account created", r.code+" — "+r.name); C.sel = {kind:"ledger", id:r.id}; C.open[r.group_id] = true; await C.load(true); }catch(e){ say("Could not create the account", e.message, "error"); } });
+  };
+  C.edit = function(){
+    if(!C.sel){ say("Select an item first", "", "warn"); return; } const x = find(C.sel.kind, C.sel.id); const isG = C.sel.kind === "group";
+    const locked = isG ? x.system : !!(x.system || x.source_type);
+    openModal({title:"Edit "+(isG ? "Group" : "G/L Account"), bodyHTML:'<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Name</label><input class="fc" id="ce_name" value="'+esc2(x.name)+'" '+(locked ? "disabled" : "")+'></div><div class="fg"><label class="fl">Status</label><select class="fc" id="ce_status"><option>ACTIVE</option><option>INACTIVE</option></select></div></div>'+
+      (isG ? "" : '<div class="fr"><div class="fg"><label class="fl">Alias</label><input class="fc" id="ce_alias" value="'+esc2(x.alias || "")+'"></div><div class="fg"><label class="fl">Opening balance</label><input class="fc" type="number" min="0" step="0.01" id="ce_ob" value="'+esc2(x.opening_balance)+'"></div><div class="fg"><label class="fl">Dr / Cr</label><select class="fc" id="ce_side"><option>Dr</option><option>Cr</option></select></div></div>')+(locked ? '<div class="coa-note">'+(isG ? "A standard group keeps its name." : "The name of this account comes from its master. Rename it there.")+'</div>' : ""),
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="ce_go">Save</button>'});
+    el("ce_status").value = x.status; if(!isG) el("ce_side").value = x.opening_side;
+    el("ce_go").addEventListener("click", async ()=>{ const body = {status:el("ce_status").value}; if(!locked) body.name = el("ce_name").value.trim(); if(!isG){ body.alias = el("ce_alias").value.trim() || null; body.opening_balance = String(el("ce_ob").value || 0); body.opening_side = el("ce_side").value; }
+      try{ await api("PATCH", "/api/coa/"+(isG ? "groups/" : "ledgers/")+x.id, body); closeModal(); say("Saved", ""); await C.load(true); }catch(e){ say("Could not save", e.message, "error"); } });
+  };
+  C.move = function(){
+    if(!C.sel){ say("Select an item first", "", "warn"); return; } const x = find(C.sel.kind, C.sel.id); const isG = C.sel.kind === "group";
+    const targets = groupsFlat().filter(g=> isG ? (g.nature === x.nature && g.id !== x.id && !g.path.startsWith(x.path+" > ")) : g.level >= 2);
+    openModal({title:"Move "+esc2(x.name), bodyHTML:'<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Move to group</label><select class="fc" id="cm_to">'+targets.map(gOpt).join("")+'</select></div></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="cm_go">Move</button>'});
+    el("cm_go").addEventListener("click", async ()=>{ const to = Number(el("cm_to").value); try{ await api("POST", "/api/coa/move", {kind:C.sel.kind, id:x.id, to_group_id:to}); closeModal(); say("Moved", ""); C.open[to] = true; await C.load(true); }catch(e){ say("Could not move", e.message, "error"); } });
+  };
+  C.search = async function(){
+    const q = (el("coaSearch").value || "").trim(); if(!q){ C.draw(); return; }
+    try{ const r = await api("GET", "/api/coa/search?q="+encodeURIComponent(q)); const box = el("coaTree");
+      box.innerHTML = r.length ? r.map(x=>'<div class="coa-row" data-coa-'+(x.kind === "group" ? "g" : "l")+'="'+x.id+'" data-coa-found="1"><span class="mono" style="color:var(--g6)">'+esc2(x.code)+'</span> — <b>'+esc2(x.name)+'</b> <span class="coa-note">'+esc2(x.kind === "group" ? "Group" : "Ledger")+' · '+esc2(x.path)+'</span></div>').join("") : '<div class="coa-note" style="padding:10px">Nothing matches "'+esc2(q)+'"</div>';
+    }catch(e){ say("Search failed", e.message, "error"); }
+  };
+  C.export = async function(){
+    try{ const res = await fetch("/api/coa/export", {headers:{Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}}); if(!res.ok) throw new Error("Export failed"); const b = await res.blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "chart-of-accounts.csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); }catch(e){ say("Could not export", e.message, "error"); }
+  };
+  C.sync = async function(){ try{ const r = await api("POST", "/api/coa/sync"); say("Ledgers refreshed", r.parties+" party, "+r.charges+" charge, "+r.banks+" bank, "+r.employees+" employee ledgers checked"); await C.load(true); }catch(e){ say("Could not refresh", e.message, "error"); } };
+  document.addEventListener("click", e=>{
+    const scr = el("s-coa"); if(!scr || !scr.classList.contains("on")) return;
+    const tg = e.target.closest("[data-coa-tg]"); if(tg){ const id = Number(tg.dataset.coaTg); C.open[id] = !C.open[id]; C.draw(); return; }
+    const g = e.target.closest("[data-coa-g]"); if(g){ const id = Number(g.dataset.coaG); C.sel = {kind:"group", id}; if(g.dataset.coaFound){ el("coaSearch").value = ""; openUp(id); } C.draw(); return; }
+    const l = e.target.closest("[data-coa-l]"); if(l){ C.sel = {kind:"ledger", id:Number(l.dataset.coaL)}; if(l.dataset.coaFound){ el("coaSearch").value = ""; const lg = find("ledger", C.sel.id); if(lg) openUp(lg.group_id); } C.draw(); return; }
+    const b = e.target.closest("[data-coa-act]"); if(!b) return; const a = b.dataset.coaAct;
+    if(a === "ng") C.newGroup(); else if(a === "nl") C.newLedger(); else if(a === "ed") C.edit(); else if(a === "mv") C.move(); else if(a === "ex") C.export(); else if(a === "sy") C.sync();
+    else if(a === "all"){ walk(C.tree, n=>{ C.open[n.id] = true; }); C.draw(); } else if(a === "none"){ walk(C.tree, n=>{ C.open[n.id] = n.level === 1; }); C.draw(); }
+  });
+  document.addEventListener("change", e=>{ if(e.target.id === "coaShow"){ C.show = e.target.value; C.draw(); } });
+  document.addEventListener("input", e=>{ if(e.target.id === "coaSearch"){ clearTimeout(C.t); C.t = setTimeout(C.search, 250); } });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "coa") C.load(); };
 })();
 </script>
 

@@ -203,6 +203,47 @@ class MasterRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class AccGroup(Base):
+    """Chart of accounts group (main group or nested sub group). `code` is the ledger-code prefix of the group."""
+    __tablename__ = "acc_groups"
+    __table_args__ = (UniqueConstraint("organization_id", "parent_id", "name", name="uq_accgroup_org_parent_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("acc_groups.id", ondelete="RESTRICT"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    code: Mapped[str] = mapped_column(String(12))
+    nature: Mapped[str] = mapped_column(String(20))   # ASSETS | LIABILITIES | INCOME | EXPENSES
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AccLedger(Base):
+    """A general ledger account under a group. Created by hand or by a master (party, charge, bank, employee)."""
+    __tablename__ = "acc_ledgers"
+    __table_args__ = (UniqueConstraint("organization_id", "code", name="uq_accledger_org_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("acc_groups.id", ondelete="RESTRICT"), index=True)
+    code: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(200))
+    alias: Mapped[str | None] = mapped_column(String(120))
+    currency: Mapped[str] = mapped_column(String(8), default="INR")
+    opening_balance = mapped_column(Numeric(16, 2), default=0, server_default="0")
+    opening_side: Mapped[str] = mapped_column(String(2), default="Dr")
+    control: Mapped[bool] = mapped_column(Boolean, default=False)   # posted to by the system only (cash, bank, TDS ...)
+    system_key: Mapped[str | None] = mapped_column(String(30))
+    source_type: Mapped[str | None] = mapped_column(String(20))   # customer | party | charge | bank | employee
+    source_id: Mapped[int | None] = mapped_column(Integer)
+    source_role: Mapped[str | None] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class CompanyDocProfile(Base):
     """Letterhead and registration details printed on the company's documents (BL / MTD): address, contacts, OTL / MTO / FMC registration numbers, signatory, signature and seal images."""
     __tablename__ = "company_doc_profiles"

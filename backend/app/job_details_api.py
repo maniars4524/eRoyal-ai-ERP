@@ -489,4 +489,4 @@ def party_text_api(name: str, user: User = Depends(permission_required("master.r
     org_id = _tenant(user)
     c = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == name))
     b = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.address.is_not(None), OrgBranch.address != "").order_by(OrgBranch.sl_no, OrgBranch.id)) if c else None
-    return {"text": party_text(db, org_id, name), "gstin": (b.gstin if b and b.gstin else (c.gstin if c else None)) or "", "phone": (b.phone if b else "") or ""}
+    return {"text": party_text(db, org_id, name), "gstin": (b.gstin if b and b.gstin else (c.gstin if c else None)) or "", "phone": (b.phone if b else (c.data or {}).get("phone") if c else "") or ""}

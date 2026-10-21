@@ -43,7 +43,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("job generation row starts as Not Generated", /Not Generated/.test(text("#jc_genRow")));
   click("#jc_genInvoiceBtn"); await sleep(2500);
   const editor = "#s-invoice-new";
-  check("Generate Invoice opens a DRAFT editor built from the job charges", /Tax Invoice/.test(text(editor)) && /Assigned on posting/.test(text(editor)) && d.querySelectorAll(editor + " tbody tr").length === 2, text(editor).slice(0, 200));
+  check("Generate Invoice opens a DRAFT editor built from the job charges", /Tax Invoice/.test(text(editor)) && /PF\/\d\d-\d\d\/\d{5} \(proforma\)/.test(text(editor)) && d.querySelectorAll(editor + " tbody tr").length === 2, text(editor).slice(0, 200));
   check("editor shows server-calculated totals", /1,82,841\.00/.test(text(editor)) && /27,891\.00/.test(text(editor)), text(editor).slice(0, 400));
   check("party was taken from the sell-side client", q(editor + ' [data-bkh="party_name"]').value === "Acme Ltd");
   q(editor + ' [data-bkh="place_of_supply"]').value = "Tamil Nadu"; q(editor + ' [data-bkh="place_of_supply"]').dispatchEvent(new w.Event("input", { bubbles: true }));

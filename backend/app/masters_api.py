@@ -31,6 +31,7 @@ MASTER_TYPES = {
     "employee": "Employee",
     "route": "Route",
     "account": "Ledger Account",
+    "bank": "Bank",
     "setting": "Company Setting",
 }
 from . import currency_ref as cr
@@ -426,6 +427,17 @@ def list_records(
     return [_out(r) for r in db.scalars(query.order_by(MasterRecord.code).limit(limit).offset(offset))]
 
 
+def _sync_ledger(db: Session, record: MasterRecord, user: User) -> None:
+    """Charge, employee and bank masters own a ledger in the chart of accounts."""
+    from . import coa
+    if record.master_type == "charge":
+        coa.sync_charge(db, record, user.id)
+    elif record.master_type == "employee":
+        coa.sync_employee(db, record, user.id)
+    elif record.master_type == "bank":
+        coa.sync_bank(db, record, user.id)
+
+
 @router.post("/{master_type}", status_code=201)
 def create_record(master_type: str, payload: MasterPayload, user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     org_id, master_type = _tenant(user), _type(master_type)
@@ -437,6 +449,7 @@ def create_record(master_type: str, payload: MasterPayload, user: User = Depends
     db.add(record)
     try:
         db.flush()
+        _sync_ledger(db, record, user)
         record_audit(db, "MASTER_CREATED", "MASTER", user, org_id, master_type, str(record.id), {"code": record.code, "name": record.name})
         db.commit()
     except IntegrityError:
@@ -475,6 +488,7 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, user: 
         if master_type == "charge" and record.status == "ACTIVE" and not was_active and (record.data or {}).get("catalogue") == "yes":
             record_audit(db, "CHARGE_TAX_ACTIVATED", "MASTER", user, org_id, master_type, str(record.id), {"code": record.code, "gst_percent": (record.data or {}).get("gst_percent"), "hsn_code": (record.data or {}).get("hsn_code"),
                                                                                                            "notification_ref": (record.data or {}).get("notification_ref"), "effective_date": (record.data or {}).get("effective_date")})
+        _sync_ledger(db, record, user)
         record_audit(db, "MASTER_UPDATED", "MASTER", user, org_id, master_type, str(record.id), {k: v for k, v in changes.items() if k != "data"})
         db.commit()
     except IntegrityError:

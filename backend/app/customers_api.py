@@ -8,6 +8,7 @@ from .org_ext_api import validate_accounting
 from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
+from . import coa
 from .models import Customer, User
 from .schemas_auth import CLIENT_ROLES, VENDOR_ROLES, CustomerCreate, CustomerUpdate
 
@@ -42,6 +43,7 @@ def create_customer(payload: CustomerCreate, user: User = Depends(permission_req
     db.add(customer)
     try:
         db.flush()
+        coa.sync_customer(db, customer, user.id)
         record_audit(db, "CUSTOMER_CREATED", "CUSTOMER", user, organization_id, "Customer", str(customer.id), {"code": customer.code, "name": customer.name})
         db.commit()
     except IntegrityError:
@@ -74,6 +76,8 @@ def update_customer(customer_id: int, payload: CustomerUpdate, user: User = Depe
             raise HTTPException(status_code=403, detail="You are not allowed to change the Credit Customer setting")
     for key, value in changes.items():
         setattr(customer, key, value)
+    db.flush()
+    coa.sync_customer(db, customer, user.id)
     record_audit(db, "CUSTOMER_UPDATED", "CUSTOMER", user, organization_id, "Customer", str(customer.id), changes)
     db.commit()
     db.refresh(customer)

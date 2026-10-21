@@ -184,6 +184,13 @@ def party_text(db: Session, org_id: int, name: str | None, fallback: str | None 
         lines += [x for x in (b.address, b.address2, city, b.state, b.country) if x]
         if b.phone:
             lines.append("TEL: " + b.phone)
+    elif c and (c.data or {}).get("address_line_1"):   # a party created without an Organization Master branch keeps its address on the customer record
+        d = c.data
+        city = " ".join(str(x) for x in (d.get("city"), d.get("pincode") or d.get("zip")) if x)
+        country = str(d.get("country_2") or d.get("country") or "").split(" (")[0]
+        lines += [str(x) for x in (d.get("address_line_1"), d.get("address_line_2"), city, d.get("state_province") or d.get("state"), country) if x]
+        if d.get("phone"):
+            lines.append("TEL: " + str(d["phone"]))
     elif fallback:
         lines.append(fallback)
     return "\n".join(lines)
