@@ -12,6 +12,7 @@ from .auth import permission_required
 from .auth_api import record_audit
 from .billing import CREDIT_TARGET, DOC_TYPES, calc_line, doc_side, fiscal_year, invoice_kind, line_group, next_number, outstanding, payment_status, q2
 from .db import get_db
+from . import gl
 from . import job_lifecycle as jl
 from .models import Customer, Document, DocumentLine, JobCharge, Shipment, User, OrgBranch
 
@@ -380,6 +381,7 @@ def post_document(doc_id: int, user: User = Depends(permission_required("billing
     doc.posted_at = datetime.now(timezone.utc)
     doc.posted_by = user.id
     jl.doc_hook(db, doc, user, "POSTED")
+    gl.sync_document(db, doc, user.id)
     record_audit(db, "DOCUMENT_POSTED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number, "total": str(doc.grand_total)})
     db.commit()
     return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
@@ -564,6 +566,7 @@ def cancel_document(doc_id: int, user: User = Depends(permission_required("billi
     doc.status = "CANCELLED"
     doc.cancelled_at = datetime.now(timezone.utc)
     jl.doc_hook(db, doc, user, "CANCELLED")
+    gl.sync_document(db, doc, user.id)
     record_audit(db, "DOCUMENT_CANCELLED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number})
     db.commit()
     return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))

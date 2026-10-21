@@ -418,6 +418,10 @@ def list_records(
     db: Session = Depends(get_db),
 ):
     org_id, master_type = _tenant(user), _type(master_type)
+    if master_type == "account":   # the Ledger Account pick-list holds the chart's AR / AP control accounts
+        from . import coa
+        coa.ensure_tree(db, org_id)
+        db.commit()
     query = select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == master_type)
     if status_filter:
         query = query.where(MasterRecord.status == status_filter)

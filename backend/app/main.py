@@ -15,6 +15,7 @@ from .bookings_api import router as bookings_router
 from .customs_api import router as customs_router
 from .accounts_api import router as accounts_router
 from .coa_api import router as coa_router
+from .gl_api import router as gl_router
 from .job_details_api import company as company_doc_router, router as job_details_router
 from .crm_api import router as crm_router
 from .org_ext_api import router as org_ext_router
@@ -72,6 +73,7 @@ app.include_router(job_details_router)
 app.include_router(company_doc_router)
 app.include_router(accounts_router)
 app.include_router(coa_router)
+app.include_router(gl_router)
 app.include_router(crm_router)
 app.include_router(org_ext_router)
 app.include_router(jobs_lifecycle_router)

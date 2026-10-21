@@ -244,6 +244,42 @@ class AccLedger(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class AccVoucher(Base):
+    """A balanced accounting voucher. System vouchers mirror a posted document or payment (source_type / source_id); journal, contra and opening vouchers are entered by hand."""
+    __tablename__ = "acc_vouchers"
+    __table_args__ = (UniqueConstraint("organization_id", "voucher_type", "number", name="uq_accvoucher_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    voucher_type: Mapped[str] = mapped_column(String(24), index=True)   # SALES DEBIT_NOTE CREDIT_NOTE PURCHASE PURCHASE_CREDIT_NOTE RECEIPT PAYMENT JOURNAL CONTRA
+    number: Mapped[str] = mapped_column(String(40))
+    vdate: Mapped[date] = mapped_column(Date, index=True)
+    narration: Mapped[str | None] = mapped_column(String(400))
+    party_name: Mapped[str | None] = mapped_column(String(200))
+    job_number: Mapped[str | None] = mapped_column(String(40))
+    source_type: Mapped[str | None] = mapped_column(String(20))   # document | payment
+    source_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    total = mapped_column(Numeric(16, 2), default=0)
+    status: Mapped[str] = mapped_column(String(20), default="POSTED", index=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    entries: Mapped[list["AccEntry"]] = relationship(back_populates="voucher", cascade="all, delete-orphan", order_by="AccEntry.id")
+
+
+class AccEntry(Base):
+    __tablename__ = "acc_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    voucher_id: Mapped[int] = mapped_column(ForeignKey("acc_vouchers.id", ondelete="CASCADE"), index=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    ledger_id: Mapped[int] = mapped_column(ForeignKey("acc_ledgers.id", ondelete="RESTRICT"), index=True)
+    debit = mapped_column(Numeric(16, 2), default=0, server_default="0")
+    credit = mapped_column(Numeric(16, 2), default=0, server_default="0")
+    narration: Mapped[str | None] = mapped_column(String(240))
+    job_number: Mapped[str | None] = mapped_column(String(40))
+    voucher: Mapped[AccVoucher] = relationship(back_populates="entries")
+
+
 class CompanyDocProfile(Base):
     """Letterhead and registration details printed on the company's documents (BL / MTD): address, contacts, OTL / MTO / FMC registration numbers, signatory, signature and seal images."""
     __tablename__ = "company_doc_profiles"

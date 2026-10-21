@@ -102,3 +102,16 @@ def test_proforma_number_exists_from_the_draft_and_party_address_is_printed(h):
     assert again["header"]["proforma_no"] == no   # saving never changes the number
     t = client.get("/api/company/party-text?name=Pf Addr Party", headers=h).json()
     assert "12 Test Road" in t["text"] and "CHENNAI" in t["text"]
+
+
+def test_bank_master_details_feed_the_printed_bank_block(h):
+    r = client.post("/api/masters/bank", json={"code": "PRT-BK", "name": "Print Test Bank", "data": {"beneficiary": "Print Co", "account_number": "9988", "ifsc": "PRTB0001", "upi_id": "print@upi", "branch": "Mount Road", "currency": "INR", "default_bank": "yes"}}, headers=h)
+    assert r.status_code == 201, r.text
+    p = client.get("/api/company/doc-profile", headers=h).json()
+    pp = p["print_profile"]
+    assert pp["bank_name"] == "Print Test Bank" and pp["bank_account"] == "9988" and pp["bank_beneficiary"] == "Print Co" and pp["upi_id"] == "print@upi" and "Mount Road" in pp["bank_branch"]
+    assert p["profile"].get("bank_name") != "Print Test Bank"       # the profile the user edits is not overwritten
+    fx = client.post("/api/masters/bank", json={"code": "PRT-FX", "name": "Print Usd Bank", "data": {"account_number": "7711", "swift": "PRTBUS33", "currency": "USD"}}, headers=h)
+    assert fx.status_code == 201
+    pp = client.get("/api/company/doc-profile", headers=h).json()["print_profile"]
+    assert pp["usd_bank_name"] == "Print Usd Bank" and pp["usd_bank_swift"] == "PRTBUS33" and pp["bank_name"] == "Print Test Bank"

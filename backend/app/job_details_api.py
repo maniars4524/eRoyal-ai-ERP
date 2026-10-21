@@ -353,13 +353,32 @@ def _profile(db: Session, org_id: int) -> dict:
     return dict((p.data if p else {}) or {})
 
 
+def print_profile(db: Session, org_id: int) -> dict:
+    """The profile as printed: the Bank Master's default bank (else the first active one) supplies the bank block, a foreign-currency account supplies the international one."""
+    from .models import MasterRecord
+
+    prof = _profile(db, org_id)
+    banks = [r for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "bank", MasterRecord.status == "ACTIVE").order_by(MasterRecord.id))]
+    inr = [b for b in banks if str((b.data or {}).get("currency") or "INR").upper() == "INR"]
+    main = next((b for b in inr if str((b.data or {}).get("default_bank", "")).lower() == "yes"), inr[0] if inr else None)
+    if main:
+        d = main.data or {}
+        prof.update({k: v for k, v in {"bank_name": main.name, "bank_account": d.get("account_number"), "bank_ifsc": d.get("ifsc"), "bank_swift": d.get("swift"), "bank_beneficiary": d.get("beneficiary"), "upi_id": d.get("upi_id"),
+                                       "bank_branch": ", ".join(x for x in (d.get("branch"), d.get("branch_address")) if x)}.items() if v})
+    fx = [b for b in banks if str((b.data or {}).get("currency") or "INR").upper() != "INR"]
+    if fx:
+        d = fx[0].data or {}
+        prof.update({k: v for k, v in {"usd_bank_name": fx[0].name, "usd_bank_account": d.get("account_number"), "usd_bank_swift": d.get("swift"), "usd_bank_address": d.get("branch_address") or d.get("branch")}.items() if v})
+    return prof
+
+
 company = APIRouter(prefix="/api/company", tags=["company documents"])
 
 
 @company.get("/doc-profile")
 def get_profile(user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
     org = db.get(Organization, _tenant(user))
-    return {"profile": _profile(db, org.id), "name": org.legal_name or org.name, "logo": org.logo, "company_code": company_code(org)}
+    return {"profile": _profile(db, org.id), "print_profile": print_profile(db, org.id), "name": org.legal_name or org.name, "logo": org.logo, "company_code": company_code(org)}
 
 
 @company.put("/doc-profile")

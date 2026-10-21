@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from .auth import permission_required
 from .auth_api import record_audit
+from . import gl
 from .billing import PAYABLE_TYPES, PAYMENT_PREFIX, next_number, outstanding, q2
 from .db import get_db
 from .models import Document, Payment, PaymentAllocation, User
@@ -118,6 +119,7 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
     db.add(payment)
     try:
         db.flush()
+        gl.sync_payment(db, payment, user.id)
         record_audit(db, "PAYMENT_RECORDED", "BILLING", user, org_id, "Payment", str(payment.id), {"number": payment.pay_number, "direction": payment.direction, "amount": str(payment.amount), "allocations": len(payload.allocations)})
         db.commit()
     except IntegrityError:
@@ -163,6 +165,7 @@ def cancel_payment(payment_id: int, user: User = Depends(permission_required("pa
         doc = docs[alloc.document_id]
         doc.paid_amount = max(Decimal(0), doc.paid_amount - alloc.amount - (alloc.tds_amount or Decimal(0)) - (alloc.round_off or Decimal(0)))
     payment.status = "CANCELLED"
+    gl.sync_payment(db, payment, user.id)
     record_audit(db, "PAYMENT_CANCELLED", "BILLING", user, org_id, "Payment", str(payment.id), {"number": payment.pay_number})
     db.commit()
     return _out(_get(db, org_id, payment_id))

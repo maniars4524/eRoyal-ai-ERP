@@ -140,11 +140,11 @@ def job_charges_block(db: Session, job: Shipment) -> list[dict]:
 
 
 def company_block(db: Session, job: Shipment) -> dict:
-    from .job_details_api import _profile, company_code
+    from .job_details_api import company_code, print_profile
     from .models import Organization
 
     org = db.get(Organization, job.organization_id)
-    return {"name": org.legal_name or org.name, "logo": org.logo, "code": company_code(org), "profile": _profile(db, org.id)}
+    return {"name": org.legal_name or org.name, "logo": org.logo, "code": company_code(org), "profile": print_profile(db, org.id)}
 
 
 def booking_block(db: Session, job: Shipment, b) -> dict:

@@ -64,7 +64,7 @@ class MoveIn(BaseModel):
 
 def _led(l: AccLedger, path: str = "") -> dict:
     return {"id": l.id, "kind": "ledger", "group_id": l.group_id, "code": l.code, "name": l.name, "alias": l.alias, "currency": l.currency, "opening_balance": str(l.opening_balance or 0), "opening_side": l.opening_side,
-            "control": l.control, "system": bool(l.system_key), "source_type": l.source_type, "source_role": l.source_role, "status": l.status, "path": path}
+            "control": l.control, "system": bool(l.system_key), "source_type": l.source_type, "source_id": l.source_id, "source_role": l.source_role, "status": l.status, "path": path}
 
 
 def _build(db: Session, org_id: int) -> tuple[list[dict], dict, dict]:

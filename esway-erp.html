@@ -1351,6 +1351,7 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-item" data-go="org-list"><svg class="ic" data-icon="building"></svg>Organisation Master</div>
       <div class="mn-sub-item" data-go="country-master"><svg class="ic" data-icon="globe"></svg>Country Master</div>
       <div class="mn-sub-item" data-go="branch-master"><svg class="ic" data-icon="building"></svg>Branch Master</div>
+      <div class="mn-sub-item" data-go="bank-master"><svg class="ic" data-icon="bank"></svg>Bank Master</div>
       <div class="mn-sub-item" data-go="user-master"><svg class="ic" data-icon="user"></svg>User Master</div>
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Common Masters</div>
@@ -1425,6 +1426,11 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-section">Ledger</div>
       <div class="mn-sub-item" data-go="acc-reports"><svg class="ic" data-icon="book"></svg>Party Ledger, Cash Book &amp; Outstanding</div>
       <div class="mn-sub-item" data-go="coa"><svg class="ic" data-icon="book"></svg>Chart of Accounts</div>
+      <div class="mn-sub-item" data-go="gl-reports" data-gltab="ledger"><svg class="ic" data-icon="book"></svg>General Ledger</div>
+      <div class="mn-sub-item" data-go="gl-reports" data-gltab="tb"><svg class="ic" data-icon="chart-bar"></svg>Trial Balance</div>
+      <div class="mn-sub-item" data-go="gl-reports" data-gltab="pl"><svg class="ic" data-icon="trending-up"></svg>Profit &amp; Loss</div>
+      <div class="mn-sub-item" data-go="gl-reports" data-gltab="bs"><svg class="ic" data-icon="chart-pie"></svg>Balance Sheet</div>
+      <div class="mn-sub-item" data-go="gl-reports" data-gltab="day"><svg class="ic" data-icon="book"></svg>Day Book</div>
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Vouchers</div>
       <div class="mn-sub-item" data-go="invoice-list"><svg class="ic" data-icon="receipt"></svg>Tax Invoices (AR) <span class="mn-badge" id="badgeInv">5</span></div>
@@ -3567,7 +3573,7 @@ tbody tr:hover{background:var(--g0)}
 <div id="bpStep1" class="bstep-pane on">
 <div class="card"><div class="ch"><div class="ct">Booking Details</div></div><div class="cb">
 <div class="fr">
-  <div class="fg"><label class="fl">Branch</label><select class="fc" id="bk_branch"><option>Chennai</option><option>Mumbai</option><option>Delhi (ICD Tughlakabad)</option><option>Bangalore</option></select></div>
+  <div class="fg"><label class="fl">Branch</label><select class="fc" id="bk_brn"><option>Chennai</option><option>Mumbai</option><option>Delhi (ICD Tughlakabad)</option><option>Bangalore</option></select></div>
   <div class="fg"><label class="fl">Booking Date <span class="r">*</span></label><input class="fc" type="date" id="bk_bookdate"></div>
   <div class="fg"><label class="fl">Booking Direction</label><input class="fc" id="bk_direction" readonly style="background:var(--g0)"></div>
 </div>
@@ -3871,119 +3877,27 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr"><div class="fg" id="ar_partyWrap"><label class="fl">Party</label><select class="fc" id="ar_party"></select></div><div class="fg" id="ar_sideWrap" style="display:none"><label class="fl">Side</label><select class="fc" id="ar_side"><option value="AR">Receivables (customers)</option><option value="AP">Payables (vendors)</option></select></div><div class="fg"><label class="fl">From</label><input class="fc" type="date" id="ar_from"></div><div class="fg"><label class="fl">To</label><input class="fc" type="date" id="ar_to"></div></div></div><div id="ar_body"></div></div>
 </div>
 
-<!-- ====== JOURNAL VOUCHER — LIST ====== -->
+<!-- ====== JOURNAL VOUCHER ====== -->
 <div id="s-journal-voucher" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Journal Voucher</div><div class="ps">Internal accounting entries — not a customer or vendor facing document</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="jvNewBtn" data-go="journal-voucher-new"><svg class="ic" data-icon="plus"></svg> New Journal Voucher</button></div></div>
-<div class="card">
-  <div class="cb">
-    <div class="fr">
-      <div class="fg"><label class="fl">From Date</label><input class="fc" id="jvFromDate" type="date" value="2026-07-04"></div>
-      <div class="fg"><label class="fl">To Date</label><input class="fc" id="jvToDate" type="date" value="2026-08-03"></div>
-      <div class="fg"><label class="fl">Subledger</label><select class="fc" id="jvSubledger"><option value="">--Select--</option><option>Freight Forwarding</option><option>CHA</option><option>Transport</option><option>Warehouse</option></select></div>
-      <div class="fg"><label class="fl">Status</label><select class="fc" id="jvStatusFilter"><option>All</option><option>Draft</option><option>Posted</option><option>Cancelled</option></select></div>
-    </div>
-    <div style="display:flex;justify-content:flex-end"><button class="btn btn-pri btn-sm" id="jvSubmitFilterBtn">Submit</button></div>
-  </div>
-  <div class="ch">
-    <div style="display:flex;align-items:center;gap:8px;flex:1"><svg class="ic ic-sm" data-icon="search" style="color:var(--g5)"></svg><input class="fc" id="jvSearchInput" placeholder="Search JV No / Narration…" style="border:none;box-shadow:none;padding:4px 0"></div>
-    <button class="btn btn-out btn-sm" id="jvSearchBtn">Search</button>
-    <span style="font-size:11px;color:var(--g5)">Rows</span>
-    <select class="fc" id="jvRowsSelect" style="width:64px"><option>10</option><option>25</option><option>50</option></select>
-    <div class="dd" style="position:relative">
-      <button class="btn btn-out btn-sm" id="jvActionsBtn">Actions <svg class="ic ic-sm" data-icon="chevron-down"></svg></button>
-    </div>
-  </div>
-  <div class="tw"><table><thead><tr><th>JV No#</th><th>Date</th><th>GL Date</th><th>Segment</th><th>Period</th><th>Narration</th><th>Debit Total</th><th>Credit Total</th><th>Status</th><th class="no-print">Action</th></tr></thead>
-  <tbody id="jvListBody"><tr><td colspan="10" class="tbl-empty">No journal vouchers yet — click "New Journal Voucher" to create one</td></tr></tbody></table></div>
-  <div class="cf" id="jvListFooter">Showing 0 of 0 journal vouchers</div>
-</div>
-</div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Journal Voucher</div><div class="ps">Adjustments between any two or more ledgers. Debits must equal credits. Posted to the general ledger at once</div></div><div class="pa"><button class="btn btn-pri btn-sm" id="jv_new"><svg class="ic" data-icon="plus"></svg> New Journal Voucher</button></div></div>
+<div class="card"><div class="cb"><input class="fc" id="jv_q" placeholder="Search voucher no or narration" style="width:260px;margin-bottom:8px"></div><div class="tw"><table><thead><tr><th>Voucher No</th><th>Date</th><th>Narration</th><th style="text-align:right">Amount</th><th>Status</th></tr></thead><tbody id="jv_body"></tbody></table></div></div></div>
 
-<!-- ====== JOURNAL VOUCHER — NEW / TRANSACTION ====== -->
-<div id="s-journal-voucher-new" class="scr">
-<div class="ph"><div><div class="pt" style="color:var(--gr)"><svg class="ic" data-icon="check-circle" style="color:var(--gr)"></svg>Transaction / Audit</div><div class="ps">Journal Voucher entry — double-entry, debit must equal credit</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="journal-voucher" title="Cancel"><svg class="ic" data-icon="arrow-left"></svg> Cancel</button><button class="btn btn-out btn-sm" id="jvReportsBtn">Reports</button><button class="btn btn-pri btn-sm" id="jvSaveBtn"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
-<div class="card"><div class="cb">
-  <div class="fr">
-    <div class="fg"><label class="fl">JV No#</label><input class="fc" id="jvNo" placeholder="Auto-generated on save" readonly></div>
-    <div class="fg"><label class="fl">Date *</label><input class="fc" id="jvDate" type="date" value="2026-08-03"></div>
-    <div class="fg"><label class="fl">GL Date *</label><input class="fc" id="jvGlDate" type="date" value="2026-08-03"></div>
-    <div class="fg"><label class="fl">Segment *</label><select class="fc" id="jvSegment"><option>Freight Forwarding</option><option>CHA</option><option>Transport</option><option>Warehouse</option></select></div>
-    <div class="fg"><label class="fl">Financial Year</label><select class="fc" id="jvFy"><option>2026-27</option><option>2025-26</option></select></div>
-    <div class="fg"><label class="fl">Period *</label><select class="fc" id="jvPeriod"><option>August -2026</option><option>July -2026</option><option>June -2026</option></select></div>
-    <div class="fg"><label class="fl">Status</label><input class="fc" id="jvStatus" value="Draft" readonly></div>
-    <div class="fg"><label class="fl">Book</label><select class="fc" id="jvBook"><option>JOURNAL BOOK</option></select></div>
-    <div class="fg" style="grid-column:span 3"><label class="fl">Narration</label><input class="fc" id="jvNarration" placeholder="Narration"></div>
-  </div>
-</div></div>
-
-<div class="card" style="margin-top:12px">
-  <div class="ch" style="background:var(--bl);color:#fff"><div class="ct" style="color:#fff">JV Details</div><button class="btn btn-sm" id="jvAddRowBtn" style="background:rgba(255,255,255,.18);color:#fff;border:none"><svg class="ic" data-icon="plus"></svg> Add Row</button></div>
-  <div class="tw"><table><thead><tr><th style="width:34%">Ledger Account</th><th>Debit</th><th>Credit</th><th>Narration</th><th class="no-print"></th></tr></thead>
-  <tbody id="jvDetailRows"></tbody>
-  </table></div>
-  <div class="cf" style="display:flex;gap:20px;font-weight:600">
-    <span>Total Debit: <span id="jvTotalDr" style="color:var(--bl)">0.00</span></span>
-    <span>Total Credit: <span id="jvTotalCr" style="color:var(--gr)">0.00</span></span>
-    <span id="jvDiffMsg" style="color:var(--rd)"></span>
-  </div>
-</div>
-</div>
-
-<!-- ====== CONTRA VOUCHER — LIST ====== -->
+<!-- ====== CONTRA VOUCHER ====== -->
 <div id="s-contra-voucher" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="refresh-cw" style="color:var(--bl)"></svg>Contra Voucher</div><div class="ps">Cash ↔ Bank transfers — both sides always Cash/Bank ledgers</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="cvNewBtn" data-go="contra-voucher-new"><svg class="ic" data-icon="plus"></svg> New Contra Voucher</button></div></div>
-<div class="card">
-  <div class="cb">
-    <div class="fr">
-      <div class="fg"><label class="fl">From Date</label><input class="fc" id="cvFromDate" type="date" value="2026-07-04"></div>
-      <div class="fg"><label class="fl">To Date</label><input class="fc" id="cvToDate" type="date" value="2026-08-03"></div>
-      <div class="fg"><label class="fl">Subledger</label><select class="fc" id="cvSubledger"><option value="">--Select--</option><option>Freight Forwarding</option><option>CHA</option><option>Transport</option><option>Warehouse</option></select></div>
-      <div class="fg"><label class="fl">Status</label><select class="fc" id="cvStatusFilter"><option>All</option><option>Draft</option><option>Posted</option><option>Cancelled</option></select></div>
-    </div>
-    <div style="display:flex;justify-content:flex-end"><button class="btn btn-pri btn-sm" id="cvSubmitFilterBtn">Submit</button></div>
-  </div>
-  <div class="ch">
-    <div style="display:flex;align-items:center;gap:8px;flex:1"><svg class="ic ic-sm" data-icon="search" style="color:var(--g5)"></svg><input class="fc" id="cvSearchInput" placeholder="Search Voucher No / Narration…" style="border:none;box-shadow:none;padding:4px 0"></div>
-    <button class="btn btn-out btn-sm" id="cvSearchBtn">Search</button>
-    <span style="font-size:11px;color:var(--g5)">Rows</span>
-    <select class="fc" id="cvRowsSelect" style="width:64px"><option>10</option><option>25</option><option>50</option></select>
-    <button class="btn btn-out btn-sm" id="cvActionsBtn">Actions <svg class="ic ic-sm" data-icon="chevron-down"></svg></button>
-  </div>
-  <div class="tw"><table><thead><tr><th>Voucher No#</th><th>Date</th><th>GL Date</th><th>Segment</th><th>Period</th><th>Narration</th><th>Debit Total</th><th>Credit Total</th><th>Status</th><th class="no-print">Action</th></tr></thead>
-  <tbody id="cvListBody"><tr><td colspan="10" class="tbl-empty">No contra vouchers yet — click "New Contra Voucher" to create one</td></tr></tbody></table></div>
-  <div class="cf" id="cvListFooter">Showing 0 of 0 contra vouchers</div>
-</div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="refresh-cw" style="color:var(--bl)"></svg>Contra Voucher</div><div class="ps">Money moved between cash and bank accounts</div></div><div class="pa"><button class="btn btn-pri btn-sm" id="cv_new"><svg class="ic" data-icon="plus"></svg> New Contra Voucher</button></div></div>
+<div class="card"><div class="cb"><input class="fc" id="cv_q" placeholder="Search voucher no or narration" style="width:260px;margin-bottom:8px"></div><div class="tw"><table><thead><tr><th>Voucher No</th><th>Date</th><th>Narration</th><th style="text-align:right">Amount</th><th>Status</th></tr></thead><tbody id="cv_body"></tbody></table></div></div></div>
+
+<!-- ====== LEDGER REPORTS ====== -->
+<div id="s-gl-reports" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="book" style="color:var(--bl)"></svg>Ledger Reports</div><div class="ps">General ledger, trial balance, group summary, profit and loss, balance sheet and day book, from the vouchers posted by invoices, notes, receipts, payments, journals and contras</div></div><div class="pa"><button class="btn btn-out btn-sm" id="gl_rebuild" title="Post every invoice and receipt into the ledger again">Refresh ledger</button><button class="btn btn-out btn-sm" id="gl_csv">Export CSV</button><button class="btn btn-out btn-sm" id="gl_print">🖨 Print</button></div></div>
+<div class="card"><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-sm btn-out" data-gl-tab="ledger">General Ledger</button><button class="btn btn-sm btn-pri" data-gl-tab="tb">Trial Balance</button><button class="btn btn-sm btn-out" data-gl-tab="group">Group Summary</button><button class="btn btn-sm btn-out" data-gl-tab="pl">Profit &amp; Loss</button><button class="btn btn-sm btn-out" data-gl-tab="bs">Balance Sheet</button><button class="btn btn-sm btn-out" data-gl-tab="day">Day Book</button></div>
+<div class="fr"><div class="fg" id="gl_ledgerWrap" style="display:none;grid-column:span 2"><label class="fl">Ledger</label><select class="fc" id="gl_ledger"></select></div><div class="fg" id="gl_groupWrap" style="display:none;grid-column:span 2"><label class="fl">Group</label><select class="fc" id="gl_group"></select></div><div class="fg" id="gl_typeWrap" style="display:none"><label class="fl">Voucher type</label><select class="fc" id="gl_type"><option value="">All</option><option value="SALES">Sales Invoice</option><option value="DEBIT_NOTE">Debit Note</option><option value="CREDIT_NOTE">Credit Note</option><option value="PURCHASE">Purchase Invoice</option><option value="PURCHASE_CREDIT_NOTE">Purchase Credit Note</option><option value="RECEIPT">Receipt Voucher</option><option value="PAYMENT">Payment Voucher</option><option value="JOURNAL">Journal Voucher</option><option value="CONTRA">Contra Voucher</option></select></div><div class="fg" id="gl_fromWrap"><label class="fl">From</label><input class="fc" type="date" id="gl_from"></div><div class="fg"><label class="fl" id="gl_toLbl">To</label><input class="fc" type="date" id="gl_to"></div></div></div><div id="gl_body"></div></div>
 </div>
 
-<!-- ====== CONTRA VOUCHER — NEW / TRANSACTION ====== -->
-<div id="s-contra-voucher-new" class="scr">
-<div class="ph"><div><div class="pt" style="color:var(--gr)"><svg class="ic" data-icon="check-circle" style="color:var(--gr)"></svg>Transaction / Audit</div><div class="ps">Contra Voucher entry — Cash / Bank ledgers only, debit must equal credit</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="contra-voucher" title="Cancel"><svg class="ic" data-icon="arrow-left"></svg> Cancel</button><button class="btn btn-out btn-sm" id="cvReportsBtn">Reports</button><button class="btn btn-pri btn-sm" id="cvSaveBtn"><svg class="ic" data-icon="check"></svg> Save</button></div></div>
-<div class="card"><div class="cb">
-  <div class="fr">
-    <div class="fg"><label class="fl">Voucher No#</label><input class="fc" id="cvNo" placeholder="Auto-generated on save" readonly></div>
-    <div class="fg"><label class="fl">Date *</label><input class="fc" id="cvDate" type="date" value="2026-08-03"></div>
-    <div class="fg"><label class="fl">GL Date *</label><input class="fc" id="cvGlDate" type="date" value="2026-08-03"></div>
-    <div class="fg"><label class="fl">Segment *</label><select class="fc" id="cvSegment"><option>Freight Forwarding</option><option>CHA</option><option>Transport</option><option>Warehouse</option></select></div>
-    <div class="fg"><label class="fl">Financial Year</label><select class="fc" id="cvFy"><option>2026-27</option><option>2025-26</option></select></div>
-    <div class="fg"><label class="fl">Period *</label><select class="fc" id="cvPeriod"><option>August -2026</option><option>July -2026</option><option>June -2026</option></select></div>
-    <div class="fg"><label class="fl">Status</label><input class="fc" id="cvStatus" value="Draft" readonly></div>
-    <div class="fg"><label class="fl">Book</label><select class="fc" id="cvBook"><option>CONTRA BOOK</option></select></div>
-    <div class="fg" style="grid-column:span 3"><label class="fl">Narration</label><input class="fc" id="cvNarration" placeholder="Narration"></div>
-  </div>
-</div></div>
-
-<div class="card" style="margin-top:12px">
-  <div class="ch" style="background:var(--bl);color:#fff"><div class="ct" style="color:#fff">Contra Details</div><button class="btn btn-sm" id="cvAddRowBtn" style="background:rgba(255,255,255,.18);color:#fff;border:none"><svg class="ic" data-icon="plus"></svg> Add Row</button></div>
-  <div class="tw"><table><thead><tr><th style="width:34%">Cash / Bank Ledger</th><th>Debit</th><th>Credit</th><th>Narration</th><th class="no-print"></th></tr></thead>
-  <tbody id="cvDetailRows"></tbody>
-  </table></div>
-  <div class="cf" style="display:flex;gap:20px;font-weight:600">
-    <span>Total Debit: <span id="cvTotalDr" style="color:var(--bl)">0.00</span></span>
-    <span>Total Credit: <span id="cvTotalCr" style="color:var(--gr)">0.00</span></span>
-    <span id="cvDiffMsg" style="color:var(--rd)"></span>
-  </div>
-</div>
-</div>
+<!-- ====== BANK MASTER ====== -->
+<div id="s-bank-master" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="bank" style="color:var(--bl)"></svg>Bank Master</div><div class="ps">The company's bank accounts. Each bank gets its own ledger under Bank Accounts in the Chart of Accounts; receipts and payments by cheque or transfer post to it</div></div><div class="pa"><button class="btn btn-pri btn-sm" id="bank_new"><svg class="ic" data-icon="plus"></svg> New Bank</button></div></div>
+<div class="card"><div class="tw"><table><thead><tr><th>Code</th><th>Bank</th><th>Beneficiary</th><th>Account No</th><th>IFSC</th><th>Branch</th><th>Currency</th><th>Ledger Code</th><th>Default</th><th>Status</th><th></th></tr></thead><tbody id="bank_body"></tbody></table></div></div></div>
 
 <!-- ====== PAYABLE / RECEIVABLE LEDGER ====== -->
 <div id="s-pr-ledger" class="scr">
@@ -6004,9 +5918,9 @@ const SCREEN_META = {
   "receipt-voucher":{title:"Receipt Vouchers", crumb:"eSway ERP 2.0 / Accounts / <strong>Receipt Vouchers</strong>", menu:"receipt-voucher"},
   "payment-voucher":{title:"Payment Vouchers", crumb:"eSway ERP 2.0 / Accounts / <strong>Payment Vouchers</strong>", menu:"payment-voucher"},
   "journal-voucher":{title:"Journal Voucher", crumb:"eSway ERP 2.0 / Accounts / <strong>Journal Voucher</strong>", menu:"journal-voucher"},
-  "journal-voucher-new":{title:"Journal Voucher — New", crumb:"eSway ERP 2.0 / Accounts / Journal Voucher / <strong>New</strong>", menu:"journal-voucher"},
   "contra-voucher":{title:"Contra Voucher", crumb:"eSway ERP 2.0 / Accounts / <strong>Contra Voucher</strong>", menu:"contra-voucher"},
-  "contra-voucher-new":{title:"Contra Voucher — New", crumb:"eSway ERP 2.0 / Accounts / Contra Voucher / <strong>New</strong>", menu:"contra-voucher"},
+  "bank-master":{title:"Bank Master", crumb:"eSway ERP 2.0 / Masters / <strong>Bank Master</strong>", menu:""},
+  "gl-reports":{title:"Ledger Reports", crumb:"eSway ERP 2.0 / Accounts / <strong>Ledger Reports</strong>", menu:"gl-reports"},
   "coa":{title:"Chart of Accounts", crumb:"eSway ERP 2.0 / <strong>COA</strong>", menu:"coa"},
   "pr-ledger":{title:"Payable / Receivable Ledger", crumb:"eSway ERP 2.0 / Accounts / <strong>Payable / Receivable Ledger</strong>", menu:"pr-ledger"},
   "gst-report":{title:"GST Report", crumb:"eSway ERP 2.0 / Reports / <strong>GST Report</strong>", menu:"gst-report"},
@@ -6084,10 +5998,6 @@ function go(screen, opts){
   if(screen==="svc-transport" && window.renderSvcTransport) renderSvcTransport();
   if(screen==="svc-warehouse" && window.renderSvcWarehouse) renderSvcWarehouse();
   if(screen==="quot-templates" && window.renderQuotTemplates) renderQuotTemplates();
-  if(screen==="journal-voucher" && window.renderJvList) renderJvList();
-  if(screen==="journal-voucher-new" && window.resetJvForm) resetJvForm();
-  if(screen==="contra-voucher" && window.renderCvList) renderCvList();
-  if(screen==="contra-voucher-new" && window.resetCvForm) resetCvForm();
   if(screen==="pr-ledger" && window.renderPrLedger) renderPrLedger(opts.prlType);
   if(screen==="gst-report" && window.renderGstReport) renderGstReport();
   if(screen==="quotation-new" && typeof pendingQuotEnquiryId!=="undefined" && pendingQuotEnquiryId){
@@ -6107,7 +6017,7 @@ document.addEventListener("click", e=>{
   const t = e.target.closest("[data-go]");
   if(t){
     e.preventDefault();
-    go(t.dataset.go, {orgName:t.dataset.org, jobNo:t.dataset.job, invNo:t.dataset.inv, rateNo:t.dataset.rate, prlType:t.dataset.prltype});
+    go(t.dataset.go, {orgName:t.dataset.org, jobNo:t.dataset.job, invNo:t.dataset.inv, rateNo:t.dataset.rate, prlType:t.dataset.prltype, glTab:t.dataset.gltab});
     closeAllMnDrops();
     if(window.tnCloseAll) tnCloseAll();
   }
@@ -6135,6 +6045,7 @@ const TOPNAV_MENU = [
       {label:"Organisation Master", icon:"building", go:"org-list"},
       {label:"Country Master", icon:"globe", go:"country-master"},
       {label:"Branch Master", icon:"building", go:"branch-master"},
+      {label:"Bank Master", icon:"bank", go:"bank-master"},
       {label:"User Master", icon:"user", go:"user-master"},
     ]},
     {label:"Common Masters", icon:"tag", children:[
@@ -6216,6 +6127,12 @@ const TOPNAV_MENU = [
   {id:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts"], children:[
     {label:"Ledger", icon:"book", children:[
       {label:"Chart of Accounts", icon:"book", go:"coa"},
+      {label:"General Ledger", icon:"book", go:"gl-reports", gltab:"ledger"},
+      {label:"Trial Balance", icon:"chart-bar", go:"gl-reports", gltab:"tb"},
+      {label:"Profit & Loss", icon:"trending-up", go:"gl-reports", gltab:"pl"},
+      {label:"Balance Sheet", icon:"chart-pie", go:"gl-reports", gltab:"bs"},
+      {label:"Day Book", icon:"book", go:"gl-reports", gltab:"day"},
+      {label:"Bank Master", icon:"bank", go:"bank-master"},
     ]},
     {label:"Vouchers", icon:"receipt", children:[
       {label:"Tax Invoices (AR)", icon:"receipt", go:"invoice-list", badge:"badgeInv"},
@@ -6305,26 +6222,25 @@ const TOPNAV_MENU = [
       {label:"AR/AP Combined Summary", icon:"alert", go:"pr-ledger"},
       {label:"Customer Ledger", icon:"user", go:"pr-ledger", prltype:"RECEIVABLE"},
       {label:"Vendor Ledger", icon:"building", go:"pr-ledger", prltype:"PAYABLE"},
-      {label:"Trial Balance", icon:"chart-bar", go:"reports"},
-      {label:"Profit & Loss", icon:"trending-up", go:"pnl"},
-      {label:"Balance Sheet", icon:"chart-pie", go:"reports"},
-      {label:"Balance Sheet Report", icon:"chart-pie", go:"reports"},
-      {label:"Balance Sheet Summary", icon:"chart-pie", go:"reports"},
+      {label:"Trial Balance", icon:"chart-bar", go:"gl-reports", gltab:"tb"},
+      {label:"Profit & Loss", icon:"trending-up", go:"gl-reports", gltab:"pl"},
+      {label:"Balance Sheet", icon:"chart-pie", go:"gl-reports", gltab:"bs"},
+      {label:"Group Summary", icon:"chart-pie", go:"gl-reports", gltab:"group"},
       {label:"Cash Flow", icon:"cash", go:"reports"},
       {label:"Bank Reconciliation", icon:"book", go:"reports"},
-      {label:"Bank Statement", icon:"bank", go:"reports"},
-      {label:"Accounts Statement", icon:"receipt", go:"reports"},
+      {label:"Bank Statement", icon:"bank", go:"gl-reports", gltab:"ledger"},
+      {label:"Accounts Statement", icon:"receipt", go:"gl-reports", gltab:"ledger"},
       {label:"Accounts Statement (AR/AP)", icon:"receipt", go:"pr-ledger"},
       {label:"Combined OS (Currency)", icon:"cash", go:"pr-ledger"},
-      {label:"Day Book", icon:"book", go:"reports"},
-      {label:"General Ledger", icon:"book", go:"coa"},
+      {label:"Day Book", icon:"book", go:"gl-reports", gltab:"day"},
+      {label:"General Ledger", icon:"book", go:"gl-reports", gltab:"ledger"},
       {label:"Journal Register", icon:"file-text", go:"journal-voucher"},
       {label:"Outstanding Receivable", icon:"user", go:"pr-ledger", prltype:"RECEIVABLE"},
       {label:"Outstanding Payable", icon:"bank", go:"pr-ledger", prltype:"PAYABLE"},
       {label:"Ageing Report", icon:"chart-bar", go:"acc-reports"},
       {label:"Receipt Register", icon:"cash", go:"receipt-voucher"},
       {label:"Payment Register", icon:"cash", go:"payment-voucher"},
-      {label:"Ledger Statement", icon:"book", go:"pr-ledger"},
+      {label:"Ledger Statement", icon:"book", go:"gl-reports", gltab:"ledger"},
       {label:"Accounts Payable", icon:"bank", children:[
         {label:"A/P Customer wise OS Report", icon:"bank", go:"pr-ledger", prltype:"PAYABLE"},
         {label:"A/P Outstanding Summary", icon:"bank", go:"pr-ledger", prltype:"PAYABLE"},
@@ -6448,6 +6364,7 @@ function tnBuildLevel(nodes, depth){
     row.setAttribute("role","menuitem");
     if(node.go) row.dataset.go = node.go;
     if(node.prltype) row.dataset.prltype = node.prltype;
+    if(node.gltab) row.dataset.gltab = node.gltab;
     if(node.soon) row.dataset.soon = node.soon;
     row.innerHTML = '<svg class="ic" data-icon="'+esc(node.icon||"file")+'"></svg>'
       +'<span class="tn-label">'+esc(node.label)+'</span>'
@@ -10078,164 +9995,7 @@ document.addEventListener("click", e=>{
   if((t=e.target.closest("[data-crm-svc-manage-warehouse]"))){ crmRenderWarehouseDetail(t.dataset.crmSvcManageWarehouse); setTimeout(()=>{ const w=$("#svcWarehouseDetailWrap"); if(w) w.scrollIntoView({behavior:"smooth"}); },50); return; }
 });
 
-/* ============================================================
-   JOURNAL VOUCHER & CONTRA VOUCHER
-   Dedicated double-entry screens — these no longer point at Chart of
-   Accounts. COA only supplies the ledger names for the account picker
-   in each line; the voucher itself is created and posted here.
-   ============================================================ */
-const LEDGER_ACCOUNTS = [
-  "1101 — Customer Receivables","1102 — Agent Receivables","1201 — Petty Cash","1202 — Current Account HDFC Chennai",
-  "2101 — Vendor Payables (Shipping Lines)","2102 — CHA / Broker Payables","2104 — Transport Vendor Payables",
-  "2201 — CGST Payable","2202 — SGST Payable","2203 — IGST Payable",
-  "3100 — Freight Income (Sea)","3200 — Freight Income (Air)","3300 — CHA Service Income","3400 — Transport Income","3500 — Warehouse Income",
-  "4100 — Ocean Freight Cost","4200 — Air Freight Cost","4300 — Customs Duty & Taxes","4400 — Transport Cost","4500 — Port/CFS Charges",
-  "5100 — Salaries & Wages","5200 — Rent","5300 — Office Admin","6100 — Share Capital","6200 — Retained Earnings",
-];
-const JV_RECORDS = [];
-const CV_RECORDS = [];
-let jvRowSeq = 0, cvRowSeq = 0;
-
-function voucherLedgerOptions(){ return LEDGER_ACCOUNTS.map(a=>`<option>${esc(a)}</option>`).join(""); }
-
-function jvAddRow(){
-  const tbody = $("#jvDetailRows");
-  const id = "jvr"+(++jvRowSeq);
-  const row = el("tr","");
-  row.id = id;
-  row.innerHTML = `<td><select class="fc" data-jv-acc>${voucherLedgerOptions()}</select></td>
-    <td><input class="fc" data-jv-dr type="number" placeholder="0.00"></td>
-    <td><input class="fc" data-jv-cr type="number" placeholder="0.00"></td>
-    <td><input class="fc" data-jv-note placeholder="Line narration"></td>
-    <td class="no-print"><button class="btn btn-out btn-sm" data-jv-remove="${id}"><svg class="ic" data-icon="close"></svg></button></td>`;
-  tbody.appendChild(row);
-  renderIcons(row);
-  $all("[data-jv-dr],[data-jv-cr]", row).forEach(i=>i.addEventListener("input", jvRecalc));
-}
-function jvRecalc(){
-  let dr=0, cr=0;
-  $all("#jvDetailRows tr").forEach(r=>{
-    dr += Number(r.querySelector("[data-jv-dr]")?.value)||0;
-    cr += Number(r.querySelector("[data-jv-cr]")?.value)||0;
-  });
-  $("#jvTotalDr").textContent = dr.toFixed(2);
-  $("#jvTotalCr").textContent = cr.toFixed(2);
-  $("#jvDiffMsg").textContent = (dr.toFixed(2)!==cr.toFixed(2)) ? "Debit and Credit must be equal (diff "+(dr-cr).toFixed(2)+")" : "";
-}
-function resetJvForm(){
-  $("#jvNo").value = ""; $("#jvNarration").value = ""; $("#jvStatus").value = "Draft";
-  $("#jvDetailRows").innerHTML = ""; jvRowSeq = 0;
-  jvAddRow(); jvAddRow();
-  jvRecalc();
-}
-window.resetJvForm = resetJvForm;
-
-function renderJvList(){
-  const body = $("#jvListBody");
-  if(JV_RECORDS.length===0){
-    body.innerHTML = `<tr><td colspan="10" class="tbl-empty">No journal vouchers yet — click "New Journal Voucher" to create one</td></tr>`;
-  } else {
-    body.innerHTML = JV_RECORDS.map(v=>`<tr>
-      <td class="mono ta" data-go="journal-voucher-new" data-jv-view="${esc(v.no)}">${esc(v.no)}</td>
-      <td>${esc(v.date)}</td><td>${esc(v.glDate)}</td><td>${esc(v.segment)}</td><td>${esc(v.period)}</td>
-      <td>${esc(v.narration)}</td><td>${v.dr.toFixed(2)}</td><td>${v.cr.toFixed(2)}</td>
-      <td><span class="b ${v.status==='Posted'?'b-gr':'b-gy'}">${esc(v.status)}</span></td>
-      <td class="no-print"><button class="ta" data-go="journal-voucher-new" data-jv-view="${esc(v.no)}">View →</button></td>
-    </tr>`).join("");
-  }
-  $("#jvListFooter").textContent = "Showing "+JV_RECORDS.length+" of "+JV_RECORDS.length+" journal vouchers";
-}
-window.renderJvList = renderJvList;
-
-$("#jvAddRowBtn") && $("#jvAddRowBtn").addEventListener("click", jvAddRow);
-document.addEventListener("click", e=>{
-  const rm = e.target.closest("[data-jv-remove]");
-  if(rm){ const row=$("#"+rm.dataset.jvRemove); if(row){ row.remove(); jvRecalc(); } return; }
-});
-$("#jvSaveBtn") && $("#jvSaveBtn").addEventListener("click", ()=>{
-  const dr = Number($("#jvTotalDr").textContent)||0;
-  const cr = Number($("#jvTotalCr").textContent)||0;
-  if(dr===0 && cr===0){ toast("Add voucher lines","Enter at least one debit and one credit line","error"); return; }
-  if(dr.toFixed(2)!==cr.toFixed(2)){ toast("Debit ≠ Credit","This voucher does not balance — Debit and Credit totals must match","error"); return; }
-  const no = "JV/"+$("#jvFy").value+"/"+String(JV_RECORDS.length+1).padStart(4,"0");
-  $("#jvNo").value = no;
-  $("#jvStatus").value = "Posted";
-  JV_RECORDS.unshift({no, date:$("#jvDate").value, glDate:$("#jvGlDate").value, segment:$("#jvSegment").value,
-    period:$("#jvPeriod").value, narration:$("#jvNarration").value, dr, cr, status:"Posted"});
-  toast("Journal Voucher posted", no+" — Dr/Cr "+dr.toFixed(2));
-  go("journal-voucher");
-});
-$("#jvReportsBtn") && $("#jvReportsBtn").addEventListener("click", ()=> toast("Reports", "Journal Voucher register available under Reports → General Accounts"));
-
-function cvAddRow(){
-  const tbody = $("#cvDetailRows");
-  const id = "cvr"+(++cvRowSeq);
-  const row = el("tr","");
-  row.id = id;
-  const cashBankOnly = LEDGER_ACCOUNTS.filter(a=>a.includes("Cash")||a.includes("Current Account"));
-  row.innerHTML = `<td><select class="fc" data-cv-acc>${cashBankOnly.map(a=>`<option>${esc(a)}</option>`).join("")}</select></td>
-    <td><input class="fc" data-cv-dr type="number" placeholder="0.00"></td>
-    <td><input class="fc" data-cv-cr type="number" placeholder="0.00"></td>
-    <td><input class="fc" data-cv-note placeholder="Line narration"></td>
-    <td class="no-print"><button class="btn btn-out btn-sm" data-cv-remove="${id}"><svg class="ic" data-icon="close"></svg></button></td>`;
-  tbody.appendChild(row);
-  renderIcons(row);
-  $all("[data-cv-dr],[data-cv-cr]", row).forEach(i=>i.addEventListener("input", cvRecalc));
-}
-function cvRecalc(){
-  let dr=0, cr=0;
-  $all("#cvDetailRows tr").forEach(r=>{
-    dr += Number(r.querySelector("[data-cv-dr]")?.value)||0;
-    cr += Number(r.querySelector("[data-cv-cr]")?.value)||0;
-  });
-  $("#cvTotalDr").textContent = dr.toFixed(2);
-  $("#cvTotalCr").textContent = cr.toFixed(2);
-  $("#cvDiffMsg").textContent = (dr.toFixed(2)!==cr.toFixed(2)) ? "Debit and Credit must be equal (diff "+(dr-cr).toFixed(2)+")" : "";
-}
-function resetCvForm(){
-  $("#cvNo").value = ""; $("#cvNarration").value = ""; $("#cvStatus").value = "Draft";
-  $("#cvDetailRows").innerHTML = ""; cvRowSeq = 0;
-  cvAddRow(); cvAddRow();
-  cvRecalc();
-}
-window.resetCvForm = resetCvForm;
-
-function renderCvList(){
-  const body = $("#cvListBody");
-  if(CV_RECORDS.length===0){
-    body.innerHTML = `<tr><td colspan="10" class="tbl-empty">No contra vouchers yet — click "New Contra Voucher" to create one</td></tr>`;
-  } else {
-    body.innerHTML = CV_RECORDS.map(v=>`<tr>
-      <td class="mono ta" data-go="contra-voucher-new" data-cv-view="${esc(v.no)}">${esc(v.no)}</td>
-      <td>${esc(v.date)}</td><td>${esc(v.glDate)}</td><td>${esc(v.segment)}</td><td>${esc(v.period)}</td>
-      <td>${esc(v.narration)}</td><td>${v.dr.toFixed(2)}</td><td>${v.cr.toFixed(2)}</td>
-      <td><span class="b ${v.status==='Posted'?'b-gr':'b-gy'}">${esc(v.status)}</span></td>
-      <td class="no-print"><button class="ta" data-go="contra-voucher-new" data-cv-view="${esc(v.no)}">View →</button></td>
-    </tr>`).join("");
-  }
-  $("#cvListFooter").textContent = "Showing "+CV_RECORDS.length+" of "+CV_RECORDS.length+" contra vouchers";
-}
-window.renderCvList = renderCvList;
-
-$("#cvAddRowBtn") && $("#cvAddRowBtn").addEventListener("click", cvAddRow);
-document.addEventListener("click", e=>{
-  const rm = e.target.closest("[data-cv-remove]");
-  if(rm){ const row=$("#"+rm.dataset.cvRemove); if(row){ row.remove(); cvRecalc(); } return; }
-});
-$("#cvSaveBtn") && $("#cvSaveBtn").addEventListener("click", ()=>{
-  const dr = Number($("#cvTotalDr").textContent)||0;
-  const cr = Number($("#cvTotalCr").textContent)||0;
-  if(dr===0 && cr===0){ toast("Add voucher lines","Enter at least one debit and one credit line","error"); return; }
-  if(dr.toFixed(2)!==cr.toFixed(2)){ toast("Debit ≠ Credit","This voucher does not balance — Debit and Credit totals must match","error"); return; }
-  const no = "CV/"+$("#cvFy").value+"/"+String(CV_RECORDS.length+1).padStart(4,"0");
-  $("#cvNo").value = no;
-  $("#cvStatus").value = "Posted";
-  CV_RECORDS.unshift({no, date:$("#cvDate").value, glDate:$("#cvGlDate").value, segment:$("#cvSegment").value,
-    period:$("#cvPeriod").value, narration:$("#cvNarration").value, dr, cr, status:"Posted"});
-  toast("Contra Voucher posted", no+" — Dr/Cr "+dr.toFixed(2));
-  go("contra-voucher");
-});
-$("#cvReportsBtn") && $("#cvReportsBtn").addEventListener("click", ()=> toast("Reports", "Contra Voucher register available under Reports → General Accounts"));
+/* Journal and Contra vouchers are live screens in GLKit (general ledger) */
 
 /* ============================================================
    ORGANIZATION MASTER — India vs Foreign GST logic
@@ -11436,7 +11196,7 @@ function bookRenderOverview(){
   const val = id => { const el=$("#"+id); return el ? el.value : ""; };
   body.innerHTML = `
     <div class="fr">
-      <div><strong>Branch</strong><div style="color:var(--g6)">${esc(val("bk_branch"))}</div></div>
+      <div><strong>Branch</strong><div style="color:var(--g6)">${esc(val("bk_brn"))}</div></div>
       <div><strong>Booking Date</strong><div style="color:var(--g6)">${esc(val("bk_bookdate")||"—")}</div></div>
       <div><strong>Direction</strong><div style="color:var(--g6)">${esc(val("bk_direction"))}</div></div>
     </div>
@@ -16749,7 +16509,7 @@ if(document.readyState !== "loading") initChatWidget();
   const MAP = [
     ["bk_bookdate","booking_date","col"], ["bk_carrier","carrier","col"], ["bk_carrierref","carrier_booking_no","col"], ["bk_vessel","vessel","col"], ["bk_pol","pol","col"], ["bk_pod","pod","col"],
     ["bk_etd","etd","col"], ["bk_eta","eta","col"], ["bk_sicutoff","si_cutoff","col"], ["bk_vgmcutoff","vgm_cutoff","col"],
-    ["bk_branch","branch","data"], ["bk_freightpp","freight_pp","data"], ["bk_svctype","service_type","data"], ["bk_por","place_of_receipt","data"], ["bk_pod2","place_of_delivery","data"], ["bk_marks","marks","data"], ["bk_notes","notes","data"],
+    ["bk_brn","branch","data"], ["bk_freightpp","freight_pp","data"], ["bk_svctype","service_type","data"], ["bk_por","place_of_receipt","data"], ["bk_pod2","place_of_delivery","data"], ["bk_marks","marks","data"], ["bk_notes","notes","data"],
     ["bk_customerAddr","customer_address","data"], ["bk_shipper","shipper","data"], ["bk_shipperAddr","shipper_address","data"], ["bk_consignee","consignee","data"], ["bk_consigneeAddr","consignee_address","data"], ["bk_notify","notify","data"], ["bk_notifyAddr","notify_address","data"],
     ["bk_pcs","pcs","data"], ["bk_packtype","pack_type","data"], ["bk_conttype","container_type","data"], ["bk_contno","container_no","data"], ["bk_pallet","pallet","data"], ["bk_qty","container_qty","data"], ["bk_teu","teu","data"],
     ["bk_chgwt","chargeable_weight","data"], ["bk_uld","uld_type","data"], ["bk_vehicle","vehicle_type","data"], ["bk_vehqty","vehicle_qty","data"],
@@ -17590,7 +17350,7 @@ function makePrintFit(){
   const GROUPS = [
     ["Company", [["legal_name", "Company name (as printed)"], ["tagline", "Tagline"], ["address", "Registered address", "area"], ["phone", "Telephone"], ["mobile", "Mobile"], ["fax", "Fax"], ["email", "Email"], ["web", "Website"]]],
     ["Tax and registration", [["gstin", "GSTIN"], ["pan", "PAN"], ["cin", "CIN"], ["state", "State"], ["state_code", "State code"], ["reg_mto", "MTO registration (e.g. OTI LICENCE NO. 019654N)"], ["reg_otl", "OTL registration"], ["reg_fmc", "FMC registration"]]],
-    ["Bank (INR account)", [["bank_name", "Bank name"], ["bank_account", "Account number"], ["bank_ifsc", "IFSC code"], ["bank_swift", "SWIFT / BIC code"], ["bank_branch", "Branch name and address", "area"], ["payment_modes", "Accepted payment modes (one per line)", "area"], ["tracking_url", "Invoice tracking URL"]]],
+    ["Bank (INR account, used only when the Bank Master has no bank)", [["bank_name", "Bank name"], ["bank_account", "Account number"], ["bank_ifsc", "IFSC code"], ["bank_swift", "SWIFT / BIC code"], ["bank_branch", "Branch name and address", "area"], ["payment_modes", "Accepted payment modes (one per line)", "area"], ["tracking_url", "Invoice tracking URL"]]],
     ["Bank (foreign currency account, printed on international debit notes)", [["usd_bank_name", "Bank name"], ["usd_bank_account", "Account number"], ["usd_bank_swift", "SWIFT code"], ["usd_bank_address", "Bank address", "area"], ["usd_bank_intermediary", "Intermediary bank and SWIFT", "area"]]],
     ["Printed wording", [["invoice_terms", "Invoice / debit note terms and conditions (one per line)", "area"], ["do_terms", "Delivery Order note (one per line)", "area"], ["terms", "Bill of Lading clauses (blank = standard clauses)", "area"], ["eoe", "E. & O.E. line"], ["footer_note", "Footer line"], ["signatory", "Signatory title (e.g. Authorised Signatory)"], ["signatory_name", "Signatory name"]]]];
   function shrink(file, maxW){ return new Promise((ok, bad)=>{ const r = new FileReader(); r.onerror = ()=>bad(new Error("Could not read the file")); r.onload = ()=>{ const im = new Image(); im.onerror = ()=>bad(new Error("That is not an image")); im.onload = ()=>{ const k = Math.min(1, maxW / im.width); const c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/png")); }; im.src = r.result; }; r.readAsDataURL(file); }); }
@@ -17844,7 +17604,7 @@ function makePrintFit(){
       (received && !proforma ? vrow("Less: Received / Credited", "("+fmt(received)+")")+vrow("NET PAYABLE", fmt(Math.round(outstanding)), 1) : "")+
       '<div style="padding:2px 8px;font-size:7.6px"><b>Amount in Words:</b><br><b>'+esc2(DK.words(grand, "INR"))+'</b>'+(hd.reverse_charge ? '<br>Tax Payable on Reverse Charge: '+esc2(hd.reverse_charge) : "")+'</div></div>';
     const dash = v=> v ? esc2(v) : '<span style="color:#9aa5b8">—</span>';
-    const bank = [["Beneficiary Name", P.legal_name || co.name], ["Bank Name", P.bank_name], ["Account Number", P.bank_account], ["IFSC / SWIFT", [P.bank_ifsc, P.bank_swift].filter(Boolean).join(" / ")], ["Branch", P.bank_branch], ["Payment Terms", days != null && days >= 0 ? days+" Days" : ""]];
+    const bank = [["Beneficiary Name", P.bank_beneficiary || P.legal_name || co.name], ["Bank Name", P.bank_name], ["Account Number", P.bank_account], ["IFSC / SWIFT", [P.bank_ifsc, P.bank_swift].filter(Boolean).join(" / ")], ["Branch", P.bank_branch], ["Payment Terms", days != null && days >= 0 ? days+" Days" : ""]];
     const bankBox = '<div style="flex:1.1;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("BANK & PAYMENT DETAILS")+'<div style="padding:2px 8px;font-size:7.6px">'+bank.map(([k, v])=>'<div style="display:flex;border-bottom:1px solid #eef1f6;padding:.6px 0"><span style="min-width:92px;font-weight:700">'+k+'</span><span>: '+dash(v)+'</span></div>').join("")+(P.payment_modes ? '<div style="margin-top:3px"><b>Accepted:</b> '+lines(P.payment_modes).map(esc2).join(" / ")+'</div>' : "")+(P.tracking_url ? '<div><b>Track online:</b> '+esc2(P.tracking_url)+'</div>' : "")+'</div></div>';
     const terms = lines(P.invoice_terms);
     const tcBox = '<div style="flex:1.3;border:1px solid '+LINE+';border-radius:3px;overflow:hidden">'+bar("TERMS & CONDITIONS")+(terms.length ? '<ol style="margin:0;padding:2px 8px 2px 22px;font-size:7.2px;line-height:1.3">'+terms.map(t=>"<li>"+esc2(t.replace(/^\d+[\.\)]\s*/, ""))+"</li>").join("")+'</ol>' : '<div style="padding:6px 8px;font-size:8px">'+dash("")+'</div>')+'</div>';
@@ -17999,7 +17759,7 @@ function makePrintFit(){
     if(kind === "doc"){ doc = await api("GET", "/api/documents/"+opt.docId); }
     const job = kind === "receipt" ? null : (opt.job || (doc && doc.job_number) || window.__lastJobNo);
     if(job) rd = await api("GET", "/api/jobs/"+encodeURIComponent(job)+"/report-data");
-    else { const prof = await api("GET", "/api/company/doc-profile"); rd = {company:{name:prof.name, logo:prof.logo, profile:prof.profile}, details:{}, booking:{}, party_text:{}, job_charges:[], invoices:[], shipping_bills:[], bills_of_entry:[]}; }
+    else { const prof = await api("GET", "/api/company/doc-profile"); rd = {company:{name:prof.name, logo:prof.logo, profile:prof.print_profile || prof.profile}, details:{}, booking:{}, party_text:{}, job_charges:[], invoices:[], shipping_bills:[], bills_of_entry:[]}; }
     if(kind === "do" && rd.direction === "Import" && !((rd.details || {}).impdocs || {}).do_no){ const r = await api("POST", "/api/jobs/"+encodeURIComponent(job)+"/do-issue"); rd.details.impdocs = r.impdocs; }
     let html, title;
     if(kind === "fc"){ html = DK.freightCert(rd); title = "Freight Certificate "+rd.job_number; }
@@ -18310,6 +18070,7 @@ function makePrintFit(){
     let docs = [];
     try{ docs = [].concat(...await Promise.all(types.map(t=>api("GET", "/api/documents?status=POSTED&doc_type="+t+"&limit=1000")))).filter(d=>Number(d.outstanding) > 0).sort((a, b)=>(a.doc_date || "").localeCompare(b.doc_date || "")); }
     catch(e){ say("Could not load the open documents", e.message, "error"); return; }
+    let banks = []; try{ banks = (await api("GET", "/api/coa/ledgers?source_type=bank")).filter(l=>l.status === "ACTIVE"); }catch(e){}
     const parties = Array.from(new Set(docs.map(d=>d.party_name))).sort();
     let party = doc ? doc.party_name : (parties[0] || ""); const key = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : String(Date.now())+Math.random();
     const opt = (v, sel)=> '<option'+(sel ? " selected" : "")+'>'+esc2(v)+'</option>';
@@ -18317,7 +18078,7 @@ function makePrintFit(){
     openModal({title:recv ? "Mark as Paid — Receipt voucher" : "Record Payment voucher", size:"lg", bodyHTML:
       '<div class="fr">'+field("pk_party", recv ? "Received from" : "Paid to", '<select class="fc" id="pk_party">'+parties.map(p=>opt(p, p === party)).join("")+'</select>')+field("pk_date", "Date", '<input class="fc" type="date" id="pk_date" value="'+today()+'">')+
         field("pk_kind", "Payment", '<div style="display:flex;gap:14px;align-items:center;padding-top:6px"><label><input type="radio" name="pk_kind" value="full" checked> Full payment</label><label><input type="radio" name="pk_kind" value="part"> Part payment</label></div>')+'</div>'+
-      '<div class="fr">'+field("pk_mode", "Mode of "+(recv ? "receipt" : "payment"), '<select class="fc" id="pk_mode">'+MODES.map((m, i)=>opt(m, i === 2)).join("")+'</select>')+field("pk_acc", recv ? "Deposited in (bank / cash account)" : "Paid from (bank / cash account)", '<input class="fc" id="pk_acc" placeholder="e.g. HDFC Current A/c 1234 or Cash in hand">')+
+      '<div class="fr">'+field("pk_mode", "Mode of "+(recv ? "receipt" : "payment"), '<select class="fc" id="pk_mode">'+MODES.map((m, i)=>opt(m, i === 2)).join("")+'</select>')+field("pk_acc", recv ? "Deposited in (bank / cash account)" : "Paid from (bank / cash account)", '<input class="fc" id="pk_acc" list="pk_acc_list" placeholder="'+(banks.length ? "Pick the company bank account" : "e.g. HDFC Current A/c 1234 or Cash in hand")+'" autocomplete="off"><datalist id="pk_acc_list">'+banks.map(b=>'<option value="'+esc2(b.name)+'">').join("")+'<option value="Cash in hand"></datalist>')+
         field("pk_amount", "Amount", '<input class="fc" type="number" step="0.01" id="pk_amount" readonly style="font-weight:800">')+'</div>'+
       '<div class="fr" id="pk_mode_fields"></div>'+
       '<div class="fr">'+field("pk_nar", "Narration", '<input class="fc" id="pk_nar" placeholder="Optional">', 3)+'</div>'+
@@ -18344,7 +18105,7 @@ function makePrintFit(){
       el("pk_mode_fields").innerHTML = m === "Cash" ? '<div class="fg" style="grid-column:span 3;color:var(--g5);font-size:12px">Cash receipt: no transaction reference is needed.</div>'
         : m === "Cheque" || m === "Demand Draft" ? f("pk_chq", (m === "Cheque" ? "Cheque" : "Draft")+" number *", "6 digits")+(m === "Cheque" ? f("pk_chqd", "Cheque date *", "", "date") : "")+f("pk_bank", "Drawn on bank", "e.g. HDFC Bank")
         : f("pk_ref", (m === "UPI" ? "UPI transaction id" : m === "Card" ? "Card approval / RRN" : "UTR / transaction reference")+(m === "Bank Transfer" ? "" : " *"), "")+f("pk_bank", "Customer's bank", "e.g. ICICI Bank");
-      if(!el("pk_acc").value) el("pk_acc").value = m === "Cash" ? "Cash in hand" : "";
+      if(m === "Cash") el("pk_acc").value = "Cash in hand"; else if(!el("pk_acc").value || el("pk_acc").value === "Cash in hand") el("pk_acc").value = banks.length === 1 ? banks[0].name : "";
     }
     el("pk_party").addEventListener("change", drawRows); el("pk_mode").addEventListener("change", modeFields);
     document.querySelectorAll('input[name="pk_kind"]').forEach(r=> r.addEventListener("change", ()=>sync(true)));
@@ -18534,6 +18295,213 @@ function makePrintFit(){
   document.addEventListener("input", e=>{ if(e.target.id === "coaSearch"){ clearTimeout(C.t); C.t = setTimeout(C.search, 250); } });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "coa") C.load(); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   GL KIT: ledger reports (General Ledger, Trial Balance, Group Summary, Profit & Loss, Balance Sheet, Day Book), the voucher viewer,
+   and the Journal / Contra voucher screens. Everything is read from the general ledger (/api/gl), which mirrors every posted invoice, note, receipt and payment.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const G = window.GLKit = {tab:"tb", ledgers:null, groups:[], last:null};
+  const num = n=> Number(n || 0);
+  const fmt = n=> num(n).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const dmy = d=> d ? String(d).slice(0, 10).split("-").reverse().join("-") : "";
+  const today = ()=> new Date().toISOString().slice(0, 10);
+  const th = (t, r)=> '<th'+(r ? ' style="text-align:right"' : "")+'>'+t+'</th>';
+  const td = (t, r, b)=> '<td style="'+(r ? "text-align:right;" : "")+(b ? "font-weight:700" : "")+'">'+t+'</td>';
+  const drcr = v=> num(v) === 0 ? "0.00" : fmt(Math.abs(num(v)))+(num(v) > 0 ? " Dr" : " Cr");
+  const empty = (cols, t)=> '<tr><td colspan="'+cols+'" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">'+t+'</td></tr>';
+  const TABS = {ledger:"General Ledger", tb:"Trial Balance", group:"Group Summary", pl:"Profit & Loss", bs:"Balance Sheet", day:"Day Book"};
+  const TYPES = {SALES:"Sales Invoice", DEBIT_NOTE:"Debit Note", CREDIT_NOTE:"Credit Note", PURCHASE:"Purchase Invoice", PURCHASE_CREDIT_NOTE:"Purchase Credit Note", RECEIPT:"Receipt Voucher", PAYMENT:"Payment Voucher", JOURNAL:"Journal Voucher", CONTRA:"Contra Voucher"};
+
+  G.loadLedgers = async function(force){
+    if(G.ledgers && !force) return G.ledgers;
+    try{ G.ledgers = await api("GET", "/api/coa/ledgers"); }catch(e){ G.ledgers = []; }
+    return G.ledgers;
+  };
+  G.show = async function(opts){
+    if(opts && opts.glTab && TABS[opts.glTab]) G.tab = opts.glTab;
+    const box = el("gl_body"); if(!box) return;
+    if(el("gl_from") && !el("gl_from").dataset.set){ el("gl_from").dataset.set = "1"; const y = new Date(); el("gl_from").value = (y.getMonth() >= 3 ? y.getFullYear() : y.getFullYear() - 1)+"-04-01"; el("gl_to").value = today(); }
+    await G.loadLedgers(true);
+    const sel = el("gl_ledger"); const cur = sel.value;
+    sel.innerHTML = '<option value="">— select a ledger —</option>'+G.ledgers.map(l=>'<option value="'+l.id+'">'+esc2(l.code+" — "+l.name)+'</option>').join(""); if(cur) sel.value = cur;
+    const gs = el("gl_group"); const gcur = gs.value; const seen = {}; G.ledgers.forEach(l=>{ seen[l.path] = 1; });
+    try{ const t = await api("GET", "/api/coa/tree"); G.groups = []; (function w(n){ n.forEach(g=>{ G.groups.push(g); w(g.groups); }); })(t.groups); }catch(e){}
+    gs.innerHTML = G.groups.filter(g=>g.level >= 2).map(g=>'<option value="'+g.id+'">'+esc2(g.path)+'</option>').join(""); if(gcur) gs.value = gcur;
+    G.paint();
+  };
+  G.paint = function(){
+    document.querySelectorAll("[data-gl-tab]").forEach(b=>{ const on = b.dataset.glTab === G.tab; b.classList.toggle("btn-pri", on); b.classList.toggle("btn-out", !on); });
+    el("gl_ledgerWrap").style.display = G.tab === "ledger" ? "" : "none"; el("gl_groupWrap").style.display = G.tab === "group" ? "" : "none";
+    el("gl_fromWrap").style.display = G.tab === "bs" ? "none" : ""; el("gl_toLbl").textContent = G.tab === "bs" ? "As on" : "To";
+    el("gl_typeWrap").style.display = G.tab === "day" ? "" : "none";
+    G.load();
+  };
+  const range = ()=> { const f = el("gl_from").value, t = el("gl_to").value; return (f && G.tab !== "bs" ? "date_from="+f+"&" : "")+(t ? (G.tab === "bs" ? "as_on=" : "date_to=")+t : ""); };
+  G.load = async function(){
+    const box = el("gl_body"); box.innerHTML = '<div class="ib ib-bl" style="margin:10px">Loading…</div>';
+    try{
+      if(G.tab === "tb" || G.tab === "group"){
+        if(G.tab === "group" && !el("gl_group").value){ box.innerHTML = '<div class="ib ib-bl" style="margin:10px">Pick a group to see its summary</div>'; return; }
+        const r = await api("GET", "/api/gl/trial-balance?"+range()+(G.tab === "group" ? "&group_id="+el("gl_group").value : ""));
+        const min = r.rows.reduce((a, x)=>Math.min(a, x.level), 9);
+        const split = (v, side)=> { const n = num(v); return side === "dr" ? (n > 0 ? fmt(n) : "") : (n < 0 ? fmt(-n) : ""); };
+        const body = r.rows.map(x=>{ const g = x.kind === "group"; return '<tr'+(g ? ' style="background:var(--g0)"' : "")+'><td style="padding-left:'+(8 + (x.level - min) * 16)+'px'+(g ? ";font-weight:700" : "")+'">'+(g ? '<a href="#" data-gl-group="'+x.id+'" style="color:inherit">'+esc2(x.name)+'</a>' : '<a href="#" data-gl-ledger="'+x.id+'" style="color:var(--bl)">'+esc2(x.code)+' — '+esc2(x.name)+'</a>')+'</td>'+
+            td(split(x.opening, "dr"), 1, g)+td(split(x.opening, "cr"), 1, g)+td(num(x.debit) ? fmt(x.debit) : "", 1, g)+td(num(x.credit) ? fmt(x.credit) : "", 1, g)+td(split(x.closing, "dr"), 1, g)+td(split(x.closing, "cr"), 1, g)+'</tr>'; }).join("");
+        const t = r.totals;
+        box.innerHTML = '<div class="ib '+(r.balanced ? "ib-gr" : "ib-am")+'" style="margin:10px">'+(r.balanced ? "Trial balance agrees: closing debit equals closing credit." : "Closing debit and credit differ — check the opening balances entered on the ledgers.")+'</div><div class="tw"><table id="gl_table"><thead><tr><th>Particulars</th>'+th("Opening Dr", 1)+th("Opening Cr", 1)+th("Debit", 1)+th("Credit", 1)+th("Closing Dr", 1)+th("Closing Cr", 1)+'</tr></thead><tbody>'+(body || empty(7, "No transactions in this period"))+
+          '<tr style="font-weight:800;background:var(--g0)"><td>Total</td>'+td(fmt(t.opening_dr), 1)+td(fmt(t.opening_cr), 1)+td(fmt(t.debit), 1)+td(fmt(t.credit), 1)+td(fmt(t.closing_dr), 1)+td(fmt(t.closing_cr), 1)+'</tr></tbody></table></div>';
+      } else if(G.tab === "ledger"){
+        const id = el("gl_ledger").value; if(!id){ box.innerHTML = '<div class="ib ib-bl" style="margin:10px">Pick a ledger to see its account transactions</div>'; return; }
+        const r = await api("GET", "/api/gl/ledger?ledger_id="+id+"&"+range());
+        box.innerHTML = '<div class="ib ib-bl" style="margin:10px"><b>'+esc2(r.ledger.code+" — "+r.ledger.name)+'</b> · '+esc2(r.ledger.group)+' &nbsp;|&nbsp; Opening <b>'+drcr(r.opening)+'</b> · Closing <b>'+drcr(r.closing)+'</b></div><div class="tw"><table id="gl_table"><thead><tr>'+th("Date")+th("Voucher")+th("Type")+th("Particulars")+th("Job")+th("Debit", 1)+th("Credit", 1)+th("Balance", 1)+'</tr></thead><tbody>'+
+          '<tr style="background:var(--g0)"><td colspan="5"><i>Opening balance</i></td>'+td("", 1)+td("", 1)+td(drcr(r.opening), 1, 1)+'</tr>'+
+          (r.entries.map(x=>'<tr>'+td(dmy(x.date))+'<td><a href="#" data-gl-voucher="'+x.voucher_id+'" style="color:var(--bl);font-weight:700">'+esc2(x.number)+'</a></td>'+td(esc2(x.voucher_label))+td(esc2(x.party || x.narration || ""))+td(esc2(x.job_number || ""))+td(num(x.debit) ? fmt(x.debit) : "", 1)+td(num(x.credit) ? fmt(x.credit) : "", 1)+td(drcr(x.balance), 1)+'</tr>').join("") || empty(8, "No transactions in this period"))+
+          '<tr style="font-weight:800;background:var(--g0)"><td colspan="5">Total / Closing</td>'+td(fmt(r.total_debit), 1)+td(fmt(r.total_credit), 1)+td(drcr(r.closing), 1)+'</tr></tbody></table></div>';
+      } else if(G.tab === "pl"){
+        const r = await api("GET", "/api/gl/profit-loss?"+range());
+        const sec = (title, rows)=> '<div class="tw"><table><thead><tr><th>'+title+'</th>'+th("Amount", 1)+'</tr></thead><tbody>'+(rows.map(x=>'<tr'+(x.kind === "group" ? ' style="background:var(--g0)"' : "")+'><td style="padding-left:'+(8 + x.level * 16)+'px'+(x.kind === "group" ? ";font-weight:700" : "")+'">'+esc2(x.kind === "ledger" ? x.name : x.name)+'</td>'+td(fmt(x.amount), 1, x.kind === "group")+'</tr>').join("") || empty(2, "Nothing recorded in this period"))+'</tbody></table></div>';
+        box.innerHTML = '<div class="kpi-row" style="margin:10px 0"><div class="kpi"><div class="kpi-lbl">Total income</div><div class="kpi-val">'+fmt(r.total_income)+'</div></div><div class="kpi"><div class="kpi-lbl">Total expenses</div><div class="kpi-val">'+fmt(r.total_expenses)+'</div></div><div class="kpi"><div class="kpi-lbl">Gross profit (direct)</div><div class="kpi-val">'+fmt(r.gross_profit)+'</div></div><div class="kpi"><div class="kpi-lbl">'+(num(r.net_profit) >= 0 ? "Net profit" : "Net loss")+'</div><div class="kpi-val" style="color:'+(num(r.net_profit) >= 0 ? "var(--gr)" : "var(--rd)")+'">'+fmt(Math.abs(num(r.net_profit)))+'</div></div></div><div id="gl_table" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+sec("Expenses", r.expenses)+sec("Income", r.income)+'</div>';
+      } else if(G.tab === "bs"){
+        const r = await api("GET", "/api/gl/balance-sheet?"+range());
+        const rows = a=> a.map(x=>'<tr'+(x.kind === "group" ? ' style="background:var(--g0)"' : "")+'><td style="padding-left:'+(8 + x.level * 16)+'px'+(x.kind === "group" ? ";font-weight:700" : "")+'">'+esc2(x.name)+'</td>'+td(fmt(x.amount), 1, x.kind === "group")+'</tr>').join("");
+        const liab = rows(r.liabilities)+(num(r.profit_loss) ? '<tr><td style="padding-left:8px;font-weight:700">'+(num(r.profit_loss) >= 0 ? "Profit &amp; Loss (net profit to date)" : "Profit &amp; Loss (net loss to date)")+'</td>'+td(fmt(r.profit_loss), 1, 1)+'</tr>' : "")+(num(r.difference) ? '<tr><td style="padding-left:8px;color:var(--rd);font-weight:700">Difference in opening balances</td>'+td(fmt(r.difference), 1, 1)+'</tr>' : "");
+        box.innerHTML = '<div class="ib '+(r.balanced ? "ib-gr" : "ib-am")+'" style="margin:10px">'+(r.balanced ? "The balance sheet agrees." : "The opening balances entered on the ledgers do not balance, so the sheet shows the difference. Correct the opening balances in the Chart of Accounts.")+'</div><div id="gl_table" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="tw"><table><thead><tr><th>Liabilities</th>'+th("Amount", 1)+'</tr></thead><tbody>'+(liab || empty(2, "Nothing recorded"))+'<tr style="font-weight:800;background:var(--g0)"><td>Total</td>'+td(fmt(r.total_right), 1)+'</tr></tbody></table></div><div class="tw"><table><thead><tr><th>Assets</th>'+th("Amount", 1)+'</tr></thead><tbody>'+(rows(r.assets) || empty(2, "Nothing recorded"))+'<tr style="font-weight:800;background:var(--g0)"><td>Total</td>'+td(fmt(r.total_assets), 1)+'</tr></tbody></table></div></div>';
+      } else {
+        const ty = el("gl_type").value; const r = await api("GET", "/api/gl/day-book?"+range()+(ty ? "&voucher_type="+ty : ""));
+        box.innerHTML = '<div class="tw"><table id="gl_table"><thead><tr>'+th("Date")+th("Voucher")+th("Type")+th("Party / Narration")+th("Job")+th("Amount", 1)+'</tr></thead><tbody>'+(r.vouchers.map(v=>'<tr>'+td(dmy(v.date))+'<td><a href="#" data-gl-voucher="'+v.id+'" style="color:var(--bl);font-weight:700">'+esc2(v.number)+'</a></td>'+td(esc2(v.label))+td(esc2(v.party || v.narration || ""))+td(esc2(v.job_number || ""))+td(fmt(v.total), 1)+'</tr>').join("") || empty(6, "No vouchers in this period"))+'<tr style="font-weight:800;background:var(--g0)"><td colspan="5">Total ('+r.vouchers.length+' vouchers)</td>'+td(fmt(r.total), 1)+'</tr></tbody></table></div>';
+      }
+    }catch(err){ box.innerHTML = '<div class="ib ib-am" style="margin:10px">'+esc2(err.message)+'</div>'; }
+  };
+  G.csv = function(){
+    const t = el("gl_table"); if(!t){ say("Nothing to export", "", "warn"); return; }
+    const rows = Array.from(t.querySelectorAll("tr")).map(tr=>Array.from(tr.children).map(c=>'"'+c.textContent.replace(/"/g, '""').trim()+'"').join(","));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([rows.join("\n")], {type:"text/csv"})); a.download = (TABS[G.tab] || "report").toLowerCase().replace(/[^a-z]+/g, "-")+".csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  };
+
+  /* ---- a voucher with its ledger entries, and a jump to the source document ---- */
+  G.viewVoucher = async function(id){
+    let v; try{ v = await api("GET", "/api/gl/vouchers/"+id); }catch(e){ say("Could not open the voucher", e.message, "error"); return; }
+    const dr = v.entries.reduce((a, e)=>a + num(e.debit), 0), cr = v.entries.reduce((a, e)=>a + num(e.credit), 0);
+    const src = v.source_type === "document" ? '<button class="btn btn-out" type="button" data-gl-src="document" data-id="'+v.source_id+'">Open '+esc2(TYPES[v.type] || "document")+'</button>' : v.source_type === "payment" ? '<button class="btn btn-out" type="button" data-gl-src="payment" data-id="'+v.source_id+'">Open voucher</button>' : (v.status === "POSTED" ? '<button class="btn btn-out" type="button" data-gl-cancel="'+v.id+'" style="color:var(--rd)">Cancel voucher</button>' : "");
+    openModal({title:esc2(v.label)+" — "+esc2(v.number), size:"lg", bodyHTML:'<div style="font-size:12px;margin-bottom:6px">Date <b>'+dmy(v.date)+'</b>'+(v.party ? ' · Party <b>'+esc2(v.party)+'</b>' : "")+(v.job_number ? ' · Job <b>'+esc2(v.job_number)+'</b>' : "")+(v.status !== "POSTED" ? ' · <b style="color:var(--rd)">'+esc2(v.status)+'</b>' : "")+(v.narration ? '<div style="color:var(--g5)">'+esc2(v.narration)+'</div>' : "")+'</div><div class="tw"><table><thead><tr>'+th("Code")+th("Ledger")+th("Narration")+th("Debit", 1)+th("Credit", 1)+'</tr></thead><tbody>'+v.entries.map(e=>'<tr>'+td('<span class="mono">'+esc2(e.code)+'</span>')+'<td><a href="#" data-gl-ledger="'+e.ledger_id+'" style="color:var(--bl)">'+esc2(e.ledger)+'</a></td>'+td(esc2(e.narration || ""))+td(num(e.debit) ? fmt(e.debit) : "", 1)+td(num(e.credit) ? fmt(e.credit) : "", 1)+'</tr>').join("")+'<tr style="font-weight:800;background:var(--g0)"><td colspan="3">Total</td>'+td(fmt(dr), 1)+td(fmt(cr), 1)+'</tr></tbody></table></div>',
+      footHTML:src+'<button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+  };
+
+  /* ---- journal and contra vouchers ---- */
+  const VT = {JOURNAL:{list:"jv", title:"Journal Voucher"}, CONTRA:{list:"cv", title:"Contra Voucher"}};
+  G.loadVouchers = async function(type){
+    const body = el(VT[type].list+"_body"); if(!body) return;
+    try{ const rows = await api("GET", "/api/gl/vouchers?voucher_type="+type); const f = (el(VT[type].list+"_q") || {}).value || "";
+      const shown = rows.filter(v=> !f || (v.number+" "+(v.narration || "")).toLowerCase().includes(f.toLowerCase()));
+      body.innerHTML = shown.map(v=>'<tr><td class="mono"><a href="#" data-gl-voucher="'+v.id+'" style="color:var(--bl);font-weight:700">'+esc2(v.number)+'</a></td><td>'+dmy(v.date)+'</td><td>'+esc2(v.narration || v.entries.map(e=>e.ledger).slice(0, 2).join(" / "))+'</td><td style="text-align:right">'+fmt(v.total)+'</td><td><span class="b '+(v.status === "POSTED" ? "b-gr" : "b-gy")+'">'+esc2(v.status === "POSTED" ? "Posted" : "Cancelled")+'</span></td></tr>').join("") || empty(5, "No "+VT[type].title.toLowerCase()+"s yet");
+    }catch(e){ body.innerHTML = empty(5, esc2(e.message)); }
+  };
+  G.newVoucher = async function(type){
+    const leds = await G.loadLedgers(true); const isC = type === "CONTRA";
+    const pool = isC ? leds.filter(l=>/BANK ACCOUNTS|CASH-IN-HAND/.test(l.path) && l.status === "ACTIVE") : leds.filter(l=>l.status === "ACTIVE");
+    if(isC && pool.length < 2){ say("Add a bank account first", "A contra voucher moves money between cash and bank ledgers. Create a Bank in the Bank master (or a ledger under Bank Accounts)", "warn"); return; }
+    const opts = pool.map(l=>'<option value="'+l.id+'">'+esc2(l.code+" — "+l.name)+'</option>').join("");
+    const row = ()=> '<tr data-jv-row><td><select class="fc" data-jv="ledger">'+opts+'</select></td><td><input class="fc" type="number" min="0" step="0.01" data-jv="debit" style="text-align:right"></td><td><input class="fc" type="number" min="0" step="0.01" data-jv="credit" style="text-align:right"></td><td><input class="fc" data-jv="narration" maxlength="240"></td><td><button class="ta" type="button" data-jv-del style="color:var(--rd)">✕</button></td></tr>';
+    openModal({title:"New "+VT[type].title, size:"lg", bodyHTML:'<div class="fr"><div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="jv_date" value="'+today()+'"></div><div class="fg" style="grid-column:span 2"><label class="fl">Narration</label><input class="fc" id="jv_narr" maxlength="400"></div></div>'+
+      (isC ? '<div class="coa-note" style="margin-bottom:4px">Debit the account that receives the money and credit the account it comes from.</div>' : "")+'<div class="tw"><table><thead><tr><th>Ledger</th>'+th("Debit", 1)+th("Credit", 1)+'<th>Narration</th><th></th></tr></thead><tbody id="jv_rows">'+row()+row()+'</tbody></table></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><button class="btn btn-out btn-sm" type="button" id="jv_add">+ Add line</button><div id="jv_tot" style="font-weight:700"></div></div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="jv_go">Post '+VT[type].title+'</button>'});
+    const sums = ()=> { let d = 0, c = 0; document.querySelectorAll("[data-jv-row]").forEach(r=>{ d += num(r.querySelector('[data-jv="debit"]').value); c += num(r.querySelector('[data-jv="credit"]').value); }); el("jv_tot").innerHTML = 'Debit '+fmt(d)+' · Credit '+fmt(c)+' · <span style="color:'+(Math.abs(d - c) < 0.005 && d > 0 ? "var(--gr)" : "var(--rd)")+'">'+(Math.abs(d - c) < 0.005 && d > 0 ? "Balanced" : "Difference "+fmt(Math.abs(d - c)))+'</span>'; return [d, c]; };
+    sums();
+    el("jv_add").addEventListener("click", ()=>{ el("jv_rows").insertAdjacentHTML("beforeend", row()); });
+    el("jv_rows").addEventListener("input", sums);
+    el("jv_rows").addEventListener("click", e=>{ if(e.target.closest("[data-jv-del]") && document.querySelectorAll("[data-jv-row]").length > 2){ e.target.closest("[data-jv-row]").remove(); sums(); } });
+    el("jv_go").addEventListener("click", async ()=>{
+      const lines = Array.from(document.querySelectorAll("[data-jv-row]")).map(r=>({ledger_id:Number(r.querySelector('[data-jv="ledger"]').value), debit:String(num(r.querySelector('[data-jv="debit"]').value) || 0), credit:String(num(r.querySelector('[data-jv="credit"]').value) || 0), narration:r.querySelector('[data-jv="narration"]').value.trim() || null})).filter(l=>num(l.debit) || num(l.credit));
+      const [d, c] = sums(); if(lines.length < 2){ say("Enter at least two lines", "", "warn"); return; } if(Math.abs(d - c) > 0.004){ say("The voucher does not balance", "Debit "+fmt(d)+" and credit "+fmt(c), "warn"); return; }
+      try{ const v = await api("POST", "/api/gl/vouchers", {voucher_type:type, vdate:el("jv_date").value || null, narration:el("jv_narr").value.trim() || null, lines}); closeModal(); say(VT[type].title+" posted", v.number); G.ledgers = null; G.loadVouchers(type); }catch(e){ say("Could not post the voucher", e.message, "error"); }
+    });
+  };
+
+  document.addEventListener("click", async e=>{
+    const v = e.target.closest("[data-gl-voucher]"); if(v){ e.preventDefault(); e.stopPropagation(); G.viewVoucher(v.dataset.glVoucher); return; }
+    const l = e.target.closest("[data-gl-ledger]"); if(l){ e.preventDefault(); e.stopPropagation(); closeModal(); G.tab = "ledger"; el("gl_ledger").value = l.dataset.glLedger; if(!el("s-gl-reports").classList.contains("on")) go("gl-reports", {glTab:"ledger"}); else G.paint(); setTimeout(()=>{ el("gl_ledger").value = l.dataset.glLedger; G.paint(); }, 600); return; }
+    const g = e.target.closest("[data-gl-group]"); if(g){ e.preventDefault(); G.tab = "group"; el("gl_group").value = g.dataset.glGroup; G.paint(); return; }
+    const t = e.target.closest("[data-gl-tab]"); if(t){ G.tab = t.dataset.glTab; G.paint(); return; }
+    const s = e.target.closest("[data-gl-src]"); if(s){ closeModal(); if(s.dataset.glSrc === "document") window.BK.openDoc(Number(s.dataset.id)); else if(window.PayKit) window.PayKit.viewVoucher(s.dataset.id); return; }
+    const c = e.target.closest("[data-gl-cancel]"); if(c){ if(!window.confirm("Cancel this voucher? It is removed from the ledger.")) return; try{ await api("POST", "/api/gl/vouchers/"+c.dataset.glCancel+"/cancel"); closeModal(); say("Voucher cancelled", ""); G.loadVouchers("JOURNAL"); G.loadVouchers("CONTRA"); }catch(err){ say("Could not cancel", err.message, "error"); } return; }
+    if(e.target.closest("#gl_print")) window.print(); if(e.target.closest("#gl_csv")) G.csv();
+    if(e.target.closest("#gl_rebuild")){ try{ const r = await api("POST", "/api/gl/rebuild"); say("Ledger refreshed", r.documents+" invoices / notes and "+r.payments+" receipts / payments posted"); G.load(); }catch(err){ say("Could not refresh", err.message, "error"); } }
+    if(e.target.closest("#jv_new")) G.newVoucher("JOURNAL"); if(e.target.closest("#cv_new")) G.newVoucher("CONTRA");
+  }, true);
+  document.addEventListener("change", e=>{ if(["gl_from", "gl_to", "gl_ledger", "gl_group", "gl_type"].indexOf(e.target.id) > -1) G.load(); });
+  document.addEventListener("input", e=>{ if(e.target.id === "jv_q") G.loadVouchers("JOURNAL"); if(e.target.id === "cv_q") G.loadVouchers("CONTRA"); });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "gl-reports") G.show(opts); if(screen === "journal-voucher") G.loadVouchers("JOURNAL"); if(screen === "contra-voucher") G.loadVouchers("CONTRA"); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   BANK KIT: Bank Master (the company's bank accounts, with everything an invoice or voucher prints).
+   Saving a bank creates / updates its ledger under Bank Accounts; the default bank is printed on invoices, debit notes and BLs.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const B = window.BankKit = {rows:[], ledgers:{}};
+  const TYPES = ["Bank account", "Savings account", "Cash credit account", "Overdraft account", "Foreign currency account"];
+  B.load = async function(){
+    const body = el("bank_body"); if(!body) return;
+    try{
+      const [rows, leds] = await Promise.all([api("GET", "/api/masters/bank"), api("GET", "/api/coa/ledgers?source_type=bank")]);
+      B.rows = rows; B.ledgers = {}; leds.forEach(l=>{ B.ledgers[l.source_id] = l; });
+    }catch(e){ body.innerHTML = '<tr><td colspan="10">'+esc2(e.message)+'</td></tr>'; return; }
+    body.innerHTML = B.rows.map(r=>{ const d = r.data || {}, l = B.ledgers[r.id]; return '<tr><td class="mono">'+esc2(r.code)+'</td><td><b>'+esc2(r.name)+'</b><div style="font-size:10.5px;color:var(--g5)">'+esc2(d.type || "")+'</div></td><td>'+esc2(d.beneficiary || "")+'</td><td>'+esc2(d.account_number || "")+'</td><td>'+esc2(d.ifsc || "")+'</td><td>'+esc2(d.branch || "")+'</td><td>'+esc2(d.currency || "INR")+'</td><td class="mono">'+(l ? esc2(l.code) : "")+'</td><td>'+(String(d.default_bank).toLowerCase() === "yes" ? '<span class="b b-bl">Default</span>' : "")+'</td><td><span class="b '+(r.status === "ACTIVE" ? "b-gr" : "b-gy")+'">'+(r.status === "ACTIVE" ? "Active" : "Inactive")+'</span></td><td><button class="ta" data-bank-edit="'+r.id+'">Edit</button></td></tr>'; }).join("") || '<tr><td colspan="11" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">No bank accounts yet. Add the company bank account to record cheque and transfer receipts against it</td></tr>';
+  };
+  B.form = async function(rec){
+    const d = (rec && rec.data) || {}; const edit = !!rec;
+    let ccys = ["INR"], offices = []; try{ ccys = (await api("GET", "/api/masters/currency")).filter(c=>c.status === "ACTIVE").map(c=>c.code.toUpperCase()); if(!ccys.includes("INR")) ccys.unshift("INR"); }catch(e){}
+    try{ offices = (await api("GET", "/api/masters/branch")).filter(c=>c.status === "ACTIVE").map(c=>c.name); }catch(e){}
+    const v = k=> esc2(d[k] || ""); const sel = (id, opts, cur)=> '<select class="fc" id="'+id+'">'+opts.map(o=>'<option'+(o === cur ? " selected" : "")+'>'+esc2(o)+'</option>').join("")+'</select>';
+    const fg = (label, ctl, span, req)=> '<div class="fg"'+(span ? ' style="grid-column:span '+span+'"' : "")+'><label class="fl">'+label+(req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+'</div>';
+    const inp = (id, k, max, ph)=> '<input class="fc" id="'+id+'" maxlength="'+(max || 80)+'" value="'+v(k)+'"'+(ph ? ' placeholder="'+ph+'"' : "")+'>';
+    openModal({title:edit ? "Edit Bank — "+esc2(rec.name) : "New Bank", size:"lg", bodyHTML:
+      '<div class="fr">'+fg("Type", sel("bk_type", TYPES, d.type || TYPES[0]))+fg("Beneficiary (account name)", inp("bk_ben", "beneficiary", 120), 2, true)+'</div>'+
+      '<div class="fr">'+fg("Bank", '<input class="fc" id="bk_name" maxlength="120" value="'+esc2(rec ? rec.name : "")+'">', 2, true)+fg("Bank code", '<input class="fc" id="bk_code" maxlength="20" value="'+esc2(rec ? rec.code : "")+'" '+(edit ? "disabled" : 'placeholder="auto if blank"')+'>')+'</div>'+
+      '<div class="fr">'+fg("Account number", inp("bk_acc", "account_number", 30), 2, true)+fg("Currency", sel("bk_ccy", ccys, d.currency || "INR"))+'</div>'+
+      '<div class="fr">'+fg("IFSC", inp("bk_ifsc", "ifsc", 15))+fg("SWIFT", inp("bk_swift", "swift", 15))+fg("MICR", inp("bk_micr", "micr", 15))+'</div>'+
+      '<div class="fr">'+fg("UPI ID (for the QR on invoices)", inp("bk_upi", "upi_id", 80), 2)+fg("Bank branch", inp("bk_brn", "branch", 80))+'</div>'+
+      '<div class="fr">'+fg("Bank branch address", inp("bk_addr", "branch_address", 240), 3)+'</div>'+
+      '<div class="fr">'+fg("Customer ID at the bank (not printed)", inp("bk_cid", "customer_id", 40), 2)+fg("Belongs to office", sel("bk_office", ["Whole company"].concat(offices), d.office || "Whole company"))+'</div>'+
+      '<div class="fr">'+fg("Default bank (printed on invoices)", sel("bk_def", ["No", "Yes"], String(d.default_bank || "no").toLowerCase() === "yes" ? "Yes" : "No"))+fg("Status", sel("bk_status", ["ACTIVE", "INACTIVE"], rec ? rec.status : "ACTIVE"))+
+        (edit ? "" : fg("Opening balance", '<input class="fc" type="number" min="0" step="0.01" id="bk_ob" value="0">')+fg("Dr / Cr", sel("bk_side", ["Dr", "Cr"], "Dr")))+'</div>'+
+      '<div class="fr">'+fg("Notes (not printed)", '<textarea class="fc" id="bk_notes" rows="2" maxlength="400">'+v("notes")+'</textarea>', 3)+'</div>'+
+      (edit ? '<div class="coa-note">The opening balance of the bank is set on its ledger in the Chart of Accounts.</div>' : ""),
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="bk_go">Save</button>'});
+    el("bk_go").addEventListener("click", async ()=>{
+      const g = id=> el(id).value.trim(); const name = g("bk_name"), ben = g("bk_ben"), acc = g("bk_acc");
+      if(!name || !ben || !acc){ say("Complete the required fields", "Beneficiary, bank and account number are required", "warn"); return; }
+      let code = g("bk_code").toUpperCase(); if(!edit && !code){ const base = name.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "BANK"; let n = B.rows.length + 1; code = base+String(n).padStart(3, "0"); while(B.rows.some(r=>r.code === code)) code = base+String(++n).padStart(3, "0"); }
+      const data = {type:g("bk_type"), beneficiary:ben, account_number:acc, currency:g("bk_ccy"), ifsc:g("bk_ifsc").toUpperCase(), swift:g("bk_swift").toUpperCase(), micr:g("bk_micr"), upi_id:g("bk_upi"), branch:g("bk_brn"), branch_address:g("bk_addr"), customer_id:g("bk_cid"), office:g("bk_office"), notes:g("bk_notes"), default_bank:g("bk_def").toLowerCase()};
+      if(!edit){ const ob = Number(el("bk_ob").value) || 0; if(ob) data.opening_balance = String(el("bk_side").value === "Cr" ? -ob : ob); }
+      Object.keys(data).forEach(k=>{ if(data[k] === "") delete data[k]; });
+      try{
+        if(data.default_bank === "yes"){ for(const r of B.rows){ if(r.id !== (rec && rec.id) && String((r.data || {}).default_bank).toLowerCase() === "yes") await api("PATCH", "/api/masters/bank/"+r.id, {data:{...(r.data || {}), default_bank:"no"}}); } }
+        if(edit) await api("PATCH", "/api/masters/bank/"+rec.id, {name, status:g("bk_status"), data:{...(rec.data || {}), ...data}});
+        else await api("POST", "/api/masters/bank", {code, name, status:g("bk_status"), data});
+        closeModal(); say("Bank saved", name); if(window.GLKit) window.GLKit.ledgers = null; B.load();
+      }catch(e){ say("Could not save the bank", e.message, "error"); }
+    });
+  };
+  document.addEventListener("click", e=>{
+    if(e.target.closest("#bank_new")) B.form(null);
+    const ed = e.target.closest("[data-bank-edit]"); if(ed) B.form(B.rows.find(r=>String(r.id) === ed.dataset.bankEdit));
+  });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "bank-master") B.load(); };
 })();
 </script>
 

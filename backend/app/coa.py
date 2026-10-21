@@ -90,7 +90,20 @@ def ensure_tree(db: Session, org_id: int) -> None:
         g = _find_group(db, org_id, path)
         if g is not None:
             _make_ledger(db, org_id, g, name, system_key=key, control=key in ("cash", "tds_recv", "tds_pay"))
+    _control_accounts(db, org_id)
     db.flush()
+
+
+CONTROL_ACCOUNTS = (("ASSETS", "CURRENT ASSETS", "SUNDRY DEBTORS", "Sundry Debtors (AR control)"), ("LIABILITIES", "CURRENT LIABILITIES", "SUNDRY CREDITORS", "Sundry Creditors (AP control)"))
+
+
+def _control_accounts(db: Session, org_id: int) -> None:
+    """The Organization Master maps a customer / vendor to an AR / AP control account. Those are the Sundry Debtors and Sundry Creditors groups of the chart."""
+    for main, sub, name, label in CONTROL_ACCOUNTS:
+        g = _find_group(db, org_id, (main, sub, name))
+        if g is None or db.scalar(select(MasterRecord.id).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "account", MasterRecord.code == g.code)):
+            continue
+        db.add(MasterRecord(organization_id=org_id, master_type="account", code=g.code, name=label, status="ACTIVE", data={"group": name, "account_type": "control", "source": "chart_of_accounts"}))
 
 
 def group_path(db: Session, g: AccGroup) -> list[AccGroup]:
@@ -189,6 +202,10 @@ def sync_charge(db: Session, rec: MasterRecord, user_id=None) -> dict:
         elif led.name != rec.name[:200]:
             led.name = rec.name[:200]
         out[side] = led
+    data = dict(rec.data or {})
+    want = {"coa_income": f"{out['income'].code} - {out['income'].name}", "coa_expense": f"{out['expense'].code} - {out['expense'].name}"}
+    if any(data.get(k) != v for k, v in want.items()):   # the Charge Master shows the ledgers the charge posts to
+        rec.data = {**data, **want}
     return out
 
 
@@ -222,6 +239,7 @@ def sync_bank(db: Session, rec: MasterRecord, user_id=None) -> AccLedger:
             led.opening_balance, led.opening_side = abs(ob), "Dr" if ob > 0 else "Cr"
     else:
         led.name = label[:200]
+    led.status = "ACTIVE" if rec.status == "ACTIVE" else "INACTIVE"
     return led
 
 
