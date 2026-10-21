@@ -2191,22 +2191,28 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Phone</label><input class="fc" id="dept_phone" placeholder="044-4552-1100"></div>
   <div class="fg"><label class="fl">Extension</label><input class="fc" id="dept_ext" placeholder="e.g. 101" style="font-family:var(--font-mono)"></div>
 </div>
+<div class="fsec">Organisation</div>
+<div class="fr">
+  <div class="fg"><label class="fl">Branch</label><select class="fc" id="dept_branch"><option value="">All branches</option></select></div>
+  <div class="fg"><label class="fl">Parent Department</label><select class="fc" id="dept_parent"><option value="">— None (top level) —</option></select></div>
+  <div class="fg"><label class="fl">Cost Centre Code</label><input class="fc" id="dept_cc" placeholder="e.g. CC-OPS" style="font-family:var(--font-mono)"></div>
+</div>
 <div class="fsec">Description</div>
 <div class="fr"><div class="fg" style="grid-column:span 4"><textarea class="fc" id="dept_desc" rows="3" placeholder="Short description of this department's function"></textarea></div></div>
 </div></div></div>
 
 <!-- ====== DESIGNATION LIST ====== -->
 <div id="s-desig-list" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="tag" style="color:var(--bl)"></svg>Designation Master</div><div class="ps">Job titles mapped to Department and Grade</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dept-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" data-go="desig-new"><svg class="ic" data-icon="plus"></svg> New Designation</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="tag" style="color:var(--bl)"></svg>Designation Master</div><div class="ps">Job titles mapped to Department and Level</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dept-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="desigImportBtn" title="Load your own list of designations (code, designation, department, level)">Import</button><button class="btn btn-pri btn-sm" data-go="desig-new"><svg class="ic" data-icon="plus"></svg> New Designation</button></div></div>
 <div class="card">
-<div class="ch"><div class="ct">Designations (10)</div>
+<div class="ch"><div class="ct" id="desigCount">Designations</div>
   <div style="display:flex;gap:7px">
     <input class="fc" id="desigSearch" placeholder="Search designation…" style="width:200px">
-    <select class="fc" id="desigDeptFilter" style="width:170px"><option value="">All Departments</option><option>Operations</option><option>Sales &amp; Marketing</option><option>Customs &amp; Documentation</option><option>Finance &amp; Accounts</option><option>Human Resources</option><option>Warehouse &amp; Transport</option></select>
+    <select class="fc" id="desigDeptFilter" style="width:170px"><option value="">All Departments</option></select>
   </div>
 </div>
-<div class="tw"><table id="desigTable"><thead><tr><th>Code</th><th>Designation</th><th>Department</th><th>Grade</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="desigTableBody"></tbody></table></div>
-<div class="cf">Showing 10 of 10 designations</div></div></div>
+<div class="tw"><table id="desigTable"><thead><tr><th>Code</th><th>Designation</th><th>Department</th><th>Level</th><th>Grade</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="desigTableBody"></tbody></table></div>
+<div class="cf" id="desigFooter">Showing 0 of 0 designations</div></div></div>
 
 <!-- ====== DESIGNATION NEW ====== -->
 <div id="s-desig-new" class="scr">
@@ -2218,15 +2224,21 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Status</label><select class="fc" id="desig_status"><option>Active</option><option>Inactive</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg" style="grid-column:span 2"><label class="fl">Department <span class="r">*</span></label><select class="fc" id="desig_dept"><option value="">Select department…</option><option>Operations</option><option>Sales &amp; Marketing</option><option>Customs &amp; Documentation</option><option>Finance &amp; Accounts</option><option>Human Resources</option><option>Warehouse &amp; Transport</option><option>IT &amp; Systems</option><option>Administration</option></select><span class="ferr">Department is required</span></div>
-  <div class="fg" style="grid-column:span 2"><label class="fl">Grade</label><select class="fc" id="desig_grade"><option>Grade 1</option><option>Grade 2</option><option selected>Grade 3</option><option>Grade 4</option><option>Grade 5</option></select></div>
+  <div class="fg" style="grid-column:span 2"><label class="fl">Department <span class="r">*</span></label><select class="fc" id="desig_dept"><option value="">Select department…</option></select></div>
+  <div class="fg"><label class="fl">Level</label><input class="fc" id="desig_level" list="desigLevels" placeholder="e.g. L4" maxlength="10"><datalist id="desigLevels"><option value="L1"><option value="L2"><option value="L3"><option value="L4"><option value="L5"><option value="L6"><option value="L7"><option value="L8"><option value="L9"><option value="L10"></datalist></div>
+  <div class="fg"><label class="fl">Grade</label><select class="fc" id="desig_grade"><option>Grade 1</option><option>Grade 2</option><option selected>Grade 3</option><option>Grade 4</option><option>Grade 5</option></select></div>
+</div>
+<div class="fr">
+  <div class="fg" style="grid-column:span 2"><label class="fl">Reports To (designation)</label><select class="fc" id="desig_reports"><option value="">— None —</option></select></div>
+  <div class="fg"><label class="fl">Salary Band — Minimum (₹)</label><input class="fc" type="number" min="0" id="desig_min"></div>
+  <div class="fg"><label class="fl">Salary Band — Maximum (₹)</label><input class="fc" type="number" min="0" id="desig_max"></div>
 </div>
 <div class="fr"><div class="fg" style="grid-column:span 4"><label class="fl">Description</label><textarea class="fc" id="desig_desc" rows="2" placeholder="Role summary"></textarea></div></div>
 </div></div></div>
 
 <!-- ====== EMPLOYEE LIST (Grid + List toggle) ====== -->
 <div id="s-emp-list" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="user" style="color:var(--bl)"></svg>Employee Master</div><div class="ps">Complete employee information system — 70 active employees across 8 departments</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="emp-new"><svg class="ic" data-icon="plus"></svg> New Employee</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="user" style="color:var(--bl)"></svg>Employee Master</div><div class="ps">Complete employee information system: personal, employment, payroll, statutory and bank details</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri btn-sm" data-go="emp-new"><svg class="ic" data-icon="plus"></svg> New Employee</button></div></div>
 
 <div class="card">
 <div class="ch" style="flex-wrap:wrap;gap:10px">
@@ -2308,16 +2320,19 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Designation <span class="r">*</span></label><select class="fc" id="emp_desig"><option value="">Select designation…</option><option>Operations Manager</option><option>Operations Executive</option><option>Sales Manager</option><option>Sales Executive</option><option>Customs Officer</option><option>Documentation Executive</option><option>Finance Manager</option><option>Accounts Executive</option><option>HR Executive</option><option>Warehouse Supervisor</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Reporting Manager</label><select class="fc"><option>Karthik Subramaniam</option><option>Priya Ramanathan</option><option>Mohammed Ali</option><option>Lakshmi Narayanan</option></select></div>
+  <div class="fg"><label class="fl">Reporting Manager</label><select class="fc"><option value="">— None —</option></select></div>
   <div class="fg"><label class="fl">Employee Category</label><select class="fc"><option>Staff</option><option>Officer</option><option>Manager</option><option>Senior Management</option></select></div>
   <div class="fg"><label class="fl">Employment Type</label><select class="fc"><option>Permanent</option><option>Probation</option><option>Contract</option><option>Intern</option></select></div>
   <div class="fg"><label class="fl">Grade</label><select class="fc"><option>Grade 1</option><option>Grade 2</option><option selected>Grade 3</option><option>Grade 4</option><option>Grade 5</option></select></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Shift</label><select class="fc"><option>General (9:30–18:30)</option><option>Morning (7:00–15:00)</option><option>Evening (14:00–22:00)</option></select></div>
-  <div class="fg"><label class="fl">Work Location / Branch</label><select class="fc"><option>Chennai HQ</option><option>Chennai Port Office</option><option>Tuticorin Branch</option></select></div>
+  <div class="fg"><label class="fl">Work Location / Branch</label><select class="fc"><option value="">Select branch…</option></select></div>
+  <div class="fg"><label class="fl">Probation Period (months)</label><input class="fc" type="number" min="0" max="24"></div>
   <div class="fg"><label class="fl">Notice Period (days)</label><input class="fc" type="number"></div>
   <div class="fg"><label class="fl">Employee Status</label><select class="fc" id="emp_status"><option>Active</option><option>Inactive</option><option>Resigned</option><option>Retired</option><option>Terminated</option></select></div>
+  <div class="fg"><label class="fl">Leaving Date</label><input class="fc" type="date"></div>
+  <div class="fg"><label class="fl">Leaving Reason</label><input class="fc" placeholder="Resignation, retirement, termination…"></div>
 </div>
 </div></div></div>
 
@@ -2339,12 +2354,14 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">ESI Number</label><input class="fc" style="font-family:var(--font-mono)"></div>
+  <div class="fg"><label class="fl">Passport Number</label><input class="fc" style="font-family:var(--font-mono)" maxlength="12"></div>
+  <div class="fg"><label class="fl">Driving Licence Number</label><input class="fc" style="font-family:var(--font-mono)" maxlength="20"></div>
   <div class="fg"><label class="fl">Professional Tax (₹/mo)</label><input class="fc" type="number" placeholder="200"></div>
   <div class="fg" style="grid-column:span 2"></div>
 </div>
 <div class="fsec">Bank details</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Bank</label><select class="fc"><option>HDFC Bank</option><option>ICICI Bank</option><option>State Bank of India</option><option>Axis Bank</option></select></div>
+  <div class="fg"><label class="fl">Bank</label><input class="fc" list="empBankList" placeholder="Bank name" autocomplete="off"><datalist id="empBankList"><option value="HDFC Bank"><option value="ICICI Bank"><option value="State Bank of India"><option value="Axis Bank"><option value="Kotak Mahindra Bank"><option value="IndusInd Bank"><option value="Canara Bank"><option value="Indian Bank"><option value="Bank of Baroda"><option value="Punjab National Bank"><option value="Union Bank of India"><option value="IDFC FIRST Bank"><option value="Yes Bank"></datalist></div>
   <div class="fg"><label class="fl">Branch</label><input class="fc" placeholder="e.g. Anna Nagar"></div>
   <div class="fg"><label class="fl">Account Number</label><input class="fc" style="font-family:var(--font-mono)"></div>
   <div class="fg"><label class="fl">IFSC</label><input class="fc" style="font-family:var(--font-mono)" maxlength="11"></div>
@@ -13651,9 +13668,12 @@ if(document.readyState !== "loading") initChatWidget();
     afterLoad:rows=>{ if(window.StdKit) StdKit.containerPills(rows); },
     kpis:rows=>[[rows.length,"Container types"],[count(rows,r=>(r.data||{}).category==="Dry Container"),"Dry"],[count(rows,r=>(r.data||{}).category==="Reefer"),"Reefer"],[count(rows,r=>["Tank","Special Equipment","Platform","Flat Rack","Open Top"].includes((r.data||{}).category)),"Special equipment"]]});
   MK.register({type:"department", label:"Department", list:"dept-list", detail:"dept-new", codeLabel:"Department Code", nameLabel:"Department Name",
-    cols:["code","name","data.department_head","data.email","data.phone",()=>"—","status","actions"]});
+    cols:["code","name","data.department_head","data.email","data.phone",()=>"—","status","actions"],
+    selects:[{label:"Branch", from:"branch", use:"name"},{label:"Parent Department", from:"department", use:"name"}]});
   MK.register({type:"designation", label:"Designation", list:"desig-list", detail:"desig-new", codeLabel:"Designation Code", nameLabel:"Designation Name",
-    cols:["code","name","data.department","data.grade","status","actions"], selects:[{label:"Department", from:"department", use:"name"}]});
+    cols:["code","name","data.department","data.level","data.grade","status","actions"], selects:[{label:"Department", from:"department", use:"name"},{label:"Reports To (designation)", from:"designation", use:"name"}],
+    afterLoad:rows=>{ const n = rows.length, c = document.getElementById("desigCount"); if(c) c.textContent = "Designations ("+n+")"; const f = document.getElementById("desigFooter"); if(f) f.textContent = "Showing "+n+" of "+n+" designations";
+      api("GET","/api/masters/department").then(deps=>{ const sel = document.getElementById("desigDeptFilter"); if(!sel) return; const cur = sel.value; sel.innerHTML = '<option value="">All Departments</option>'+deps.map(d=>'<option>'+esc2(d.name)+'</option>').join(""); sel.value = cur; }).catch(()=>{}); }});
   MK.register({type:"branch", label:"Branch", list:"branch-master", detail:"branch-detail", codeLabel:"Branch Code", nameLabel:"Branch Name",
     cols:["code","name","data.country","data.city","data.local_currency",()=>"—","data.branch_manager","status","actions"],
     kpis:rows=>[[rows.length,"Branches"],[active(rows),"Active"],[count(rows,r=>r.status!=="ACTIVE"),"Inactive"],[new Set(rows.map(r=>(r.data||{}).country).filter(Boolean)).size,"Countries"]],
@@ -13666,7 +13686,7 @@ if(document.readyState !== "loading") initChatWidget();
     rowAttrs:r=>'data-dept="'+esc2((r.data||{}).department||"")+'" data-status="'+(r.status==="ACTIVE"?"Active":"Inactive")+'"',
     tables:[{sel:"#empTableBody"}],
     cols:[r=>'<div class="emp-avatar sm">'+esc2(initials(r.name))+'</div>', r=>'<span class="chip" data-mk-edit="'+r.id+'" data-mk-type="employee" style="cursor:pointer">'+esc2(r.code)+'</span>', "name","data.department","data.designation","data.mobile","data.official_email","data.joining_date",()=>"—","status","actions"],
-    selects:[{label:"Department", from:"department", use:"name"},{label:"Designation", from:"designation", use:"name"}],
+    selects:[{label:"Department", from:"department", use:"name"},{label:"Designation", from:"designation", use:"name"},{label:"Reporting Manager", from:"employee", use:"name"},{label:"Work Location / Branch", from:"branch", use:"name"}],
     kpis:rows=>[[rows.length,"Employees"],[active(rows),"Active"],[new Set(rows.map(r=>(r.data||{}).department).filter(Boolean)).size,"Departments"],[count(rows,r=>r.status!=="ACTIVE"),"Inactive"]]});
   MK.register({type:"route", label:"Route", list:"route-list", detail:"route-new", codeLabel:"Route Code", nameLabel:"Route Name",
     tables:[{sel:"#routeTableBody"}],
@@ -18910,6 +18930,66 @@ function makePrintFit(){
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch); else watch();
   window.JobListLayout = {layout, freeze};
   layout();
+})();
+</script>
+
+<script>
+/* ============================================================
+   STAFF FORM: the Designation list of the Employee form comes from the Designation master and follows the chosen Department.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, esc2} = U;
+  const el = id=> document.getElementById(id);
+  let recs = null;
+  async function fill(){
+    const sel = el("emp_desig"), dep = el("emp_dept"); if(!sel) return;
+    try{ recs = (await api("GET", "/api/masters/designation")).filter(r=>r.status === "ACTIVE"); }catch(e){ return; }
+    const cur = sel.value, d = dep ? dep.value : "";
+    const list = d ? recs.filter(r=>(r.data || {}).department === d) : recs; const use = list.length ? list : recs;
+    sel.innerHTML = '<option value="">'+(recs.length ? "Select designation…" : "No designation yet: add it in HR Masters › Designation")+'</option>'+use.map(r=>'<option value="'+esc2(r.name)+'">'+esc2(r.name)+'</option>').join("")+(cur && !use.some(r=>r.name === cur) ? '<option value="'+esc2(cur)+'">'+esc2(cur)+'</option>' : "");
+    sel.value = cur;
+    sel.title = d && list.length ? "Designations of "+d : "All designations";
+  }
+  /* the grade of the chosen designation is offered as the employee's grade */
+  function gradeSelect(){ const lb = Array.from(document.querySelectorAll("#s-emp-new label.fl")).find(l=>l.textContent.trim() === "Grade"); return lb ? lb.parentElement.querySelector("select") : null; }
+  document.addEventListener("change", e=>{
+    if(e.target.id === "emp_dept") fill();
+    if(e.target.id === "emp_desig" && recs){ const r = recs.find(x=>x.name === e.target.value); const g = gradeSelect(); if(r && g && (r.data || {}).grade && Array.from(g.options).some(o=>o.value === r.data.grade || o.textContent === r.data.grade)) g.value = r.data.grade; }
+  });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "emp-new"){ setTimeout(fill, 900); setTimeout(fill, 2200); } };
+})();
+</script>
+
+<script>
+/* ============================================================
+   DESIGNATION IMPORT: paste or upload the company's own list (Code, Designation, Department, Level); check it; load it.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  function parse(text){
+    const lines = String(text || "").replace(/\r/g, "").split("\n").filter(l=>l.trim()); if(!lines.length) return [];
+    const split = l=> l.includes("\t") ? l.split("\t").map(x=>x.trim()) : (()=>{ const c = []; let cur = "", q = false; for(const ch of l){ if(ch === '"') q = !q; else if(ch === "," && !q){ c.push(cur.trim()); cur = ""; } else cur += ch; } c.push(cur.trim()); return c; })();
+    const first = split(lines[0]).map(x=>x.toLowerCase()); const head = first.some(x=>/code|designation|department|level/.test(x));
+    const col = (k, d)=> { const i = head ? first.findIndex(x=>x.includes(k)) : d; return i; };
+    const iC = col("code", 0), iN = head ? first.findIndex(x=>x.includes("designation") || x === "name") : 1, iD = col("department", 2), iL = col("level", 3), iG = head ? first.findIndex(x=>x.includes("grade")) : -1;
+    return lines.slice(head ? 1 : 0).map(split).filter(r=>r[iC] || r[iN]).map(r=>({code:r[iC] || "", name:r[iN] || "", department:iD >= 0 ? (r[iD] || "") : "", level:iL >= 0 ? (r[iL] || "") : "", grade:iG >= 0 ? (r[iG] || "") : ""}));
+  }
+  function open(){
+    openModal({title:"Import designations", size:"lg", bodyHTML:'<div class="coa-note" style="margin-bottom:6px;font-size:11.5px;color:var(--g5)">Paste or upload your list with the columns <b>Code, Designation, Department, Level</b> (a header row is fine; tab or comma separated). A code or designation that already exists is skipped. A department that is not in the Department master yet is created.</div><input type="file" id="di_file" accept=".csv,.txt,.tsv,text/csv,text/plain"><textarea class="fc" id="di_text" rows="6" placeholder="DES001, Managing Director, Management, L1" style="width:100%;font-family:monospace;font-size:11px;margin-top:6px"></textarea><div id="di_out" style="margin-top:8px"></div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button><button class="btn btn-out" id="di_check">Check</button><button class="btn btn-pri" id="di_go" disabled>Load into the master</button>'});
+    const run = async apply=>{ const rows = parse(el("di_text").value); if(!rows.length){ say("Nothing to import", "Paste or upload the list first", "warn"); return null; }
+      try{ return await api("POST", "/api/masters/designation/import", {rows, apply}); }catch(e){ say(apply ? "Could not load the list" : "Could not check the list", e.message, "error"); return null; } };
+    el("di_file").addEventListener("change", ev=>{ const f = ev.target.files[0]; if(!f) return; const rd = new FileReader(); rd.onload = ()=>{ el("di_text").value = String(rd.result || ""); el("di_check").click(); }; rd.readAsText(f); });
+    el("di_check").addEventListener("click", async ()=>{ const r = await run(false); if(!r) return;
+      el("di_out").innerHTML = '<div class="ib '+(r.errors ? "ib-am" : "ib-gr")+'">'+r.new+' new, '+r.skipped+' already in the master (skipped)'+(r.errors ? ', <b>'+r.errors+' with errors</b>' : "")+(r.new_departments.length ? ' · departments to be created: <b>'+esc2(r.new_departments.join(", "))+'</b>' : "")+'</div><div class="tw" style="max-height:260px;overflow:auto"><table><thead><tr><th>#</th><th>Code</th><th>Designation</th><th>Department</th><th>Level</th><th>Result</th></tr></thead><tbody>'+r.rows.map(x=>'<tr><td>'+x.row+'</td><td class="mono">'+esc2(x.code)+'</td><td>'+esc2(x.name)+'</td><td>'+esc2(x.department)+'</td><td>'+esc2(x.level)+'</td><td>'+(x.status === "NEW" ? '<span class="b b-gr">New</span>' : x.status === "SKIP" ? '<span class="b b-gy">'+esc2(x.message)+'</span>' : '<span class="b b-rd">'+esc2(x.message)+'</span>')+(x.status === "NEW" && x.message ? ' <span style="font-size:10.5px;color:var(--g5)">'+esc2(x.message)+'</span>' : "")+'</td></tr>').join("")+'</tbody></table></div>';
+      el("di_go").disabled = !!r.errors || !r.new; });
+    el("di_go").addEventListener("click", async ()=>{ const r = await run(true); if(!r) return; closeModal(); say("Designations loaded", r.new+" added"+(r.new_departments.length ? " · "+r.new_departments.length+" department(s) created" : "")); if(window.MK && MK.configs.designation) MK.loadList(MK.configs.designation); });
+  }
+  document.addEventListener("click", e=>{ if(e.target.closest("#desigImportBtn")) open(); });
 })();
 </script>
 

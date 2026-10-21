@@ -368,6 +368,73 @@ def currency_iso_reference(user: User = Depends(permission_required("master.read
     return [{"code": k, **v, **({"seed": seed[k]} if k in seed else {})} for k, v in sorted(cr.iso_table().items())]
 
 
+class DesigRow(BaseModel):
+    code: str = Field(min_length=1, max_length=40)
+    name: str = Field(min_length=1, max_length=200)
+    department: str = Field(default="", max_length=200)
+    level: str = Field(default="", max_length=10)
+    grade: str = Field(default="", max_length=20)
+
+
+class DesigImport(BaseModel):
+    rows: list[DesigRow] = Field(min_length=1, max_length=2000)
+    apply: bool = False
+
+
+@router.post("/designation/import")
+def import_designations(body: DesigImport, user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+    """Load the company's own designation list (code, designation, department, level). A code or name that already exists is skipped; a department that is not in the Department master yet is created from the list.
+    With apply=false nothing is saved, so the rows can be checked first."""
+    org_id = _tenant(user)
+    existing = list(db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "designation")))
+    codes, names = {r.code.upper() for r in existing}, {r.name.strip().lower() for r in existing}
+    deps = list(db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "department")))
+    dep_names = {r.name.strip().lower(): r.name for r in deps}
+    dep_codes = {r.code.upper() for r in deps}
+    new_deps: dict[str, str] = {}
+    out, to_add = [], []
+    seen_codes, seen_names = set(), set()
+    for i, r in enumerate(body.rows, start=1):
+        try:
+            code = _clean_code(r.code)
+        except ValueError as e:
+            out.append({"row": i, "code": r.code, "name": r.name, "department": r.department, "level": r.level, "status": "ERROR", "message": str(e)})
+            continue
+        name = r.name.strip()
+        if code in codes or code in seen_codes:
+            out.append({"row": i, "code": code, "name": name, "department": r.department, "level": r.level, "status": "SKIP", "message": "This code already exists"})
+            continue
+        if name.lower() in names or name.lower() in seen_names:
+            out.append({"row": i, "code": code, "name": name, "department": r.department, "level": r.level, "status": "SKIP", "message": "This designation already exists"})
+            continue
+        dept = r.department.strip()
+        if dept and dept.lower() not in dep_names and dept.lower() not in {k.lower() for k in new_deps}:
+            letters = re.sub(r"[^A-Z]", "", dept.upper())[:3] or "DEP"
+            c, n = letters, 1
+            while c in dep_codes:
+                n += 1
+                c = f"{letters}{n}"
+            dep_codes.add(c)
+            new_deps[dept] = c
+        seen_codes.add(code)
+        seen_names.add(name.lower())
+        to_add.append((code, name, dep_names.get(dept.lower(), dept), r.level.strip().upper(), r.grade.strip()))
+        out.append({"row": i, "code": code, "name": name, "department": dep_names.get(dept.lower(), dept), "level": r.level.strip().upper(), "status": "NEW", "message": ("Department " + dept + " will be created") if dept in new_deps else ""})
+    result = {"rows": out, "new": len(to_add), "skipped": sum(1 for x in out if x["status"] == "SKIP"), "errors": sum(1 for x in out if x["status"] == "ERROR"), "new_departments": list(new_deps), "applied": False}
+    if body.apply:
+        if result["errors"]:
+            raise HTTPException(422, f"{result['errors']} row(s) have errors. Correct them or remove them and try again")
+        for dept, code in new_deps.items():
+            db.add(MasterRecord(organization_id=org_id, master_type="department", code=code, name=dept, status="ACTIVE", data={}, created_by=user.id))
+        for code, name, dept, level, grade in to_add:
+            data = {k: v for k, v in (("department", dept), ("level", level), ("grade", grade)) if v}
+            db.add(MasterRecord(organization_id=org_id, master_type="designation", code=code, name=name[:200], status="ACTIVE", data=data, created_by=user.id))
+        record_audit(db, "DESIGNATIONS_IMPORTED", "MASTER", user, org_id, "designation", "bulk", {"designations": len(to_add), "departments": len(new_deps)})
+        db.commit()
+        result["applied"] = True
+    return result
+
+
 @router.post("/standard/seed", status_code=201)
 def seed_standard(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     """Load the standard container types, units, package types and Incoterms 2020 (idempotent; nothing is overwritten)."""
