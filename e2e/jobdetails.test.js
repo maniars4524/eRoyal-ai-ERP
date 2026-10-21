@@ -107,7 +107,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("one click on Tracking opens the milestones as a pop-up (the page does not change tab)", d.getElementById("modalOvl").classList.contains("on") && /Operational Milestones/.test(d.getElementById("modalBody").textContent) && !d.getElementById("jt6").classList.contains("on"));
   d.getElementById("modalOvl").classList.remove("on");
   d.querySelector('#s-job-detail [data-jl="tracking"]').dispatchEvent(new w.MouseEvent("dblclick", { bubbles: true })); await sleep(500);
-  check("double-click opens the job's tracking page", d.getElementById("jt6").classList.contains("on") && !d.getElementById("modalOvl").classList.contains("on"));
+  check("double-click opens the separate, maximized tracking page (it names the job and where it was opened from)", d.getElementById("modalOvl").classList.contains("on") && d.getElementById("modalBox").classList.contains("max") && /Tracking page — /.test(d.getElementById("modalTitle").textContent) && /opened from the Job screen/.test(d.getElementById("modalTitle").textContent) && !d.getElementById("jt6").classList.contains("on"));
+  d.getElementById("modalOvl").classList.remove("on");
 
   const rd = (await j("GET", `/api/jobs/${job.job_number}/report-data`, null, token)).body;
   check("marks, description and weights are saved and shown on the BL", rd.details.cargo.marks.includes("CE NOS") && rd.details.cargo.cargoDesc.includes("EIGHT HUNDRED") && rd.details.containers[0].gross_wt === "13451.780" && rd.details.containers[0].pkgs === "877" && rd.details.cargo.pkgs === "877", JSON.stringify(rd.details.cargo));
