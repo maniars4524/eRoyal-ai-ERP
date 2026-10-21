@@ -7345,7 +7345,7 @@ function jcSetField(id, path, value){
     const parts = path.split(".");
     const grp = parts[0], key = parts[1];
     r[grp][key] = (key==="exch"||key==="rate"||key==="taxPct") ? (value===""?0:Number(value)) : value;
-    if(key==="ccy" && value==="INR") r[grp].exch = 1;
+    if(key==="ccy") r[grp].exch = value==="INR" ? 1 : ((window.FXKit && window.FXKit.rate(value)) || r[grp].exch || 1);
   } else if(path==="useVendor" || path==="useClient"){
     r[path] = !!value;
   } else {
@@ -14275,7 +14275,7 @@ if(document.readyState !== "loading") initChatWidget();
   document.addEventListener("input", e=>{
     const el = e.target; if(!BK.state || el.dataset.bkl === undefined) return;
     const i = Number(el.dataset.bkl); BK.state.lines[i][el.dataset.f] = el.value;
-    if(el.dataset.f === "ccy" || el.dataset.f === "tax_type"){ readHead(); renderEditor(); return; }
+    if(el.dataset.f === "ccy" || el.dataset.f === "tax_type"){ readHead(); if(el.dataset.f === "ccy"){ const ln = BK.state.lines[Number(el.dataset.bkl)]; if(ln){ ln.ccy = el.value; ln.exch = el.value === "INR" ? "1" : String((window.FXKit && window.FXKit.rate(el.value)) || ln.exch || "1"); } } renderEditor(); return; }
     if(el.dataset.f === "charge_name"){ const c = BK.state.charges.find(x=>x.name === el.value); if(c){ const l = BK.state.lines[i]; l.hsn = (c.data||{}).hsn_code || l.hsn; l.tax_pct = (c.data||{}).gst_percent || l.tax_pct; l.uom = l.uom; readHead(); renderEditor(); } return; }
     // refresh computed cells without losing focus
     const row = el.closest("tr"); const c = calc(BK.state.lines[i]); const tds = row.querySelectorAll("td.mono");
@@ -16886,7 +16886,7 @@ if(document.readyState !== "loading") initChatWidget();
     const tr = e.target.closest && e.target.closest("tr[data-bk-charge]"); if(!tr) return;
     const f = e.target.dataset.f;
     if(f === "description"){ const m = chargeMaster(e.target.value); if(m){ tr.querySelector('[data-f="code"]').value = m.code; const g = (m.data || {}).gst_percent; if(g != null && g !== "" && !num(tr.querySelector('[data-f="tax_pct"]').value)) tr.querySelector('[data-f="tax_pct"]').value = g; tr.dataset.service = SERVICE_OF_MODULE[(m.data || {}).module] || "Freight"; tr.dataset.uom = (m.data || {}).uom || tr.dataset.uom; } }
-    if(f === "currency" && e.target.value === "INR") tr.querySelector('[data-f="exch"]').value = "1";
+    if(f === "currency"){ tr.querySelector('[data-f="exch"]').value = e.target.value === "INR" ? "1" : String((window.FXKit && window.FXKit.rate(e.target.value)) || tr.querySelector('[data-f="exch"]').value || ""); }
     if(f === "vendor") tr.dataset.vendor = e.target.value;
     calcRow(tr);
   });
@@ -18474,6 +18474,26 @@ function makePrintFit(){
     if(/^org-/.test(screen) || screen === "org-list") CK.fill();
   };
   setTimeout(CK.fill, 2500);
+})();
+</script>
+
+<script>
+/* ============================================================
+   FX KIT: the default exchange rate of every currency comes from the Currency Master (today's INR rate). Choosing a currency on a job charge,
+   an invoice line or a booking cost line fills its master rate; the user can still change it on that line.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api} = U;
+  const FX = window.FXKit = {rates:{}, loaded:false};
+  FX.load = async function(){
+    try{ const rows = await api("GET", "/api/masters/currency"); const m = {}; rows.filter(r=>r.status === "ACTIVE").forEach(r=>{ const v = Number(String((r.data || {}).exchange_rate || "").replace(/,/g, "")); if(v > 0) m[String(r.code).toUpperCase()] = v; }); FX.rates = m; FX.loaded = true; }catch(e){}
+    return FX.rates;
+  };
+  FX.rate = function(code){ return FX.rates[String(code || "").toUpperCase()] || 0; };
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail" || /invoice|debit-note|purchase|booking|quotation/.test(screen) || screen === "currency-master") FX.load(); };
+  setTimeout(FX.load, 2200);
 })();
 </script>
 
