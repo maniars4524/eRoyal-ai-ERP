@@ -41,3 +41,12 @@ def test_import_skips_what_exists_and_refuses_bad_codes(h):
     assert bad.status_code == 422
     assert len(client.get("/api/masters/designation", headers=h).json()) == 6
     assert client.post("/api/masters/designation/import", json={"rows": []}, headers=h).status_code == 422
+
+
+def test_employee_codes_run_on_automatically(h):
+    first = client.get("/api/masters/employee/next-code", headers=h).json()["code"]
+    assert first == "EMP-0001"
+    client.post("/api/masters/employee", json={"code": first, "name": "A One", "data": {}}, headers=h)
+    client.post("/api/masters/employee", json={"code": "EMP-0007", "name": "B Seven", "data": {}}, headers=h)
+    client.post("/api/masters/employee", json={"code": "OLD-77", "name": "C Old Style", "data": {}}, headers=h)       # a code of another style is ignored by the counter
+    assert client.get("/api/masters/employee/next-code", headers=h).json()["code"] == "EMP-0008"

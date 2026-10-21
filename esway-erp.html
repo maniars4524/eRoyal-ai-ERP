@@ -2282,7 +2282,7 @@ tbody tr:hover{background:var(--g0)}
 <div id="et1" class="tp on"><div class="card"><div class="ch"><div class="ct">Basic Information</div></div><div class="cb">
 <div class="fsec">Identity</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Employee Code <span class="r">*</span></label><input class="fc" id="emp_code" placeholder="Auto: EMP-1013" style="font-family:var(--font-mono)" readonly></div>
+  <div class="fg"><label class="fl">Employee Code <span class="r">*</span></label><input class="fc" id="emp_code" placeholder="Generated automatically" style="font-family:var(--font-mono)" readonly></div>
   <div class="fg" style="grid-column:span 2"><label class="fl">Employee Name <span class="r">*</span></label><input class="fc" id="emp_name" placeholder="Full name"><span class="ferr">Employee name is required</span></div>
   <div class="fg"><label class="fl">Gender</label><select class="fc" id="emp_gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
 </div>
@@ -18957,8 +18957,16 @@ function makePrintFit(){
     if(e.target.id === "emp_dept") fill();
     if(e.target.id === "emp_desig" && recs){ const r = recs.find(x=>x.name === e.target.value); const g = gradeSelect(); if(r && g && (r.data || {}).grade && Array.from(g.options).some(o=>o.value === r.data.grade || o.textContent === r.data.grade)) g.value = r.data.grade; }
   });
+  /* a new employee gets the next code automatically (EMP-0001, EMP-0002 ...); an existing employee keeps its own */
+  async function autoCode(force){
+    const scr = el("s-emp-new"), c = el("emp_code"); if(!scr || !c || scr.dataset.mkId) return;
+    if(c.value && !force && /^EMP-\d+$/.test(c.value)) return;
+    try{ const r = await api("GET", "/api/masters/employee/next-code"); if(!scr.dataset.mkId){ c.value = r.code; c.readOnly = true; c.title = "Generated automatically"; } }catch(e){}
+  }
+  const origSave = MK.save;
+  MK.save = async function(cfg){ if(cfg && cfg.type === "employee") await autoCode(true); return origSave.call(MK, cfg); };
   const prev = MK.onScreen;
-  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "emp-new"){ setTimeout(fill, 900); setTimeout(fill, 2200); } };
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "emp-new"){ setTimeout(()=>{ fill(); autoCode(false); }, 900); setTimeout(()=>{ fill(); autoCode(false); }, 2200); } };
 })();
 </script>
 

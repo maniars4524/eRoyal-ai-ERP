@@ -368,6 +368,18 @@ def currency_iso_reference(user: User = Depends(permission_required("master.read
     return [{"code": k, **v, **({"seed": seed[k]} if k in seed else {})} for k, v in sorted(cr.iso_table().items())]
 
 
+@router.get("/employee/next-code")
+def next_employee_code(user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+    """The code the next new employee gets: EMP- and a running number, one above the highest in use by this company."""
+    org_id = _tenant(user)
+    best = 0
+    for (code,) in db.execute(select(MasterRecord.code).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "employee")):
+        m = re.fullmatch(r"EMP-(\d+)", (code or "").strip().upper())
+        if m:
+            best = max(best, int(m.group(1)))
+    return {"code": f"EMP-{best + 1:04d}"}
+
+
 class DesigRow(BaseModel):
     code: str = Field(min_length=1, max_length=40)
     name: str = Field(min_length=1, max_length=200)
