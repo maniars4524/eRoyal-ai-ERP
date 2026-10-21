@@ -162,6 +162,37 @@ def _job(db: Session, org_id: int, job_number: str | None) -> Shipment | None:
     return job
 
 
+AR_DOC_TYPES = ("invoice", "debit_note", "credit_note")
+
+
+def party_defaults(db: Session, org_id: int, name: str, doc_type: str) -> dict:
+    """What the Organization Master knows about the party of a document: the customer record, GSTIN, state, and the place of supply / supply type that follow from the two states (company state from the letterhead profile).
+    Sales: the supply is made from the company's state to the party's state. Purchases: from the vendor's state to the company's state."""
+    from .job_details_api import _profile
+
+    cust = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == (name or "").strip()))
+    out = {"customer_id": cust.id if cust else None, "party_gstin": "", "state_code": "", "place_of_supply": "", "supply_type": None, "known": bool(cust)}
+    if cust is None:
+        return out
+    branch = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == cust.id, OrgBranch.status == "ACTIVE", OrgBranch.gstin.is_not(None), OrgBranch.gstin != "").order_by(OrgBranch.sl_no, OrgBranch.id))
+    if branch is None:
+        branch = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == cust.id, OrgBranch.status == "ACTIVE").order_by(OrgBranch.sl_no, OrgBranch.id))
+    d = cust.data or {}
+    gstin = ((branch.gstin if branch and branch.gstin else None) or cust.gstin or "").strip().upper()
+    sc = gstin[:2] if len(gstin) >= 2 and gstin[:2].isdigit() else str((branch.state_code if branch else None) or d.get("state_code") or "").strip()[:2]
+    state = str((branch.state if branch else None) or d.get("state") or d.get("state_province") or "").strip()
+    prof = _profile(db, org_id)
+    cgst = str(prof.get("gstin") or "").strip().upper()
+    csc = str(prof.get("state_code") or "").strip()[:2] or (cgst[:2] if len(cgst) >= 2 and cgst[:2].isdigit() else "")
+    cstate = str(prof.get("state") or "").strip()
+    sale = doc_type in AR_DOC_TYPES
+    pos_sc, pos_state = (sc, state) if sale else (csc, cstate)
+    from_sc = csc if sale else sc
+    out.update({"party_gstin": gstin, "state_code": sc, "place_of_supply": (pos_sc + ("-" + pos_state if pos_state else "")) if pos_sc else "",
+                "supply_type": (("intra" if from_sc == pos_sc else "inter") if from_sc and pos_sc else None)})
+    return out
+
+
 def _new_document(db: Session, user: User, org_id: int, payload: DocumentIn) -> Document:
     job = _job(db, org_id, payload.job_number)
     if job is not None:
@@ -170,8 +201,15 @@ def _new_document(db: Session, user: User, org_id: int, payload: DocumentIn) -> 
         raise HTTPException(status_code=404, detail="Customer not found")
     _check_reference(db, org_id, payload.doc_type, payload.ref_document_id)
     doc_date = payload.doc_date or date.today()
+    pdef = party_defaults(db, org_id, payload.party_name, payload.doc_type)
+    # the customer record is the party of the document (the vendor of a purchase bill is never the customer of the job); the job's customer is only a fallback for a sales document
+    customer_id = pdef["customer_id"] or payload.customer_id or (job.customer_id if job and payload.doc_type in AR_DOC_TYPES else None)
+    gstin, pos, supply = payload.party_gstin, payload.place_of_supply, payload.supply_type
+    if not gstin and not pos:        # nothing entered: take the party's details from the master
+        gstin, pos = pdef["party_gstin"] or None, pdef["place_of_supply"] or None
+        supply = pdef["supply_type"] or supply
     doc = Document(organization_id=org_id, doc_type=payload.doc_type, status="DRAFT", doc_date=doc_date, due_date=payload.due_date, shipment_id=job.id if job else None, job_number=job.job_number if job else None,
-                   customer_id=payload.customer_id or (job.customer_id if job else None), party_name=payload.party_name.strip(), party_gstin=payload.party_gstin, place_of_supply=payload.place_of_supply, supply_type=payload.supply_type,
+                   customer_id=customer_id, party_name=payload.party_name.strip(), party_gstin=gstin, place_of_supply=pos, supply_type=supply,
                    ref_document_id=payload.ref_document_id, remarks=payload.remarks, header=payload.header, created_by=user.id)
     _apply_lines(doc, payload.lines)
     db.add(doc)
@@ -502,44 +540,75 @@ class AddJob(BaseModel):
     job_number: str = Field(max_length=40)
 
 
-@router.get("/billing/billable-jobs")
-def billable_jobs(party: str = Query(max_length=200), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
-    """Other jobs whose sell charges can be added to an invoice of this party: the job's customer, or the client named on its charges, is the party."""
-    org_id = _tenant(user)
+@router.get("/billing/party-defaults")
+def party_defaults_api(party: str = Query(max_length=200), doc_type: str = Query(default="invoice", pattern=DOC_TYPE_PATTERN), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """GSTIN, place of supply and supply type (CGST + SGST or IGST) of a party, from its customer / vendor master."""
+    return party_defaults(db, _tenant(user), party, doc_type)
+
+
+def _unbilled(db: Session, org_id: int, job: Shipment, party: str, doc_type: str, skip_doc: int | None = None) -> list[dict]:
+    """The charge lines of a job that can still be billed to / by this party: sell charges of the party for a sales invoice, buy charges of the vendor for a purchase bill, minus what a live document already bills."""
+    sale = doc_type in AR_DOC_TYPES
     cust = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == party))
+    charges = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id, (JobCharge.sell_rate if sale else JobCharge.buy_rate) > 0).order_by(JobCharge.line_no)))
+    if sale:
+        mine = [c for c in charges if (cust and job.customer_id == cust.id and not c.client) or c.client == party]
+    else:
+        mine = [c for c in charges if c.vendor == party]
+    if not mine:
+        return []
+    kinds = ("invoice",) if sale else ("purchase_invoice",)
+    billed = {(l.job_number or d.job_number, l.charge_name) for d in db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.doc_type.in_(kinds), Document.status != "CANCELLED", Document.party_name == party, Document.id != (skip_doc or 0))) for l in d.lines}
+    out = []
+    for c in mine:
+        if (job.job_number, c.charge_name) in billed:
+            continue
+        side = (c.sell_ccy, c.sell_exch, c.sell_rate, c.sell_tax_type, c.sell_tax_pct) if sale else (c.buy_ccy, c.buy_exch, c.buy_rate, c.buy_tax_type, c.buy_tax_pct)
+        out.append({"job_number": job.job_number, "charge_name": c.charge_name, "description": c.description, "hsn": c.hsn, "uom": c.uom, "qty": str(c.qty), "ccy": side[0], "exch": str(side[1]), "rate": str(side[2]), "tax_type": side[3], "tax_pct": str(side[4])})
+    return out
+
+
+@router.get("/billing/job-lines")
+def job_lines(job_number: str = Query(max_length=40), party: str = Query(max_length=200), doc_type: str = Query(default="invoice", pattern=DOC_TYPE_PATTERN), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """The unbilled charge lines of one job for the party: what to put on the document when that job is chosen."""
+    org_id = _tenant(user)
+    job = _job(db, org_id, job_number)
+    if job is None:
+        raise HTTPException(404, "Job not found")
+    return _unbilled(db, org_id, job, party, doc_type)
+
+
+@router.get("/billing/billable-jobs")
+def billable_jobs(party: str = Query(max_length=200), doc_type: str = Query(default="invoice", pattern=DOC_TYPE_PATTERN), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Jobs that still have unbilled entries for this party: the sell charges of the customer (sales documents) or the buy charges of the vendor (purchase documents)."""
+    org_id = _tenant(user)
+    sale = doc_type in AR_DOC_TYPES
     out = []
     for job in db.scalars(select(Shipment).where(Shipment.organization_id == org_id).order_by(Shipment.id.desc()).limit(500)):
-        charges = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id, JobCharge.sell_rate > 0)))
-        if not charges or not ((cust and job.customer_id == cust.id) or any(c.client == party for c in charges)):
-            continue
-        billed = {(l.job_number or d.job_number, l.charge_name) for d in db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.doc_type == "invoice", Document.status != "CANCELLED", Document.party_name == party)) for l in d.lines}
-        open_lines = [c for c in charges if (job.job_number, c.charge_name) not in billed]
+        open_lines = _unbilled(db, org_id, job, party, doc_type)
         if open_lines:
-            out.append({"job_number": job.job_number, "mode": job.mode, "direction": job.direction, "pol": job.pol, "pod": job.pod, "lines": len(open_lines), "amount": str(sum((c.qty * c.sell_rate * (1 if c.sell_ccy == "INR" else c.sell_exch) for c in open_lines), Decimal(0)))})
+            out.append({"job_number": job.job_number, "mode": job.mode, "direction": job.direction, "pol": job.pol, "pod": job.pod, "lines": len(open_lines), "amount": str(q2(sum((Decimal(l["qty"]) * Decimal(l["rate"]) * (1 if l["ccy"] == "INR" else Decimal(l["exch"])) for l in open_lines), Decimal(0))))})
     return out
 
 
 @router.post("/{doc_id}/add-job")
 def add_job_to_invoice(doc_id: int, body: AddJob, user: User = Depends(permission_required("billing.create")), db: Session = Depends(get_db)):
-    """Get the sell charges of another job of the same party into this draft invoice, so the party receives a single invoice for several jobs. Every line keeps its job number."""
+    """Get the unbilled charges of another job of the same party into this draft: the sell charges for an invoice, the buy charges of the vendor for a purchase bill. Every line keeps its job number."""
     org_id = _tenant(user)
     doc = _load(db, org_id, doc_id, lock=True)
-    if doc.doc_type != "invoice" or doc.status != "DRAFT":
-        raise HTTPException(status_code=409, detail="Jobs can be added to a draft invoice only")
+    if doc.doc_type not in ("invoice", "purchase_invoice") or doc.status != "DRAFT":
+        raise HTTPException(status_code=409, detail="Jobs can be added to a draft invoice or purchase bill only")
     job = _job(db, org_id, body.job_number)
-    charges = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id, JobCharge.sell_rate > 0).order_by(JobCharge.line_no)))
-    cust = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == doc.party_name))
-    if not ((cust and job.customer_id == cust.id) or any(c.client == doc.party_name for c in charges)):
-        raise HTTPException(status_code=422, detail=f"Job {job.job_number} is not billed to {doc.party_name}. Only jobs of the same billing party can be added")
-    if not charges:
-        raise HTTPException(status_code=422, detail=f"Job {job.job_number} has no sell charges to bill")
+    rows = _unbilled(db, org_id, job, doc.party_name, doc.doc_type, skip_doc=doc.id)
+    if not rows:
+        raise HTTPException(status_code=422, detail=f"Job {job.job_number} has no unbilled {'sell' if doc.doc_type == 'invoice' else 'buy'} charges for {doc.party_name}. Only jobs of the same party can be added")
     have = {(l.job_number or doc.job_number, l.charge_name) for l in doc.lines}
-    new = [c for c in charges if (job.job_number, c.charge_name) not in have]
+    new = [r for r in rows if (job.job_number, r["charge_name"]) not in have]
     if not new:
-        raise HTTPException(status_code=409, detail=f"The sell charges of {job.job_number} are already on this invoice")
+        raise HTTPException(status_code=409, detail=f"The charges of {job.job_number} are already on this document")
     existing = [LineIn(charge_name=l.charge_name, description=l.description, hsn=l.hsn, uom=l.uom, qty=l.qty, ccy=l.ccy, exch=l.exch, rate=l.rate, tax_type=l.tax_type, tax_pct=l.tax_pct, job_number=l.job_number or doc.job_number) for l in doc.lines]
-    added = [LineIn(charge_name=c.charge_name, description=c.description, hsn=c.hsn, uom=c.uom, qty=c.qty, ccy=c.sell_ccy, exch=c.sell_exch, rate=c.sell_rate, tax_type=c.sell_tax_type, tax_pct=c.sell_tax_pct, job_number=job.job_number) for c in new]
-    if len({line_group(l.tax_type) for l in existing + added}) > 1:
+    added = [LineIn(charge_name=r["charge_name"], description=r["description"], hsn=r["hsn"], uom=r["uom"], qty=Decimal(r["qty"]), ccy=r["ccy"], exch=Decimal(r["exch"]), rate=Decimal(r["rate"]), tax_type=r["tax_type"], tax_pct=Decimal(r["tax_pct"]), job_number=job.job_number) for r in new]
+    if doc.doc_type == "invoice" and len({line_group(l.tax_type) for l in existing + added}) > 1:
         raise HTTPException(status_code=422, detail="That job has Pure Agent or RCM entries that must be billed on their own invoice. Raise those separately")
     _apply_lines(doc, existing + added)
     record_audit(db, "JOB_ADDED_TO_INVOICE", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"job_number": job.job_number, "lines": len(added)})

@@ -2,14 +2,16 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import delete, select
+from sqlalchemy import cast, delete, select
+from sqlalchemy.dialects.postgresql import JSONB, array
 from sqlalchemy.orm import Session
 
 from .auth import permission_required
 from .auth_api import record_audit
 from .db import get_db
+from . import charge_rules
 from . import job_lifecycle as jl
-from .models import JobCharge, Shipment, User
+from .models import Customer, JobCharge, JobDetail, Shipment, User
 
 router = APIRouter(prefix="/api/shipments", tags=["job-charges"])
 
@@ -101,12 +103,35 @@ def get_charges(job_number: str, user: User = Depends(permission_required("shipm
     return _response(rows)
 
 
+@router.get("/by-number/{job_number}/charge-parties")
+def charge_parties(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """Who can be named on the charges of a job: the Client of a sell charge is one of the job's own parties (its customer and the parties of the Parties & Cargo tab or the booking); the Vendor of a buy charge is a party
+    of the Organization Master in a vendor category (carrier, agent, CHA, transporter, AP)."""
+    from .job_details_api import booking_defaults
+    from .schemas_auth import VENDOR_ROLES
+
+    job = _job(db, user, job_number)
+    clients: list[str] = []
+    cust = db.get(Customer, job.customer_id) if job.customer_id else None
+    if cust:
+        clients.append(cust.name)
+    row = db.scalar(select(JobDetail).where(JobDetail.shipment_id == job.id))
+    parties = (row.parties if row and (row.saved_sections or {}).get("parties") else booking_defaults(db, job)["parties"]) or {}
+    for k in ("shipper", "consignee", "notify1", "notify2", "billTo", "agent", "overseasAgent"):
+        v = str(parties.get(k) or "").strip()
+        if v and not v.startswith("__") and v.lower() != "same as consignee" and v not in clients:
+            clients.append(v)
+    vendors = [c.name for c in db.scalars(select(Customer).where(Customer.organization_id == job.organization_id, Customer.status == "ACTIVE", cast(Customer.roles, JSONB).has_any(array(VENDOR_ROLES))).order_by(Customer.name))]
+    return {"clients": clients, "vendors": vendors}
+
+
 @router.put("/by-number/{job_number}/charges")
 def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """Replace all charge lines of a job atomically; the server recalculates every amount."""
     job = _job(db, user, job_number)
     jl.assert_job_editable(job, "its charges")
     before = jl.money_totals(db, job)
+    charge_rules.check_sides(db, job.organization_id, [(l.charge_name, "SELL", l.sell.rate > 0) for l in payload.lines] + [(l.charge_name, "BUY", l.buy.rate > 0) for l in payload.lines])
     for line in payload.lines:
         for side in (line.buy, line.sell):
             if side.ccy != "INR" and side.exch <= 0:

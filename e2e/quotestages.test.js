@@ -49,10 +49,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // ---- charge master reflected + instant New Charge in the quotation
   await j("POST", "/api/masters/charge", { code: "FSC", name: "Fuel Surcharge", data: { hsn_code: "996511", gst_percent: "18" } }, token);
-  q$('[data-qa="add"][data-side="SELL"]').click(); await sleep(1200);
+  q$('[data-qa="add"]').click(); await sleep(1200);
   const opts = Array.from(d.querySelectorAll('select[data-ql$=":charge_name"] option')).map(o => o.value);
   check("a charge uploaded to the Charge Master appears in the quotation without reloading", opts.includes("Fuel Surcharge"), opts.join("|"));
-  q$('[data-qa="newcharge"][data-side="BUY"]').click(); await sleep(1500);
+  q$('[data-qa="newcharge"]').click(); await sleep(1500);
   check("New Charge opens the Charge Master form", !!q$("#nc_code"));
   setf(q$("#nc_code"), "DGS"); setf(q$("#nc_name"), "DG Surcharge");
   if (q$("#nc_hsn_man") && !q$("#nc_hsn_man").checked) q$("#nc_hsn_man").click();
@@ -60,7 +60,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   q$("#nc_save").click(); await sleep(2000);
   const master = (await j("GET", "/api/masters/charge", null, token)).body;
   check("the new charge is saved in the Charge Master", master.some(c => c.name === "DG Surcharge"));
-  check("and it is on the quotation as a buy line, taxable at its GST", Array.from(d.querySelectorAll('select[data-ql^="buy:"][data-ql$=":charge_name"]')).some(s => s.value === "DG Surcharge") && /18/.test(Array.from(d.querySelectorAll('[data-ql^="buy:"][data-ql$=":tax_pct"]')).map(e => e.value).join(",")), text("#qkRoot").slice(0, 100));
+  check("and it is on the quotation on one row for both sides (buy and sell line), taxable at its GST", Array.from(d.querySelectorAll('select[data-ql$=":charge_name"]')).some(s => s.value === "DG Surcharge") && d.defaultView.QK.buy.some(l => l.charge_name === "DG Surcharge" && l.taxable && l.tax_pct === "18") && d.defaultView.QK.sell.some(l => l.charge_name === "DG Surcharge"), text("#qkRoot").slice(0, 100));
 
   // ---- Cancel / Lost / client Reject
   const toCancel = await mk();

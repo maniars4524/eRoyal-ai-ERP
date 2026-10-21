@@ -80,6 +80,8 @@ def sync_document(db: Session, doc: Document, user_id=None, force=False) -> AccV
     sale = doc.doc_type in ("invoice", "debit_note", "credit_note")
     reverse = doc.doc_type in ("credit_note", "purchase_credit_note")
     cust = db.get(Customer, doc.customer_id) if doc.customer_id else None
+    if cust is not None and cust.name != doc.party_name:      # the document names another party than the customer it points to: the party named on it is the one that is posted
+        cust = None
     party = coa.party_ledger(db, org_id, doc.party_name, "debtor" if sale else "creditor", cust, user_id)
     side = "income" if sale else "expense"
     lob = "FREIGHT FORWARDING"

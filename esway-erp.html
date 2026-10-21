@@ -476,6 +476,13 @@ tbody tr:hover{background:var(--g0)}
 .jc-table td{padding:5px 6px;vertical-align:middle}
 .jc-table input.fc,.jc-table select.fc{height:28px;padding:3px 6px;font-size:11.5px;min-width:64px}
 .jc-table td.jc-col-buy{background:rgba(26,111,191,.045)}
+.jc-table td.jc-na{background:repeating-linear-gradient(45deg,var(--g0),var(--g0) 6px,var(--g1) 6px,var(--g1) 12px)!important;opacity:.75}
+/* S.No, charge name and the selection box stay in view while the Sell / Buy blocks scroll */
+.jc-table thead tr:first-child th:nth-child(-n+3),.jc-table tbody tr[data-jc-row] td:nth-child(-n+3){position:sticky;background:var(--wh,#fff);z-index:2}
+.jc-table thead tr:first-child th:nth-child(-n+3){z-index:4}
+.jc-table thead tr:first-child th:nth-child(1),.jc-table tbody tr[data-jc-row] td:nth-child(1){left:0;min-width:34px;width:34px;max-width:34px}
+.jc-table thead tr:first-child th:nth-child(2),.jc-table tbody tr[data-jc-row] td:nth-child(2){left:34px;min-width:36px;width:36px;max-width:36px}
+.jc-table thead tr:first-child th:nth-child(3),.jc-table tbody tr[data-jc-row] td:nth-child(3){left:70px;min-width:185px;box-shadow:2px 0 0 var(--g2)}
 .jc-table td.jc-col-sell{background:rgba(29,122,69,.05)}
 .jc-party-cell{display:flex;flex-direction:column;gap:3px;min-width:120px}
 .jc-party-toggle{display:flex;align-items:center;gap:4px;font-size:9.6px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;user-select:none;color:var(--g5)}
@@ -1522,13 +1529,13 @@ tbody tr:hover{background:var(--g0)}
           <div class="mn-sub-section" style="color:var(--gr)">🧾 GST &amp; Tax Reports</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="gst"><svg class="ic" data-icon="receipt" style="color:var(--gr)"></svg>GSTR-1 (Outward Supply)</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="gst"><svg class="ic" data-icon="receipt" style="color:var(--gr)"></svg>GSTR-2 (Inward Supply)</div>
-          <div class="mn-sub-item" data-go="reports" data-preload-report="gstr2b"><svg class="ic" data-icon="receipt" style="color:var(--gr)"></svg>GSTR-2B (ITC Reconciliation)</div>
+          <div class="mn-sub-item" data-go="gl-reports" data-gltab="itc"><svg class="ic" data-icon="receipt" style="color:var(--gr)"></svg>GSTR-2B (ITC Reconciliation)</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="gst"><svg class="ic" data-icon="receipt" style="color:var(--gr)"></svg>GSTR-3B (Summary Return)</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="hsn"><svg class="ic" data-icon="license" style="color:var(--gr)"></svg>HSN/SAC Summary Report</div>
           <div class="mn-sub-item" data-go="reports" data-preload-report="re-imprestment"><svg class="ic" data-icon="refresh-cw" style="color:var(--gr)"></svg>Re-Imprestment Report</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="tds"><svg class="ic" data-icon="percent" style="color:var(--gr)"></svg>TDS Report</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="tcs"><svg class="ic" data-icon="percent" style="color:var(--gr)"></svg>TCS Report</div>
-          <div class="mn-sub-item" data-go="reports" data-preload-report="itc-mismatch"><svg class="ic" data-icon="alert" style="color:var(--gr)"></svg>ITC Mismatch Report</div>
+          <div class="mn-sub-item" data-go="gl-reports" data-gltab="itc"><svg class="ic" data-icon="alert" style="color:var(--gr)"></svg>ITC Mismatch Report</div>
           <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="bank" style="color:var(--gr)"></svg>Bank Statement (Tax)</div>
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="cal"><svg class="ic" data-icon="calendar-check" style="color:var(--gr)"></svg>GST Filing Calendar</div>
           <div class="mn-sub-sep"></div>
@@ -2949,6 +2956,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="jc-grid-toolbar">
     <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:var(--g6);cursor:pointer"><input type="checkbox" class="jc-chk" id="jc_selectAll"> Select All</label>
     <button class="btn btn-out btn-sm" id="jc_addRowBtn"><svg class="ic" data-icon="plus"></svg> Add Row</button>
+    <button class="btn btn-out btn-sm" id="jc_flipBtn" title="Swap the Sell and Buy sides">⇄ Flip Sell / Buy</button>
     <button class="btn btn-out btn-sm" id="jc_newChargeBtn" title="The charge you need is not in the Charge Master: add it now and use it on this job">＋ New Charge</button>
     <button class="btn btn-out btn-sm" id="jc_dupRowBtn"><svg class="ic" data-icon="copy"></svg> Duplicate Row</button>
     <button class="btn btn-out btn-sm" id="jc_delRowBtn"><svg class="ic" data-icon="trash"></svg> Delete Row</button>
@@ -3890,8 +3898,8 @@ tbody tr:hover{background:var(--g0)}
 <!-- ====== LEDGER REPORTS ====== -->
 <div id="s-gl-reports" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="book" style="color:var(--bl)"></svg>Ledger Reports</div><div class="ps">General ledger, trial balance, group summary, profit and loss, balance sheet and day book, from the vouchers posted by invoices, notes, receipts, payments, journals and contras</div></div><div class="pa"><button class="btn btn-out btn-sm" id="gl_rebuild" title="Post every invoice and receipt into the ledger again">Refresh ledger</button><button class="btn btn-out btn-sm" id="gl_csv">Export CSV</button><button class="btn btn-out btn-sm" id="gl_print">🖨 Print</button></div></div>
-<div class="card"><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-sm btn-out" data-gl-tab="ledger">General Ledger</button><button class="btn btn-sm btn-pri" data-gl-tab="tb">Trial Balance</button><button class="btn btn-sm btn-out" data-gl-tab="group">Group Summary</button><button class="btn btn-sm btn-out" data-gl-tab="pl">Profit &amp; Loss</button><button class="btn btn-sm btn-out" data-gl-tab="bs">Balance Sheet</button><button class="btn btn-sm btn-out" data-gl-tab="day">Day Book</button><button class="btn btn-sm btn-out" data-gl-tab="gst">GST</button><button class="btn btn-sm btn-out" data-gl-tab="recon">Bank Reconciliation</button><button class="btn btn-sm btn-out" data-gl-tab="tds">TDS</button><button class="btn btn-sm btn-out" data-gl-tab="rcm">RCM</button><button class="btn btn-sm btn-out" data-gl-tab="hsn">HSN / SAC</button><button class="btn btn-sm btn-out" data-gl-tab="cash">Cash Flow</button><button class="btn btn-sm btn-out" data-gl-tab="cal">GST Calendar</button><button class="btn btn-sm btn-out" data-gl-tab="tcs">TCS</button><button class="btn btn-sm btn-out" data-gl-tab="fy">Financial Year</button></div>
-<div class="fr"><div class="fg" id="gl_ledgerWrap" style="display:none;grid-column:span 2"><label class="fl">Ledger</label><select class="fc" id="gl_ledger"></select></div><div class="fg" id="gl_groupWrap" style="display:none;grid-column:span 2"><label class="fl">Group</label><select class="fc" id="gl_group"></select></div><div class="fg" id="gl_typeWrap" style="display:none"><label class="fl">Voucher type</label><select class="fc" id="gl_type"><option value="">All</option><option value="SALES">Sales Invoice</option><option value="DEBIT_NOTE">Debit Note</option><option value="CREDIT_NOTE">Credit Note</option><option value="PURCHASE">Purchase Invoice</option><option value="PURCHASE_CREDIT_NOTE">Purchase Credit Note</option><option value="RECEIPT">Receipt Voucher</option><option value="PAYMENT">Payment Voucher</option><option value="JOURNAL">Journal Voucher</option><option value="CONTRA">Contra Voucher</option></select></div><div class="fg" id="gl_fromWrap"><label class="fl">From</label><input class="fc" type="date" id="gl_from"></div><div class="fg"><label class="fl" id="gl_toLbl">To</label><input class="fc" type="date" id="gl_to"></div></div></div><div id="gl_body"></div></div>
+<div class="card"><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-sm btn-out" data-gl-tab="ledger">General Ledger</button><button class="btn btn-sm btn-pri" data-gl-tab="tb">Trial Balance</button><button class="btn btn-sm btn-out" data-gl-tab="group">Group Summary</button><button class="btn btn-sm btn-out" data-gl-tab="pl">Profit &amp; Loss</button><button class="btn btn-sm btn-out" data-gl-tab="bs">Balance Sheet</button><button class="btn btn-sm btn-out" data-gl-tab="day">Day Book</button><button class="btn btn-sm btn-out" data-gl-tab="gst">GST</button><button class="btn btn-sm btn-out" data-gl-tab="recon">Bank Reconciliation</button><button class="btn btn-sm btn-out" data-gl-tab="tds">TDS</button><button class="btn btn-sm btn-out" data-gl-tab="rcm">RCM</button><button class="btn btn-sm btn-out" data-gl-tab="hsn">HSN / SAC</button><button class="btn btn-sm btn-out" data-gl-tab="cash">Cash Flow</button><button class="btn btn-sm btn-out" data-gl-tab="cal">GST Calendar</button><button class="btn btn-sm btn-out" data-gl-tab="tcs">TCS</button><button class="btn btn-sm btn-out" data-gl-tab="fy">Financial Year</button><button class="btn btn-sm btn-out" data-gl-tab="itc">ITC / GSTR-2B</button></div>
+<div class="fr"><div class="fg" id="gl_ledgerWrap" style="display:none;grid-column:span 2"><label class="fl">Ledger</label><select class="fc" id="gl_ledger"></select></div><div class="fg" id="gl_groupWrap" style="display:none;grid-column:span 2"><label class="fl">Group</label><select class="fc" id="gl_group"></select></div><div class="fg" id="gl_typeWrap" style="display:none"><label class="fl">Voucher type</label><select class="fc" id="gl_type"><option value="">All</option><option value="SALES">Sales Invoice</option><option value="DEBIT_NOTE">Debit Note</option><option value="CREDIT_NOTE">Credit Note</option><option value="PURCHASE">Purchase Invoice</option><option value="PURCHASE_CREDIT_NOTE">Purchase Credit Note</option><option value="RECEIPT">Receipt Voucher</option><option value="PAYMENT">Payment Voucher</option><option value="JOURNAL">Journal Voucher</option><option value="CONTRA">Contra Voucher</option></select></div><div class="fg" id="gl_fromWrap"><label class="fl">From</label><input class="fc" type="date" id="gl_from"></div><div class="fg" id="gl_toWrap"><label class="fl" id="gl_toLbl">To</label><input class="fc" type="date" id="gl_to"></div></div></div><div id="gl_body"></div></div>
 </div>
 
 <!-- ====== BANK MASTER ====== -->
@@ -6279,7 +6287,7 @@ const TOPNAV_MENU = [
       {label:"GSTR1", icon:"receipt", go:"gst-report"},
       {label:"GSTR-1 (Outward Supply)", icon:"receipt", go:"gl-reports", gltab:"gst"},
       {label:"GSTR-2 (Inward Supply)", icon:"receipt", go:"gl-reports", gltab:"gst"},
-      {label:"GSTR-2B (ITC Reconciliation)", icon:"receipt", go:"gst-report"},
+      {label:"GSTR-2B (ITC Reconciliation)", icon:"receipt", go:"gl-reports", gltab:"itc"},
       {label:"GSTR-3B (Summary Return)", icon:"receipt", go:"gl-reports", gltab:"gst"},
       {label:"HSN/SAC Summary Report", icon:"license", go:"gl-reports", gltab:"hsn"},
       {label:"GST Summary", icon:"receipt", go:"gl-reports", gltab:"gst"},
@@ -6297,7 +6305,7 @@ const TOPNAV_MENU = [
       {label:"Re-Imprestment Report", icon:"refresh-cw", go:"gst-report"},
       {label:"TDS Report", icon:"percent", go:"gl-reports", gltab:"tds"},
       {label:"TCS Report", icon:"percent", go:"gl-reports", gltab:"tcs"},
-      {label:"ITC Mismatch Report", icon:"alert", go:"gst-report"},
+      {label:"ITC Mismatch Report", icon:"alert", go:"gl-reports", gltab:"itc"},
       {label:"Bank Statement (Tax)", icon:"bank", go:"gst-report"},
       {label:"GST Filing Calendar", icon:"calendar-check", go:"gl-reports", gltab:"cal"},
     ]},
@@ -7139,7 +7147,7 @@ function jcToServer(r){
 function jcLoadMaster(){
   return jcApi("GET", "/api/masters/charge").then(rows=>{
     JC_CHARGE_MASTER.length = 0;
-    rows.filter(r=>r.status==="ACTIVE").forEach(r=> JC_CHARGE_MASTER.push({name:r.name, code:(r.data||{}).hsn_code||"", gst:Number((r.data||{}).gst_percent)||0}));
+    rows.filter(r=>r.status==="ACTIVE").forEach(r=> JC_CHARGE_MASTER.push({name:r.name, code:(r.data||{}).hsn_code||"", gst:Number((r.data||{}).gst_percent)||0, arap:(r.data||{}).ar_ap||"Both"}));
   }).catch(()=>{ /* master unavailable: grid shows an empty dropdown */ });
 }
 const JC_DOC_KEYS = {invoice:"invoice", purchase_invoice:"purInvoice", credit_note:"creditNote", purchase_credit_note:"purCreditNote", debit_note:"debitNote"};
@@ -7156,8 +7164,9 @@ function jcLoadJob(jobNo){
   jcSuppress = true; jcRenderRows(); jcSuppress = false;
   if(!jobNo || !jcTok()){ jcSetSaveState("", ""); return Promise.resolve(); }
   jcSetSaveState("Loading…", "");
-  return Promise.all([jcLoadMaster(), jcApi("GET", "/api/shipments/by-number/"+encodeURIComponent(jobNo)+"/charges")]).then(([, resp])=>{
+  return Promise.all([jcLoadMaster(), jcApi("GET", "/api/shipments/by-number/"+encodeURIComponent(jobNo)+"/charges"), jcApi("GET", "/api/shipments/by-number/"+encodeURIComponent(jobNo)+"/charge-parties").catch(()=>({clients:[], vendors:[]}))]).then(([, resp, parties])=>{
     if(jcCurrentJob !== jobNo) return;
+    st.parties = parties || {clients:[], vendors:[]};
     st.rows = resp.lines.map(jcFromServer); st.loaded = true;
     jcSuppress = true; jcRenderRows(); jcSuppress = false;
     jcApplyTotals(resp);
@@ -7257,6 +7266,7 @@ function jcSetField(id, path, value){
     if(path==="chargeName"){
       const m = JC_CHARGE_MASTER.find(c=>c.name===value);
       if(m){ r.hsn = m.code; r.buy.taxPct = m.gst; r.sell.taxPct = m.gst; }
+      const sd = jcSides(value); if(!sd.sell){ r.sell.rate = 0; r.sell.client = ""; } if(!sd.buy){ r.buy.rate = 0; r.buy.vendor = ""; }
     }
   }
 }
@@ -7268,22 +7278,82 @@ function jcUpdateRowComputedCells(id){
   const c = jcRowCalc(r);
   const tr = document.querySelector('#jc_tbody tr[data-jc-row="'+id+'"]');
   if(!tr) return;
-  const amtCells = tr.querySelectorAll("td.jc-col-buy.mono, td.jc-col-sell.mono");
-  if(amtCells[0]) amtCells[0].textContent = jcFmtMoney(c.buyAmt);
-  if(amtCells[1]) amtCells[1].textContent = jcFmtMoney(c.buyINR);
-  if(amtCells[2]) amtCells[2].textContent = jcFmtMoney(c.sellAmt);
-  if(amtCells[3]) amtCells[3].textContent = jcFmtMoney(c.sellINR);
+  const buyAmt = tr.querySelectorAll("td.jc-col-buy.mono"), sellAmt = tr.querySelectorAll("td.jc-col-sell.mono");
+  if(buyAmt[0]) buyAmt[0].textContent = jcFmtMoney(c.buyAmt);
+  if(buyAmt[1]) buyAmt[1].textContent = jcFmtMoney(c.buyINR);
+  if(sellAmt[0]) sellAmt[0].textContent = jcFmtMoney(c.sellAmt);
+  if(sellAmt[1]) sellAmt[1].textContent = jcFmtMoney(c.sellINR);
 }
 
+/* Sell / Revenue on the left and Buy / Cost on the right (the user can flip it; the choice is remembered) */
+try{ window.JC_SELL_FIRST = localStorage.getItem("esway_jc_sell_first") !== "0"; }catch(e){ window.JC_SELL_FIRST = true; }
+/* A charge that the Charge Master marks AP (purchase) only has no sell side, and an AR (sales) only charge has no buy side */
+function jcSides(name){ const m = JC_CHARGE_MASTER.find(c=>c.name === name); const v = String((m && m.arap) || "Both").toUpperCase(); return {sell: v !== "AP", buy: v !== "AR"}; }
+function jcApplySides(){
+  const st = jcGetState(jcCurrentJob);
+  document.querySelectorAll("#jc_tbody tr[data-jc-row]").forEach(tr=>{
+    const r = st.rows.find(x=>String(x.id) === tr.dataset.jcRow); if(!r) return; const sd = jcSides(r.chargeName);
+    [["sell", sd.sell, "This charge is a purchase (AP) charge in the Charge Master, so it has no sell rate"], ["buy", sd.buy, "This charge is a sales (AR) charge in the Charge Master, so it has no buy rate"]].forEach(([k, ok, why])=>{
+      tr.querySelectorAll("td.jc-col-"+k).forEach(td=>td.classList.toggle("jc-na", !ok));
+      if(ok) return;
+      tr.querySelectorAll("td.jc-col-"+k+" input, td.jc-col-"+k+" select").forEach(x=>{
+        if(/\.rate$/.test(x.dataset.jcF || "") && Number(x.value) > 0){ x.title = why+". Clear this rate"; x.style.outline = "2px solid var(--rd)"; }   /* an older line: let the user clear it */
+        else { x.disabled = true; x.title = why; }
+      });
+    });
+  });
+}
+function jcRenderHead(){
+  const thead = document.querySelector("#jc_table thead"); if(!thead) return;
+  const sf = window.JC_SELL_FIRST !== false;
+  const side = (k, label)=> ({top:`<th class="jc-th-${k}" colspan="8">${label}</th>`, sub:["Currency", "Exch. Rate", "Rate", "Tax", "Tax %", "Amount", "Amt (INR)", k === "buy" ? "Vendor" : "Client"].map(t=>`<th class="jc-th-${k}">${t}</th>`).join("")});
+  const buy = side("buy", "BUY / PURCHASE (COST)"), sell = side("sell", "SELL / REVENUE");
+  const [a, b] = sf ? [sell, buy] : [buy, sell];
+  thead.innerHTML = `<tr><th rowspan="2"></th><th rowspan="2">#</th><th rowspan="2">Charge Name</th><th rowspan="2">Description / Remarks</th><th rowspan="2">UOM</th><th rowspan="2">Units</th>${a.top}${b.top}<th rowspan="2">HSN / SAC</th><th rowspan="2"></th></tr><tr>${a.sub}${b.sub}</tr>`;
+  const btn = document.getElementById("jc_flipBtn"); if(btn) btn.title = sf ? "Sell is on the left, Buy on the right. Click to put Buy on the left" : "Buy is on the left, Sell on the right. Click to put Sell on the left";
+}
+document.addEventListener("click", e=>{ if(!e.target.closest("#jc_flipBtn")) return; window.JC_SELL_FIRST = window.JC_SELL_FIRST === false; try{ localStorage.setItem("esway_jc_sell_first", window.JC_SELL_FIRST ? "1" : "0"); }catch(err){} jcRenderRows(); });
+/* the Client of a sell charge is one of the job's own parties; the Vendor of a buy charge is picked from the Organization Master vendors */
+function jcPartyOptions(list, current, placeholder){
+  const names = (list || []).slice(); if(current && !names.includes(current)) names.push(current);
+  return `<option value="">${names.length ? "— "+placeholder+" —" : "— None available —"}</option>` + names.map(n=>`<option ${n===current?"selected":""}>${esc(n)}</option>`).join("");
+}
 function jcRenderRows(){
   const st = jcGetState(jcCurrentJob);
   const tb = $("#jc_tbody");
   if(!tb) return;
+  jcRenderHead();
   tb.innerHTML = st.rows.length ? st.rows.map((r,idx)=>{
     const chargeOpts = (r.chargeName && !JC_CHARGE_MASTER.some(m=>m.name===r.chargeName) ? `<option selected>${esc(r.chargeName)}</option>` : "") + JC_CHARGE_MASTER.map(m=>`<option ${m.name===r.chargeName?"selected":""}>${esc(m.name)}</option>`).join("");
     const uomOpts = JC_UOM.map(u=>`<option ${u===r.uom?"selected":""}>${esc(u)}</option>`).join("");
     const buyCcyOpts = JC_CCY.map(c2=>`<option ${c2===r.buy.ccy?"selected":""}>${c2}</option>`).join("");
     const sellCcyOpts = JC_CCY.map(c2=>`<option ${c2===r.sell.ccy?"selected":""}>${c2}</option>`).join("");
+    const buyCells = `
+      <td class="jc-col-buy"><select class="fc" data-jc-f="buy.ccy" data-jc-id="${r.id}">${buyCcyOpts}</select></td>
+      <td class="jc-col-buy"><input class="fc" type="number" step="0.0001" style="width:72px" data-jc-f="buy.exch" data-jc-id="${r.id}" value="${r.buy.exch}" ${r.buy.ccy==="INR"?"disabled":""}></td>
+      <td class="jc-col-buy"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="buy.rate" data-jc-id="${r.id}" value="${r.buy.rate}"></td>
+      <td class="jc-col-buy"><select class="fc" data-jc-f="buy.taxType" data-jc-id="${r.id}" style="width:86px">${["Taxable","Non-Taxable","Pure Agent","RCM"].map(t=>`<option ${r.buy.taxType===t?"selected":""}>${t}</option>`).join("")}</select></td>
+      <td class="jc-col-buy"><input class="fc" type="number" style="width:48px" data-jc-f="buy.taxPct" data-jc-id="${r.id}" value="${r.buy.taxPct}" ${r.buy.taxType!=="Taxable" && r.buy.taxType!=="RCM"?"disabled":""}></td>
+      <td class="jc-col-buy mono">${jcFmtMoney(jcRowCalc(r).buyAmt)}</td>
+      <td class="jc-col-buy mono" style="font-weight:600">${jcFmtMoney(jcRowCalc(r).buyINR)}</td>
+      <td class="jc-col-buy"><div class="jc-party-cell">
+        <label class="jc-party-toggle jc-pt-vendor ${r.useVendor?'on':''}"><input type="checkbox" data-jc-f="useVendor" data-jc-id="${r.id}" ${r.useVendor?"checked":""}> Vendor</label>
+        <select class="fc ${r.useVendor?'jc-input-vendor-on':'jc-input-party-off'}" style="min-width:150px" data-jc-f="buy.vendor" data-jc-id="${r.id}" ${r.useVendor?"":"disabled"} title="Vendors of the Organization Master">${jcPartyOptions(st.parties && st.parties.vendors, r.buy.vendor, "Select vendor")}</select>
+      </div></td>
+`, sellCells = `
+      <td class="jc-col-sell"><select class="fc" data-jc-f="sell.ccy" data-jc-id="${r.id}">${sellCcyOpts}</select></td>
+      <td class="jc-col-sell"><input class="fc" type="number" step="0.0001" style="width:72px" data-jc-f="sell.exch" data-jc-id="${r.id}" value="${r.sell.exch}" ${r.sell.ccy==="INR"?"disabled":""}></td>
+      <td class="jc-col-sell"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="sell.rate" data-jc-id="${r.id}" value="${r.sell.rate}"></td>
+      <td class="jc-col-sell"><select class="fc" data-jc-f="sell.taxType" data-jc-id="${r.id}" style="width:86px">${["Taxable","Non-Taxable","Pure Agent","RCM"].map(t=>`<option ${r.sell.taxType===t?"selected":""}>${t}</option>`).join("")}</select></td>
+      <td class="jc-col-sell"><input class="fc" type="number" style="width:48px" data-jc-f="sell.taxPct" data-jc-id="${r.id}" value="${r.sell.taxPct}" ${r.sell.taxType!=="Taxable" && r.sell.taxType!=="RCM"?"disabled":""}></td>
+      <td class="jc-col-sell mono">${jcFmtMoney(jcRowCalc(r).sellAmt)}</td>
+      <td class="jc-col-sell mono" style="font-weight:600">${jcFmtMoney(jcRowCalc(r).sellINR)}</td>
+      <td class="jc-col-sell"><div class="jc-party-cell">
+        <label class="jc-party-toggle jc-pt-client ${r.useClient?'on':''}"><input type="checkbox" data-jc-f="useClient" data-jc-id="${r.id}" ${r.useClient?"checked":""}> Client</label>
+        <select class="fc ${r.useClient?'jc-input-client-on':'jc-input-party-off'}" style="min-width:150px" data-jc-f="sell.client" data-jc-id="${r.id}" ${r.useClient?"":"disabled"} title="The parties of this job">${jcPartyOptions(st.parties && st.parties.clients, r.sell.client, "Select client")}</select>
+      </div></td>
+`;
+    const sellFirst = window.JC_SELL_FIRST !== false, firstCells = sellFirst ? sellCells : buyCells, secondCells = sellFirst ? buyCells : sellCells;
     return `<tr data-jc-row="${r.id}">
       <td><input type="checkbox" class="jc-chk" data-jc-sel="${r.id}" ${r.selected?"checked":""}></td>
       <td class="mono">${idx+1}</td>
@@ -7294,33 +7364,13 @@ function jcRenderRows(){
       <td style="min-width:140px"><input class="fc" data-jc-f="desc" data-jc-id="${r.id}" value="${esc(r.desc)}" placeholder="Enter remarks" title="${esc(r.desc)}"></td>
       <td><select class="fc" data-jc-f="uom" data-jc-id="${r.id}">${uomOpts}</select></td>
       <td><input class="fc" type="number" min="0" style="width:55px" data-jc-f="qty" data-jc-id="${r.id}" value="${r.qty}"></td>
-      <td class="jc-col-buy"><select class="fc" data-jc-f="buy.ccy" data-jc-id="${r.id}">${buyCcyOpts}</select></td>
-      <td class="jc-col-buy"><input class="fc" type="number" step="0.0001" style="width:72px" data-jc-f="buy.exch" data-jc-id="${r.id}" value="${r.buy.exch}" ${r.buy.ccy==="INR"?"disabled":""}></td>
-      <td class="jc-col-buy"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="buy.rate" data-jc-id="${r.id}" value="${r.buy.rate}"></td>
-      <td class="jc-col-buy"><select class="fc" data-jc-f="buy.taxType" data-jc-id="${r.id}" style="width:86px">${["Taxable","Non-Taxable","Pure Agent","RCM"].map(t=>`<option ${r.buy.taxType===t?"selected":""}>${t}</option>`).join("")}</select></td>
-      <td class="jc-col-buy"><input class="fc" type="number" style="width:48px" data-jc-f="buy.taxPct" data-jc-id="${r.id}" value="${r.buy.taxPct}" ${r.buy.taxType!=="Taxable" && r.buy.taxType!=="RCM"?"disabled":""}></td>
-      <td class="jc-col-buy mono">${jcFmtMoney(jcRowCalc(r).buyAmt)}</td>
-      <td class="jc-col-buy mono" style="font-weight:600">${jcFmtMoney(jcRowCalc(r).buyINR)}</td>
-      <td class="jc-col-buy"><div class="jc-party-cell">
-        <label class="jc-party-toggle jc-pt-vendor ${r.useVendor?'on':''}"><input type="checkbox" data-jc-f="useVendor" data-jc-id="${r.id}" ${r.useVendor?"checked":""}> Vendor</label>
-        <input class="fc ${r.useVendor?'jc-input-vendor-on':'jc-input-party-off'}" style="min-width:110px" data-jc-f="buy.vendor" data-jc-id="${r.id}" value="${esc(r.buy.vendor)}" placeholder="Vendor name" ${r.useVendor?"":"disabled"}>
-      </div></td>
-      <td class="jc-col-sell"><select class="fc" data-jc-f="sell.ccy" data-jc-id="${r.id}">${sellCcyOpts}</select></td>
-      <td class="jc-col-sell"><input class="fc" type="number" step="0.0001" style="width:72px" data-jc-f="sell.exch" data-jc-id="${r.id}" value="${r.sell.exch}" ${r.sell.ccy==="INR"?"disabled":""}></td>
-      <td class="jc-col-sell"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="sell.rate" data-jc-id="${r.id}" value="${r.sell.rate}"></td>
-      <td class="jc-col-sell"><select class="fc" data-jc-f="sell.taxType" data-jc-id="${r.id}" style="width:86px">${["Taxable","Non-Taxable","Pure Agent","RCM"].map(t=>`<option ${r.sell.taxType===t?"selected":""}>${t}</option>`).join("")}</select></td>
-      <td class="jc-col-sell"><input class="fc" type="number" style="width:48px" data-jc-f="sell.taxPct" data-jc-id="${r.id}" value="${r.sell.taxPct}" ${r.sell.taxType!=="Taxable" && r.sell.taxType!=="RCM"?"disabled":""}></td>
-      <td class="jc-col-sell mono">${jcFmtMoney(jcRowCalc(r).sellAmt)}</td>
-      <td class="jc-col-sell mono" style="font-weight:600">${jcFmtMoney(jcRowCalc(r).sellINR)}</td>
-      <td class="jc-col-sell"><div class="jc-party-cell">
-        <label class="jc-party-toggle jc-pt-client ${r.useClient?'on':''}"><input type="checkbox" data-jc-f="useClient" data-jc-id="${r.id}" ${r.useClient?"checked":""}> Client</label>
-        <input class="fc ${r.useClient?'jc-input-client-on':'jc-input-party-off'}" style="min-width:110px" data-jc-f="sell.client" data-jc-id="${r.id}" value="${esc(r.sell.client)}" placeholder="Client name" ${r.useClient?"":"disabled"}>
-      </div></td>
+${firstCells}${secondCells}
       <td class="mono"><input class="fc" style="width:72px" data-jc-f="hsn" data-jc-id="${r.id}" value="${esc(r.hsn)}" placeholder="HSN/SAC"></td>
       <td><button class="ta" data-jc-removerow="${r.id}" title="Remove row">✕</button></td>
     </tr>`;
   }).join("") : `<tr><td colspan="24" class="tbl-empty">${JC_CHARGE_MASTER.length ? 'No charges added yet — click "Add Row" to begin.' : 'No charge codes exist yet — add them in Masters → Charge Master (or use + on a row), then click "Add Row".'}</td></tr>`;
   renderIcons(tb);
+  jcApplySides();
   jcRecalcAll();
 }
 
@@ -13837,6 +13887,13 @@ if(document.readyState !== "loading") initChatWidget();
   };
   const SCREEN_DEFAULT = {"invoice-new":"invoice", "debit-note-new":"debit_note", "purchase-invoice-new":"purchase_invoice"};
   const BK = window.BK = {state:null, pending:null};
+  const pickable = S=> (S.type === "invoice" || S.type === "purchase_invoice");
+  /* what the master knows about the party (GSTIN, place of supply, CGST + SGST or IGST) and the jobs that still have unbilled entries for that party */
+  async function loadParty(S, fill){
+    const name = (S.head.party_name || "").trim(); S.jobs = []; if(!name) return;
+    if(fill){ try{ const pd = await api("GET", "/api/documents/billing/party-defaults?party="+encodeURIComponent(name)+"&doc_type="+S.type); if(pd.known){ if(pd.party_gstin) S.head.party_gstin = pd.party_gstin; if(pd.place_of_supply) S.head.place_of_supply = pd.place_of_supply; if(pd.supply_type) S.head.supply_type = pd.supply_type; } }catch(e){} }
+    if(pickable(S) && !S.doc){ try{ S.jobs = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(name)+"&doc_type="+S.type); }catch(e){} }
+  }
   const blankLine = ()=> ({charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:"Taxable", tax_pct:"18"});
   const badge = d=>{
     const s = d.status === "POSTED" ? d.payment_status : d.status;
@@ -13871,14 +13928,15 @@ if(document.readyState !== "loading") initChatWidget();
     const doc = p && p.doc;
     const pre = (p && p.prefill) || {};
     BK.state = {type, screen, doc, dirty:false, lines: doc ? doc.lines.map(l=>({job_number:l.job_number, charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct})) : (pre.lines || [blankLine()]),
-      head: doc ? {doc_date:doc.doc_date, due_date:doc.due_date||"", party_name:doc.party_name, party_gstin:doc.party_gstin||"", place_of_supply:doc.place_of_supply||"", supply_type:doc.supply_type, job_number:doc.job_number||"", ref_document_id:doc.ref_document_id||"", remarks:doc.remarks||"", no_round_off:!!((doc.header || {}).no_round_off)}
-        : {doc_date:today(), due_date:"", party_name:pre.party_name||"", party_gstin:"", place_of_supply:"", supply_type:"inter", job_number:pre.job_number||"", ref_document_id:pre.ref_document_id||"", remarks:""}};
+      head: doc ? {doc_date:doc.doc_date, due_date:doc.due_date||"", party_name:doc.party_name, party_gstin:doc.party_gstin||"", place_of_supply:doc.place_of_supply||"", supply_type:doc.supply_type, job_number:doc.job_number||"", ref_document_id:doc.ref_document_id||"", remarks:doc.remarks||"", no_round_off:!!((doc.header || {}).no_round_off), vendor_inv_no:(doc.header || {}).vendor_inv_no || "", vendor_inv_date:(doc.header || {}).vendor_inv_date || ""}
+        : {doc_date:today(), due_date:"", party_name:pre.party_name||"", party_gstin:"", place_of_supply:"", supply_type:"inter", job_number:pre.job_number||"", ref_document_id:pre.ref_document_id||"", remarks:"", vendor_inv_no:"", vendor_inv_date:""}};
     host.innerHTML = '<div style="padding:30px;text-align:center;color:var(--g5)">Loading…</div>';
     const [charges, customers, refs] = await Promise.all([
       api("GET","/api/masters/charge").catch(()=>[]), api("GET","/api/customers?role="+(TYPES[type].ar ? "client" : "vendor")).catch(()=>[]),
       TYPES[type].ref ? api("GET","/api/documents?doc_type="+TYPES[type].ref+"&status=POSTED").catch(()=>[]) : Promise.resolve([]),
     ]);
     BK.state.charges = charges.filter(c=>c.status==="ACTIVE"); BK.state.customers = customers; BK.state.refs = refs;
+    await loadParty(BK.state, !doc && !BK.state.head.party_gstin && !BK.state.head.place_of_supply);
     renderEditor();
   }
   function renderEditor(){
@@ -13921,7 +13979,8 @@ if(document.readyState !== "loading") initChatWidget();
       '<div class="g2"><div class="card"><div class="ch"><div class="ct">Header</div></div><div class="cb">'+
       '<div class="fr"><div class="fg"><label class="fl">Document No</label><input class="fc" value="'+esc2(num)+'" readonly style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Date <span class="r">*</span></label><input class="fc" type="date" data-bkh="doc_date" value="'+esc2(h.doc_date)+'"'+dis+'></div><div class="fg"><label class="fl">Due Date</label><input class="fc" type="date" data-bkh="due_date" value="'+esc2(h.due_date)+'"'+dis+'></div></div>'+
       '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">'+esc2(T.party)+' <span class="r">*</span></label><input class="fc" list="bkParties_'+S.screen+'" data-bkh="party_name" value="'+esc2(h.party_name)+'" placeholder="'+(T.ar?"Select or type customer":"Vendor name")+'"'+dis+'></div><div class="fg"><label class="fl">GSTIN</label><input class="fc" data-bkh="party_gstin" maxlength="15" value="'+esc2(h.party_gstin)+'"'+dis+'></div></div>'+
-      '<div class="fr"><div class="fg"><label class="fl">Job Reference</label><input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'></div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
+      ((S.type === "purchase_invoice" || S.type === "purchase_credit_note") ? '<div class="fr"><div class="fg"><label class="fl">Vendor invoice no.</label><input class="fc" data-bkh="vendor_inv_no" maxlength="40" value="'+esc2(h.vendor_inv_no)+'" placeholder="as printed on the vendor bill (matches GSTR-2B)"'+dis+'></div><div class="fg"><label class="fl">Vendor invoice date</label><input class="fc" type="date" data-bkh="vendor_inv_date" value="'+esc2(h.vendor_inv_date)+'"'+dis+'></div></div>' : '')+
+      '<div class="fr"><div class="fg"><label class="fl">Job Reference'+(pickable(S) && !d ? ' <span style="font-weight:400;text-transform:none;color:var(--g5)">(jobs with unbilled entries)</span>' : '')+'</label>'+(pickable(S) && !d ? '<select class="fc" data-bkh="job_number" data-bk-jobpick="1"><option value="">'+(h.party_name.trim() ? (S.jobs.length ? "— Select a job —" : "No job with unbilled entries for this party") : "Choose the party first")+'</option>'+S.jobs.map(j=>'<option value="'+esc2(j.job_number)+'"'+(j.job_number === h.job_number ? " selected" : "")+'>'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+" · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount))+'</option>').join("")+(h.job_number && !S.jobs.some(j=>j.job_number === h.job_number) ? '<option value="'+esc2(h.job_number)+'" selected>'+esc2(h.job_number)+'</option>' : "")+'</select>' : '<input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'>')+'</div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
       (refSelect ? '<div class="fr">'+refSelect+'</div>' : '')+
       '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Remarks</label><textarea class="fc" rows="2" data-bkh="remarks"'+dis+'>'+esc2(h.remarks)+'</textarea></div></div></div></div>'+
       '<div class="card"><div class="ch"><div class="ct">Amount Summary</div></div><div class="cb">'+
@@ -13931,7 +13990,7 @@ if(document.readyState !== "loading") initChatWidget();
       '<div class="sr"><span class="lbl" style="font-weight:600;font-size:13px">TOTAL</span><span style="font-weight:600;font-size:15px;color:var(--bl)">'+money(shown.grand_total)+'</span></div>'+
       (d && d.status==="POSTED" ? '<div class="divider"></div><div class="sr"><span class="lbl">Paid</span><span style="color:var(--gr)">'+money(d.paid_amount)+'</span></div><div class="sr"><span class="lbl">Credited</span><span>'+money(d.credited_amount)+'</span></div><div class="sr"><span class="lbl" style="font-weight:600">Outstanding</span><span style="font-weight:700;color:var(--rd)">'+money(d.outstanding)+'</span></div>' : '')+
       '<div class="ib ib-bl" style="margin-top:10px">Totals shown after saving are calculated by the server; they cannot be changed from the browser.</div></div></div></div>'+
-      '<div class="card"><div class="ch"><div class="ct">Line Items</div>'+(editable?'<div style="display:flex;gap:6px">'+(S.type === "invoice" ? '<button class="btn btn-out btn-sm" data-bk="getjob" title="Add the charges of another job of the same party to this invoice">Get Job Details</button>' : "")+'<button class="btn btn-out btn-sm" data-bk="addline"><svg class="ic" data-icon="plus"></svg> Add Line</button></div>':'')+'</div><div class="tw"><table><thead><tr><th>#</th><th>Charge</th><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>UOM</th><th>CCY</th><th>Exch</th><th>Rate</th><th>Tax</th><th>GST%</th><th>Amount (₹)</th><th>Tax (₹)</th><th>Total (₹)</th><th></th></tr></thead><tbody>'+lineRows+'</tbody></table></div></div>'+
+      '<div class="card"><div class="ch"><div class="ct">Line Items</div>'+(editable?'<div style="display:flex;gap:6px">'+((S.type === "invoice" || S.type === "purchase_invoice") ? '<button class="btn btn-out btn-sm" data-bk="getjob" title="Add the unbilled charges of another job of the same party to this '+(S.type === "invoice" ? "invoice" : "purchase bill")+'">Get Job Details</button>' : "")+'<button class="btn btn-out btn-sm" data-bk="addline"><svg class="ic" data-icon="plus"></svg> Add Line</button></div>':'')+'</div><div class="tw"><table><thead><tr><th>#</th><th>Charge</th><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>UOM</th><th>CCY</th><th>Exch</th><th>Rate</th><th>Tax</th><th>GST%</th><th>Amount (₹)</th><th>Tax (₹)</th><th>Total (₹)</th><th></th></tr></thead><tbody>'+lineRows+'</tbody></table></div></div>'+
       (d && d.status === "POSTED" ? '<div class="card" id="bkReceipts"><div class="ch"><div class="ct">'+(S.type === "purchase_invoice" ? "Payments made" : "Receipts")+' against this '+esc2(T.label.toLowerCase())+'</div></div><div class="cb" id="bkReceiptsBody" style="color:var(--g5)">Loading…</div></div>' : '')+
       '<datalist id="bkCharges_'+S.screen+'">'+S.charges.map(c=>'<option value="'+esc2(c.name)+'">').join("")+'</datalist><datalist id="bkParties_'+S.screen+'">'+partyList.map(n=>'<option value="'+esc2(n)+'">').join("")+'</datalist>';
     if(window.renderIcons) renderIcons(host);
@@ -13955,13 +14014,26 @@ if(document.readyState !== "loading") initChatWidget();
     const o = e.target.closest("[data-bk-opendoc]"); if(o) BK.openDoc(Number(o.dataset.bkOpendoc));
   });
   document.addEventListener("change", e=>{ const c = e.target.closest("[data-bkh-check]"); if(!c || !BK.state) return; readHead(); BK.state.head[c.dataset.bkhCheck] = !c.checked; renderEditor(); });
+  document.addEventListener("change", async e=>{
+    const t = e.target; if(!BK.state || !t.dataset || !document.getElementById("s-"+BK.state.screen) || !document.getElementById("s-"+BK.state.screen).contains(t)) return;
+    const S = BK.state; if(S.doc && S.doc.status !== "DRAFT") return;
+    if(t.dataset.bkh === "party_name"){ readHead(); await loadParty(S, true); if(pickable(S) && !S.doc){ S.head.job_number = ""; } S.dirty = true; renderEditor(); return; }
+    if(t.dataset.bkJobpick){
+      readHead(); const jn = S.head.job_number; if(!jn){ renderEditor(); return; }
+      try{ const rows = await api("GET", "/api/documents/billing/job-lines?job_number="+encodeURIComponent(jn)+"&party="+encodeURIComponent(S.head.party_name.trim())+"&doc_type="+S.type);
+        const real = S.lines.filter(l=>l.charge_name || Number(l.rate)); const fresh = rows.filter(r=>!real.some(l=>(l.job_number || jn) === r.job_number && l.charge_name === r.charge_name));
+        S.lines = real.concat(fresh); if(!S.lines.length) S.lines = [blankLine()];
+        S.dirty = true; renderEditor(); say("Job "+jn, fresh.length+" unbilled entr"+(fresh.length === 1 ? "y" : "ies")+" added to the "+(S.type === "invoice" ? "invoice" : "purchase bill"));
+      }catch(err){ say("Could not load the job", err.message, "error"); }
+    }
+  });
   function readHead(){ const S = BK.state; document.querySelectorAll("#s-"+S.screen+" [data-bkh]").forEach(el=>{ S.head[el.dataset.bkh] = el.value; }); }
   function payload(){
     const S = BK.state, h = S.head; readHead();
     const body = {doc_date:h.doc_date || today(), due_date:h.due_date || null, party_name:h.party_name.trim(), party_gstin:h.party_gstin.trim() || null, place_of_supply:h.place_of_supply.trim() || null, supply_type:h.supply_type, remarks:h.remarks.trim() || null,
       ref_document_id:h.ref_document_id ? Number(h.ref_document_id) : null,
       lines:S.lines.filter(l=>l.charge_name||l.description||Number(l.rate)).map(l=>({...l, qty:String(Number(l.qty)||0), exch:String(Number(l.exch)||0), rate:String(Number(l.rate)||0), tax_pct:String(Number(l.tax_pct)||0)}))};
-    body.header = Object.assign({}, (S.doc && S.doc.header) || {}, {no_round_off:!!h.no_round_off});
+    body.header = Object.assign({}, (S.doc && S.doc.header) || {}, {no_round_off:!!h.no_round_off}, (S.type === "purchase_invoice" || S.type === "purchase_credit_note") ? {vendor_inv_no:(h.vendor_inv_no || "").trim(), vendor_inv_date:h.vendor_inv_date || ""} : {});
     const cust = S.customers.find(c=>c.name === body.party_name); if(cust) body.customer_id = cust.id;
     return body;
   }
@@ -13984,9 +14056,9 @@ if(document.readyState !== "loading") initChatWidget();
       }
       if(name === "getjob"){
         readHead(); if(!S.head.party_name.trim()){ say("Choose the billing party first", "Jobs are added for the party this invoice is billed to", "warn"); return; }
-        let jobs = []; try{ jobs = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(S.head.party_name.trim())); }catch(e){ say("Could not load the jobs", e.message, "error"); return; }
+        let jobs = []; try{ jobs = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(S.head.party_name.trim())+"&doc_type="+S.type); }catch(e){ say("Could not load the jobs", e.message, "error"); return; }
         jobs = jobs.filter(j=>j.job_number !== S.head.job_number && !S.lines.some(l=>l.job_number === j.job_number));
-        if(!jobs.length){ say("No other job to add", "There is no other job of "+S.head.party_name+" with sell charges that are not yet billed", "warn"); return; }
+        if(!jobs.length){ say("No other job to add", "There is no other job of "+S.head.party_name+" with "+(S.type === "invoice" ? "sell" : "buy")+" charges that are not yet billed", "warn"); return; }
         openModal({title:"Get Job Details — add to this invoice", size:"lg", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">Jobs of <b>'+esc2(S.head.party_name)+'</b> whose sell charges are not yet invoiced. Tick the jobs to put on this one invoice; every line keeps its job number.</div><div class="tw"><table><thead><tr><th></th><th>Job</th><th>Route</th><th style="text-align:right">Unbilled lines</th><th style="text-align:right">Amount (₹)</th></tr></thead><tbody>'+jobs.map(j=>'<tr><td><input type="checkbox" data-gj="'+esc2(j.job_number)+'"></td><td class="mono" style="font-weight:700">'+esc2(j.job_number)+'</td><td>'+esc2([j.mode, j.direction].join(" "))+' · '+esc2(j.pol || "")+' → '+esc2(j.pod || "")+'</td><td style="text-align:right">'+j.lines+'</td><td style="text-align:right">'+inr(Number(j.amount))+'</td></tr>').join("")+'</tbody></table></div>',
           footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="gjGo">Add to invoice</button>'});
         document.getElementById("gjGo").addEventListener("click", async ()=>{
@@ -15655,6 +15727,14 @@ if(document.readyState !== "loading") initChatWidget();
     .qk-pane-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--g1);flex-wrap:wrap}
     .qk-pane-h .t{font-weight:800;font-size:13px;color:var(--n)} .qk-pane-h .s{font-size:10.5px;color:var(--g5)}
     .qk-scroll{overflow-x:auto}
+    .qk-t.pair{min-width:1900px}
+    .qk-t.pair .qk-s1{position:sticky;left:0;z-index:2;background:var(--wh,#fff);min-width:34px;width:34px}
+    .qk-t.pair .qk-s2{position:sticky;left:34px;z-index:2;background:var(--wh,#fff);min-width:170px;box-shadow:2px 0 0 var(--g2)}
+    .qk-t.pair thead .qk-s1,.qk-t.pair thead .qk-s2{z-index:4;background:var(--g1)}
+    .qk-t.pair thead th.qk-h-sell{background:var(--blt);color:var(--bl);text-align:center}
+    .qk-t.pair thead th.qk-h-buy{background:var(--amt);color:var(--am);text-align:center}
+    .qk-t.pair td.qk-na{background:repeating-linear-gradient(45deg,var(--g0),var(--g0) 6px,var(--g1) 6px,var(--g1) 12px);opacity:.75}
+    .qk-t.pair tr.qk-d td{background:var(--g0)}
     .qk-t{width:100%;border-collapse:collapse;font-size:11.5px;min-width:900px}
     .qk-t th{background:var(--g0);color:var(--g6);font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:6px 5px;text-align:left;white-space:nowrap;position:sticky;top:0}
     .qk-t td{padding:4px 4px;border-bottom:1px solid var(--g1);vertical-align:middle}
@@ -15842,32 +15922,72 @@ if(document.readyState !== "loading") initChatWidget();
     const names = Q.m.charges.map(c=>c.name); const extra = l.charge_name && !names.includes(l.charge_name) ? [l.charge_name] : [];
     return '<option value="">— Select —</option>'+names.concat(extra).map(n=>opt(n, n, n===l.charge_name)).join("");
   }
-  function rowHtml(l, side, i){
-    const c = calc(l), key = side+":"+i, ro = Q.rec && !Q.rec.editable, d = ro ? " disabled" : "", open = Q.open[key];
+  function rowHtml(l, side, i, part, span, na){
+    const c = calc(l), key = side+":"+i, ro = Q.rec && !Q.rec.editable, d = (ro || na) ? " disabled" : "", open = Q.open["sell:"+i];
     const cont = l.basis === "Container" || l.basis === "Per Container" && false;
     const hasBreak = (l.container_breakup||[]).some(b=>Number(b.qty)>0);
     const carriers = Array.from(new Set(chosenCarriers().concat(l.carrier ? [l.carrier] : [])));
     const m = lineMargin(l);
-    const rateEditable = canEditRate(l) && !ro;
+    const rateEditable = canEditRate(l) && !ro && !na;
     const unitsCell = l.basis === "Container"
       ? '<button class="btn btn-out btn-sm" style="padding:2px 7px;font-size:11px" data-qa="containers" data-k="'+key+'" '+d+'>📦 '+num(c.units,3)+'</button>'
       : '<input class="fc" type="number" min="0" step="0.001" data-ql="'+key+':qty" value="'+esc2(l.qty)+'" style="width:64px"'+d+'>';
     const rateCell = hasBreak ? '<span class="r" title="Average of the container-wise rates">≈ '+num(c.rate,2)+'</span>' : '<input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':rate" value="'+esc2(l.rate)+'" style="width:84px"'+d+'>';
-    return '<tr data-key="'+key+'"><td>'+(i+1)+'</td><td><select class="fc" data-ql="'+key+':charge_name" style="min-width:128px"'+d+'>'+chargeOptions(l)+'</select></td>'+
-      '<td><select class="fc" data-ql="'+key+':basis" style="min-width:96px"'+d+'>'+uomList().concat(uomList().includes(l.basis)?[]:[l.basis]).map(u=>opt(u, u, u===l.basis)).join("")+'</select></td><td>'+unitsCell+'</td>'+
+    let cells = '<td><select class="fc" data-ql="'+key+':basis" style="min-width:96px"'+d+'>'+uomList().concat(uomList().includes(l.basis)?[]:[l.basis]).map(u=>opt(u, u, u===l.basis)).join("")+'</select></td><td>'+unitsCell+'</td>'+
       '<td><select class="fc" data-ql="'+key+':ccy" style="width:66px"'+d+'>'+ccyList().concat(ccyList().includes(l.ccy)?[]:[l.ccy]).map(x=>opt(x, x, x===l.ccy)).join("")+'</select></td>'+
       '<td><input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':exch" value="'+esc2(l.exch)+'" style="width:66px"'+(rateEditable?"":" disabled")+' title="'+(l.ccy==="INR"?"Base currency":"INR per 1 "+esc2(l.ccy)+(Q.m.rates[l.ccy]?" (Currency Master)":""))+'"></td>'+
       '<td>'+rateCell+'</td>'+
       '<td><select class="fc" data-ql="'+key+':taxable" style="width:62px"'+d+'>'+opt("1","Yes",l.taxable)+opt("0","No",!l.taxable)+'</select></td>'+
-      '<td><select class="fc" data-ql="'+key+':tax_pct" style="width:64px"'+(l.taxable&&!ro?"":" disabled")+'>'+TAX_RATES.concat(TAX_RATES.includes(Number(l.tax_pct))?[]:[Number(l.tax_pct)]).map(t=>opt(String(t), t+"%", Number(l.tax_pct)===t)).join("")+'</select></td>'+
-      '<td class="r" data-c="amount">'+num(c.amount,2)+'</td><td class="r" data-c="total">'+num(c.total,2)+'</td>'+
-      '<td style="white-space:nowrap"><button class="qk-icon" data-qa="toggle" data-k="'+key+'" title="Taxable, tax, remarks…">'+(open?"▴":"▾")+'</button><button class="qk-icon" data-qa="dup" data-k="'+key+'" title="Duplicate"'+d+'>⧉</button><button class="qk-icon del" data-qa="del" data-k="'+key+'" title="Delete"'+d+'>✕</button></td></tr>'+
-      '<tr class="qk-d" style="display:'+(open?"":"none")+'" data-dk="'+key+'"><td colspan="12"><div class="qk-dgrid">'+
+      '<td><select class="fc" data-ql="'+key+':tax_pct" style="width:64px"'+(l.taxable&&!ro&&!na?"":" disabled")+'>'+TAX_RATES.concat(TAX_RATES.includes(Number(l.tax_pct))?[]:[Number(l.tax_pct)]).map(t=>opt(String(t), t+"%", Number(l.tax_pct)===t)).join("")+'</select></td>'+
+      '<td class="r" data-c="amount" data-s="'+side+'">'+num(c.amount,2)+'</td><td class="r" data-c="total" data-s="'+side+'">'+num(c.total,2)+'</td>';
+    if(na) cells = cells.replace(/<td>/g, '<td class="qk-na">').replace(/<td class="r"/g, '<td class="r qk-na"');
+    const detail = '<tr class="qk-d" style="display:'+(open?"":"none")+'" data-dk="'+key+'"><td colspan="'+(span||12)+'"><div class="qk-dgrid">'+
       '<div><label>GST amount (₹)</label><div class="r" data-c="gst" style="padding:5px 0;font-weight:700">'+num(c.gst,2)+'</div></div>'+
       '<div><label>Margin rate</label><div class="r" data-c="margin" style="padding:5px 0;font-weight:700">'+(m===null?"—":num(m,2)+"%")+'</div></div>'+
       (isMulti() ? '<div><label>Carrier</label><select class="fc" data-ql="'+key+':carrier"'+d+'><option value="">—</option>'+carriers.map(x=>opt(x,x,x===l.carrier)).join("")+'</select></div>' : '<div></div>')+
       (l.basis === "Container" ? '<div><label>Container type (single)</label><select class="fc" data-ql="'+key+':container_type"'+d+'><option value="">— by breakup —</option>'+Q.m.containers.map(x=>opt(x.code, x.code, x.code===l.container_type)).join("")+'</select></div>' : '<div></div>')+
       '<div style="grid-column:1/-1"><label>Notes / Remarks (internal)</label><input class="fc" data-ql="'+key+':remarks" value="'+esc2(l.remarks)+'" placeholder="Remarks for this charge"'+d+'></div></div></td></tr>';
+    if(part === "cells") return cells;
+    if(part === "detail") return detail;
+    return '<tr data-key="'+key+'"><td>'+(i+1)+'</td><td><select class="fc" data-ql="'+key+':charge_name" style="min-width:128px"'+d+'>'+chargeOptions(l)+'</select></td>'+cells+
+      '<td style="white-space:nowrap"><button class="qk-icon" data-qa="toggle" data-k="'+key+'" title="Taxable, tax, remarks…">'+(open?"▴":"▾")+'</button><button class="qk-icon" data-qa="dup" data-k="'+key+'" title="Duplicate"'+d+'>⧉</button><button class="qk-icon del" data-qa="del" data-k="'+key+'" title="Delete"'+d+'>✕</button></td>' +'</tr>'+detail;
+  }
+  /* One charge head for both sides: the particulars column serves the Sell and the Buy line of the same row, and stays in view while the blocks scroll. */
+  function appl(name){ const m = Q.m.charges.find(c=>c.name === name); const v = String(((m && m.data) || {}).ar_ap || "Both").toUpperCase(); return {sell: v !== "AP", buy: v !== "AR"}; }
+  function padLines(){
+    while(Q.sell.length < Q.buy.length){ const b = Q.buy[Q.sell.length], l = blank("SELL"); l.charge_name = b.charge_name; Q.sell.push(l); }
+    while(Q.buy.length < Q.sell.length){ const sl = Q.sell[Q.buy.length], l = blank("BUY"); l.charge_name = sl.charge_name; Q.buy.push(l); }
+    if(!Q.sell.length){ Q.sell.push(blank("SELL")); Q.buy.push(blank("BUY")); }
+  }
+  /* saved quotations hold the sell and the buy lines separately: put the buy line of a charge on the row of its sell line */
+  function pairLines(){
+    const buys = Q.buy.slice(), used = new Set(), S = [], B = [];
+    Q.sell.forEach(sl=>{ const j = buys.findIndex((b, k)=>!used.has(k) && b.charge_name && b.charge_name === sl.charge_name); S.push(sl);
+      if(j >= 0){ used.add(j); B.push(buys[j]); } else { const b = blank("BUY"); b.charge_name = sl.charge_name; B.push(b); } });
+    buys.forEach((b, k)=>{ if(!used.has(k)){ const sl = blank("SELL"); sl.charge_name = b.charge_name; S.push(sl); B.push(b); } });
+    Q.sell = S; Q.buy = B; padLines();
+  }
+  function linesGrid(showBuy, sellFirst){
+    padLines();
+    const ro = Q.rec && !Q.rec.editable; const sides = showBuy ? (sellFirst ? ["sell", "buy"] : ["buy", "sell"]) : ["sell"];
+    const span = 3 + 9 * sides.length;
+    const sub = '<th>Basis / UOM</th><th>Units</th><th>Ccy</th><th>Ex. Rate</th><th>Unit Rate</th><th>Taxable</th><th>Tax %</th><th class="r">Amount (₹)</th><th class="r">Total (₹)</th>';
+    const tot = side=> (side === "sell" ? Q.sell : Q.buy).reduce((a, l)=>{ const c = calc(l); a.amount += c.amount; a.gst += c.gst; a.total += c.total; return a; }, {amount:0, gst:0, total:0});
+    const rows = Q.sell.map((sl, i)=>{
+      const bl = Q.buy[i], ap = appl(sl.charge_name || bl.charge_name), lineOf = sd=> sd === "sell" ? sl : bl;
+      return '<tr data-key="pair:'+i+'"><td class="qk-s1">'+(i+1)+'</td><td class="qk-s2"><select class="fc" data-ql="sell:'+i+':charge_name" style="min-width:150px"'+(ro?" disabled":"")+'>'+chargeOptions(sl.charge_name ? sl : bl)+'</select></td>'+
+        sides.map(sd=>rowHtml(lineOf(sd), sd, i, "cells", null, sd === "sell" ? !ap.sell : !ap.buy)).join("")+
+        '<td style="white-space:nowrap"><button class="qk-icon" data-qa="toggle" data-k="sell:'+i+'" title="Taxable, tax, remarks…">'+(Q.open["sell:"+i] ? "▴" : "▾")+'</button><button class="qk-icon" data-qa="dup" data-k="sell:'+i+'" title="Duplicate"'+(ro?" disabled":"")+'>⧉</button><button class="qk-icon del" data-qa="del" data-k="sell:'+i+'" title="Delete"'+(ro?" disabled":"")+'>✕</button></td></tr>'+
+        sides.map(sd=>rowHtml(lineOf(sd), sd, i, "detail", span, sd === "sell" ? !ap.sell : !ap.buy).replace(/^<tr class="qk-d"/, '<tr class="qk-d"')).join("");
+    }).join("");
+    const foot = (label, f)=> '<tr><td colspan="2">'+label+'</td>'+sides.map(sd=>f(sd, tot(sd))).join("")+'<td></td></tr>';
+    return '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Charges <span class="b b-gy" style="font-size:9.5px">'+Q.sell.length+'</span> <span style="font-size:10.5px;font-weight:400;color:var(--g5)">one charge head for both sides · '+(showBuy ? (sellFirst ? "Sell on the left, Buy on the right" : "Buy on the left, Sell on the right") : "Sell only")+'</span></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-pri btn-sm" data-qa="add" data-side="BOTH"'+(ro?" disabled":"")+'>＋ Add Charge</button>'+(can("master.create") ? '<button class="btn btn-out btn-sm" data-qa="newcharge" data-side="BOTH"'+(ro?" disabled":"")+' title="The charge you need is not in the Charge Master: add it now and use it on this quotation">＋ New Charge</button>' : '')+
+      (uomList().includes("Container") ? '<button class="btn btn-out btn-sm" data-qa="containers" data-k="sell:new"'+(ro?" disabled":"")+' title="One charge, several container types with their own sell rates">📦 Container Rates (Sell)</button>'+(showBuy ? '<button class="btn btn-out btn-sm" data-qa="containers" data-k="buy:new"'+(ro?" disabled":"")+' title="One charge, several container types with their own buy rates">📦 Container Rates (Buy)</button>' : "") : '')+
+      (showBuy ? '<button class="btn btn-out btn-sm" type="button" data-qk-flip title="Swap the Sell and Buy blocks">⇄ Flip Sell / Buy</button>' : '')+'</div></div>'+
+      '<div class="qk-scroll"><table class="qk-t pair"><thead><tr><th class="qk-s1" rowspan="2">#</th><th class="qk-s2" rowspan="2">Particulars</th>'+sides.map(sd=>'<th class="qk-h-'+sd+'" colspan="9">'+(sd === "sell" ? "SELL (REVENUE)" : "BUY (COST)")+'</th>').join("")+'<th rowspan="2"></th></tr><tr>'+sides.map(()=>sub).join("")+'</tr></thead><tbody>'+rows+'</tbody><tfoot>'+
+      foot("Total", (sd, t)=> '<td colspan="7">'+(sd === "sell" ? "Sell" : "Buy")+' total</td><td class="r" data-t="'+sd+':amount">'+num(t.amount, 2)+'</td><td class="r" data-t="'+sd+':total">'+num(t.total, 2)+'</td>')+
+      foot("GST (₹)", (sd, t)=> '<td colspan="7" style="font-weight:600;color:var(--g6)">'+(sd === "sell" ? "Sell" : "Buy")+' GST</td><td colspan="2" class="r" data-t="'+sd+':gst" style="font-weight:600">'+num(t.gst, 2)+'</td>')+'</tfoot></table></div></div>';
   }
   function chosenCarriers(){
     const picked = Array.from(document.querySelectorAll("#quotCarrierRows select")).map(s=>s.value).filter(Boolean);
@@ -15876,7 +15996,7 @@ if(document.readyState !== "loading") initChatWidget();
   function pane(side){
     const lines = side === "SELL" ? Q.sell : Q.buy, key = side.toLowerCase(), ro = Q.rec && !Q.rec.editable;
     const tot = lines.reduce((a,l)=>{ const c = calc(l); a.amount += c.amount; a.gst += c.gst; a.total += c.total; return a; }, {amount:0, gst:0, total:0});
-    return '<div class="qk-pane '+key+'" data-pane="'+key+'"><div class="qk-pane-h"><div><div class="t">'+(side==="SELL"?"Sell Cost":"Buy Cost")+' <span class="b b-gy" style="font-size:9.5px">'+lines.length+'</span></div><div class="s">'+(side==="SELL"?"Charges quoted to the customer":"Internal cost — never shown on the customer quotation")+'</div></div>'+
+    return '<div class="qk-pane '+key+'" data-pane="'+key+'"><div class="qk-pane-h"><div><div class="t">'+(side==="SELL"?"Sell (Revenue)":"Buy (Cost)")+' <span class="b b-gy" style="font-size:9.5px">'+lines.length+'</span></div><div class="s">'+(side==="SELL"?"Charges quoted to the customer":"Internal cost — never shown on the customer quotation")+'</div></div>'+
       '<div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" data-qa="add" data-side="'+side+'"'+(ro?" disabled":"")+'>＋ Add Charge</button>'+(can("master.create") ? '<button class="btn btn-out btn-sm" data-qa="newcharge" data-side="'+side+'"'+(ro?" disabled":"")+' title="The charge you need is not in the Charge Master: add it now and use it on this quotation">＋ New Charge</button>' : '')+(uomList().includes("Container") ? '<button class="btn btn-out btn-sm" data-qa="containers" data-k="'+key+':new"'+(ro?" disabled":"")+' title="One charge, several container types with their own rates">📦 Container Rates</button>' : '')+'</div></div>'+
       '<div class="qk-scroll"><table class="qk-t"><thead><tr><th>#</th><th>Particulars</th><th>Basis / UOM</th><th>Units</th><th>Ccy</th><th>Ex. Rate</th><th>Unit Rate</th><th>Taxable</th><th>Tax %</th><th class="r">Amount (₹)</th><th class="r">Total (₹)</th><th></th></tr></thead><tbody>'+
       (lines.length ? lines.map((l,i)=>rowHtml(l, key, i)).join("") : '<tr><td colspan="12" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No '+(side==="SELL"?"sell":"buy")+' charges yet. Click "Add Charge".</td></tr>')+
@@ -15912,8 +16032,10 @@ if(document.readyState !== "loading") initChatWidget();
   function renderAll(keepScroll){
     const el = root(); if(!el) return; const y = window.scrollY;
     const showBuy = can("quote.view_cost");
+    let sellFirst = true; try{ sellFirst = localStorage.getItem("esway_qk_sell_first") !== "0"; }catch(e){}
     el.innerHTML = stepper() + infoCard() +
-      '<div class="qk-panes" id="qkPanes">'+pane("SELL")+(showBuy ? pane("BUY") : '<div class="qk-pane buy" data-pane="buy"><div class="qk-pane-h"><div><div class="t">Buy Cost</div><div class="s">Internal cost</div></div></div><div style="padding:18px"><div class="ib ib-am">Buy cost entry is hidden for your login because it does not have the <b>See buy costs and margins</b> permission. Ask an administrator to give your role <code>quote.view_cost</code>, then sign in again.</div></div></div>')+'</div>'+ costSheet() +
+      (showBuy ? "" : '<div class="ib ib-am" style="margin-bottom:10px">Buy cost entry is hidden for your login because it does not have the <b>See buy costs and margins</b> permission. Ask an administrator to give your role <code>quote.view_cost</code>, then sign in again.</div>')+
+      linesGrid(showBuy, sellFirst) + costSheet() +
       '<div class="qk-two" style="margin-bottom:12px"><div class="card"><div class="ch"><div class="ct">Terms &amp; Conditions</div></div><div class="cb"><textarea class="fc" rows="6" data-qh="terms"'+(Q.rec && !Q.rec.editable?" disabled":"")+'>'+esc2(Q.head.terms)+'</textarea></div></div>'+
       '<div class="card"><div class="ch"><div class="ct">Internal Notes</div></div><div class="cb"><textarea class="fc" rows="6" data-qh="remarks" placeholder="Not printed on the customer quotation"'+(Q.rec && !Q.rec.editable?" disabled":"")+'>'+esc2(Q.head.remarks)+'</textarea></div></div></div>'+
       approvalCard();
@@ -15924,8 +16046,8 @@ if(document.readyState !== "loading") initChatWidget();
   function refreshComputed(){
     ["sell","buy"].forEach(side=>{
       const lines = side==="sell" ? Q.sell : Q.buy; let a = 0, g = 0, t = 0;
-      lines.forEach((l,i)=>{ const c = calc(l); a += c.amount; g += c.gst; t += c.total; const row = document.querySelector('tr[data-key="'+side+":"+i+'"]'); const dr = document.querySelector('tr[data-dk="'+side+":"+i+'"]');
-        if(row){ row.querySelector('[data-c="amount"]').textContent = num(c.amount,2); row.querySelector('[data-c="total"]').textContent = num(c.total,2); } if(dr){ dr.querySelector('[data-c="gst"]').textContent = num(c.gst,2); const m = lineMargin(l); dr.querySelector('[data-c="margin"]').textContent = m===null?"—":num(m,2)+"%"; } });
+      lines.forEach((l,i)=>{ const c = calc(l); a += c.amount; g += c.gst; t += c.total; const row = document.querySelector('tr[data-key="pair:'+i+'"]'); const dr = document.querySelector('tr[data-dk="'+side+":"+i+'"]');
+        if(row){ const ac = row.querySelector('[data-c="amount"][data-s="'+side+'"]'), tc = row.querySelector('[data-c="total"][data-s="'+side+'"]'); if(ac) ac.textContent = num(c.amount,2); if(tc) tc.textContent = num(c.total,2); } if(dr){ dr.querySelector('[data-c="gst"]').textContent = num(c.gst,2); const m = lineMargin(l); dr.querySelector('[data-c="margin"]').textContent = m===null?"—":num(m,2)+"%"; } });
       const set = (k,v)=>{ const n = document.querySelector('[data-t="'+side+":"+k+'"]'); if(n) n.textContent = num(v,2); }; set("amount", a); set("gst", g); set("total", t);
     });
     // margin rates of the opposite pane's rows change too
@@ -15938,7 +16060,7 @@ if(document.readyState !== "loading") initChatWidget();
     Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
       ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name"].map(k=>[k, (r.header||{})[k]||""]))};
     const mk = l=>({side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
-    Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk);
+    Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk); pairLines();
   }
   async function openForm(rec){
     const scr = document.getElementById("s-quotation-new"); if(!scr) return;
@@ -15976,6 +16098,12 @@ if(document.readyState !== "loading") initChatWidget();
   };
 
   /* ---------- save / workflow ---------- */
+  /* a row is saved on the sides that carry a rate; a row with only a charge name is kept as a sell line */
+  function keepLines(){
+    const has = l=> Number(l.rate) || (l.container_breakup||[]).length; const keep = [];
+    Q.sell.forEach((sl, i)=>{ const bl = Q.buy[i]; if(has(sl)) keep.push(sl); if(bl && has(bl)) keep.push(bl); if(!has(sl) && !(bl && has(bl)) && (sl.charge_name || (bl && bl.charge_name))) keep.push(sl.charge_name ? sl : Object.assign({}, bl, {side:"SELL"})); });
+    return keep;
+  }
   function collect(){
     const h = Q.head, w = wiz();
     const cust = Q.m.customers.find(c=>String(c.id) === String(h.customer_id));
@@ -15986,7 +16114,7 @@ if(document.readyState !== "loading") initChatWidget();
     return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
       pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,
       header:Object.fromEntries(Object.entries({...h, ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name"].includes(k) && v!=="" && v!==undefined && v!==null)),
-      lines:Q.sell.concat(Q.buy).filter(l=>l.charge_name || Number(l.rate) || (l.container_breakup||[]).length).map(toLine)};
+      lines:keepLines().map(toLine)};
   }
   function validate(forSubmit){
     const miss = [];
@@ -16240,24 +16368,25 @@ if(document.readyState !== "loading") initChatWidget();
   document.addEventListener("click", async e=>{
     const o = e.target.closest("[data-qk-open]"); if(o){ e.stopPropagation(); const id = Number(o.dataset.qkOpen); closeModalSafe(); const q = Q.list.find(x=>x.id===id); if(q && q.editable && q.status === "DRAFT" && ["DRAFT","REJECTED"].includes(q.approval_status)) listAct("edit", id); else openView(id); return; }
     const d = e.target.closest("[data-qk-do]"); if(d){ e.stopPropagation(); const [k, id] = d.dataset.qkDo.split(":"); listAct(k, Number(id)); return; }
+    const fl = e.target.closest("[data-qk-flip]"); if(fl){ e.stopPropagation(); let sf = true; try{ sf = localStorage.getItem("esway_qk_sell_first") !== "0"; }catch(err){} try{ localStorage.setItem("esway_qk_sell_first", sf ? "0" : "1"); }catch(err){} renderAll(true); return; }
     const a = e.target.closest("[data-qa]");
     if(a && (document.getElementById("s-quotation-new").contains(a))){
       e.stopPropagation(); const n = a.dataset.qa;
       if(n === "more"){ document.getElementById("qkMore").classList.toggle("on"); return; }
       document.getElementById("qkMore") && document.getElementById("qkMore").classList.remove("on");
-      if(n === "add"){ await reloadCharges(); (a.dataset.side === "SELL" ? Q.sell : Q.buy).push(blank(a.dataset.side)); Q.dirty = true; renderAll(true); return; }
+      if(n === "add"){ await reloadCharges(); Q.sell.push(blank("SELL")); Q.buy.push(blank("BUY")); Q.dirty = true; renderAll(true); return; }
       if(n === "newcharge"){
         const side = a.dataset.side;
         MK.openChargeModal(null, async body=>{
-          await reloadCharges(); const l = blank(side); l.charge_name = body.name;
-          const g = Number((body.data||{}).gst_percent); if(g > 0){ l.taxable = true; l.tax_pct = String(g); }
-          (side === "SELL" ? Q.sell : Q.buy).push(l); Q.dirty = true; renderAll(true); say("Charge added", body.name+" is now in the Charge Master and on this quotation");
+          await reloadCharges(); const l = blank("SELL"), l2 = blank("BUY"); l.charge_name = l2.charge_name = body.name;
+          const g = Number((body.data||{}).gst_percent); if(g > 0){ l.taxable = l2.taxable = true; l.tax_pct = l2.tax_pct = String(g); }
+          Q.sell.push(l); Q.buy.push(l2); Q.dirty = true; renderAll(true); say("Charge added", body.name+" is now in the Charge Master and on this quotation");
         });
         return;
       }
       if(n === "toggle"){ Q.open[a.dataset.k] = !Q.open[a.dataset.k]; renderAll(true); return; }
-      if(n === "dup"){ const {list, idx} = lineByKey(a.dataset.k); const src = list[Number(idx)]; list.splice(Number(idx)+1, 0, JSON.parse(JSON.stringify(src))); Q.dirty = true; renderAll(true); return; }
-      if(n === "del"){ const {list, idx} = lineByKey(a.dataset.k); list.splice(Number(idx), 1); Q.dirty = true; renderAll(true); return; }
+      if(n === "dup"){ const idx = Number(a.dataset.k.split(":")[1]); [Q.sell, Q.buy].forEach(list=> list.splice(idx + 1, 0, JSON.parse(JSON.stringify(list[idx])))); Q.dirty = true; renderAll(true); return; }
+      if(n === "del"){ const idx = Number(a.dataset.k.split(":")[1]); [Q.sell, Q.buy].forEach(list=> list.splice(idx, 1)); Q.dirty = true; renderAll(true); return; }
       if(n === "containers"){ containerPopup(a.dataset.k); return; }
       act(n); return;
     }
@@ -16293,7 +16422,10 @@ if(document.readyState !== "loading") initChatWidget();
       l[f] = el.value; Q.dirty = true;
       if(f === "ccy"){ l.exch = rateFor(l.ccy, l) || (l.ccy==="INR" ? "1" : ""); renderAll(true); return; }
       if(f === "basis"){ if(l.basis !== "Container"){ l.container_breakup = []; l.container_type = ""; } renderAll(true); return; }
-      if(f === "charge_name"){ const m = Q.m.charges.find(c=>c.name===l.charge_name); if(m){ const g = Number((m.data||{}).gst_percent); if(g > 0){ l.taxable = true; l.tax_pct = String(g); } } renderAll(true); return; }
+      if(f === "charge_name"){ const m = Q.m.charges.find(c=>c.name===l.charge_name); const pair = [Q.sell[Number(idx)], Q.buy[Number(idx)]].filter(Boolean); const ap = appl(l.charge_name);
+        pair.forEach(x=>{ x.charge_name = l.charge_name; if(m){ const g = Number((m.data||{}).gst_percent); if(g > 0){ x.taxable = true; x.tax_pct = String(g); } } });
+        [[Q.sell[Number(idx)], ap.sell], [Q.buy[Number(idx)], ap.buy]].forEach(([x, ok])=>{ if(x && !ok){ x.rate = ""; x.container_breakup = []; } });   /* a purchase-only charge has no sell rate and a sales-only charge no buy rate */
+        renderAll(true); return; }
       if(f === "carrier" || f === "container_type" || f === "tax_pct") { refreshComputed(); return; }
       if(f !== "remarks") refreshComputed();
     }
@@ -18346,7 +18478,7 @@ function makePrintFit(){
   const td = (t, r, b)=> '<td style="'+(r ? "text-align:right;" : "")+(b ? "font-weight:700" : "")+'">'+t+'</td>';
   const drcr = v=> num(v) === 0 ? "0.00" : fmt(Math.abs(num(v)))+(num(v) > 0 ? " Dr" : " Cr");
   const empty = (cols, t)=> '<tr><td colspan="'+cols+'" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">'+t+'</td></tr>';
-  const TABS = {ledger:"General Ledger", tb:"Trial Balance", group:"Group Summary", pl:"Profit & Loss", bs:"Balance Sheet", day:"Day Book", gst:"GST", recon:"Bank Reconciliation", tds:"TDS", rcm:"RCM", hsn:"HSN / SAC", cash:"Cash Flow", cal:"GST Calendar", tcs:"TCS", fy:"Financial Year"};
+  const TABS = {ledger:"General Ledger", tb:"Trial Balance", group:"Group Summary", pl:"Profit & Loss", bs:"Balance Sheet", day:"Day Book", gst:"GST", recon:"Bank Reconciliation", tds:"TDS", rcm:"RCM", hsn:"HSN / SAC", cash:"Cash Flow", cal:"GST Calendar", tcs:"TCS", fy:"Financial Year", itc:"ITC / GSTR-2B"};
   const TYPES = {SALES:"Sales Invoice", DEBIT_NOTE:"Debit Note", CREDIT_NOTE:"Credit Note", PURCHASE:"Purchase Invoice", PURCHASE_CREDIT_NOTE:"Purchase Credit Note", RECEIPT:"Receipt Voucher", PAYMENT:"Payment Voucher", JOURNAL:"Journal Voucher", CONTRA:"Contra Voucher"};
 
   G.loadLedgers = async function(force){
@@ -18370,7 +18502,7 @@ function makePrintFit(){
     document.querySelectorAll("[data-gl-tab]").forEach(b=>{ const on = b.dataset.glTab === G.tab; b.classList.toggle("btn-pri", on); b.classList.toggle("btn-out", !on); });
     if(G.ledgers){ const cur = el("gl_ledger").value; el("gl_ledger").innerHTML = '<option value="">— select '+(G.tab === "recon" ? "a bank" : "a ledger")+' —</option>'+G.ledgers.filter(l=> G.tab !== "recon" || /BANK ACCOUNTS/.test(l.path)).map(l=>'<option value="'+l.id+'">'+esc2(l.code+" — "+l.name)+'</option>').join(""); if(Array.from(el("gl_ledger").options).some(o=>o.value === cur)) el("gl_ledger").value = cur; }
     el("gl_ledgerWrap").style.display = G.tab === "ledger" || G.tab === "recon" ? "" : "none"; el("gl_groupWrap").style.display = G.tab === "group" ? "" : "none";
-    el("gl_fromWrap").style.display = G.tab === "bs" || G.tab === "recon" ? "none" : ""; el("gl_toLbl").textContent = G.tab === "bs" || G.tab === "recon" ? "As on" : "To";
+    el("gl_fromWrap").style.display = G.tab === "bs" || G.tab === "recon" || G.tab === "itc" || G.tab === "fy" ? "none" : ""; el("gl_toWrap").style.display = G.tab === "itc" || G.tab === "fy" ? "none" : ""; el("gl_toLbl").textContent = G.tab === "bs" || G.tab === "recon" ? "As on" : "To";
     el("gl_typeWrap").style.display = G.tab === "day" ? "" : "none";
     G.load();
   };
@@ -18432,6 +18564,15 @@ function makePrintFit(){
         const chip = y=> '<span class="b '+(y.status === "CLOSED" ? "b-gr" : y.status === "CURRENT" ? "b-bl" : "b-am")+'">'+(y.status === "CLOSED" ? "Closed" : y.status === "CURRENT" ? "Current" : "Open")+'</span>';
         box.innerHTML = '<div class="ib ib-bl" style="margin:10px 0">Closing a year (1 April to 31 March) moves its profit or loss into <b>Profit &amp; Loss Account (Reserves)</b> with a closing voucher dated the last day of the year, and <b>locks the year</b>: no invoice, receipt, payment or voucher dated in it can be posted, changed or cancelled. The earlier years must be closed first. '+(r.locked_until ? 'Locked up to <b>'+dmy(r.locked_until)+'</b>.' : 'Nothing is locked.')+'</div><div class="tw"><table id="gl_table"><thead><tr>'+th("Financial year")+th("Period")+th("Status")+th("Income", 1)+th("Expenses", 1)+th("Net profit / (loss)", 1)+th("Notes")+th("")+'</tr></thead><tbody>'+r.years.slice().reverse().map(y=>'<tr>'+td('<b>'+esc2(y.label)+'</b>')+td(dmy(y.start)+" to "+dmy(y.end))+td(chip(y))+td(fmt(y.income), 1)+td(fmt(y.expense), 1)+td(fmt(y.net_profit), 1, 1)+td(y.status === "CLOSED" ? 'Closed '+dmy(y.closed_at) : (y.blockers.length ? '<span class="coa-note">'+esc2(y.blockers.join("; "))+'</span>' : "")+(y.draft_documents ? ' <span class="b b-am">'+y.draft_documents+' draft(s)</span>' : ""))+
           '<td style="white-space:nowrap">'+(y.status === "CLOSED" ? (y.voucher_id ? '<a href="#" data-gl-voucher="'+y.voucher_id+'" class="ta">Closing voucher</a> ' : "")+(y.fy === latest ? '<button class="btn btn-out btn-sm" data-fy-reopen="'+y.fy+'">Reopen</button>' : "") : '<button class="btn btn-pri btn-sm" data-fy-close="'+y.fy+'"'+(y.blockers.length ? " disabled" : "")+'>Close year</button>')+'</td></tr>').join("")+'</tbody></table></div>';
+      } else if(G.tab === "itc"){
+        if(!G.itcPeriod){ const t = new Date(); t.setMonth(t.getMonth() - 1); G.itcPeriod = t.getFullYear()+"-"+String(t.getMonth() + 1).padStart(2, "0"); }
+        const r = await api("GET", "/api/gl/itc-reconciliation?period="+G.itcPeriod); G.itc = r; const f = G.itcFilter || "ALL";
+        const chip = st=> { const m = {MATCHED:["b-gr", "Matched"], MISMATCH:["b-rd", "Value mismatch"], PROBABLE:["b-am", "Probable match"], NOT_IN_2B:["b-rd", "Not in GSTR-2B"], NOT_IN_BOOKS:["b-am", "Not in books"]}[st]; return '<span class="b '+m[0]+'">'+m[1]+'</span>'; };
+        const shown = r.rows.filter(x=> f === "ALL" || x.status === f);
+        box.innerHTML = '<div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:10px 8px"><div class="fg"><label class="fl">GSTR-2B period</label><input class="fc" type="month" id="itc_period" value="'+G.itcPeriod+'"></div><button class="btn btn-pri btn-sm" id="itc_import">Import GSTR-2B</button><span class="coa-note">'+r.imported_rows+' GSTR-2B row(s) imported for this period · '+r.books_rows+' purchase bill(s) in the books</span></div>'+
+          '<div class="kpi-row" style="margin:6px 0">'+['<div class="kpi"><div class="kpi-lbl">ITC as per books</div><div class="kpi-val">'+fmt(r.itc_per_books)+'</div></div>', '<div class="kpi"><div class="kpi-lbl">ITC as per GSTR-2B</div><div class="kpi-val">'+fmt(r.itc_per_gstr2b)+'</div></div>', '<div class="kpi"><div class="kpi-lbl">Matched ITC (claimable)</div><div class="kpi-val" style="color:var(--gr)">'+fmt(r.itc_matched)+'</div></div>', '<div class="kpi"><div class="kpi-lbl">ITC at risk (not in 2B)</div><div class="kpi-val" style="color:var(--rd)">'+fmt(r.itc_at_risk)+'</div></div>', '<div class="kpi"><div class="kpi-lbl">In 2B, not booked</div><div class="kpi-val" style="color:var(--am)">'+fmt(r.itc_unbooked)+'</div></div>'].join("")+'</div>'+
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 8px">'+[["ALL", "All ("+r.rows.length+")"], ["MISMATCH", "Value mismatch ("+r.counts.MISMATCH+")"], ["NOT_IN_2B", "Not in GSTR-2B ("+r.counts.NOT_IN_2B+")"], ["NOT_IN_BOOKS", "Not in books ("+r.counts.NOT_IN_BOOKS+")"], ["PROBABLE", "Probable ("+r.counts.PROBABLE+")"], ["MATCHED", "Matched ("+r.counts.MATCHED+")"]].map(([k, l])=>'<button class="btn btn-sm '+(f === k ? "btn-pri" : "btn-out")+'" data-itc-filter="'+k+'">'+l+'</button>').join("")+'</div>'+
+          '<div class="tw"><table id="gl_table"><thead><tr>'+th("Status")+th("Supplier")+th("GSTIN")+th("Books: bill / vendor inv")+th("Books GST", 1)+th("GSTR-2B inv no")+th("GSTR-2B GST", 1)+th("Difference", 1)+th("What to do")+'</tr></thead><tbody>'+(shown.map(x=>'<tr>'+td(chip(x.status))+td(esc2(x.party))+td('<span class="mono">'+esc2(x.gstin)+'</span>')+td(x.book_doc ? esc2(x.book_doc)+'<div class="coa-note">'+esc2(x.book_inv_no || "no vendor inv no.")+'</div>' : "")+td(x.book_tax === null ? "" : fmt(x.book_tax), 1)+td(esc2(x.gstr_inv_no || ""))+td(x.gstr_tax === null ? "" : fmt(x.gstr_tax), 1)+td(num(x.difference) ? fmt(x.difference) : "", 1)+td('<span class="coa-note">'+esc2(x.note)+'</span>')+'</tr>').join("") || empty(9, r.imported_rows || r.books_rows ? "Nothing in this view" : "Import the GSTR-2B of this period to reconcile it with your purchase bills"))+'</tbody></table></div><div class="coa-note" style="margin:6px 8px">Matching is by supplier GSTIN and the vendor invoice number entered on the purchase bill (spaces, dashes and leading zeros ignored), values within Rs 1. Download GSTR-2B from the GST portal (JSON), or use a CSV with GSTIN, supplier, invoice no, date, taxable value, CGST, SGST, IGST.</div>';
       } else if(G.tab === "tcs"){
         const r = await api("GET", "/api/gl/tcs?"+range());
         const part = (title, d)=> '<div class="tw" style="margin-top:8px"><div style="font-weight:800;padding:4px 8px">'+title+' <span class="coa-note">ledger '+esc2(d.ledger)+'</span></div><table><thead><tr>'+th("Date")+th("Voucher")+th("Party")+th("Narration")+th("Debit", 1)+th("Credit", 1)+'</tr></thead><tbody>'+(d.entries.map(x=>'<tr>'+td(dmy(x.date))+'<td><a href="#" data-gl-voucher="'+x.voucher_id+'" style="color:var(--bl);font-weight:700">'+esc2(x.number)+'</a></td>'+td(esc2(x.party || ""))+td(esc2(x.narration || ""))+td(num(x.debit) ? fmt(x.debit) : "", 1)+td(num(x.credit) ? fmt(x.credit) : "", 1)+'</tr>').join("") || empty(6, "No entries in this period"))+'<tr style="font-weight:800;background:var(--g0)"><td colspan="4">Net '+esc2(title.toLowerCase())+'</td>'+td(fmt(d.net), 1)+td("", 1)+'</tr></tbody></table></div>';
@@ -18497,6 +18638,37 @@ function makePrintFit(){
     });
   };
 
+  /* ---- GSTR-2B import: the GST portal JSON, or a CSV (GSTIN, supplier, invoice no, date, taxable, CGST, SGST, IGST[, type, ITC]) ---- */
+  const isoDate = v=> { const t = String(v || "").trim(); const m = t.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/); return m ? m[3]+"-"+m[2]+"-"+m[1] : (/^\d{4}-\d{2}-\d{2}/.test(t) ? t.slice(0, 10) : null); };
+  const amt = v=> { const n = Number(String(v === undefined || v === null ? "" : v).replace(/[,\s₹]/g, "")); return isFinite(n) ? n.toFixed(2) : "0.00"; };
+  G.parse2b = function(text){
+    text = String(text || "").trim(); if(!text) return {rows:[], period:null};
+    if(text[0] === "{"){
+      const j = JSON.parse(text); const data = j.data || j; const doc = data.docdata || data; const rows = []; let period = null;
+      const rt = String(data.rtnprd || j.rtnprd || ""); if(/^\d{6}$/.test(rt)) period = rt.slice(2)+"-"+rt.slice(0, 2);
+      (doc.b2b || []).forEach(sup=> (sup.inv || []).forEach(i=> rows.push({gstin:String(sup.ctin || "").toUpperCase(), supplier:sup.trdnm || null, doc_kind:"INV", inv_no:String(i.inum || ""), inv_date:isoDate(i.dt), taxable:amt(i.txval), cgst:amt(i.cgst), sgst:amt(i.sgst), igst:amt(i.igst), itc_available:String(i.itcavl || "Y").toUpperCase() !== "N"})));
+      (doc.cdnr || []).forEach(sup=> (sup.nt || []).forEach(i=> rows.push({gstin:String(sup.ctin || "").toUpperCase(), supplier:sup.trdnm || null, doc_kind:String(i.typ || i.ntty || "C").toUpperCase().startsWith("D") ? "DN" : "CN", inv_no:String(i.ntnum || ""), inv_date:isoDate(i.dt), taxable:amt(i.txval), cgst:amt(i.cgst), sgst:amt(i.sgst), igst:amt(i.igst), itc_available:String(i.itcavl || "Y").toUpperCase() !== "N"})));
+      return {rows, period};
+    }
+    const lines = text.replace(/\r/g, "").split("\n").filter(l=>l.trim()); const split = l=>{ const c = []; let cur = "", q = false; for(const ch of l){ if(ch === '"') q = !q; else if(ch === "," && !q){ c.push(cur.trim()); cur = ""; } else cur += ch; } c.push(cur.trim()); return c; };
+    const first = split(lines[0]).map(x=>x.toLowerCase()); const head = first.some(x=>/gstin|invoice|taxable/.test(x)); const col = (k, d)=> head ? first.findIndex(x=>x.includes(k)) : d;
+    const iG = col("gstin", 0), iS = col("supplier", 1) >= 0 ? col("supplier", 1) : col("name", 1), iN = col("invoice no", 2) >= 0 ? col("invoice no", 2) : col("number", 2), iD = col("date", 3), iT = col("taxable", 4), iC = col("cgst", 5), iSg = col("sgst", 6), iI = col("igst", 7), iK = head ? first.findIndex(x=>x === "type") : 8, iA = head ? first.findIndex(x=>x.startsWith("itc")) : 9;
+    const rows = lines.slice(head ? 1 : 0).map(split).filter(r=>r[iG]).map(r=>({gstin:String(r[iG]).toUpperCase(), supplier:(iS >= 0 && r[iS]) || null, doc_kind:(iK >= 0 && /^c/i.test(r[iK] || "")) ? "CN" : (iK >= 0 && /^d/i.test(r[iK] || "")) ? "DN" : "INV", inv_no:String(r[iN] || ""), inv_date:iD >= 0 ? isoDate(r[iD]) : null, taxable:amt(iT >= 0 ? r[iT] : 0), cgst:amt(iC >= 0 ? r[iC] : 0), sgst:amt(iSg >= 0 ? r[iSg] : 0), igst:amt(iI >= 0 ? r[iI] : 0), itc_available:!(iA >= 0 && /^n/i.test(r[iA] || ""))}));
+    return {rows, period:null};
+  };
+  G.importItc = function(){
+    openModal({title:"Import GSTR-2B", size:"lg", bodyHTML:'<div class="coa-note" style="margin-bottom:6px">Choose the <b>GSTR-2B JSON</b> downloaded from the GST portal (Returns &gt; GSTR-2B &gt; Download), or a CSV with the columns GSTIN, Supplier, Invoice No, Date, Taxable, CGST, SGST, IGST (optional: Type = Invoice / Credit Note, ITC = Y / N). Importing a period again replaces its earlier rows.</div><input type="file" id="ib_file" accept=".json,.csv,application/json,text/csv"><textarea class="fc" id="ib_text" rows="4" placeholder="…or paste the JSON / CSV here" style="width:100%;font-family:monospace;font-size:11px;margin-top:6px"></textarea><div class="fr" style="margin-top:6px"><div class="fg"><label class="fl">Period (month of the GSTR-2B)</label><input class="fc" type="month" id="ib_period" value="'+(G.itcPeriod || "")+'"></div></div><div id="ib_out"></div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="ib_go" disabled>Import</button>'});
+    let parsed = null;
+    const check = ()=>{ try{ parsed = G.parse2b(el("ib_text").value); }catch(e){ parsed = null; el("ib_out").innerHTML = '<div class="ib ib-am" style="margin-top:6px">Could not read this file: '+esc2(e.message)+'</div>'; el("ib_go").disabled = true; return; }
+      if(parsed.period) el("ib_period").value = parsed.period; const bad = parsed.rows.filter(r=>r.gstin.length !== 15 || !r.inv_no);
+      el("ib_out").innerHTML = parsed.rows.length ? '<div class="ib '+(bad.length ? "ib-am" : "ib-gr")+'" style="margin-top:6px">'+parsed.rows.length+' document(s) found'+(bad.length ? ', <b>'+bad.length+' without a valid GSTIN or invoice number</b> (they will be skipped)' : "")+' · taxable '+fmt(parsed.rows.reduce((a, r)=>a + num(r.taxable), 0))+' · GST '+fmt(parsed.rows.reduce((a, r)=>a + num(r.cgst) + num(r.sgst) + num(r.igst), 0))+'</div>' : '<div class="ib ib-am" style="margin-top:6px">No documents found in this file</div>';
+      el("ib_go").disabled = !parsed.rows.length; };
+    el("ib_file").addEventListener("change", ev=>{ const f = ev.target.files[0]; if(!f) return; const rd = new FileReader(); rd.onload = ()=>{ el("ib_text").value = String(rd.result || ""); check(); }; rd.readAsText(f); });
+    el("ib_text").addEventListener("input", check);
+    el("ib_go").addEventListener("click", async ()=>{ const period = el("ib_period").value; if(!period){ say("Choose the period", "", "warn"); return; } const rows = parsed.rows.filter(r=>r.gstin.length === 15 && r.inv_no);
+      try{ const r = await api("POST", "/api/gl/gstr2b/import", {period, rows}); closeModal(); say("GSTR-2B imported", r.rows+" document(s) for "+period); G.itcPeriod = period; G.load(); }catch(e){ say("Could not import", e.message, "error"); } });
+  };
   G.payroll = async function(){
     let emps = [], leds = []; try{ [emps, leds] = await Promise.all([api("GET", "/api/masters/employee?status=ACTIVE"), G.loadLedgers(true)]); }catch(e){ say("Could not load", e.message, "error"); return; }
     if(!emps.length){ say("Add an employee first", "Salary and advances are posted against the Employee master", "warn"); return; }
@@ -18522,6 +18694,8 @@ function makePrintFit(){
       openModal({title:(rt === "GSTR1" ? "GSTR-1" : "GSTR-3B")+" — "+per, bodyHTML:'<div class="fr"><div class="fg"><label class="fl">Filed on</label><input class="fc" type="date" id="cal_date" value="'+(cur.filed_on || today())+'"></div><div class="fg" style="grid-column:span 2"><label class="fl">Acknowledgement (ARN) number</label><input class="fc" id="cal_ack" maxlength="40" value="'+esc2(cur.ack_no || "")+'"></div></div>', footHTML:(cur.filed_on ? '<button class="btn btn-out" id="cal_un" style="color:var(--rd)">Remove filing record</button>' : "")+'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="cal_save">Save</button>'});
       const save = async filed=>{ try{ await api("POST", "/api/gl/gst-calendar/mark", {period:per, return_type:rt, filed_on:filed, ack_no:filed ? el("cal_ack").value.trim() || null : null}); closeModal(); G.load(); }catch(err){ say("Could not save", err.message, "error"); } };
       el("cal_save").addEventListener("click", ()=>save(el("cal_date").value || today())); if(el("cal_un")) el("cal_un").addEventListener("click", ()=>save(null)); return; }
+    const itf = e.target.closest("[data-itc-filter]"); if(itf){ G.itcFilter = itf.dataset.itcFilter; G.load(); return; }
+    if(e.target.closest("#itc_import")){ G.importItc(); return; }
     const fc = e.target.closest("[data-fy-close]"); if(fc){ const y = G.fyList.years.find(x=>String(x.fy) === fc.dataset.fyClose);
       openModal({title:"Close financial year "+esc2(y.label), bodyHTML:'<div style="font-size:12.5px;line-height:1.5">This will:<ul style="margin:6px 0 6px 18px"><li>clear every income and expense ledger of <b>'+dmy(y.start)+' to '+dmy(y.end)+'</b> with a closing voucher,</li><li>move the '+(num(y.net_profit) >= 0 ? "profit" : "loss")+' of <b>'+fmt(Math.abs(num(y.net_profit)))+'</b> to Profit &amp; Loss Account (Reserves),</li><li><b>lock</b> every date up to '+dmy(y.end)+' against posting, changes and cancellation.</li></ul>'+(y.draft_documents ? '<div class="ib ib-am">'+y.draft_documents+' draft or proforma document(s) are dated in this year. They cannot be posted after the year is closed.<label style="display:block;margin-top:4px"><input type="checkbox" id="fy_ign"> Close anyway</label></div>' : "")+'You can reopen the latest closed year if something was missed.</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="fy_go">Close the year</button>'});
       el("fy_go").addEventListener("click", async ()=>{ try{ const r = await api("POST", "/api/gl/fy/close", {fy:y.fy, ignore_drafts:!!(el("fy_ign") && el("fy_ign").checked)}); closeModal(); say("Financial year closed", r.label+" · net "+fmt(r.net_profit)+" · locked up to "+dmy(r.locked_until)); G.load(); }catch(err){ say("Could not close the year", err.message, "error"); } }); return; }
@@ -18530,7 +18704,7 @@ function makePrintFit(){
     if(e.target.closest("#jv_payroll")) G.payroll();
     if(e.target.closest("#jv_new")) G.newVoucher("JOURNAL"); if(e.target.closest("#cv_new")) G.newVoucher("CONTRA");
   }, true);
-  document.addEventListener("change", e=>{ if(e.target.id === "cal_fy"){ G.fy = Number(e.target.value); G.load(); return; } if(["gl_from", "gl_to", "gl_ledger", "gl_group", "gl_type"].indexOf(e.target.id) > -1) G.load(); });
+  document.addEventListener("change", e=>{ if(e.target.id === "itc_period"){ G.itcPeriod = e.target.value; G.load(); return; } if(e.target.id === "cal_fy"){ G.fy = Number(e.target.value); G.load(); return; } if(["gl_from", "gl_to", "gl_ledger", "gl_group", "gl_type"].indexOf(e.target.id) > -1) G.load(); });
   document.addEventListener("input", e=>{ if(e.target.id === "rc_stmt" && G.recon){ const v = e.target.value; const d = v === "" ? null : num(v) - num(G.recon.balance_as_per_bank); el("rc_diff").innerHTML = d === null ? "" : (Math.abs(d) < 0.005 ? '<span style="color:var(--gr)">Reconciled</span>' : '<span style="color:var(--rd)">Difference '+fmt(d)+'</span>'); }
   if(e.target.id === "jv_q") G.loadVouchers("JOURNAL"); if(e.target.id === "cv_q") G.loadVouchers("CONTRA"); });
   const prev = MK.onScreen;

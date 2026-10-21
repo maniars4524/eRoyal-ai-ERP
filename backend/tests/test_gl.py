@@ -299,7 +299,11 @@ def test_financial_year_close_lock_and_reopen(h):
         pl = client.get("/api/gl/profit-loss?date_from=2000-04-01&date_to=2001-03-31", headers=h).json()
         assert pl["total_income"] == "10000.00" and pl["total_expenses"] == "4000.00" and pl["net_profit"] == "6000.00"
         assert lrep(h, "Profit & Loss Account (Reserves)", date_to="2001-03-31")["closing"] == "-6000.00"
-        assert tb(h)["balanced"] and client.get("/api/gl/balance-sheet?as_on=2001-03-31", headers=h).json()["profit_loss"] == "0.00"
+        cv = client.get("/api/gl/day-book?voucher_type=CLOSING&date_from=2000-04-01&date_to=2001-03-31", headers=h).json()["vouchers"]
+        assert len(cv) == 1 and cv[0]["number"] == "CL/2000-01"
+        ent = client.get(f"/api/gl/vouchers/{cv[0]['id']}", headers=h).json()["entries"]
+        assert sum(D(e["debit"]) for e in ent) == sum(D(e["credit"]) for e in ent) == D("10000.00")      # income cleared, expenses cleared, profit to reserves
+        assert client.get("/api/gl/balance-sheet?as_on=2001-03-31", headers=h).json()["profit_loss"] == "0.00"
         # nothing dated in the closed year can change
         blocked = client.post("/api/documents", json={"doc_type": "invoice", "party_name": party, "doc_date": "2000-08-01", "lines": [{"charge_name": "X", "qty": "1", "rate": "5", "tax_type": "Non-Taxable", "tax_pct": "0"}]}, headers=h).json()
         assert client.post(f"/api/documents/{blocked['id']}/post", headers=h).status_code == 409
@@ -318,3 +322,39 @@ def test_financial_year_close_lock_and_reopen(h):
     assert client.post(f"/api/documents/{blocked['id']}/post", headers=h).status_code == 200      # open again
     assert lrep(h, "Profit & Loss Account (Reserves)", date_to="2001-03-31")["closing"] == "0.00"
     assert client.post("/api/gl/fy/reopen", json={"fy": 2000}, headers=h).status_code == 404
+
+
+def test_gstr2b_import_and_itc_reconciliation(h):
+    uid = uuid.uuid4().hex[:5]
+    vend = "Itc Vend " + uid
+    client.post("/api/customers", json={"code": "IV" + uid.upper(), "name": vend, "roles": ["carrier"], "data": {}}, headers=h)
+    GST = "27AAAAA0000A1Z5"
+    n = int(uid, 16)
+    PER = f"{1900 + n % 90}-{(n // 90) % 12 + 1:02d}"      # a period no other run has used
+
+    def bill(inv_no, rate, day=PER + "-10"):
+        d = client.post("/api/documents", json={"doc_type": "purchase_invoice", "party_name": vend, "party_gstin": GST, "doc_date": day, "header": {"vendor_inv_no": inv_no, "vendor_inv_date": day},
+                                                 "lines": [{"charge_name": "Ocean Freight", "qty": "1", "rate": rate, "tax_type": "Taxable", "tax_pct": "18"}]}, headers=h)
+        assert d.status_code == 201, d.text
+        assert client.post(f"/api/documents/{d.json()['id']}/post", headers=h).status_code == 200
+        return d.json()
+
+    bill("INV-001", "10000")
+    bill("INV-002", "5000")
+    bill("INV-003", "2000")
+    bill("INV-4X", "1000")
+    row = lambda no, taxable, igst, gstin=GST, kind="INV": {"gstin": gstin, "supplier": vend, "inv_no": no, "inv_date": PER + "-10", "taxable": taxable, "igst": igst, "doc_kind": kind}
+    imp = client.post("/api/gl/gstr2b/import", json={"period": PER, "rows": [row("INV 001", "10000", "1800"), row("INV-002", "5000", "450"), row("INV-004", "1000", "180"), row("INV-009", "500", "90", gstin="29BBBBB1111B1Z5")]}, headers=h)
+    assert imp.status_code == 201 and imp.json()["rows"] == 4
+    r = client.get(f"/api/gl/itc-reconciliation?period={PER}", headers=h).json()
+    mine = {x["status"]: x for x in r["rows"] if x["party"] in (vend,) or x["gstin"] == "29BBBBB1111B1Z5"}
+    assert r["counts"] == {"MISMATCH": 1, "NOT_IN_2B": 1, "NOT_IN_BOOKS": 1, "PROBABLE": 1, "MATCHED": 1}
+    assert mine["MATCHED"]["book_doc"] and mine["MATCHED"]["gstr_inv_no"] == "INV 001"
+    assert mine["MISMATCH"]["difference"] == "450.00" and mine["NOT_IN_2B"]["book_tax"] == "360.00" and mine["PROBABLE"]["gstr_inv_no"] == "INV-004" and mine["NOT_IN_BOOKS"]["gstr_tax"] == "90.00"
+    assert r["itc_per_books"] == "3240.00" and r["itc_per_gstr2b"] == "2520.00" and r["itc_at_risk"] == "360.00" and r["itc_unbooked"] == "90.00" and r["itc_matched"] == "1980.00"
+    # importing the period again replaces the rows; a credit note is stored negative and a bad GSTIN is refused
+    client.post("/api/gl/gstr2b/import", json={"period": PER, "rows": [row("CN-1", "100", "18", kind="CN")]}, headers=h)
+    again = client.get(f"/api/gl/itc-reconciliation?period={PER}", headers=h).json()
+    assert again["imported_rows"] == 1 and again["itc_per_gstr2b"] == "-18.00"
+    assert client.post("/api/gl/gstr2b/import", json={"period": PER, "rows": [{**row("X", "1", "1"), "gstin": "BAD"}]}, headers=h).status_code == 422
+    assert client.post("/api/gl/gstr2b/import", json={"period": "2003-13", "rows": [row("X", "1", "1")]}, headers=h).status_code == 422

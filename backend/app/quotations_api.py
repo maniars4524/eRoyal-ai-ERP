@@ -13,6 +13,7 @@ from .auth_api import record_audit
 from .billing import next_number
 from .db import get_db
 from .schemas_auth import _clean_party_data
+from . import charge_rules
 from .models import Customer, JobCharge, MasterRecord, Organization, Quotation, QuotationEvent, QuotationLine, Shipment, User
 from .quote_calc import calc_line, charge_margin_pct, cost_sheet, q2
 
@@ -174,6 +175,7 @@ def _apply_lines(db: Session, q: Quotation, lines: list[QLine], user: User, org_
     rates = _currency_rates(db, org_id)
     can_override = has_permission(user, "quote.rate_override")
     previous = {(l.ccy, l.exch) for l in q.lines}
+    charge_rules.check_sides(db, org_id, [(l.charge_name, l.side, l.rate > 0 or bool(l.container_breakup)) for l in lines])
     for line in lines:
         if line.ccy != "INR" and line.exch <= 0 and not line.container_breakup is None and False:
             pass

@@ -312,6 +312,27 @@ class FyClosing(Base):
     closed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class Gstr2bRow(Base):
+    """One supplier invoice (or credit / debit note) of a GSTR-2B statement downloaded from the GST portal. Credit notes are stored with negative amounts."""
+    __tablename__ = "gstr2b_rows"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    period: Mapped[str] = mapped_column(String(7), index=True)   # YYYY-MM of the GSTR-2B
+    gstin: Mapped[str] = mapped_column(String(15))
+    supplier: Mapped[str | None] = mapped_column(String(200))
+    doc_kind: Mapped[str] = mapped_column(String(10), default="INV")   # INV | CN | DN
+    inv_no: Mapped[str] = mapped_column(String(60))
+    inv_date: Mapped[date | None] = mapped_column(Date)
+    taxable = mapped_column(Numeric(16, 2), default=0)
+    cgst = mapped_column(Numeric(16, 2), default=0)
+    sgst = mapped_column(Numeric(16, 2), default=0)
+    igst = mapped_column(Numeric(16, 2), default=0)
+    itc_available: Mapped[bool] = mapped_column(Boolean, default=True)
+    imported_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class CompanyDocProfile(Base):
     """Letterhead and registration details printed on the company's documents (BL / MTD): address, contacts, OTL / MTO / FMC registration numbers, signatory, signature and seal images."""
     __tablename__ = "company_doc_profiles"

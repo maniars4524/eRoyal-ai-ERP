@@ -108,6 +108,22 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // ---- financial year closing
   w.go("gl-reports", { glTab: "fy" }); await sleep(2500);
   check("Financial Year tab lists the current year as not closable until it ends", /Closing a year/.test(q("#gl_body").textContent) && /Current/.test(q("#gl_body").textContent) && /has not ended yet/.test(q("#gl_body").textContent) && q("[data-fy-close]").disabled === true, q("#gl_body").textContent.slice(0, 220));
+  // ---- ITC / GSTR-2B
+  await j("POST", "/api/customers", { code: "UI-V1", name: "Ui Itc Vendor", roles: ["carrier"], data: {} }, token);
+  const nowD = new Date(); const per = nowD.getFullYear() + "-" + String(nowD.getMonth() + 1).padStart(2, "0"); const dd = nowD.toISOString().slice(0, 10);
+  const pb = await j("POST", "/api/documents", { doc_type: "purchase_invoice", party_name: "Ui Itc Vendor", party_gstin: "27AAAAA0000A1Z5", header: { vendor_inv_no: "VI/0042", vendor_inv_date: dd }, lines: [{ charge_name: "Ocean Freight", qty: "1", rate: "1000", tax_type: "Taxable", tax_pct: "18" }] }, token);
+  await j("POST", `/api/documents/${pb.body.id}/post`, null, token);
+  w.BK.openNew("purchase_invoice"); await sleep(3000);
+  check("the purchase editor asks for the vendor invoice number and date", !!q('#s-purchase-invoice-new [data-bkh="vendor_inv_no"]') && !!q('#s-purchase-invoice-new [data-bkh="vendor_inv_date"]'));
+  w.go("gl-reports", { glTab: "itc" }); await sleep(2500);
+  w.GLKit.itcPeriod = per; w.GLKit.load(); await sleep(1500);
+  q("#itc_import").click(); await sleep(500);
+  const portal = { data: { rtnprd: per.slice(5) + per.slice(0, 4), docdata: { b2b: [{ ctin: "27AAAAA0000A1Z5", trdnm: "Ui Itc Vendor", inv: [{ inum: "VI-42", dt: dd.split("-").reverse().join("-"), val: 1180, txval: 1000, igst: 180, cgst: 0, sgst: 0, itcavl: "Y" }] }, { ctin: "29BBBBB1111B1Z5", trdnm: "Other Supplier", inv: [{ inum: "X1", dt: dd.split("-").reverse().join("-"), txval: 500, igst: 90 }] }], cdnr: [] } } };
+  q("#ib_text").value = JSON.stringify(portal); q("#ib_text").dispatchEvent(new w.Event("input", { bubbles: true })); await sleep(300);
+  check("the portal JSON is read: two documents found and the period filled in", /2 document\(s\) found/.test(q("#ib_out").textContent) && q("#ib_period").value === per, q("#ib_out").textContent);
+  q("#ib_go").click(); await sleep(2500);
+  const tx = q("#gl_body").textContent;
+  check("the bill matches its GSTR-2B row despite the different invoice number format, and the other supplier shows as not booked", /Matched/.test(tx) && /Not in books/.test(tx) && /Ui Itc Vendor/.test(tx) && /Other Supplier/.test(tx), tx.slice(0, 300));
   // ---- the receipt dialog offers the bank account
   const bankLedger = (await j("GET", "/api/coa/ledgers?source_type=bank", null, token)).body;
   check("the bank master created its ledger under Bank Accounts", bankLedger.length === 1 && /BANK ACCOUNTS/.test(bankLedger[0].path) && bankLedger[0].opening_balance === "20000.00");

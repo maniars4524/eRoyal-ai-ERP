@@ -1,12 +1,13 @@
 """General ledger API: ledger report, trial balance / group summary, profit and loss, balance sheet, day book, manual journal and contra vouchers, rebuild."""
 from __future__ import annotations
 
+import re
 from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from . import coa, gl
@@ -842,3 +843,108 @@ def fy_reopen(body: FyIn, user: User = Depends(permission_required("billing.post
     record_audit(db, "FY_REOPENED", "ACCOUNTS", user, org_id, "FyClosing", _fy_label(body.fy), {})
     db.commit()
     return {"label": _fy_label(body.fy), "locked_until": gl.locked_until(db, org_id)}
+
+
+# ---------------------------------------------------------------- GSTR-2B and ITC reconciliation
+class Gstr2bRowIn(BaseModel):
+    gstin: str = Field(min_length=15, max_length=15)
+    supplier: str | None = Field(default=None, max_length=200)
+    doc_kind: str = Field(default="INV", pattern="^(INV|CN|DN)$")
+    inv_no: str = Field(min_length=1, max_length=60)
+    inv_date: date | None = None
+    taxable: Decimal = Field(default=ZERO, max_digits=16, decimal_places=2)
+    cgst: Decimal = Field(default=ZERO, max_digits=16, decimal_places=2)
+    sgst: Decimal = Field(default=ZERO, max_digits=16, decimal_places=2)
+    igst: Decimal = Field(default=ZERO, max_digits=16, decimal_places=2)
+    itc_available: bool = True
+
+
+class Gstr2bImport(BaseModel):
+    period: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    rows: list[Gstr2bRowIn] = Field(min_length=1, max_length=20000)
+
+
+@router.post("/gstr2b/import", status_code=201)
+def gstr2b_import(body: Gstr2bImport, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    """Store the rows of a GSTR-2B statement for a period (what you download from the GST portal). Importing the same period again replaces the earlier rows. Credit notes must carry negative amounts."""
+    from .models import Gstr2bRow
+
+    org_id = _tenant(user)
+    db.execute(delete(Gstr2bRow).where(Gstr2bRow.organization_id == org_id, Gstr2bRow.period == body.period))
+    for r in body.rows:
+        sign = -1 if r.doc_kind == "CN" else 1
+        db.add(Gstr2bRow(organization_id=org_id, period=body.period, gstin=r.gstin.upper(), supplier=r.supplier, doc_kind=r.doc_kind, inv_no=r.inv_no.strip(), inv_date=r.inv_date, taxable=sign * abs(r.taxable), cgst=sign * abs(r.cgst),
+                         sgst=sign * abs(r.sgst), igst=sign * abs(r.igst), itc_available=r.itc_available, imported_by=user.id))
+    record_audit(db, "GSTR2B_IMPORTED", "ACCOUNTS", user, org_id, "Gstr2bRow", body.period, {"rows": len(body.rows)})
+    db.commit()
+    return {"period": body.period, "rows": len(body.rows)}
+
+
+def _norm_inv(v: str | None) -> str:
+    s = re.sub(r"[^A-Z0-9]", "", (v or "").upper())
+    return s.lstrip("0") or s
+
+
+@router.get("/itc-reconciliation")
+def itc_reconciliation(period: str = Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$"), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Purchase invoices and credit notes in the books against the GSTR-2B of the period. Matched by supplier GSTIN and invoice number (ignoring spaces, dashes and leading zeros), values within Rs 1."""
+    from .models import Document, Gstr2bRow
+
+    org_id = _prep(db, user)
+    y, m = int(period[:4]), int(period[5:])
+    start, end = date(y, m, 1), date.fromordinal(date(y + (m == 12), m % 12 + 1, 1).toordinal() - 1)
+    books = []
+    for d in db.scalars(select(Document).where(Document.organization_id == org_id, Document.status == "POSTED", Document.doc_type.in_(("purchase_invoice", "purchase_credit_note")), Document.tax_total != 0)):
+        h = d.header or {}
+        try:
+            when = date.fromisoformat(h.get("vendor_inv_date")) if h.get("vendor_inv_date") else d.doc_date
+        except ValueError:
+            when = d.doc_date
+        if not (start <= when <= end):
+            continue
+        sign = -1 if d.doc_type == "purchase_credit_note" else 1
+        taxable = sum((l.amount for l in d.lines if l.tax_type == "Taxable"), ZERO) if d.lines else d.subtotal
+        books.append({"id": d.id, "doc": d.doc_number, "party": d.party_name, "gstin": (d.party_gstin or "").upper(), "inv_no": h.get("vendor_inv_no") or "", "date": when, "taxable": sign * taxable, "tax": sign * d.tax_total})
+    sheet = [{"id": r.id, "gstin": r.gstin.upper(), "supplier": r.supplier, "inv_no": r.inv_no, "date": r.inv_date, "taxable": r.taxable, "tax": r.cgst + r.sgst + r.igst, "itc": r.itc_available, "kind": r.doc_kind}
+             for r in db.scalars(select(Gstr2bRow).where(Gstr2bRow.organization_id == org_id, Gstr2bRow.period == period))]
+    by_key: dict = {}
+    for r in sheet:
+        by_key.setdefault((r["gstin"], _norm_inv(r["inv_no"])), []).append(r)
+    used: set[int] = set()
+    rows = []
+    close = lambda a, b: abs(a - b) <= Decimal(1)
+
+    def line(status, b, r, note=""):
+        return {"status": status, "gstin": (b or r)["gstin"], "party": (b["party"] if b else r["supplier"]) or "", "book_doc": b["doc"] if b else None, "book_inv_no": b["inv_no"] if b else None, "book_taxable": _s(b["taxable"]) if b else None,
+                "book_tax": _s(b["tax"]) if b else None, "gstr_inv_no": r["inv_no"] if r else None, "gstr_taxable": _s(r["taxable"]) if r else None, "gstr_tax": _s(r["tax"]) if r else None, "itc_available": r["itc"] if r else None, "note": note,
+                "difference": _s((b["tax"] if b else ZERO) - (r["tax"] if r else ZERO))}
+
+    leftovers = []
+    for b in books:
+        cands = [r for r in by_key.get((b["gstin"], _norm_inv(b["inv_no"])), []) if r["id"] not in used] if b["inv_no"] else []
+        if cands:
+            r = cands[0]
+            used.add(r["id"])
+            ok = close(b["taxable"], r["taxable"]) and close(b["tax"], r["tax"])
+            rows.append(line("MATCHED" if ok else "MISMATCH", b, r, "" if ok else "Values differ from the GSTR-2B"))
+        else:
+            leftovers.append(b)
+    for b in leftovers:       # same supplier and the same amounts but a different invoice number
+        guess = next((r for r in sheet if r["id"] not in used and r["gstin"] == b["gstin"] and close(b["taxable"], r["taxable"]) and close(b["tax"], r["tax"])), None)
+        if guess:
+            used.add(guess["id"])
+            rows.append(line("PROBABLE", b, guess, "Same supplier and amounts, invoice number differs. Correct the vendor invoice number in the books" if b["inv_no"] else "Same supplier and amounts. The vendor invoice number is missing in the books"))
+        else:
+            rows.append(line("NOT_IN_2B", b, None, "Not reported by the supplier. ITC cannot be claimed until it appears"))
+    for r in sheet:
+        if r["id"] not in used:
+            rows.append(line("NOT_IN_BOOKS", None, r, "Reported by the supplier but not booked. Book the purchase invoice to claim the ITC"))
+    order = {"MISMATCH": 0, "NOT_IN_2B": 1, "NOT_IN_BOOKS": 2, "PROBABLE": 3, "MATCHED": 4}
+    rows.sort(key=lambda x: (order[x["status"]], x["party"]))
+    book_itc = sum((b["tax"] for b in books), ZERO)
+    gstr_itc = sum((r["tax"] for r in sheet if r["itc"]), ZERO)
+    matched = sum((Decimal(x["gstr_tax"]) for x in rows if x["status"] in ("MATCHED", "PROBABLE") and x["itc_available"]), ZERO)
+    counts = {k: sum(1 for x in rows if x["status"] == k) for k in order}
+    return {"period": period, "imported_rows": len(sheet), "books_rows": len(books), "itc_per_books": _s(book_itc), "itc_per_gstr2b": _s(gstr_itc), "itc_matched": _s(matched),
+            "itc_at_risk": _s(sum((Decimal(x["book_tax"]) for x in rows if x["status"] == "NOT_IN_2B"), ZERO)), "itc_unbooked": _s(sum((Decimal(x["gstr_tax"]) for x in rows if x["status"] == "NOT_IN_BOOKS" and x["itc_available"]), ZERO)),
+            "counts": counts, "rows": rows}
