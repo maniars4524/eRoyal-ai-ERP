@@ -470,6 +470,26 @@ tbody tr:hover{background:var(--g0)}
 .jc-actions .btn{font-size:11.3px}
 .jc-grid-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 /* Jobs / Shipments list: job number and party names stay on one line, the table scrolls sideways, and the Job No and the first party column can be frozen */
+/* Jobs / Shipments: the summary cards (icon, divider, figure, drill-down arrow) */
+#s-job-list .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+#s-job-list .kpi.kpi-rich{position:relative;display:flex;align-items:center;gap:12px;padding:16px 14px 16px 16px;border-radius:14px;cursor:pointer;overflow:hidden;border:1px solid var(--kc-b);background:linear-gradient(135deg,var(--kc-bg1),var(--kc-bg2));box-shadow:0 6px 18px rgba(20,40,80,.06);transition:transform .15s var(--ease),box-shadow .15s var(--ease)}
+#s-job-list .kpi.kpi-rich:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(20,40,80,.13)}
+#s-job-list .kpi.kpi-rich.on{outline:2px solid var(--kc-c);outline-offset:1px}
+#s-job-list .kpi.kpi-rich::after{content:"";position:absolute;right:-26px;bottom:-30px;width:96px;height:96px;border-radius:50%;background:var(--kc-bg2);opacity:.7;pointer-events:none}
+#s-job-list .kpi-rich .kic{width:52px;height:52px;flex:0 0 52px;border-radius:50%;background:var(--kc-ic);color:var(--kc-c);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 4px rgba(255,255,255,.55)}
+#s-job-list .kpi-rich .kic .ic{width:28px;height:28px}
+#s-job-list .kpi-rich .kdiv{width:1px;align-self:stretch;background:var(--kc-b);margin:6px 0}
+#s-job-list .kpi-rich .ktx{flex:1;min-width:0;position:relative;z-index:1}
+#s-job-list .kpi-rich .kpi-lbl{font-size:10.5px;font-weight:800;letter-spacing:.7px;color:var(--g7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#s-job-list .kpi-rich .kpi-val{font-size:32px;font-weight:800;line-height:1.1;margin:3px 0 2px;color:var(--kc-c)}
+#s-job-list .kpi-rich .kpi-sub{font-size:12px;color:var(--g6)}
+#s-job-list .kpi-rich .kchev{font-size:22px;line-height:1;width:10px;color:var(--g4);position:relative;z-index:1}
+#s-job-list .kpi.k-blue{--kc-c:#1a4fa3;--kc-ic:#d4e5fb;--kc-bg1:#f5f9ff;--kc-bg2:#e6f0fd;--kc-b:#d1e1f5}
+#s-job-list .kpi.k-teal{--kc-c:#12787f;--kc-ic:#c9eeef;--kc-bg1:#f2fcfc;--kc-bg2:#dff5f5;--kc-b:#cdebec}
+#s-job-list .kpi.k-sky{--kc-c:#0a78a8;--kc-ic:#cfe9f6;--kc-bg1:#f2faff;--kc-bg2:#e0f1fa;--kc-b:#cfe6f2}
+#s-job-list .kpi.k-purple{--kc-c:#6a3fc2;--kc-ic:#e5dbf8;--kc-bg1:#f8f4ff;--kc-bg2:#ece3fb;--kc-b:#e0d5f4}
+#s-job-list .kpi.k-orange{--kc-c:#e07a0b;--kc-ic:#fde4c4;--kc-bg1:#fff9f1;--kc-bg2:#fdeddb;--kc-b:#f7e1c8}
+#s-job-list .kpi.k-green{--kc-c:#17803f;--kc-ic:#d1efdc;--kc-bg1:#f2fcf6;--kc-bg2:#e0f5e8;--kc-b:#cdebd8}
 #jobTable th,#jobTable td{white-space:nowrap}
 #jobTable thead th:nth-child(1),#jobTable tbody tr[data-job-row] td:nth-child(1){width:165px;min-width:165px;max-width:165px}
 #jobTable thead th:nth-child(2),#jobTable tbody tr[data-job-row] td:nth-child(2){min-width:250px}
@@ -7004,7 +7024,7 @@ function renderJobRows(){
     jobs.forEach(j=>{
       const tr = document.createElement("tr");
       tr.dataset.jobRow = "1";
-      tr.dataset.mode = j.mode; tr.dataset.dir = j.direction; tr.dataset.status = j.status;
+      tr.dataset.mode = j.mode; tr.dataset.dir = j.direction; tr.dataset.status = j.status; tr.dataset.jtype = j.job_type || "";
       const isClosed = j.closure_status === "CLOSED" || j.status === "Closed";
       const closedAt = j.last_closed_at || j.updated_at; const now = new Date();
       tr.dataset.bucket = (j.mode === "Road" || j.mode === "Rail") ? "Road / Transport" : j.mode + " " + j.direction;
@@ -8594,7 +8614,7 @@ function filterJobTable(){
     const text = tr.textContent.toLowerCase();
     const st = tr.dataset.state;
     const stateOk = !state || (state === "active" ? st !== "closed" : state === "pending" ? st === "pending" : state === "closed" ? (V.closedMtd ? tr.dataset.closedMtd === "1" : st === "closed") : true);
-    const show = (!q||text.includes(q)) && (!mode||tr.dataset.mode===mode) && (!dir||tr.dataset.dir===dir) && (!status||tr.dataset.status===status) && (!V.bucket||tr.dataset.bucket===V.bucket) && stateOk;
+    const show = (!q||text.includes(q)) && (!mode||tr.dataset.mode===mode) && (!dir||tr.dataset.dir===dir) && (!status||tr.dataset.status===status) && (!V.bucket||tr.dataset.bucket===V.bucket) && (!V.jtype||tr.dataset.jtype===V.jtype) && stateOk;
     tr.style.display = show ? "" : "none";
     if(show) visible++;
   });
@@ -18928,7 +18948,43 @@ function makePrintFit(){
   });
   const watch = ()=>{ const tb = $("jobTableBody"); if(tb) new MutationObserver(()=>layout()).observe(tb, {childList:true, subtree:true, attributes:true, attributeFilter:["style", "class"]}); };
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch); else watch();
-  window.JobListLayout = {layout, freeze};
+  /* ---- the summary cards: icon, figure, drill-down ---- */
+  const CARDS = [
+    {cls:"k-blue", icon:"ship", act:{}}, {cls:"k-teal", icon:"ship", act:{mode:"Sea", dir:"Export"}}, {cls:"k-sky", icon:"ship", act:{mode:"Sea", dir:"Import"}},
+    {cls:"k-purple", icon:"plane", act:{mode:"Air", dir:"Export"}}, {cls:"k-orange", icon:"license", act:{jtype:"Customs"}}, {cls:"k-green", icon:"truck", act:{mode:"Road"}}];
+  function decorate(){
+    const cards = document.querySelectorAll("#s-job-list .kpi-row .kpi"); if(!cards.length) return;
+    cards.forEach((c, i)=>{
+      const spec = CARDS[i]; if(!spec || c.classList.contains("kpi-rich")) return;
+      const tx = document.createElement("div"); tx.className = "ktx"; while(c.firstChild) tx.appendChild(c.firstChild);
+      const ic = document.createElement("div"); ic.className = "kic"; ic.innerHTML = '<svg class="ic" data-icon="'+spec.icon+'"></svg>';
+      const dv = document.createElement("div"); dv.className = "kdiv"; const ch = document.createElement("div"); ch.className = "kchev"; ch.textContent = "›";
+      c.append(ic, dv, tx, ch); c.classList.add("kpi-rich", spec.cls); c.dataset.kcard = String(i); c.title = "Show these jobs";
+      if(window.renderIcons) window.renderIcons(ic);
+    });
+  }
+  function markActive(){
+    const sel = id=> (($(id) || {}).value || ""), V = window.JOB_VIEW || {};
+    const cur = {mode:sel("jobModeFilter"), dir:sel("jobDirFilter"), jtype:V.jtype || ""}; const plain = !V.bucket && !V.state && !sel("jobStateFilter") && !sel("jobStatusFilter");
+    document.querySelectorAll("#s-job-list .kpi-rich").forEach(c=>{ const a = CARDS[Number(c.dataset.kcard)].act; c.classList.toggle("on", plain && (a.mode || "") === cur.mode && (a.dir || "") === cur.dir && (a.jtype || "") === cur.jtype); });
+  }
+  document.addEventListener("click", e=>{
+    const c = e.target.closest("#s-job-list .kpi-rich"); if(!c) return; const a = CARDS[Number(c.dataset.kcard)].act;
+    window.__jobCardClick = true;
+    window.JOB_VIEW = {bucket:"", state:"", closedMtd:false, jtype:a.jtype || ""};
+    [["jobModeFilter", a.mode], ["jobDirFilter", a.dir], ["jobStateFilter", ""], ["jobStatusFilter", ""]].forEach(([id, val])=>{ const n = $(id); if(n) n.value = val || ""; });
+    const banner = $("jobFilterBanner"); if(banner) banner.style.display = "none";
+    if(typeof window.filterJobTable === "function") window.filterJobTable();
+    layout(); markActive(); window.__jobCardClick = false;
+  });
+  document.addEventListener("change", e=>{
+    if(["jobModeFilter", "jobDirFilter", "jobStatusFilter", "jobStateFilter"].indexOf(e.target.id) < 0 || window.__jobCardClick) return;
+    if(window.JOB_VIEW && window.JOB_VIEW.jtype){ window.JOB_VIEW.jtype = ""; if(typeof window.filterJobTable === "function") window.filterJobTable(); }   /* a dropdown was used: the card's job-type filter no longer applies */
+    setTimeout(markActive, 50);
+  });
+  decorate(); markActive();
+  window.addEventListener("load", ()=>{ decorate(); markActive(); });
+  window.JobListLayout = {layout, freeze, decorate};
   layout();
 })();
 </script>
