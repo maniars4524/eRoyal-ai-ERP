@@ -30,6 +30,7 @@ class LineIn(BaseModel):
     rate: Decimal = Field(default=Decimal("0"), ge=0, max_digits=16, decimal_places=4)
     tax_type: str = Field(default="Taxable", pattern="^(Taxable|Non-Taxable|Pure Agent|RCM)$")
     tax_pct: Decimal = Field(default=Decimal("0"), ge=0, le=100, max_digits=6, decimal_places=2)
+    job_number: str | None = Field(default=None, max_length=40)
 
 
 class DocumentIn(BaseModel):
@@ -100,7 +101,8 @@ def _out(doc: Document, with_lines: bool = False, required: bool | None = None) 
     else:
         data["tax_breakup"] = {"cgst": "0.00", "sgst": "0.00", "igst": _money(doc.tax_total)}
     if with_lines:
-        data["lines"] = [{"line_no": l.line_no, "charge_name": l.charge_name, "description": l.description, "hsn": l.hsn, "uom": l.uom, "qty": str(l.qty), "ccy": l.ccy, "exch": str(l.exch), "rate": str(l.rate), "tax_type": l.tax_type, "tax_pct": str(l.tax_pct), "amount": _money(l.amount), "tax_amount": _money(l.tax_amount), "line_total": _money(l.line_total)} for l in doc.lines]
+        data["round_off"] = str((doc.header or {}).get("round_off", "0.00"))
+        data["lines"] = [{"line_no": l.line_no, "job_number": l.job_number, "charge_name": l.charge_name, "description": l.description, "hsn": l.hsn, "uom": l.uom, "qty": str(l.qty), "ccy": l.ccy, "exch": str(l.exch), "rate": str(l.rate), "tax_type": l.tax_type, "tax_pct": str(l.tax_pct), "amount": _money(l.amount), "tax_amount": _money(l.tax_amount), "line_total": _money(l.line_total)} for l in doc.lines]
     return data
 
 
@@ -117,10 +119,16 @@ def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
     subtotal = tax = Decimal(0)
     for index, line in enumerate(lines, start=1):
         c = calc_line(line.qty, line.ccy, Decimal(1) if line.ccy == "INR" else line.exch, line.rate, line.tax_type, line.tax_pct if line.tax_type == "Taxable" else Decimal(0))
-        doc.lines.append(DocumentLine(line_no=index, charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=line.tax_pct if line.tax_type in ("Taxable", "RCM") else Decimal(0), **c))
+        doc.lines.append(DocumentLine(line_no=index, job_number=(line.job_number or None), charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=line.tax_pct if line.tax_type in ("Taxable", "RCM") else Decimal(0), **c))
         subtotal += c["amount"]
         tax += c["tax_amount"]
-    doc.subtotal, doc.tax_total, doc.grand_total = subtotal, tax, subtotal + tax
+    total = subtotal + tax
+    header = dict(doc.header or {})
+    rounding = doc.doc_type in ("invoice", "debit_note", "credit_note", "purchase_invoice", "purchase_credit_note") and not header.get("no_round_off")
+    round_off = (Decimal(round(total)) - total) if rounding else Decimal(0)
+    header["round_off"] = str(q2(round_off))
+    doc.header = header
+    doc.subtotal, doc.tax_total, doc.grand_total = subtotal, tax, total + round_off
 
 
 def _load(db: Session, org_id: int, doc_id: int, lock: bool = False) -> Document:
@@ -189,7 +197,8 @@ def list_documents(
     if status_filter:
         query = query.where(Document.status == status_filter)
     if job_number:
-        query = query.where(Document.job_number == job_number)
+        line_docs = select(DocumentLine.document_id).where(DocumentLine.job_number == job_number)
+        query = query.where(or_(Document.job_number == job_number, Document.id.in_(line_docs)))
     if q:
         like = f"%{q.strip()}%"
         query = query.where(or_(Document.doc_number.ilike(like), Document.party_name.ilike(like), Document.job_number.ilike(like)))
@@ -297,6 +306,8 @@ def update_document(doc_id: int, payload: DocumentPatch, user: User = Depends(pe
         setattr(doc, key, value)
     if lines is not None:
         _apply_lines(doc, lines)
+    elif "header" in changes and doc.lines:   # e.g. the round-off switch: the totals are worked out again from the same lines
+        _apply_lines(doc, [LineIn(charge_name=l.charge_name, description=l.description, hsn=l.hsn, uom=l.uom, qty=l.qty, ccy=l.ccy, exch=l.exch, rate=l.rate, tax_type=l.tax_type, tax_pct=l.tax_pct, job_number=l.job_number) for l in doc.lines])
     record_audit(db, "DOCUMENT_UPDATED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"fields": sorted(k for k in changes if k != "lines"), "lines": None if lines is None else len(lines)})
     db.commit()
     return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
@@ -459,10 +470,59 @@ def document_payments(doc_id: int, user: User = Depends(permission_required("bil
             d2 = db.get(Document, b.document_id)
             others.append({"document_id": b.document_id, "doc_number": d2.doc_number if d2 else None, "doc_type": d2.doc_type if d2 else None, "job_number": d2.job_number if d2 else None, "amount": str(b.amount)})
         rows.append({"payment_id": p.id, "pay_number": p.pay_number, "pay_date": p.pay_date, "direction": p.direction, "method": p.method, "reference": p.reference, "party_name": p.party_name, "status": p.status, "remarks": p.remarks,
-                     "total_amount": str(p.amount), "applied_to_this": str(a.amount), "tds_to_this": str(a.tds_amount or 0), "details": p.details or {}, "against": others})
+                     "total_amount": str(p.amount), "applied_to_this": str(a.amount), "tds_to_this": str(a.tds_amount or 0), "round_off_to_this": str(a.round_off or 0), "details": p.details or {}, "against": others})
     credits = [{"id": c.id, "doc_number": c.doc_number, "doc_type": c.doc_type, "doc_date": c.doc_date, "amount": str(c.grand_total), "status": c.status}
                for c in db.scalars(select(Document).where(Document.organization_id == org_id, Document.ref_document_id == doc.id, Document.status != "CANCELLED").order_by(Document.id))]
     return {"document_id": doc.id, "doc_number": doc.doc_number, "total": str(doc.grand_total), "paid": str(doc.paid_amount), "credited": str(doc.credited_amount), "outstanding": str(outstanding(doc)), "payments": rows, "credit_notes": credits}
+
+
+class AddJob(BaseModel):
+    job_number: str = Field(max_length=40)
+
+
+@router.get("/billing/billable-jobs")
+def billable_jobs(party: str = Query(max_length=200), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Other jobs whose sell charges can be added to an invoice of this party: the job's customer, or the client named on its charges, is the party."""
+    org_id = _tenant(user)
+    cust = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == party))
+    out = []
+    for job in db.scalars(select(Shipment).where(Shipment.organization_id == org_id).order_by(Shipment.id.desc()).limit(500)):
+        charges = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id, JobCharge.sell_rate > 0)))
+        if not charges or not ((cust and job.customer_id == cust.id) or any(c.client == party for c in charges)):
+            continue
+        billed = {(l.job_number or d.job_number, l.charge_name) for d in db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.doc_type == "invoice", Document.status != "CANCELLED", Document.party_name == party)) for l in d.lines}
+        open_lines = [c for c in charges if (job.job_number, c.charge_name) not in billed]
+        if open_lines:
+            out.append({"job_number": job.job_number, "mode": job.mode, "direction": job.direction, "pol": job.pol, "pod": job.pod, "lines": len(open_lines), "amount": str(sum((c.qty * c.sell_rate * (1 if c.sell_ccy == "INR" else c.sell_exch) for c in open_lines), Decimal(0)))})
+    return out
+
+
+@router.post("/{doc_id}/add-job")
+def add_job_to_invoice(doc_id: int, body: AddJob, user: User = Depends(permission_required("billing.create")), db: Session = Depends(get_db)):
+    """Get the sell charges of another job of the same party into this draft invoice, so the party receives a single invoice for several jobs. Every line keeps its job number."""
+    org_id = _tenant(user)
+    doc = _load(db, org_id, doc_id, lock=True)
+    if doc.doc_type != "invoice" or doc.status != "DRAFT":
+        raise HTTPException(status_code=409, detail="Jobs can be added to a draft invoice only")
+    job = _job(db, org_id, body.job_number)
+    charges = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id, JobCharge.sell_rate > 0).order_by(JobCharge.line_no)))
+    cust = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == doc.party_name))
+    if not ((cust and job.customer_id == cust.id) or any(c.client == doc.party_name for c in charges)):
+        raise HTTPException(status_code=422, detail=f"Job {job.job_number} is not billed to {doc.party_name}. Only jobs of the same billing party can be added")
+    if not charges:
+        raise HTTPException(status_code=422, detail=f"Job {job.job_number} has no sell charges to bill")
+    have = {(l.job_number or doc.job_number, l.charge_name) for l in doc.lines}
+    new = [c for c in charges if (job.job_number, c.charge_name) not in have]
+    if not new:
+        raise HTTPException(status_code=409, detail=f"The sell charges of {job.job_number} are already on this invoice")
+    existing = [LineIn(charge_name=l.charge_name, description=l.description, hsn=l.hsn, uom=l.uom, qty=l.qty, ccy=l.ccy, exch=l.exch, rate=l.rate, tax_type=l.tax_type, tax_pct=l.tax_pct, job_number=l.job_number or doc.job_number) for l in doc.lines]
+    added = [LineIn(charge_name=c.charge_name, description=c.description, hsn=c.hsn, uom=c.uom, qty=c.qty, ccy=c.sell_ccy, exch=c.sell_exch, rate=c.sell_rate, tax_type=c.sell_tax_type, tax_pct=c.sell_tax_pct, job_number=job.job_number) for c in new]
+    if len({line_group(l.tax_type) for l in existing + added}) > 1:
+        raise HTTPException(status_code=422, detail="That job has Pure Agent or RCM entries that must be billed on their own invoice. Raise those separately")
+    _apply_lines(doc, existing + added)
+    record_audit(db, "JOB_ADDED_TO_INVOICE", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"job_number": job.job_number, "lines": len(added)})
+    db.commit()
+    return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))
 
 
 @router.post("/{doc_id}/cancel")

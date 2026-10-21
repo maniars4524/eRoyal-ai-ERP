@@ -362,6 +362,7 @@ class DocumentLine(Base):
     line_no: Mapped[int] = mapped_column(Integer)
     charge_name: Mapped[str] = mapped_column(String(160), default="")
     description: Mapped[str] = mapped_column(String(240), default="")
+    job_number: Mapped[str | None] = mapped_column(String(40), index=True)   # the job this line belongs to (one invoice can bill several jobs of the same party)
     hsn: Mapped[str] = mapped_column(String(20), default="")
     uom: Mapped[str] = mapped_column(String(40), default="Per Shipment")
     qty = mapped_column(Numeric(14, 3), default=1)
@@ -411,6 +412,7 @@ class PaymentAllocation(Base):
     payment_id: Mapped[int] = mapped_column(ForeignKey("payments.id", ondelete="CASCADE"), index=True)
     document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), index=True)
     amount = mapped_column(Numeric(16, 2))
+    round_off = mapped_column(Numeric(16, 2), default=0, server_default="0")   # a small remainder written off to close the document (an adjustment, never cash)
     tds_amount = mapped_column(Numeric(16, 2), default=0, server_default="0")   # tax deducted at source by the customer: settles the invoice but is not cash received
     payment: Mapped[Payment] = relationship(back_populates="allocations")
 

@@ -360,3 +360,39 @@ def test_tds_deducted_by_the_customer_settles_the_invoice_but_is_not_cash(h):
     assert [e["receipt"] for e in cb["entries"] if e["reference"] == "UTR-TDS"] == ["19800.00"]            # the bank only received the cash
     assert client.post(f"/api/payments/{b['id']}/cancel", headers=h).status_code == 200
     assert float(client.get(f"/api/documents/{docs[0]}", headers=h).json()["outstanding"]) == 10000       # cancelling gives back cash and TDS
+
+
+def test_invoice_round_off_one_invoice_for_two_jobs_and_a_receipt_round_off(h):
+    cust = client.post("/api/customers", json={"code": "MJB" + uuid.uuid4().hex[:4].upper(), "name": "Multi Job Customer", "roles": ["shipper"], "data": {}}, headers=h).json()
+    jobs = []
+    for pod in ("SGSIN", "AEJEA"):
+        jn = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "container_mode": "FCL", "pol": "INMAA", "pod": pod, "customer_id": cust["id"]}, headers=h).json()["job_number"]
+        side = {"ccy": "INR", "rate": "1000.40", "tax_type": "Taxable", "tax_pct": "18", "party": "Multi Job Customer"}
+        client.put(f"/api/shipments/by-number/{jn}/charges", json={"lines": [{"charge_name": "Ocean Freight", "qty": "1", "hsn": "996521", "sell": side, "buy": {"ccy": "INR", "rate": "0", "tax_type": "Non-Taxable", "tax_pct": "0", "party": ""}}]}, headers=h)
+        jobs.append(jn)
+    one = client.post("/api/documents/from-job", json={"job_number": jobs[0], "doc_type": "invoice"}, headers=h).json()
+    assert one["round_off"] == "-0.47" and one["grand_total"] == "1180.00"                      # 1000.40 + 180.07 = 1180.47 -> 1180 on the nearest rupee
+    nope = client.post(f"/api/documents/{one['id']}/add-job", json={"job_number": jobs[0]}, headers=h)
+    assert nope.status_code == 409                                                               # the same charges are not added twice
+    bj = client.get("/api/documents/billing/billable-jobs", params={"party": "Multi Job Customer"}, headers=h).json()
+    assert [b["job_number"] for b in bj] == [jobs[1]]
+    both = client.post(f"/api/documents/{one['id']}/add-job", json={"job_number": jobs[1]}, headers=h)
+    assert both.status_code == 200, both.text
+    b = both.json()
+    assert len(b["lines"]) == 2 and {l["job_number"] for l in b["lines"]} == {jobs[0], jobs[1]} and b["subtotal"] == "2000.80" and b["grand_total"] == "2361.00" and b["round_off"] == "0.06"
+    off = client.patch(f"/api/documents/{one['id']}", json={"header": {"no_round_off": True}}, headers=h).json()
+    assert off["round_off"] == "0.00" and off["grand_total"] == "2360.94"                        # the switch turns it off
+    client.patch(f"/api/documents/{one['id']}", json={"header": {"no_round_off": False}}, headers=h)
+    client.post(f"/api/documents/{one['id']}/confirm", headers=h)
+    assert client.post(f"/api/documents/{one['id']}/post", headers=h).status_code == 200
+    for jn in jobs:                                                                              # the invoice shows on both jobs
+        assert one["id"] in [d["id"] for d in client.get("/api/documents", params={"job_number": jn}, headers=h).json()]
+        pl = client.get(f"/api/accounts/job/{jn}/profit-loss", headers=h).json()
+        assert pl["totals"]["a_sale"] == "1000.40"                                               # each job's actual sale is its own line
+    # a small remainder written off on a receipt
+    doc = client.get(f"/api/documents/{one['id']}", headers=h).json()
+    tot = float(doc["outstanding"])
+    r = client.post("/api/payments", json={"direction": "RECEIPT", "party_name": "Multi Job Customer", "method": "Cash", "amount": str(round(tot - 0.5, 2)), "kind": "full", "allocations": [{"document_id": one["id"], "amount": str(round(tot - 0.5, 2)), "round_off": "0.50"}]}, headers=h)
+    assert r.status_code == 201, r.text
+    assert r.json()["details"]["settlement"] == "FULL" and r.json()["round_off"] == "0.50"
+    assert client.get(f"/api/documents/{one['id']}", headers=h).json()["payment_status"] == "PAID"

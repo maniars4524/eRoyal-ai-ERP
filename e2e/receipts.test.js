@@ -90,6 +90,38 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.go("org-list"); await sleep(1500); w.go("org-new"); await sleep(2500);
   check("country pick-lists read the master (all countries, not six)", q("#org_country") ? q("#org_country").options.length >= 249 : true, q("#org_country") && q("#org_country").options.length);
 
+  // round off on the invoice and on a receipt, one invoice for two jobs, the voucher list
+  const cust2 = (await j("POST", "/api/customers", { code: "MJ" + tag.slice(-4).toUpperCase(), name: "Multi Job Co", roles: ["shipper"], data: {} }, token)).body;
+  const jobs2 = [];
+  for (const pod of ["SGSIN", "AEJEA"]) { const jb = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA", pod, customer_id: cust2.id }, token)).body; await j("PUT", `/api/shipments/by-number/${jb.job_number}/charges`, { lines: [{ charge_name: "Ocean Freight", qty: "1", hsn: "996521", sell: { ccy: "INR", rate: "1000.40", tax_type: "Taxable", tax_pct: "18", party: "Multi Job Co" }, buy: { ccy: "INR", rate: "0", tax_type: "Non-Taxable", tax_pct: "0", party: "" } }] }, token); jobs2.push(jb.job_number); }
+  const mj = (await j("POST", "/api/documents/from-job", { job_number: jobs2[0], doc_type: "invoice" }, token)).body;
+  w.BK.openDoc(mj.id); await sleep(3500);
+  check("the invoice screen shows the round-off line with its switch", /Round off/.test(q("#s-invoice-new").textContent) && !!q('[data-bkh-check="no_round_off"]') && /0\.47|−0\.47/.test(q("#s-invoice-new").textContent.replace(/₹/g, "")), "");
+  check("Get Job Details is offered on a draft invoice", !!q('#s-invoice-new [data-bk="getjob"]'));
+  q('#s-invoice-new [data-bk="getjob"]').click(); await sleep(2500);
+  check("it lists the other job of the same party", d.querySelectorAll("[data-gj]").length === 1 && d.getElementById("modalBody").textContent.includes(jobs2[1]), d.getElementById("modalBody").textContent.slice(0, 200));
+  d.querySelector("[data-gj]").checked = true; d.getElementById("gjGo").click(); await sleep(4000);
+  const merged = (await j("GET", `/api/documents/${mj.id}`, null, token)).body;
+  check("one invoice now carries both jobs, each line with its job number", merged.lines.length === 2 && new Set(merged.lines.map(l => l.job_number)).size === 2 && merged.grand_total === "2361.00", JSON.stringify(merged.lines.map(l => l.job_number)) + merged.grand_total);
+  check("the editor shows each line's job", /Job /.test(q("#s-invoice-new").textContent) && d.querySelectorAll("#s-invoice-new [data-bkl]").length > 0);
+  await j("POST", `/api/documents/${mj.id}/post`, null, token);
+  w.BK.openDoc(mj.id); await sleep(3500);
+  q('#s-invoice-new [data-bk="receipt"]').click(); await sleep(2500);
+  q("#pk_mode").value = "Cash"; q("#pk_mode").dispatchEvent(new w.Event("change", { bubbles: true }));
+  const pp = q('input[name="pk_kind"][value="part"]'); pp.checked = true; pp.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(200);
+  const amt2 = q('[data-pk-doc="' + mj.id + '"]'); amt2.value = "2360.50"; amt2.dispatchEvent(new w.Event("input", { bubbles: true }));
+  q("#pk_roundoff").click(); await sleep(200);
+  check("Round off closes the small remainder of the invoice", q('[data-pk-ro="' + mj.id + '"]').value === "0.50" && /round off 0\.50/.test(q("#pk_tdsnote").textContent), q('[data-pk-ro="' + mj.id + '"]').value + " | " + q("#pk_tdsnote").textContent);
+  q("#pk_go").click(); await sleep(3500);
+  check("the receipt shows the round off and the invoice is Paid", /Round off/.test(d.getElementById("docViewZone").innerHTML) && (await j("GET", `/api/documents/${mj.id}`, null, token)).body.payment_status === "PAID", "");
+  w.go("job-detail", { jobNo: jobs2[0] }); await sleep(3500);
+  q('.tbb[data-tab="jt5"]').click(); await sleep(2200);
+  q("[data-vk-list]").click(); await sleep(2500);
+  check("the Voucher List opens with the invoice and its receipt", /Voucher List/.test(d.getElementById("modalTitle").textContent) && /Transaction Details/.test(d.getElementById("modalBody").textContent) && d.querySelectorAll("[data-vk-txn-doc]").length >= 1 && d.querySelectorAll("[data-vk-txn-pay]").length >= 1, d.getElementById("modalBody").textContent.slice(0, 200));
+  d.querySelector("[data-vk-txn-doc]").click(); await sleep(2500);
+  check("View shows the Job Voucher Transaction: voucher, amount, against voucher no and amount", /Job Voucher Transaction/.test(d.getElementById("modalTitle").textContent) && /Against Voucher No/.test(d.getElementById("modalBody").textContent) && /RCP\//.test(d.getElementById("modalBody").textContent), d.getElementById("modalBody").textContent.slice(0, 200));
+  d.getElementById("modalOvl").classList.remove("on");
+
   // Accounts reports
   w.go("acc-reports"); await sleep(4000);
   q("#ar_party").value = "Acme Exports"; q("#ar_party").dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(1500);

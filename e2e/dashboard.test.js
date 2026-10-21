@@ -84,7 +84,7 @@ async function openPage(token) {
   check("missing fields are listed in a banner on the form", !!banner && /GSTIN/.test(banner.textContent) && /Address Line 1/.test(banner.textContent) && /tab/.test(banner.textContent), banner && banner.textContent);
   check("nothing was saved while fields were missing", (await j("GET", "/api/customers", null, token)).body.length === 0);
   const country = Array.from(d.querySelectorAll("#s-org-new .fg")).find(x => /^Country/.test(x.querySelector("label.fl").textContent.trim())).querySelector("select");
-  country.value = Array.from(country.options).find(o => /UAE/.test(o.text)).value; country.dispatchEvent(new w.Event("change", { bubbles: true }));
+  country.value = Array.from(country.options).find(o => /United Arab Emirates/.test(o.text)).value; country.dispatchEvent(new w.Event("change", { bubbles: true }));
   d.getElementById("orgSaveBtn").click(); await sleep(800);
   check("the form jumps to the tab holding the first missing field", d.getElementById("ot2").classList.contains("on") && /Address Line 1/.test(d.querySelector("#s-org-new .mk-missing").textContent), "ot2 on=" + d.getElementById("ot2").classList.contains("on"));
   const fill = (label, v) => { const fg = Array.from(d.querySelectorAll("#s-org-new .fg")).find(x => x.querySelector("label.fl").textContent.replace(/\*/g, "").trim().startsWith(label)); const el = fg.querySelector("input,select"); el.value = v; };
@@ -92,7 +92,7 @@ async function openPage(token) {
   Array.from(d.querySelectorAll("#s-org-new .fg")).filter(x => /^State \/ Province/.test(x.querySelector("label.fl").textContent.trim())).forEach(x => { x.querySelector("input,select").value = "Dubai"; });
   d.getElementById("orgSaveBtn").click(); await sleep(1500);
   const saved = (await j("GET", "/api/customers", null, token)).body;
-  check("once the required fields are filled the organization saves", saved.length === 1 && saved[0].code === "ABC1" && saved[0].country === "UAE" && saved[0].roles[0] === "shipper", JSON.stringify(saved).slice(0, 300) + " | " + (d.querySelector("#s-org-new .mk-missing") || {}).textContent);
+  check("once the required fields are filled the organization saves", saved.length === 1 && saved[0].code === "ABC1" && /United Arab Emirates/.test(saved[0].country) && saved[0].roles[0] === "shipper", JSON.stringify(saved).slice(0, 300) + " | " + (d.querySelector("#s-org-new .mk-missing") || {}).textContent);
   w.close();
 
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");

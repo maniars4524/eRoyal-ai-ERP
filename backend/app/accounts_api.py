@@ -50,7 +50,7 @@ def party_ledger(party: str = Query(max_length=200), date_from: date | None = No
         jobs = sorted({(db.get(Document, a.document_id).job_number or "") for a in p.allocations if db.get(Document, a.document_id)} - {""})
         tds = sum((a.tds_amount or Decimal(0) for a in p.allocations), Decimal(0))
         rows.append({"date": p.pay_date, "voucher": p.pay_number, "type": "receipt" if recv else "payment", "job_number": ", ".join(jobs), "narration": f"{p.method}" + (f" · {p.reference}" if p.reference else "") + (f" · incl. TDS {q2(tds)}" if tds else ""),
-                     "debit": Decimal(0) if recv else p.amount, "credit": (p.amount + tds) if recv else Decimal(0), "sort": (p.pay_date, 1, p.id)})
+                     "debit": Decimal(0) if recv else p.amount, "credit": (p.amount + tds + sum((a.round_off or Decimal(0) for a in p.allocations), Decimal(0))) if recv else Decimal(0), "sort": (p.pay_date, 1, p.id)})
     rows.sort(key=lambda r: r["sort"])
     opening = sum((r["debit"] - r["credit"] for r in rows if date_from and r["date"] < date_from), Decimal(0))
     out, bal = [], opening
@@ -117,7 +117,10 @@ def job_profit_loss(job_number: str, user: User = Depends(permission_required("s
     if not job:
         raise HTTPException(404, "Job not found")
     charges = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id).order_by(JobCharge.line_no)))
-    docs = list(db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.job_number == job_number, Document.status == "POSTED")))
+    from .models import DocumentLine
+
+    line_docs = select(DocumentLine.document_id).where(DocumentLine.job_number == job_number)
+    docs = list(db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.status == "POSTED", (Document.job_number == job_number) | Document.id.in_(line_docs))))
     rows: dict[str, dict] = {}
 
     def row(name: str) -> dict:
@@ -144,14 +147,16 @@ def job_profit_loss(job_number: str, user: User = Depends(permission_required("s
     received = paid = Decimal(0)
     for d in docs:
         sign = -1 if d.doc_type in CREDITS else 1
+        mine = [l for l in d.lines if (l.job_number or d.job_number) == job_number]
+        share = (sum((Decimal(l.amount) for l in mine), Decimal(0)) / sum((Decimal(l.amount) for l in d.lines), Decimal(0))) if d.lines and sum((Decimal(l.amount) for l in d.lines), Decimal(0)) else Decimal(1)
         if d.doc_type in ("invoice", "debit_note", "credit_note"):
-            for l in d.lines:
+            for l in mine:
                 row(l.charge_name)["a_sale"] += sign * Decimal(l.amount)
-            received += d.paid_amount if d.doc_type in ("invoice", "debit_note") else 0
+            received += (d.paid_amount * share) if d.doc_type in ("invoice", "debit_note") else 0
         elif d.doc_type in AP_TYPES:
-            for l in d.lines:
+            for l in mine:
                 row(l.charge_name)["a_cost"] += sign * Decimal(l.amount)
-            paid += d.paid_amount if d.doc_type == "purchase_invoice" else 0
+            paid += (d.paid_amount * share) if d.doc_type == "purchase_invoice" else 0
     lines = []
     tot = {"p_sale": Decimal(0), "p_cost": Decimal(0), "a_sale": Decimal(0), "a_cost": Decimal(0)}
     for r in rows.values():
@@ -162,4 +167,4 @@ def job_profit_loss(job_number: str, user: User = Depends(permission_required("s
     return {"job_number": job.job_number, "lines": lines, "totals": {"p_sale": _s(tot["p_sale"]), "p_cost": _s(tot["p_cost"]), "p_gp": _s(p_gp), "a_sale": _s(tot["a_sale"]), "a_cost": _s(tot["a_cost"]), "a_gp": _s(a_gp)},
             "provisional_pct": _s(p_gp * 100 / tot["p_sale"]) if tot["p_sale"] else "0.00", "actual_pct": _s(a_gp * 100 / tot["a_sale"]) if tot["a_sale"] else "0.00",
             "tax": {"sale": _s(sale_tax), "cost": _s(cost_tax), "net": _s(sale_tax - cost_tax)}, "revenue": [{"bill_to": k, "p_sale": _s(v)} for k, v in revenue.items()], "expense": expense,
-            "cash": {"received": _s(received), "paid": _s(paid), "net": _s(received - paid)}, "invoiced": _s(sum((Decimal(d.grand_total) for d in docs if d.doc_type in ("invoice", "debit_note")), Decimal(0)))}
+            "cash": {"received": _s(received), "paid": _s(paid), "net": _s(received - paid)}, "invoiced": _s(sum((Decimal(d.grand_total) * (sum((Decimal(l.amount) for l in d.lines if (l.job_number or d.job_number) == job_number), Decimal(0)) / (sum((Decimal(l.amount) for l in d.lines), Decimal(0)) or Decimal(1))) for d in docs if d.doc_type in ("invoice", "debit_note")), Decimal(0)))}

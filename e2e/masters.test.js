@@ -73,7 +73,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.go("branch-detail"); await sleep(900);
   const countryOpts = Array.from(field("branch-detail", "Country").options).map(o => o.text);
   const ccyOpts = Array.from(field("branch-detail", "Local Currency").options).map(o => o.text);
-  check("branch Country dropdown is fed by Country master", countryOpts.includes("India") && !countryOpts.includes("Singapore"), countryOpts.join(","));
+  check("branch Country dropdown is fed by Country master", countryOpts.includes("India") && countryOpts.includes("Singapore") && countryOpts.length > 200, countryOpts.join(","));
   check("branch Local Currency dropdown is fed by Currency master", ccyOpts.some(t => t.startsWith("USD")), ccyOpts.join(","));
 
   // ---- Unit tabs filter by category; delete flow; other masters render empty not dummy
@@ -88,7 +88,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   for (const [list, sel] of [["country-master", "#s-country-master tbody"], ["pack-master", "#s-pack-master tbody"], ["hsn-master", "#s-hsn-master tbody"], ["dept-list", "#s-dept-list tbody"], ["desig-list", "#s-desig-list tbody"]]) {
     w.go(list); await sleep(500);
     const txt = rowsText(sel).join("|");
-    check(list + " has no dummy rows", !/Sri Lanka|Kilogram|9965|Operations|Manager/.test(txt), txt.slice(0, 120));
+    check(list + " has no dummy rows", !(list === "country-master" ? /Kilogram|9965|Operations|Manager/ : /Sri Lanka|Kilogram|9965|Operations|Manager/).test(txt), txt.slice(0, 120));
   }
   w.go("country-master"); await sleep(500);
   check("country list shows the saved country", rowsText("#s-country-master tbody").some(t => t.includes("India")), rowsText("#s-country-master tbody").join("|"));

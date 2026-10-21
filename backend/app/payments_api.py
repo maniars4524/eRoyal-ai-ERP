@@ -20,6 +20,7 @@ class Allocation(BaseModel):
     document_id: int
     amount: Decimal = Field(gt=0, max_digits=16, decimal_places=2)   # cash received / paid against the document
     tds: Decimal = Field(default=Decimal(0), ge=0, max_digits=16, decimal_places=2)   # tax deducted at source by the payer, settles the document too
+    round_off: Decimal = Field(default=Decimal(0), ge=0, le=100, max_digits=16, decimal_places=2)   # a small remainder written off to close the document
 
 
 class PaymentIn(BaseModel):
@@ -45,8 +46,8 @@ def _out(p: Payment) -> dict:
     allocated = sum((a.amount for a in p.allocations), Decimal(0))
     return {"id": p.id, "direction": p.direction, "pay_number": p.pay_number, "pay_date": p.pay_date, "party_name": p.party_name, "method": p.method, "reference": p.reference, "amount": str(p.amount), "status": p.status,
             "allocated": str(allocated), "unallocated": str(p.amount - allocated), "remarks": p.remarks, "created_at": p.created_at, "details": p.details or {},
-            "tds": str(sum((a.tds_amount or Decimal(0) for a in p.allocations), Decimal(0))), "settled": str(sum((a.amount + (a.tds_amount or Decimal(0)) for a in p.allocations), Decimal(0))),
-            "allocations": [{"document_id": a.document_id, "amount": str(a.amount), "tds": str(a.tds_amount or 0)} for a in p.allocations]}
+            "tds": str(sum((a.tds_amount or Decimal(0) for a in p.allocations), Decimal(0))), "settled": str(sum((a.amount + (a.tds_amount or Decimal(0)) + (a.round_off or Decimal(0)) for a in p.allocations), Decimal(0))), "round_off": str(sum((a.round_off or Decimal(0) for a in p.allocations), Decimal(0))),
+            "allocations": [{"document_id": a.document_id, "amount": str(a.amount), "tds": str(a.tds_amount or 0), "round_off": str(a.round_off or 0)} for a in p.allocations]}
 
 
 def _get(db: Session, org_id: int, payment_id: int) -> Payment:
@@ -90,7 +91,7 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
             raise HTTPException(status_code=404, detail=f"Document {alloc.document_id} not found")
         if doc.status != "POSTED" or doc.doc_type not in PAYABLE_TYPES[payload.direction]:
             raise HTTPException(status_code=422, detail=f"{doc.doc_number or doc.id} cannot be settled by a {payload.direction.lower()}")
-        if alloc.amount + alloc.tds > outstanding(doc):
+        if alloc.amount + alloc.tds + alloc.round_off > outstanding(doc):
             raise HTTPException(status_code=422, detail=f"Allocation to {doc.doc_number} (with TDS) exceeds its outstanding balance of {outstanding(doc)}")
         if alloc.tds > 0 and payload.direction != "RECEIPT":
             raise HTTPException(status_code=422, detail="TDS deducted by the payer applies to receipts")
@@ -101,7 +102,7 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
         raise HTTPException(status_code=422, detail="A demand draft needs its number")
     if payload.method in ("NEFT", "RTGS", "IMPS", "UPI", "Card") and not (payload.reference or det.get("txn_ref")):
         raise HTTPException(status_code=422, detail=f"A {payload.method} payment needs its transaction / UTR reference")
-    full = bool(payload.allocations) and all(a.amount + a.tds == outstanding(docs[a.document_id]) for a in payload.allocations) and total_alloc == payload.amount
+    full = bool(payload.allocations) and all(a.amount + a.tds + a.round_off == outstanding(docs[a.document_id]) for a in payload.allocations) and total_alloc == payload.amount
     if payload.kind == "full" and not full:
         raise HTTPException(status_code=422, detail="A full payment settles the whole balance of every selected document. Choose part payment, or allocate the full outstanding amounts")
     det["settlement"] = "FULL" if full else "PART"
@@ -112,8 +113,8 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
     payment = Payment(details=det, organization_id=org_id, direction=payload.direction, pay_number=next_number(db, org_id, "receipt" if payload.direction == "RECEIPT" else "payment", PAYMENT_PREFIX[payload.direction], pay_date, user=user), pay_date=pay_date,
                       party_name=payload.party_name.strip(), method=payload.method, reference=payload.reference, amount=payload.amount, status="POSTED", idempotency_key=idempotency_key, remarks=payload.remarks, created_by=user.id)
     for alloc in payload.allocations:
-        payment.allocations.append(PaymentAllocation(document_id=alloc.document_id, amount=alloc.amount, tds_amount=alloc.tds))
-        docs[alloc.document_id].paid_amount += alloc.amount + alloc.tds
+        payment.allocations.append(PaymentAllocation(document_id=alloc.document_id, amount=alloc.amount, tds_amount=alloc.tds, round_off=alloc.round_off))
+        docs[alloc.document_id].paid_amount += alloc.amount + alloc.tds + alloc.round_off
     db.add(payment)
     try:
         db.flush()
@@ -142,10 +143,10 @@ def payment_voucher(payment_id: int, user: User = Depends(permission_required("p
     lines = []
     for a in sorted(p.allocations, key=lambda x: x.id):
         doc = db.get(Document, a.document_id)
-        before = db.scalar(select(func.coalesce(func.sum(PaymentAllocation.amount + func.coalesce(PaymentAllocation.tds_amount, 0)), 0)).join(Payment, Payment.id == PaymentAllocation.payment_id).where(PaymentAllocation.document_id == a.document_id, Payment.status == "POSTED", PaymentAllocation.id <= a.id)) or Decimal(0)
+        before = db.scalar(select(func.coalesce(func.sum(PaymentAllocation.amount + func.coalesce(PaymentAllocation.tds_amount, 0) + func.coalesce(PaymentAllocation.round_off, 0)), 0)).join(Payment, Payment.id == PaymentAllocation.payment_id).where(PaymentAllocation.document_id == a.document_id, Payment.status == "POSTED", PaymentAllocation.id <= a.id)) or Decimal(0)
         credited = doc.credited_amount if doc else Decimal(0)
         lines.append({"document_id": a.document_id, "doc_number": doc.doc_number if doc else None, "doc_type": doc.doc_type if doc else None, "doc_date": doc.doc_date if doc else None, "job_number": doc.job_number if doc else None,
-                      "total": str(doc.grand_total) if doc else "0", "applied": str(a.amount), "tds": str(a.tds_amount or 0), "balance_after": str((doc.grand_total if doc else Decimal(0)) - Decimal(before) - credited)})
+                      "total": str(doc.grand_total) if doc else "0", "applied": str(a.amount), "tds": str(a.tds_amount or 0), "round_off": str(a.round_off or 0), "balance_after": str((doc.grand_total if doc else Decimal(0)) - Decimal(before) - credited)})
     return {**_out(p), "lines": lines}
 
 
@@ -160,7 +161,7 @@ def cancel_payment(payment_id: int, user: User = Depends(permission_required("pa
     docs = {d.id: d for d in db.scalars(select(Document).where(Document.id.in_(ids)).order_by(Document.id).with_for_update())} if ids else {}
     for alloc in payment.allocations:
         doc = docs[alloc.document_id]
-        doc.paid_amount = max(Decimal(0), doc.paid_amount - alloc.amount - (alloc.tds_amount or Decimal(0)))
+        doc.paid_amount = max(Decimal(0), doc.paid_amount - alloc.amount - (alloc.tds_amount or Decimal(0)) - (alloc.round_off or Decimal(0)))
     payment.status = "CANCELLED"
     record_audit(db, "PAYMENT_CANCELLED", "BILLING", user, org_id, "Payment", str(payment.id), {"number": payment.pay_number})
     db.commit()
