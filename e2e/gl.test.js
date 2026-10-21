@@ -100,6 +100,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("marking a return filed records the date and ARN", /AA2700001/.test(q("#gl_body").textContent) && /Filed/.test(q("#gl_body").textContent), q("#gl_body").textContent.slice(0, 200));
   w.go("gl-reports", { glTab: "tcs" }); await sleep(2200);
   check("TCS tab shows both TCS ledgers", /TCS receivable/.test(q("#gl_body").textContent) && /TCS payable/.test(q("#gl_body").textContent), q("#gl_body").textContent.slice(0, 160));
+  // ---- MIS
+  for (const [tab, re, label] of [["exec", /Gross profit[^]*Receivable[^]*Cash and bank/, "Executive MIS shows the profit, receivable and cash figures"], ["rev", /Total revenue[^]*Ui Gl Client/, "Revenue Analysis lists the customer"], ["cust", /Ui Gl Client/, "Customer Profitability lists the customer"], ["gp", /Revenue[^]*By job/, "GP Analysis shows modes and jobs"], ["ship", /Jobs created/, "Shipment Analysis shows the job counts"], ["teu", /Total TEUs/, "Carrier Wise TEUs shows the TEU total"], ["port", /Parties[^]*Top customers/, "Customer Portfolio shows parties and top customers"], ["branch", /does not record|do not record a branch/, "Branch Analysis says honestly that jobs carry no branch"]]) {
+    w.go("mis", { glTab: tab }); await sleep(2200);
+    check(label, re.test(q("#mis_body").textContent) && q("#s-mis").classList.contains("on"), q("#mis_body").textContent.slice(0, 160));
+  }
+  // ---- financial year closing
+  w.go("gl-reports", { glTab: "fy" }); await sleep(2500);
+  check("Financial Year tab lists the current year as not closable until it ends", /Closing a year/.test(q("#gl_body").textContent) && /Current/.test(q("#gl_body").textContent) && /has not ended yet/.test(q("#gl_body").textContent) && q("[data-fy-close]").disabled === true, q("#gl_body").textContent.slice(0, 220));
   // ---- the receipt dialog offers the bank account
   const bankLedger = (await j("GET", "/api/coa/ledgers?source_type=bank", null, token)).body;
   check("the bank master created its ledger under Bank Accounts", bankLedger.length === 1 && /BANK ACCOUNTS/.test(bankLedger[0].path) && bankLedger[0].opening_balance === "20000.00");

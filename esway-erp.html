@@ -1448,7 +1448,7 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-section">Tax</div>
       <div class="mn-sub-item" data-go="hsn-master"><svg class="ic" data-icon="license"></svg>Tax Master (SAC / HSN)</div>
       <div class="mn-sub-item" data-go="gl-reports" data-gltab="tds"><svg class="ic" data-icon="percent"></svg>TDS Report</div>
-      <div class="mn-sub-item" data-soon="Financial year closing is not built yet"><svg class="ic" data-icon="calendar-check"></svg>Financial Year Closing</div>
+      <div class="mn-sub-item" data-go="gl-reports" data-gltab="fy"><svg class="ic" data-icon="calendar-check"></svg>Financial Year Closing</div>
     </div>
   </div>
 
@@ -1467,7 +1467,7 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">KPIs</div>
       <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="user"></svg>Customer Performance</div>
-      <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="trending-up"></svg>Sales Exec Performance</div>
+      <div class="mn-sub-item" data-go="mis" data-gltab="sales"><svg class="ic" data-icon="trending-up"></svg>Sales Exec Performance</div>
       <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="chart-bar"></svg>Operational KPI</div>
       <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="cash"></svg>Financial KPI</div>
       <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="chart-pie"></svg>Business Analytics</div>
@@ -1533,19 +1533,19 @@ tbody tr:hover{background:var(--g0)}
           <div class="mn-sub-item" data-go="gl-reports" data-gltab="cal"><svg class="ic" data-icon="calendar-check" style="color:var(--gr)"></svg>GST Filing Calendar</div>
           <div class="mn-sub-sep"></div>
           <div class="mn-sub-section">Sales &amp; Marketing</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="user"></svg>Salesperson Performance</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="trending-up"></svg>Customer Portfolio</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="chart-bar"></svg>Revenue Analysis</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="sales"><svg class="ic" data-icon="user"></svg>Salesperson Performance</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="port"><svg class="ic" data-icon="trending-up"></svg>Customer Portfolio</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="rev"><svg class="ic" data-icon="chart-bar"></svg>Revenue Analysis</div>
         </div>
         <div>
           <div class="mn-sub-section">MIS</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="chart-pie"></svg>Customer Profitability</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="cust"><svg class="ic" data-icon="chart-pie"></svg>Customer Profitability</div>
           <div class="mn-sub-item" data-go="job-pl-report"><svg class="ic" data-icon="trending-up"></svg>Job Profitability</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="chart-bar"></svg>GP Analysis</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="globe"></svg>Shipment Analysis</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="building"></svg>Branch Analysis</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="report"></svg>Executive MIS</div>
-          <div class="mn-sub-item" data-go="reports"><svg class="ic" data-icon="package"></svg>Carrier Wise TEUs</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="gp"><svg class="ic" data-icon="chart-bar"></svg>GP Analysis</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="ship"><svg class="ic" data-icon="globe"></svg>Shipment Analysis</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="branch"><svg class="ic" data-icon="building"></svg>Branch Analysis</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="exec"><svg class="ic" data-icon="report"></svg>Executive MIS</div>
+          <div class="mn-sub-item" data-go="mis" data-gltab="teu"><svg class="ic" data-icon="package"></svg>Carrier Wise TEUs</div>
           <div class="mn-sub-sep"></div>
           <div class="mn-sub-section">Audit</div>
           <div class="mn-sub-item" data-go="sop"><svg class="ic" data-icon="user"></svg>User Activity</div>
@@ -3890,7 +3890,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- ====== LEDGER REPORTS ====== -->
 <div id="s-gl-reports" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="book" style="color:var(--bl)"></svg>Ledger Reports</div><div class="ps">General ledger, trial balance, group summary, profit and loss, balance sheet and day book, from the vouchers posted by invoices, notes, receipts, payments, journals and contras</div></div><div class="pa"><button class="btn btn-out btn-sm" id="gl_rebuild" title="Post every invoice and receipt into the ledger again">Refresh ledger</button><button class="btn btn-out btn-sm" id="gl_csv">Export CSV</button><button class="btn btn-out btn-sm" id="gl_print">🖨 Print</button></div></div>
-<div class="card"><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-sm btn-out" data-gl-tab="ledger">General Ledger</button><button class="btn btn-sm btn-pri" data-gl-tab="tb">Trial Balance</button><button class="btn btn-sm btn-out" data-gl-tab="group">Group Summary</button><button class="btn btn-sm btn-out" data-gl-tab="pl">Profit &amp; Loss</button><button class="btn btn-sm btn-out" data-gl-tab="bs">Balance Sheet</button><button class="btn btn-sm btn-out" data-gl-tab="day">Day Book</button><button class="btn btn-sm btn-out" data-gl-tab="gst">GST</button><button class="btn btn-sm btn-out" data-gl-tab="recon">Bank Reconciliation</button><button class="btn btn-sm btn-out" data-gl-tab="tds">TDS</button><button class="btn btn-sm btn-out" data-gl-tab="rcm">RCM</button><button class="btn btn-sm btn-out" data-gl-tab="hsn">HSN / SAC</button><button class="btn btn-sm btn-out" data-gl-tab="cash">Cash Flow</button><button class="btn btn-sm btn-out" data-gl-tab="cal">GST Calendar</button><button class="btn btn-sm btn-out" data-gl-tab="tcs">TCS</button></div>
+<div class="card"><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-sm btn-out" data-gl-tab="ledger">General Ledger</button><button class="btn btn-sm btn-pri" data-gl-tab="tb">Trial Balance</button><button class="btn btn-sm btn-out" data-gl-tab="group">Group Summary</button><button class="btn btn-sm btn-out" data-gl-tab="pl">Profit &amp; Loss</button><button class="btn btn-sm btn-out" data-gl-tab="bs">Balance Sheet</button><button class="btn btn-sm btn-out" data-gl-tab="day">Day Book</button><button class="btn btn-sm btn-out" data-gl-tab="gst">GST</button><button class="btn btn-sm btn-out" data-gl-tab="recon">Bank Reconciliation</button><button class="btn btn-sm btn-out" data-gl-tab="tds">TDS</button><button class="btn btn-sm btn-out" data-gl-tab="rcm">RCM</button><button class="btn btn-sm btn-out" data-gl-tab="hsn">HSN / SAC</button><button class="btn btn-sm btn-out" data-gl-tab="cash">Cash Flow</button><button class="btn btn-sm btn-out" data-gl-tab="cal">GST Calendar</button><button class="btn btn-sm btn-out" data-gl-tab="tcs">TCS</button><button class="btn btn-sm btn-out" data-gl-tab="fy">Financial Year</button></div>
 <div class="fr"><div class="fg" id="gl_ledgerWrap" style="display:none;grid-column:span 2"><label class="fl">Ledger</label><select class="fc" id="gl_ledger"></select></div><div class="fg" id="gl_groupWrap" style="display:none;grid-column:span 2"><label class="fl">Group</label><select class="fc" id="gl_group"></select></div><div class="fg" id="gl_typeWrap" style="display:none"><label class="fl">Voucher type</label><select class="fc" id="gl_type"><option value="">All</option><option value="SALES">Sales Invoice</option><option value="DEBIT_NOTE">Debit Note</option><option value="CREDIT_NOTE">Credit Note</option><option value="PURCHASE">Purchase Invoice</option><option value="PURCHASE_CREDIT_NOTE">Purchase Credit Note</option><option value="RECEIPT">Receipt Voucher</option><option value="PAYMENT">Payment Voucher</option><option value="JOURNAL">Journal Voucher</option><option value="CONTRA">Contra Voucher</option></select></div><div class="fg" id="gl_fromWrap"><label class="fl">From</label><input class="fc" type="date" id="gl_from"></div><div class="fg"><label class="fl" id="gl_toLbl">To</label><input class="fc" type="date" id="gl_to"></div></div></div><div id="gl_body"></div></div>
 </div>
 
@@ -3898,6 +3898,13 @@ tbody tr:hover{background:var(--g0)}
 <div id="s-bank-master" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="bank" style="color:var(--bl)"></svg>Bank Master</div><div class="ps">The company's bank accounts. Each bank gets its own ledger under Bank Accounts in the Chart of Accounts; receipts and payments by cheque or transfer post to it</div></div><div class="pa"><button class="btn btn-pri btn-sm" id="bank_new"><svg class="ic" data-icon="plus"></svg> New Bank</button></div></div>
 <div class="card"><div class="tw"><table><thead><tr><th>Code</th><th>Bank</th><th>Beneficiary</th><th>Account No</th><th>IFSC</th><th>Branch</th><th>Currency</th><th>Ledger Code</th><th>Default</th><th>Status</th><th></th></tr></thead><tbody id="bank_body"></tbody></table></div></div></div>
+
+<!-- ====== MIS ====== -->
+<div id="s-mis" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="chart-pie" style="color:var(--bl)"></svg>MIS</div><div class="ps">Management reports from posted invoices, purchase bills, jobs, bookings and containers. Revenue and cost are before tax</div></div><div class="pa"><button class="btn btn-out btn-sm" id="mis_csv">Export CSV</button><button class="btn btn-out btn-sm" id="mis_print">🖨 Print</button></div></div>
+<div class="card"><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-sm btn-pri" data-mis-tab="exec">Executive MIS</button><button class="btn btn-sm btn-out" data-mis-tab="rev">Revenue Analysis</button><button class="btn btn-sm btn-out" data-mis-tab="cust">Customer Profitability</button><button class="btn btn-sm btn-out" data-mis-tab="gp">GP Analysis</button><button class="btn btn-sm btn-out" data-mis-tab="ship">Shipment Analysis</button><button class="btn btn-sm btn-out" data-mis-tab="teu">Carrier Wise TEUs</button><button class="btn btn-sm btn-out" data-mis-tab="port">Customer Portfolio</button><button class="btn btn-sm btn-out" data-mis-tab="branch">Branch Analysis</button><button class="btn btn-sm btn-out" data-mis-tab="sales">Salesperson Performance</button></div>
+<div class="fr"><div class="fg"><label class="fl">From</label><input class="fc" type="date" id="mis_from"></div><div class="fg"><label class="fl">To</label><input class="fc" type="date" id="mis_to"></div></div></div><div id="mis_body"></div></div>
+</div>
 
 <!-- ====== PAYABLE / RECEIVABLE LEDGER ====== -->
 <div id="s-pr-ledger" class="scr">
@@ -5920,6 +5927,7 @@ const SCREEN_META = {
   "journal-voucher":{title:"Journal Voucher", crumb:"eSway ERP 2.0 / Accounts / <strong>Journal Voucher</strong>", menu:"journal-voucher"},
   "contra-voucher":{title:"Contra Voucher", crumb:"eSway ERP 2.0 / Accounts / <strong>Contra Voucher</strong>", menu:"contra-voucher"},
   "bank-master":{title:"Bank Master", crumb:"eSway ERP 2.0 / Masters / <strong>Bank Master</strong>", menu:""},
+  "mis":{title:"MIS", crumb:"eSway ERP 2.0 / Reports / <strong>MIS</strong>", menu:"mis"},
   "gl-reports":{title:"Ledger Reports", crumb:"eSway ERP 2.0 / Accounts / <strong>Ledger Reports</strong>", menu:"gl-reports"},
   "coa":{title:"Chart of Accounts", crumb:"eSway ERP 2.0 / <strong>COA</strong>", menu:"coa"},
   "pr-ledger":{title:"Payable / Receivable Ledger", crumb:"eSway ERP 2.0 / Accounts / <strong>Payable / Receivable Ledger</strong>", menu:"pr-ledger"},
@@ -6150,7 +6158,7 @@ const TOPNAV_MENU = [
     {label:"Tax", icon:"license", children:[
       {label:"Tax Master (SAC / HSN)", icon:"license", go:"hsn-master"},
       {label:"TDS Report", icon:"percent", go:"gl-reports", gltab:"tds"},
-      {label:"Financial Year Closing", icon:"calendar-check", soon:"Financial year closing is not built yet"},
+      {label:"Financial Year Closing", icon:"calendar-check", go:"gl-reports", gltab:"fy"},
     ]},
   ]},
   {id:"perf", label:"Performance", icon:"chart-pie", children:[
@@ -6158,11 +6166,11 @@ const TOPNAV_MENU = [
       {label:"Executive Dashboard", icon:"dashboard", go:"dashboard"},
       {label:"Revenue Dashboard", icon:"trending-up", go:"pnl"},
       {label:"Gross Profit Dashboard", icon:"chart-pie", go:"pnl"},
-      {label:"Branch Performance", icon:"building", go:"reports"},
+      {label:"Branch Performance", icon:"building", go:"mis", gltab:"branch"},
     ]},
     {label:"KPIs", icon:"chart-bar", children:[
-      {label:"Customer Performance", icon:"user", go:"reports"},
-      {label:"Sales Exec Performance", icon:"trending-up", go:"reports"},
+      {label:"Customer Performance", icon:"user", go:"mis", gltab:"cust"},
+      {label:"Sales Exec Performance", icon:"trending-up", go:"mis", gltab:"sales"},
       {label:"Operational KPI", icon:"chart-bar", go:"reports"},
       {label:"Financial KPI", icon:"cash", go:"reports"},
       {label:"Business Analytics", icon:"chart-pie", go:"reports"},
@@ -6294,18 +6302,18 @@ const TOPNAV_MENU = [
       {label:"GST Filing Calendar", icon:"calendar-check", go:"gl-reports", gltab:"cal"},
     ]},
     {label:"Sales & Marketing", icon:"trending-up", children:[
-      {label:"Salesperson Performance", icon:"user", go:"reports"},
-      {label:"Customer Portfolio", icon:"trending-up", go:"reports"},
-      {label:"Revenue Analysis", icon:"chart-bar", go:"reports"},
+      {label:"Salesperson Performance", icon:"user", go:"mis", gltab:"sales"},
+      {label:"Customer Portfolio", icon:"trending-up", go:"mis", gltab:"port"},
+      {label:"Revenue Analysis", icon:"chart-bar", go:"mis", gltab:"rev"},
     ]},
     {label:"MIS", icon:"chart-pie", children:[
-      {label:"Customer Profitability", icon:"chart-pie", go:"reports"},
+      {label:"Customer Profitability", icon:"chart-pie", go:"mis", gltab:"cust"},
       {label:"Job Profitability", icon:"trending-up", go:"job-pl-report"},
-      {label:"GP Analysis", icon:"chart-bar", go:"reports"},
-      {label:"Shipment Analysis", icon:"globe", go:"reports"},
-      {label:"Branch Analysis", icon:"building", go:"reports"},
-      {label:"Executive MIS", icon:"report", go:"reports"},
-      {label:"Carrier Wise TEUs", icon:"package", go:"reports"},
+      {label:"GP Analysis", icon:"chart-bar", go:"mis", gltab:"gp"},
+      {label:"Shipment Analysis", icon:"globe", go:"mis", gltab:"ship"},
+      {label:"Branch Analysis", icon:"building", go:"mis", gltab:"branch"},
+      {label:"Executive MIS", icon:"report", go:"mis", gltab:"exec"},
+      {label:"Carrier Wise TEUs", icon:"package", go:"mis", gltab:"teu"},
     ]},
     {label:"Audit", icon:"user", roles:["Admin"], children:[
       {label:"User Activity", icon:"user", go:"sop"},
@@ -18338,7 +18346,7 @@ function makePrintFit(){
   const td = (t, r, b)=> '<td style="'+(r ? "text-align:right;" : "")+(b ? "font-weight:700" : "")+'">'+t+'</td>';
   const drcr = v=> num(v) === 0 ? "0.00" : fmt(Math.abs(num(v)))+(num(v) > 0 ? " Dr" : " Cr");
   const empty = (cols, t)=> '<tr><td colspan="'+cols+'" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">'+t+'</td></tr>';
-  const TABS = {ledger:"General Ledger", tb:"Trial Balance", group:"Group Summary", pl:"Profit & Loss", bs:"Balance Sheet", day:"Day Book", gst:"GST", recon:"Bank Reconciliation", tds:"TDS", rcm:"RCM", hsn:"HSN / SAC", cash:"Cash Flow", cal:"GST Calendar", tcs:"TCS"};
+  const TABS = {ledger:"General Ledger", tb:"Trial Balance", group:"Group Summary", pl:"Profit & Loss", bs:"Balance Sheet", day:"Day Book", gst:"GST", recon:"Bank Reconciliation", tds:"TDS", rcm:"RCM", hsn:"HSN / SAC", cash:"Cash Flow", cal:"GST Calendar", tcs:"TCS", fy:"Financial Year"};
   const TYPES = {SALES:"Sales Invoice", DEBIT_NOTE:"Debit Note", CREDIT_NOTE:"Credit Note", PURCHASE:"Purchase Invoice", PURCHASE_CREDIT_NOTE:"Purchase Credit Note", RECEIPT:"Receipt Voucher", PAYMENT:"Payment Voucher", JOURNAL:"Journal Voucher", CONTRA:"Contra Voucher"};
 
   G.loadLedgers = async function(force){
@@ -18418,6 +18426,12 @@ function makePrintFit(){
         const cell = (per, x)=> '<td><div style="font-size:11px">Due '+dmy(x.due)+'</div>'+chip(x)+(x.filed_on ? ' <span class="coa-note">'+dmy(x.filed_on)+(x.ack_no ? " · "+esc2(x.ack_no) : "")+'</span>' : "")+' <button class="ta" data-cal-mark="'+per+'|'+x.type+'">'+(x.filed_on ? "Edit" : "Mark filed")+'</button></td>';
         const open = r.periods.reduce((a, p)=>a + p.returns.filter(x=>x.status === "OVERDUE").length, 0);
         box.innerHTML = '<div style="display:flex;gap:8px;align-items:center;margin:10px 8px"><label class="fl" style="margin:0">Financial year</label><select class="fc" id="cal_fy" style="width:auto">'+[r.fy - 1, r.fy, r.fy + 1].map(y=>'<option value="'+y+'"'+(y === r.fy ? " selected" : "")+'>'+y+'-'+String(y + 1).slice(2)+'</option>').join("")+'</select>'+(open ? '<span class="b b-rd">'+open+' return(s) overdue</span>' : '<span class="b b-gr">Nothing overdue</span>')+'</div><div class="tw"><table id="gl_table"><thead><tr>'+th("Period")+th("Output GST", 1)+th("Input GST", 1)+th("Net payable", 1)+th("GSTR-1")+th("GSTR-3B")+'</tr></thead><tbody>'+r.periods.map(p=>'<tr>'+td('<b>'+esc2(p.label)+'</b>')+td(fmt(p.output_tax), 1)+td(fmt(p.input_tax), 1)+td(fmt(p.net_payable), 1, 1)+cell(p.period, p.returns[0])+cell(p.period, p.returns[1])+'</tr>').join("")+'</tbody></table></div><div class="coa-note" style="margin:6px 8px">'+esc2(r.note)+' Returns are filed on the GST portal; record the filing date and acknowledgement here.</div>';
+      } else if(G.tab === "fy"){
+        const r = await api("GET", "/api/gl/fy"); G.fyList = r;
+        const closedYears = r.years.filter(y=>y.status === "CLOSED").map(y=>y.fy); const latest = closedYears.length ? Math.max(...closedYears) : null;
+        const chip = y=> '<span class="b '+(y.status === "CLOSED" ? "b-gr" : y.status === "CURRENT" ? "b-bl" : "b-am")+'">'+(y.status === "CLOSED" ? "Closed" : y.status === "CURRENT" ? "Current" : "Open")+'</span>';
+        box.innerHTML = '<div class="ib ib-bl" style="margin:10px 0">Closing a year (1 April to 31 March) moves its profit or loss into <b>Profit &amp; Loss Account (Reserves)</b> with a closing voucher dated the last day of the year, and <b>locks the year</b>: no invoice, receipt, payment or voucher dated in it can be posted, changed or cancelled. The earlier years must be closed first. '+(r.locked_until ? 'Locked up to <b>'+dmy(r.locked_until)+'</b>.' : 'Nothing is locked.')+'</div><div class="tw"><table id="gl_table"><thead><tr>'+th("Financial year")+th("Period")+th("Status")+th("Income", 1)+th("Expenses", 1)+th("Net profit / (loss)", 1)+th("Notes")+th("")+'</tr></thead><tbody>'+r.years.slice().reverse().map(y=>'<tr>'+td('<b>'+esc2(y.label)+'</b>')+td(dmy(y.start)+" to "+dmy(y.end))+td(chip(y))+td(fmt(y.income), 1)+td(fmt(y.expense), 1)+td(fmt(y.net_profit), 1, 1)+td(y.status === "CLOSED" ? 'Closed '+dmy(y.closed_at) : (y.blockers.length ? '<span class="coa-note">'+esc2(y.blockers.join("; "))+'</span>' : "")+(y.draft_documents ? ' <span class="b b-am">'+y.draft_documents+' draft(s)</span>' : ""))+
+          '<td style="white-space:nowrap">'+(y.status === "CLOSED" ? (y.voucher_id ? '<a href="#" data-gl-voucher="'+y.voucher_id+'" class="ta">Closing voucher</a> ' : "")+(y.fy === latest ? '<button class="btn btn-out btn-sm" data-fy-reopen="'+y.fy+'">Reopen</button>' : "") : '<button class="btn btn-pri btn-sm" data-fy-close="'+y.fy+'"'+(y.blockers.length ? " disabled" : "")+'>Close year</button>')+'</td></tr>').join("")+'</tbody></table></div>';
       } else if(G.tab === "tcs"){
         const r = await api("GET", "/api/gl/tcs?"+range());
         const part = (title, d)=> '<div class="tw" style="margin-top:8px"><div style="font-weight:800;padding:4px 8px">'+title+' <span class="coa-note">ledger '+esc2(d.ledger)+'</span></div><table><thead><tr>'+th("Date")+th("Voucher")+th("Party")+th("Narration")+th("Debit", 1)+th("Credit", 1)+'</tr></thead><tbody>'+(d.entries.map(x=>'<tr>'+td(dmy(x.date))+'<td><a href="#" data-gl-voucher="'+x.voucher_id+'" style="color:var(--bl);font-weight:700">'+esc2(x.number)+'</a></td>'+td(esc2(x.party || ""))+td(esc2(x.narration || ""))+td(num(x.debit) ? fmt(x.debit) : "", 1)+td(num(x.credit) ? fmt(x.credit) : "", 1)+'</tr>').join("") || empty(6, "No entries in this period"))+'<tr style="font-weight:800;background:var(--g0)"><td colspan="4">Net '+esc2(title.toLowerCase())+'</td>'+td(fmt(d.net), 1)+td("", 1)+'</tr></tbody></table></div>';
@@ -18508,6 +18522,11 @@ function makePrintFit(){
       openModal({title:(rt === "GSTR1" ? "GSTR-1" : "GSTR-3B")+" — "+per, bodyHTML:'<div class="fr"><div class="fg"><label class="fl">Filed on</label><input class="fc" type="date" id="cal_date" value="'+(cur.filed_on || today())+'"></div><div class="fg" style="grid-column:span 2"><label class="fl">Acknowledgement (ARN) number</label><input class="fc" id="cal_ack" maxlength="40" value="'+esc2(cur.ack_no || "")+'"></div></div>', footHTML:(cur.filed_on ? '<button class="btn btn-out" id="cal_un" style="color:var(--rd)">Remove filing record</button>' : "")+'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="cal_save">Save</button>'});
       const save = async filed=>{ try{ await api("POST", "/api/gl/gst-calendar/mark", {period:per, return_type:rt, filed_on:filed, ack_no:filed ? el("cal_ack").value.trim() || null : null}); closeModal(); G.load(); }catch(err){ say("Could not save", err.message, "error"); } };
       el("cal_save").addEventListener("click", ()=>save(el("cal_date").value || today())); if(el("cal_un")) el("cal_un").addEventListener("click", ()=>save(null)); return; }
+    const fc = e.target.closest("[data-fy-close]"); if(fc){ const y = G.fyList.years.find(x=>String(x.fy) === fc.dataset.fyClose);
+      openModal({title:"Close financial year "+esc2(y.label), bodyHTML:'<div style="font-size:12.5px;line-height:1.5">This will:<ul style="margin:6px 0 6px 18px"><li>clear every income and expense ledger of <b>'+dmy(y.start)+' to '+dmy(y.end)+'</b> with a closing voucher,</li><li>move the '+(num(y.net_profit) >= 0 ? "profit" : "loss")+' of <b>'+fmt(Math.abs(num(y.net_profit)))+'</b> to Profit &amp; Loss Account (Reserves),</li><li><b>lock</b> every date up to '+dmy(y.end)+' against posting, changes and cancellation.</li></ul>'+(y.draft_documents ? '<div class="ib ib-am">'+y.draft_documents+' draft or proforma document(s) are dated in this year. They cannot be posted after the year is closed.<label style="display:block;margin-top:4px"><input type="checkbox" id="fy_ign"> Close anyway</label></div>' : "")+'You can reopen the latest closed year if something was missed.</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="fy_go">Close the year</button>'});
+      el("fy_go").addEventListener("click", async ()=>{ try{ const r = await api("POST", "/api/gl/fy/close", {fy:y.fy, ignore_drafts:!!(el("fy_ign") && el("fy_ign").checked)}); closeModal(); say("Financial year closed", r.label+" · net "+fmt(r.net_profit)+" · locked up to "+dmy(r.locked_until)); G.load(); }catch(err){ say("Could not close the year", err.message, "error"); } }); return; }
+    const fo = e.target.closest("[data-fy-reopen]"); if(fo){ if(!window.confirm("Reopen this financial year? Its closing voucher is removed and the dates are unlocked.")) return;
+      try{ const r = await api("POST", "/api/gl/fy/reopen", {fy:Number(fo.dataset.fyReopen)}); say("Financial year reopened", r.label); G.load(); }catch(err){ say("Could not reopen", err.message, "error"); } return; }
     if(e.target.closest("#jv_payroll")) G.payroll();
     if(e.target.closest("#jv_new")) G.newVoucher("JOURNAL"); if(e.target.closest("#cv_new")) G.newVoucher("CONTRA");
   }, true);
@@ -18579,6 +18598,74 @@ function makePrintFit(){
   });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "bank-master") B.load(); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   MIS KIT: executive summary, revenue, customer profitability, gross profit by job, shipments, carrier-wise TEUs and customer portfolio (all from /api/mis).
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const M = window.MISKit = {tab:"exec"};
+  const num = n=> Number(n || 0);
+  const fmt = n=> num(n).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const th = (t, r)=> '<th'+(r ? ' style="text-align:right"' : "")+'>'+t+'</th>';
+  const td = (t, r, b)=> '<td style="'+(r ? "text-align:right;" : "")+(b ? "font-weight:700" : "")+'">'+t+'</td>';
+  const empty = (c, t)=> '<tr><td colspan="'+c+'" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">'+t+'</td></tr>';
+  const kpi = (l, v, sub)=> '<div class="kpi"><div class="kpi-lbl">'+l+'</div><div class="kpi-val">'+v+'</div>'+(sub ? '<div class="kpi-sub">'+sub+'</div>' : "")+'</div>';
+  const bar = (v, max, col)=> '<div style="background:var(--g1);border-radius:3px;height:10px;min-width:80px"><div style="width:'+(max > 0 ? Math.max(1, Math.round(Math.abs(v) / max * 100)) : 0)+'%;height:10px;border-radius:3px;background:'+(col || "var(--bl)")+'"></div></div>';
+  const tbl = (head, rows, id)=> '<div class="tw"><table'+(id ? ' id="mis_table"' : "")+'><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  M.show = function(opts){
+    if(opts && opts.glTab) M.tab = opts.glTab;
+    if(el("mis_from") && !el("mis_from").dataset.set){ el("mis_from").dataset.set = "1"; const y = new Date(); el("mis_from").value = (y.getMonth() >= 3 ? y.getFullYear() : y.getFullYear() - 1)+"-04-01"; el("mis_to").value = new Date().toISOString().slice(0, 10); }
+    M.paint();
+  };
+  M.paint = function(){ document.querySelectorAll("[data-mis-tab]").forEach(b=>{ const on = b.dataset.misTab === M.tab; b.classList.toggle("btn-pri", on); b.classList.toggle("btn-out", !on); }); M.load(); };
+  const rng = ()=> { const f = el("mis_from").value, t = el("mis_to").value; return (f ? "date_from="+f : "")+(t ? (f ? "&" : "")+"date_to="+t : ""); };
+  M.load = async function(){
+    const box = el("mis_body"); box.innerHTML = '<div class="ib ib-bl" style="margin:10px">Loading…</div>';
+    try{
+      if(M.tab === "exec"){
+        const r = await api("GET", "/api/mis/executive?"+rng()); const mx = Math.max(1, ...r.trend.map(x=>Math.max(num(x.revenue), num(x.cost))));
+        box.innerHTML = '<div class="kpi-row" style="margin:10px 0">'+kpi("Revenue", fmt(r.revenue))+kpi("Cost", fmt(r.cost))+kpi("Gross profit", fmt(r.gross_profit), r.margin_percent+"% margin")+kpi("Jobs in period", r.jobs_in_period, r.jobs_open+" open of "+r.jobs_total)+'</div><div class="kpi-row" style="margin:10px 0">'+kpi("Receivable", fmt(r.receivable))+kpi("Overdue receivable", fmt(r.overdue_receivable))+kpi("Payable", fmt(r.payable))+kpi("Cash and bank", fmt(r.cash_and_bank))+'</div>'+
+          tbl(th("Month")+th("Revenue", 1)+th("Cost", 1)+th("Profit", 1)+th("")+"", r.trend.map(x=>'<tr>'+td(x.month)+td(fmt(x.revenue), 1)+td(fmt(x.cost), 1)+td(fmt(x.profit), 1, 1)+'<td style="width:30%">'+bar(num(x.revenue), mx)+bar(num(x.cost), mx, "var(--am)")+'</td></tr>').join(""), 1)+'<div class="coa-note" style="margin:6px 8px">Receivable, overdue, payable and cash are as of today. The trend shows the twelve months up to the end date.</div>';
+      } else if(M.tab === "rev"){
+        const r = await api("GET", "/api/mis/revenue?"+rng()); const mx = Math.max(1, ...r.months.map(x=>num(x.revenue)));
+        box.innerHTML = '<div class="kpi-row" style="margin:10px 0">'+kpi("Total revenue", fmt(r.total))+kpi("Customers billed", r.customers.length)+kpi("Months", r.months.length)+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="mis_table"><div>'+tbl(th("Month")+th("Revenue", 1)+th(""), r.months.map(x=>'<tr>'+td(x.month)+td(fmt(x.revenue), 1)+'<td style="width:40%">'+bar(num(x.revenue), mx)+'</td></tr>').join("") || empty(3, "No revenue in this period"))+'</div><div>'+tbl(th("Mode")+th("Revenue", 1)+th("Share", 1), r.modes.map(x=>'<tr>'+td(esc2(x.mode))+td(fmt(x.revenue), 1)+td(x.share+"%", 1)+'</tr>').join("") || empty(3, "None"))+'</div></div><div style="font-weight:800;margin:10px 8px 4px">By customer</div>'+tbl(th("Customer")+th("Documents", 1)+th("Revenue", 1)+th("Share", 1), r.customers.map(x=>'<tr>'+td(esc2(x.customer))+td(x.documents, 1)+td(fmt(x.revenue), 1)+td(x.share+"%", 1)+'</tr>').join("") || empty(4, "No revenue in this period"));
+      } else if(M.tab === "cust"){
+        const r = await api("GET", "/api/mis/customer-profitability?"+rng());
+        box.innerHTML = tbl(th("Customer")+th("Jobs", 1)+th("Revenue", 1)+th("Cost", 1)+th("Gross profit", 1)+th("Margin", 1), r.customers.map(x=>'<tr>'+td(esc2(x.customer))+td(x.jobs, 1)+td(fmt(x.revenue), 1)+td(fmt(x.cost), 1)+td(fmt(x.gross_profit), 1, 1)+td('<span style="color:'+(num(x.margin_percent) < 0 ? "var(--rd)" : "inherit")+'">'+x.margin_percent+"%</span>", 1)+'</tr>').join("") || empty(6, "No billed jobs in this period"), 1)+'<div class="coa-note" style="margin:6px 8px">Cost is the posted purchase bills of the jobs billed to the customer.</div>';
+      } else if(M.tab === "gp"){
+        const r = await api("GET", "/api/mis/gp-analysis?"+rng());
+        box.innerHTML = '<div class="kpi-row" style="margin:10px 0">'+kpi("Revenue", fmt(r.total_revenue))+kpi("Cost", fmt(r.total_cost))+kpi("Gross profit", fmt(r.total_gross_profit), r.margin_percent+"% margin")+kpi("Jobs", r.jobs.length)+'</div>'+tbl(th("Mode")+th("Jobs", 1)+th("Revenue", 1)+th("Cost", 1)+th("Gross profit", 1)+th("Margin", 1), r.modes.map(x=>'<tr>'+td(esc2(x.mode))+td(x.jobs, 1)+td(fmt(x.revenue), 1)+td(fmt(x.cost), 1)+td(fmt(x.gross_profit), 1, 1)+td(x.margin_percent+"%", 1)+'</tr>').join(""))+'<div style="font-weight:800;margin:10px 8px 4px">By job</div>'+
+          tbl(th("Job")+th("Customer")+th("Mode")+th("Route")+th("Revenue", 1)+th("Cost", 1)+th("Gross profit", 1)+th("Margin", 1), r.jobs.map(x=>'<tr>'+td('<span class="mono">'+esc2(x.job)+'</span>')+td(esc2(x.customer))+td(esc2(x.mode))+td(esc2((x.pol || "")+(x.pod ? " → "+x.pod : "")))+td(fmt(x.revenue), 1)+td(fmt(x.cost), 1)+td(fmt(x.gross_profit), 1, 1)+td('<span style="color:'+(num(x.margin_percent) < 0 ? "var(--rd)" : "inherit")+'">'+x.margin_percent+"%</span>", 1)+'</tr>').join("") || empty(8, "No billed jobs in this period"), 1);
+      } else if(M.tab === "ship"){
+        const r = await api("GET", "/api/mis/shipments?"+rng()); const list = (a, mx)=> a.map(x=>'<tr>'+td(esc2(x.name))+td(x.jobs, 1)+'<td style="width:35%">'+bar(x.jobs, mx)+'</td></tr>').join("") || empty(3, "None");
+        const mx = a=> Math.max(1, ...a.map(x=>x.jobs));
+        box.innerHTML = '<div class="kpi-row" style="margin:10px 0">'+kpi("Jobs created", r.total)+kpi("Modes", r.modes.length)+kpi("Lanes", r.lanes.length)+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="mis_table"><div>'+tbl(th("Mode / direction")+th("Jobs", 1)+th(""), list(r.modes, mx(r.modes)))+'</div><div>'+tbl(th("Job stage")+th("Jobs", 1)+th(""), list(r.stages, mx(r.stages)))+'</div><div>'+tbl(th("Month")+th("Jobs", 1)+th(""), list(r.months, mx(r.months)))+'</div><div>'+tbl(th("Top lanes")+th("Jobs", 1)+th(""), list(r.lanes, mx(r.lanes)))+'</div></div>';
+      } else if(M.tab === "teu"){
+        const r = await api("GET", "/api/mis/carrier-teu?"+rng());
+        box.innerHTML = '<div class="kpi-row" style="margin:10px 0">'+kpi("Total TEUs", r.total_teu)+kpi("Containers", r.total_containers)+kpi("Carriers", r.carriers.length)+'</div>'+tbl(th("Carrier")+th("Jobs", 1)+th("20' containers", 1)+th("40' / 45' containers", 1)+th("TEUs", 1), r.carriers.map(x=>'<tr>'+td(esc2(x.carrier))+td(x.jobs, 1)+td(x.c20, 1)+td(x.c40, 1)+td(x.teu, 1, 1)+'</tr>').join("") || empty(5, "No sea jobs in this period"), 1)+'<div class="coa-note" style="margin:6px 8px">A 20\' container is 1 TEU, a 40\' or 45\' container is 2 TEU. Containers come from the job\'s Containers tab (else the booking); the carrier from the booking.</div>';
+      } else if(M.tab === "port"){
+        const r = await api("GET", "/api/mis/portfolio?"+rng());
+        box.innerHTML = '<div class="kpi-row" style="margin:10px 0">'+kpi("Parties", r.parties, r.active+" active · "+r.inactive+" inactive")+kpi("Billed in period", r.customers_billed)+kpi("New in period", r.new_in_period)+kpi("Top 5 share of revenue", r.top5_share+"%")+'</div><div style="display:grid;grid-template-columns:1fr 2fr;gap:10px" id="mis_table"><div>'+tbl(th("Role")+th("Parties", 1), r.roles.map(x=>'<tr>'+td(esc2(x.role))+td(x.parties, 1)+'</tr>').join("") || empty(2, "None"))+'</div><div>'+tbl(th("Top customers")+th("Revenue", 1)+th("Share", 1), r.top_customers.map(x=>'<tr>'+td(esc2(x.customer))+td(fmt(x.revenue), 1)+td(x.share+"%", 1)+'</tr>').join("") || empty(3, "No revenue in this period"))+'</div></div>';
+      } else {
+        box.innerHTML = '<div class="ib ib-am" style="margin:10px">'+(M.tab === "branch" ? "Branch Analysis needs each job to carry its branch. Jobs do not record a branch yet, so there is nothing to report on." : "Salesperson Performance needs each job or booking to carry the sales executive. That is not recorded on jobs yet. Enquiries are assigned to executives in the CRM, but their jobs and revenue are not linked back to them.")+'</div>';
+      }
+    }catch(err){ box.innerHTML = '<div class="ib ib-am" style="margin:10px">'+esc2(err.message)+'</div>'; }
+  };
+  M.csv = function(){
+    const t = el("mis_table") && (el("mis_table").tagName === "TABLE" ? el("mis_table") : el("mis_table").querySelector("table")); if(!t){ say("Nothing to export", "", "warn"); return; }
+    const rows = Array.from(t.querySelectorAll("tr")).map(tr=>Array.from(tr.children).map(c=>'"'+c.textContent.replace(/"/g, '""').trim()+'"').join(","));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([rows.join("\n")], {type:"text/csv"})); a.download = "mis-"+M.tab+".csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  };
+  document.addEventListener("click", e=>{ const t = e.target.closest("[data-mis-tab]"); if(t){ M.tab = t.dataset.misTab; M.paint(); } if(e.target.closest("#mis_csv")) M.csv(); if(e.target.closest("#mis_print")) window.print(); });
+  document.addEventListener("change", e=>{ if(e.target.id === "mis_from" || e.target.id === "mis_to") M.load(); });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "mis") M.show(opts); };
 })();
 </script>
 

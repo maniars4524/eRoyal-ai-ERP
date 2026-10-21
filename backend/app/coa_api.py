@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from . import coa
+from . import coa, gl
 from .auth_api import record_audit
 from .auth import permission_required
 from .db import get_db
@@ -232,6 +232,9 @@ def edit_ledger(lid: int, body: LedgerPatch, user: User = Depends(permission_req
         raise HTTPException(409, "This ledger is created from a master or by the system. Rename it in the master.")
     if "status" in ch and ch["status"] == "INACTIVE" and led.system_key:
         raise HTTPException(409, "A system ledger cannot be deactivated")
+    changes_opening = (ch.get("opening_balance") is not None and Decimal(ch["opening_balance"]) != Decimal(led.opening_balance or 0)) or (ch.get("opening_side") not in (None, led.opening_side))
+    if changes_opening and gl.locked_until(db, org_id):
+        raise HTTPException(409, "A financial year is closed, so opening balances can no longer be changed. Reopen the years first")
     for k, v in ch.items():
         if v is not None:
             setattr(led, k, v.strip() if isinstance(v, str) else v)

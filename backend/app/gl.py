@@ -12,6 +12,9 @@ from __future__ import annotations
 from collections import defaultdict
 from decimal import Decimal
 
+from datetime import date
+
+from fastapi import HTTPException
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -20,8 +23,21 @@ from .models import AccEntry, AccVoucher, Customer, Document, Payment
 
 ZERO = Decimal(0)
 DOC_VOUCHER = {"invoice": "SALES", "debit_note": "DEBIT_NOTE", "credit_note": "CREDIT_NOTE", "purchase_invoice": "PURCHASE", "purchase_credit_note": "PURCHASE_CREDIT_NOTE"}
-VOUCHER_LABEL = {"SALES": "Sales Invoice", "DEBIT_NOTE": "Debit Note", "CREDIT_NOTE": "Credit Note", "PURCHASE": "Purchase Invoice", "PURCHASE_CREDIT_NOTE": "Purchase Credit Note", "RECEIPT": "Receipt Voucher",
+VOUCHER_LABEL = {"SALES": "Sales Invoice", "DEBIT_NOTE": "Debit Note", "CREDIT_NOTE": "Credit Note", "PURCHASE": "Purchase Invoice", "PURCHASE_CREDIT_NOTE": "Purchase Credit Note", "CLOSING": "Year-end Closing", "RECEIPT": "Receipt Voucher",
                  "PAYMENT": "Payment Voucher", "JOURNAL": "Journal Voucher", "CONTRA": "Contra Voucher"}
+
+
+def locked_until(db: Session, org_id: int) -> date | None:
+    """The last day of the latest closed financial year: nothing dated on or before it can be posted, changed or cancelled."""
+    from .models import FyClosing
+
+    return db.scalar(select(func.max(FyClosing.end_date)).where(FyClosing.organization_id == org_id))
+
+
+def assert_open(db: Session, org_id: int, d: date | None) -> None:
+    lock = locked_until(db, org_id)
+    if d is not None and lock is not None and d <= lock:
+        raise HTTPException(409, f"The financial year up to {lock.strftime('%d-%m-%Y')} is closed, so nothing dated {d.strftime('%d-%m-%Y')} can be posted, changed or cancelled. Reopen the year in Ledger Reports > Financial Year to change it")
 
 
 def q2(v) -> Decimal:
@@ -52,9 +68,11 @@ def _voucher(db: Session, org_id: int, vtype: str, number: str, vdate, rows: lis
     return v
 
 
-def sync_document(db: Session, doc: Document, user_id=None) -> AccVoucher | None:
+def sync_document(db: Session, doc: Document, user_id=None, force=False) -> AccVoucher | None:
     """Mirror a document in the ledger: posted -> one voucher (replaced if it exists), anything else -> none."""
     org_id = doc.organization_id
+    if not force and (doc.status == "POSTED" or db.scalar(select(AccVoucher.id).where(AccVoucher.organization_id == org_id, AccVoucher.source_type == "document", AccVoucher.source_id == doc.id))):
+        assert_open(db, org_id, doc.doc_date)
     _drop(db, org_id, "document", doc.id)
     if doc.status != "POSTED" or doc.doc_type not in DOC_VOUCHER:
         return None
@@ -96,8 +114,10 @@ def sync_document(db: Session, doc: Document, user_id=None) -> AccVoucher | None
                     party=doc.party_name, job=doc.job_number, user_id=user_id)
 
 
-def sync_payment(db: Session, p: Payment, user_id=None) -> AccVoucher | None:
+def sync_payment(db: Session, p: Payment, user_id=None, force=False) -> AccVoucher | None:
     org_id = p.organization_id
+    if not force:
+        assert_open(db, org_id, p.pay_date)
     _drop(db, org_id, "payment", p.id)
     if p.status != "POSTED":
         return None
@@ -132,12 +152,12 @@ def rebuild(db: Session, org_id: int, user_id=None) -> dict:
     coa.sync_all(db, org_id, user_id)
     n = {"documents": 0, "payments": 0}
     for d in db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id).order_by(Document.doc_date, Document.id)):
-        if sync_document(db, d, user_id):
+        if sync_document(db, d, user_id, force=True):
             n["documents"] += 1
         elif d.status != "POSTED":
             pass
     for p in db.scalars(select(Payment).options(selectinload(Payment.allocations)).where(Payment.organization_id == org_id).order_by(Payment.pay_date, Payment.id)):
-        if sync_payment(db, p, user_id):
+        if sync_payment(db, p, user_id, force=True):
             n["payments"] += 1
     db.flush()
     return n

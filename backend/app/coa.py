@@ -50,6 +50,7 @@ SYSTEM_LEDGERS = {
     "round_off": ("Round Off", ("EXPENSES", "INDIRECT EXPENSES")),
     "pure_agent": ("Pure Agent Reimbursement", ("LIABILITIES", "CURRENT LIABILITIES")),
     "capital": ("Capital Account", ("LIABILITIES", "CAPITAL ACCOUNT")),
+    "reserve": ("Profit & Loss Account (Reserves)", ("LIABILITIES", "CAPITAL ACCOUNT")),
     "inc_ff": ("Freight Forwarding Income", ("INCOME", "DIRECT INCOMES", "FREIGHT FORWARDING")),
     "inc_cha": ("CHA Income", ("INCOME", "DIRECT INCOMES", "CHA")),
     "inc_trn": ("Transport Income", ("INCOME", "DIRECT INCOMES", "TRANSPORT")),

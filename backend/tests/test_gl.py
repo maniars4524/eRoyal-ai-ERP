@@ -268,3 +268,53 @@ def test_gst_calendar_marking_and_tcs_report(h):
     assert jv.status_code == 201, jv.text
     r = client.get("/api/gl/tcs", headers=h).json()
     assert any(e["narration"] == "TCS test" for e in r["receivable"]["entries"]) and D(r["receivable"]["net"]) >= D("40.00") and r["payable"]["ledger"] == "TCS Payable"
+
+
+def test_financial_year_close_lock_and_reopen(h):
+    uid = uuid.uuid4().hex[:5]
+    party, vend = "Fy Cust " + uid, "Fy Vend " + uid
+    client.post("/api/customers", json={"code": "FC" + uid.upper(), "name": party, "roles": ["shipper"], "data": {}}, headers=h)
+    client.post("/api/customers", json={"code": "FV" + uid.upper(), "name": vend, "roles": ["carrier"], "data": {}}, headers=h)
+
+    def old_doc(doc_type, p, rate, day):
+        d = client.post("/api/documents", json={"doc_type": doc_type, "party_name": p, "doc_date": day, "lines": [{"charge_name": "Ocean Freight", "qty": "1", "rate": rate, "tax_type": "Non-Taxable", "tax_pct": "0"}]}, headers=h)
+        assert d.status_code == 201, d.text
+        return d.json()
+
+    i = old_doc("invoice", party, "10000", "2000-06-10")
+    assert client.post(f"/api/documents/{i['id']}/post", headers=h).status_code == 200
+    pi = old_doc("purchase_invoice", vend, "4000", "2000-07-01")
+    assert client.post(f"/api/documents/{pi['id']}/post", headers=h).status_code == 200
+    try:
+        years = {y["fy"]: y for y in client.get("/api/gl/fy", headers=h).json()["years"]}
+        assert years[2000]["status"] == "OPEN" and D(years[2000]["net_profit"]) == D("6000.00") and years[2000]["blockers"] == []
+        later = client.post("/api/gl/fy/close", json={"fy": 2001}, headers=h)
+        assert later.status_code == 409 and "earlier year" in later.json()["detail"]
+        cur = client.post("/api/gl/fy/close", json={"fy": date.today().year}, headers=h)
+        assert cur.status_code == 409
+        res = client.post("/api/gl/fy/close", json={"fy": 2000}, headers=h)
+        assert res.status_code == 200, res.text
+        assert res.json()["net_profit"] == "6000.00" and res.json()["locked_until"] == "2001-03-31"
+        # the year's P&L is still readable; the reserve carries the profit
+        pl = client.get("/api/gl/profit-loss?date_from=2000-04-01&date_to=2001-03-31", headers=h).json()
+        assert pl["total_income"] == "10000.00" and pl["total_expenses"] == "4000.00" and pl["net_profit"] == "6000.00"
+        assert lrep(h, "Profit & Loss Account (Reserves)", date_to="2001-03-31")["closing"] == "-6000.00"
+        assert tb(h)["balanced"] and client.get("/api/gl/balance-sheet?as_on=2001-03-31", headers=h).json()["profit_loss"] == "0.00"
+        # nothing dated in the closed year can change
+        blocked = client.post("/api/documents", json={"doc_type": "invoice", "party_name": party, "doc_date": "2000-08-01", "lines": [{"charge_name": "X", "qty": "1", "rate": "5", "tax_type": "Non-Taxable", "tax_pct": "0"}]}, headers=h).json()
+        assert client.post(f"/api/documents/{blocked['id']}/post", headers=h).status_code == 409
+        assert client.post(f"/api/documents/{i['id']}/cancel", headers=h).status_code == 409
+        cash, cap = ledger_of(h, "Cash in Hand"), ledger_of(h, "Capital Account")
+        jv = {"voucher_type": "JOURNAL", "vdate": "2000-09-01", "lines": [{"ledger_id": cash["id"], "debit": "5"}, {"ledger_id": cap["id"], "credit": "5"}]}
+        assert client.post("/api/gl/vouchers", json=jv, headers=h).status_code == 409
+        assert client.post("/api/gl/opening-import", json={"rows": [{"name": "Cash in Hand", "debit": "1"}], "apply": True}, headers=h).status_code == 409
+        assert client.patch(f"/api/coa/ledgers/{cash['id']}", json={"opening_balance": "99"}, headers=h).status_code == 409
+        assert client.post("/api/gl/vouchers", json={**jv, "vdate": str(date.today())}, headers=h).status_code == 201      # today is in an open year
+        assert client.post("/api/gl/fy/close", json={"fy": 2000}, headers=h).status_code == 409                           # already closed
+        assert client.get("/api/gl/fy", headers=h).json()["locked_until"] == "2001-03-31"
+    finally:
+        client.post("/api/gl/fy/reopen", json={"fy": 2000}, headers=h)
+    assert client.get("/api/gl/fy", headers=h).json()["locked_until"] is None
+    assert client.post(f"/api/documents/{blocked['id']}/post", headers=h).status_code == 200      # open again
+    assert lrep(h, "Profit & Loss Account (Reserves)", date_to="2001-03-31")["closing"] == "0.00"
+    assert client.post("/api/gl/fy/reopen", json={"fy": 2000}, headers=h).status_code == 404

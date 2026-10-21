@@ -296,6 +296,22 @@ class GstFiling(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class FyClosing(Base):
+    """A closed financial year (1 April - 31 March): the profit moved to reserves and the year locked against changes."""
+    __tablename__ = "fy_closings"
+    __table_args__ = (UniqueConstraint("organization_id", "fy_start", name="uq_fy_closing"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    fy_start: Mapped[int] = mapped_column(Integer)   # the calendar year the FY starts in
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    net_profit = mapped_column(Numeric(16, 2), default=0, server_default="0")
+    voucher_id: Mapped[int | None] = mapped_column(ForeignKey("acc_vouchers.id", ondelete="SET NULL"))
+    closed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    closed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class CompanyDocProfile(Base):
     """Letterhead and registration details printed on the company's documents (BL / MTD): address, contacts, OTL / MTO / FMC registration numbers, signatory, signature and seal images."""
     __tablename__ = "company_doc_profiles"

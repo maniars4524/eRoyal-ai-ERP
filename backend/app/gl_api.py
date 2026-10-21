@@ -39,7 +39,7 @@ def _prep(db: Session, user: User) -> int:
     return org_id
 
 
-def _agg(db: Session, org_id: int, dfrom: date | None = None, dto: date | None = None, before: date | None = None) -> dict[int, tuple[Decimal, Decimal]]:
+def _agg(db: Session, org_id: int, dfrom: date | None = None, dto: date | None = None, before: date | None = None, exclude_closing: bool = False) -> dict[int, tuple[Decimal, Decimal]]:
     """Debit / credit totals per ledger of posted vouchers inside the period, or strictly before `before`."""
     q = select(AccEntry.ledger_id, func.coalesce(func.sum(AccEntry.debit), 0), func.coalesce(func.sum(AccEntry.credit), 0)).join(AccVoucher, AccVoucher.id == AccEntry.voucher_id).where(AccEntry.organization_id == org_id, AccVoucher.status == "POSTED")
     if dfrom:
@@ -48,6 +48,8 @@ def _agg(db: Session, org_id: int, dfrom: date | None = None, dto: date | None =
         q = q.where(AccVoucher.vdate <= dto)
     if before:
         q = q.where(AccVoucher.vdate < before)
+    if exclude_closing:
+        q = q.where(AccVoucher.voucher_type != "CLOSING")
     return {lid: (Decimal(d), Decimal(c)) for lid, d, c in db.execute(q.group_by(AccEntry.ledger_id))}
 
 
@@ -147,7 +149,7 @@ def _nature_total(rows: list[dict], nature: str, sign: int) -> Decimal:
 def profit_loss(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
     org_id = _prep(db, user)
     roots, _, _ = _build(db, org_id)
-    period = _agg(db, org_id, date_from, date_to)
+    period = _agg(db, org_id, date_from, date_to, exclude_closing=True)
     rows, _ = _rows(roots, {}, period)    # movement of the period only
     income = sum((r["credit"] - r["debit"] for r in rows if r["level"] == 0 and r["nature"] == "INCOME"), ZERO)
     expense = sum((r["debit"] - r["credit"] for r in rows if r["level"] == 0 and r["nature"] == "EXPENSES"), ZERO)
@@ -262,6 +264,7 @@ def create_voucher(body: VoucherIn, user: User = Depends(permission_required("bi
             if g.name not in ("BANK ACCOUNTS", "CASH-IN-HAND"):
                 raise HTTPException(422, "A contra voucher moves money between cash and bank ledgers only")
     vdate = body.vdate or date.today()
+    gl.assert_open(db, org_id, vdate)
     code = "JV" if body.voucher_type == "JOURNAL" else "CT"
     ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == org_id, HblCounter.hbl_type == code).with_for_update())
     if ctr is None:
@@ -287,9 +290,10 @@ def cancel_voucher(vid: int, user: User = Depends(permission_required("billing.c
     if v is None or v.organization_id != org_id:
         raise HTTPException(404, "Voucher not found")
     if v.source_type:
-        raise HTTPException(409, "This voucher mirrors an invoice or receipt. Cancel that document instead")
+        raise HTTPException(409, "This voucher is created by an invoice, receipt, payment or the year-end closing. Cancel that document (or reopen the year) instead")
     if v.status == "CANCELLED":
         raise HTTPException(409, "Voucher is already cancelled")
+    gl.assert_open(db, org_id, v.vdate)
     v.status = "CANCELLED"
     record_audit(db, "ACC_VOUCHER_CANCELLED", "ACCOUNTS", user, org_id, "AccVoucher", str(v.id), {"number": v.number})
     db.commit()
@@ -543,6 +547,7 @@ def payroll(body: PayrollIn, user: User = Depends(permission_required("billing.p
         adv = coa.staff_advance_ledger(db, emp, user.id)
         dr, cr, label = (adv, pay, "Advance") if body.kind == "ADVANCE" else (pay, adv, "Advance repaid")
     vdate = body.vdate or date.today()
+    gl.assert_open(db, org_id, vdate)
     ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == org_id, HblCounter.hbl_type == "JV").with_for_update())
     if ctr is None:
         ctr = HblCounter(organization_id=org_id, hbl_type="JV", last_no=0)
@@ -620,6 +625,8 @@ def opening_import(body: OpeningImport, user: User = Depends(permission_required
         total_cr += c
     result = {"rows": out, "valid": len(ok), "errors": len(out) - len(ok), "imported_debit": _s(dr), "imported_credit": _s(cr), "books_debit": _s(total_dr), "books_credit": _s(total_cr), "difference": _s(total_dr - total_cr), "applied": False}
     if body.apply:
+        if gl.locked_until(db, org_id):
+            raise HTTPException(409, "A financial year is closed, so opening balances can no longer be replaced. Reopen the years first")
         if result["errors"]:
             raise HTTPException(422, f"{result['errors']} row(s) have errors. Correct them or remove them and try again")
         for l, r in ok:
@@ -717,3 +724,121 @@ def tcs_report(date_from: date | None = None, date_to: date | None = None, user:
         d, c = sum((Decimal(r["debit"]) for r in rows), ZERO), sum((Decimal(r["credit"]) for r in rows), ZERO)
         out[name] = {"ledger": led.name, "ledger_id": led.id, "entries": rows, "debit": _s(d), "credit": _s(c), "net": _s(d - c if name == "receivable" else c - d)}
     return out
+
+
+# ---------------------------------------------------------------- financial year closing
+def _fy_bounds(fy: int) -> tuple[date, date]:
+    return date(fy, 4, 1), date(fy + 1, 3, 31)
+
+
+def _fy_label(fy: int) -> str:
+    return f"{fy}-{str(fy + 1)[2:]}"
+
+
+def _fy_preview(db: Session, org_id: int, fy: int) -> dict:
+    from .models import Document, FyClosing
+
+    start, end = _fy_bounds(fy)
+    agg = _agg(db, org_id, start, end, exclude_closing=True)
+    leds = {l.id: l for l in db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id))}
+    groups = {g.id: g for g in db.scalars(select(AccGroup).where(AccGroup.organization_id == org_id))}
+    income = expense = ZERO
+    rows = []
+    for lid, (d, c) in agg.items():
+        l = leds.get(lid)
+        if l is None or groups[l.group_id].nature not in ("INCOME", "EXPENSES") or d == c:
+            continue
+        net = d - c
+        rows.append((l, net))
+        if groups[l.group_id].nature == "INCOME":
+            income += c - d
+        else:
+            expense += d - c
+    drafts = db.scalar(select(func.count()).select_from(Document).where(Document.organization_id == org_id, Document.status.in_(("DRAFT", "CONFIRMED")), Document.doc_date >= start, Document.doc_date <= end)) or 0
+    first = db.scalar(select(func.min(AccVoucher.vdate)).where(AccVoucher.organization_id == org_id, AccVoucher.status == "POSTED"))
+    closed = {c.fy_start: c for c in db.scalars(select(FyClosing).where(FyClosing.organization_id == org_id))}
+    earlier_open = []
+    if first:
+        y0 = first.year if first.month >= 4 else first.year - 1
+        earlier_open = [_fy_label(y) for y in range(y0, fy) if y not in closed]
+    today = date.today()
+    blockers = []
+    if fy in closed:
+        blockers.append("This financial year is already closed")
+    if end >= today:
+        blockers.append("The financial year has not ended yet (it ends on " + end.strftime("%d-%m-%Y") + ")")
+    if earlier_open:
+        blockers.append("Close the earlier year(s) first: " + ", ".join(earlier_open))
+    return {"fy": fy, "label": _fy_label(fy), "start": start, "end": end, "income": income, "expense": expense, "net_profit": income - expense, "ledgers": rows, "draft_documents": drafts, "blockers": blockers,
+            "closed": closed.get(fy)}
+
+
+@router.get("/fy")
+def fy_list(user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    from .models import FyClosing
+
+    org_id = _prep(db, user)
+    today = date.today()
+    cur = today.year if today.month >= 4 else today.year - 1
+    first = db.scalar(select(func.min(AccVoucher.vdate)).where(AccVoucher.organization_id == org_id, AccVoucher.status == "POSTED"))
+    y0 = min(cur, (first.year if first and first.month >= 4 else (first.year - 1 if first else cur)))
+    closed = {c.fy_start: c for c in db.scalars(select(FyClosing).where(FyClosing.organization_id == org_id))}
+    years = []
+    for y in range(y0, cur + 1):
+        p = _fy_preview(db, org_id, y)
+        c = closed.get(y)
+        years.append({"fy": y, "label": p["label"], "start": p["start"], "end": p["end"], "status": "CLOSED" if c else ("CURRENT" if y == cur else "OPEN"), "net_profit": _s(c.net_profit if c else p["net_profit"]), "income": _s(p["income"]), "expense": _s(p["expense"]),
+                      "draft_documents": p["draft_documents"], "blockers": p["blockers"], "closed_at": c.closed_at if c else None, "voucher_id": c.voucher_id if c else None})
+    return {"years": years, "locked_until": gl.locked_until(db, org_id)}
+
+
+class FyIn(BaseModel):
+    fy: int = Field(ge=2000, le=2100)
+    ignore_drafts: bool = False
+
+
+@router.post("/fy/close")
+def fy_close(body: FyIn, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    """Close a financial year: its income and expense ledgers are cleared into Profit & Loss Account (Reserves) by a closing voucher dated the last day of the year, and the year is locked."""
+    from .models import FyClosing
+
+    org_id = _prep(db, user)
+    p = _fy_preview(db, org_id, body.fy)
+    if p["blockers"]:
+        raise HTTPException(409, "; ".join(p["blockers"]))
+    if p["draft_documents"] and not body.ignore_drafts:
+        raise HTTPException(409, f"{p['draft_documents']} draft or proforma document(s) are dated in this year. Post or delete them first, or close anyway")
+    reserve = coa.sys_ledger(db, org_id, "reserve")
+    rows = []
+    for l, net in p["ledgers"]:
+        rows.append((l, abs(net) if net < 0 else ZERO, net if net > 0 else ZERO, "Closing entry", None))
+    profit = p["net_profit"]
+    if profit:
+        rows.append((reserve, ZERO if profit > 0 else -profit, profit if profit > 0 else ZERO, f"Net {'profit' if profit > 0 else 'loss'} of {p['label']}", None))
+    v = None
+    if rows:
+        v = gl._voucher(db, org_id, "CLOSING", f"CL/{p['label']}", p["end"], rows, source_type="fy_close", source_id=body.fy, narration=f"Closing of financial year {p['label']}", user_id=user.id)
+    db.add(FyClosing(organization_id=org_id, fy_start=body.fy, start_date=p["start"], end_date=p["end"], net_profit=profit, voucher_id=v.id if v else None, closed_by=user.id))
+    record_audit(db, "FY_CLOSED", "ACCOUNTS", user, org_id, "FyClosing", p["label"], {"net_profit": str(profit), "ledgers": len(p["ledgers"])})
+    db.commit()
+    return {"label": p["label"], "net_profit": _s(profit), "ledgers_closed": len(p["ledgers"]), "voucher_id": v.id if v else None, "locked_until": p["end"]}
+
+
+@router.post("/fy/reopen")
+def fy_reopen(body: FyIn, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    """Reopen the latest closed year: its closing voucher is removed and the lock lifted."""
+    from .models import FyClosing
+
+    org_id = _tenant(user)
+    c = db.scalar(select(FyClosing).where(FyClosing.organization_id == org_id, FyClosing.fy_start == body.fy))
+    if c is None:
+        raise HTTPException(404, "This financial year is not closed")
+    later = db.scalar(select(func.count()).select_from(FyClosing).where(FyClosing.organization_id == org_id, FyClosing.fy_start > body.fy))
+    if later:
+        raise HTTPException(409, "A later financial year is closed. Reopen the latest closed year first")
+    if c.voucher_id:
+        gl._drop(db, org_id, "fy_close", body.fy)
+    db.delete(c)
+    record_audit(db, "FY_REOPENED", "ACCOUNTS", user, org_id, "FyClosing", _fy_label(body.fy), {})
+    db.commit()
+    return {"label": _fy_label(body.fy), "locked_until": gl.locked_until(db, org_id)}
