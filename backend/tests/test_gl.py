@@ -151,3 +151,31 @@ def test_general_ledger_agrees_with_the_party_ledger_and_cash_book_reports(h):
     assert D(pl["closing"]) == D(lrep(h, party)["closing"].replace(" Dr", "")) == D("1360.00")
     gl_cash_receipts = sum(D(e["debit"]) for e in lrep(h, "Cash in Hand")["entries"] if e["voucher_type"] == "RECEIPT")
     assert gl_cash_receipts >= D("1000.00")
+
+
+def test_gst_report_agrees_with_the_tax_ledgers_and_bank_reconciliation(h):
+    uid = uuid.uuid4().hex[:5]
+    party = "Gl Gst " + uid
+    client.post("/api/customers", json={"code": "GG" + uid.upper(), "name": party, "roles": ["shipper"], "data": {}}, headers=h)
+    invoice(h, party, "10000", intra=True)
+    invoice(h, party, "2000", doc_type="invoice")
+    g = client.get("/api/gl/gst", headers=h).json()
+    assert g["agrees_with_ledger"] is True and D(g["output_tax"]) >= D("2160.00")
+    mine = [r for r in g["sales"] if r["party"] == party]
+    assert {r["cgst"] for r in mine} >= {"900.00"} and any(r["igst"] == "360.00" for r in mine)
+    assert D(g["net_payable"]) == D(g["output_tax"]) - D(g["input_tax"])
+    # bank reconciliation
+    bank_group = next(x for x in client.get("/api/coa/tree", headers=h).json()["groups"][0]["groups"][0]["groups"] if x["name"] == "BANK ACCOUNTS")
+    bank = client.post("/api/coa/ledgers", json={"group_id": bank_group["id"], "name": "Gl Recon Bank " + uid, "opening_balance": "1000", "opening_side": "Dr"}, headers=h).json()
+    cash = ledger_of(h, "Cash in Hand")
+    v = client.post("/api/gl/vouchers", json={"voucher_type": "CONTRA", "lines": [{"ledger_id": bank["id"], "debit": "400"}, {"ledger_id": cash["id"], "credit": "400"}]}, headers=h).json()
+    r = client.get(f"/api/gl/bank-recon?ledger_id={bank['id']}", headers=h).json()
+    assert r["book_balance"] == "1400.00" and r["balance_as_per_bank"] == "1000.00" and r["uncleared_deposits"] == "400.00" and len(r["items"]) == 1
+    eid = r["items"][0]["entry_id"]
+    assert client.post("/api/gl/bank-recon/clear", json={"ledger_id": bank["id"], "entry_ids": [eid], "cleared_date": str(date.today())}, headers=h).json()["updated"] == 1
+    r2 = client.get(f"/api/gl/bank-recon?ledger_id={bank['id']}", headers=h).json()
+    assert r2["balance_as_per_bank"] == "1400.00" and r2["uncleared_deposits"] == "0.00" and r2["items"][0]["cleared_date"] == str(date.today())
+    client.post("/api/gl/bank-recon/clear", json={"ledger_id": bank["id"], "entry_ids": [eid], "cleared_date": None}, headers=h)
+    assert client.get(f"/api/gl/bank-recon?ledger_id={bank['id']}", headers=h).json()["balance_as_per_bank"] == "1000.00"
+    assert client.get(f"/api/gl/bank-recon?ledger_id={cash['id']}", headers=h).status_code == 422      # cash is not reconciled against a statement
+    assert v["number"].startswith("CT/")

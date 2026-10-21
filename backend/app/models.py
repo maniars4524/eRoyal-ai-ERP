@@ -277,6 +277,7 @@ class AccEntry(Base):
     credit = mapped_column(Numeric(16, 2), default=0, server_default="0")
     narration: Mapped[str | None] = mapped_column(String(240))
     job_number: Mapped[str | None] = mapped_column(String(40))
+    cleared_date: Mapped[date | None] = mapped_column(Date)   # bank reconciliation: the date the bank statement shows it
     voucher: Mapped[AccVoucher] = relationship(back_populates="entries")
 
 

@@ -66,6 +66,21 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const jr = qa("[data-jv-row]"); jr[0].querySelector('[data-jv="debit"]').value = "100"; jr[1].querySelector('[data-jv="credit"]').value = "90"; q("#jv_go").click(); await sleep(800);
   check("an unbalanced journal is not posted", q("#jv_go") !== null && !/JV\//.test(q("#jv_body").textContent));
   w.closeModal();
+  // ---- GST and bank reconciliation tabs
+  w.go("gl-reports", { glTab: "gst" }); await sleep(2500);
+  txt = q("#gl_body").textContent;
+  check("GST tab shows output GST, the sales register and agrees with the ledgers", /Output GST/.test(txt) && /Ui Gl Client/.test(txt) && /1,800\.00/.test(txt) && /Agrees with the Output/.test(txt), txt.slice(0, 250));
+  w.go("gl-reports", { glTab: "recon" }); await sleep(2500);
+  const rs = q("#gl_ledger"); const bopt = Array.from(rs.options).find(o => /HDFC Bank/.test(o.textContent));
+  check("the reconciliation lists only bank ledgers", !!bopt && Array.from(rs.options).every(o => !o.value || /HDFC Bank/.test(o.textContent)), Array.from(rs.options).map(o => o.textContent).join("|"));
+  rs.value = bopt.value; rs.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(2000);
+  txt = q("#gl_body").textContent;
+  check("book balance 21,500 (20,000 opening + 1,500 contra) and 1,500 not yet cleared", /21,500\.00/.test(txt) && /Depositsnotcleared1,500\.00/.test(txt.replace(/\s+/g, "")) , txt.replace(/\s+/g, " ").slice(0, 250));
+  q("[data-rc-entry]").checked = true; q("#rc_clear").click(); await sleep(2000);
+  txt = q("#gl_body").textContent.replace(/\s+/g, " ");
+  check("marking the entry cleared moves the bank balance", /Balanceasperbank21,500\.00/.test(txt.replace(/ /g, "")), txt.slice(0, 250));
+  const st = q("#rc_stmt"); st.value = "21500"; st.dispatchEvent(new w.Event("input", { bubbles: true }));
+  check("a matching statement balance says Reconciled", /Reconciled/.test(q("#rc_diff").textContent));
   // ---- the receipt dialog offers the bank account
   const bankLedger = (await j("GET", "/api/coa/ledgers?source_type=bank", null, token)).body;
   check("the bank master created its ledger under Bank Accounts", bankLedger.length === 1 && /BANK ACCOUNTS/.test(bankLedger[0].path) && bankLedger[0].opening_balance === "20000.00");

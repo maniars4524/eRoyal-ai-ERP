@@ -7,7 +7,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from . import coa, gl
 from .auth import permission_required
@@ -303,3 +303,101 @@ def rebuild(user: User = Depends(permission_required("billing.post")), db: Sessi
     record_audit(db, "GL_REBUILT", "ACCOUNTS", user, org_id, "AccVoucher", "all", n)
     db.commit()
     return n
+
+
+# ---------------------------------------------------------------- bank reconciliation
+def _bank_ledger(db: Session, org_id: int, ledger_id: int) -> AccLedger:
+    led = db.get(AccLedger, ledger_id)
+    if led is None or led.organization_id != org_id:
+        raise HTTPException(404, "Ledger not found")
+    if db.get(AccGroup, led.group_id).name != "BANK ACCOUNTS":
+        raise HTTPException(422, "Bank reconciliation is done for bank ledgers only")
+    return led
+
+
+@router.get("/bank-recon")
+def bank_recon(ledger_id: int, as_on: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Book balance against the bank statement: entries that have not cleared yet are the reconciling items."""
+    org_id = _prep(db, user)
+    led = _bank_ledger(db, org_id, ledger_id)
+    q = select(AccEntry, AccVoucher).join(AccVoucher, AccVoucher.id == AccEntry.voucher_id).where(AccEntry.ledger_id == ledger_id, AccVoucher.status == "POSTED").order_by(AccVoucher.vdate, AccVoucher.id, AccEntry.id)
+    if as_on:
+        q = q.where(AccVoucher.vdate <= as_on)
+    book = _opening(led)
+    cleared = _opening(led)
+    items, dep_unc, pay_unc = [], ZERO, ZERO
+    for e, v in db.execute(q):
+        net = e.debit - e.credit
+        book += net
+        is_clear = e.cleared_date is not None and (as_on is None or e.cleared_date <= as_on)
+        if is_clear:
+            cleared += net
+        else:
+            dep_unc += e.debit
+            pay_unc += e.credit
+        items.append({"entry_id": e.id, "date": v.vdate, "voucher_id": v.id, "number": v.number, "type": gl.VOUCHER_LABEL.get(v.voucher_type, v.voucher_type), "party": v.party_name, "narration": e.narration or v.narration,
+                      "debit": _s(e.debit), "credit": _s(e.credit), "cleared_date": e.cleared_date if is_clear else None})
+    return {"ledger": {"id": led.id, "code": led.code, "name": led.name}, "as_on": as_on, "book_balance": _s(book), "cleared_balance": _s(cleared), "uncleared_deposits": _s(dep_unc), "uncleared_payments": _s(pay_unc),
+            "balance_as_per_bank": _s(cleared), "items": items}
+
+
+class ClearIn(BaseModel):
+    ledger_id: int
+    entry_ids: list[int] = Field(min_length=1, max_length=500)
+    cleared_date: date | None = None   # None un-clears
+
+
+@router.post("/bank-recon/clear")
+def bank_clear(body: ClearIn, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    org_id = _tenant(user)
+    _bank_ledger(db, org_id, body.ledger_id)
+    rows = list(db.scalars(select(AccEntry).where(AccEntry.id.in_(body.entry_ids), AccEntry.ledger_id == body.ledger_id, AccEntry.organization_id == org_id)))
+    if len(rows) != len(set(body.entry_ids)):
+        raise HTTPException(404, "Some entries do not belong to this bank ledger")
+    for e in rows:
+        e.cleared_date = body.cleared_date
+    record_audit(db, "BANK_RECON_UPDATED", "ACCOUNTS", user, org_id, "AccLedger", str(body.ledger_id), {"entries": len(rows), "cleared_date": str(body.cleared_date)})
+    db.commit()
+    return {"updated": len(rows)}
+
+
+# ---------------------------------------------------------------- GST
+@router.get("/gst")
+def gst_report(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Sales and purchase GST registers with the net GST payable. Credit notes reduce; the totals are cross-checked against the Output / Input GST ledgers."""
+    from .models import Document
+
+    org_id = _prep(db, user)
+    q = select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.status == "POSTED").order_by(Document.doc_date, Document.id)
+    if date_from:
+        q = q.where(Document.doc_date >= date_from)
+    if date_to:
+        q = q.where(Document.doc_date <= date_to)
+    sales, purchases = [], []
+    tot = {"sales": [ZERO] * 5, "purchases": [ZERO] * 5}
+    for d in db.scalars(q):
+        sale = d.doc_type in ("invoice", "debit_note", "credit_note")
+        sign = -1 if d.doc_type in ("credit_note", "purchase_credit_note") else 1
+        taxable = sum((l.amount for l in d.lines if l.tax_type == "Taxable"), ZERO)
+        other = sum((l.amount for l in d.lines if l.tax_type != "Taxable"), ZERO)
+        tax = d.tax_total or ZERO
+        intra = d.supply_type == "intra"
+        cg = (tax / 2).quantize(Decimal("0.01")) if intra else ZERO
+        sg = tax - cg if intra else ZERO
+        ig = ZERO if intra else tax
+        row = {"date": d.doc_date, "number": d.doc_number, "type": d.doc_type, "party": d.party_name, "gstin": d.party_gstin, "place_of_supply": d.place_of_supply, "taxable": _s(sign * taxable), "non_taxable": _s(sign * other),
+               "cgst": _s(sign * cg), "sgst": _s(sign * sg), "igst": _s(sign * ig), "total": _s(sign * d.grand_total)}
+        (sales if sale else purchases).append(row)
+        t = tot["sales" if sale else "purchases"]
+        for i, v in enumerate((taxable, other, cg, sg, ig)):
+            t[i] += sign * v
+    names = ("taxable", "non_taxable", "cgst", "sgst", "igst")
+    out_t, in_t = {k: _s(v) for k, v in zip(names, tot["sales"])}, {k: _s(v) for k, v in zip(names, tot["purchases"])}
+    agg = _agg(db, org_id, date_from, date_to)
+    keyed = {l.system_key: l.id for l in db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id, AccLedger.system_key.in_(("out_cgst", "out_sgst", "out_igst", "in_cgst", "in_sgst", "in_igst"))))}
+    led_out = sum((agg.get(keyed[k], (ZERO, ZERO))[1] - agg.get(keyed[k], (ZERO, ZERO))[0] for k in ("out_cgst", "out_sgst", "out_igst")), ZERO)
+    led_in = sum((agg.get(keyed[k], (ZERO, ZERO))[0] - agg.get(keyed[k], (ZERO, ZERO))[1] for k in ("in_cgst", "in_sgst", "in_igst")), ZERO)
+    out_tax = tot["sales"][2] + tot["sales"][3] + tot["sales"][4]
+    in_tax = tot["purchases"][2] + tot["purchases"][3] + tot["purchases"][4]
+    return {"date_from": date_from, "date_to": date_to, "sales": sales, "purchases": purchases, "sales_total": out_t, "purchases_total": in_t, "output_tax": _s(out_tax), "input_tax": _s(in_tax), "net_payable": _s(out_tax - in_tax),
+            "ledger_output": _s(led_out), "ledger_input": _s(led_in), "agrees_with_ledger": led_out == out_tax and led_in == in_tax}
