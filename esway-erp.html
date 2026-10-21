@@ -469,6 +469,15 @@ tbody tr:hover{background:var(--g0)}
 .jc-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .jc-actions .btn{font-size:11.3px}
 .jc-grid-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+/* Jobs / Shipments list: job number and party names stay on one line, the table scrolls sideways, and the Job No and the first party column can be frozen */
+#jobTable th,#jobTable td{white-space:nowrap}
+#jobTable thead th:nth-child(1),#jobTable tbody tr[data-job-row] td:nth-child(1){width:165px;min-width:165px;max-width:165px}
+#jobTable thead th:nth-child(2),#jobTable tbody tr[data-job-row] td:nth-child(2){min-width:250px}
+#jobTable thead th:nth-child(3),#jobTable tbody tr[data-job-row] td:nth-child(3){min-width:250px}
+#s-job-list.jt-freeze #jobTable thead th:nth-child(-n+2),#s-job-list.jt-freeze #jobTable tbody tr[data-job-row] td:nth-child(-n+2){position:sticky;z-index:2;background:var(--wh,#fff)}
+#s-job-list.jt-freeze #jobTable thead th:nth-child(-n+2){z-index:4;background:var(--g0,#f6f8fb)}
+#s-job-list.jt-freeze #jobTable thead th:nth-child(1),#s-job-list.jt-freeze #jobTable tbody tr[data-job-row] td:nth-child(1){left:0}
+#s-job-list.jt-freeze #jobTable thead th:nth-child(2),#s-job-list.jt-freeze #jobTable tbody tr[data-job-row] td:nth-child(2){left:165px;box-shadow:2px 0 0 var(--g2,#e3e8ef)}
 .jc-table{min-width:2000px}
 .jc-table thead th{white-space:nowrap}
 .jc-table thead th.jc-th-buy{background:var(--blt)!important;color:var(--bl-ink)!important}
@@ -2466,6 +2475,7 @@ tbody tr:hover{background:var(--g0)}
     <select class="fc" id="jobStateFilter" style="width:125px;padding:5px 7px"><option value="">All Jobs</option><option value="active">Active</option><option value="pending">Pending action</option><option value="closed">Closed</option></select>
     <select class="fc" id="jobStatusFilter" style="width:115px;padding:5px 7px"><option value="">All Statuses</option><option>Open</option><option>Booked</option><option>In Transit</option><option>Customs</option><option>Delivered</option></select>
     <input class="fc" id="jobSearchInput" placeholder="Search job / BL / shipper…" style="width:200px">
+    <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--g6);cursor:pointer" title="Keep the Job No and the first party column in view while the table scrolls sideways"><input type="checkbox" id="jobFreezeToggle" checked> Freeze Job No &amp; party</label>
   </div>
 </div>
 <div class="tw"><table id="jobTable"><thead><tr><th>Job No</th><th>Shipper</th><th>Consignee</th><th>Mode</th><th>POL → POD</th><th>ETD / ETA</th><th>BL / AWB</th><th>Status</th><th>AR</th><th class="no-print"></th></tr></thead><tbody id="jobTableBody">
@@ -18862,6 +18872,44 @@ function makePrintFit(){
   document.addEventListener("change", e=>{ if(e.target.id === "mis_from" || e.target.id === "mis_to") M.load(); });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "mis") M.show(opts); };
+})();
+</script>
+
+<script>
+/* ============================================================
+   JOB LIST LAYOUT: Job No and the first party column stay in view (option: Freeze Job No & party).
+   Exports lead with the shipper then the consignee; imports lead with the consignee then the shipper.
+   ============================================================ */
+(function(){
+  "use strict";
+  const $ = id=> document.getElementById(id);
+  function layout(){
+    const table = $("jobTable"); if(!table) return;
+    const bucket = String((window.JOB_VIEW || {}).bucket || "");
+    const dir = ($("jobDirFilter") || {}).value || (/Import$/.test(bucket) ? "Import" : /Export$/.test(bucket) ? "Export" : "");
+    const ths = table.querySelectorAll("thead tr:first-child th");
+    if(ths.length > 2){
+      const names = dir === "Import" ? ["Consignee", "Shipper"] : dir === "Export" ? ["Shipper", "Consignee"] : ["Shipper / Consignee", "Consignee / Shipper"];
+      ths[1].textContent = names[0]; ths[2].textContent = names[1];
+      ths[1].title = dir === "" ? "Exports: the shipper. Imports: the consignee" : ""; ths[2].title = dir === "" ? "Exports: the consignee. Imports: the shipper" : "";
+    }
+    table.querySelectorAll("tbody tr[data-job-row]").forEach(tr=>{
+      const want = tr.dataset.dir === "Import"; if(want === (tr.dataset.partySwapped === "1")) return;
+      const c = tr.children; if(c.length < 3) return;
+      const a = c[1].innerHTML; c[1].innerHTML = c[2].innerHTML; c[2].innerHTML = a; tr.dataset.partySwapped = want ? "1" : "";
+    });
+  }
+  function freeze(on){ const scr = $("s-job-list"); if(scr) scr.classList.toggle("jt-freeze", !!on); }
+  let saved = true; try{ saved = localStorage.getItem("esway_job_freeze") !== "0"; }catch(e){}
+  freeze(saved); const tg = $("jobFreezeToggle"); if(tg) tg.checked = saved;
+  document.addEventListener("change", e=>{
+    if(e.target.id === "jobFreezeToggle"){ freeze(e.target.checked); try{ localStorage.setItem("esway_job_freeze", e.target.checked ? "1" : "0"); }catch(err){} }
+    if(e.target.id === "jobDirFilter") layout();
+  });
+  const watch = ()=>{ const tb = $("jobTableBody"); if(tb) new MutationObserver(()=>layout()).observe(tb, {childList:true, subtree:true, attributes:true, attributeFilter:["style", "class"]}); };
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch); else watch();
+  window.JobListLayout = {layout, freeze};
+  layout();
 })();
 </script>
 
