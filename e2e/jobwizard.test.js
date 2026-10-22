@@ -39,8 +39,6 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   sel("jobWizHbltype", "OTL"); await sleep(200);
   check("back to OTL: the SCAC shows blank and Next waits (no stale RTSU look)", q("#jobWizScac").value === "" && nx() === true);
   sel("jobWizScac", "IGLU"); await sleep(200); q("#jobWizNext").click(); await sleep(800);
-  console.log(failures ? "
-" + failures + " FAILED" : "
-ALL UI CHECKS PASSED");
+  console.log(failures ? failures + " FAILED" : "ALL UI CHECKS PASSED");
   process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });
