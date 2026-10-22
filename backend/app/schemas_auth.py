@@ -32,9 +32,9 @@ class OrganizationUpdate(BaseModel):
     status: str | None = Field(default=None, pattern="^(ACTIVE|INACTIVE)$")
 
 
-PARTY_ROLES = {"shipper", "consignee", "carrier", "agent", "cha", "transporter", "ar", "ap"}
-CLIENT_ROLES = ["shipper", "consignee", "ar"]
-VENDOR_ROLES = ["ap", "carrier", "agent", "cha", "transporter"]
+PARTY_ROLES = {"shipper", "consignee", "carrier", "agent", "cha", "transporter", "ar", "ap", "customer", "vendor", "iata", "cfs"}
+CLIENT_ROLES = ["shipper", "consignee", "ar", "customer"]
+VENDOR_ROLES = ["ap", "carrier", "agent", "cha", "transporter", "vendor", "iata", "cfs"]
 GSTIN_RE = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
 PAN_RE = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
 DATA_KEY_RE = re.compile(r"^[a-z0-9_]{1,60}$")

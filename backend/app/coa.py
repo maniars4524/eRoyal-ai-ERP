@@ -157,8 +157,8 @@ def party_ledger(db: Session, org_id: int, name: str, role: str, customer: Custo
     return _make_ledger(db, org_id, g, name, source_type="customer" if customer else "party", source_id=customer.id if customer else None, source_role=role, user_id=user_id)
 
 
-CLIENT_ROLES = {"shipper", "consignee", "ar", "client"}
-VENDOR_ROLES = {"carrier", "agent", "cha", "transporter", "ap", "vendor"}
+CLIENT_ROLES = {"shipper", "consignee", "ar", "client", "customer"}
+VENDOR_ROLES = {"carrier", "agent", "cha", "transporter", "ap", "vendor", "iata", "cfs"}
 
 
 def sync_customer(db: Session, customer: Customer, user_id=None) -> list[AccLedger]:

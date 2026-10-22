@@ -333,6 +333,136 @@ class Gstr2bRow(Base):
     imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class Airline(Base):
+    """Airline master (the company's list of airlines / air carriers). Linked to the Organization Master record of the airline where one exists."""
+    __tablename__ = "airlines"
+    __table_args__ = (UniqueConstraint("organization_id", "code", name="uq_airline_org_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    code: Mapped[str] = mapped_column(String(10))   # airline code, e.g. UL
+    name: Mapped[str] = mapped_column(String(200))
+    sub_name: Mapped[str | None] = mapped_column(String(200))
+    num_code: Mapped[str | None] = mapped_column(String(10))   # IATA numeric (AWB) prefix, e.g. 603
+    icao_code: Mapped[str | None] = mapped_column(String(10))
+    ac_code: Mapped[str | None] = mapped_column(String(20))
+    myc_commission = mapped_column(Numeric(7, 2), default=0, server_default="0")
+    country: Mapped[str | None] = mapped_column(String(80))
+    address1: Mapped[str | None] = mapped_column(String(200))
+    address2: Mapped[str | None] = mapped_column(String(200))
+    city: Mapped[str | None] = mapped_column(String(80))
+    state: Mapped[str | None] = mapped_column(String(80))
+    email: Mapped[str | None] = mapped_column(String(254))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    role_off: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")   # switched off because the organization no longer plays the role
+    source_id: Mapped[int | None] = mapped_column(Integer)   # AIRLINE_ID of the file it was loaded from
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ShippingLine(Base):
+    """Sea line (shipping line) master."""
+    __tablename__ = "shipping_lines"
+    __table_args__ = (UniqueConstraint("organization_id", "code", name="uq_shipline_org_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    code: Mapped[str] = mapped_column(String(20))   # SCAC / line code
+    name: Mapped[str] = mapped_column(String(200))
+    sub_name: Mapped[str | None] = mapped_column(String(200))
+    scac_code: Mapped[str | None] = mapped_column(String(10))
+    country: Mapped[str | None] = mapped_column(String(80))
+    address1: Mapped[str | None] = mapped_column(String(200))
+    address2: Mapped[str | None] = mapped_column(String(200))
+    city: Mapped[str | None] = mapped_column(String(80))
+    state: Mapped[str | None] = mapped_column(String(80))
+    email: Mapped[str | None] = mapped_column(String(254))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    website: Mapped[str | None] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    role_off: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class IataRecord(Base):
+    """IATA master: an IATA agent / accreditation of an organization, optionally tied to an airline."""
+    __tablename__ = "iata_records"
+    __table_args__ = (UniqueConstraint("organization_id", "iata_code", name="uq_iata_org_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    airline_id: Mapped[int | None] = mapped_column(ForeignKey("airlines.id", ondelete="SET NULL"), index=True)
+    iata_code: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(200))
+    cass_code: Mapped[str | None] = mapped_column(String(20))
+    country: Mapped[str | None] = mapped_column(String(80))
+    address: Mapped[str | None] = mapped_column(String(300))
+    city: Mapped[str | None] = mapped_column(String(80))
+    contact_person: Mapped[str | None] = mapped_column(String(120))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    email: Mapped[str | None] = mapped_column(String(254))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    role_off: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CfsRecord(Base):
+    """CFS master: a container freight station."""
+    __tablename__ = "cfs_records"
+    __table_args__ = (UniqueConstraint("organization_id", "code", name="uq_cfs_org_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)
+    code: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(200))
+    location: Mapped[str | None] = mapped_column(String(200))
+    city: Mapped[str | None] = mapped_column(String(80))
+    state: Mapped[str | None] = mapped_column(String(80))
+    country: Mapped[str | None] = mapped_column(String(80))
+    port_code: Mapped[str | None] = mapped_column(String(10))   # UNLOCODE of the port it serves
+    contact_person: Mapped[str | None] = mapped_column(String(120))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    email: Mapped[str | None] = mapped_column(String(254))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    role_off: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AirlineStockLine(Base):
+    """An AWB stock range received from an airline (master or house AWB numbers)."""
+    __tablename__ = "airline_stock_lines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    airline_id: Mapped[int] = mapped_column(ForeignKey("airlines.id", ondelete="RESTRICT"), index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), index=True)   # the shipper organization the stock is held for, if any
+    bill_type: Mapped[str] = mapped_column(String(10), default="MASTER")   # MASTER | HOUSE
+    from_awb: Mapped[str] = mapped_column(String(12))
+    to_awb: Mapped[str] = mapped_column(String(12))
+    shipper: Mapped[str | None] = mapped_column(String(200))
+    myc_value = mapped_column(Numeric(14, 2), default=0, server_default="0")
+    cancel_charge = mapped_column(Numeric(14, 2), default=0, server_default="0")
+    received_date: Mapped[date | None] = mapped_column(Date)
+    ref_no: Mapped[str | None] = mapped_column(String(40))
+    remarks: Mapped[str | None] = mapped_column(String(400))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class CompanyDocProfile(Base):
     """Letterhead and registration details printed on the company's documents (BL / MTD): address, contacts, OTL / MTO / FMC registration numbers, signatory, signature and seal images."""
     __tablename__ = "company_doc_profiles"

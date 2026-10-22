@@ -2082,7 +2082,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="fr">
     <div class="fg"><label class="fl">Place of Supply</label><input class="fc" id="org_place_of_supply" readonly style="background:var(--g0)"></div>
     <div class="fg"><label class="fl">Supply Code</label><input class="fc" id="org_supply_code" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-    <div class="fg"><label class="fl">GST Applicable</label><input class="fc" id="org_gst_applicable_foreign" readonly style="background:var(--g0);color:var(--rd);font-weight:600"></div>
+    <div class="fg"><label class="fl">GST Applicable</label><select class="fc" id="org_gst_applicable_foreign"><option value="No">No</option><option value="Yes">Yes</option></select></div>
   </div>
 </div>
 
@@ -10128,16 +10128,20 @@ function orgApplyCountryLogic(source){
 
   const isIndia = countryEl.value.indexOf("India") === 0;
   const inWrap = $("#orgIndiaTaxWrap"), fWrap = $("#orgForeignTaxWrap");
-  if(inWrap) inWrap.style.display = isIndia ? "" : "none";
+  const fGst = $("#org_gst_applicable_foreign"), fYes = !isIndia && fGst && fGst.value === "Yes";
+  if(inWrap) inWrap.style.display = (isIndia || fYes) ? "" : "none";
   if(fWrap) fWrap.style.display = isIndia ? "none" : "";
   if(!isIndia){
-    ["org_gstin","org_pan","org_tan","org_iec"].forEach(id=>{ const el=$("#"+id); if(el) el.value=""; });
+    const pos = $("#org_place_of_supply"), sc = $("#org_supply_code");
+    if(pos) pos.value = "Foreign Territory"; if(sc) sc.value = "96";
+    if(fGst && !fGst.value) fGst.value = "No";
+    if(!fYes) ["org_gstin","org_pan","org_tan","org_iec"].forEach(id=>{ const el=$("#"+id); if(el) el.value=""; });
   }
 
   // mirror onto the Address tab so the GST / Foreign Territory status is visible there too
   const addrGst = $("#org_addr_gst_applicable"), addrNote = $("#org_addr_foreign_note"), addrStateLbl = $("#org_addr_state_lbl");
   if(addrGst){
-    addrGst.value = isIndia ? "Yes" : "No";
+    addrGst.value = isIndia ? "Yes" : (fGst && fGst.value) || "No";
     addrGst.style.color = isIndia ? "var(--gr)" : "var(--rd)";
   }
   if(addrNote) addrNote.style.display = isIndia ? "none" : "block";
@@ -10165,6 +10169,7 @@ function wireOrgCountryLogic(){
   if(addrCountryEl && !addrCountryEl.dataset.wired){ addrCountryEl.dataset.wired = "1"; addrCountryEl.addEventListener("change", ()=>orgApplyCountryLogic("address")); }
   if(stateEl && !stateEl.dataset.wired){ stateEl.dataset.wired = "1"; stateEl.addEventListener("change", ()=>orgApplyStateCode("details")); }
   if(addrStateEl && !addrStateEl.dataset.wired){ addrStateEl.dataset.wired = "1"; addrStateEl.addEventListener("change", ()=>orgApplyStateCode("address")); }
+  const fg = $("#org_gst_applicable_foreign"); if(fg && !fg.dataset.wired){ fg.dataset.wired = "1"; fg.addEventListener("change", ()=>orgApplyCountryLogic("details")); }
   orgApplyCountryLogic("details");
 }
 document.addEventListener("DOMContentLoaded", wireOrgCountryLogic);
@@ -15955,7 +15960,7 @@ if(document.readyState !== "loading") initChatWidget();
   }
 
   /* ---------- preparation form ---------- */
-  const headDefaults = ()=> ({customer_id:"", party_name:"", quote_date:today(), valid_until:new Date(Date.now()+15*864e5).toISOString().slice(0,10), currency:"USD", sales_person:(Q.me && ((Q.me.first_name||"")+" "+(Q.me.last_name||"")).trim()) || "", service_type:"Port to Port", reference_no:"", incoterm:"", commodity:"", payment_terms:"", transit_days:"", packages:"", gross_weight:"", volume:"", origin:"", final_destination:"", carrier:"", chargeable_weight:"", dimensions:"", billing_branch_id:"", contact_id:"", pol:"", pod:"", terms:"", remarks:""});
+  const headDefaults = ()=> ({customer_id:"", party_name:"", cust_source:"master", lead_ref:"", quote_date:today(), valid_until:new Date(Date.now()+15*864e5).toISOString().slice(0,10), currency:"USD", sales_person:(Q.me && ((Q.me.first_name||"")+" "+(Q.me.last_name||"")).trim()) || "", service_type:"Port to Port", reference_no:"", incoterm:"", commodity:"", payment_terms:"", transit_days:"", packages:"", gross_weight:"", volume:"", origin:"", final_destination:"", carrier:"", chargeable_weight:"", dimensions:"", billing_branch_id:"", contact_id:"", pol:"", pod:"", terms:"", remarks:""});
   function setActions(){
     const bar = document.getElementById("qkActions"); if(!bar) return;
     const r = Q.rec, formShown = document.getElementById("quotFormWrap").style.display === "block";
@@ -15995,8 +16000,23 @@ if(document.readyState !== "loading") initChatWidget();
     const [b, c] = await Promise.all([api("GET","/api/customers/"+cid+"/branches").catch(()=>[]), api("GET","/api/customers/"+cid+"/contacts").catch(()=>[])]);
     Q.m.custBranches = b; Q.m.custContacts = c;
   }
+  const leadsList = ()=> ((window.CRM_STORE && window.CRM_STORE.lead) || []);
+  function custControl(h, d){
+    const src = h.cust_source || "master", sel = v=> src === v ? " selected" : "";
+    const srcSel = '<select class="fc" data-qh="cust_source" style="margin-bottom:6px"'+d+'><option value="master"'+sel("master")+'>Customer Master (Organization)</option><option value="lead"'+sel("lead")+'>Customer from Lead</option><option value="direct"'+sel("direct")+'>Direct entry (type it)</option></select>';
+    let ctl;
+    if(src === "lead"){
+      const ls = leadsList(), cur = String(h.lead_ref||"");
+      ctl = '<select class="fc" data-qh="lead_ref"'+d+'><option value="">— Select a lead —</option>'+ls.map(l=>'<option value="'+esc2(l.id)+'"'+(String(l.id)===cur?' selected':'')+'>'+esc2(l.company+(l.contact?" · "+l.contact:"")+" ("+l.id+")")+'</option>').join("")+(cur && !ls.some(l=>String(l.id)===cur) ? '<option value="'+esc2(cur)+'" selected>'+esc2(h.party_name||cur)+'</option>' : '')+'</select>';
+    } else if(src === "direct"){
+      ctl = '<input class="fc" data-qh="party_name" value="'+esc2(h.party_name||"")+'" placeholder="Type the customer name"'+d+'>';
+    } else {
+      ctl = '<select class="fc" data-qh="customer_id"'+d+'><option value="">— Select from Customer Master —</option>'+Q.m.customers.map(c=>'<option value="'+esc2(String(c.id))+'"'+(String(c.id)===String(h.customer_id)?' selected':'')+'>'+esc2(c.name+(c.code?" ("+c.code+")":""))+'</option>').join("")+(h.customer_id && !Q.m.customers.some(c=>String(c.id)===String(h.customer_id)) ? '<option value="'+esc2(String(h.customer_id))+'" selected>'+esc2(h.party_name)+'</option>' : '')+'</select>';
+    }
+    return srcSel + ctl;
+  }
   function partySnapshot(){
-    const h = Q.head, cust = Q.m.customers.find(c=>String(c.id)===String(h.customer_id)); if(!cust) return {};
+    const h = Q.head, cust = Q.m.customers.find(c=>String(c.id)===String(h.customer_id)); if(!cust) return {contact_person:h.contact_person||"", contact_email:h.contact_email||"", contact_mobile:h.contact_mobile||"", billing_address:h.billing_address||"", customer_gstin:h.customer_gstin||"", branch_name:""};
     const d = cust.data || {}; const br = (Q.m.custBranches||[]).find(b=>String(b.id)===String(h.billing_branch_id));
     const lines = br ? [br.address, br.address2, [br.city, br.state, br.pincode].filter(Boolean).join(", "), br.country] : [d.address_line_1, d.address_line_2, [d.city, d.state_province || d.state, d.pincode].filter(Boolean).join(", "), cust.country];
     const ct = (Q.m.custContacts||[]).find(c=>String(c.id)===String(h.contact_id)) || (Array.isArray(d.contacts) && d.contacts[0] ? {name:d.contacts[0].name, email:d.contacts[0].email, mobile:d.contacts[0].phone} : null);
@@ -16009,7 +16029,7 @@ if(document.readyState !== "loading") initChatWidget();
     const w = wiz();
     return '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Quotation Information</div><div style="font-size:11.5px;color:var(--g6)">'+esc2([w.dir, w.mode, w.type].filter(Boolean).join(" · "))+' · '+esc2(w.qtype||"")+' · '+(isMulti()?"Multiple carriers":"Single carrier")+(ro?"":' <span class="ta" data-qa="changewiz">Change</span>')+'</div></div><div class="cb"><div class="qk-grid">'+
       f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Generated when approved")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
-      f("Customer", '<select class="fc" data-qh="customer_id"'+d+'><option value="">— Select from Customer Master —</option>'+Q.m.customers.map(c=>opt(String(c.id), c.name+(c.code?" ("+c.code+")":""), String(c.id)===String(h.customer_id))).join("")+(h.customer_id && !Q.m.customers.some(c=>String(c.id)===String(h.customer_id)) ? opt(String(h.customer_id), h.party_name, true) : "")+'</select>', "", true)+
+      f("Customer", custControl(h, d), "", true)+
       f("Quotation Date", inp("quote_date","date"))+f("Valid Until", inp("valid_until","date"), "", true)+
       f("Currency", '<select class="fc" data-qh="currency"'+d+'>'+ccyList().map(c=>opt(c, c, c===h.currency)).join("")+'</select>', "", true)+
       f("Sales Person", '<select class="fc" data-qh="sales_person"'+d+'><option value="">—</option>'+Q.m.users.map(u=>{ const n = ((u.first_name||"")+" "+(u.last_name||"")).trim(); return opt(n, n, n===h.sales_person); }).join("")+(h.sales_person && !Q.m.users.some(u=>((u.first_name||"")+" "+(u.last_name||"")).trim()===h.sales_person) ? opt(h.sales_person, h.sales_person, true) : "")+'</select>')+
@@ -16168,8 +16188,8 @@ if(document.readyState !== "loading") initChatWidget();
 
   /* ---------- open / load ---------- */
   function fillFromRec(r){
-    Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
-      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name"].map(k=>[k, (r.header||{})[k]||""]))};
+    Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", cust_source:(r.header||{}).cust_source || (r.customer_id ? "master" : "direct"), lead_ref:(r.header||{}).lead_ref||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
+      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref"].map(k=>[k, (r.header||{})[k]||""]))};
     const mk = l=>({side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
     Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk); pairLines();
   }
@@ -16197,7 +16217,11 @@ if(document.readyState !== "loading") initChatWidget();
   }
   Q.prefillFromEnquiry = function(enq){
     const h = Q.head, cust = enq.customerId ? Q.m.customers.find(c=>String(c.id) === String(enq.customerId)) : Q.m.customers.find(c=>c.name.toLowerCase() === String(enq.company||"").toLowerCase());
-    if(cust){ h.customer_id = String(cust.id); h.party_name = cust.name; }
+    if(cust){ h.customer_id = String(cust.id); h.party_name = cust.name; h.cust_source = "master"; }
+    else if(enq.company){
+      const ld = leadsList().find(l=>String(l.id) === String(enq.leadId||"") || (enq.id && String(l.enquiryId||"") === String(enq.id))) || leadsList().find(l=>String(l.company||"").toLowerCase() === String(enq.company).toLowerCase());
+      Object.assign(h, {cust_source:ld ? "lead" : "direct", lead_ref:ld ? ld.id : "", party_name:enq.company, contact_person:(ld && ld.contact) || enq.contact || "", contact_email:(ld && ld.email) || enq.email || "", contact_mobile:(ld && ld.mobile) || enq.mobile || ""});
+    }
     const port = v=> { const t = String(v||"").trim(); const m = Q.m.ports.find(p=>t && (p.code === t.toUpperCase() || p.name.toLowerCase() === t.toLowerCase())); return m ? m.code+" - "+m.name : t; };
     Object.assign(h, {pol:port(enq.pol || enq.origin), pod:port(enq.pod || enq.destination), commodity:enq.commodity||"", packages:enq.packages||"", gross_weight:enq.grossWeight||"", volume:enq.volumeCBM||"", incoterm:INCOTERMS.includes(enq.incoterm) ? enq.incoterm : "", payment_terms:enq.paymentTerms||"", reference_no:enq.id||"", currency:ccyList().includes(enq.currency) ? enq.currency : h.currency});
   };
@@ -16224,12 +16248,12 @@ if(document.readyState !== "loading") initChatWidget();
     };
     return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
       pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,
-      header:Object.fromEntries(Object.entries({...h, ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name"].includes(k) && v!=="" && v!==undefined && v!==null)),
+      header:Object.fromEntries(Object.entries({...h, ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref"].includes(k) && v!=="" && v!==undefined && v!==null)),
       lines:keepLines().map(toLine)};
   }
   function validate(forSubmit){
     const miss = [];
-    if(!Q.head.customer_id) miss.push("Customer"); if(!(Q.head.pol||"").trim()) miss.push("From"); if(!(Q.head.pod||"").trim()) miss.push("To");
+    if(!Q.head.customer_id && !String(Q.head.party_name||"").trim()) miss.push("Customer"); if(!(Q.head.pol||"").trim()) miss.push("From"); if(!(Q.head.pod||"").trim()) miss.push("To");
     if(forSubmit){ if(!Q.head.valid_until) miss.push("Valid Until"); if(!Q.sell.some(l=>l.charge_name && (Number(l.rate)>0 || (l.container_breakup||[]).some(b=>Number(b.rate)>0)))) miss.push("at least one Sell charge with a rate");
       Q.sell.concat(Q.buy).forEach((l,i)=>{ if(l.ccy !== "INR" && !(Number(l.exch)>0)) miss.push("Exchange rate for "+(l.charge_name||"line "+(i+1))); }); }
     if(miss.length){ say("Please complete the required details", miss.join(", "), "warn"); return false; }
@@ -16525,7 +16549,11 @@ if(document.readyState !== "loading") initChatWidget();
   document.addEventListener("input", e=>{
     const el = e.target; if(!document.getElementById("s-quotation-new").contains(el)) return;
 
-    if(el.dataset.qh){ Q.head[el.dataset.qh] = el.value; Q.dirty = true; if(el.dataset.qh === "customer_id"){ const c = Q.m.customers.find(x=>String(x.id)===el.value); Q.head.party_name = c ? c.name : ""; Q.head.billing_branch_id = ""; Q.head.contact_id = ""; loadParties(el.value).then(()=>renderAll(true)); }
+    if(el.dataset.qh){ Q.head[el.dataset.qh] = el.value; Q.dirty = true; if(el.dataset.qh === "cust_source"){ Object.assign(Q.head, {customer_id:"", party_name:"", lead_ref:"", billing_branch_id:"", contact_id:"", contact_person:"", contact_email:"", contact_mobile:"", billing_address:"", customer_gstin:""}); Q.m.custBranches = []; Q.m.custContacts = []; renderAll(true); return; }
+      if(el.dataset.qh === "lead_ref"){ const l = leadsList().find(x=>String(x.id)===el.value); const h = Q.head;
+        Object.assign(h, {party_name:l ? l.company : "", customer_id:l && l.customerId ? String(l.customerId) : "", billing_branch_id:"", contact_id:"", contact_person:l ? (l.contact||"") : "", contact_email:l ? (l.email||"") : "", contact_mobile:l ? (l.mobile||"") : "", billing_address:"", customer_gstin:""});
+        loadParties(h.customer_id).then(()=>renderAll(true)); return; }
+      if(el.dataset.qh === "customer_id"){ const c = Q.m.customers.find(x=>String(x.id)===el.value); Q.head.party_name = c ? c.name : ""; Q.head.billing_branch_id = ""; Q.head.contact_id = ""; loadParties(el.value).then(()=>renderAll(true)); }
       if(el.dataset.qh === "billing_branch_id"){ Q.head.contact_id = ""; const bc = (Q.m.custContacts||[]).find(c=>c.status==="ACTIVE" && String(c.branch_id)===String(el.value) && c.is_billing); if(bc) Q.head.contact_id = String(bc.id); renderAll(true); }
       return; }
     if(el.dataset.ql){ const [side, idx, f] = el.dataset.ql.split(":"); const l = (side==="sell"?Q.sell:Q.buy)[Number(idx)]; if(!l) return;
