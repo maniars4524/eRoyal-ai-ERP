@@ -37,7 +37,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   w.go("org-list"); await sleep(800);
   check("organization list starts empty (no dummy rows)", rows().length === 1 && /No organizations yet/.test(rows()[0]), rows().join("|"));
-  check("type filter lists real party types", Array.from(q("#orgTypeFilter").options).map(o => o.text).join(",") === "All Types,Client,Vendor,Carrier,CHA,Agent,Transporter");
+  check("type filter lists real party types", Array.from(q("#orgTypeFilter").options).map(o => o.text).join(",") === "All Types,Client,Vendor,Carrier,IATA,CFS,CHA,Agent,Co-Loader,Transporter");
 
   // ---- new client with role, tax ids, contact and address rows
   w.go("org-new"); await sleep(600);

@@ -187,6 +187,15 @@ def _search(kind: str, q: str):
     return or_(*[getattr(m, c).ilike(like) for c in cols])
 
 
+@router.get("/by-organization/{customer_id}")
+def by_organization(customer_id: int, user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+    """The master records (airline, sea line, IATA, CFS) linked to one organization, for the Organization form."""
+    org_id = _tenant(user)
+    if not db.scalar(select(Customer.id).where(Customer.id == customer_id, Customer.organization_id == org_id)):
+        raise HTTPException(404, "Organization not found")
+    return org_links.links_of(db, customer_id)
+
+
 @router.get("/pickers")
 def pickers(user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
     """Light lists for the drop-downs of bookings and other screens: active airlines, sea lines, IATA agents, CFS and stock lines."""

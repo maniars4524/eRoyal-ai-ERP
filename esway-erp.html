@@ -2086,18 +2086,25 @@ tbody tr:hover{background:var(--g0)}
   </div>
 </div>
 
-<div class="fsec">Organization role flags</div>
-<div class="ib ib-bl"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>Select all roles this organization plays. Each flag activates its dedicated configuration sub-tab and sub-table in <strong>Role Defaults</strong>.</div>
+<div class="fsec">Select All Roles This Organization Plays</div>
+<div class="ib ib-bl"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>Select every role this organization plays. One organization record is used everywhere; Carrier, IATA and CFS open the matching master (Airline / Sea Line, IATA, CFS) and ask for its code.</div>
 <div class="fg2" id="orgRoleFlags">
+  <div class="fi" data-role="customer"><div class="ftg"></div><span class="flbl">Customer</span></div>
+  <div class="fi" data-role="vendor"><div class="ftg"></div><span class="flbl">Vendor</span></div>
   <div class="fi" data-role="shipper"><div class="ftg"></div><span class="flbl">Shipper / Exporter</span></div>
   <div class="fi" data-role="consignee"><div class="ftg"></div><span class="flbl">Consignee / Importer</span></div>
   <div class="fi" data-role="carrier"><div class="ftg"></div><span class="flbl">Carrier (Line/Airline)</span></div>
   <div class="fi" data-role="agent"><div class="ftg"></div><span class="flbl">Overseas Agent</span></div>
+  <div class="fi" data-role="origin_agent"><div class="ftg"></div><span class="flbl">Origin Agent</span></div>
+  <div class="fi" data-role="coloader"><div class="ftg"></div><span class="flbl">Co-Loader</span></div>
+  <div class="fi" data-role="iata"><div class="ftg"></div><span class="flbl">IATA</span></div>
+  <div class="fi" data-role="cfs"><div class="ftg"></div><span class="flbl">CFS</span></div>
   <div class="fi" data-role="cha"><div class="ftg"></div><span class="flbl">CHA / Customs Broker</span></div>
   <div class="fi" data-role="transporter"><div class="ftg"></div><span class="flbl">Transporter</span></div>
   <div class="fi" data-role="ar"><div class="ftg"></div><span class="flbl">Receivable (AR)</span></div>
   <div class="fi" data-role="ap"><div class="ftg"></div><span class="flbl">Payable (AP)</span></div>
 </div>
+<div id="netRoleBlocks"></div>
 </div></div></div>
 
 <!-- OT2: ADDRESS -->
@@ -7724,7 +7731,7 @@ function pcGetState(jobNo){
   return JOB_PARTIES_DB[key];
 }
 /* each party field lists only the Organization Master parties of its category */
-const PC_ROLES = {shipper:["shipper"], consignee:["consignee"], notify1:["consignee","agent"], notify2:["consignee","agent"], originAgent:["agent"], deliveryAgent:["agent"], coloader:["agent"], coloaderShipper:["agent"], coloaderConsignee:["agent"], billTo:["ar","shipper","consignee"], cfs:["ap","transporter"], cha:["cha"], transport:["transporter"]};
+const PC_ROLES = {shipper:["shipper"], consignee:["consignee"], notify1:["consignee","agent"], notify2:["consignee","agent"], originAgent:["origin_agent","agent"], deliveryAgent:["agent"], coloader:["coloader","agent"], coloaderShipper:["agent"], coloaderConsignee:["agent"], billTo:["ar","shipper","consignee"], cfs:["cfs","ap","transporter"], cha:["cha"], transport:["transporter"]};
 function pcPartyOptions(selected, extra, field){
   const roles = PC_ROLES[field];
   const names = (typeof ORG_DB!=="undefined") ? Object.keys(ORG_DB).filter(n=> !roles || (ORG_DB[n].roles||[]).some(r=>roles.indexOf(r)>-1)) : [];
@@ -14339,8 +14346,8 @@ if(document.readyState !== "loading") initChatWidget();
 (function(){
   "use strict";
   const U = MK.util; const {api, say, esc2, slug, fieldNodes, getValue, setValue, clearField} = U;
-  const ROLE_LABEL = {shipper:"Shipper", consignee:"Consignee", carrier:"Carrier", agent:"Agent", cha:"CHA", transporter:"Transporter", ar:"AR", ap:"AP"};
-  const TYPE_ROLES = {Client:["shipper","consignee","ar"], Vendor:["ap","carrier","agent","cha","transporter"], Carrier:["carrier"], CHA:["cha"], Agent:["agent"], Transporter:["transporter"]};
+  const ROLE_LABEL = {customer:"Customer", vendor:"Vendor", shipper:"Shipper", consignee:"Consignee", carrier:"Carrier", agent:"Overseas Agent", origin_agent:"Origin Agent", coloader:"Co-Loader", iata:"IATA", cfs:"CFS", cha:"CHA", transporter:"Transporter", ar:"AR", ap:"AP"};
+  const TYPE_ROLES = {Client:["customer","shipper","consignee","ar"], Vendor:["vendor","ap","carrier","agent","origin_agent","coloader","iata","cfs","cha","transporter"], Carrier:["carrier"], IATA:["iata"], CFS:["cfs"], CHA:["cha"], Agent:["agent","origin_agent"], "Co-Loader":["coloader"], Transporter:["transporter"]};
   let parties = [], pending = null, search = "", typeFilter = "";
   const REPEAT = [
     {key:"addresses", tab:"ot2", header:"Type", cols:[{k:"type", t:"select", o:["Billing","Delivery","Warehouse","Registered"]}, {k:"address", t:"text", ph:"Address"}, {k:"city", t:"text", ph:"City"}, {k:"primary", t:"check"}]},
@@ -14457,7 +14464,7 @@ if(document.readyState !== "loading") initChatWidget();
     fields.forEach(f=>{ if(f.ctl) f.ctl.classList.toggle("err", missing.includes(f)); });
     U.reportMissing(scr, missing);
     if(missing.length) return;
-    if(!roles.length){ say("Choose a role", "Select at least one role (Shipper, Consignee, Carrier, Agent, CHA, Transporter, AR or AP)", "warn"); return; }
+    if(!roles.length){ say("Choose a role", "Select at least one role this organization plays", "warn"); return; }
     const core = new Set(["org_code","full_legal_name","short_name","category","country","gstin","pan","credit_limit","payment_terms","status"]);
     const data = {};
     fields.forEach(f=>{ if(!core.has(f.key)){ const v = getValue(f); if(v !== "") data[f.key] = v; } });
@@ -16367,7 +16374,7 @@ if(document.readyState !== "loading") initChatWidget();
     const td = (v, a, extra)=> '<td style="padding:6px 8px;text-align:'+(a||"left")+';border:1px solid #111;font-size:11.5px;'+(extra||"")+'">'+v+'</td>';
     const pair = (label, v)=> '<div style="display:flex;gap:6px;font-size:11.5px;line-height:1.55"><span style="width:112px;flex:none;font-weight:800">'+label+'</span><span>: '+e(v || "")+'</span></div>';
     const number = q.number || "Pending approval";
-    const roleText = cust && (cust.roles || []).length ? cust.roles.map(r=>({shipper:"Shipper", consignee:"Consignee", carrier:"Carrier", agent:"Agent", cha:"CHA", transporter:"Transporter"})[r] || r).join(", ") : "";
+    const roleText = cust && (cust.roles || []).length ? cust.roles.map(r=>({customer:"Customer", vendor:"Vendor", shipper:"Shipper", consignee:"Consignee", carrier:"Carrier", agent:"Agent", origin_agent:"Origin Agent", coloader:"Co-Loader", iata:"IATA", cfs:"CFS", cha:"CHA", transporter:"Transporter"})[r] || r).join(", ") : "";
     const forwardingTitle = "Forwarding ("+e([q.mode, q.direction].filter(Boolean).join(" "))+")";
     const rows = sell.map(l=>{ const bu = l.container_breakup || []; const tx = l.taxable && Number(l.tax_pct) > 0;
       return '<tr>'+td('<b>'+e(String(l.charge_name).toUpperCase())+'</b><div style="font-size:10px;color:#475569">'+e(l.basis)+(l.carrier ? " · "+e(l.carrier) : "")+'</div>'+(bu.length ? '<div style="font-size:10px;color:#475569">'+bu.map(b=>e(b.type)+" × "+e(Number(b.qty))+" @ "+e(l.ccy)+" "+e(Number(b.rate).toLocaleString("en-IN"))).join("<br>")+'</div>' : (l.container_type ? '<div style="font-size:10px;color:#475569">'+e(l.container_type)+'</div>' : ''))+(l.remarks ? '<div style="font-size:10px;color:#475569">'+e(l.remarks)+'</div>' : ''))+
@@ -19125,6 +19132,88 @@ function makePrintFit(){
 </script>
 
 <script>
+/* ============================================================
+   NET ROLES KIT: "Select All Roles This Organization Plays". Carrier asks for the carrier type (Airline / Sea Line), IATA and CFS ask for their codes.
+   The backend (org_links.sync_org) creates / links the matching Airline, Sea Line, IATA or CFS master record when the organization is saved.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const host = ()=> document.getElementById("netRoleBlocks");
+  const on = r=> !!document.querySelector('#orgRoleFlags .fi[data-role="'+r+'"].on');
+  const st = {rec:null, airline:false, sea:false, links:{}};
+  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code"];
+  const val = id=> { const e = document.getElementById(id); return e ? e.value.trim() : ""; };
+  const fld = (id, label, ph, cur, req, extra)=> '<div class="fg"><label class="fl">'+label+(req?' <span class="r">*</span>':'')+'</label><input class="fc" id="'+id+'" value="'+esc2(cur||"")+'" placeholder="'+esc2(ph||"")+'" autocomplete="off"'+(extra||"")+'></div>';
+  const d = ()=> (st.rec && st.rec.data) || {};
+  const linkNote = k=> st.links[k] ? '<div style="font-size:11px;color:var(--g6);margin:2px 0 8px">Linked master record: <strong>'+esc2(st.links[k].code)+'</strong> — '+esc2(st.links[k].name)+' ('+esc2(st.links[k].status)+')</div>' : '';
+  function read(){ // keep what was typed while the blocks are redrawn
+    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
+  }
+  const cur = k=> st[k] !== undefined ? st[k] : (d()[k] || "");
+  function draw(){
+    const h = host(); if(!h) return;
+    let out = "";
+    if(on("carrier")){
+      out += '<div class="fsec" style="margin-top:12px">Carrier type <span class="r">*</span></div><div class="fg2" id="netCarrierType"><div class="fi'+(st.airline?" on":"")+'" data-ctype="airline"><div class="ftg"></div><span class="flbl">Airline</span></div><div class="fi'+(st.sea?" on":"")+'" data-ctype="sea"><div class="ftg"></div><span class="flbl">Sea Line (Shipping Line)</span></div></div>';
+      if(!st.airline && !st.sea) out += '<div class="ib ib-am" style="margin-top:6px">Choose the carrier type: Airline or Sea Line. It decides which master (Airline Master or Sea Line Master) this organization is linked to.</div>';
+      if(st.airline) out += '<div class="fsec" style="margin-top:10px">Airline details (linked to the Airline Master)</div>'+linkNote("airline")+'<div class="fr">'+fld("net_airline_code","Airline Code","e.g. AI",cur("airline_code"),true,' maxlength="10" style="text-transform:uppercase"')+fld("net_iata_numeric_code","IATA Numeric Code","3 digits e.g. 098",cur("iata_numeric_code"),false,' maxlength="3" inputmode="numeric"')+fld("net_icao_code","ICAO Code","e.g. AIC",cur("icao_code"),false,' maxlength="4" style="text-transform:uppercase"')+'</div>';
+      if(st.sea) out += '<div class="fsec" style="margin-top:10px">Sea line details (linked to the Sea Line Master)</div>'+linkNote("sea_line")+'<div class="fr">'+fld("net_sea_line_code","Sea Line Code","e.g. MSC",cur("sea_line_code"),true,' maxlength="20" style="text-transform:uppercase"')+fld("net_scac_code","SCAC Code","e.g. MSCU",cur("scac_code"),false,' maxlength="4" style="text-transform:uppercase"')+'</div>';
+    }
+    if(on("iata")) out += '<div class="fsec" style="margin-top:12px">IATA details (linked to the IATA Master)</div>'+linkNote("iata")+'<div class="fr">'+fld("net_iata_agent_code","IATA Agent Code","IATA agent code",cur("iata_agent_code"),true,' maxlength="20" style="text-transform:uppercase"')+fld("net_cass_code","CASS Code","CASS code",cur("cass_code"),false,' maxlength="20"')+'</div>';
+    if(on("cfs")) out += '<div class="fsec" style="margin-top:12px">CFS details (linked to the CFS Master)</div>'+linkNote("cfs")+'<div class="fr">'+fld("net_cfs_code","CFS Code","CFS code",cur("cfs_code"),true,' maxlength="20" style="text-transform:uppercase"')+fld("net_cfs_port_code","Port Code","5-letter port code e.g. INMAA",cur("cfs_port_code"),false,' maxlength="5" style="text-transform:uppercase"')+'</div>';
+    h.innerHTML = out;
+  }
+  const redraw = ()=> { read(); draw(); };
+  document.addEventListener("click", e=>{
+    const t = e.target;
+    if(t.closest && t.closest("#orgRoleFlags .fi")) { setTimeout(redraw, 0); return; }
+    const ct = t.closest && t.closest("#netCarrierType .fi"); if(ct){ const k = ct.dataset.ctype === "air" || ct.dataset.ctype === "airline" ? "airline" : "sea"; st[k] = !st[k]; redraw(); }
+  });
+  // load the record into the blocks after the form has opened
+  const wrapFill = ()=>{
+    if(!window.OrgExt || OrgExt.__netWrapped) return false; OrgExt.__netWrapped = true;
+    const f = OrgExt.fill, c = OrgExt.collect;
+    OrgExt.fill = function(rec){
+      const r = f.apply(this, arguments);
+      Object.keys(st).forEach(k=>{ if(!["rec","airline","sea","links"].includes(k)) delete st[k]; });
+      st.rec = rec || null; st.links = {}; const dd = (rec && rec.data) || {};
+      st.airline = U.yes ? U.yes(dd.carrier_airline) : /^(yes|true|1)$/i.test(String(dd.carrier_airline||"")); st.sea = /^(yes|true|1)$/i.test(String(dd.carrier_sea_line||""));
+      setTimeout(async ()=>{ draw(); if(rec && rec.id){ try{ st.links = await api("GET","/api/network/by-organization/"+rec.id); draw(); }catch(e){ /* no links yet */ } } }, 0);
+      return r;
+    };
+    OrgExt.collect = function(){
+      const base = c.apply(this, arguments) || {}; read();
+      const o = Object.assign({}, base);
+      KEYS.forEach(k=>{ delete o[k]; });
+      if(on("carrier")){
+        if(st.airline){ o.carrier_airline = "yes"; o.airline_code = val("net_airline_code").toUpperCase(); if(val("net_iata_numeric_code")) o.iata_numeric_code = val("net_iata_numeric_code"); if(val("net_icao_code")) o.icao_code = val("net_icao_code").toUpperCase(); }
+        if(st.sea){ o.carrier_sea_line = "yes"; o.sea_line_code = val("net_sea_line_code").toUpperCase(); if(val("net_scac_code")) o.scac_code = val("net_scac_code").toUpperCase(); }
+      }
+      if(on("iata")){ o.iata_agent_code = val("net_iata_agent_code").toUpperCase(); if(val("net_cass_code")) o.cass_code = val("net_cass_code"); }
+      if(on("cfs")){ o.cfs_code = val("net_cfs_code").toUpperCase(); if(val("net_cfs_port_code")) o.cfs_port_code = val("net_cfs_port_code").toUpperCase(); }
+      return o;
+    };
+    return true;
+  };
+  // role-specific validation before the form is saved
+  document.addEventListener("click", e=>{
+    if(!(e.target.closest && e.target.closest("#orgSaveBtn"))) return;
+    read(); const bad = [];
+    const need = (id, label)=> { const el = document.getElementById(id); const miss = !el || !el.value.trim(); if(el) el.classList.toggle("err", miss); if(miss) bad.push(label); return !miss; };
+    const fmt = (id, rx, msg)=> { const el = document.getElementById(id); if(el && el.value.trim() && !rx.test(el.value.trim().toUpperCase())){ el.classList.add("err"); bad.push(msg); } };
+    if(on("carrier")){
+      if(!st.airline && !st.sea) bad.push("Carrier type (Airline or Sea Line)");
+      if(st.airline){ need("net_airline_code","Airline Code"); fmt("net_airline_code", /^[A-Z0-9]{2,10}$/, "Airline Code (2 to 10 letters or digits)"); fmt("net_iata_numeric_code", /^\d{1,3}$/, "IATA Numeric Code (digits only)"); fmt("net_icao_code", /^[A-Z0-9]{3,4}$/, "ICAO Code (3 or 4 characters)"); }
+      if(st.sea){ need("net_sea_line_code","Sea Line Code"); fmt("net_sea_line_code", /^[A-Z0-9_\-]{2,20}$/, "Sea Line Code (letters, digits, - or _)"); fmt("net_scac_code", /^[A-Z]{2,4}$/, "SCAC Code (2 to 4 letters)"); }
+    }
+    if(on("iata")){ need("net_iata_agent_code","IATA Agent Code"); fmt("net_iata_agent_code", /^[A-Z0-9\-]{3,20}$/, "IATA Agent Code (3 to 20 letters or digits)"); }
+    if(on("cfs")){ need("net_cfs_code","CFS Code"); fmt("net_cfs_port_code", /^[A-Z]{5}$/, "Port Code (5 letters, e.g. INMAA)"); }
+    if(bad.length){ e.stopImmediatePropagation(); e.preventDefault(); say("Please complete the role details", bad.join(", "), "warn"); }
+  }, true);
+  const t = setInterval(()=>{ if(wrapFill()) clearInterval(t); }, 300);
+})();
+
 /* ============================================================
    COUNTRY KIT: the Country Master holds all 249 ISO 3166-1 countries (loaded for the company on first use) and every country pick-list reads from it.
    ============================================================ */

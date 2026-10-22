@@ -23,7 +23,7 @@ def _require_tenant(user: User) -> int:
 
 @router.get("")
 def list_customers(
-    role: str | None = Query(default=None, pattern="^(client|vendor|customer|shipper|consignee|carrier|agent|cha|transporter|ar|ap|iata|cfs)$", description="client = shipper/consignee/AR; vendor = AP/carrier/agent/CHA/transporter"),
+    role: str | None = Query(default=None, pattern="^(client|vendor|customer|shipper|consignee|carrier|agent|cha|transporter|ar|ap|iata|cfs|origin_agent|coloader)$", description="client = shipper/consignee/AR; vendor = AP/carrier/agent/CHA/transporter"),
     user: User = Depends(permission_required("customer.read")),
     db: Session = Depends(get_db),
 ):
