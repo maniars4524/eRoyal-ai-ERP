@@ -32,7 +32,7 @@ Portals: `/erp/login` (company staff), `/demo/login` (demo data), `/developer/lo
 1. Which port did you forward (e.g. 8002)? Open `http://127.0.0.1:<port>/api/health` on this computer. If it does not answer, start the app on that port (`RUN-LOCAL.cmd 8002`).
 2. The app must listen on `0.0.0.0` (not only `127.0.0.1`) when you forward it; `RUN-LOCAL.cmd` does this for any port other than 8000.
 3. Docker Desktop must be running (the database lives there). After a restart of the computer run `RUN-LOCAL.cmd` or `START-PUBLIC.cmd` again.
-4. A dev tunnel is private by default: people must sign in to Microsoft. Set the port's visibility to Public only if you want anyone with the link to reach the login page.
+4. **Other computers are asked to sign in / get "access denied"**: a VS Code dev tunnel is *Private* by default, so only you (signed in with the same GitHub / Microsoft account) can open it; everyone else is redirected to a GitHub sign-in and refused. The app is not the problem. In VS Code open the **Ports** tab, right-click the port (8002) > **Port Visibility** > **Public**. (Command line: `devtunnel port update <tunnel-id> -p 8002 --allow-anonymous`.) Only do this for the shared/demo instance, never for the private one on 8000.
 5. Quick public link without an account: `tools\cloudflared.exe tunnel --url http://127.0.0.1:8001` (the address changes each time).
 
 ## 4. Deploy it on other systems / globally
