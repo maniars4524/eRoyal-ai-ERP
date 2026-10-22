@@ -113,7 +113,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // ---- delete
   w.go("org-list"); await sleep(800);
   d.querySelector('[data-od="' + msc.id + '"]').click(); await sleep(1200);
-  check("delete removes the organization from the database", !(await j("GET", "/api/customers", null, token)).body.some(c => c.code === "MSC"));
+  check("an organization linked to a master (Sea Line) is protected from delete, with a reason", (await j("GET", "/api/customers", null, token)).body.some(c => c.code === "MSC") && (await j("DELETE", "/api/customers/" + msc.id, null, token)).status === 409);
 
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
