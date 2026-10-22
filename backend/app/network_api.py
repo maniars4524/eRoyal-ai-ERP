@@ -187,6 +187,12 @@ def _search(kind: str, q: str):
     return or_(*[getattr(m, c).ilike(like) for c in cols])
 
 
+@router.get("/links")
+def all_links(user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+    """organization id -> its master records (airline, sea_line, iata, cfs): the master codes shown in the Vendor Master."""
+    return org_links.linked_summary(db, _tenant(user))
+
+
 @router.get("/by-organization/{customer_id}")
 def by_organization(customer_id: int, user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
     """The master records (airline, sea line, IATA, CFS) linked to one organization, for the Organization form."""
