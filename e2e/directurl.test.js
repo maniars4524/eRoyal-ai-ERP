@@ -24,7 +24,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         w.sessionStorage.setItem("esway_access_token", token); w.localStorage.setItem("esway_persistent_token", token);
         w.performance.getEntriesByType = t => (t === "navigation" ? [{ type: navType }] : []);
       } });
-    await sleep(3000);
+    await sleep(6500);
     return dom.window;
   };
   const visible = w => { const o = w.document.getElementById("loginOverlay"); return !!o && o.style.display !== "none" && !o.classList.contains("hidden") && !w.document.getElementById("loginOverlayPreHide"); };
