@@ -3671,6 +3671,11 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Carrier Booking Ref</label><input class="fc" id="bk_carrierref" placeholder="Reference given by the carrier"></div>
   <div class="fg"><label class="fl">POD <span class="r">*</span></label><input class="fc" id="bk_pod" placeholder="e.g. BEANR(ANTWERPEN)" autocomplete="off"></div>
 </div>
+<div class="fr">
+  <div class="fg bk-air"><label class="fl">IATA Agent</label><select class="fc" id="bk_iata"><option value="">— None —</option></select></div>
+  <div class="fg bk-air"><label class="fl">Airline Stock Line (AWB range)</label><select class="fc" id="bk_stock"><option value="">— None —</option></select></div>
+  <div class="fg"><label class="fl">CFS</label><select class="fc" id="bk_cfs"><option value="">— None —</option></select></div>
+</div>
 <div class="fg"><label class="fl">Notes</label><textarea class="fc" id="bk_notes" rows="2" placeholder="Internal notes for this booking"></textarea></div>
 </div></div>
 
@@ -11212,10 +11217,10 @@ function nextHblNumber(hblType){
 }
 function wireHblTypeSelect(prefix, state){
   const sel = $("#"+prefix+"Hbltype"), scacWrap = $("#"+prefix+"ScacWrap"), scacSel = $("#"+prefix+"Scac"), note = $("#"+prefix+"HbltypeNote");
-  if(!sel || sel.dataset.wired) { if(sel){ sel.value = state.hblType||""; if(scacSel) scacSel.value = state.scac||""; } return; }
+  if(!sel || sel.dataset.wired) { if(sel){ sel.value = state.hblType||""; if(scacSel) scacSel.value = state.scac||""; const inf = HOUSE_BL_TYPES[state.hblType]; if(scacWrap) scacWrap.style.display = (inf && inf.scac) ? "block" : "none"; if(note){ note.style.display = inf ? "block" : "none"; } } return; }
   sel.dataset.wired = "1";
   sel.addEventListener("change", ()=>{
-    state.hblType = sel.value; state.scac = null;
+    state.hblType = sel.value; state.scac = null; if(scacSel) scacSel.value = "";
     const info = HOUSE_BL_TYPES[sel.value];
     if(scacWrap) scacWrap.style.display = (info && info.scac) ? "block" : "none";
     if(note){
@@ -12451,6 +12456,7 @@ function wizRenderTypeGrid(container, mode, selected, onPick){
 
 const jobWiz = {mode:null, dir:null, type:null, bookingType:null, hblType:null, scac:null};
 window.jobWiz = jobWiz;
+window.jobWizRefresh = ()=> jobWizRefresh();   /* the House BL type / SCAC pick-lists call this to re-check Next */
 function jobWizRefresh(){
   wizRenderModeGrid($("#jobWizModeGrid"), jobWiz.mode, (m)=>{
     jobWiz.mode = m; jobWiz.dir = null; jobWiz.type = null; jobWiz.bookingType = null;
@@ -12476,7 +12482,7 @@ function jobWizRefresh(){
   if(jobWiz.mode && jobWiz.dir && jobWiz.type){
     wizRenderBookingTypeRow($("#jobWizBTGrid"), $("#jobWizBTNote"), jobWiz.bookingType, (b)=>{
       jobWiz.bookingType = b;
-      jobWiz.hblType = null;
+      jobWiz.hblType = null; jobWiz.scac = null;
       jobWizRefresh();
     });
     $("#jobWizHouseSubWrap").style.display = jobWiz.bookingType==="House" ? "block" : "none";
@@ -12910,6 +12916,7 @@ document.addEventListener("click", e=>{
    ============================================================ */
 const bookWiz = {mode:null, dir:null, type:null, bookingType:null, hblType:null, scac:null};
 window.bookWiz = bookWiz;
+window.bookWizRefresh = ()=> bookWizRefresh();
 function bookWizRefresh(){
   wizRenderModeGrid($("#bookWizModeGrid"), bookWiz.mode, (m)=>{
     bookWiz.mode = m; bookWiz.dir = null; bookWiz.type = null; bookWiz.bookingType = null;
@@ -12935,7 +12942,7 @@ function bookWizRefresh(){
   if(bookWiz.mode && bookWiz.dir && bookWiz.type){
     wizRenderBookingTypeRow($("#bookWizBTGrid"), $("#bookWizBTNote"), bookWiz.bookingType, (b)=>{
       bookWiz.bookingType = b;
-      bookWiz.hblType = null;
+      bookWiz.hblType = null; bookWiz.scac = null;
       bookWizRefresh();
     });
     $("#bookWizHouseSubWrap").style.display = bookWiz.bookingType==="House" ? "block" : "none";
@@ -16807,7 +16814,7 @@ if(document.readyState !== "loading") initChatWidget();
     ["bk_etd","etd","col"], ["bk_eta","eta","col"], ["bk_sicutoff","si_cutoff","col"], ["bk_vgmcutoff","vgm_cutoff","col"],
     ["bk_brn","branch","data"], ["bk_freightpp","freight_pp","data"], ["bk_svctype","service_type","data"], ["bk_por","place_of_receipt","data"], ["bk_pod2","place_of_delivery","data"], ["bk_marks","marks","data"], ["bk_notes","notes","data"],
     ["bk_customerAddr","customer_address","data"], ["bk_shipper","shipper","data"], ["bk_shipperAddr","shipper_address","data"], ["bk_consignee","consignee","data"], ["bk_consigneeAddr","consignee_address","data"], ["bk_notify","notify","data"], ["bk_notifyAddr","notify_address","data"],
-    ["bk_pcs","pcs","data"], ["bk_packtype","pack_type","data"], ["bk_conttype","container_type","data"], ["bk_contno","container_no","data"], ["bk_pallet","pallet","data"], ["bk_qty","container_qty","data"], ["bk_teu","teu","data"],
+    ["bk_iata","iata_agent","data"], ["bk_stock","stock_line","data"], ["bk_cfs","cfs","data"], ["bk_pcs","pcs","data"], ["bk_packtype","pack_type","data"], ["bk_conttype","container_type","data"], ["bk_contno","container_no","data"], ["bk_pallet","pallet","data"], ["bk_qty","container_qty","data"], ["bk_teu","teu","data"],
     ["bk_chgwt","chargeable_weight","data"], ["bk_uld","uld_type","data"], ["bk_vehicle","vehicle_type","data"], ["bk_vehqty","vehicle_qty","data"],
     ["bk_gwt","gwt","data"], ["bk_gwtunit","gwt_unit","data"], ["bk_nwt","nwt","data"], ["bk_nwtunit","nwt_unit","data"], ["bk_vwt","vwt","data"], ["bk_vwtunit","vwt_unit","data"], ["bk_vol","volume","data"], ["bk_chgunit","chargeable_unit","data"],
     ["bk_cargocutoff","cargo_cutoff","data"], ["bk_awbcutoff","awb_cutoff","data"]
@@ -16830,12 +16837,29 @@ if(document.readyState !== "loading") initChatWidget();
   BKG.applyMode = function(){
     const mode = (window.bookWiz || {}).mode || "Sea";
     const show = (cls, on)=> document.querySelectorAll("#s-booking-new ."+cls).forEach(n=>{ n.style.display = on ? "" : "none"; });
-    show("bk-sea", mode === "Sea"); show("bk-air", mode === "Air"); show("bk-road", mode === "Road" || mode === "Rail");
+    show("bk-sea", mode === "Sea"); show("bk-air", mode === "Air"); show("bk-road", mode === "Road" || mode === "Rail"); if(BKG.m.net) fillNet();
   };
+
+  /* ---------- the network masters feed the booking: airline (Air) / sea line (Sea), IATA agent, airline stock line and CFS ---------- */
+  function fillNet(){
+    const n = BKG.m.net || {}, mode = (window.bookWiz || {}).mode || "Sea";
+    const keep = (id, list, first, text)=> { const e = el(id); if(!e) return; const cur = e.value; const vals = list.map(x=>x[0]); e.innerHTML = '<option value="">'+first+'</option>'+list.map(x=>'<option value="'+esc2(x[0])+'">'+esc2(x[1])+'</option>').join("")+(cur && !/^—/.test(cur) && !vals.includes(cur) ? '<option value="'+esc2(cur)+'">'+esc2(cur)+'</option>' : ""); e.value = cur && !/^—/.test(cur) ? cur : ""; };
+    const own = mode === "Air" ? (n.airlines || []) : mode === "Sea" ? (n.sea_lines || []) : [];
+    const typed = c=> { const d = c.data || {}; return /^(yes|true|1)$/i.test(String(d.carrier_airline||"")) || /^(yes|true|1)$/i.test(String(d.carrier_sea_line||"")); };
+    const names = Array.from(new Set(own.map(x=>x.name).concat(BKG.m.carriers.filter(c=>!typed(c)).map(c=>c.name))));   /* carriers entered before the carrier type existed stay selectable */
+    keep("bk_carrier", names.map(x=>[x, x]), "— Select —");
+    keep("bk_iata", (n.iata || []).map(x=>[x.name+" ("+x.code+")", x.name+" ("+x.code+")"]), "— None —");
+    keep("bk_cfs", (n.cfs || []).map(x=>[x.name+(x.code ? " ("+x.code+")" : ""), x.name+(x.city ? " — "+x.city : "")]), "— None —");
+    const ca = el("bk_carrier"), air = (n.airlines || []).find(a=>a.name === (ca && ca.value));
+    const stock = (n.stock_lines || []).filter(x=>air && x.airline_id === air.id).map(x=>{ const t = x.bill_type[0]+x.bill_type.slice(1).toLowerCase()+" "+x.from_awb+" – "+x.to_awb+" ("+x.count+" AWBs)"; return [t, t]; });
+    keep("bk_stock", stock, air ? (stock.length ? "— None —" : "— No stock line for this airline —") : "— Choose the airline first —");
+  }
+  document.addEventListener("change", e=>{ if(e.target && e.target.id === "bk_carrier") fillNet(); });
 
   /* ---------- masters ---------- */
   async function loadMasters(){
     const get = p=> api("GET", p).catch(()=>[]);
+    BKG.m.net = await api("GET", "/api/network/pickers").catch(()=>({}));
     const [clients, carriers, vendors, charges, packs, conts] = await Promise.all([get("/api/customers?role=client"), get("/api/customers?role=carrier"), get("/api/customers?role=vendor"), get("/api/masters/charge"), get("/api/masters/pack?status=ACTIVE&limit=1000"), get("/api/masters/container_type?status=ACTIVE&limit=1000")]);
     const act = a=> a.filter(c=>c.status === "ACTIVE");
     BKG.m.clients = act(clients); BKG.m.carriers = act(carriers); BKG.m.vendors = act(vendors); BKG.m.charges = act(charges);
@@ -16844,7 +16868,7 @@ if(document.readyState !== "loading") initChatWidget();
     const cust = el("bk_customer"); if(cust){ const cur = cust.value; cust.innerHTML = opts(BKG.m.clients, "--Select Customer--", c=>c.id); cust.value = cur; }
     ["bk_shipper","bk_consignee"].forEach(id=>{ const e = el(id); if(e){ const cur = e.value; e.innerHTML = opts(BKG.m.clients.filter(c=>(c.roles||[]).includes(id === "bk_shipper" ? "shipper" : "consignee")), "--Select "+(id === "bk_shipper" ? "Shipper" : "Consignee")+"--", c=>c.name); setVal(id, cur); } });
     const nt = el("bk_notify"); if(nt){ const cur = nt.value; nt.innerHTML = '<option value="">--Select Notify--</option><option>Same as Consignee</option>'+BKG.m.clients.filter(c=>(c.roles||[]).some(r=>r === "consignee" || r === "agent")).map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_notify", cur); }
-    const ca = el("bk_carrier"); if(ca){ const cur = ca.value; ca.innerHTML = '<option value="">— Select —</option>'+BKG.m.carriers.map(c=>'<option value="'+esc2(c.name)+'">'+esc2(c.name)+'</option>').join(""); setVal("bk_carrier", cur && !/^—/.test(cur) ? cur : ""); }
+    fillNet();
     const pk = el("bk_packtype"); if(pk){ const cur = pk.value; pk.innerHTML = '<option value="">--Select Pack Type--</option>'+packs.filter(x=>x.status === "ACTIVE").map(x=>'<option value="'+esc2(x.name)+'">'+esc2(x.name)+'</option>').join(""); setVal("bk_packtype", cur); }
     const ct = el("bk_conttype"); if(ct){ const cur = ct.value; ct.innerHTML = '<option value="">--Select--</option>'+conts.filter(x=>x.status === "ACTIVE").map(x=>'<option value="'+esc2(x.code)+'">'+esc2(x.code+" — "+x.name)+'</option>').join(""); setVal("bk_conttype", cur); }
     const dl = el("bkChargeList"); if(dl) dl.innerHTML = BKG.m.charges.map(c=>'<option value="'+esc2(c.name)+'"></option>').join("");

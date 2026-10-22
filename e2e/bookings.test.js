@@ -40,6 +40,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // the accepted quotation offers Create Booking
   w.go("quotation"); await sleep(1500);
   check("the quotation list offers Create Booking for the accepted quotation", !!q$(`[data-qk-do="book:${q.id}"]`));
+  await j("POST", "/api/network/sea-lines", { code: "HLCU", name: "Hapag-Lloyd Net", scac_code: "HLCU" }, token);
+  await j("POST", "/api/network/cfs", { code: "CFSX", name: "Ennore CFS", city: "Chennai" }, token);
+  await j("POST", "/api/network/iata", { iata_code: "IA-777", name: "Skyline Agent" }, token);
   await w.BKG.fromQuotation(q.id); await sleep(1800);
   check("the booking form opens prefilled from the quotation", d.getElementById("bk_pol").value === "INMAA(CHENNAI)" && d.getElementById("bk_pod").value === "BEANR(ANTWERPEN)" && d.getElementById("bk_customer").selectedOptions[0].text === "Acme Exports", [d.getElementById("bk_pol").value, d.getElementById("bk_customer").value].join("|"));
   check("Select Shipment Details is NOT shown: the quotation already gave mode, direction and type", d.getElementById("bookWizWrap").style.display === "none" && d.getElementById("bookFormWrap").style.display === "block", [d.getElementById("bookWizWrap").style.display, d.getElementById("bookFormWrap").style.display].join("|"));
@@ -47,6 +50,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("it says which quotation it comes from", /Raised from quotation QT\//.test(text("#bookFormWrap")));
   check("customer address comes from the Organization master (once the customer is picked)", (() => { setf("bk_customer", String(cust.body.id)); return /12 Port Road/.test(d.getElementById("bk_customerAddr").value); })(), d.getElementById("bk_customerAddr").value);
   check("carrier list comes from the master", Array.from(d.querySelectorAll("#bk_carrier option")).some(o => o.value === "MSC Mediterranean"));
+  check("Sea booking: the carrier list is the Sea Line Master, CFS list comes from the CFS Master, the IATA / stock fields are Air-only", Array.from(d.querySelectorAll("#bk_carrier option")).some(o => o.value === "Hapag-Lloyd Net") && Array.from(d.querySelectorAll("#bk_cfs option")).some(o => /Ennore CFS/.test(o.value)) && d.querySelector("#bk_iata").closest(".fg").style.display === "none");
+  await j("POST", "/api/network/airlines", { code: "QX", name: "Qatar Test Cargo", num_code: "157" }, token);
+  const alr = (await j("GET", "/api/network/airlines?q=Qatar Test", null, token)).body.items[0];
+  await j("POST", "/api/network/stock-lines", { airline_id: alr.id, from_awb: "15700000", to_awb: "15700099" }, token);
+  { const m0 = w.bookWiz.mode; w.BKG.m.net = (await j("GET", "/api/network/pickers", null, token)).body; w.bookWiz.mode = "Air"; w.BKG.applyMode();
+    const opts = id => Array.from(d.querySelectorAll("#" + id + " option")).map(o => o.value);
+    check("Air booking: carriers are the Airline Master, the IATA field is shown", opts("bk_carrier").includes("Qatar Test Cargo") && !opts("bk_carrier").includes("Hapag-Lloyd Net") && opts("bk_iata").some(v => /Skyline Agent/.test(v)) && d.querySelector("#bk_iata").closest(".fg").style.display !== "none");
+    d.getElementById("bk_carrier").value = "Qatar Test Cargo"; d.getElementById("bk_carrier").dispatchEvent(new w.Event("change", { bubbles: true }));
+    check("choosing the airline offers its AWB stock lines", opts("bk_stock").some(v => /15700000 – 15700099 \(100 AWBs\)/.test(v)), opts("bk_stock").join("|"));
+    w.bookWiz.mode = m0; w.BKG.applyMode(); }
   setf("bk_carrier", "MSC Mediterranean"); setf("bk_vessel", "MSC ROMA / 254W"); setf("bk_etd", "2030-01-10"); setf("bk_eta", "2030-02-05"); setf("bk_sicutoff", "2030-01-05"); setf("bk_shipper", "Acme Exports"); setf("bk_consignee", "Acme Exports"); setf("bk_pcs", "120"); setf("bk_gwt", "24000"); setf("bk_marks", "SODA ASH");
   const costRows = () => Array.from(d.querySelectorAll("#bk_chargeRows tr[data-bk-charge]"));
   check("the costing step already holds the charges approved in the quotation (sell and buy)", costRows().length === 2 && costRows().some(r => r.querySelector('[data-f="type"]').value === "AR" && r.querySelector('[data-f="rate"]').value === "850") && costRows().some(r => r.querySelector('[data-f="type"]').value === "AP" && r.querySelector('[data-f="rate"]').value === "700"), String(costRows().length));
