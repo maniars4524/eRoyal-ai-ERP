@@ -3522,10 +3522,10 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- STEP 1 & 2: shared with New Job (mode + shipment type) -->
 <div id="quotWizWrap" class="wiz-wrap">
-  <div class="wiz-step-title">Select Quotation Details</div>
-  <div class="wiz-step-sub">Choose mode, direction, type, quotation coverage and carrier setup — the matching process page opens automatically on Next</div>
+  <div class="wiz-step-title" id="quotWizTitle">Select Quotation Details</div>
+  <div class="wiz-step-sub" id="quotWizSub">Choose mode, direction, type, quotation coverage and carrier setup — the matching process page opens automatically on Next</div>
 
-  <div class="wiz-row-label">1. Transport Mode</div>
+  <div class="wiz-row-label" id="quotWizModeLbl">1. Transport Mode</div>
   <div id="quotWizModeGrid" class="wiz-mode-grid"></div>
 
   <div id="quotWizDirWrap" style="display:none">
@@ -3543,6 +3543,8 @@ tbody tr:hover{background:var(--g0)}
     <div class="wiz-type-grid" id="quotWizQtypeGrid"></div>
     <div id="quotWizManualWrap" style="display:none;margin-top:12px"></div>
   </div>
+
+  <div id="quotEnqServices" style="display:none"></div>
 
   <div id="quotWizCarrierWrap" style="display:none">
     <div class="wiz-row-label">5. Carrier Setup</div>
@@ -12684,13 +12686,47 @@ document.addEventListener("click", e=>{
   }
 });
 
-const quotWiz = {mode:null, dir:null, type:null, qtype:null, customServices:null, carrierMode:null, sourceEnquiry:null};
+const quotWiz = {mode:null, dir:null, type:null, qtype:null, customServices:null, carrierMode:null, sourceEnquiry:null, fromEnq:false, enqSvc:null, enqHint:null};
 let pendingQuotEnquiryId = null;
 window.quotWiz = quotWiz; window.quotWizBuildForm = quotWizBuildForm; window.quotWizRefresh = quotWizRefresh;
 
 /* ---- Fetch from Enquiry: same idea as Lead -> Enquiry, one click carries the
    shipment mode/direction/type straight into the Quotation wizard so nothing
    has to be re-entered. ---- */
+/* From an enquiry the shipment (mode, direction, type) is known, so the wizard only asks which extra services the customer needs. */
+function enqServiceDefaults(enq){
+  const yes = v=> String(v || "").toLowerCase() === "yes";
+  return {CHA: yes(enq.customsClearance), Transport: yes(enq.pickup) || yes(enq.delivery), Warehouse:false};
+}
+function enqApplyServices(){
+  const sv = quotWiz.enqSvc || {CHA:false, Transport:false, Warehouse:false};
+  if(!sv.CHA && !sv.Transport && !sv.Warehouse){ quotWiz.qtype = "Freight Only"; quotWiz.customServices = null; }
+  else if(sv.CHA && sv.Transport && !sv.Warehouse){ quotWiz.qtype = "Combined"; quotWiz.customServices = null; }
+  else { quotWiz.qtype = "Custom"; quotWiz.customServices = {Freight:true, CHA:!!sv.CHA, Transport:!!sv.Transport, Warehouse:!!sv.Warehouse}; }
+}
+function quotEnqCompact(on){
+  const wrap = $("#quotWizWrap"); if(!wrap) return;
+  const show = (id, v)=> { const n = $(id); if(n) n.style.display = v ? "" : "none"; };
+  wrap.classList.toggle("wiz-from-enq", !!on);
+  if(!on){
+    show("#quotEnqServices", false); show("#quotWizModeLbl", true); show("#quotWizModeGrid", true);
+    $("#quotWizTitle").textContent = "Select Quotation Details";
+    $("#quotWizSub").textContent = "Choose mode, direction, type, quotation coverage and carrier setup — the matching process page opens automatically on Next";
+    return;
+  }
+  ["#quotWizModeLbl", "#quotWizModeGrid", "#quotWizDirWrap", "#quotWizTypeWrap", "#quotWizQtypeWrap"].forEach(id=> show(id, false));
+  show("#quotEnqServices", true); show("#quotWizCarrierWrap", true);
+  $("#quotWizTitle").textContent = "Additional services";
+  $("#quotWizSub").textContent = "The shipment is already known from the enquiry. Tell us what else the customer needs, then continue to the quotation.";
+  const box = $("#quotEnqServices"), sv = quotWiz.enqSvc || {CHA:false, Transport:false, Warehouse:false};
+  const row = (k, label, sub)=> `<label class="wiz-card ${sv[k] ? "sel" : ""}" style="cursor:pointer;--wc:#1A6FBF"><div class="wiz-radio"></div><div class="wiz-ct"><input type="checkbox" data-enq-svc="${k}" ${sv[k] ? "checked" : ""} style="display:none">${label}</div><div class="wiz-cs">${sub}${quotWiz.enqHint && quotWiz.enqHint[k] ? " · from the enquiry" : ""}</div></label>`;
+  box.innerHTML = `<div class="ib ib-gr" style="margin-bottom:10px"><b>${esc(quotWiz.dir)} ${esc(quotWiz.mode)} — ${esc(quotWiz.type)}</b> freight is included. Does the customer also need any of these? <a href="#" id="quotEnqChange" style="margin-left:8px;font-weight:600">Change shipment details</a></div>
+    <div class="wiz-type-grid" style="grid-template-columns:repeat(3,1fr);max-width:900px">${row("CHA", "Customs clearance", "Export / import customs clearance (CHA)")}${row("Transport", "Transportation", "Inland haulage, pickup / delivery")}${row("Warehouse", "Warehouse / CFS", "Storage, stuffing or de-stuffing")}</div>
+    <div style="font-size:11.5px;color:var(--g5);margin:8px 0 4px">Nothing ticked means a freight-only quotation.</div>`;
+  box.querySelectorAll("[data-enq-svc]").forEach(cb=> cb.addEventListener("change", ()=>{ quotWiz.enqSvc = Object.assign({}, quotWiz.enqSvc, {[cb.dataset.enqSvc]: cb.checked}); enqApplyServices(); quotWizRefresh(); }));
+  const ch = $("#quotEnqChange"); if(ch) ch.addEventListener("click", e=>{ e.preventDefault(); quotWiz.fromEnq = false; quotWiz.qtype = null; quotWiz.carrierMode = null; quotEnqCompact(false); $("#quotWizDirWrap").style.display = "block"; $("#quotWizTypeWrap").style.display = "block"; quotWizRefresh(); });
+}
+window.quotEnqCompact = quotEnqCompact;
 function applyEnquiryToQuotWiz(enq){
   let mode = enq.modeOfTransport || "Sea";
   if(!WIZ_MODES.find(m=>m.id===mode)) mode = "Sea";
@@ -12709,11 +12745,10 @@ function applyEnquiryToQuotWiz(enq){
   else if(mode==="Courier") type = "Parcel";
 
   quotWiz.mode = mode; quotWiz.dir = dir; quotWiz.type = type;
-  quotWiz.qtype = null; quotWiz.customServices = null; quotWiz.carrierMode = null;
   quotWiz.sourceEnquiry = enq.id;
-  $("#quotWizDirWrap").style.display = "block";
-  $("#quotWizTypeWrap").style.display = "block";
-  $all("#quotWizQtypeWrap,#quotWizCarrierWrap").forEach(el=> el.style.display = "none");
+  quotWiz.fromEnq = true; quotWiz.enqHint = enqServiceDefaults(enq); quotWiz.enqSvc = Object.assign({}, quotWiz.enqHint);
+  quotWiz.carrierMode = quotWiz.carrierMode || "single";
+  enqApplyServices();
   quotWizRefresh();
 
   const banner = $("#quotEnquirySourceBanner");
@@ -12812,8 +12847,9 @@ function quotWizRefresh(){
     quotWizRenderCarrier();
   }
   const ready = quotWiz.mode && quotWiz.dir && quotWiz.type && quotWiz.qtype && quotWiz.carrierMode;
+  if(quotWiz.fromEnq) quotEnqCompact(true);
   $("#quotWizNext").disabled = !ready;
-  $("#quotWizHint").textContent = ready ? `${quotWiz.dir} ${quotWiz.mode} — ${quotWiz.type} · ${quotWiz.qtype}` : "Select mode, direction and type to continue";
+  $("#quotWizHint").textContent = ready ? `${quotWiz.dir} ${quotWiz.mode} — ${quotWiz.type} · ${quotWiz.qtype === "Custom" ? wizComboLabel(quotWiz) : quotWiz.qtype}` : "Select mode, direction and type to continue";
 }
 function quotWizProcessTitle(){
   return `${quotWiz.dir} ${quotWiz.mode} — ${quotWiz.type} Quotation Process`;
@@ -16148,7 +16184,7 @@ if(document.readyState !== "loading") initChatWidget();
       document.getElementById("quotWizWrap").style.display = "none"; document.getElementById("quotFormWrap").style.display = "block";
       fillFromRec(rec); await loadParties(Q.head.customer_id); renderAll();
     } else {
-      Object.assign(w, {mode:null, dir:null, type:null, qtype:null, customServices:null, carrierMode:null, sourceEnquiry:null});
+      Object.assign(w, {mode:null, dir:null, type:null, qtype:null, customServices:null, carrierMode:null, sourceEnquiry:null, fromEnq:false, enqSvc:null, enqHint:null}); if(window.quotEnqCompact) window.quotEnqCompact(false);
       Q.head = headDefaults(); Q.sell = [blank("SELL")]; Q.buy = [blank("BUY")];
       document.getElementById("quotFormWrap").style.display = "none"; document.getElementById("quotWizWrap").style.display = "block";
       ["quotWizDirWrap","quotWizTypeWrap","quotWizQtypeWrap","quotWizCarrierWrap"].forEach(id=>{ const e = document.getElementById(id); if(e) e.style.display = "none"; });
