@@ -77,7 +77,7 @@ def hbl_preview(db: Session, job: Shipment, hbl_type: str, number: int | None = 
 
 BL_STAGES = ("Draft", "Confirmed", "Released")
 RELEASE_TYPES = ("Original", "Express Release", "Telex Release", "Surrender")
-PROFILE_TEXT = ("tagline", "address", "phone", "mobile", "fax", "email", "web", "reg_otl", "reg_mto", "reg_fmc", "signatory", "signatory_name", "terms", "legal_name", "gstin", "pan", "cin", "state", "state_code",
+PROFILE_TEXT = ("hbl_scac_codes", "tagline", "address", "phone", "mobile", "fax", "email", "web", "reg_otl", "reg_mto", "reg_fmc", "signatory", "signatory_name", "terms", "legal_name", "gstin", "pan", "cin", "state", "state_code",
                 "bank_name", "bank_account", "bank_ifsc", "bank_swift", "bank_branch", "payment_modes", "tracking_url", "invoice_terms", "do_terms", "eoe", "footer_note", "usd_bank_name", "usd_bank_account", "usd_bank_swift", "usd_bank_address", "usd_bank_intermediary")
 PROFILE_IMAGES = ("sign_image", "seal_image")
 IMG_RE = re.compile(r"^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$")
@@ -378,7 +378,8 @@ company = APIRouter(prefix="/api/company", tags=["company documents"])
 @company.get("/doc-profile")
 def get_profile(user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
     org = db.get(Organization, _tenant(user))
-    return {"profile": _profile(db, org.id), "print_profile": print_profile(db, org.id), "name": org.legal_name or org.name, "logo": org.logo, "company_code": company_code(org)}
+    prof = _profile(db, org.id)
+    return {"profile": prof, "hbl_scac": [c for c in str(prof.get("hbl_scac_codes") or "").split() if c], "print_profile": print_profile(db, org.id), "name": org.legal_name or org.name, "logo": org.logo, "company_code": company_code(org)}
 
 
 @company.put("/doc-profile")
@@ -393,6 +394,16 @@ def put_profile(body: dict, user: User = Depends(permission_required("master.upd
             v = str(body[k] or "").strip()
             if len(v) > 4000:
                 raise HTTPException(422, f"{k} is too long")
+            if k == "hbl_scac_codes":
+                codes = []
+                for c in re.split(r"[\s,;]+", v.upper()):
+                    if not c:
+                        continue
+                    if not SCAC.match(c):
+                        raise HTTPException(422, f"HBL SCAC code {c} is not valid: a SCAC code is 4 letters")
+                    if c not in codes:
+                        codes.append(c)
+                v = "\n".join(codes)
             data[k] = v
     for k in PROFILE_IMAGES:
         if k in body:

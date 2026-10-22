@@ -2565,7 +2565,7 @@ tbody tr:hover{background:var(--g0)}
           <option value="">--Select--</option><option>OTL</option><option>FMC</option><option>MTO</option>
         </select></div>
         <div class="fg" id="jobWizScacWrap" style="display:none"><label class="fl">SCAC Code <span class="r">*</span></label><select class="fc" id="jobWizScac">
-          <option value="">--Select--</option><option>RTSU</option><option>ARKU</option><option>IGLU</option>
+          <option value="">--Select--</option>
         </select></div>
       </div>
       <div class="ib ib-bl" id="jobWizHbltypeNote" style="display:none"></div>
@@ -2935,7 +2935,7 @@ tbody tr:hover{background:var(--g0)}
 <div id="jt3" class="tp"><div class="card"><div class="ch"><div class="ct">Bill of Lading / AWB</div><div style="display:flex;gap:6px"></div></div><div class="cb">
 <div class="fr"><div class="fg"><label class="fl">Booking Type <span class="r">*</span></label><select class="fc" id="jobBlBookingType"><option value="Direct">Direct — Carrier's direct BL</option><option value="House" selected>House — Forwarder's own House BL</option></select></div>
 <div class="fg" id="jobBlHbltypeWrap" style="display:none"><label class="fl">House BL Type <span class="r">*</span></label><select class="fc" id="jobBlHbltype"><option value="">--Select--</option><option>OTL</option><option>FMC</option><option>MTO</option></select></div>
-<div class="fg" id="jobBlScacWrap" style="display:none"><label class="fl">SCAC Code <span class="r">*</span></label><select class="fc" id="jobBlScac"><option value="">--Select--</option><option>RTSU</option><option>ARKU</option><option>IGLU</option></select></div>
+<div class="fg" id="jobBlScacWrap" style="display:none"><label class="fl">SCAC Code <span class="r">*</span></label><select class="fc" id="jobBlScac"><option value="">--Select--</option></select></div>
 </div>
 <div class="ib ib-bl" id="jobBlBookingTypeNote" style="margin-bottom:10px"></div>
 <div id="jobAwbBlock" style="display:none">
@@ -3627,7 +3627,7 @@ tbody tr:hover{background:var(--g0)}
           <option value="">--Select--</option><option>OTL</option><option>FMC</option><option>MTO</option>
         </select></div>
         <div class="fg" id="bookWizScacWrap" style="display:none"><label class="fl">SCAC Code <span class="r">*</span></label><select class="fc" id="bookWizScac">
-          <option value="">--Select--</option><option>RTSU</option><option>ARKU</option><option>IGLU</option>
+          <option value="">--Select--</option>
         </select></div>
       </div>
       <div class="ib ib-bl" id="bookWizHbltypeNote" style="display:none"></div>
@@ -9735,12 +9735,7 @@ function renderCrmEngagement(){
     <div class="card">
       <div class="ch"><div class="ct"><svg class="ic" data-icon="chart-bar" style="color:var(--pu)"></svg>CRM Snapshot</div></div>
       <div class="cb">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-          ${kpis.map(k=>`<div style="border:0.5px solid var(--g2);border-radius:8px;padding:10px 12px">
-              <div style="font-size:10.5px;color:var(--g5);font-weight:600">${k[0]}</div>
-              <div style="font-size:20px;font-weight:700;color:var(--g8);margin-top:2px">${k[1]}</div>
-            </div>`).join("")}
-        </div>
+        ${window.dashCardsHTML(kpis.map((k, i)=>({label:k[0].toUpperCase(), value:k[1], icon:["user","mail","zap","file-text","calendar-check","clock","alert-triangle","message-circle"][i], cls:["k-blue","k-sky","k-purple","k-orange","k-green","k-teal","k-red","k-purple"][i], sub:i < 5 ? "pipeline" : "follow-ups"})))}
         <div style="display:flex;gap:18px;margin-top:12px;flex-wrap:wrap;align-items:center">
           <div style="font-size:11.5px;color:var(--g6)">Conversion Ratio (Enquiry → Opportunity): <strong style="color:var(--g8)">${conversion}%</strong></div>
           <div style="font-size:11.5px;color:var(--g6);display:flex;gap:6px;flex-wrap:wrap;align-items:center">Department-wise Enquiries:
@@ -11215,14 +11210,28 @@ function nextHblNumber(hblType){
   hblRunningSeq[hblType] = (hblRunningSeq[hblType]||100000) + 1;
   return (info?info.prefix:hblType) + hblRunningSeq[hblType];
 }
+/* The House BL SCAC codes are the company's own: they come from the Company letterhead & registration (nothing is pre-filled) */
+window.HBL_SCAC = {codes:null};
+async function hblScacFill(selId){
+  const sel = $("#"+selId); if(!sel) return;
+  if(window.HBL_SCAC.codes === null){
+    try{ const d = await MK.util.api("GET", "/api/company/doc-profile"); window.HBL_SCAC.codes = d.hbl_scac || []; }catch(e){ window.HBL_SCAC.codes = []; }
+  }
+  const cur = sel.value, codes = window.HBL_SCAC.codes;
+  const all = cur && !codes.includes(cur) ? codes.concat([cur]) : codes;
+  sel.innerHTML = all.length ? '<option value="">--Select--</option>'+all.map(c=>'<option>'+c+'</option>').join("") : '<option value="">-- No HBL SCAC code yet: add it under Company letterhead &amp; registration --</option>';
+  sel.value = cur || "";
+}
+window.hblScacFill = hblScacFill;
 function wireHblTypeSelect(prefix, state){
   const sel = $("#"+prefix+"Hbltype"), scacWrap = $("#"+prefix+"ScacWrap"), scacSel = $("#"+prefix+"Scac"), note = $("#"+prefix+"HbltypeNote");
-  if(!sel || sel.dataset.wired) { if(sel){ sel.value = state.hblType||""; if(scacSel) scacSel.value = state.scac||""; const inf = HOUSE_BL_TYPES[state.hblType]; if(scacWrap) scacWrap.style.display = (inf && inf.scac) ? "block" : "none"; if(note){ note.style.display = inf ? "block" : "none"; } } return; }
+  if(!sel || sel.dataset.wired) { if(sel){ sel.value = state.hblType||""; if(scacSel) scacSel.value = state.scac||""; const inf = HOUSE_BL_TYPES[state.hblType]; if(scacWrap) scacWrap.style.display = (inf && inf.scac) ? "block" : "none"; if(inf && inf.scac && scacSel) hblScacFill(scacSel.id); if(note){ note.style.display = inf ? "block" : "none"; } } return; }
   sel.dataset.wired = "1";
   sel.addEventListener("change", ()=>{
     state.hblType = sel.value; state.scac = null; if(scacSel) scacSel.value = "";
     const info = HOUSE_BL_TYPES[sel.value];
     if(scacWrap) scacWrap.style.display = (info && info.scac) ? "block" : "none";
+    if(info && info.scac && scacSel) hblScacFill(scacSel.id);
     if(note){
       note.style.display = info ? "block" : "none";
       note.innerHTML = info ? `<svg class="ic" data-icon="info" style="margin-right:5px"></svg>${info.desc}` : "";
@@ -11271,6 +11280,7 @@ function applyBookingTypeToBl(bookingType){
   if(!isDirect){
     const info = HOUSE_BL_TYPES[hblTypeSel.value];
     scacWrap.style.display = (info && info.scac) ? "block" : "none";
+    if(info && info.scac) hblScacFill("jobBlScac");
   } else {
     scacWrap.style.display = "none";
   }
@@ -11286,6 +11296,7 @@ function wireJobBlBookingType(){
     hblTypeSel.addEventListener("change", ()=>{
       const info = HOUSE_BL_TYPES[hblTypeSel.value];
       $("#jobBlScacWrap").style.display = (info && info.scac) ? "block" : "none";
+      if(info && info.scac) hblScacFill("jobBlScac");
     });
   }
   applyBookingTypeToBl(btSel.value);
@@ -15974,13 +15985,6 @@ if(document.readyState !== "loading") initChatWidget();
     };
     tbody.innerHTML = Q.list.length ? Q.list.map(q=>'<tr><td class="mono ta" data-qk-open="'+q.id+'" style="color:var(--bl);font-weight:600;cursor:pointer">'+(q.number ? esc2(q.number) : '<span style="color:var(--g5);font-weight:500">Not numbered yet</span>')+(q.revision_no && !q.number ? ' <span class="b b-gy" style="font-size:9px">Rev '+q.revision_no+'</span>' : '')+'</td><td>'+dmy(q.quote_date)+'</td><td style="font-weight:600">'+esc2(q.party_name||"—")+'</td><td>'+esc2(q.mode+" "+q.direction)+'</td><td>'+esc2([q.pol,q.pod].filter(Boolean).join(" → ")||"—")+'</td><td>'+dmy(q.valid_until)+'</td><td style="text-align:right">'+inr(q.quoted_amount)+'</td><td>'+sbadge(q)+' '+abadge(q)+(q.job_number?' <span class="mono" style="font-size:10px">'+esc2(q.job_number)+'</span>':'')+'</td><td class="no-print" style="white-space:nowrap">'+act(q)+'</td></tr>').join("")
       : '<tr><td colspan="9" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No quotations yet. Click "New Quotation" to create one.</td></tr>';
-    const m = today().slice(0,7), kp = scr.querySelectorAll(".kpi");
-    const set = (i,v,s)=>{ const k = kp[i]; if(!k) return; const a = k.querySelector(".kpi-val"), c = k.querySelector(".kpi-sub"); if(a) a.textContent = v; if(c) c.textContent = s||""; };
-    set(0, Q.list.filter(q=>q.effective_status==="SENT").length, "Awaiting response");
-    set(1, Q.list.filter(q=>q.status==="ACCEPTED" && (q.responded_at||"").startsWith(m)).length, "This month");
-    set(2, Q.list.filter(q=>q.status==="CONVERTED" && (q.responded_at||"").startsWith(m)).length, "This month");
-    const done = Q.list.filter(q=>q.sent_at && q.responded_at);
-    set(3, done.length ? (done.reduce((a,q)=>a+(new Date(q.responded_at)-new Date(q.sent_at))/864e5,0)/done.length).toFixed(1)+" d" : "—", "Quote to response");
   }
 
   /* ---------- preparation form ---------- */
@@ -17177,7 +17181,6 @@ if(document.readyState !== "loading") initChatWidget();
     try{ BKG.list = await api("GET", "/api/bookings"); }catch(e){ say("Could not load bookings", e.message, "warn"); return; }
     const sum = await api("GET", "/api/bookings/summary").catch(()=>null);
     const kp = scr.querySelectorAll(".kpi"); const put = (i, val)=>{ const k = kp[i]; if(k) k.querySelector(".kpi-val").textContent = val; };
-    if(sum){ put(0, sum.confirmed_this_week); put(1, sum.si_cutoff_48h); put(2, sum.vgm_pending); put(3, sum.space_released); }
     const tb = scr.querySelector("tbody");
     const btn = (a, id, label, color)=> '<button class="ta" data-bk-act="'+a+':'+id+'"'+(color ? ' style="color:var(--'+color+')"' : "")+'>'+label+'</button>';
     tb.innerHTML = BKG.list.length ? BKG.list.map(b=>{
@@ -17669,7 +17672,7 @@ function makePrintFit(){
   /* ---------------- company documents profile (letterhead, registration numbers, signature and seal) ---------------- */
   const GROUPS = [
     ["Company", [["legal_name", "Company name (as printed)"], ["tagline", "Tagline"], ["address", "Registered address", "area"], ["phone", "Telephone"], ["mobile", "Mobile"], ["fax", "Fax"], ["email", "Email"], ["web", "Website"]]],
-    ["Tax and registration", [["gstin", "GSTIN"], ["pan", "PAN"], ["cin", "CIN"], ["state", "State"], ["state_code", "State code"], ["reg_mto", "MTO registration (e.g. OTI LICENCE NO. 019654N)"], ["reg_otl", "OTL registration"], ["reg_fmc", "FMC registration"]]],
+    ["Tax and registration", [["gstin", "GSTIN"], ["pan", "PAN"], ["cin", "CIN"], ["state", "State"], ["state_code", "State code"], ["reg_mto", "MTO registration (e.g. OTI LICENCE NO. 019654N)"], ["reg_otl", "OTL registration"], ["reg_fmc", "FMC registration"], ["hbl_scac_codes", "HBL SCAC codes (one per line or comma separated, 4 letters each): offered when a House BL type needs a SCAC code", "area"]]],
     ["Bank (INR account, used only when the Bank Master has no bank)", [["bank_name", "Bank name"], ["bank_account", "Account number"], ["bank_ifsc", "IFSC code"], ["bank_swift", "SWIFT / BIC code"], ["bank_branch", "Branch name and address", "area"], ["payment_modes", "Accepted payment modes (one per line)", "area"], ["tracking_url", "Invoice tracking URL"]]],
     ["Bank (foreign currency account, printed on international debit notes)", [["usd_bank_name", "Bank name"], ["usd_bank_account", "Account number"], ["usd_bank_swift", "SWIFT code"], ["usd_bank_address", "Bank address", "area"], ["usd_bank_intermediary", "Intermediary bank and SWIFT", "area"]]],
     ["Printed wording", [["invoice_terms", "Invoice / debit note terms and conditions (one per line)", "area"], ["do_terms", "Delivery Order note (one per line)", "area"], ["terms", "Bill of Lading clauses (blank = standard clauses)", "area"], ["eoe", "E. & O.E. line"], ["footer_note", "Footer line"], ["signatory", "Signatory title (e.g. Authorised Signatory)"], ["signatory_name", "Signatory name"]]]];
@@ -17690,7 +17693,7 @@ function makePrintFit(){
       const body = {}; GROUPS.forEach(([t, fs])=> fs.forEach(([k])=>{ body[k] = el("cp_"+k).value; })); if(pend.sign_image) body.sign_image = pend.sign_image; if(pend.seal_image) body.seal_image = pend.seal_image;
       try{ await api("PUT", "/api/company/doc-profile", body);
         const want = el("cp_proforma").checked; if(want !== pfOn || (want && !pfSet)){ const data = {enabled: want ? "yes" : "no"}; if(pfSet) await api("PATCH", "/api/masters/setting/"+pfSet.id, {status:"ACTIVE", data:Object.assign({}, pfSet.data || {}, data)}); else await api("POST", "/api/masters/setting", {code:"INVOICE_REQUIRES_PROFORMA", name:"Invoice requires a confirmed proforma", data}); }
-        if(pend.logo) await api("PUT", "/api/company/logo", {data_url:pend.logo}); closeModal(); say("Company Profile Updated Successfully!", "Used on every document from now on"); }
+        if(pend.logo) await api("PUT", "/api/company/logo", {data_url:pend.logo}); if(window.HBL_SCAC) window.HBL_SCAC.codes = null; closeModal(); say("Company Profile Updated Successfully!", "Used on every document from now on"); }
       catch(e){ say("Could not save the company profile", e.message, "error"); }
     });
   };
@@ -19565,6 +19568,85 @@ function makePrintFit(){
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); const kind = Object.keys(KINDS).find(k=>KINDS[k].screen === screen); if(kind){ cache.airlines = null; cache.orgs = null; load(kind); } };
   window.NetKit = {KINDS, load, state:S};
+})();
+
+/* ============================================================
+   DASH KIT: the Jobs / Shipments summary-card look (icon, divider, figure, arrow, drill-down) for quotations, leads, enquiries, opportunities,
+   engagement, bookings, shipment console, CHA / customs, transport and warehouse. The figures are counted from the rows the screen lists, so they are
+   always the live data; clicking a card shows only those rows.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {esc2} = U;
+  const C = (label, icon, cls, test)=> ({label, icon, cls, test});
+  const re = r=> t=> r.test(t);
+  const SPECS = {
+    "s-quotation": {rows:"tbody tr", cards:[C("TOTAL QUOTATIONS","file-text","k-blue"), C("DRAFT","edit","k-sky",re(/\bdraft\b/)), C("PENDING APPROVAL","clock","k-orange",re(/pending approval/)), C("SENT TO CLIENT","mail","k-purple",re(/\bsent\b/)), C("ACCEPTED","check-circle","k-green",re(/accepted/)), C("CONVERTED TO JOBS","ship","k-teal",re(/converted/)), C("LOST / EXPIRED","alert-triangle","k-red",re(/lost|expired|rejected|cancelled/))]},
+    "s-booking": {rows:"tbody tr", cards:[C("TOTAL BOOKINGS","calendar-check","k-blue"), C("DRAFT","edit","k-sky",re(/\bdraft\b/)), C("CONFIRMED","check-circle","k-green",re(/confirmed/)), C("SPACE RELEASED","anchor","k-orange",re(/space released|released/)), C("CANCELLED","x","k-red",re(/cancelled/)), C("JOB CREATED","ship","k-purple",t=>/(sex|aex|sim|aim|[a-z]{3})-\d{2}-\d+/.test(t))]},
+    "s-crm-lead": {rows:"#crmLeadRoot tbody tr", cards:[C("TOTAL LEADS","user","k-blue"), C("OPEN (NOT CONVERTED)","plus","k-sky",re(/convert to enquiry/)), C("CONVERTED TO ENQUIRY","check-circle","k-green",re(/view enquiry/)), C("HIGH PRIORITY","zap","k-orange",re(/\bhigh\b|\burgent\b/)), C("LOST / CANCELLED","x","k-red",re(/\blost\b|cancelled/))]},
+    "s-crm-enquiry": {rows:"#crmEnquiryRoot tbody tr", cards:[C("TOTAL ENQUIRIES","mail","k-blue"), C("NEW / ASSIGNED","plus","k-sky",re(/\bnew\b|\bassigned\b/)), C("IN PRICING","clock","k-orange",re(/under review|awaiting customer|rate requested|rate received|pricing approved/)), C("CONFIRMED","check-circle","k-green",re(/confirmed/)), C("HOLD","clock","k-purple",re(/\bhold\b/)), C("LOST / CANCELLED","x","k-red",re(/\blost\b|cancelled/))]},
+    "s-crm-opportunity": {rows:"#crmOpportunityRoot tbody tr", cards:[C("TOTAL OPPORTUNITIES","zap","k-blue"), C("OPEN","plus","k-sky",re(/\bopen\b/)), C("QUOTATION SENT","mail","k-purple",re(/quotation sent/)), C("QUOTATION APPROVED","check-circle","k-teal",re(/quotation approved/)), C("BOOKED","calendar-check","k-green",re(/\bbooked\b/)), C("LOST","x","k-red",re(/\blost\b/))]},
+    "s-svc-console": {rows:"tbody tr", cards:[C("TOTAL SHIPMENTS","package","k-blue"), C("SEA","ship","k-teal",re(/\bsea\b/)), C("AIR","plane","k-purple",re(/\bair\b/)), C("WITH CUSTOMS CLEARANCE","license","k-orange",re(/\bcha\b/)), C("WITH TRANSPORT","truck","k-green",re(/transport/)), C("WITH WAREHOUSE","warehouse","k-sky",re(/warehouse/))]},
+    "s-svc-cha": {rows:"tbody tr", col:7, cards:[C("TOTAL CUSTOMS JOBS","license","k-blue"), C("PENDING","clock","k-orange",re(/pending|planned/)), C("IN PROGRESS","zap","k-purple",re(/in progress/)), C("CLEARED / COMPLETED","check-circle","k-green",re(/cleared|completed|issued/))]},
+    "s-svc-transport": {rows:"tbody tr", col:5, cards:[C("TOTAL TRIPS","truck","k-blue"), C("PLANNED","clock","k-orange",re(/planned|pending/)), C("DISPATCHED","arrow-right","k-sky",re(/dispatched/)), C("IN TRANSIT","truck","k-purple",re(/in transit/)), C("DELIVERED","check-circle","k-green",re(/delivered/))]},
+    "s-svc-warehouse": {rows:"tbody tr", col:4, cards:[C("TOTAL WAREHOUSE JOBS","warehouse","k-blue"), C("PENDING","clock","k-orange",re(/pending|planned/)), C("IN PROGRESS","zap","k-purple",re(/in progress/)), C("COMPLETED","check-circle","k-green",re(/completed/))]},
+    "s-customs": {rows:"tbody tr", col:8, cards:[C("TOTAL FILINGS","license","k-blue"), C("DRAFT","edit","k-sky",re(/draft/)), C("FILED","mail","k-purple",re(/filed/)), C("ASSESSED","clock","k-orange",re(/assessed/)), C("CLEARED","check-circle","k-green",re(/cleared/))]},
+    "s-transport": {rows:"tbody tr", col:9, cards:[C("TOTAL TRIPS","truck","k-blue"), C("PLANNED","clock","k-orange",re(/planned|pending/)), C("IN TRANSIT","truck","k-purple",re(/in transit|dispatched/)), C("DELIVERED","check-circle","k-green",re(/delivered/))]},
+    "s-warehouse": {rows:"tbody tr", col:8, cards:[C("TOTAL STOCK LINES","warehouse","k-blue"), C("IN STORAGE","package","k-sky",re(/stored|in storage|received|active/)), C("DISPATCHED","arrow-right","k-green",re(/dispatched|released|delivered/))]}
+  };
+  const active = {};
+
+  function cellText(el){
+    if(!el) return "";
+    let t = el.textContent;
+    el.querySelectorAll("select").forEach(s=>{ const o = s.options[s.selectedIndex]; t = t.split(s.textContent).join(" "+(o ? o.text : "")+" "); });
+    return t.replace(/\s+/g, " ").toLowerCase();
+  }
+  const dataRows = (scr, spec)=> Array.from(scr.querySelectorAll(spec.rows)).filter(tr=> !tr.querySelector("td[colspan]") && tr.children.length > 1 && !tr.closest(".dash-cards"));
+  const textOf = (tr, spec)=> cellText(spec.col !== undefined ? tr.children[spec.col] : tr);
+
+  window.dashCardsHTML = function(items){
+    return '<div class="dash-cards">'+items.map(k=>'<div class="kpi kpi-rich '+(k.cls||"k-blue")+'"><div class="kic"><svg class="ic" data-icon="'+k.icon+'"></svg></div><div class="kdiv"></div><div class="ktx"><div class="kpi-lbl">'+esc2(k.label)+'</div><div class="kpi-val">'+esc2(String(k.value))+'</div><div class="kpi-sub">'+esc2(k.sub||"records")+'</div></div></div>').join("")+'</div>';
+  };
+
+  function apply(scrId){
+    const scr = document.getElementById(scrId), spec = SPECS[scrId]; if(!scr || !spec) return;
+    const idx = active[scrId] || 0, card = spec.cards[idx];
+    dataRows(scr, spec).forEach(tr=>{ tr.style.display = !card || !card.test || card.test(textOf(tr, spec)) ? "" : "none"; });
+    scr.querySelectorAll(".dash-cards[data-dash] .kpi").forEach((k, i)=>k.classList.toggle("on", i === idx && idx > 0));
+  }
+  const observers = {};
+  function refresh(scrId){
+    const scr = document.getElementById(scrId), spec = SPECS[scrId]; if(!scr || !spec) return;
+    const obs = observers[scrId]; if(obs) obs.disconnect();
+    try{
+      const rows = dataRows(scr, spec);
+      if(active[scrId] >= spec.cards.length) active[scrId] = 0;
+      const counts = spec.cards.map(c=> c.test ? rows.filter(tr=>c.test(textOf(tr, spec))).length : rows.length);
+      const html = '<div class="dash-cards" data-dash="'+scrId+'">'+spec.cards.map((c, i)=>'<div class="kpi kpi-rich '+c.cls+'" data-dcard="'+i+'" title="Show these rows"><div class="kic"><svg class="ic" data-icon="'+c.icon+'"></svg></div><div class="kdiv"></div><div class="ktx"><div class="kpi-lbl">'+esc2(c.label)+'</div><div class="kpi-val">'+counts[i]+'</div><div class="kpi-sub">'+(i === 0 ? "all records" : "of "+rows.length)+'</div></div><div class="kchev">›</div></div>').join("")+'</div>';
+      const box = document.createElement("div"); box.innerHTML = html; const row = box.firstChild;
+      const old = scr.querySelector(".dash-cards[data-dash]");
+      if(old) old.replaceWith(row);
+      else {
+        const legacy = !spec.skipGrid && scr.querySelector(".kpi-row");
+        if(legacy) legacy.replaceWith(row);
+        else { const ph = scr.querySelector(".ph"); if(ph) ph.insertAdjacentElement("afterend", row); else scr.prepend(row); }
+      }
+      if(window.renderIcons) window.renderIcons(row);
+      apply(scrId);
+    } finally { if(obs) obs.observe(scr, {childList:true, subtree:true}); }
+  }
+  let timers = {};
+  Object.keys(SPECS).forEach(id=>{
+    const scr = document.getElementById(id); if(!scr) return;
+    observers[id] = new MutationObserver(()=>{ clearTimeout(timers[id]); timers[id] = setTimeout(()=>refresh(id), 120); });
+    refresh(id); observers[id].observe(scr, {childList:true, subtree:true});
+  });
+  document.addEventListener("click", e=>{
+    const k = e.target.closest && e.target.closest(".dash-cards[data-dash] .kpi"); if(!k) return;
+    const id = k.closest(".dash-cards").dataset.dash; active[id] = Number(k.dataset.dcard) || 0; apply(id);
+  });
+  window.DashKit = {refresh, SPECS};
 })();
 
 /* ============================================================
