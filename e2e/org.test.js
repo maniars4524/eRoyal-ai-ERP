@@ -69,7 +69,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.go("org-new"); await sleep(500);
   set("Org Code", "MSC"); set("Full Legal Name", "MSC Mediterranean Shipping"); field("Country").value = Array.from(field("Country").options).find(o => /Switzerland/.test(o.text)).value; field("Country").dispatchEvent(new w.Event("change", { bubbles: true }));
   set("Address Line 1", "12-14 Chemin Rieu"); set("City", "Geneva");
-  chip("carrier").click(); chip("ap").click();
+  chip("carrier").click(); chip("ap").click(); await sleep(100); q('#netCarrierType [data-ctype="sea"]').click(); await sleep(100); q("#net_sea_line_code").value = "MSC";
   q("#orgSaveBtn").click(); await sleep(1500);
   const all = (await j("GET", "/api/customers", null, token)).body;
   const msc = all.find(c => c.code === "MSC");
