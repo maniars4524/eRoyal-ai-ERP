@@ -488,6 +488,7 @@ tbody tr:hover{background:var(--g0)}
 #s-job-list .kpi.k-teal{--kc-c:#12787f;--kc-ic:#c9eeef;--kc-bg1:#f2fcfc;--kc-bg2:#dff5f5;--kc-b:#cdebec}
 #s-job-list .kpi.k-sky{--kc-c:#0a78a8;--kc-ic:#cfe9f6;--kc-bg1:#f2faff;--kc-bg2:#e0f1fa;--kc-b:#cfe6f2}
 #s-job-list .kpi.k-purple{--kc-c:#6a3fc2;--kc-ic:#e5dbf8;--kc-bg1:#f8f4ff;--kc-bg2:#ece3fb;--kc-b:#e0d5f4}
+#s-job-list .kpi.k-rose{--kc-c:#b02a6b;--kc-ic:#f8d8e8;--kc-bg1:#fff5fa;--kc-bg2:#fce6f1;--kc-b:#f4d6e5}
 #s-job-list .kpi.k-orange{--kc-c:#e07a0b;--kc-ic:#fde4c4;--kc-bg1:#fff9f1;--kc-bg2:#fdeddb;--kc-b:#f7e1c8}
 #s-job-list .kpi.k-green{--kc-c:#17803f;--kc-ic:#d1efdc;--kc-bg1:#f2fcf6;--kc-bg2:#e0f5e8;--kc-b:#cdebd8}
 #jobTable th,#jobTable td{white-space:nowrap}
@@ -2502,6 +2503,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="kpi"><div class="kpi-lbl">Sea Export</div><div class="kpi-val" id="jobKpiSeaExp">0</div><div class="kpi-sub">FCL · LCL</div></div>
 <div class="kpi"><div class="kpi-lbl">Sea Import</div><div class="kpi-val" id="jobKpiSeaImp">0</div><div class="kpi-sub">FCL · LCL</div></div>
 <div class="kpi"><div class="kpi-lbl">Air Export</div><div class="kpi-val" id="jobKpiAirExp">0</div><div class="kpi-sub">AWB + HAWB</div></div>
+<div class="kpi"><div class="kpi-lbl">Air Import</div><div class="kpi-val" id="jobKpiAirImp">0</div><div class="kpi-sub">AWB + HAWB</div></div>
 <div class="kpi"><div class="kpi-lbl">Customs CHA</div><div class="kpi-val" id="jobKpiCha">0</div><div class="kpi-sub">Pending OOC: <span id="jobKpiChaPending">0</span></div></div>
 <div class="kpi"><div class="kpi-lbl">Transport</div><div class="kpi-val" id="jobKpiTransport">0</div><div class="kpi-sub">Road delivery</div></div>
 </div>
@@ -7046,6 +7048,7 @@ function renderJobRows(){
     setTxt("jobKpiSeaExp", jobs.filter(j=>j.mode==="Sea" && j.direction==="Export").length);
     setTxt("jobKpiSeaImp", jobs.filter(j=>j.mode==="Sea" && j.direction==="Import").length);
     setTxt("jobKpiAirExp", jobs.filter(j=>j.mode==="Air" && j.direction==="Export").length);
+    setTxt("jobKpiAirImp", jobs.filter(j=>j.mode==="Air" && j.direction==="Import").length);
     setTxt("jobKpiCha", jobs.filter(j=>j.job_type==="Customs").length);
     setTxt("jobKpiChaPending", jobs.filter(j=>j.job_type==="Customs" && j.status!=="Delivered" && j.status!=="Closed" && j.closure_status!=="CLOSED").length);
     setTxt("jobKpiTransport", jobs.filter(j=>j.mode==="Road").length);
@@ -18951,7 +18954,7 @@ function makePrintFit(){
   /* ---- the summary cards: icon, figure, drill-down ---- */
   const CARDS = [
     {cls:"k-blue", icon:"ship", act:{}}, {cls:"k-teal", icon:"ship", act:{mode:"Sea", dir:"Export"}}, {cls:"k-sky", icon:"ship", act:{mode:"Sea", dir:"Import"}},
-    {cls:"k-purple", icon:"plane", act:{mode:"Air", dir:"Export"}}, {cls:"k-orange", icon:"license", act:{jtype:"Customs"}}, {cls:"k-green", icon:"truck", act:{mode:"Road"}}];
+    {cls:"k-purple", icon:"plane", act:{mode:"Air", dir:"Export"}}, {cls:"k-rose", icon:"plane", act:{mode:"Air", dir:"Import"}}, {cls:"k-orange", icon:"license", act:{jtype:"Customs"}}, {cls:"k-green", icon:"truck", act:{mode:"Road"}}];
   function decorate(){
     const cards = document.querySelectorAll("#s-job-list .kpi-row .kpi"); if(!cards.length) return;
     cards.forEach((c, i)=>{
