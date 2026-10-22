@@ -1391,6 +1391,11 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-item" data-go="country-master"><svg class="ic" data-icon="globe"></svg>Country Master</div>
       <div class="mn-sub-item" data-go="branch-master"><svg class="ic" data-icon="building"></svg>Branch Master</div>
       <div class="mn-sub-item" data-go="bank-master"><svg class="ic" data-icon="bank"></svg>Bank Master</div>
+      <div class="mn-sub-item" data-go="net-airlines"><svg class="ic" data-icon="plane"></svg>Airline Master</div>
+      <div class="mn-sub-item" data-go="net-sea-lines"><svg class="ic" data-icon="ship"></svg>Sea Line Master</div>
+      <div class="mn-sub-item" data-go="net-stock-lines"><svg class="ic" data-icon="package"></svg>Airline Stock Line Master</div>
+      <div class="mn-sub-item" data-go="net-iata"><svg class="ic" data-icon="award"></svg>IATA Master</div>
+      <div class="mn-sub-item" data-go="net-cfs"><svg class="ic" data-icon="warehouse"></svg>CFS Master</div>
       <div class="mn-sub-item" data-go="user-master"><svg class="ic" data-icon="user"></svg>User Master</div>
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Common Masters</div>
@@ -6125,6 +6130,11 @@ const TOPNAV_MENU = [
       {label:"Country Master", icon:"globe", go:"country-master"},
       {label:"Branch Master", icon:"building", go:"branch-master"},
       {label:"Bank Master", icon:"bank", go:"bank-master"},
+      {label:"Airline Master", icon:"plane", go:"net-airlines"},
+      {label:"Sea Line Master", icon:"ship", go:"net-sea-lines"},
+      {label:"Airline Stock Line Master", icon:"package", go:"net-stock-lines"},
+      {label:"IATA Master", icon:"award", go:"net-iata"},
+      {label:"CFS Master", icon:"warehouse", go:"net-cfs"},
       {label:"User Master", icon:"user", go:"user-master"},
     ]},
     {label:"Common Masters", icon:"tag", children:[
@@ -19212,6 +19222,325 @@ function makePrintFit(){
     if(bad.length){ e.stopImmediatePropagation(); e.preventDefault(); say("Please complete the role details", bad.join(", "), "warn"); }
   }, true);
   const t = setInterval(()=>{ if(wrapFill()) clearInterval(t); }, 300);
+})();
+
+/* ============================================================
+   NET KIT: Airline Master, Sea Line Master, Airline Stock Line Master, IATA Master, CFS Master.
+   Every record can be linked to the Organization Master (one organization, many roles). Header (Import Data / Export / Add), KPI cards, filters with Reset,
+   table with edit and more actions, pagination, right-side Add / Edit drawer, import with a checked preview. Rules live in /api/network.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const $1 = s=> document.querySelector(s);
+  const opt = (v, t, sel)=> '<option value="'+esc2(v)+'"'+(sel?" selected":"")+'>'+esc2(t===undefined?v:t)+'</option>';
+  const ST3 = ["ACTIVE","INACTIVE","PENDING"], ST2 = ["ACTIVE","INACTIVE"];
+  const F = (k, label, o)=> Object.assign({k, label, type:"text"}, o||{});
+  const KINDS = {
+    "airlines": {screen:"net-airlines", icon:"plane", title:"Airline Master", sub:"Airlines the company books cargo with, linked to the Organization Master. Maintain IATA / ICAO codes, commission and contact details.", noun:"Airline", status:ST2, countryFilter:true,
+      kpis:[["TOTAL AIRLINES","total","k-blue","plane"],["ACTIVE","active","k-green","check-circle"],["INACTIVE","inactive","k-orange","clock"],["ADDED THIS WEEK","recent","k-purple","plus"]],
+      cols:[["Airline Code","code","mono"],["Airline Name","name"],["IATA No","num_code","mono"],["ICAO","icao_code","mono"],["Country","country"]],
+      fields:[F("code","Airline Code",{req:1,up:1,max:10,ph:"e.g. AI"}),F("name","Airline Name",{req:1,span:2}),F("sub_name","Sub Name / Registered Name",{span:2}),F("num_code","IATA Numeric Code",{max:3,ph:"3 digits e.g. 098"}),F("icao_code","ICAO Code",{max:4,up:1}),F("ac_code","AC Code",{max:20,up:1}),F("myc_commission","MYC Commission %",{type:"number"}),
+        F("country","Country",{list:"country"}),F("city","City"),F("state","State"),F("address1","Address Line 1",{span:2}),F("address2","Address Line 2",{span:2}),F("email","Email ID",{type:"email"}),F("phone","Phone"),F("status","Status",{type:"status"})],
+      importHint:"Columns: AIRLINE_CODE, AIRLINE_NAME, AIRLINE_SUB_NAME, NUM_CODE (IATA number) and optionally ICAO_CODE, COUNTRY, EMAIL, PHONE."},
+    "sea-lines": {screen:"net-sea-lines", icon:"ship", title:"Sea Line Master", sub:"Shipping lines (ocean carriers) linked to the Organization Master. Maintain SCAC codes and contact details.", noun:"Sea Line", status:ST2, countryFilter:true,
+      kpis:[["TOTAL SEA LINES","total","k-blue","ship"],["ACTIVE","active","k-green","check-circle"],["INACTIVE","inactive","k-orange","clock"],["ADDED THIS WEEK","recent","k-purple","plus"]],
+      cols:[["Line Code","code","mono"],["Sea Line Name","name"],["SCAC","scac_code","mono"],["Country","country"],["Email","email"]],
+      fields:[F("code","Sea Line Code",{req:1,up:1,max:20,ph:"e.g. MSC"}),F("name","Sea Line Name",{req:1,span:2}),F("sub_name","Sub Name",{span:2}),F("scac_code","SCAC Code",{max:4,up:1}),F("website","Website"),F("country","Country",{list:"country"}),F("city","City"),F("state","State"),
+        F("address1","Address Line 1",{span:2}),F("address2","Address Line 2",{span:2}),F("email","Email ID",{type:"email"}),F("phone","Phone"),F("status","Status",{type:"status"})],
+      importHint:"Columns: CODE, NAME, SUB_NAME, SCAC_CODE and optionally COUNTRY, EMAIL, PHONE, WEBSITE."},
+    "iata": {screen:"net-iata", icon:"award", title:"IATA Master", sub:"IATA agents and CASS details, linked to the Organization Master and to an airline.", noun:"IATA record", status:ST3, countryFilter:true, airlineFilter:true,
+      kpis:[["TOTAL IATA","total","k-blue","award"],["ACTIVE","active","k-green","check-circle"],["PENDING","pending","k-orange","clock"],["INACTIVE","inactive","k-purple","x"]],
+      cols:[["IATA Code","iata_code","mono"],["Name","name"],["Airline","airline_name"],["CASS","cass_code","mono"],["Country","country"]],
+      fields:[F("iata_code","IATA Agent Code",{req:1,up:1,max:20}),F("name","Agent Name",{req:1,span:2}),F("airline_id","Airline",{type:"airline"}),F("cass_code","CASS Code",{max:20,up:1}),F("country","Country",{list:"country"}),F("city","City"),F("address","Address",{span:2}),
+        F("contact_person","Contact Person"),F("phone","Phone"),F("email","Email ID",{type:"email"}),F("status","Status",{type:"status"})],
+      importHint:"Columns: IATA_CODE, NAME and optionally AIRLINE (code or name), CASS_CODE, COUNTRY, CITY, PHONE, EMAIL."},
+    "cfs": {screen:"net-cfs", icon:"warehouse", title:"CFS Master", sub:"Container freight stations linked to the Organization Master, with their port and contact details.", noun:"CFS", status:ST3, countryFilter:true,
+      kpis:[["TOTAL CFS","total","k-blue","warehouse"],["ACTIVE","active","k-green","check-circle"],["PENDING","pending","k-orange","clock"],["INACTIVE","inactive","k-purple","x"]],
+      cols:[["CFS Code","code","mono"],["CFS Name","name"],["Location","location"],["Port","port_code","mono"],["City","city"]],
+      fields:[F("code","CFS Code",{req:1,up:1,max:20}),F("name","CFS Name",{req:1,span:2}),F("location","Location / Address",{span:2}),F("port_code","Port Code",{max:5,up:1,ph:"e.g. INMAA"}),F("city","City"),F("state","State"),F("country","Country",{list:"country"}),
+        F("contact_person","Contact Person"),F("phone","Phone"),F("email","Email ID",{type:"email"}),F("status","Status",{type:"status"})],
+      importHint:"Columns: CODE, NAME and optionally LOCATION, PORT_CODE, CITY, STATE, COUNTRY, CONTACT_PERSON, PHONE, EMAIL."},
+    "stock-lines": {screen:"net-stock-lines", icon:"package", title:"Airline Stock Line Master", sub:"AWB number ranges (stock) held with each airline. A range cannot overlap another range of the same airline.", noun:"Stock line", status:ST3, noLink:true, airlineFilter:true, dates:true,
+      kpis:[["TOTAL STOCK LINES","total","k-blue","package"],["ACTIVE","active","k-green","check-circle"],["PENDING","pending","k-orange","clock"],["INACTIVE","inactive","k-purple","x"]],
+      cols:[["Airline","airline_name"],["Type","bill_type"],["From AWB","from_awb","mono"],["To AWB","to_awb","mono"],["AWBs","awb_count","num"],["Shipper","shipper"],["Received","received_date"],["Ref No","ref_no"]],
+      fields:[F("airline_id","Airline",{type:"airline",req:1,span:2}),F("bill_type","Type of Bill",{type:"bill"}),F("from_awb","From AWB",{req:1,max:12,ph:"digits"}),F("to_awb","To AWB",{req:1,max:12,ph:"digits"}),F("shipper","Shipper",{span:2}),F("customer_id","Shipper (organization)",{type:"org",span:2}),
+        F("myc_value","MYC Value",{type:"number"}),F("cancel_charge","Cancellation Charge",{type:"number"}),F("received_date","Received Date",{type:"date"}),F("ref_no","Reference No"),F("remarks","Remarks",{span:2}),F("status","Status",{type:"status"})],
+      importHint:"Columns: AIRLINE (code or name), FROM_AWB, TO_AWB and optionally BILL_TYPE (MASTER / HOUSE), SHIPPER, RECEIVED_DATE (yyyy-mm-dd), REF_NO."}
+  };
+  const SIZES = [10, 25, 50];
+  const S = {}, cache = {countries:null, airlines:null, orgs:null};
+  Object.keys(KINDS).forEach(k=>{ S[k] = {page:1, size:10, q:"", status:"", country:"", linked:"", airline_id:"", date_from:"", date_to:"", sort:"", desc:false, data:null}; });
+
+  (function css(){ const st = document.createElement("style"); st.textContent =
+    ".dash-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-bottom:12px}.dash-cards .kpi.kpi-rich{position:relative;display:flex;align-items:center;gap:12px;padding:16px 14px 16px 16px;border-radius:14px;cursor:pointer;overflow:hidden;border:1px solid var(--kc-b);background:linear-gradient(135deg,var(--kc-bg1),var(--kc-bg2));transition:transform .15s,box-shadow .15s}"+
+    ".dash-cards .kpi.kpi-rich:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(20,40,80,.13)}.dash-cards .kpi.kpi-rich.on{outline:2px solid var(--kc-c);outline-offset:1px}.dash-cards .kpi.kpi-rich::after{content:\"\";position:absolute;right:-26px;bottom:-30px;width:96px;height:96px;border-radius:50%;background:var(--kc-bg2);opacity:.7;pointer-events:none}"+
+    ".dash-cards .kic{width:52px;height:52px;flex:0 0 52px;border-radius:50%;background:var(--kc-ic);color:var(--kc-c);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 4px rgba(255,255,255,.55)}.dash-cards .kic .ic{width:28px;height:28px}.dash-cards .kdiv{width:1px;align-self:stretch;background:var(--kc-b);margin:6px 0}"+
+    ".dash-cards .ktx{flex:1;min-width:0;position:relative;z-index:1}.dash-cards .kpi-lbl{font-size:10.5px;font-weight:800;letter-spacing:.7px;color:var(--g7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dash-cards .kpi-val{font-size:32px;font-weight:800;line-height:1.1;margin:3px 0 2px;color:var(--kc-c)}.dash-cards .kpi-sub{font-size:12px;color:var(--g6)}.dash-cards .kchev{font-size:22px;line-height:1;width:10px;color:var(--g4);position:relative;z-index:1}"+
+    ".dash-cards .k-blue{--kc-c:#1a4fa3;--kc-ic:#d4e5fb;--kc-bg1:#f5f9ff;--kc-bg2:#e6f0fd;--kc-b:#d1e1f5}.dash-cards .k-teal{--kc-c:#12787f;--kc-ic:#c9eeef;--kc-bg1:#f2fcfc;--kc-bg2:#dff5f5;--kc-b:#cdebec}.dash-cards .k-sky{--kc-c:#0a78a8;--kc-ic:#cfe9f6;--kc-bg1:#f2faff;--kc-bg2:#e0f1fa;--kc-b:#cfe6f2}"+
+    ".dash-cards .k-purple{--kc-c:#6a3fc2;--kc-ic:#e5dbf8;--kc-bg1:#f8f4ff;--kc-bg2:#ece3fb;--kc-b:#e0d5f4}.dash-cards .k-orange{--kc-c:#e07a0b;--kc-ic:#fde4c4;--kc-bg1:#fff9f1;--kc-bg2:#fdeddb;--kc-b:#f7e1c8}.dash-cards .k-green{--kc-c:#17803f;--kc-ic:#d1efdc;--kc-bg1:#f2fcf6;--kc-bg2:#e0f5e8;--kc-b:#cdebd8}.dash-cards .k-red{--kc-c:#c0392b;--kc-ic:#fadbd8;--kc-bg1:#fff6f5;--kc-bg2:#fdeae8;--kc-b:#f5d3cf}"+
+    ".net-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}.net-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--g2);font-size:12px;color:var(--g6);flex-wrap:wrap}.net-pager .pgs{display:flex;gap:4px;align-items:center}"+
+    ".net-pager button{min-width:28px;height:28px;border:1px solid var(--g3);background:var(--wh);border-radius:6px;cursor:pointer;font-size:12px}.net-pager button.on{background:var(--bl);color:#fff;border-color:var(--bl)}.net-pager button:disabled{opacity:.4;cursor:default}.net-menu{position:absolute;z-index:60;background:var(--wh);border:1px solid var(--g2);border-radius:8px;box-shadow:0 10px 26px rgba(11,31,58,.18);min-width:190px;padding:4px}"+
+    ".net-menu div{padding:7px 10px;font-size:12.5px;cursor:pointer;border-radius:6px}.net-menu div:hover{background:var(--g1)}.net-form{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.net-form .s2{grid-column:span 2}.net-form .fg{margin:0}.net-err{color:var(--rd);font-size:11px;margin-top:2px}.net-fc-err{border-color:var(--rd)!important}"+
+    ".net-imp-rows{max-height:260px;overflow:auto;border:1px solid var(--g2);border-radius:8px}.net-imp-rows table{width:100%;font-size:12px}.net-num{text-align:right}";
+    document.head.appendChild(st); })();
+
+  const stBadge = s=> '<span class="b '+(s==="ACTIVE"?"b-gr":s==="PENDING"?"b-am":"b-gy")+' dot">'+esc2(s==="ACTIVE"?"Active":s==="PENDING"?"Pending":"Inactive")+'</span>';
+  const fmt = (r, k)=> { const v = r[k]; return v === null || v === undefined || v === "" ? '<span style="color:var(--g4)">—</span>' : esc2(v); };
+  const mk = kind=> document.getElementById("s-net-"+kind);
+
+  /* ---------- screens ---------- */
+  function build(kind){
+    const K = KINDS[kind]; if(mk(kind)) return;
+    const host = document.getElementById("s-bank-master"); if(!host) return;
+    const sec = document.createElement("div"); sec.id = "s-net-"+kind; sec.className = "scr"; sec.dataset.netKind = kind;
+    sec.innerHTML =
+      '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="'+K.icon+'" style="color:var(--bl)"></svg>'+esc2(K.title)+'</div><div class="ps">'+esc2(K.sub)+'</div></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out" data-net="import"><svg class="ic" data-icon="upload"></svg> Import Data</button><button class="btn btn-out" data-net="export"><svg class="ic" data-icon="download"></svg> Export</button><button class="btn btn-pri" data-net="add"><svg class="ic" data-icon="plus"></svg> Add '+esc2(K.noun)+'</button></div></div>'+
+      '<div class="dash-cards" data-net-kpis></div>'+
+      '<div class="card" style="margin-bottom:12px"><div class="cb"><div class="net-filters">'+
+        '<div class="fg"><label class="fl">Search</label><input class="fc" data-nf="q" placeholder="Search…" autocomplete="off"></div>'+
+        '<div class="fg"><label class="fl">Status</label><select class="fc" data-nf="status"><option value="">All</option>'+K.status.map(s=>opt(s, s[0]+s.slice(1).toLowerCase())).join("")+'</select></div>'+
+        (K.countryFilter ? '<div class="fg"><label class="fl">Country</label><select class="fc" data-nf="country"><option value="">All</option></select></div>' : "")+
+        (K.airlineFilter ? '<div class="fg"><label class="fl">Airline</label><select class="fc" data-nf="airline_id"><option value="">All</option></select></div>' : "")+
+        (K.noLink ? "" : '<div class="fg"><label class="fl">Organization</label><select class="fc" data-nf="linked"><option value="">All</option><option value="yes">Linked</option><option value="no">Not linked</option></select></div>')+
+        (K.dates ? '<div class="fg"><label class="fl">Received from</label><input class="fc" type="date" data-nf="date_from"></div><div class="fg"><label class="fl">Received to</label><input class="fc" type="date" data-nf="date_to"></div>' : "")+
+        '<div class="fg"><button class="btn btn-out" data-net="reset"><svg class="ic" data-icon="refresh-cw"></svg> Reset</button></div></div></div></div>'+
+      '<div class="card"><div class="tw"><table><thead><tr><th style="width:44px">#</th>'+K.cols.map(c=>'<th'+(c[2]==="num"?' class="net-num"':'')+'>'+esc2(c[0])+'</th>').join("")+(K.noLink ? "" : '<th>Organization</th>')+'<th>Status</th><th class="no-print" style="width:90px">Actions</th></tr></thead><tbody data-net-body><tr><td colspan="20" style="text-align:center;color:var(--g5);padding:18px">Loading…</td></tr></tbody></table></div><div class="net-pager" data-net-pager></div></div>';
+    host.parentNode.insertBefore(sec, host);
+    if(window.renderIcons) window.renderIcons(sec);
+    const meta = window.SCREEN_META; if(meta) meta[K.screen] = {title:K.title, crumb:"eSway ERP 2.0 / Masters / <strong>"+esc2(K.title)+"</strong>", menu:""};
+  }
+  Object.keys(KINDS).forEach(build);
+
+  async function lookups(){
+    if(!cache.countries) cache.countries = (await api("GET","/api/masters/country").catch(()=>[])).filter(c=>c.status==="ACTIVE").map(c=>c.name);
+    cache.airlines = (await api("GET","/api/network/airlines?limit=500&status=ACTIVE").catch(()=>({items:[]}))).items;
+  }
+  async function orgs(){ if(!cache.orgs) cache.orgs = (await api("GET","/api/customers").catch(()=>[])).filter(c=>c.status==="ACTIVE"); return cache.orgs; }
+  const qs = (kind, extra)=> { const s = S[kind]; const p = new URLSearchParams(); ["q","status","country","linked","airline_id","date_from","date_to","sort"].forEach(k=>{ if(s[k]) p.set(k, s[k]); }); if(s.desc) p.set("desc","true"); p.set("limit", String(s.size)); p.set("offset", String((s.page-1)*s.size)); return p.toString(); };
+
+  async function load(kind){
+    const K = KINDS[kind], sec = mk(kind); if(!sec) return;
+    const body = sec.querySelector("[data-net-body]");
+    try{
+      if(!cache.airlines) await lookups();
+      const d = await api("GET","/api/network/"+kind+"?"+qs(kind)); S[kind].data = d;
+      sec.querySelector("[data-net-kpis]").innerHTML = K.kpis.map(([label, key, cls, icon], i)=>'<div class="kpi kpi-rich '+cls+((i===0 && !S[kind].status) || (i===1 && S[kind].status==="ACTIVE") ? ' on' : '')+'" data-kcard="'+key+'"><div class="kic"><svg class="ic" data-icon="'+icon+'"></svg></div><div class="kdiv"></div><div class="ktx"><div class="kpi-lbl">'+esc2(label)+'</div><div class="kpi-val">'+(d.kpi[key]||0)+'</div><div class="kpi-sub">'+(key==="recent"?"last 7 days":"records")+'</div></div><div class="kchev">›</div></div>').join("");
+      if(window.renderIcons) window.renderIcons(sec);
+      const fill = (name, list, cur, text)=> { const el = sec.querySelector('[data-nf="'+name+'"]'); if(el){ el.innerHTML = '<option value="">All</option>'+list.map(x=>opt(x.v, x.t, String(x.v)===String(cur))).join(""); } };
+      if(K.countryFilter) fill("country", d.countries.map(c=>({v:c, t:c})), S[kind].country);
+      if(K.airlineFilter) fill("airline_id", (cache.airlines||[]).map(a=>({v:a.id, t:a.name+" ("+a.code+")"})), S[kind].airline_id);
+      const off = (S[kind].page-1)*S[kind].size;
+      body.innerHTML = d.items.length ? d.items.map((r, i)=>{
+        const tds = K.cols.map(c=>'<td'+(c[2]==="mono"?' class="mono"':c[2]==="num"?' class="net-num"':'')+(c[1]==="name"?' style="font-weight:600"':'')+'>'+(c[1]==="name" && r.sub_name ? esc2(r.name)+'<div style="font-size:10.5px;color:var(--g5);font-weight:400">'+esc2(r.sub_name)+'</div>' : fmt(r, c[1]))+'</td>').join("");
+        const org = K.noLink ? "" : '<td>'+(r.organization ? '<span class="b b-bl" title="Open in Organization Master" data-net-org="'+r.organization.id+'" style="cursor:pointer">'+esc2(r.organization.name)+'</span>' : '<span class="b b-gy" style="cursor:pointer" data-net-act="link" data-id="'+r.id+'" title="Link or create the organization">Not linked</span>')+'</td>';
+        return '<tr><td style="color:var(--g5)">'+(off+i+1)+'</td>'+tds+org+'<td>'+stBadge(r.status)+(r.role_off ? '<div style="font-size:10px;color:var(--g5)">role removed</div>' : '')+'</td><td class="no-print" style="white-space:nowrap"><button class="ta" data-net-act="edit" data-id="'+r.id+'">Edit</button> <button class="ta" data-net-act="more" data-id="'+r.id+'" title="More actions" style="font-weight:800">⋮</button></td></tr>';
+      }).join("") : '<tr><td colspan="20" style="text-align:center;color:var(--g5);padding:20px">'+(d.kpi.total ? "No "+esc2(K.noun.toLowerCase())+" matches the filters." : "No "+esc2(K.noun.toLowerCase())+" yet. Use Add or Import Data.")+'</td></tr>';
+      pager(kind, d);
+    }catch(e){ body.innerHTML = '<tr><td colspan="20" style="color:var(--rd);padding:14px">'+esc2(e.message)+'</td></tr>'; }
+  }
+  function pager(kind, d){
+    const s = S[kind], pages = Math.max(1, Math.ceil(d.total/s.size)), el = mk(kind).querySelector("[data-net-pager]");
+    const from = d.total ? (s.page-1)*s.size+1 : 0, to = Math.min(d.total, s.page*s.size);
+    const nums = []; for(let p = Math.max(1, s.page-2); p <= Math.min(pages, s.page+2); p++) nums.push(p);
+    el.innerHTML = '<div>Showing '+from+' to '+to+' of '+d.total+' entries</div><div class="pgs"><button data-pg="prev"'+(s.page<=1?" disabled":"")+'>‹</button>'+nums.map(p=>'<button data-pg="'+p+'"'+(p===s.page?' class="on"':'')+'>'+p+'</button>').join("")+'<button data-pg="next"'+(s.page>=pages?" disabled":"")+'>›</button></div><div>Rows per page <select data-nf="size" class="fc" style="display:inline-block;width:70px;height:28px;padding:0 6px">'+SIZES.map(n=>opt(n, n, n===s.size)).join("")+'</select></div>';
+  }
+
+  /* ---------- drawer ---------- */
+  function drawerEl(){
+    let o = document.getElementById("netDrawerOvl"); if(o) return o;
+    o = document.createElement("div"); o.className = "drawer-ovl"; o.id = "netDrawerOvl";
+    o.innerHTML = '<div class="drawer" style="width:560px"><div class="drawer-head"><h3 id="netDrawerTitle"></h3><button class="drawer-close" id="netDrawerClose"><svg class="ic" data-icon="close"></svg></button></div><div class="drawer-body" id="netDrawerBody"></div><div class="drawer-foot" id="netDrawerFoot"></div></div>';
+    document.body.appendChild(o); if(window.renderIcons) window.renderIcons(o);
+    o.addEventListener("mousedown", e=>{ if(e.target === o) closeDrawer(); });
+    o.querySelector("#netDrawerClose").addEventListener("click", closeDrawer);
+    return o;
+  }
+  function closeDrawer(){ const o = document.getElementById("netDrawerOvl"); if(o) o.classList.remove("on"); }
+  async function openDrawer(kind, rec){
+    const K = KINDS[kind]; const o = drawerEl(); const edit = !!rec;
+    if(!cache.airlines) await lookups(); const og = K.noLink ? await orgs() : await orgs();
+    const v = k=> rec && rec[k] !== null && rec[k] !== undefined ? rec[k] : "";
+    const field = f=>{
+      const id = "nf_"+f.k, cur = v(f.k), cls = "fg"+(f.span===2?" s2":"");
+      let ctl;
+      if(f.type === "status") ctl = '<select class="fc" id="'+id+'">'+K.status.map(s=>opt(s, s[0]+s.slice(1).toLowerCase(), (cur||"ACTIVE")===s)).join("")+'</select>';
+      else if(f.type === "bill") ctl = '<select class="fc" id="'+id+'">'+["MASTER","HOUSE"].map(s=>opt(s, s[0]+s.slice(1).toLowerCase(), (cur||"MASTER")===s)).join("")+'</select>';
+      else if(f.type === "airline") ctl = '<select class="fc" id="'+id+'"><option value="">— Select airline —</option>'+(cache.airlines||[]).map(a=>opt(a.id, a.name+" ("+a.code+")", String(cur)===String(a.id))).join("")+'</select>';
+      else if(f.type === "org") ctl = '<select class="fc" id="'+id+'"><option value="">— None —</option>'+og.map(c=>opt(c.id, c.name+" ("+c.code+")", String(cur)===String(c.id))).join("")+'</select>';
+      else ctl = '<input class="fc" id="'+id+'" type="'+(f.type==="number"?"number":f.type==="date"?"date":f.type==="email"?"email":"text")+'"'+(f.type==="number"?' min="0" step="0.01"':'')+' value="'+esc2(cur)+'" placeholder="'+esc2(f.ph||"")+'"'+(f.max?' maxlength="'+f.max+'"':'')+(f.up?' style="text-transform:uppercase"':'')+(f.list?' list="netList_'+f.list+'"':'')+' autocomplete="off">';
+      return '<div class="'+cls+'"><label class="fl">'+esc2(f.label)+(f.req?' <span class="r">*</span>':'')+'</label>'+ctl+'<div class="net-err" id="'+id+'_e"></div></div>';
+    };
+    const orgBlock = K.noLink ? "" : '<div class="fsec" style="margin-top:14px">Organization Master link</div><div class="fg"><label class="fl">Linked organization</label><select class="fc" id="nf_customer_id"><option value="">— Not linked —</option>'+og.map(c=>opt(c.id, c.name+" ("+c.code+")", String(rec ? rec.customer_id : "")===String(c.id))).join("")+'</select></div><div style="font-size:11px;color:var(--g6);margin-top:4px">Linking adds the matching role (Carrier / IATA / CFS) to the organization and keeps its name and codes in step. '+(edit && !rec.customer_id ? 'Or <a href="#" id="netMakeOrg">create the organization from this record</a>.' : '')+'</div>';
+    o.querySelector("#netDrawerTitle").innerHTML = '<svg class="ic" data-icon="'+K.icon+'"></svg>'+(edit ? "Edit "+esc2(K.noun) : "Add "+esc2(K.noun));
+    o.querySelector("#netDrawerBody").innerHTML = '<datalist id="netList_country">'+(cache.countries||[]).map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist><div class="net-form">'+K.fields.filter(f=>f.k!=="customer_id" || K.noLink).map(field).join("")+'</div>'+orgBlock;
+    o.querySelector("#netDrawerFoot").innerHTML = '<button class="btn btn-out" id="netCancel">Cancel</button><button class="btn btn-pri" id="netSave">'+(edit ? "Update" : "Save")+'</button>';
+    if(window.renderIcons) window.renderIcons(o);
+    o.classList.add("on");
+    const body = o.querySelector("#netDrawerBody");
+    const clearErr = ()=> body.querySelectorAll(".net-err").forEach(e=>{ e.textContent = ""; }) || body.querySelectorAll(".net-fc-err").forEach(e=>e.classList.remove("net-fc-err"));
+    const flag = (k, msg)=> { const e = document.getElementById("nf_"+k+"_e"), c = document.getElementById("nf_"+k); if(e) e.textContent = msg; if(c) c.classList.add("net-fc-err"); };
+    o.querySelector("#netCancel").onclick = closeDrawer;
+    const mo = body.querySelector("#netMakeOrg"); if(mo) mo.onclick = async e=>{ e.preventDefault(); try{ await api("POST","/api/network/"+kind+"/"+rec.id+"/link", {create:true}); cache.orgs = null; say("Organization created and linked", rec.name); closeDrawer(); load(kind); }catch(err){ say("Could not create the organization", err.message); } };
+    o.querySelector("#netSave").onclick = async ()=>{
+      clearErr(); body.querySelectorAll(".net-fc-err").forEach(e=>e.classList.remove("net-fc-err"));
+      const out = {}; let bad = 0;
+      K.fields.forEach(f=>{
+        const el = document.getElementById("nf_"+f.k); if(!el) return; let val = el.value.trim();
+        if(f.up) val = val.toUpperCase();
+        if(f.req && !val){ flag(f.k, f.label+" is required"); bad++; }
+        if(f.k === "num_code" && val && !/^\d{1,3}$/.test(val)){ flag(f.k, "IATA number is 1 to 3 digits"); bad++; }
+        if(f.k === "email" && val && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val)){ flag(f.k, "Email ID is not valid"); bad++; }
+        if((f.k === "from_awb" || f.k === "to_awb") && val && !/^\d{6,12}$/.test(val)){ flag(f.k, f.label+" must be 6 to 12 digits"); bad++; }
+        out[f.k] = val;
+      });
+      if(kind === "stock-lines" && out.from_awb && out.to_awb && /^\d+$/.test(out.from_awb+out.to_awb)){ if(out.from_awb.length !== out.to_awb.length){ flag("to_awb", "Same number of digits as From AWB"); bad++; } else if(Number(out.from_awb) > Number(out.to_awb)){ flag("to_awb", "To AWB cannot be less than From AWB"); bad++; } }
+      if(bad){ say("Please correct the highlighted fields", "", "warn"); return; }
+      if(!K.noLink){ const c = document.getElementById("nf_customer_id"); out.customer_id = c && c.value ? Number(c.value) : null; }
+      ["airline_id","customer_id"].forEach(k=>{ if(k in out) out[k] = out[k] ? Number(out[k]) : null; });
+      ["myc_commission","myc_value","cancel_charge"].forEach(k=>{ if(k in out && out[k] === "") delete out[k]; });
+      if(kind === "stock-lines" && !out.received_date) delete out.received_date;
+      const btn = o.querySelector("#netSave"); btn.disabled = true;
+      try{
+        if(edit) await api("PATCH","/api/network/"+kind+"/"+rec.id, out); else await api("POST","/api/network/"+kind, out);
+        cache.orgs = null; if(kind === "airlines") cache.airlines = null;
+        say(edit ? K.noun+" updated" : K.noun+" added", out.name || out.iata_code || (out.from_awb+" – "+out.to_awb)); closeDrawer(); load(kind);
+      }catch(e){ say("Could not save", e.message, "warn"); btn.disabled = false; }
+    };
+  }
+
+  /* ---------- row actions ---------- */
+  function rowOf(kind, id){ return ((S[kind].data || {}).items || []).find(r=>String(r.id) === String(id)); }
+  let menu = null;
+  function closeMenu(){ if(menu){ menu.remove(); menu = null; } }
+  function moreMenu(kind, rec, anchor){
+    closeMenu(); const K = KINDS[kind];
+    const items = [["view","View details"],["edit","Edit"]];
+    if(!K.noLink) items.push(rec.customer_id ? ["unlink","Unlink organization"] : ["link","Link to organization…"], ...(rec.customer_id ? [] : [["create","Create organization from this record"]]));
+    items.push([rec.status === "INACTIVE" ? "activate" : "deactivate", rec.status === "INACTIVE" ? "Activate" : "Deactivate"], ["delete","Delete"]);
+    menu = document.createElement("div"); menu.className = "net-menu";
+    menu.innerHTML = items.map(([a, t])=>'<div data-ma="'+a+'"'+(a==="delete"?' style="color:var(--rd)"':'')+'>'+esc2(t)+'</div>').join("");
+    document.body.appendChild(menu); const r = anchor.getBoundingClientRect();
+    menu.style.top = (window.scrollY + r.bottom + 4)+"px"; menu.style.left = Math.max(8, window.scrollX + r.right - 200)+"px";
+    menu.onclick = async e=>{ const a = e.target.dataset && e.target.dataset.ma; if(!a) return; closeMenu(); await act(kind, rec, a); };
+  }
+  async function act(kind, rec, a){
+    const K = KINDS[kind], path = "/api/network/"+kind+"/"+rec.id;
+    try{
+      if(a === "edit") return openDrawer(kind, rec);
+      if(a === "view") return view(kind, rec);
+      if(a === "link") return linkModal(kind, rec);
+      if(a === "create"){ await api("POST", path+"/link", {create:true}); cache.orgs = null; say("Organization created and linked", rec.name); }
+      else if(a === "unlink"){ if(!window.confirm("Unlink "+rec.name+" from its organization?")) return; await api("POST", path+"/link", {customer_id:null}); say("Unlinked", rec.name); }
+      else if(a === "activate" || a === "deactivate"){ await api("PATCH", path, {status:a === "activate" ? "ACTIVE" : "INACTIVE"}); say(K.noun+(a === "activate" ? " activated" : " deactivated"), rec.name || ""); }
+      else if(a === "delete"){ if(!window.confirm("Delete this "+K.noun.toLowerCase()+"? This cannot be undone.")) return; await api("DELETE", path); say(K.noun+" deleted", rec.name || ""); }
+      load(kind);
+    }catch(e){ say("Not done", e.message, "warn"); }
+  }
+  function view(kind, rec){
+    const K = KINDS[kind];
+    const rows = K.fields.filter(f=>f.k!=="customer_id" || K.noLink).map(f=>{ let v = rec[f.k]; if(f.type==="airline") v = rec.airline_name ? rec.airline_name+" ("+rec.airline_code+")" : ""; return '<tr><td style="color:var(--g6);width:42%">'+esc2(f.label)+'</td><td style="font-weight:600">'+(v === null || v === undefined || v === "" ? "—" : esc2(v))+'</td></tr>'; }).join("");
+    openModal({title:esc2(K.title)+" — "+esc2(rec.name || rec.iata_code || rec.from_awb), bodyHTML:'<div class="tw"><table><tbody>'+rows+(K.noLink ? "" : '<tr><td style="color:var(--g6)">Organization</td><td style="font-weight:600">'+(rec.organization ? esc2(rec.organization.name+" ("+rec.organization.code+")") : "Not linked")+'</td></tr>')+'</tbody></table></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
+  }
+  async function linkModal(kind, rec){
+    const og = await orgs();
+    openModal({title:"Link "+esc2(rec.name)+" to an organization", bodyHTML:'<div class="fg"><label class="fl">Organization (Organization Master)</label><select class="fc" id="netLinkOrg"><option value="">— Select —</option>'+og.map(c=>opt(c.id, c.name+" ("+c.code+")", c.name.toLowerCase() === String(rec.name||"").toLowerCase())).join("")+'</select></div><div style="font-size:11.5px;color:var(--g6);margin-top:6px">The organization gets the matching role. To start a new organization from this record instead, use "Create organization from this record".</div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="netLinkGo">Link</button>'});
+    document.getElementById("netLinkGo").onclick = async ()=>{
+      const id = document.getElementById("netLinkOrg").value; if(!id){ say("Choose an organization", "", "warn"); return; }
+      try{ await api("POST","/api/network/"+kind+"/"+rec.id+"/link", {customer_id:Number(id)}); closeModal(); cache.orgs = null; say("Linked", rec.name); load(kind); }catch(e){ say("Could not link", e.message, "warn"); }
+    };
+  }
+
+  /* ---------- export / import ---------- */
+  async function exportCsv(kind){
+    try{
+      const tok = (window.sessionStorage && sessionStorage.getItem("esway_access_token")) || "";
+      const r = await fetch("/api/network/"+kind+"/export", {headers:{Authorization:"Bearer "+tok}}); if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || "Export failed");
+      const blob = await r.blob(), a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = kind+".csv"; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      say("Exported", KINDS[kind].title);
+    }catch(e){ say("Could not export", e.message, "warn"); }
+  }
+  function parseCsv(text){
+    const rows = []; let row = [], cell = "", q = false;
+    text = text.replace(/^﻿/, "");
+    for(let i = 0; i < text.length; i++){
+      const c = text[i];
+      if(q){ if(c === '"'){ if(text[i+1] === '"'){ cell += '"'; i++; } else q = false; } else cell += c; }
+      else if(c === '"') q = true;
+      else if(c === "," || c === "\t"){ row.push(cell); cell = ""; }
+      else if(c === "\n" || c === "\r"){ if(c === "\r" && text[i+1] === "\n") i++; row.push(cell); cell = ""; if(row.some(x=>x.trim() !== "")) rows.push(row); row = []; }
+      else cell += c;
+    }
+    row.push(cell); if(row.some(x=>x.trim() !== "")) rows.push(row);
+    if(rows.length < 2) return [];
+    const head = rows[0].map(h=>h.trim());
+    return rows.slice(1).map(r=>Object.fromEntries(head.map((h, i)=>[h, (r[i] || "").trim()])));
+  }
+  function importModal(kind){
+    const K = KINDS[kind]; let rows = []; let std = false;
+    openModal({title:"Import Data — "+esc2(K.title), size:"lg", bodyHTML:
+      '<div class="ib ib-bl" style="margin-bottom:10px"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>'+esc2(K.importHint)+' The first row must be the column names. Records already in the master are skipped, never duplicated. Check first, then save.</div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">CSV file</label><input class="fc" type="file" id="netImpFile" accept=".csv,.txt,text/csv"></div>'+(kind === "airlines" ? '<div class="fg"><label class="fl">Company airline list</label><button class="btn btn-out" id="netImpStd" type="button">Load the company airline list</button></div>' : '')+'</div>'+
+      '<div class="fg"><label class="fl">…or paste the rows here (with the column names in the first row)</label><textarea class="fc" id="netImpText" rows="4" placeholder="CODE,NAME,…"></textarea></div><div id="netImpOut" style="margin-top:10px"></div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button><button class="btn btn-out" id="netImpCheck">Check</button><button class="btn btn-pri" id="netImpApply" disabled>Save the new records</button>'});
+    const out = document.getElementById("netImpOut"), apply = document.getElementById("netImpApply");
+    const show = (r, saved)=>{
+      out.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><span class="b b-gr">'+r.new+' new</span><span class="b b-gy">'+r.skipped+' skipped</span><span class="b '+(r.errors?"b-rd":"b-gy")+'">'+r.errors+' with errors</span>'+(r.padded ? '<span class="b b-bl">'+r.padded+' IATA numbers padded to 3 digits</span>' : '')+(r.linked ? '<span class="b b-bl">'+r.linked+' linked to an organization of the same name</span>' : '')+(saved ? '<span class="b b-gr">Saved</span>' : '')+'</div>'+
+        '<div class="net-imp-rows"><table><thead><tr><th>Row</th><th>Code</th><th>Name</th><th>Result</th><th>Note</th></tr></thead><tbody>'+r.rows.map(x=>'<tr><td>'+x.row+'</td><td class="mono">'+esc2(x.code)+'</td><td>'+esc2(x.name)+'</td><td><span class="b '+(x.status==="NEW"?"b-gr":x.status==="ERROR"?"b-rd":"b-gy")+'">'+x.status+'</span></td><td>'+esc2(x.message||"")+'</td></tr>').join("")+'</tbody></table></div>';
+      apply.disabled = saved || !r.new || r.errors > 0;
+    };
+    const run = async doApply=>{
+      try{
+        const r = std ? await api("POST","/api/network/airlines/import-standard", {apply:doApply}) : await api("POST","/api/network/"+kind+"/import", {rows, apply:doApply});
+        show(r, doApply && r.applied); if(doApply && r.applied){ cache.orgs = null; if(kind === "airlines") cache.airlines = null; say("Imported", r.new+" new "+K.noun.toLowerCase()+" record(s)"); S[kind].page = 1; load(kind); }
+      }catch(e){ out.innerHTML = '<div class="ib ib-am">'+esc2(e.message)+'</div>'; apply.disabled = true; }
+    };
+    document.getElementById("netImpFile").addEventListener("change", async e=>{ const f = e.target.files[0]; if(!f) return; document.getElementById("netImpText").value = await f.text(); std = false; });
+    const stdBtn = document.getElementById("netImpStd"); if(stdBtn) stdBtn.onclick = ()=>{ std = true; run(false); };
+    document.getElementById("netImpCheck").onclick = ()=>{
+      std = false; rows = parseCsv(document.getElementById("netImpText").value);
+      if(!rows.length){ out.innerHTML = '<div class="ib ib-am">Add a file or paste rows: the first row holds the column names, then one record per line.</div>'; apply.disabled = true; return; }
+      run(false);
+    };
+    apply.onclick = ()=> run(true);
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", e=>{
+    const sec = e.target.closest && e.target.closest("[data-net-kind]");
+    if(!e.target.closest || !e.target.closest(".net-menu")) closeMenu();
+    if(!sec) return; const kind = sec.dataset.netKind, K = KINDS[kind], s = S[kind];
+    const btn = e.target.closest("[data-net]");
+    if(btn){ const a = btn.dataset.net;
+      if(a === "add") openDrawer(kind, null);
+      else if(a === "import") importModal(kind);
+      else if(a === "export") exportCsv(kind);
+      else if(a === "reset"){ Object.assign(s, {page:1, q:"", status:"", country:"", linked:"", airline_id:"", date_from:"", date_to:""}); sec.querySelectorAll("[data-nf]").forEach(el=>{ if(el.dataset.nf !== "size") el.value = ""; }); load(kind); }
+      return;
+    }
+    const kc = e.target.closest("[data-kcard]");
+    if(kc){ const key = kc.dataset.kcard; s.page = 1; s.status = key === "active" ? "ACTIVE" : key === "inactive" ? "INACTIVE" : key === "pending" ? "PENDING" : ""; s.sort = key === "recent" ? "updated_at" : ""; s.desc = key === "recent"; load(kind); return; }
+    const pg = e.target.closest("[data-pg]");
+    if(pg && !pg.disabled){ const v = pg.dataset.pg, pages = Math.max(1, Math.ceil(((s.data || {}).total || 0)/s.size)); s.page = v === "prev" ? Math.max(1, s.page-1) : v === "next" ? Math.min(pages, s.page+1) : Number(v); load(kind); return; }
+    const org = e.target.closest("[data-net-org]"); if(org){ go("org-list"); const oid = org.dataset.netOrg; setTimeout(()=>{ const b = document.querySelector('#orgTableBody [data-oe="'+oid+'"]'); if(b) b.click(); }, 1300); return; }
+    const ac = e.target.closest("[data-net-act]");
+    if(ac){ const rec = rowOf(kind, ac.dataset.id); if(!rec) return; if(ac.dataset.netAct === "more") moreMenu(kind, rec, ac); else act(kind, rec, ac.dataset.netAct); }
+  });
+  let timer = null;
+  const onFilter = e=>{
+    const el = e.target; const sec = el.closest && el.closest("[data-net-kind]"); if(!sec || !el.dataset.nf) return;
+    const kind = sec.dataset.netKind, s = S[kind], k = el.dataset.nf;
+    if(k === "size"){ s.size = Number(el.value); s.page = 1; load(kind); return; }
+    s[k] = el.value.trim(); s.page = 1; clearTimeout(timer); timer = setTimeout(()=>load(kind), k === "q" ? 280 : 0);
+  };
+  document.addEventListener("input", e=>{ if(e.target.dataset && e.target.dataset.nf === "q") onFilter(e); });
+  document.addEventListener("change", e=>{ if(e.target.dataset && e.target.dataset.nf && e.target.dataset.nf !== "q") onFilter(e); });
+
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); const kind = Object.keys(KINDS).find(k=>KINDS[k].screen === screen); if(kind){ cache.airlines = null; cache.orgs = null; load(kind); } };
+  window.NetKit = {KINDS, load, state:S};
 })();
 
 /* ============================================================
