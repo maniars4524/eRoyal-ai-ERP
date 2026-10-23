@@ -13221,12 +13221,14 @@ if(document.readyState !== "loading") initChatWidget();
     set(".login-title", P.title); set(".login-sub", P.sub); set("#loginBtnText", P.btn); set(".login-footer", P.foot);
     const userLabel = document.querySelector('label[for="loginUser"]'); if(userLabel) userLabel.textContent = "Email or Username";
     const userField = document.getElementById("loginUser"); if(userField) userField.placeholder = "Enter your email or username";
-    if(!P.needsLicense){ const lf = document.getElementById("loginLicense"); if(lf && lf.closest(".login-field")) lf.closest(".login-field").style.display = "none"; }
+    if(!P.needsLicense && PORTAL !== "demo"){ const lf = document.getElementById("loginLicense"); if(lf && lf.closest(".login-field")) lf.closest(".login-field").style.display = "none"; }
     document.title = P.label + " · eSway ERP 2.0";
   })();
 
   const overlay  = document.getElementById("loginOverlay");
   const licenseInp = document.getElementById("loginLicense");
+  /* the Demo page shows the license it belongs to, above the user name */
+  if(PORTAL === "demo" && licenseInp){ fetch("/api/auth/portal-info?portal=demo").then(r=>r.ok ? r.json() : null).then(d=>{ if(d && d.license && !licenseInp.value) licenseInp.value = d.license; }).catch(()=>{}); }
   const userInp  = document.getElementById("loginUser");
   const passInp  = document.getElementById("loginPass");
   const loginBtn = document.getElementById("loginBtn");
@@ -13369,7 +13371,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(spinner)  spinner.style.display = "block";
     if(arrow)    arrow.style.display = "none";
 
-    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, portal:PORTAL, license_number:(P.needsLicense ? lic : undefined), replace_session:replaceSession === true})})
+    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, portal:PORTAL, license_number:((P.needsLicense || PORTAL === "demo") && lic ? lic : undefined), replace_session:replaceSession === true})})
       .then(async response=>{
         const data = await response.json().catch(()=>({}));
         if(!response.ok){ const error = new Error(typeof data.detail === "string" ? data.detail : "Invalid credentials"); error.status = response.status; if(data.detail && data.detail.code === "ALREADY_SIGNED_IN") error.conflict = data.detail; throw error; }

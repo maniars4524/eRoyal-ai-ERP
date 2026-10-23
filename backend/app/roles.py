@@ -12,7 +12,7 @@ ROLE_PERMISSIONS = {
     "ACCOUNTS": ["organization.read", "customer.read", "shipment.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "billing.cancel", "payment.read", "payment.create", "payment.cancel", "quote.read", "quote.view_cost", "quote.rate_override", "booking.read", "credit.read", "credit.request", "job.view_history", "job.export_history", "job.reopen", "sequence.view", "sequence.test", "sequence.history"],
     "VIEWER": ["organization.read", "customer.read", "shipment.read", "master.read", "user.read", "billing.read", "payment.read", "quote.read", "booking.read", "credit.read", "job.view_history", "sequence.view"],
 }
-PLATFORM_ONLY = {"organization.create", "organization.activate"}
+PLATFORM_ONLY = {"organization.create", "organization.activate", "license.manage"}
 
 
 def sync_template_roles(db: Session) -> int:

@@ -32,6 +32,16 @@ class Organization(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", use_alter=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    # --- license terms (License Management). NULL means "not limited": companies created before this module keep working exactly as before.
+    license_start: Mapped[date | None] = mapped_column(Date)
+    license_expiry: Mapped[date | None] = mapped_column(Date, index=True)
+    renewal_cycle: Mapped[str | None] = mapped_column(String(10))          # MONTHLY | YEARLY
+    max_users: Mapped[int | None] = mapped_column(Integer)                  # enabled user accounts allowed
+    max_sessions: Mapped[int | None] = mapped_column(Integer)               # concurrent sessions allowed (needs session tracking)
+    modules: Mapped[list | None] = mapped_column(JSON)                      # enabled module keys; NULL = every module
+    contact: Mapped[dict | None] = mapped_column(JSON)                      # contact person, email, phone, address
+    license_notes: Mapped[str | None] = mapped_column(Text)
+    demo_portal: Mapped[bool] = mapped_column(default=False, server_default="false")   # a normal company whose users may also sign in on the Demo login page
     users: Mapped[list["User"]] = relationship(back_populates="organization", foreign_keys="User.organization_id")
 
 
@@ -1113,4 +1123,37 @@ class SequenceEvent(Base):
     actor_name: Mapped[str | None] = mapped_column(String(160))
     related_ref: Mapped[str | None] = mapped_column(String(80))
     result: Mapped[str] = mapped_column(String(10), default="SUCCESS")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class LicenseRenewal(Base):
+    """One renewal of a company license. The request_id makes a repeated request (double click, retry) return the same renewal instead of extending twice."""
+    __tablename__ = "license_renewals"
+    __table_args__ = (UniqueConstraint("organization_id", "request_id", name="uq_license_renewal_request"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    request_id: Mapped[str] = mapped_column(String(64))
+    cycle: Mapped[str] = mapped_column(String(10))
+    previous_expiry: Mapped[date | None] = mapped_column(Date)
+    new_expiry: Mapped[date] = mapped_column(Date)
+    reference: Mapped[str | None] = mapped_column(String(120))              # free text (invoice / receipt no); a renewal is not proof of payment
+    performed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    performed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class LicenseNotification(Base):
+    """An expiry reminder for one license cycle. Unique per (company, reminder, expiry date): the same reminder is never created twice."""
+    __tablename__ = "license_notifications"
+    __table_args__ = (UniqueConstraint("organization_id", "kind", "expiry_date", name="uq_license_notice"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(12))                           # D30 | D7 | D1 | D0 | OVERDUE
+    expiry_date: Mapped[date] = mapped_column(Date)
+    message: Mapped[str] = mapped_column(String(300))
+    status: Mapped[str] = mapped_column(String(12), default="OPEN")         # OPEN | ACKNOWLEDGED
+    channel_status: Mapped[str] = mapped_column(String(20), default="IN_APP")  # IN_APP | EMAIL_SENT | EMAIL_FAILED | EMAIL_NOT_CONFIGURED
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

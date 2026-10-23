@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from . import config, std_masters
-from .auth import get_current_user, permission_required, portal_for, safe_user
+from .auth import get_current_user, permission_required, portal_for, portals_for, safe_user
 from .db import get_db
 from .licensing import next_license_number
 from .models import AuditLog, Organization, Permission, Role, User
@@ -52,6 +52,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         raise HTTPException(status_code=503, detail="Authentication service unavailable: PostgreSQL is not connected")
     now = datetime.now(timezone.utc)
     portal = portal_for(user) if user else None
+    if user and payload.portal in portals_for(user):
+        portal = payload.portal           # the page the user is signing in on, when the account is allowed on it
     shared_demo = bool(config.PUBLIC_PORTALS) and portal == "demo"  # public shared demo account is never locked
     if user and not shared_demo and user.locked_until and user.locked_until > now:
         record_audit(db, "LOGIN_BLOCKED_LOCKED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
@@ -63,6 +65,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     license_ok = True
     if user and expected_license and portal == "erp":
         license_ok = (payload.license_number or "").strip().upper() == expected_license.upper()
+    elif user and expected_license and portal == "demo" and (payload.license_number or "").strip():
+        license_ok = (payload.license_number or "").strip().upper() == expected_license.upper()      # the Demo page shows the license it belongs to; if one is typed it must be the account's own
     if not user or user.status != "ACTIVE" or not verify_password(payload.password, user.password_hash) or not license_ok:
         if user and not shared_demo:
             user.failed_login_count = (user.failed_login_count or 0) + 1
@@ -93,6 +97,7 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     user.last_login_at = now
     record_audit(db, "LOGIN", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "portal": portal})
     db.commit()
+    user._session_portal = portal
     return {"access_token": create_token(user.id, user.is_super_admin, user.organization_id, portal, sid), "user": safe_user(user)}
 
 
@@ -109,6 +114,16 @@ def save_preferences(body: Preferences, user: User = Depends(get_current_user), 
     user.profile = {**(user.profile or {}), "theme": body.theme}
     db.commit()
     return {"theme": body.theme}
+
+
+@router.get("/portal-info")
+def portal_info(portal: str = "demo", db: Session = Depends(get_db)):
+    """What a login page needs before anyone signs in: the license the Demo page belongs to (shown above the user name). A license number is an identifier, not a secret."""
+    if portal != "demo":
+        return {"license": None}
+    org = db.scalar(select(Organization).where(Organization.demo_portal.is_(True), Organization.status == "ACTIVE").order_by(Organization.id)) or \
+        db.scalar(select(Organization).where(Organization.is_demo.is_(True), Organization.status == "ACTIVE").order_by(Organization.id))
+    return {"license": org.license_number if org else None}
 
 
 @router.get("/me", response_model=SafeUser)

@@ -36,12 +36,20 @@ def get_current_user(
             user.session_seen_at = now
             db.commit()
     token_portal = claims.get("portal")
-    if token_portal and token_portal != portal_for(user):
+    if token_portal and token_portal not in portals_for(user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Session is not valid for this account")
+    user._session_portal = token_portal or portal_for(user)       # the page this session was opened on (demo limits apply to demo sessions only)
     return user
 
 
 DEMO_BLOCKED_PERMISSIONS = {"organization.update", "organization.create", "user.create", "user.update"}
+
+
+def portals_for(user: User) -> list[str]:
+    """Every login page this account may use: its own portal, plus the other company login page (ERP <-> Demo) when its company is flagged for both."""
+    own = portal_for(user)
+    other = {"erp": "demo", "demo": "erp"}.get(own)
+    return [own, other] if other and user.organization and user.organization.demo_portal else [own]
 
 
 def portal_for(user: User) -> str:
@@ -63,7 +71,7 @@ def permission_required(code: str):
     def dependency(user: User = Depends(get_current_user)) -> User:
         if user.is_super_admin:
             return user
-        if portal_for(user) == "demo" and (code.endswith(".delete") or code in DEMO_BLOCKED_PERMISSIONS):
+        if getattr(user, "_session_portal", portal_for(user)) == "demo" and (code.endswith(".delete") or code in DEMO_BLOCKED_PERMISSIONS):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This action is not available in the demo environment")
         permissions = {permission.code for role in user.roles for permission in role.permissions}
         if code not in permissions:
@@ -84,6 +92,6 @@ def safe_user(user: User) -> dict:
         "is_super_admin": user.is_super_admin,
         "roles": [role.name for role in user.roles],
         "permissions": sorted({permission.code for role in user.roles for permission in role.permissions}),
-        "portal": portal_for(user),
+        "portal": getattr(user, "_session_portal", portal_for(user)),
         "theme": (user.profile or {}).get("theme"),
     }

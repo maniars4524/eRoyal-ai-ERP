@@ -13,6 +13,7 @@ PERMISSIONS = [
     ("organization.create", "Create organizations", "organization", "create"),
     ("organization.update", "Update organizations", "organization", "update"),
     ("organization.activate", "Activate organizations", "organization", "activate"),
+    ("license.manage", "Manage company licenses (License Management; owner company super admin only)", "license", "manage"),
     ("user.read", "Read users", "user", "read"),
     ("user.create", "Create users", "user", "create"),
     ("user.update", "Update users", "user", "update"),
