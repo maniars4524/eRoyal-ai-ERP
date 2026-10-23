@@ -2,12 +2,12 @@
 // Reads credentials from ../.env (developer, demo) and LOGIN_* env vars for the ERP admin; never prints passwords.
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
-const BASE = process.env.BASE || "http://127.0.0.1:8000";
-const env = Object.fromEntries(fs.readFileSync("../.env", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const BASE = process.env.BASE || "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync(process.env.ENVF || "../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 const ACCOUNTS = {
   developer: { user: env.SUPER_ADMIN_USERNAME, pass: env.SUPER_ADMIN_PASSWORD, license: undefined, path: "/developer/login" },
   demo: { user: env.DEMO_PORTAL_USERNAME, pass: env.DEMO_PORTAL_PASSWORD, license: undefined, path: "/demo/login" },
-  erp: { user: process.env.LOGIN_ERP_USER || "admin", pass: process.env.LOGIN_ERP_PASS || "admin", license: process.env.LOGIN_ERP_LICENSE || "RTS0004", path: "/erp/login" },
+  erp: { user: process.env.LOGIN_ERP_USER, pass: process.env.LOGIN_ERP_PASS, license: process.env.LOGIN_ERP_LICENSE, path: "/erp/login" },       // created below when not given
 };
 let failures = 0;
 const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  -> " + (extra || ""))); if (!ok) failures++; };
@@ -18,6 +18,13 @@ const login = async (identifier, password, portal, license) => {
 };
 
 (async () => {
+  if (!ACCOUNTS.erp.user) {        // the ERP account is a company made for this run, so the check never depends on (or locks) a real user
+    const dev = await login(ACCOUNTS.developer.user, ACCOUNTS.developer.pass, "developer");
+    const tag = Date.now().toString(36);
+    const r = await fetch(BASE + "/api/organizations", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + dev.body.access_token }, body: JSON.stringify({ code: "LG" + tag.slice(-6).toUpperCase(), name: "Login " + tag, admin_email: `lg${tag}@t.test`, admin_username: "lg" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Lo" }) });
+    const org = (await r.json()).organization;
+    Object.assign(ACCOUNTS.erp, { user: "lg" + tag, pass: "Ui-Test-Passw0rd-1", license: org.license_number });
+  }
   console.log("== API checks ==");
   for (const [portal, a] of Object.entries(ACCOUNTS)) {
     const ok = await login(a.user, a.pass, portal, a.license);
@@ -54,14 +61,14 @@ const login = async (identifier, password, portal, license) => {
     const dom = await JSDOM.fromURL(BASE + a.path, {
       runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
       beforeParse(w) {
-        w.fetch = (u, o) => fetch(new URL(u, BASE).href, o);
+        w.fetch = async (u, o) => { for (let i = 0; ; i++) { try { return await fetch(new URL(u, BASE).href, o); } catch (e) { if (i >= 2) throw e; await sleep(200); } } };
         w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {};
       },
     });
     const w = dom.window, d = w.document;
     await sleep(2000);
     const licenseGroup = d.getElementById("loginLicense").closest(".login-field");
-    check(`${portal}: page title and license field match the portal`, (portal === "erp" ? licenseGroup.style.display !== "none" : licenseGroup.style.display === "none") && new RegExp(portal === "developer" ? "Administration" : portal === "demo" ? "Demo" : "^ERP$").test(d.querySelector(".login-title").textContent.trim()), d.querySelector(".login-title").textContent);
+    check(`${portal}: page title and license field match the portal`, (portal === "developer" ? licenseGroup.style.display === "none" : licenseGroup.style.display !== "none") && new RegExp(portal === "developer" ? "Administration" : portal === "demo" ? "Demo" : "^ERP$").test(d.querySelector(".login-title").textContent.trim()), d.querySelector(".login-title").textContent);
     // wrong password shows an error and keeps the form
     d.getElementById("loginLicense").value = a.license || ""; d.getElementById("loginUser").value = a.user; d.getElementById("loginPass").value = a.pass + "x";
     d.getElementById("loginBtn").click(); await sleep(2200);
@@ -83,7 +90,7 @@ const login = async (identifier, password, portal, license) => {
   const devTok = (await login(ACCOUNTS.developer.user, ACCOUNTS.developer.pass, "developer")).body.access_token;
   const open = async (path, token) => {
     const dom = await JSDOM.fromURL(BASE + path, { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
-      beforeParse(w) { w.fetch = (u, o) => fetch(new URL(u, BASE).href, o); w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {}; if (token) w.localStorage.setItem("esway_persistent_token", token); } });
+      beforeParse(w) { w.fetch = async (u, o) => { for (let i = 0; ; i++) { try { return await fetch(new URL(u, BASE).href, o); } catch (e) { if (i >= 2) throw e; await sleep(200); } } }; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {}; if (token) w.localStorage.setItem("esway_persistent_token", token); } });
     await sleep(7000); return dom.window;
   };
   let w2 = await open("/developer/login", devTok);
@@ -101,7 +108,7 @@ const login = async (identifier, password, portal, license) => {
     const nav = [];
     const vc = new VirtualConsole(); vc.on("jsdomError", e => { if (/navigation/i.test(String(e.message))) nav.push(String(e.message)); });
     const dom = await JSDOM.fromURL(BASE + a.path.replace("/login", ""), { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true, virtualConsole: vc,
-      beforeParse(w) { w.fetch = (u, o) => fetch(new URL(u, BASE).href, o); w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.localStorage.setItem("esway_persistent_token", tok); } });
+      beforeParse(w) { w.fetch = async (u, o) => { for (let i = 0; ; i++) { try { return await fetch(new URL(u, BASE).href, o); } catch (e) { if (i >= 2) throw e; await sleep(200); } } }; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.localStorage.setItem("esway_persistent_token", tok); } });
     const w3 = dom.window, d3 = w3.document;
     await sleep(7000);
     const ov = d3.getElementById("loginOverlay");

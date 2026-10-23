@@ -206,3 +206,12 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - BOOKING: + shortcut beside Carrier/Line, Customer, Shipper, Consignee, Notify opens an add pop-up. BL release now defaults to digital signature + seal ON (earlier released BLs on the live DB had it off).
 - UI: drawers/pop-ups sit above the header (z-index); license drawer has sticky tabs + Save and closes after saving. LOGO redrawn as SVG closer to the supplied SWAY logo (3 inline SVGs, generator kept out of repo).
 - Live: migrations through 0046 applied to live, QA, demo, test DBs; server on :8000 restarted with all of it.
+
+
+## 2026-10-23 (night) - saved; continue from here
+- Everything above is live on :8000 (restarted with all code, migrations through 0046). `admin` (SWF00001) password was reset at the user's request (temporary password given in chat only; not stored anywhere).
+- Masters: Airline, Sea Line, Charge, HSN copied from ESWAYDEMO into DEMO-COMPANY (SWF00002) and given to every NEW company (backend/app/reference_masters.py; `scripts_copy_masters.py FROM TO` for existing ones). Container type / Unit / Pack / Incoterm / Country already exist for every company.
+- Settings menu: Organisation Settings = company documents profile, User Management / Roles = User Master, License Information = modal, Email/SMS/Backup/Restore = honest "not set up" notes; Enterprise Configuration cards open the real screen (Sequence Setting, Quotation Templates, currency, charge, incoterm...) or an honest "not available yet" note (no fake Save).
+- Tests: pytest 239 pass; UI suite passes except gl.test.js (branch-analysis wording outdated: branches exist now). login.test.js now runs on the QA server with its own company (it must never hammer the live admin: running it against :8000 earlier locked the live `admin`; unlocked).
+- NETWORK: other PCs need the Windows firewall rule for port 8000 - run ALLOW-NETWORK.cmd as administrator (the network profile is "Public", so Windows blocks it otherwise). Reaching it from ANY network (internet) needs a tunnel or router port forwarding; NOT enabled because the live passwords are weak - decide first (docs/RUN-AND-DEPLOY-GUIDE.md).
+- STILL OPEN: gl.test.js expectation; re-release the 4 old BLs with digital sign (released with it off); MSC bill #4 correction; GSP/IRP + SMTP + company profile; hosting/backups; OTL/FMC formats; rate sheets; job document/manifest tabs; role/permission editor; payroll; final "navigation twice" audit (runtime audit shows only detail screens that need a record).
