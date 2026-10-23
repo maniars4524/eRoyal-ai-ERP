@@ -51,7 +51,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("Quotation screen: 7 status cards replace the static zeros", c.length === 7 && c[0][0] === "TOTAL QUOTATIONS", JSON.stringify(c));
   await open("booking", "s-booking");
   check("Booking screen: 6 status cards", cards("s-booking").length === 6, JSON.stringify(cards("s-booking")));
-  for (const [scr, id, n] of [["svc-console", "s-svc-console", 6], ["svc-cha", "s-svc-cha", 4], ["svc-transport", "s-svc-transport", 5], ["svc-warehouse", "s-svc-warehouse", 4], ["customs", "s-customs", 5], ["transport", "s-transport", 4], ["warehouse", "s-warehouse", 3]]) {
+  for (const [scr, id, n] of [["svc-console", "s-svc-console", 6], ["svc-cha", "s-svc-cha", 5], ["svc-transport", "s-svc-transport", 5], ["svc-warehouse", "s-svc-warehouse", 5], ["customs", "s-customs", 5], ["transport", "s-transport", 4], ["warehouse", "s-warehouse", 3]]) {
     await open(scr, id);
     check(`${scr}: ${n} cards (all zero until there is data)`, cards(id).length === n && cards(id).every(x => x[1] === 0), JSON.stringify(cards(id)));
   }

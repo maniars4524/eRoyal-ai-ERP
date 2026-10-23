@@ -1480,19 +1480,14 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Job / Shipment</div>
       <div class="mn-sub-item" data-go="job-new"><svg class="ic" data-icon="plus"></svg>Create Shipment</div>
-      <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="download"></svg>Import Shipment</div>
-      <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="upload"></svg>Export Shipment</div>
-      <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="plane"></svg>Air Freight</div>
-      <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="ship"></svg>Ocean Freight</div>
-      <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="truck"></svg>Road Freight</div>
-      <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="shuffle"></svg>Multimodal Shipment</div>
-      <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="file-text"></svg>Documentation</div>
-      <div class="mn-sub-item" data-go="job-list"><svg class="ic" data-icon="cash"></svg>Job Costing</div>
-      <div class="mn-sub-item" data-go="invoice-list"><svg class="ic" data-icon="receipt"></svg>Invoice Generation</div>
-      <div class="mn-sub-item" data-go="tracking"><svg class="ic" data-icon="map-pin"></svg>Shipment Status</div>
-      <div class="mn-sub-item" data-go="customs"><svg class="ic" data-icon="license"></svg>Customs / CHA</div>
-      <div class="mn-sub-item" data-go="transport"><svg class="ic" data-icon="truck"></svg>Transport</div>
-      <div class="mn-sub-item" data-go="warehouse"><svg class="ic" data-icon="warehouse"></svg>Warehouse</div>
+      <div class="mn-sub-item" data-go="job-list" data-jobmode="Air" data-jobdir="Import"><svg class="ic" data-icon="plane"></svg>Import — Air Freight</div>
+      <div class="mn-sub-item" data-go="job-list" data-jobmode="Sea" data-jobdir="Import"><svg class="ic" data-icon="ship"></svg>Import — Ocean Freight</div>
+      <div class="mn-sub-item" data-go="job-list" data-jobmode="Road" data-jobdir="Import"><svg class="ic" data-icon="truck"></svg>Import — Road Freight</div>
+      <div class="mn-sub-item" data-go="job-list" data-jobmode="" data-jobdir="Import"><svg class="ic" data-icon="shuffle"></svg>Import — Multimodal</div>
+      <div class="mn-sub-item" data-go="job-list" data-jobmode="Air" data-jobdir="Export"><svg class="ic" data-icon="plane"></svg>Export — Air Freight</div>
+      <div class="mn-sub-item" data-go="job-list" data-jobmode="Sea" data-jobdir="Export"><svg class="ic" data-icon="ship"></svg>Export — Ocean Freight</div>
+      <div class="mn-sub-item" data-go="job-list" data-jobmode="Road" data-jobdir="Export"><svg class="ic" data-icon="truck"></svg>Export — Road Freight</div>
+      <div class="mn-sub-item" data-go="job-list" data-jobmode="" data-jobdir="Export"><svg class="ic" data-icon="shuffle"></svg>Export — Multimodal</div>
     </div>
   </div>
 
@@ -2552,8 +2547,6 @@ tbody tr:hover{background:var(--g0)}
 <div class="kpi"><div class="kpi-lbl">Sea Import</div><div class="kpi-val" id="jobKpiSeaImp">0</div><div class="kpi-sub">FCL · LCL</div></div>
 <div class="kpi"><div class="kpi-lbl">Air Export</div><div class="kpi-val" id="jobKpiAirExp">0</div><div class="kpi-sub">AWB + HAWB</div></div>
 <div class="kpi"><div class="kpi-lbl">Air Import</div><div class="kpi-val" id="jobKpiAirImp">0</div><div class="kpi-sub">AWB + HAWB</div></div>
-<div class="kpi"><div class="kpi-lbl">Customs CHA</div><div class="kpi-val" id="jobKpiCha">0</div><div class="kpi-sub">Pending OOC: <span id="jobKpiChaPending">0</span></div></div>
-<div class="kpi"><div class="kpi-lbl">Transport</div><div class="kpi-val" id="jobKpiTransport">0</div><div class="kpi-sub">Road delivery</div></div>
 </div>
 <div class="card"><div class="ch">
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -6118,10 +6111,10 @@ function go(screen, opts){
   if(screen==="crm-enquiry" && window.renderCrmEnquiry) renderCrmEnquiry();
   if(screen==="crm-opportunity" && window.renderCrmOpportunity) renderCrmOpportunity();
   if(screen==="crm-engagement" && window.renderCrmEngagement) renderCrmEngagement();
-  if(screen==="svc-console" && window.renderSvcConsole) renderSvcConsole();
-  if(screen==="svc-cha" && window.renderSvcCha) renderSvcCha();
-  if(screen==="svc-transport" && window.renderSvcTransport) renderSvcTransport();
-  if(screen==="svc-warehouse" && window.renderSvcWarehouse) renderSvcWarehouse();
+  if(screen==="svc-console" && window.renderSvcConsole) window.renderSvcConsole();
+  if(screen==="svc-cha" && window.renderSvcCha) window.renderSvcCha();
+  if(screen==="svc-transport" && window.renderSvcTransport) window.renderSvcTransport();
+  if(screen==="svc-warehouse" && window.renderSvcWarehouse) window.renderSvcWarehouse();
   if(screen==="quot-templates" && window.renderQuotTemplates) renderQuotTemplates();
   if(screen==="pr-ledger" && window.renderPrLedger) renderPrLedger(opts.prlType);
   if(screen==="gst-report" && window.renderGstReport) renderGstReport();
@@ -6137,6 +6130,18 @@ function go(screen, opts){
 window.go = go; // exposed for inline calls if ever needed
 window.dashApplyData = function(months, volume, revenue){ CHART_DATA.months = months; CHART_DATA.volume = volume; CHART_DATA.revenue = revenue; renderDashChart((document.querySelector('[data-chart].on')||{dataset:{}}).dataset.chart || 'volume'); if(typeof dashRenderActive === 'function') dashRenderActive(); };
 window.renderJobRows = renderJobRows; window.renderPortRows = renderPortRows; window.populateCustomerSelect = populateCustomerSelect;
+
+/* Operations menu: Import / Export > Air, Ocean, Road, Multimodal open the job list already filtered */
+document.addEventListener("click", e=>{
+  const t = e.target.closest && e.target.closest("[data-jobdir]"); if(!t) return;
+  const apply = ()=>{
+    window.JOB_VIEW = {bucket:"", state:"", closedMtd:false, jtype:""};
+    [["jobModeFilter", t.dataset.jobmode || ""], ["jobDirFilter", t.dataset.jobdir || ""], ["jobStateFilter", ""], ["jobStatusFilter", ""]].forEach(([id, v])=>{ const n = document.getElementById(id); if(n) n.value = v; });
+    const banner = document.getElementById("jobFilterBanner"); if(banner) banner.style.display = "none";
+    if(typeof window.filterJobTable === "function") window.filterJobTable();
+  };
+  setTimeout(apply, 80); setTimeout(apply, 900);
+});
 
 document.addEventListener("click", e=>{
   const t = e.target.closest("[data-go]");
@@ -6231,28 +6236,22 @@ const TOPNAV_MENU = [
     {label:"Job / Shipment", icon:"package", children:[
       {label:"Create Shipment", icon:"plus", go:"job-new"},
       {label:"Import", icon:"download", children:[
-        {label:"Air Freight", icon:"plane", go:"job-list"},
-        {label:"Ocean Freight", icon:"ship", go:"job-list"},
-        {label:"Road Freight", icon:"truck", go:"job-list"},
-        {label:"Multimodal", icon:"shuffle", go:"job-list"},
+        {label:"Air Freight", icon:"plane", go:"job-list", jobmode:"Air", jobdir:"Import"},
+        {label:"Ocean Freight", icon:"ship", go:"job-list", jobmode:"Sea", jobdir:"Import"},
+        {label:"Road Freight", icon:"truck", go:"job-list", jobmode:"Road", jobdir:"Import"},
+        {label:"Multimodal", icon:"shuffle", go:"job-list", jobmode:"", jobdir:"Import"},
         {label:"Manifest", icon:"clipboard", children:[
           {label:"Air Manifest", icon:"plane", go:"import-air-manifest"},
           {label:"Sea Manifest", icon:"ship", go:"import-sea-manifest"},
           {label:"CSN", icon:"clipboard", go:"import-csn"},
         ]},
       ]},
-      {label:"Export Shipment", icon:"upload", go:"job-list"},
-      {label:"Air Freight", icon:"plane", go:"job-list"},
-      {label:"Ocean Freight", icon:"ship", go:"job-list"},
-      {label:"Road Freight", icon:"truck", go:"job-list"},
-      {label:"Multimodal Shipment", icon:"shuffle", go:"job-list"},
-      {label:"Documentation", icon:"file-text", go:"job-list"},
-      {label:"Job Costing", icon:"cash", go:"job-list"},
-      {label:"Invoice Generation", icon:"receipt", go:"invoice-list"},
-      {label:"Shipment Status", icon:"map-pin", go:"tracking"},
-      {label:"Customs / CHA", icon:"license", go:"customs"},
-      {label:"Transport", icon:"truck", go:"transport"},
-      {label:"Warehouse", icon:"warehouse", go:"warehouse"},
+      {label:"Export", icon:"upload", children:[
+        {label:"Air Freight", icon:"plane", go:"job-list", jobmode:"Air", jobdir:"Export"},
+        {label:"Ocean Freight", icon:"ship", go:"job-list", jobmode:"Sea", jobdir:"Export"},
+        {label:"Road Freight", icon:"truck", go:"job-list", jobmode:"Road", jobdir:"Export"},
+        {label:"Multimodal", icon:"shuffle", go:"job-list", jobmode:"", jobdir:"Export"},
+      ]},
     ]},
   ]},
   {id:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts"], children:[
@@ -6496,6 +6495,7 @@ function tnBuildLevel(nodes, depth){
     if(node.go) row.dataset.go = node.go;
     if(node.prltype) row.dataset.prltype = node.prltype;
     if(node.gltab) row.dataset.gltab = node.gltab;
+    if(node.jobdir !== undefined){ row.dataset.jobdir = node.jobdir; row.dataset.jobmode = node.jobmode || ""; }
     if(node.soon) row.dataset.soon = node.soon;
     row.innerHTML = '<svg class="ic" data-icon="'+esc(node.icon||"file")+'"></svg>'
       +'<span class="tn-label">'+esc(node.label)+'</span>'
@@ -7110,9 +7110,6 @@ function renderJobRows(){
     setTxt("jobKpiSeaImp", jobs.filter(j=>j.mode==="Sea" && j.direction==="Import").length);
     setTxt("jobKpiAirExp", jobs.filter(j=>j.mode==="Air" && j.direction==="Export").length);
     setTxt("jobKpiAirImp", jobs.filter(j=>j.mode==="Air" && j.direction==="Import").length);
-    setTxt("jobKpiCha", jobs.filter(j=>j.job_type==="Customs").length);
-    setTxt("jobKpiChaPending", jobs.filter(j=>j.job_type==="Customs" && j.status!=="Delivered" && j.status!=="Closed" && j.closure_status!=="CLOSED").length);
-    setTxt("jobKpiTransport", jobs.filter(j=>j.mode==="Road").length);
     if(typeof filterJobTable === "function") filterJobTable();   // sets the footer from what is really shown
   }).catch(()=>{ /* best-effort; empty state stays as-is */ });
 }
@@ -9566,7 +9563,7 @@ function renderCrmOpportunity(){
       <td>${esc(b.origin)||"—"} → ${esc(b.destination)||"—"}</td>
       <td style="white-space:nowrap">${SERVICE_TYPES.filter(s=>b.services&&b.services[s]).map(s=>`<span class="b b-bl" style="margin-right:3px">${s}</span>`).join("") || '<span style="color:var(--g5)">—</span>'}</td>
       <td>${esc(b.currency)} ${Number(b.value||0).toLocaleString("en-IN")}</td>
-      <td><span class="b b-gr">Customer: ${esc((CRM_CUSTOMERS.find(c=>c.id===b.customerId)||{}).name||"—")}</span></td>
+      <td>${b.realBookingId ? `<button class="btn btn-out btn-sm" data-crm-open-booking="${b.realBookingId}">Open ${esc(b.realBookingNo || "draft booking")}</button>` : '<span style="color:var(--g5)">—</span>'}</td>
     </tr>`).join("");
 
   root.innerHTML = `
@@ -9583,7 +9580,7 @@ function renderCrmOpportunity(){
     ${CRM_BOOKINGS.length ? `
     <div class="card">
       <div class="ch"><div class="ct"><svg class="ic" data-icon="calendar-check" style="color:var(--gr)"></svg>Bookings — one booking per shipment, linked to every selected service</div></div>
-      <div class="tw"><table><thead><tr><th>Booking ID</th><th>Customer</th><th>Route</th><th>Services</th><th>Value</th><th>Auto-Created Customer</th></tr></thead>
+      <div class="tw"><table><thead><tr><th>CRM Ref</th><th>Customer</th><th>Route</th><th>Services</th><th>Value</th><th>Booking (Bookings screen)</th></tr></thead>
       <tbody>${bookingRows}</tbody></table></div>
     </div>` : ""}`;
   renderIcons(root);
@@ -9658,44 +9655,33 @@ function crmApproveQuotation(oppId){
   renderCrmOpportunity();
 }
 
-function crmMakeBooking(oppId){
+let crmBookingBusy = false;
+async function crmMakeBooking(oppId){
   const opp = CRM_OPPORTUNITIES.find(o=>o.id===oppId);
-  if(!opp || opp.bookingId) return;
-  const enq = CRM_ENQUIRIES.find(e=>e.id===opp.enquiryId);
-  const customer = crmEnsureCustomer(opp.company);
-  const booking = {
-    id: crmNextId("BKG"), opportunityId: opp.id, enquiryId: opp.enquiryId, customerId: customer.id,
-    company: opp.company, shipmentType: enq?enq.shipmentType:"", origin: enq?enq.origin:"", destination: enq?enq.destination:"",
-    department: enq?enq.department:"", services: {...opp.services}, value: opp.value, currency: opp.currency,
-    createdAt: crmFmt(crmNow()), timeline:[]
-  };
-  crmLog(booking, "Booking created from Opportunity "+opp.id+" (enquiry & opportunity data copied, no duplicate records)");
-  CRM_BOOKINGS.unshift(booking);
-  opp.bookingId = booking.id;
-  opp.stage = "Booked";
-  crmLog(opp, "Converted to Booking "+booking.id);
-  crmNotify("Booking Created", booking.company+" — "+booking.id, "calendar-check", "gr");
-
-  /* one shared shipment master + only the jobs for the services actually selected */
-  if(enq){
-    const shipment = crmEnsureShipment(enq, booking);
-    const createdJobs = [];
-    SERVICE_TYPES.forEach(svc=>{
-      if(booking.services[svc]){
-        const job = crmCreateJob(shipment, booking, svc);
-        createdJobs.push(job);
-      }
-    });
-    crmNotify("Shipment Confirmation", booking.id+" — "+createdJobs.map(j=>j.type).join(" + ")+" job(s) created", "truck", "tl");
-    crmUpdateSvcBadges();
-    if(typeof renderSvcConsole==="function") renderSvcConsole();
-    if(typeof renderSvcCha==="function") renderSvcCha();
-    if(typeof renderSvcTransport==="function") renderSvcTransport();
-    if(typeof renderSvcWarehouse==="function") renderSvcWarehouse();
-  }
-  toast("Booking created", "Customer \""+customer.name+"\" auto-created — operational jobs generated");
-  renderCrmOpportunity();
-  if(typeof renderCrmEngagement==="function") renderCrmEngagement();
+  if(!opp || opp.bookingId || crmBookingBusy) return;       // already booked, or a click is still being processed: never a second booking
+  const enq = CRM_ENQUIRIES.find(e=>e.id===opp.enquiryId) || {};
+  const sType = enq.shipmentType || "";
+  const mode = enq.modeOfTransport || (/Air/i.test(sType) ? "Air" : /Road|Rail/i.test(sType) ? "Road" : "Sea");
+  const master = window.crmFindCustomer ? window.crmFindCustomer(opp.company) : null;      // only an organization that really exists in the Organization Master is linked
+  const svcNames = SERVICE_TYPES.filter(t=>opp.services && opp.services[t]);
+  crmBookingBusy = true;
+  try{
+    const real = await MK.util.api("POST", "/api/bookings", {mode, direction:/Import/i.test(sType) ? "Import" : "Export", shipment_type:/LCL/i.test(sType) ? "LCL" : /FCL/i.test(sType) ? "FCL" : null, booking_type:"Direct",
+      customer_id:master ? master.id : null, party_name:opp.company, pol:enq.pol || enq.origin || null, pod:enq.pod || enq.destination || null,
+      data:{services:svcNames.join(", ") || "Freight", commodity:enq.commodity || "", marks:enq.commodity || "", pcs:String(enq.packages || ""), gwt:String(enq.grossWeight || ""), volume:String(enq.volumeCBM || ""), incoterm:enq.incoterm || "",
+        notes:"From CRM "+opp.id+" / enquiry "+opp.enquiryId}});
+    const booking = {id:crmNextId("BKG"), opportunityId:opp.id, enquiryId:opp.enquiryId, customerId:master ? master.id : null, company:opp.company, shipmentType:sType, origin:enq.origin || "", destination:enq.destination || "",
+      department:enq.department || "", services:{...opp.services}, value:opp.value, currency:opp.currency, createdAt:crmFmt(crmNow()), timeline:[], realBookingId:real.id, realBookingNo:real.number || "", shipmentRef:"Booking #"+real.id};
+    crmLog(booking, "Booking created from Opportunity "+opp.id+" — the one booking record in Bookings (no second shipment is created)");
+    CRM_BOOKINGS.unshift(booking);
+    opp.bookingId = booking.id; opp.stage = "Booked"; crmLog(opp, "Converted to Booking "+booking.id);
+    crmNotify("Booking Created", booking.company+" — "+booking.id, "calendar-check", "gr");
+    toast("Booking created", "Complete it in Bookings: parties, carrier and charges. Confirming it creates the shipment job and the service jobs.");
+    renderCrmOpportunity();
+    if(typeof renderCrmEngagement==="function") renderCrmEngagement();
+    if(window.BKG && BKG.open) BKG.open(real.id);
+  }catch(e){ toast("Could not create the booking", e.message, "error"); }
+  finally{ crmBookingBusy = false; }
 }
 
 function crmViewBooking(bookingId){
@@ -9842,6 +9828,7 @@ document.addEventListener("click", e=>{
   if((t=e.target.closest("[data-crm-gen-quote]"))){ crmGenerateQuotation(t.dataset.crmGenQuote); return; }
   if((t=e.target.closest("[data-crm-approve-quote]"))){ crmApproveQuotation(t.dataset.crmApproveQuote); return; }
   if((t=e.target.closest("[data-crm-make-booking]"))){ crmMakeBooking(t.dataset.crmMakeBooking); return; }
+  if((t=e.target.closest("[data-crm-open-booking]"))){ if(window.BKG) BKG.open(t.dataset.crmOpenBooking); return; }
   if((t=e.target.closest("[data-crm-view-booking]"))){ crmViewBooking(t.dataset.crmViewBooking); return; }
   if((t=e.target.closest("[data-crm-charges]"))){ crmRenderChargesForm(t.dataset.crmCharges); setTimeout(()=>{ const w=$("#crmChargesFormWrap"); if(w) w.scrollIntoView({behavior:"smooth"}); },50); return; }
   if((t=e.target.closest("[data-crm-complete-followup]"))){ crmCompleteFollowup(t.dataset.crmCompleteFollowup); return; }
@@ -19125,7 +19112,7 @@ function makePrintFit(){
   /* ---- the summary cards: icon, figure, drill-down ---- */
   const CARDS = [
     {cls:"k-blue", icon:"ship", act:{}}, {cls:"k-teal", icon:"ship", act:{mode:"Sea", dir:"Export"}}, {cls:"k-sky", icon:"ship", act:{mode:"Sea", dir:"Import"}},
-    {cls:"k-purple", icon:"plane", act:{mode:"Air", dir:"Export"}}, {cls:"k-rose", icon:"plane", act:{mode:"Air", dir:"Import"}}, {cls:"k-orange", icon:"license", act:{jtype:"Customs"}}, {cls:"k-green", icon:"truck", act:{mode:"Road"}}];
+    {cls:"k-purple", icon:"plane", act:{mode:"Air", dir:"Export"}}, {cls:"k-rose", icon:"plane", act:{mode:"Air", dir:"Import"}}];
   function decorate(){
     const cards = document.querySelectorAll("#s-job-list .kpi-row .kpi"); if(!cards.length) return;
     cards.forEach((c, i)=>{
@@ -19657,9 +19644,9 @@ function makePrintFit(){
     "s-payment-voucher": {rows:"tbody tr", col:7, decorate:[["cash","k-green"],["cash","k-orange"],["bank","k-blue"],["clock","k-purple"]], cards:[C("TOTAL","cash","k-blue"), C("POSTED","check-circle","k-green",re(/posted/)), C("UNALLOCATED","clock","k-orange",re(/unallocated/)), C("CANCELLED","x","k-red",re(/cancelled/))]},
     "s-payment": {rows:"tbody tr", col:8, decorate:[["cash","k-green"],["cash","k-orange"],["bank","k-blue"],["clock","k-purple"]], cards:[C("TOTAL","cash","k-blue"), C("POSTED","check-circle","k-green",re(/posted/)), C("UNALLOCATED","clock","k-orange",re(/unallocated/)), C("CANCELLED","x","k-red",re(/cancelled/))]},
     "s-svc-console": {rows:"tbody tr", cards:[C("TOTAL SHIPMENTS","package","k-blue"), C("SEA","ship","k-teal",re(/\bsea\b/)), C("AIR","plane","k-purple",re(/\bair\b/)), C("WITH CUSTOMS CLEARANCE","license","k-orange",re(/\bcha\b/)), C("WITH TRANSPORT","truck","k-green",re(/transport/)), C("WITH WAREHOUSE","warehouse","k-sky",re(/warehouse/))]},
-    "s-svc-cha": {rows:"tbody tr", col:7, cards:[C("TOTAL CUSTOMS JOBS","license","k-blue"), C("PENDING","clock","k-orange",re(/pending|planned/)), C("IN PROGRESS","zap","k-purple",re(/in progress/)), C("CLEARED / COMPLETED","check-circle","k-green",re(/cleared|completed|issued/))]},
-    "s-svc-transport": {rows:"tbody tr", col:5, cards:[C("TOTAL TRIPS","truck","k-blue"), C("PLANNED","clock","k-orange",re(/planned|pending/)), C("DISPATCHED","arrow-right","k-sky",re(/dispatched/)), C("IN TRANSIT","truck","k-purple",re(/in transit/)), C("DELIVERED","check-circle","k-green",re(/delivered/))]},
-    "s-svc-warehouse": {rows:"tbody tr", col:4, cards:[C("TOTAL WAREHOUSE JOBS","warehouse","k-blue"), C("PENDING","clock","k-orange",re(/pending|planned/)), C("IN PROGRESS","zap","k-purple",re(/in progress/)), C("COMPLETED","check-circle","k-green",re(/completed/))]},
+    "s-svc-cha": {rows:"tbody tr", col:5, cards:[C("TOTAL CUSTOMS JOBS","license","k-blue"), C("DRAFT","edit","k-sky",re(/draft/)), C("CONFIRMED","check-circle","k-green",re(/confirmed/)), C("ON TRANSIT","zap","k-purple",re(/on transit/)), C("CLOSED","x","k-orange",re(/closed/))]},
+    "s-svc-transport": {rows:"tbody tr", col:5, cards:[C("TOTAL TRANSPORT JOBS","truck","k-blue"), C("DRAFT","edit","k-sky",re(/draft/)), C("CONFIRMED","check-circle","k-green",re(/confirmed/)), C("ON TRANSIT","truck","k-purple",re(/on transit/)), C("CLOSED","x","k-orange",re(/closed/))]},
+    "s-svc-warehouse": {rows:"tbody tr", col:5, cards:[C("TOTAL WAREHOUSE JOBS","warehouse","k-blue"), C("DRAFT","edit","k-sky",re(/draft/)), C("CONFIRMED","check-circle","k-green",re(/confirmed/)), C("ON TRANSIT","zap","k-purple",re(/on transit/)), C("CLOSED","x","k-orange",re(/closed/))]},
     "s-customs": {rows:"tbody tr", col:8, cards:[C("TOTAL FILINGS","license","k-blue"), C("DRAFT","edit","k-sky",re(/draft/)), C("FILED","mail","k-purple",re(/filed/)), C("ASSESSED","clock","k-orange",re(/assessed/)), C("CLEARED","check-circle","k-green",re(/cleared/))]},
     "s-transport": {rows:"tbody tr", col:9, cards:[C("TOTAL TRIPS","truck","k-blue"), C("PLANNED","clock","k-orange",re(/planned|pending/)), C("IN TRANSIT","truck","k-purple",re(/in transit|dispatched/)), C("DELIVERED","check-circle","k-green",re(/delivered/))]},
     "s-warehouse": {rows:"tbody tr", col:8, cards:[C("TOTAL STOCK LINES","warehouse","k-blue"), C("IN STORAGE","package","k-sky",re(/stored|in storage|received|active/)), C("DISPATCHED","arrow-right","k-green",re(/dispatched|released|delivered/))]}
@@ -19895,6 +19882,51 @@ function makePrintFit(){
   panel.addEventListener("mouseenter", stop); panel.addEventListener("mouseleave", start);
   start();
   window.LoginSlides = {show};
+})();
+
+/* ============================================================
+   SERVICE JOBS KIT: Shipment Console, CHA, Transport and Warehouse read the real jobs of the database. A shipment has ONE identity (its job number and booking);
+   the customs / transport / warehouse jobs are linked to it by the booking, so nothing is entered twice and nothing is lost on refresh.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, esc2} = U;
+  const STAGE = {Draft:"b-gy", Confirmed:"b-bl", "On Transit":"b-am", Closed:"b-gr", Reopened:"b-am"};
+  const TYPE = {Forwarding:"Freight", Consol:"Consol", Customs:"CHA", Transport:"Transport", Warehouse:"Warehouse"};
+  const stage = j=> '<span class="b '+(STAGE[j.job_stage] || "b-gy")+' dot">'+esc2(j.job_stage || "Draft")+'</span>';
+  const route = j=> esc2([j.pol, j.pod].filter(Boolean).join(" → ") || "—");
+  const open = j=> '<button class="btn btn-out btn-sm" data-svc-job="'+esc2(j.job_number)+'">Open job</button>';
+  async function data(){
+    const [jobs, custs] = await Promise.all([api("GET", "/api/shipments").catch(()=>[]), api("GET", "/api/customers").catch(()=>[])]);
+    const name = {}; custs.forEach(c=>{ name[c.id] = c.name; });
+    return {jobs, name};
+  }
+  const head = (icon, title, sub)=> '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="'+icon+'" style="color:var(--bl)"></svg>'+esc2(title)+'</div><div class="ps">'+esc2(sub)+'</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>';
+  async function paint(rootId, icon, title, sub, empty, build){
+    const root = document.getElementById(rootId); if(!root) return;
+    const {jobs, name} = await data();
+    root.innerHTML = head(icon, title, sub)+build(jobs, name, empty);
+    if(window.renderIcons) window.renderIcons(root);
+  }
+  const table = (cols, rows, empty, n)=> '<div class="card"><div class="ch"><div class="ct">'+esc2(n)+' <span class="mn-badge">'+rows.length+'</span></div></div><div class="tw"><table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+(rows.join("") || '<tr><td colspan="'+cols.length+'" class="tbl-empty">'+esc2(empty)+'</td></tr>')+'</tbody></table></div></div>';
+  window.renderSvcConsole = ()=> paint("svcConsoleRoot", "globe", "Shipment Console", "One record per shipment: its job number, booking and every linked service job. Open a job to work on it; nothing is entered twice.", "No shipments yet. Create a booking and confirm it, or create a job directly.", (jobs, name, empty)=>{
+    const main = jobs.filter(j=>j.job_type === "Forwarding" || j.job_type === "Consol" || !j.booking_id);
+    const rows = main.map(j=>{ const svc = jobs.filter(x=>x.booking_id && x.booking_id === j.booking_id && x.id !== j.id);
+      return '<tr><td class="mono" style="font-weight:700">'+esc2(j.job_number)+'</td><td><strong>'+esc2(name[j.customer_id] || j.consignee || "—")+'</strong></td><td><span class="b b-bl">'+esc2(j.direction)+'</span> <span class="b b-gy">'+esc2(j.mode)+'</span></td><td>'+route(j)+'</td>'+
+        '<td style="white-space:nowrap">'+(svc.map(x=>'<span class="b b-bl" style="margin-right:3px" title="'+esc2(x.job_number)+'">'+esc2(TYPE[x.job_type] || x.job_type)+'</span>').join("") || '<span style="color:var(--g5)">Freight only</span>')+'</td>'+
+        '<td>'+stage(j)+'</td><td class="no-print">'+open(j)+'</td></tr>'; });
+    return table(["Job No", "Customer", "Direction / Mode", "Route", "Services", "Stage", ""], rows, empty, "Shipments");
+  });
+  const service = (fn, rootId, icon, title, sub, type, empty)=> { window[fn] = ()=> paint(rootId, icon, title, sub, empty, (jobs, name, em)=>{
+    const rows = jobs.filter(j=>j.job_type === type).map(j=>{ const base = jobs.find(x=>x.booking_id && x.booking_id === j.booking_id && x.id !== j.id && (x.job_type === "Forwarding" || x.job_type === "Consol"));
+      return '<tr><td class="mono" style="font-weight:700">'+esc2(j.job_number)+'</td><td class="mono">'+(base ? esc2(base.job_number) : '<span style="color:var(--g5)">Stand-alone</span>')+'</td><td><strong>'+esc2(name[j.customer_id] || j.consignee || "—")+'</strong></td><td>'+route(j)+'</td><td>'+esc2(j.mode)+' '+esc2(j.direction)+'</td><td>'+stage(j)+'</td><td class="no-print">'+open(j)+'</td></tr>'; });
+    return table(["Job No", "Shipment (freight job)", "Customer", "Route", "Mode", "Stage", ""], rows, em, title+" jobs");
+  }); };
+  service("renderSvcCha", "svcChaRoot", "license", "CHA — Customs House Agency", "Customs jobs of your shipments: Bill of Entry / Shipping Bill, assessment, duty and clearance are filed on the job's Customs tab.", "Customs", "No customs jobs yet. Add the CHA service to a booking, or create a Customs job.");
+  service("renderSvcTransport", "svcTransportRoot", "truck", "Transport", "Transport jobs of your shipments: vehicle, driver, trip and delivery proof are kept on the job.", "Transport", "No transport jobs yet. Add the Transport service to a booking, or create a Transport job.");
+  service("renderSvcWarehouse", "svcWarehouseRoot", "warehouse", "Warehouse", "Warehouse jobs of your shipments: receiving, storage, stuffing and dispatch are kept on the job.", "Warehouse", "No warehouse jobs yet. Add the Warehouse service to a booking, or create a Warehouse job.");
+  document.addEventListener("click", e=>{ const b = e.target.closest && e.target.closest("[data-svc-job]"); if(b) go("job-detail", {jobNo:b.dataset.svcJob}); });
+  window.SvcKit = {};
 })();
 
 /* ============================================================
