@@ -115,3 +115,25 @@ def test_bank_master_details_feed_the_printed_bank_block(h):
     assert fx.status_code == 201
     pp = client.get("/api/company/doc-profile", headers=h).json()["print_profile"]
     assert pp["usd_bank_name"] == "Print Usd Bank" and pp["usd_bank_swift"] == "PRTBUS33" and pp["bank_name"] == "Print Test Bank"
+
+
+def test_every_organization_role_lands_on_the_right_side_of_the_accounts(h):
+    """Customer is a debtor; vendor, origin agent, co-loader, IATA and CFS are creditors; a customer that is also a vendor has both ledgers; one organization never gets a second record."""
+    for code, name, roles in [("ROL-1", "Role Customer", ["customer"]), ("ROL-2", "Role Vendor", ["vendor"]), ("ROL-3", "Role Origin Agent", ["origin_agent"]), ("ROL-4", "Role Coloader", ["coloader"]),
+                              ("ROL-5", "Role Both", ["customer", "vendor"])]:
+        assert client.post("/api/customers", json={"code": code, "name": name, "roles": roles, "data": {}}, headers=h).status_code == 201
+    r = client.post("/api/customers", json={"code": "ROL-6", "name": "Role Iata", "roles": ["iata"], "data": {"iata_agent_code": "RI-0001"}}, headers=h)
+    r2 = client.post("/api/customers", json={"code": "ROL-7", "name": "Role Cfs", "roles": ["cfs"], "data": {"cfs_code": "RCFS1"}}, headers=h)
+    assert r.status_code == 201 and r2.status_code == 201
+    f = flat(client.get("/api/coa/tree", headers=h).json()["groups"])
+    debtor = lambda n: ("ASSETS > CURRENT ASSETS > SUNDRY DEBTORS > " + n, "l") in f
+    creditor = lambda n: ("LIABILITIES > CURRENT LIABILITIES > SUNDRY CREDITORS > " + n, "l") in f
+    assert debtor("Role Customer") and not creditor("Role Customer")
+    for n in ("Role Vendor", "Role Origin Agent", "Role Coloader", "Role Iata", "Role Cfs"):
+        assert creditor(n) and not debtor(n), n
+    assert debtor("Role Both") and creditor("Role Both")
+    # the vendor pick-list (bills, bookings) includes every vendor role, the client pick-list every client role
+    vend = {c["name"] for c in client.get("/api/customers?role=vendor", headers=h).json()}
+    cli = {c["name"] for c in client.get("/api/customers?role=client", headers=h).json()}
+    assert {"Role Vendor", "Role Origin Agent", "Role Coloader", "Role Iata", "Role Cfs", "Role Both"} <= vend and {"Role Customer", "Role Both"} <= cli and "Role Vendor" not in cli
+    assert client.get("/api/customers?role=coloader", headers=h).json()[0]["name"] == "Role Coloader"

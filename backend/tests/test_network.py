@@ -44,3 +44,11 @@ def test_stock_line_validation(h):
     assert ok.status_code == 201 and ok.json()["awb_count"] == 100
     assert client.post("/api/network/stock-lines", json={"airline_id": air, "from_awb": "12345050", "to_awb": "12345200"}, headers=h).status_code == 409
     assert client.post("/api/network/stock-lines", json={"airline_id": air, "from_awb": "12345300", "to_awb": "12345200"}, headers=h).status_code == 422
+
+
+def test_audit_trail_is_company_scoped_and_filtered(h):
+    login = client.get("/api/audit?kind=login", headers=h)
+    assert login.status_code == 200 and all(x["module"] == "AUTHENTICATION" for x in login.json()) and login.json()
+    docs = client.get("/api/audit?kind=document", headers=h).json()
+    assert all(x["module"] in ("BILLING", "SALES", "OPERATIONS", "SHIPMENT", "ACCOUNTS") for x in docs)
+    assert client.get("/api/audit?kind=bogus", headers=h).status_code == 422

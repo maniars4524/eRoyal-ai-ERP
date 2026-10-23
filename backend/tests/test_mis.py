@@ -82,3 +82,29 @@ def test_carrier_wise_teu_counts_20_as_one_and_40_as_two(h):
     ct = client.get("/api/mis/carrier-teu", headers=h).json()
     row = next(c for c in ct["carriers"] if c["carrier"] == carrier)
     assert row == {"carrier": carrier, "jobs": 1, "c20": 1, "c40": 2, "teu": 5}
+
+
+def test_branch_and_salesperson_mis_group_revenue_and_cost_by_the_job(h):
+    uid = uuid.uuid4().hex[:4]
+    branch, sp = "BR-" + uid, "Sales " + uid
+    j1 = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "container_mode": "FCL", "pol": "INMAA", "pod": "SGSIN", "branch": branch, "salesperson": sp}, headers=h)
+    j2 = client.post("/api/shipments", json={"mode": "Air", "direction": "Export", "pol": "INMAA", "pod": "SGSIN"}, headers=h)
+    assert j1.status_code == 201 and j2.status_code == 201
+    n1, n2 = j1.json()["job_number"], j2.json()["job_number"]
+    post_doc(h, "invoice", "Mis Branch Co " + uid, "1000", job=n1)
+    post_doc(h, "purchase_invoice", "Mis Branch Vendor " + uid, "400", job=n1)
+    post_doc(h, "invoice", "Mis Branch Co " + uid, "300", job=n2)
+    b = {r["name"]: r for r in client.get("/api/mis/branch", headers=h).json()["rows"]}
+    assert D(b[branch]["revenue"]) == D("1000") and D(b[branch]["cost"]) == D("400") and D(b[branch]["gross_profit"]) == D("600") and b[branch]["jobs"] == 1 and b[branch]["gp_percent"] == "60.0"
+    assert D(b["Unassigned"]["revenue"]) >= D("300")                       # the job without a branch is shown, not lost
+    s = {r["name"]: r for r in client.get("/api/mis/salesperson", headers=h).json()["rows"]}
+    assert D(s[sp]["revenue"]) == D("1000") and D(s[sp]["gross_profit"]) == D("600")
+    # a job made from a booking carries the booking's branch and the sales person of its quotation / booking
+    from datetime import date, timedelta
+    body = {"mode": "Sea", "direction": "Export", "shipment_type": "FCL", "booking_type": "Direct", "party_name": "Mis Co", "carrier": "MSC", "carrier_booking_no": "MB1", "vessel": "V", "pol": "INMAA", "pod": "BEANR",
+            "etd": str(date.today() + timedelta(days=10)), "eta": str(date.today() + timedelta(days=30)), "si_cutoff": str(date.today() + timedelta(days=1)), "vgm_cutoff": str(date.today() + timedelta(days=1)),
+            "data": {"services": "Freight", "branch": "Chennai HO", "sales_person": "Booked Seller", "charges": []}}
+    bk = client.post("/api/bookings", json=body, headers=h).json()
+    jn = client.post(f"/api/bookings/{bk['id']}/confirm", headers=h).json()["job_number"]
+    job = next(x for x in client.get("/api/shipments", headers=h).json() if x["job_number"] == jn)
+    assert job["branch"] == "Chennai HO" and job["salesperson"] == "Booked Seller"

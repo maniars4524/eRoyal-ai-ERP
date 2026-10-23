@@ -62,7 +62,7 @@ def test_role_templates_are_enforced_on_the_server(world, admin):
 def test_password_policy_and_duplicates(world, admin):
     h = hdr(admin["username"], admin["license"])
     tag = uuid.uuid4().hex[:6]
-    assert client.post("/api/users", json={"username": f"p{tag}", "email": f"p{tag}@u.test", "password": "short", "first_name": "P"}, headers=h).status_code == 422
+    assert client.post("/api/users", json={"username": f"p{tag}", "email": f"p{tag}@u.test", "password": "", "first_name": "P"}, headers=h).status_code == 422      # a password is needed, its length is the user's choice
     assert client.post("/api/users", json={"username": f"p{tag}", "email": "not-an-email", "password": PASSWORD, "first_name": "P"}, headers=h).status_code == 422
     assert new_user(h, f"dup{tag}").status_code == 201
     assert new_user(h, f"dup{tag}").status_code == 409
@@ -97,3 +97,12 @@ def test_users_are_tenant_isolated_and_super_admin_hidden(world, admin):
 def test_demo_user_cannot_create_or_edit_users(world):
     h_demo = {"Authorization": "Bearer " + login(world["demo"], "demo").json()["access_token"]}
     assert new_user(h_demo, "demohack").status_code == 403
+
+
+def test_the_user_chooses_the_password_length(world, admin):
+    h = hdr(admin["username"], admin["license"])
+    tag = uuid.uuid4().hex[:6]
+    r = client.post("/api/users", json={"username": f"sp{tag}", "email": f"sp{tag}@u.test", "password": "abc", "first_name": "S"}, headers=h)
+    assert r.status_code == 201, r.text
+    ok = client.post("/api/auth/login", json={"identifier": f"sp{tag}", "password": "abc", "portal": "erp", "license_number": admin["license"]})
+    assert ok.status_code == 200

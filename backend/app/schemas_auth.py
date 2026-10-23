@@ -20,7 +20,7 @@ class OrganizationAdminCreate(BaseModel):
     country: str = Field(default="India", max_length=80)
     admin_email: str = Field(min_length=5, max_length=254)
     admin_username: str = Field(min_length=2, max_length=80)
-    admin_password: str = Field(min_length=12, max_length=256)
+    admin_password: str = Field(min_length=1, max_length=256)
     admin_first_name: str = Field(min_length=1, max_length=80)
     admin_last_name: str = Field(default="", max_length=80)
 
@@ -191,6 +191,8 @@ class ShipmentCreate(BaseModel):
     volume: float | None = Field(default=None, ge=0)
     commodity: str | None = Field(default=None, max_length=160)
     bl_awb: str | None = Field(default=None, max_length=60)
+    branch: str | None = Field(default=None, max_length=80)
+    salesperson: str | None = Field(default=None, max_length=120)
     revenue: float = Field(default=0, ge=0)
 
 
@@ -212,6 +214,8 @@ class ShipmentUpdate(BaseModel):
     volume: float | None = Field(default=None, ge=0)
     commodity: str | None = Field(default=None, max_length=160)
     bl_awb: str | None = Field(default=None, max_length=60)
+    branch: str | None = Field(default=None, max_length=80)
+    salesperson: str | None = Field(default=None, max_length=120)
     revenue: float | None = Field(default=None, ge=0)
     status: str | None = Field(default=None, max_length=30)
 

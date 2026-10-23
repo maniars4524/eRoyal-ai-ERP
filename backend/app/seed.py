@@ -84,8 +84,8 @@ def seed_super_admin() -> None:
         email = os.getenv("SUPER_ADMIN_EMAIL", "admin@esway.local")
         username = os.getenv("SUPER_ADMIN_USERNAME", "Admin")
         password = os.getenv("SUPER_ADMIN_PASSWORD", "admin")
-        if IS_PRODUCTION and (len(password) < 12 or password.lower() in {"admin", "password", "mani"}):
-            raise RuntimeError("SUPER_ADMIN_PASSWORD must be at least 12 characters when APP_ENV=production")
+        if IS_PRODUCTION and password.lower() in {"admin", "password", "mani"}:
+            raise RuntimeError("SUPER_ADMIN_PASSWORD must not be a well-known password when APP_ENV=production")
         user = db.scalar(select(User).where(User.email == email))
         if not user:
             user = User(email=email, username=username, password_hash=hash_password(password), first_name="Platform", last_name="Administrator", is_super_admin=True)

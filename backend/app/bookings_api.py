@@ -302,6 +302,18 @@ def booking_jobs(booking_id: int, user: User = Depends(permission_required("book
     return _jobs(db, _get(db, _tenant(user), booking_id))
 
 
+def _booking_salesperson(db: Session, b: Booking) -> str | None:
+    """Who sold the shipment: the sales person named on the booking, else the one on the quotation the booking came from."""
+    named = str((b.data or {}).get("sales_person") or "").strip()
+    if named:
+        return named[:120]
+    if b.quotation_id:
+        q = db.get(Quotation, b.quotation_id)
+        sp = str(((q.header if q else None) or {}).get("sales_person") or "").strip()
+        return sp[:120] or None
+    return None
+
+
 def _make_job(db: Session, org_id: int, b: Booking, service: str, user: User) -> Shipment:
     """Create one job of a confirmed booking (all booking details carried over, costing rows of that service become its charges)."""
     needed = "Freight" if service == "Consol" else service
@@ -313,7 +325,8 @@ def _make_job(db: Session, org_id: int, b: Booking, service: str, user: User) ->
     container_mode = "LCL" if service == "Consol" else (b.shipment_type if b.shipment_type in ("FCL", "LCL") else None)
     job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction, container_mode, user), job_type=job_type, booking_id=b.id, mode=b.mode, direction=b.direction, container_mode=container_mode,
                    pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
-                   gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id)
+                   gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id,
+                   branch=(str(data.get("branch") or "").strip() or None), salesperson=_booking_salesperson(db, b))
     db.add(job)
     db.flush()
     first = not _jobs_exist(db, b, exclude=job.id)

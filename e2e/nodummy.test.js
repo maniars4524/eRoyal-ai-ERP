@@ -43,7 +43,7 @@ const DUMMY = /PAS Freight|PAS FREIGHT|RLPL|Tata Chem|GEA West|Infosys|Ashok Ley
   check("job party drop-downs list the real Organization Master, no sample names", partyOpts.some(x => /Real Exports/.test(x)) && !partyOpts.some(x => DUMMY.test(x)), partyOpts.join("|"));
   // report previews, P&L, meetings, employee profile, rate sheets
   const REPORT = Array.from(d.querySelectorAll("[data-report]"))[0];
-  if (REPORT) { w.go("reports"); await sleep(500); REPORT.click(); await sleep(400); check("a report preview shows no invented rows", /No data yet/.test(text("#reportOutputBody")) && !DUMMY.test(text("#reportOutputBody")), text("#reportOutputBody").slice(0, 160)); }
+  if (REPORT) { w.go("reports"); await sleep(500); REPORT.click(); await sleep(400); check("a report preview shows no invented rows", /No records|Real Exports/.test(text("#reportOutputBody")) && !DUMMY.test(text("#reportOutputBody")), text("#reportOutputBody").slice(0, 160)); }
   w.go("pnl"); await sleep(500);
   check("the job profitability screen shows no sample figures", !/62\.4L|49\.8L|12\.6L/.test(text("#s-pnl")) && !DUMMY.test(text("#s-pnl")), text("#s-pnl").slice(0, 200));
   w.go("meetings"); await sleep(400);

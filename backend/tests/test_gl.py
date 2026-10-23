@@ -358,3 +358,25 @@ def test_gstr2b_import_and_itc_reconciliation(h):
     assert again["imported_rows"] == 1 and again["itc_per_gstr2b"] == "-18.00"
     assert client.post("/api/gl/gstr2b/import", json={"period": PER, "rows": [{**row("X", "1", "1"), "gstin": "BAD"}]}, headers=h).status_code == 422
     assert client.post("/api/gl/gstr2b/import", json={"period": "2003-13", "rows": [row("X", "1", "1")]}, headers=h).status_code == 422
+
+
+def test_bank_statement_import_matches_by_amount_side_and_date_and_clears(h):
+    uid = uuid.uuid4().hex[:5]
+    bank_group = next(x for x in client.get("/api/coa/tree", headers=h).json()["groups"][0]["groups"][0]["groups"] if x["name"] == "BANK ACCOUNTS")
+    bank = client.post("/api/coa/ledgers", json={"group_id": bank_group["id"], "name": "Gl Stmt Bank " + uid, "opening_balance": "0", "opening_side": "Dr"}, headers=h).json()
+    cash = ledger_of(h, "Cash in Hand")
+    dep = client.post("/api/gl/vouchers", json={"voucher_type": "CONTRA", "lines": [{"ledger_id": bank["id"], "debit": "700"}, {"ledger_id": cash["id"], "credit": "700"}]}, headers=h)
+    wd = client.post("/api/gl/vouchers", json={"voucher_type": "CONTRA", "lines": [{"ledger_id": cash["id"], "debit": "250"}, {"ledger_id": bank["id"], "credit": "250"}]}, headers=h)
+    assert dep.status_code == 201 and wd.status_code == 201
+    today = date.today()
+    rows = [{"Date": today.strftime("%d-%m-%Y"), "Description": "CASH DEP", "Credit": "700.00"}, {"Date": str(today), "Description": "CHQ 22", "Debit": "250"}, {"Date": str(today), "Description": "BANK CHARGES", "Debit": "11"}, {"Date": "x", "Credit": "5"}]
+    pre = client.post("/api/gl/bank-recon/import-statement", json={"ledger_id": bank["id"], "rows": rows}, headers=h).json()
+    assert pre["applied"] is False and pre["matched"] == 2 and pre["unmatched"] == 1 and pre["errors"] == 1
+    assert client.get(f"/api/gl/bank-recon?ledger_id={bank['id']}", headers=h).json()["balance_as_per_bank"] == "0.00"      # checking cleared nothing
+    done = client.post("/api/gl/bank-recon/import-statement", json={"ledger_id": bank["id"], "rows": rows, "apply": True}, headers=h).json()
+    assert done["applied"] is True and done["matched"] == 2
+    r = client.get(f"/api/gl/bank-recon?ledger_id={bank['id']}", headers=h).json()
+    assert r["balance_as_per_bank"] == "450.00" and r["uncleared_deposits"] == "0.00" and r["uncleared_payments"] == "0.00"
+    again = client.post("/api/gl/bank-recon/import-statement", json={"ledger_id": bank["id"], "rows": rows[:2], "apply": True}, headers=h).json()
+    assert again["matched"] == 0 and again["unmatched"] == 2            # importing the same statement twice changes nothing
+    assert client.post("/api/gl/bank-recon/import-statement", json={"ledger_id": cash["id"], "rows": rows[:1]}, headers=h).status_code == 422

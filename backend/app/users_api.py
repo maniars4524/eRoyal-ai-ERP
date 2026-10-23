@@ -22,7 +22,7 @@ PROFILE_KEYS = re.compile(r"^[a-z0-9_]{1,60}$")
 class UserCreate(BaseModel):
     username: str = Field(min_length=2, max_length=80, pattern=r"^[A-Za-z0-9._-]+$")
     email: str = Field(min_length=5, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    password: str = Field(min_length=12, max_length=256)
+    password: str = Field(min_length=1, max_length=256)       # the user chooses the password; no length rule
     first_name: str = Field(min_length=1, max_length=80)
     last_name: str = Field(default="", max_length=80)
     phone: str | None = Field(default=None, max_length=40)
@@ -42,7 +42,7 @@ class UserPatch(BaseModel):
     status: str | None = Field(default=None, pattern="^(ACTIVE|INACTIVE)$")
     role: str | None = None
     profile: dict[str, Any] | None = None
-    new_password: str | None = Field(default=None, min_length=12, max_length=256)
+    new_password: str | None = Field(default=None, min_length=1, max_length=256)
 
     @field_validator("profile")
     @classmethod

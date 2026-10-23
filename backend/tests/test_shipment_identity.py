@@ -58,3 +58,16 @@ def test_booking_edits_after_confirmation_are_refused_so_the_shipment_data_stays
     b = client.post("/api/bookings", json=booking_body("Freight"), headers=h).json()
     client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
     assert client.patch(f"/api/bookings/{b['id']}", json={"pol": "INBOM"}, headers=h).status_code == 409
+
+
+def test_job_links_show_the_booking_the_sibling_jobs_and_the_invoices(h):
+    b = client.post("/api/bookings", json=booking_body("Freight, CHA"), headers=h).json()
+    conf = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    jobs = {j["job_type"]: j["job_number"] for j in conf["jobs"]}
+    freight = client.get(f"/api/jobs/{jobs['Forwarding']}/links", headers=h).json()
+    assert freight["booking"]["id"] == b["id"] and freight["booking"]["number"] == conf["number"]
+    assert [x["job_number"] for x in freight["related_jobs"]] == [jobs["Customs"]] and freight["documents"] == []
+    inv = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Identity Exports", "job_number": jobs["Forwarding"], "lines": [{"charge_name": "Ocean Freight", "hsn": "996521", "uom": "Per Shipment", "qty": "1", "ccy": "INR", "exch": "1", "rate": "500", "tax_type": "Non-Taxable", "tax_pct": "0"}]}, headers=h)
+    assert inv.status_code == 201, inv.text
+    assert [d["id"] for d in client.get(f"/api/jobs/{jobs['Forwarding']}/links", headers=h).json()["documents"]] == [inv.json()["id"]]
+    assert client.get("/api/jobs/NOPE-1/links", headers=h).status_code == 404

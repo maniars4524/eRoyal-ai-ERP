@@ -243,6 +243,25 @@ def get_details(job_number: str, user: User = Depends(permission_required("shipm
     return _out(db, job, _row(db, job), user)
 
 
+@router.get("/{job_number}/links")
+def job_links(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """Everything connected to this shipment: its booking, the quotation behind it, the other jobs of the same booking, and its invoices / bills / notes. Used for the links on the job page."""
+    job = _job(db, user, job_number)
+    b = db.get(Booking, job.booking_id) if job.booking_id else None
+    quotes = []
+    if b and b.quotation_id:
+        q = db.get(Quotation, b.quotation_id)
+        if q:
+            quotes.append(q)
+    quotes += [q for q in db.scalars(select(Quotation).where(Quotation.organization_id == job.organization_id, Quotation.job_number == job.job_number)) if q not in quotes]
+    related = []
+    if job.booking_id:
+        related = [{"job_number": x.job_number, "job_type": x.job_type, "job_stage": x.job_stage} for x in db.scalars(select(Shipment).where(Shipment.organization_id == job.organization_id, Shipment.booking_id == job.booking_id, Shipment.id != job.id).order_by(Shipment.id))]
+    docs = [{"id": d.id, "doc_type": d.doc_type, "doc_number": d.doc_number, "status": d.status, "party": d.party_name, "total": str(d.grand_total), "outstanding": str(billing.outstanding(d)) if d.status == "POSTED" else "0"}
+            for d in db.scalars(select(Document).where(Document.organization_id == job.organization_id, Document.job_number == job.job_number).order_by(Document.id))]
+    return {"job_number": job.job_number, "booking": {"id": b.id, "number": b.number, "status": b.status} if b else None, "quotations": [{"id": q.id, "number": q.number, "status": q.status} for q in quotes], "related_jobs": related, "documents": docs}
+
+
 @router.put("/{job_number}/details/{section}")
 def save_section(job_number: str, section: str, body: SectionIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     if section not in SECTIONS:

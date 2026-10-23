@@ -367,6 +367,82 @@ def bank_clear(body: ClearIn, user: User = Depends(permission_required("billing.
     return {"updated": len(rows)}
 
 
+class StatementIn(BaseModel):
+    ledger_id: int
+    rows: list[dict] = Field(min_length=1, max_length=5000)
+    apply: bool = False
+    tolerance_days: int = Field(default=5, ge=0, le=60)
+
+
+def _stmt_date(v) -> date | None:
+    from datetime import datetime
+
+    t = str(v or "").strip()[:10]
+    for f in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%d.%m.%Y", "%d-%b-%Y", "%d %b %Y"):
+        try:
+            return datetime.strptime(str(v or "").strip() if f in ("%d-%b-%Y", "%d %b %Y") else t, f).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _stmt_amount(v) -> Decimal:
+    t = str(v or "").replace(",", "").replace("₹", "").strip()
+    try:
+        return abs(Decimal(t)) if t else ZERO
+    except Exception:
+        raise ValueError("not a number: " + str(v))
+
+
+@router.post("/bank-recon/import-statement")
+def bank_statement_import(body: StatementIn, user: User = Depends(permission_required("billing.post")), db: Session = Depends(get_db)):
+    """Match the lines of a bank statement (date, debit = withdrawal, credit = deposit) with the uncleared entries of the bank ledger: same amount on the same side, voucher date within the tolerance
+    (nearest date first, each entry used once). apply=false only shows the matches; apply=true clears the matched entries on the statement date."""
+    org_id = _prep(db, user)
+    led = _bank_ledger(db, org_id, body.ledger_id)
+    q = select(AccEntry, AccVoucher).join(AccVoucher, AccVoucher.id == AccEntry.voucher_id).where(AccEntry.ledger_id == led.id, AccVoucher.status == "POSTED", AccEntry.cleared_date.is_(None))
+    pool = [(e, v) for e, v in db.execute(q)]
+    used: set[int] = set()
+    out, matched = [], []
+    pick = lambda r, *names: next((r[k] for k in r if str(k).strip().lower().replace(" ", "_") in names), "")
+    for i, r in enumerate(body.rows, start=1):
+        d = _stmt_date(pick(r, "date", "txn_date", "transaction_date", "value_date"))
+        try:
+            dep = _stmt_amount(pick(r, "credit", "deposit", "deposits", "cr"))
+            wd = _stmt_amount(pick(r, "debit", "withdrawal", "withdrawals", "dr"))
+        except ValueError as ex:
+            out.append({"row": i, "status": "ERROR", "message": str(ex)})
+            continue
+        ref = str(pick(r, "reference", "ref", "ref_no", "cheque_no", "utr", "description", "narration"))[:80]
+        base = {"row": i, "date": d, "reference": ref, "deposit": _s(dep), "withdrawal": _s(wd)}
+        if d is None or (dep > 0) == (wd > 0):
+            out.append({**base, "status": "ERROR", "message": "Needs a valid date and either a debit or a credit amount"})
+            continue
+        best = None
+        for e, v in pool:
+            if e.id in used:
+                continue
+            if (dep > 0 and e.debit == dep and e.credit == 0) or (wd > 0 and e.credit == wd and e.debit == 0):
+                gap = abs((v.vdate - d).days)
+                if gap <= body.tolerance_days and (best is None or gap < best[0]):
+                    best = (gap, e, v)
+        if best is None:
+            out.append({**base, "status": "UNMATCHED", "message": "No uncleared entry of the same amount near this date"})
+            continue
+        gap, e, v = best
+        used.add(e.id)
+        matched.append((e, d))
+        out.append({**base, "status": "MATCHED", "entry_id": e.id, "voucher": v.number, "party": v.party_name, "message": f"Voucher {v.number} of {v.vdate:%d-%m-%Y}" + (f" ({gap} day(s) apart)" if gap else "")})
+    result = {"ledger": {"id": led.id, "name": led.name}, "rows": out, "matched": len(matched), "unmatched": sum(1 for x in out if x["status"] == "UNMATCHED"), "errors": sum(1 for x in out if x["status"] == "ERROR"), "applied": False}
+    if body.apply:
+        for e, d in matched:
+            e.cleared_date = d
+        record_audit(db, "BANK_STATEMENT_IMPORTED", "ACCOUNTS", user, org_id, "AccLedger", str(led.id), {"matched": len(matched), "rows": len(body.rows)})
+        db.commit()
+        result["applied"] = True
+    return result
+
+
 # ---------------------------------------------------------------- GST
 @router.get("/gst")
 def gst_report(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):

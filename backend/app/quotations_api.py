@@ -608,7 +608,8 @@ def convert_to_job(quote_id: int, carrier: str | None = Query(default=None, max_
     credit_enforce(db, org_id, quote.customer_id, "convert quotation to job", user.id, None, ZERO_AMT)
     container_mode = quote.shipment_type if quote.shipment_type in ("FCL", "LCL") else None
     job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, quote.mode, quote.direction, quote.shipment_type if quote.shipment_type in ("FCL", "LCL") else None, user), mode=quote.mode, direction=quote.direction, container_mode=container_mode,
-                   pol=quote.pol, pod=quote.pod, customer_id=quote.customer_id, status="Open", created_by=user.id)
+                   pol=quote.pol, pod=quote.pod, customer_id=quote.customer_id, status="Open", created_by=user.id,
+                   salesperson=(str((quote.header or {}).get("sales_person") or "").strip()[:120] or None))
     db.add(job)
     db.flush()
     from . import job_lifecycle as jl

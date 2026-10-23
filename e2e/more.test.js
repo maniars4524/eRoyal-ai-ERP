@@ -63,7 +63,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   clickSave("emp-new", "empSaveBtn"); await sleep(1200);
   const emps = (await j("GET", "/api/masters/employee", null, token)).body;
   check("employee persisted with department/designation", emps.length === 1 && emps[0].name === "Asha Rao" && emps[0].data.department === "Operations" && emps[0].data.mobile === "9000000001", JSON.stringify(emps) + toasts.slice(-2).join(";"));
-  check("employee list shows the saved employee", rows("#empTableBody").some(t => t.includes("EMP-1") && t.includes("Asha Rao")), rows("#empTableBody").join("|"));
+  check("employee list shows the saved employee", rows("#empTableBody").some(t => /EMP-0*1/.test(t) && t.includes("Asha Rao")), rows("#empTableBody").join("|"));
   w.go("emp-new"); await sleep(300); clickSave("emp-new", "empSaveBtn"); await sleep(300);
   check("employee form blocks missing required fields", toasts.some(t => /Required fields missing/.test(t)));
 

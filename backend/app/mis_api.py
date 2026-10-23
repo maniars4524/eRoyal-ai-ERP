@@ -234,3 +234,42 @@ def portfolio(date_from: date | None = None, date_to: date | None = None, user: 
     top = [{"customer": k, "revenue": _s(v), "share": _pct(v, total)} for k, v in sorted(rev.items(), key=lambda x: -x[1])[:15]]
     return {"date_from": date_from, "date_to": date_to, "parties": len(custs), "active": sum(1 for c in custs if c.status == "ACTIVE"), "inactive": sum(1 for c in custs if c.status != "ACTIVE"), "roles": [{"role": k, "parties": v} for k, v in sorted(roles.items(), key=lambda x: -x[1])],
             "new_in_period": len(new), "customers_billed": len(rev), "top_customers": top, "top5_share": _pct(sum((Decimal(t["revenue"]) for t in top[:5]), ZERO), total)}
+
+
+def _by_job_field(db: Session, org_id: int, field: str, date_from: date | None, date_to: date | None) -> dict:
+    """Revenue, cost and gross profit grouped by a field of the job (branch / salesperson). Documents are tied to the job they were raised for; the rest is shown as Unassigned."""
+    jobs = _job_index(db, org_id)
+    rows: dict[str, dict] = {}
+
+    def row(name: str) -> dict:
+        return rows.setdefault(name, {"name": name, "jobs": set(), "revenue": ZERO, "cost": ZERO})
+
+    for j in jobs.values():
+        if date_from and j.created_at.date() < date_from:
+            continue
+        if date_to and j.created_at.date() > date_to:
+            continue
+        row(getattr(j, field) or "Unassigned")["jobs"].add(j.job_number)
+    for d in _docs(db, org_id, date_from, date_to):
+        j = jobs.get(d.job_number or "")
+        r = row((getattr(j, field) if j else None) or "Unassigned")
+        if d.doc_type in SALES:
+            r["revenue"] += _val(d)
+        else:
+            r["cost"] += _val(d)
+    out = []
+    for r in sorted(rows.values(), key=lambda x: -x["revenue"]):
+        gp = r["revenue"] - r["cost"]
+        out.append({"name": r["name"], "jobs": len(r["jobs"]), "revenue": str(r["revenue"]), "cost": str(r["cost"]), "gross_profit": str(gp), "gp_percent": str((gp * 100 / r["revenue"]).quantize(Decimal("0.1"))) if r["revenue"] else "0.0"})
+    tr, tc = sum((r["revenue"] for r in rows.values()), ZERO), sum((r["cost"] for r in rows.values()), ZERO)
+    return {"date_from": date_from, "date_to": date_to, "rows": out, "totals": {"jobs": sum(len(r["jobs"]) for r in rows.values()), "revenue": str(tr), "cost": str(tc), "gross_profit": str(tr - tc)}}
+
+
+@router.get("/branch")
+def branch_analysis(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    return _by_job_field(db, _tenant(user), "branch", date_from, date_to)
+
+
+@router.get("/salesperson")
+def salesperson_performance(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    return _by_job_field(db, _tenant(user), "salesperson", date_from, date_to)
