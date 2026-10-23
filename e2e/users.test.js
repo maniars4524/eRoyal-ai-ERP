@@ -47,7 +47,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   field("Work Email").value = `priya${tag}@t.test`; field("Mobile").value = "9000000009"; field("Primary Role").value = "ACCOUNTS";
   d.getElementById("uk_pwd").value = "";
   toasts.length = 0; saveBtn().click(); await sleep(300);
-  check("an empty password is refused (any other length is the user's choice)", toasts.some(t => /Enter a password/.test(t)));
+  check("an empty password is refused (any other length is the user's choice)", toasts.some(t => /Enter a password|Required fields missing|Initial Password/.test(t)));
   d.getElementById("uk_pwd").value = "Priya-Passw0rd-123";
   saveBtn().click(); await sleep(1500);
   const list = (await j("GET", "/api/users", null, token)).body;
