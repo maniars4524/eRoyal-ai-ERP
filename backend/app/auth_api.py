@@ -83,6 +83,13 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         record_audit(db, "LOGIN_WRONG_PORTAL", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "requested": payload.portal, "allowed": portal})
         db.commit()
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"This account cannot sign in to the {PORTAL_LABELS[payload.portal]} portal. Use the {PORTAL_LABELS[portal]} portal instead.")
+    from . import license_mgmt as lm        # imported here: license_mgmt itself imports this module
+
+    blocked = lm.block_reason(user.organization) if user.organization else None
+    if blocked:
+        record_audit(db, "LOGIN_BLOCKED_LICENSE", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "status": lm.effective_status(user.organization)})
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"code": "LICENSE_BLOCKED", "message": blocked})
     sid = None
     if config.SINGLE_SESSION:
         live = user.session_id and user.session_seen_at and (now - user.session_seen_at).total_seconds() < config.SESSION_ACTIVE_MINUTES * 60
@@ -90,6 +97,9 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "ALREADY_SIGNED_IN", "message": "This account is already signed in on another computer. Continuing will sign that computer out.", "ip": user.session_ip, "since": user.session_started_at.isoformat() if user.session_started_at else None})
         if live:
             record_audit(db, "SESSION_REPLACED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), {**meta, "previous_ip": user.session_ip})
+        org = user.organization
+        if org is not None and org.max_sessions is not None and not live and lm.live_session_count(db, org.id, config.SESSION_ACTIVE_MINUTES) >= org.max_sessions:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=f"The license allows {org.max_sessions} user(s) signed in at the same time and all of them are in use. Try again later.")
         sid = uuid.uuid4().hex
         user.session_id, user.session_ip, user.session_started_at, user.session_seen_at = sid, meta["ip"], now, now
     user.failed_login_count = 0
@@ -148,8 +158,9 @@ def list_organizations(user: User = Depends(permission_required("organization.re
     return db.scalars(query).all()
 
 
-@platform_router.post("", status_code=201)
-def create_organization(payload: OrganizationAdminCreate, user: User = Depends(permission_required("organization.create")), db: Session = Depends(get_db)):
+def create_company(db: Session, payload: OrganizationAdminCreate, actor: User, commit: bool = True) -> tuple[Organization, User]:
+    """Create a company with its first administrator and the standard masters (shared by the developer portal and License Management).
+    commit=False leaves the transaction open so the caller can add more to it and commit once (all or nothing)."""
     if db.scalar(select(Organization).where(Organization.code == payload.code)) or db.scalar(select(User).where((User.email == payload.admin_email) | (User.username == payload.admin_username))):
         raise HTTPException(status_code=409, detail="Organization code or administrator identity already exists")
     organization = Organization(code=payload.code, license_number=next_license_number(db), name=payload.name, legal_name=payload.legal_name, country=payload.country, status="ACTIVE")
@@ -160,17 +171,24 @@ def create_organization(payload: OrganizationAdminCreate, user: User = Depends(p
         raise HTTPException(status_code=500, detail="Foundation permissions have not been seeded")
     admin = User(email=payload.admin_email, username=payload.admin_username.lower(), password_hash=hash_password(payload.admin_password), first_name=payload.admin_first_name, last_name=payload.admin_last_name, status="ACTIVE", is_super_admin=False)
     organization.users.append(admin)
-    organization.created_by = user.id
-    std_masters.seed_org(db, organization.id, user_id=user.id)
+    organization.created_by = actor.id
+    std_masters.seed_org(db, organization.id, user_id=actor.id)
     admin.roles.append(admin_role)
     try:
         db.flush()
-        record_audit(db, "ORGANIZATION_CREATED", "ORGANIZATION", user, organization.id, "Organization", str(organization.id), {"code": organization.code, "name": organization.name})
-        record_audit(db, "USER_CREATED", "USER", user, organization.id, "User", str(admin.id), {"username": admin.username, "role": "ERP_ADMIN"})
-        db.commit()
+        record_audit(db, "ORGANIZATION_CREATED", "ORGANIZATION", actor, organization.id, "Organization", str(organization.id), {"code": organization.code, "name": organization.name})
+        record_audit(db, "USER_CREATED", "USER", actor, organization.id, "User", str(admin.id), {"username": admin.username, "role": "ERP_ADMIN"})
+        if commit:
+            db.commit()
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="Organization or administrator already exists")
+    return organization, admin
+
+
+@platform_router.post("", status_code=201)
+def create_organization(payload: OrganizationAdminCreate, user: User = Depends(permission_required("organization.create")), db: Session = Depends(get_db)):
+    organization, admin = create_company(db, payload, user)
     return {"organization": organization, "admin": safe_user(admin)}
 
 

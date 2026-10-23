@@ -232,6 +232,7 @@ class SafeUser(BaseModel):
     roles: list[str]
     permissions: list[str]
     portal: str
+    license_admin: bool = False
     theme: str | None = None
 
 

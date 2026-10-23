@@ -1384,17 +1384,20 @@ tbody tr:hover{background:var(--g0)}
     <button class="hdr-user" id="userBtn">
       <div class="hdr-avatar">RK</div>
       <div>
-        <div class="hdr-uname">Raj Kumar</div>
+        <div class="hdr-uname">—</div>
         <div class="hdr-urole" id="userRoleLbl">Admin · Chennai</div>
       </div>
       <svg class="ic ic-sm" data-icon="chevron-down" style="color:var(--g4);margin-left:2px"></svg>
     </button>
     <div class="hdr-pop" id="userPop" style="width:230px">
-      <div class="hdr-pop-head"><strong>Raj Kumar</strong></div>
+      <div class="hdr-pop-head" style="display:block"><strong id="hdrPopName">—</strong><div id="hdrPopRole" style="font-size:11px;color:var(--g5);margin-top:2px"></div></div>
+      <div class="hdr-menu-item" data-role="Super Admin" id="viewSuper" style="display:none"><svg class="ic" data-icon="award"></svg>View as Super Admin</div>
       <div class="hdr-menu-item" data-role="Admin"><svg class="ic" data-icon="shield"></svg>View as Admin</div>
       <div class="hdr-menu-item" data-role="Operations"><svg class="ic" data-icon="package"></svg>View as Operations</div>
       <div class="hdr-menu-item" data-role="Accounts"><svg class="ic" data-icon="cash"></svg>View as Accounts</div>
       <div class="hdr-menu-item" data-role="Sales"><svg class="ic" data-icon="file-text"></svg>View as Sales</div>
+      <div class="hdr-menu-item" data-role="CHA"><svg class="ic" data-icon="license"></svg>View as CHA</div>
+      <div class="hdr-menu-item" data-role="Transport"><svg class="ic" data-icon="truck"></svg>View as Transport</div>
       <div class="hdr-menu-div"></div>
       <div class="hdr-menu-item"><svg class="ic" data-icon="help"></svg>Help &amp; Support</div>
       <div class="hdr-menu-item"><svg class="ic" data-icon="logout"></svg>Sign out</div>
@@ -2193,7 +2196,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- OT7: STAFF & DOCS -->
 <div id="ot7" class="tp"><div class="card"><div class="ch"><div class="ct">Staff Assignments</div><button class="btn btn-out btn-sm" id="orgAddStaffBtn"><svg class="ic" data-icon="plus"></svg> Add</button></div>
 <div class="tw"><table id="orgStaffTable"><thead><tr><th>Role</th><th>Initials</th><th>Responsible Person</th><th>Department</th><th>Effective From</th><th class="no-print"></th></tr></thead><tbody>
-<tr><td><select class="fc" style="width:100px"><option>Sales</option><option>Ops</option><option>Doc</option></select></td><td><input class="fc" placeholder="RK" style="width:55px;font-family:var(--font-mono)"></td><td><select class="fc" style="width:130px"><option>Raj Kumar</option><option>Priya S</option></select></td><td><select class="fc" style="width:80px"><option>SEX</option><option>ALL</option></select></td><td><input class="fc" type="date" style="width:120px"></td><td class="no-print"><button class="ta remove-row">✕</button></td></tr>
+<tr><td><select class="fc" style="width:100px"><option>Sales</option><option>Ops</option><option>Doc</option></select></td><td><input class="fc" placeholder="RK" style="width:55px;font-family:var(--font-mono)"></td><td><select class="fc" style="width:130px"><option value="">— Select user —</option></select></td><td><select class="fc" style="width:80px"><option>SEX</option><option>ALL</option></select></td><td><input class="fc" type="date" style="width:120px"></td><td class="no-print"><button class="ta remove-row">✕</button></td></tr>
 </tbody></table></div></div>
 <div class="card"><div class="ch"><div class="ct">Attached Documents</div><button class="btn btn-out btn-sm"><svg class="ic" data-icon="upload"></svg> Upload</button></div>
 <div class="tw"><table><thead><tr><th>Document</th><th>Type</th><th>Uploaded</th><th>Expiry</th><th class="no-print"></th></tr></thead><tbody>
@@ -6190,21 +6193,21 @@ const TOPNAV_MENU = [
       {label:"Financial Year", icon:"calendar-check", go:"entcfg"},
     ]},
   ]},
-  {id:"crm", label:"CRM", icon:"users", roles:["Admin","Operations","Sales"], children:[
+  {id:"crm", label:"CRM", icon:"users", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
     {label:"Lead", icon:"user", go:"crm-lead"},
     {label:"Enquiries", icon:"file-text", go:"crm-enquiry", badge:"badgeCrmEnq"},
     {label:"Opportunities", icon:"trending-up", go:"crm-opportunity"},
     {label:"Engagement", icon:"message-circle", go:"crm-engagement"},
     {label:"Quotation", icon:"file-text", go:"quotation"},
   ]},
-  {id:"svcops", label:"Service Ops", icon:"truck", roles:["Admin","Operations"], children:[
-    {label:"Shipment Console", icon:"globe", go:"svc-console"},
-    {label:"CHA", icon:"license", go:"svc-cha", badge:"badgeSvcCha"},
-    {label:"Transport", icon:"truck", go:"svc-transport", badge:"badgeSvcTrans"},
-    {label:"Warehouse", icon:"warehouse", go:"svc-warehouse"},
+  {id:"svcops", label:"Service Ops", icon:"truck", roles:["Admin","Operations","CHA","Transport"], children:[
+    {label:"Shipment Console", icon:"globe", go:"svc-console", roles:["Admin","Operations"]},
+    {label:"CHA", icon:"license", go:"svc-cha", badge:"badgeSvcCha", roles:["Admin","Operations","CHA"]},
+    {label:"Transport", icon:"truck", go:"svc-transport", badge:"badgeSvcTrans", roles:["Admin","Operations","Transport"]},
+    {label:"Warehouse", icon:"warehouse", go:"svc-warehouse", roles:["Admin","Operations"]},
   ]},
-  {id:"ops", label:"Operations", icon:"clipboard", badge:"badgeJobs", roles:["Admin","Operations","Sales"], children:[
-    {label:"All Job List", icon:"package", children:[
+  {id:"ops", label:"Operations", icon:"clipboard", badge:"badgeJobs", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
+    {label:"All Job List", icon:"package", roles:["Admin","Operations","Sales"], children:[
       {label:"View All Jobs", icon:"package", go:"job-list"},
     ]},
     {label:"Booking", icon:"calendar-check", children:[
@@ -6212,7 +6215,7 @@ const TOPNAV_MENU = [
       {label:"Booking Status", icon:"calendar-check", go:"booking"},
       {label:"Carrier Booking", icon:"ship", go:"booking"},
     ]},
-    {label:"Job / Shipment", icon:"package", children:[
+    {label:"Job / Shipment", icon:"package", roles:["Admin","Operations","Sales"], children:[
       {label:"Create Shipment", icon:"plus", go:"job-new"},
       {label:"Import", icon:"download", children:[
         {label:"Air Freight", icon:"plane", go:"job-list", jobmode:"Air", jobdir:"Import"},
@@ -6233,7 +6236,7 @@ const TOPNAV_MENU = [
       ]},
     ]},
   ]},
-  {id:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts"], children:[
+  {id:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts","CHA","Transport"], children:[
     {label:"Ledger", icon:"book", children:[
       {label:"Chart of Accounts", icon:"book", go:"coa"},
       {label:"General Ledger", icon:"book", go:"gl-reports", gltab:"ledger"},
@@ -6367,6 +6370,7 @@ const TOPNAV_MENU = [
       {label:"SOPs & Guides", icon:"book2", go:"sop"},
     ]},
   ]},
+  {id:"license", label:"License Management", icon:"award", go:"license-mgmt", licenseOnly:true},
   {id:"settings", label:"Settings", icon:"settings", roles:["Admin"], children:[
     {label:"Enterprise Configuration", icon:"adjustments", children:[
       {label:"Enterprise System Configuration", icon:"adjustments", go:"entcfg"},
@@ -6400,7 +6404,7 @@ const TOPNAV_MENU = [
 
 let currentRole = "Admin";
 let tnIdSeq = 0;
-function tnVisible(node){ return !node.roles || node.roles.indexOf(currentRole) !== -1; }
+function tnVisible(node){ if(node.licenseOnly && (window.LICENSE_ADMIN !== true || currentRole !== "Super Admin")) return false; const r = currentRole === "Super Admin" ? "Admin" : currentRole; return !node.roles || node.roles.indexOf(r) !== -1; }
 
 /* ---- build the DOM for one level (called recursively for unlimited depth) ---- */
 function tnBuildLevel(nodes, depth){
@@ -6435,6 +6439,8 @@ function tnBuildLevel(nodes, depth){
   return wrap;
 }
 
+window.renderTopNav = ()=> renderTopNav();
+window.setViewRole = r=>{ currentRole = r; }; window.getViewRole = ()=>currentRole;
 function renderTopNav(){
   const nav = $("#topnavMenu");
   if(!nav) return;
@@ -7909,7 +7915,7 @@ $("#orgAddStaffBtn") && $("#orgAddStaffBtn").addEventListener("click", ()=>{
   const tr = el("tr","","");
   tr.innerHTML = `<td><select class="fc" style="width:100px"><option>Sales</option><option>Ops</option><option>Doc</option></select></td>
     <td><input class="fc" placeholder="Initials" style="width:55px;font-family:var(--font-mono)"></td>
-    <td><select class="fc" style="width:130px"><option>Raj Kumar</option><option>Priya S</option></select></td>
+    <td><select class="fc" style="width:130px"><option value="">— Select user —</option></select></td>
     <td><select class="fc" style="width:80px"><option>SEX</option><option>ALL</option></select></td>
     <td><input class="fc" type="date" style="width:120px"></td>
     <td class="no-print"><button class="ta remove-row">✕</button></td>`;
@@ -13272,7 +13278,11 @@ if(document.readyState !== "loading") initChatWidget();
     const initials = ((user.first_name || "") + " " + (user.last_name || "")).trim().split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
     if(av)    av.textContent  = initials || "ER";
     if(uname) uname.textContent = [user.first_name,user.last_name].filter(Boolean).join(" ");
-    if(urole) urole.textContent = user.is_super_admin ? "Super Admin" : ((user.roles && user.roles[0]) || "ERP User");
+    const ROLE_NAMES = {ERP_ADMIN:"Admin", OPERATIONS:"Operations", ACCOUNTS:"Accounts", VIEWER:"Viewer", DEMO_USER:"Demo User", LICENSE_SUPER_ADMIN:"Super Admin"};
+    const roleLine = (user.is_super_admin ? ["Super Admin"] : (user.roles || []).map(r=>ROLE_NAMES[r] || r)).concat(user.license_admin && !(user.roles || []).includes("LICENSE_SUPER_ADMIN") ? ["Super Admin"] : []).join(" · ") || "ERP User";
+    const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "";
+    if(urole) urole.textContent = roleLine;
+    const popName = document.getElementById("hdrPopName"), popRole = document.getElementById("hdrPopRole"); if(popName) popName.textContent = fullName; if(popRole) popRole.textContent = roleLine+" · "+company;
     if(companyLabel) companyLabel.textContent = company;
     if(companySub) companySub.textContent = user.is_super_admin ? "Platform Administration · eSway ERP 2.0" : company + " · ERP Workspace";
     if(overlay){ overlay.classList.add("hidden"); }
@@ -13285,6 +13295,7 @@ if(document.readyState !== "loading") initChatWidget();
       welcome.textContent = "Welcome back, " + cap(full) + " \u{1F44B}";
     }
     if(window.ThemeKit) ThemeKit.fromAccount(user);
+    window.LICENSE_ADMIN = user.license_admin === true; { const vs = document.getElementById("viewSuper"); if(vs) vs.style.display = window.LICENSE_ADMIN ? "" : "none"; if(window.LICENSE_ADMIN && window.getViewRole && window.getViewRole() === "Admin") window.setViewRole("Super Admin"); } if(window.renderTopNav) window.renderTopNav();      // the License Management menu appears only for its super admin
     try{
       const lg = document.getElementById("hdrLogo");
       if(lg && !lg.dataset.default) lg.dataset.default = lg.innerHTML;
@@ -19931,10 +19942,24 @@ function makePrintFit(){
   const SCREEN = {"ledger":["gl-reports", "ledger"], "balance-sheet":["gl-reports", "bs"], "pnl-statement":["gl-reports", "pl"], "job-pnl":["job-pl-report", null], "branch-pnl":["mis", "branch"], "sales-rep":["mis", "sales"], "lane-gp":["mis", "gp"],
     "gstr1":["gl-reports", "gst"], "gstr2":["gl-reports", "gst"], "gstr3b":["gl-reports", "gst"], "gstr2b":["gl-reports", "itc"], "hsn-summary":["gl-reports", "hsn"], "tds-report":["gl-reports", "tds"], "tcs-report":["gl-reports", "tcs"], "itc-mismatch":["gl-reports", "itc"]};
   let seq = 0;
-  async function render(key){
+  /* A report opened from the Reports menu shows only that report (title, table, Back to Report Center); the Report Center itself keeps its button grid. */
+  const scr = ()=> document.getElementById("s-reports");
+  function focusMode(on, title){
+    const sc = scr(); if(!sc) return;
+    sc.classList.toggle("rpt-focus", !!on);
+    const pt = sc.querySelector(".ph .pt"), pa = sc.querySelector(".ph .pa"), ps = sc.querySelector(".ph .ps");
+    if(pt && !pt.dataset.orig){ pt.dataset.orig = pt.innerHTML; if(ps) sc.dataset.origSub = ps.textContent; }
+    if(pt){ const ic = pt.querySelector("svg"); pt.innerHTML = (ic ? ic.outerHTML : "")+(on ? esc2(title) : pt.dataset.orig.replace(/^[\s\S]*?<\/svg>/, "")); }
+    if(ps) ps.textContent = on ? "Opened from the Reports menu" : (sc.dataset.origSub || ps.textContent);
+    let b = sc.querySelector("[data-rpt-center]");
+    if(on && !b && pa){ pa.insertAdjacentHTML("afterbegin", '<button class="btn btn-out btn-sm" data-rpt-center="1">Report Center</button>'); }
+    if(!on && b) b.remove();
+  }
+  async function render(key, focus){
     if(SCREEN[key]){ go(SCREEN[key][0], SCREEN[key][1] ? {glTab:SCREEN[key][1]} : {}); return; }
     const def = R[key]; if(!def) return;
     const card = el("reportOutputCard"); if(!card) return; const me = ++seq;
+    focusMode(!!focus, def.title);
     card.style.display = ""; el("reportOutputTitle").textContent = def.title;
     el("reportOutputHead").innerHTML = "<tr>"+def.cols.map(c=>"<th>"+esc2(c)+"</th>").join("")+"</tr>";
     el("reportOutputBody").innerHTML = '<tr><td colspan="'+def.cols.length+'" style="text-align:center;color:var(--g5);padding:18px">Loading…</td></tr>';
@@ -19948,9 +19973,12 @@ function makePrintFit(){
   // the Report Center buttons, and menu items that carry a report key
   document.addEventListener("click", e=>{
     const b = e.target.closest && e.target.closest("[data-report]");
-    if(b && (R[b.dataset.report] || SCREEN[b.dataset.report])){ e.stopImmediatePropagation(); e.preventDefault(); render(b.dataset.report); return; }
+    if(b && (R[b.dataset.report] || SCREEN[b.dataset.report])){ e.stopImmediatePropagation(); e.preventDefault(); render(b.dataset.report, false); return; }
+    if(e.target.closest && e.target.closest("[data-rpt-center]")){ e.preventDefault(); focusMode(false); const c = el("reportOutputCard"); if(c) c.style.display = "none"; return; }
     const m = e.target.closest && e.target.closest("[data-rpt]");
-    if(m){ const key = m.dataset.rpt; if(SCREEN[key]){ setTimeout(()=>render(key), 60); } else { setTimeout(()=>render(key), 350); } }
+    if(m){ const key = m.dataset.rpt; if(SCREEN[key]){ setTimeout(()=>render(key, true), 60); } else { setTimeout(()=>render(key, true), 350); } return; }
+    const g = e.target.closest && e.target.closest("[data-go=\"reports\"]");
+    if(g && !g.dataset.rpt){ focusMode(false); const c = el("reportOutputCard"); if(c) c.style.display = "none"; }       // the menu's own Report Center entry: the full page again
   }, true);
   // CSV (the Excel button of the Report Center)
   document.addEventListener("click", e=>{
@@ -19959,6 +19987,7 @@ function makePrintFit(){
     const csv = Array.from(tbl.querySelectorAll("tr")).map(r=>Array.from(r.children).map(c=>'"'+c.textContent.replace(/"/g, '""').trim()+'"').join(",")).join("\r\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿"+csv], {type:"text/csv"})); a.download = (el("reportOutputTitle").textContent || "report").replace(/[^A-Za-z0-9]+/g, "-").slice(0, 60)+".csv"; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 400);
   }, true);
+  (function css(){ const st = document.createElement("style"); st.textContent = "#s-reports.rpt-focus > .g3{display:none}"; document.head.appendChild(st); })();
   window.ReportKit = {render, keys:Object.keys(R), screens:SCREEN};
 })();
 
@@ -20094,6 +20123,308 @@ function makePrintFit(){
   }
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-new") fill(); };
+})();
+
+/* ============================================================
+   LICENSE KIT: the provider console of eRoyal / eSway. Only the License Management super admin of the owner company (license SWF00001) sees the menu; the server
+   refuses every call from anybody else. It shows every company's license, users, online time, storage, AMC / MMC and payments, and lets the provider create
+   companies, renew, suspend, manage users and passwords. Everything is read from /api/license-mgmt; nothing here is invented.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "—";
+  const dt = d=> d ? new Date(d).toLocaleString("en-GB", {day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}) : "—";
+  const bytes = n=> n >= 1073741824 ? (n/1073741824).toFixed(2)+" GB" : n >= 1048576 ? (n/1048576).toFixed(1)+" MB" : n >= 1024 ? Math.round(n/1024)+" KB" : (n || 0)+" B";
+  const mins = m=> m >= 60 ? Math.floor(m/60)+" h "+(m % 60)+" m" : (m || 0)+" m";
+  const opt = (v, t, sel)=> '<option value="'+esc2(v)+'"'+(sel ? " selected" : "")+'>'+esc2(t === undefined ? v : t)+'</option>';
+  const ST = {ACTIVE:"b-gr", EXPIRING:"b-am", EXPIRED:"b-rd", SUSPENDED:"b-rd", CANCELLED:"b-gy", INACTIVE:"b-gy"};
+  const cap = s=> s ? s[0]+s.slice(1).toLowerCase() : "";
+  const badge = s=> s ? '<span class="b '+(ST[s] || "b-gy")+' dot">'+esc2(cap(s))+'</span>' : '<span style="color:var(--g4)">—</span>';
+  const PAYB = {RECEIVED:"b-gr", PENDING:"b-am", WAIVED:"b-gy"};
+  const MODULES = {crm:"CRM", quotation:"Quotation", booking:"Booking", jobs:"Jobs", customs:"Customs / CHA", transport:"Transport", warehouse:"Warehouse", accounts:"Accounts", reports:"Reports", masters:"Masters", hr:"HR"};
+  const METHODS = ["Bank Transfer", "NEFT", "RTGS", "IMPS", "UPI", "Cheque", "Cash", "Card", "Demand Draft"];
+  const S = {tab:"overview", q:"", status:"", page:1, size:25, userQ:"", usageDays:30, usageCat:"all", usageCompany:"", userCompany:"", renewFilter:"", detail:null, dtab:"terms"};
+  const TABS = [["overview", "Overview"], ["companies", "Companies & Licenses"], ["live", "Live & Usage"], ["users", "Users & Access"], ["renewals", "Renewals & Payments"], ["reminders", "Reminders"], ["audit", "Audit"]];
+  const uid = ()=> (window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, "") : String(Date.now())+Math.random().toString(16).slice(2);
+
+  (function css(){ const st = document.createElement("style"); st.textContent =
+    ".lic-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.lic-tabs button{border:1px solid var(--g3);background:var(--wh);padding:7px 14px;border-radius:20px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--g7)}.lic-tabs button.on{background:var(--n);color:#fff;border-color:var(--n)}"+
+    ".lic-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:1000px){.lic-grid2{grid-template-columns:1fr}}.lic-bar{height:8px;background:var(--g2);border-radius:6px;overflow:hidden}.lic-bar i{display:block;height:100%;background:var(--bl)}"+
+    ".lic-ovl{position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:80;display:none}.lic-ovl.on{display:block}.lic-drawer{position:fixed;top:0;right:0;bottom:0;width:min(900px,96vw);background:var(--wh);box-shadow:-8px 0 30px rgba(11,31,58,.2);display:flex;flex-direction:column}"+
+    ".lic-dh{padding:14px 18px;border-bottom:1px solid var(--g2);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.lic-db{flex:1;overflow:auto;padding:14px 18px}.lic-form{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.lic-form .s2{grid-column:span 2}.lic-form .fg{margin:0}"+
+    ".lic-mod{display:flex;gap:8px 14px;flex-wrap:wrap}.lic-mod label{font-size:12.5px;display:flex;gap:5px;align-items:center}.lic-big{font-size:26px;font-weight:800}";
+    document.head.appendChild(st); })();
+
+  const anchor = document.getElementById("s-bank-master");
+  if(!anchor) return;
+  const sec = document.createElement("div"); sec.id = "s-license-mgmt"; sec.className = "scr";
+  anchor.parentNode.insertBefore(sec, anchor);
+  const drawer = document.createElement("div"); drawer.className = "lic-ovl"; drawer.id = "licDrawer";
+  drawer.innerHTML = '<div class="lic-drawer"><div class="lic-dh" id="licDH"></div><div class="lic-db" id="licDB"></div></div>';
+  document.body.appendChild(drawer);
+  if(window.SCREEN_META) window.SCREEN_META["license-mgmt"] = {title:"License Management", crumb:"eSway ERP 2.0 / <strong>License Management</strong>", menu:""};
+
+  const table = (cols, rows, empty)=> '<div class="tw"><table><thead><tr>'+cols.map(c=>'<th'+(typeof c === "object" ? ' style="text-align:right"' : "")+'>'+esc2(typeof c === "object" ? c.r : c)+'</th>').join("")+'</tr></thead><tbody>'+
+    (rows.length ? rows.join("") : '<tr><td colspan="'+cols.length+'" style="text-align:center;color:var(--g5);padding:18px">'+esc2(empty || "Nothing to show yet")+'</td></tr>')+'</tbody></table></div>';
+  const card = (title, content)=> '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">'+title+'</div></div><div class="cb" style="padding:0">'+content+'</div></div>';
+  const body = ()=> el("licBody");
+  const field = (label, ctl, cls)=> '<div class="fg '+(cls || "")+'"><label class="fl">'+label+'</label>'+ctl+'</div>';
+
+  function frame(){
+    sec.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="award" style="color:var(--bl)"></svg>License Management</div><div class="ps">Provider console: every company\'s license, users, online time, storage, AMC / MMC and payments. Visible only to the license super admin of the owner company.</div></div>'+
+      '<div class="pa"><button class="btn btn-out btn-sm" data-lic="refresh"><svg class="ic" data-icon="refresh-cw"></svg> Refresh</button><button class="btn btn-pri btn-sm" data-lic="new"><svg class="ic" data-icon="plus"></svg> New Company / License</button></div></div>'+
+      '<div class="lic-tabs">'+TABS.map(([k, t])=>'<button type="button" data-lic-tab="'+k+'" class="'+(S.tab === k ? "on" : "")+'">'+t+'</button>').join("")+'</div><div id="licBody"><div style="padding:30px;text-align:center;color:var(--g5)">Loading…</div></div>';
+    if(window.renderIcons) window.renderIcons(sec);
+  }
+
+  /* ---------------- overview ---------------- */
+  async function overview(){
+    const [s, rk, ren, sto, live, list] = await Promise.all([api("GET", "/api/license-mgmt/summary"), api("GET", "/api/license-mgmt/ranking?days=30"), api("GET", "/api/license-mgmt/renewals?payment_status=PENDING&limit=50"),
+      api("GET", "/api/license-mgmt/storage"), api("GET", "/api/license-mgmt/live"), api("GET", "/api/license-mgmt/companies?limit=200")]);
+    const cards = window.dashCardsHTML([
+      {label:"COMPANIES", value:s.companies, sub:s.licenses+" licenses issued", icon:"building", cls:"k-blue"}, {label:"ACTIVE LICENSES", value:s.active, sub:"in use", icon:"check-circle", cls:"k-green"},
+      {label:"EXPIRING (30 DAYS)", value:s.expiring_soon, sub:"renew soon", icon:"clock", cls:"k-orange"}, {label:"EXPIRED / SUSPENDED", value:s.expired+s.suspended+s.cancelled, sub:s.expired+" expired · "+s.suspended+" suspended · "+s.cancelled+" cancelled", icon:"alert-triangle", cls:"k-red"},
+      {label:"ONLINE NOW", value:live.online_now, sub:"active in the last "+live.online_minutes_window+" min", icon:"user", cls:"k-teal"},
+      {label:"ENABLED USERS", value:s.enabled_users, sub:(s.licensed_user_capacity ? s.licensed_user_capacity+" seats licensed" : "seats not limited")+(s.companies_without_user_limit ? " · "+s.companies_without_user_limit+" companies unlimited" : ""), icon:"user", cls:"k-purple"},
+      {label:"DATA STORED", value:bytes(sto.total_bytes), sub:"all companies (approx.)", icon:"package", cls:"k-sky"}, {label:"PENDING PAYMENTS", value:ren.pending_count, sub:"₹ "+Number(ren.pending_amount).toLocaleString("en-IN")+" recorded as pending", icon:"cash", cls:"k-orange"}]);
+    const attn = list.items.filter(c=>["EXPIRED", "EXPIRING", "SUSPENDED"].includes(c.status) || ["EXPIRED", "EXPIRING"].includes(c.maintenance_status)).map(c=>
+      '<tr><td><b>'+esc2(c.name)+'</b><div class="mono" style="font-size:11px;color:var(--g5)">'+esc2(c.license_number)+'</div></td><td>'+badge(c.status)+'</td><td>'+dmy(c.license_expiry)+(c.days_left !== null ? ' <span style="color:var(--g5)">('+c.days_left+' d)</span>' : "")+'</td><td>'+(c.maintenance_plan ? esc2(c.maintenance_plan)+" "+badge(c.maintenance_status) : "—")+'</td><td><button class="ta" data-lic-open="'+c.id+'">Open</button></td></tr>');
+    const topC = rk.top_companies_by_online_time.map(c=>'<tr><td>'+esc2(c.company)+'</td><td class="mono">'+esc2(c.license)+'</td><td style="text-align:right">'+mins(c.minutes)+'</td><td style="text-align:right">'+c.active_days+'</td><td style="text-align:right">'+c.enabled_users+'</td></tr>');
+    const big = rk.companies_with_most_users.map(c=>'<tr><td>'+esc2(c.company)+'</td><td class="mono">'+esc2(c.license)+'</td><td style="text-align:right">'+c.enabled_users+'</td><td style="min-width:130px">'+(c.max_users ? '<div class="lic-bar"><i style="width:'+Math.min(100, Math.round(c.enabled_users*100/c.max_users))+'%"></i></div><span style="font-size:11px;color:var(--g5)">'+c.enabled_users+" of "+c.max_users+" seats</span>" : '<span style="color:var(--g5);font-size:11px">no limit</span>')+'</td></tr>');
+    const u = rk.users, num = (v, label, col)=> '<div><div class="lic-big"'+(col ? ' style="color:var(--'+col+')"' : "")+'>'+v+'</div><div style="font-size:11px;color:var(--g5)">'+label+'</div></div>';
+    body().innerHTML = cards+'<div class="lic-grid2">'+card("Needs attention", table(["Company", "Status", "Expiry", "AMC / MMC", ""], attn, "Every license is in good standing"))+
+      card("Top companies by online time (30 days)", table(["Company", "License", {r:"Online time"}, {r:"Active days"}, {r:"Users"}], topC, "No activity recorded yet"))+
+      card("Companies with the most users", table(["Company", "License", {r:"Users"}, "Seats"], big, "No users yet"))+
+      card("Users: enabled and active", '<div style="padding:14px;display:flex;gap:28px;flex-wrap:wrap">'+num(u.enabled, "ENABLED USERS")+num(u.disabled, "DISABLED", "rd")+num(u.active_in_period, "ACTIVE IN 30 DAYS", "gr")+num(u.not_active_in_period, "ENABLED BUT NOT ACTIVE", "am")+'</div>')+'</div>';
+  }
+
+  /* ---------------- companies ---------------- */
+  const companyRow = (c, size)=> '<tr><td><b>'+esc2(c.name)+'</b>'+(c.is_owner ? ' <span class="b b-bl">Owner</span>' : "")+'<div style="font-size:11px;color:var(--g5)">'+esc2(c.code)+'</div></td><td class="mono">'+esc2(c.license_number)+'</td><td>'+badge(c.status)+'</td><td>'+esc2(cap(c.renewal_cycle) || "—")+'</td>'+
+    '<td>'+dmy(c.license_expiry)+(c.days_left !== null ? '<div style="font-size:11px;color:'+(c.days_left < 0 ? "var(--rd)" : "var(--g5)")+'">'+(c.days_left < 0 ? (-c.days_left)+" d overdue" : c.days_left+" d left")+'</div>' : '<div style="font-size:11px;color:var(--g5)">no expiry</div>')+'</td>'+
+    '<td>'+(c.maintenance_plan ? '<b>'+esc2(c.maintenance_plan)+'</b> '+badge(c.maintenance_status)+'<div style="font-size:11px;color:var(--g5)">to '+dmy(c.maintenance_expiry)+'</div>' : "—")+'</td>'+
+    '<td style="text-align:right">'+c.users+(c.max_users ? " / "+c.max_users : "")+'</td><td style="text-align:right">'+(c.online_now ? '<b style="color:var(--gr)">'+c.online_now+'</b>' : 0)+'</td><td style="text-align:right">'+mins(c.online_minutes_7d)+'</td><td style="text-align:right">'+bytes(size || 0)+'</td><td class="no-print" style="white-space:nowrap"><button class="ta" data-lic-open="'+c.id+'">Open</button></td></tr>';
+  async function companies(){
+    const p = new URLSearchParams({limit:String(S.size), offset:String((S.page-1)*S.size)}); if(S.q) p.set("q", S.q); if(S.status) p.set("status", S.status);
+    const [d, sto] = await Promise.all([api("GET", "/api/license-mgmt/companies?"+p), api("GET", "/api/license-mgmt/storage")]);
+    const pages = Math.max(1, Math.ceil(d.total/S.size));
+    const size = Object.fromEntries(sto.items.map(i=>[i.company_id, i.bytes]));
+    body().innerHTML = '<div class="card" style="margin-bottom:12px"><div class="cb"><div class="net-filters"><div class="fg"><label class="fl">Search</label><input class="fc" id="licQ" placeholder="Company, code or license" value="'+esc2(S.q)+'"></div>'+
+      '<div class="fg"><label class="fl">License status</label><select class="fc" id="licStatus">'+opt("", "All", !S.status)+["ACTIVE", "EXPIRING", "EXPIRED", "SUSPENDED", "CANCELLED"].map(x=>opt(x, cap(x), S.status === x)).join("")+'</select></div><div class="fg"><button class="btn btn-out" data-lic="reset">Reset</button></div></div></div></div>'+
+      card("Companies & licenses <span class=\"mn-badge\">"+d.total+"</span>", table(["Company", "License", "Status", "Plan", "Expiry", "AMC / MMC", {r:"Users"}, {r:"Online now"}, {r:"Online (7 d)"}, {r:"Data"}, ""], d.items.map(c=>companyRow(c, size[c.id])), "No company matches"))+
+      '<div class="net-pager"><div>Showing '+(d.total ? (S.page-1)*S.size+1 : 0)+' to '+Math.min(d.total, S.page*S.size)+' of '+d.total+' companies</div><div class="pgs"><button data-lic-page="prev"'+(S.page <= 1 ? " disabled" : "")+'>‹</button><span style="padding:0 8px">Page '+S.page+' of '+pages+'</span><button data-lic-page="next"'+(S.page >= pages ? " disabled" : "")+'>›</button></div></div>';
+  }
+
+  /* ---------------- live and usage ---------------- */
+  async function live(){
+    const list = (await api("GET", "/api/license-mgmt/companies?limit=200")).items;
+    const p = new URLSearchParams({days:String(S.usageDays), category:S.usageCat, limit:"150"}); if(S.usageCompany) p.set("company_id", S.usageCompany);
+    const [lv, us] = await Promise.all([api("GET", "/api/license-mgmt/live"), api("GET", "/api/license-mgmt/usage?"+p)]);
+    const names = Object.fromEntries(list.map(c=>[c.id, c.name]));
+    const cards = window.dashCardsHTML([{label:"ONLINE NOW", value:lv.online_now, sub:"active in the last "+lv.online_minutes_window+" min", icon:"user", cls:"k-green"}, {label:"SIGN-INS (7 DAYS)", value:lv.signins_7d, sub:"all companies", icon:"check-circle", cls:"k-blue"},
+      {label:"FAILED SIGN-INS (7 DAYS)", value:lv.failed_7d, sub:"wrong password or locked", icon:"alert-triangle", cls:"k-red"}, {label:"ACTIVE USERS ("+us.days+" D)", value:us.totals.distinct_active_users, sub:us.totals.logins+" sign-ins", icon:"user", cls:"k-purple"}]);
+    body().innerHTML = cards+card("Online now", table(["User", "Company", "License", "Roles", "Last activity", {r:"Active today"}], lv.items.map(x=>'<tr><td><b>'+esc2(x.username)+'</b><div style="font-size:11px;color:var(--g5)">'+esc2(x.name)+'</div></td><td>'+esc2(x.company)+'</td><td class="mono">'+esc2(x.license)+'</td><td>'+esc2(x.roles.join(", "))+'</td><td>'+dt(x.last_seen)+'</td><td style="text-align:right">'+mins(x.minutes_today)+'</td></tr>'), "Nobody is online right now"))+
+      '<div class="card" style="margin-bottom:12px"><div class="cb"><div class="net-filters"><div class="fg"><label class="fl">Company</label><select class="fc" id="licUC">'+opt("", "All companies", !S.usageCompany)+list.map(c=>opt(c.id, c.name+" ("+c.license_number+")", String(S.usageCompany) === String(c.id))).join("")+'</select></div>'+
+      '<div class="fg"><label class="fl">Period</label><select class="fc" id="licUD">'+[1, 7, 30, 90, 365].map(n=>opt(n, "Last "+n+" day"+(n > 1 ? "s" : ""), S.usageDays === n)).join("")+'</select></div><div class="fg"><label class="fl">Events</label><select class="fc" id="licUK">'+[["all", "Everything"], ["login", "Sign-ins"], ["failed", "Failed sign-ins"], ["activity", "Work in the ERP"]].map(([v, t])=>opt(v, t, S.usageCat === v)).join("")+'</select></div></div></div></div>'+
+      '<div class="lic-grid2">'+card("Work by module", table(["Module", {r:"Actions"}], us.by_module.map(m=>'<tr><td>'+esc2(m.module)+'</td><td style="text-align:right">'+m.actions+'</td></tr>'), "No work recorded in this period"))+
+      card("Events", table(["When", "User", "Company", "Event", "Module", "Record"], us.events.map(e=>'<tr><td>'+dt(e.when)+'</td><td>'+esc2(e.user || "—")+'</td><td>'+esc2(names[e.company_id] || "—")+'</td><td>'+esc2(e.action)+'</td><td>'+esc2(e.module)+'</td><td>'+esc2(e.entity || "")+'</td></tr>'), "No events"))+'</div>'+
+      '<div class="ib ib-bl">'+(us.session_tracking ? "Live sessions are tracked in this installation." : "Online time is measured from each user\'s activity in the ERP (a request every few minutes counts as online). Separate live-session tracking is switched off in this installation.")+'</div>';
+  }
+
+  /* ---------------- users and access ---------------- */
+  async function users(){
+    const list = (await api("GET", "/api/license-mgmt/companies?limit=50"+(S.userQ ? "&q="+encodeURIComponent(S.userQ) : ""))).items;
+    if(list.length && !list.some(c=>String(c.id) === String(S.userCompany))) S.userCompany = String(list[0].id);
+    const d = S.userCompany && list.length ? await api("GET", "/api/license-mgmt/companies/"+S.userCompany) : null;
+    body().innerHTML = '<div class="card" style="margin-bottom:12px"><div class="cb"><div class="net-filters"><div class="fg"><label class="fl">Find a company</label><input class="fc" id="licUsrQ" placeholder="Name, code or license" value="'+esc2(S.userQ)+'"></div><div class="fg"><label class="fl">Company</label><select class="fc" id="licUsrC">'+list.map(c=>opt(c.id, c.name+" ("+c.license_number+")", String(S.userCompany) === String(c.id))).join("")+'</select></div></div></div></div>'+
+      (d ? card("Users of "+esc2(d.name)+" <span class=\"mn-badge\">"+d.enabled_users+(d.max_users ? " / "+d.max_users : "")+" seats</span>", usersTable(d)) : "");
+  }
+  function usersTable(d){
+    return table(["User", "Roles", "Status", "Last sign-in", "Live", ""], d.users_list.map(u=>'<tr><td><b>'+esc2(u.username)+'</b><div style="font-size:11px;color:var(--g5)">'+esc2(u.name)+'</div></td><td>'+esc2(u.roles.join(", "))+'</td><td>'+badge(u.status)+(u.locked ? ' <span class="b b-rd">Locked</span>' : "")+'</td><td>'+dt(u.last_login)+'</td><td>'+(u.live_session === null ? "—" : u.live_session ? '<span class="b b-gr dot">Online</span>' : "—")+'</td>'+
+      '<td class="no-print" style="white-space:nowrap"><button class="ta" data-lic-perm="'+d.id+":"+u.id+'">Permissions</button> <button class="ta" data-lic-role="'+d.id+":"+u.id+'">Role</button> <button class="ta" data-lic-pwd="'+d.id+":"+u.id+'">Set password</button> '+
+      '<button class="ta" data-lic-tgl="'+d.id+":"+u.id+":"+(u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE")+'" style="color:var(--'+(u.status === "ACTIVE" ? "rd" : "gr")+')">'+(u.status === "ACTIVE" ? "Disable" : "Enable")+'</button>'+(u.locked ? ' <button class="ta" data-lic-unlock="'+d.id+":"+u.id+'">Unlock</button>' : "")+'</td></tr>'), "No users");
+  }
+
+  /* ---------------- renewals and payments ---------------- */
+  async function renewals(){
+    const p = new URLSearchParams({limit:"300"}); if(S.renewFilter) p.set("payment_status", S.renewFilter);
+    const d = await api("GET", "/api/license-mgmt/renewals?"+p);
+    const cards = window.dashCardsHTML([{label:"PAYMENTS PENDING", value:d.pending_count, sub:"₹ "+Number(d.pending_amount).toLocaleString("en-IN")+" recorded as pending", icon:"clock", cls:"k-orange"}]);
+    body().innerHTML = cards+'<div class="card" style="margin-bottom:12px"><div class="cb"><div class="net-filters"><div class="fg"><label class="fl">Payment</label><select class="fc" id="licRF">'+opt("", "All", !S.renewFilter)+["PENDING", "RECEIVED", "WAIVED"].map(x=>opt(x, cap(x), S.renewFilter === x)).join("")+'</select></div></div></div></div>'+
+      card("Renewals (license, AMC and MMC)", table(["Date", "Company", "License", "For", "New expiry", {r:"Amount"}, "Method", "Reference", "Payment", "By", ""], d.items.map(r=>'<tr><td>'+dt(r.at)+'</td><td>'+esc2(r.company)+'</td><td class="mono">'+esc2(r.license)+'</td><td>'+(r.kind === "MAINTENANCE" ? "<b>"+esc2(r.cycle)+"</b>" : "License "+esc2(cap(r.cycle)))+'</td><td>'+dmy(r.new_expiry)+'</td><td style="text-align:right">'+(r.amount ? esc2((r.currency || "")+" "+Number(r.amount).toLocaleString("en-IN")) : "—")+'</td><td>'+esc2(r.payment_method || "—")+'</td><td>'+esc2(r.reference || "—")+'</td><td><span class="b '+(PAYB[r.payment_status] || "b-gy")+'">'+esc2(cap(r.payment_status))+'</span></td><td>'+esc2(r.by || "")+'</td><td><button class="ta" data-lic-pay="'+r.id+'">Record payment</button></td></tr>'), "No renewals recorded yet"));
+  }
+
+  /* ---------------- reminders and audit ---------------- */
+  async function reminders(){
+    const d = await api("GET", "/api/license-mgmt/notifications?limit=200");
+    body().innerHTML = '<div style="margin-bottom:10px"><button class="btn btn-out btn-sm" data-lic="runnotes">Check for due reminders now</button> <span style="font-size:11.5px;color:var(--g5)">Reminders are created at 30, 7 and 1 day before expiry, on the day, and once when overdue; this check also runs by itself every few hours.</span></div>'+
+      card("Expiry reminders", table(["Created", "Company", "License", "Reminder", "Message", "Delivery", "Status", ""], d.map(n=>'<tr><td>'+dt(n.created_at)+'</td><td>'+esc2(n.company)+'</td><td class="mono">'+esc2(n.license)+'</td><td><span class="b b-am">'+esc2(n.kind)+'</span></td><td style="max-width:360px">'+esc2(n.message)+'</td><td>'+esc2(n.channel_status.replace(/_/g, " ").toLowerCase())+(n.attempts ? " ("+n.attempts+" tries)" : "")+'</td><td>'+esc2(cap(n.status))+'</td><td style="white-space:nowrap">'+(n.status === "OPEN" ? '<button class="ta" data-lic-ack="'+n.id+'">Acknowledge</button> ' : "")+'<button class="ta" data-lic-retry="'+n.id+'">Retry e-mail</button></td></tr>'), "No reminders yet"));
+  }
+  async function audit(){
+    const d = await api("GET", "/api/license-mgmt/audit?limit=300");
+    body().innerHTML = card("License audit trail", table(["When", "By", "Action", "Company", "Detail"], d.map(a=>'<tr><td>'+dt(a.when)+'</td><td>'+esc2(a.user || "system")+'</td><td><b>'+esc2(a.action.replace(/_/g, " "))+'</b></td><td>'+esc2(a.company_id || "")+'</td><td style="max-width:420px;font-size:11.5px">'+esc2(Object.entries(a.detail || {}).map(([k, v])=>k+": "+(typeof v === "object" ? JSON.stringify(v) : v)).join(" · "))+'</td></tr>'), "Nothing recorded yet"));
+  }
+
+  const VIEWS = {overview, companies, live, users, renewals, reminders, audit};
+  async function load(){
+    frame();
+    try{ await VIEWS[S.tab](); }catch(e){ body().innerHTML = '<div class="ib ib-am">'+esc2(e.message)+'</div>'; }
+    if(window.renderIcons) window.renderIcons(sec);
+  }
+
+  /* ---------------- company detail drawer ---------------- */
+  function closeDrawer(){ drawer.classList.remove("on"); }
+  drawer.addEventListener("mousedown", e=>{ if(e.target === drawer) closeDrawer(); });
+  async function openCompany(id, tab){
+    S.dtab = tab || S.dtab || "terms";
+    try{ S.detail = await api("GET", "/api/license-mgmt/companies/"+id); }catch(e){ say("Could not open the company", e.message, "warn"); return; }
+    paintDrawer(); drawer.classList.add("on");
+  }
+  function paintDrawer(){
+    const d = S.detail; if(!d) return;
+    const tabs = [["terms", "License & contact"], ["users", "Users & permissions"], ["renew", "Renew / AMC / MMC"], ["history", "History"], ["usage", "Usage & storage"]];
+    el("licDH").innerHTML = '<div><div style="font-size:16px;font-weight:800">'+esc2(d.name)+' '+badge(d.status)+'</div><div class="mono" style="font-size:12px;color:var(--g6)">'+esc2(d.license_number)+' · '+esc2(d.code)+(d.is_demo ? " · demo company" : "")+'</div></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+(d.is_owner ? "" : (d.stored_status === "ACTIVE" ? '<button class="btn btn-out btn-sm" data-lic-act="suspend:'+d.id+'" style="color:var(--rd)">Suspend</button>' : '<button class="btn btn-out btn-sm" data-lic-act="reactivate:'+d.id+'" style="color:var(--gr)">Reactivate</button>')+(d.stored_status !== "CANCELLED" ? '<button class="btn btn-out btn-sm" data-lic-act="cancel:'+d.id+'" style="color:var(--rd)">Cancel license</button>' : ""))+'<button class="btn btn-out btn-sm" data-lic="closedrawer">Close</button></div>';
+    const tabBar = '<div class="lic-tabs">'+tabs.map(([k, t])=>'<button type="button" data-lic-dtab="'+k+'" class="'+(S.dtab === k ? "on" : "")+'">'+t+'</button>').join("")+'</div>';
+    el("licDB").innerHTML = tabBar+'<div id="licDT"></div>';
+    drawerTab();
+  }
+  const kv = (rows)=> '<div class="tw"><table><tbody>'+rows.map(([k, v])=>'<tr><td style="color:var(--g6);width:34%">'+esc2(k)+'</td><td style="font-weight:600">'+v+'</td></tr>').join("")+'</tbody></table></div>';
+  async function drawerTab(){
+    const d = S.detail, box = el("licDT"); if(!box) return;
+    if(S.dtab === "terms"){
+      const c = d.contact || {}, mods = d.modules;
+      box.innerHTML = kv([["Status", badge(d.status)+(d.stored_status !== d.status ? ' <span style="font-size:11px;color:var(--g5)">stored: '+esc2(d.stored_status)+'</span>' : "")], ["License period", dmy(d.license_start)+" to "+dmy(d.license_expiry)+(d.days_left !== null ? " ("+(d.days_left < 0 ? -d.days_left+" days overdue" : d.days_left+" days left")+")" : " (no expiry)")], ["Renewal cycle", esc2(cap(d.renewal_cycle) || "—")],
+        ["AMC / MMC", d.maintenance_plan ? "<b>"+esc2(d.maintenance_plan)+"</b> until "+dmy(d.maintenance_expiry)+" "+badge(d.maintenance_status) : "No maintenance contract"], ["Users", d.enabled_users+" enabled of "+d.total_users+" registered"+(d.max_users ? " · licensed for "+d.max_users : " · no user limit")],
+        ["Concurrent sessions", d.max_sessions ? "limit "+d.max_sessions : "no limit"], ["Modules", mods ? mods.map(m=>esc2(MODULES[m] || m)).join(", ") : "All modules"], ["Country", esc2(d.country || "")], ["Created", dt(d.created_at)]])+
+        '<div class="fsec" style="margin-top:12px">Edit</div><div class="lic-form">'+field("Company name", '<input class="fc" id="le_name" value="'+esc2(d.name)+'">')+field("Legal name", '<input class="fc" id="le_legal" value="'+esc2(d.legal_name || "")+'">')+
+        field("Contact person", '<input class="fc" id="le_cp" value="'+esc2(c.person || "")+'">')+field("Contact email", '<input class="fc" id="le_ce" value="'+esc2(c.email || "")+'">')+field("Contact phone", '<input class="fc" id="le_ph" value="'+esc2(c.phone || "")+'">')+field("Address", '<input class="fc" id="le_ad" value="'+esc2(c.address || "")+'">')+
+        field("Maximum users (blank = unlimited)", '<input class="fc" type="number" min="1" id="le_mu" value="'+(d.max_users || "")+'">')+field("Maximum sessions (blank = unlimited)", '<input class="fc" type="number" min="1" id="le_ms" value="'+(d.max_sessions || "")+'">')+
+        field("Maintenance contract", '<select class="fc" id="le_mp">'+[["NONE", "None"], ["AMC", "AMC — annual"], ["MMC", "MMC — monthly"]].map(([v, t])=>opt(v, t, (d.maintenance_plan || "NONE") === v)).join("")+'</select>')+
+        field("Modules", '<div class="lic-mod" id="le_mods">'+d.available_modules.map(m=>'<label><input type="checkbox" value="'+m+'"'+(!mods || mods.includes(m) ? " checked" : "")+'> '+esc2(MODULES[m] || m)+'</label>').join("")+'</div>', "s2")+
+        field("Notes", '<textarea class="fc" id="le_nt" rows="2">'+esc2(d.license_notes || "")+'</textarea>', "s2")+'</div><div style="margin-top:10px"><button class="btn btn-pri" data-lic="saveterms">Save changes</button></div>';
+    } else if(S.dtab === "users"){
+      box.innerHTML = usersTable(d);
+    } else if(S.dtab === "renew"){
+      const lic = d.renewals.filter(r=>r.kind === "LICENSE"), mt = d.renewals.filter(r=>r.kind === "MAINTENANCE");
+      const form = (kind)=> '<div class="lic-form" data-rform="'+kind+'" data-rid="'+uid()+'">'+(kind === "LICENSE" ? field("Renew for", '<select class="fc" id="rn_cycle_'+kind+'"><option value="MONTHLY"'+(d.renewal_cycle === "MONTHLY" ? " selected" : "")+'>One month</option><option value="YEARLY"'+(d.renewal_cycle !== "MONTHLY" ? " selected" : "")+'>One year</option></select>')+field("New expiry will be", "<b>calculated from the current expiry (or today if expired)</b>") :
+        field("Contract", '<select class="fc" id="rn_plan"><option value="AMC"'+(d.maintenance_plan !== "MMC" ? " selected" : "")+'>AMC — one year</option><option value="MMC"'+(d.maintenance_plan === "MMC" ? " selected" : "")+'>MMC — one month</option></select>')+field("Current contract expiry", dmy(d.maintenance_expiry)))+
+        field("Amount", '<input class="fc" type="number" min="0" step="0.01" id="rn_amt_'+kind+'">')+field("Currency", '<input class="fc" id="rn_ccy_'+kind+'" value="INR" maxlength="3" style="text-transform:uppercase">')+field("Payment method", '<select class="fc" id="rn_pm_'+kind+'">'+METHODS.map(m=>opt(m)).join("")+'</select>')+
+        field("Payment", '<select class="fc" id="rn_ps_'+kind+'"><option value="PENDING">Pending (not received yet)</option><option value="RECEIVED">Received</option><option value="WAIVED">Waived</option></select>')+field("Invoice / receipt no", '<input class="fc" id="rn_ref_'+kind+'">', "s2")+
+        '<div class="s2"><button class="btn btn-pri" data-lic-renew="'+kind+'">Renew '+(kind === "LICENSE" ? "license" : "maintenance contract")+'</button></div></div>';
+      box.innerHTML = '<div class="ib ib-bl" style="margin-bottom:10px">A renewal moves the dates. The payment fields are what you record; the system does not check a bank. Pressing the button twice does not extend twice.</div>'+
+        '<div class="fsec">License renewal (expires '+dmy(d.license_expiry)+')</div>'+form("LICENSE")+'<div class="fsec" style="margin-top:14px">AMC / MMC maintenance contract'+(d.maintenance_plan ? " — "+esc2(d.maintenance_plan) : "")+'</div>'+form("MAINTENANCE");
+    } else if(S.dtab === "history"){
+      box.innerHTML = '<div class="fsec">Renewals</div>'+table(["Date", "For", "From", "To", {r:"Amount"}, "Method", "Payment", "Reference", "By"], d.renewals.map(r=>'<tr><td>'+dt(r.at)+'</td><td>'+(r.kind === "MAINTENANCE" ? "<b>"+esc2(r.cycle)+"</b>" : "License "+esc2(cap(r.cycle)))+'</td><td>'+dmy(r.previous_expiry)+'</td><td>'+dmy(r.new_expiry)+'</td><td style="text-align:right">'+(r.amount ? esc2((r.currency || "")+" "+r.amount) : "—")+'</td><td>'+esc2(r.payment_method || "—")+'</td><td><span class="b '+(PAYB[r.payment_status] || "b-gy")+'">'+esc2(cap(r.payment_status))+'</span></td><td>'+esc2(r.reference || "—")+'</td><td>'+esc2(r.by || "")+'</td></tr>'), "No renewals yet")+
+        '<div class="fsec" style="margin-top:14px">Reminders</div>'+table(["Created", "Reminder", "Message", "Status"], d.notifications.map(n=>'<tr><td>'+dt(n.created_at)+'</td><td>'+esc2(n.kind)+'</td><td>'+esc2(n.message)+'</td><td>'+esc2(cap(n.status))+'</td></tr>'), "No reminders");
+      const au = await api("GET", "/api/license-mgmt/audit?company_id="+d.id+"&limit=100");
+      box.innerHTML += '<div class="fsec" style="margin-top:14px">License audit trail</div>'+table(["When", "By", "Action", "Detail"], au.map(a=>'<tr><td>'+dt(a.when)+'</td><td>'+esc2(a.user || "system")+'</td><td>'+esc2(a.action.replace(/_/g, " "))+'</td><td style="font-size:11.5px">'+esc2(Object.entries(a.detail || {}).map(([k, v])=>k+": "+(typeof v === "object" ? JSON.stringify(v) : v)).join(" · "))+'</td></tr>'), "Nothing recorded");
+    } else if(S.dtab === "usage"){
+      box.innerHTML = '<div style="padding:20px;color:var(--g5)">Loading…</div>';
+      const [us, sto] = await Promise.all([api("GET", "/api/license-mgmt/usage?company_id="+d.id+"&days=30&limit=60"), api("GET", "/api/license-mgmt/storage")]);
+      const me = sto.items.find(i=>i.company_id === d.id) || {bytes:0, records:0};
+      box.innerHTML = window.dashCardsHTML([{label:"ONLINE NOW", value:d.users_list.length ? d.sessions === null ? "—" : d.sessions : 0, sub:"enabled users: "+d.enabled_users, icon:"user", cls:"k-green"}, {label:"ONLINE TIME (7 DAYS)", value:mins(d.online_minutes_7d), sub:"all users together", icon:"clock", cls:"k-blue"},
+        {label:"SIGN-INS (30 DAYS)", value:us.totals.logins, sub:us.totals.distinct_users+" different users", icon:"check-circle", cls:"k-purple"}, {label:"DATA STORED", value:bytes(me.bytes), sub:me.records+" records · "+(me.jobs || 0)+" jobs · "+(me.documents || 0)+" documents", icon:"package", cls:"k-sky"}])+
+        card("Work by module (30 days)", table(["Module", {r:"Actions"}], us.by_module.map(m=>'<tr><td>'+esc2(m.module)+'</td><td style="text-align:right">'+m.actions+'</td></tr>'), "No work recorded"))+
+        card("Recent events", table(["When", "User", "Event", "Module"], us.events.map(e=>'<tr><td>'+dt(e.when)+'</td><td>'+esc2(e.user || "—")+'</td><td>'+esc2(e.action)+'</td><td>'+esc2(e.module)+'</td></tr>'), "No events"));
+    }
+    if(window.renderIcons) window.renderIcons(box);
+  }
+
+  /* ---------------- forms (modal) ---------------- */
+  function createForm(){
+    const today = new Date().toISOString().slice(0, 10);
+    openModal({title:"New Company / Issue License", size:"lg", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">The company, its first administrator and its license are created together. The license number is issued automatically (SWF + number).</div><div class="lic-form">'+
+      field("Company code *", '<input class="fc" id="nc_code" maxlength="20" style="text-transform:uppercase">')+field("Company name *", '<input class="fc" id="nc_name">')+field("Legal name", '<input class="fc" id="nc_legal">')+field("Country", '<input class="fc" id="nc_country" value="India">')+
+      field("Contact person", '<input class="fc" id="nc_cp">')+field("Contact email", '<input class="fc" id="nc_ce">')+field("Contact phone", '<input class="fc" id="nc_ph">')+field("Address", '<input class="fc" id="nc_ad">')+
+      '<div class="s2 fsec" style="margin:4px 0 0">First administrator of the company</div>'+field("User name *", '<input class="fc" id="nc_au" autocomplete="off">')+field("Password * (any length)", '<input class="fc" id="nc_ap" type="text" autocomplete="off">')+field("First name *", '<input class="fc" id="nc_af">')+field("Email *", '<input class="fc" id="nc_ae">')+
+      '<div class="s2 fsec" style="margin:4px 0 0">License terms</div>'+field("Renewal", '<select class="fc" id="nc_cy"><option value="YEARLY">Yearly</option><option value="MONTHLY">Monthly</option></select>')+field("Start date", '<input class="fc" type="date" id="nc_st" value="'+today+'">')+field("Expiry date (blank = start + one cycle)", '<input class="fc" type="date" id="nc_ex">')+
+      field("Maintenance contract", '<select class="fc" id="nc_mp"><option value="">None</option><option value="AMC">AMC — annual</option><option value="MMC">MMC — monthly</option></select>')+field("Maximum users (blank = unlimited)", '<input class="fc" type="number" min="1" id="nc_mu">')+field("Maximum sessions (blank = unlimited)", '<input class="fc" type="number" min="1" id="nc_ms">')+
+      field("Modules", '<div class="lic-mod" id="nc_mods">'+Object.keys(MODULES).map(m=>'<label><input type="checkbox" value="'+m+'" checked> '+esc2(MODULES[m])+'</label>').join("")+'</div>', "s2")+field("Notes", '<textarea class="fc" id="nc_nt" rows="2"></textarea>', "s2")+'</div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="nc_go">Create company and license</button>'});
+    el("nc_go").onclick = async ()=>{
+      const v = id=> (el(id).value || "").trim(); const checked = Array.from(el("nc_mods").querySelectorAll("input:checked")).map(x=>x.value);
+      const b = {code:v("nc_code"), name:v("nc_name"), legal_name:v("nc_legal") || null, country:v("nc_country") || "India", contact_person:v("nc_cp") || null, contact_email:v("nc_ce") || null, contact_phone:v("nc_ph") || null, address:v("nc_ad") || null,
+        admin_username:v("nc_au"), admin_password:el("nc_ap").value, admin_first_name:v("nc_af"), admin_email:v("nc_ae"), renewal_cycle:v("nc_cy"), license_start:v("nc_st") || null, license_expiry:v("nc_ex") || null,
+        maintenance_plan:v("nc_mp") || null, max_users:v("nc_mu") ? Number(v("nc_mu")) : null, max_sessions:v("nc_ms") ? Number(v("nc_ms")) : null, modules:checked.length === Object.keys(MODULES).length ? null : checked, license_notes:v("nc_nt") || null};
+      const miss = [["code", "Company code"], ["name", "Company name"], ["admin_username", "Administrator user name"], ["admin_first_name", "Administrator first name"], ["admin_email", "Administrator email"]].filter(([k])=>!b[k]).map(x=>x[1]); if(!b.admin_password) miss.push("Password");
+      if(miss.length){ say("Please complete", miss.join(", "), "warn"); return; }
+      el("nc_go").disabled = true;
+      try{ const r = await api("POST", "/api/license-mgmt/companies", b); closeModal(); say("Company created", r.company.name+" — license "+r.company.license_number); S.tab = "companies"; await load(); openCompany(r.company.id, "terms"); }
+      catch(e){ say("Could not create the company", e.message, "warn"); el("nc_go").disabled = false; }
+    };
+  }
+  function reasonModal(title, label, run, danger){
+    openModal({title, bodyHTML:'<div class="fg"><label class="fl">'+label+' *</label><textarea class="fc" id="rs_t" rows="3" placeholder="At least 3 characters; it is kept in the audit trail"></textarea></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn '+(danger ? "btn-pri" : "btn-pri")+'" id="rs_go">Confirm</button>'});
+    el("rs_go").onclick = async ()=>{ const t = el("rs_t").value.trim(); if(t.length < 3){ say("Give a reason", "", "warn"); return; } el("rs_go").disabled = true; try{ await run(t); closeModal(); }catch(e){ say("Not done", e.message, "warn"); el("rs_go").disabled = false; } };
+  }
+
+  /* ---------------- events ---------------- */
+  async function refreshDetail(){ if(S.detail){ S.detail = await api("GET", "/api/license-mgmt/companies/"+S.detail.id); paintDrawer(); } }
+  async function userAction(cid, uidv, patch, okText){
+    try{ await api("PATCH", "/api/license-mgmt/companies/"+cid+"/users/"+uidv, patch); say(okText, ""); if(S.tab === "users") await load(); if(drawer.classList.contains("on")) await refreshDetail(); }catch(e){ say("Not done", e.message, "warn"); }
+  }
+  document.addEventListener("click", async e=>{
+    const t = e.target.closest && e.target.closest("[data-lic],[data-lic-tab],[data-lic-open],[data-lic-page],[data-lic-dtab],[data-lic-act],[data-lic-renew],[data-lic-perm],[data-lic-role],[data-lic-pwd],[data-lic-tgl],[data-lic-unlock],[data-lic-pay],[data-lic-ack],[data-lic-retry]");
+    if(!t) return;
+    const d = t.dataset;
+    try{
+      if(d.licTab){ S.tab = d.licTab; await load(); }
+      else if(d.licOpen){ openCompany(d.licOpen, "terms"); }
+      else if(d.licPage){ S.page = Math.max(1, S.page + (d.licPage === "next" ? 1 : -1)); await load(); }
+      else if(d.licDtab){ S.dtab = d.licDtab; paintDrawer(); }
+      else if(d.lic === "refresh"){ await load(); }
+      else if(d.lic === "new"){ createForm(); }
+      else if(d.lic === "closedrawer"){ closeDrawer(); }
+      else if(d.lic === "reset"){ S.q = ""; S.status = ""; S.page = 1; await load(); }
+      else if(d.lic === "runnotes"){ const r = await api("POST", "/api/license-mgmt/notifications/run"); say("Reminder check done", r.created+" new reminder(s)"); await load(); }
+      else if(d.lic === "saveterms"){
+        const c = S.detail, v = id=> (el(id).value || "").trim(); const mods = Array.from(el("le_mods").querySelectorAll("input:checked")).map(x=>x.value);
+        const b = {name:v("le_name"), legal_name:v("le_legal") || null, contact_person:v("le_cp"), contact_email:v("le_ce"), contact_phone:v("le_ph"), address:v("le_ad"), maintenance_plan:v("le_mp"), license_notes:v("le_nt") || null};
+        if(v("le_mu")) b.max_users = Number(v("le_mu")); else b.unlimited_users = true;
+        if(v("le_ms")) b.max_sessions = Number(v("le_ms")); else b.unlimited_sessions = true;
+        if(mods.length === c.available_modules.length) b.all_modules = true; else b.modules = mods;
+        S.detail = await api("PATCH", "/api/license-mgmt/companies/"+c.id, b); say("Saved", c.name); paintDrawer();
+      }
+      else if(d.licAct){ const [act, id] = d.licAct.split(":"); const labels = {suspend:["Suspend license", "Reason for suspending"], reactivate:["Reactivate license", "Reason for reactivating"], cancel:["Cancel license", "Reason for cancelling"]};
+        reasonModal(labels[act][0], labels[act][1], async reason=>{ S.detail = await api("POST", "/api/license-mgmt/companies/"+id+"/"+act, {reason}); say(labels[act][0]+" done", S.detail.name); paintDrawer(); if(S.tab === "companies" || S.tab === "overview") load(); }, act !== "reactivate"); }
+      else if(d.licRenew){
+        const kind = d.licRenew, f = e.target.closest("[data-rform]"), v = id=> (el(id).value || "").trim();
+        const b = {request_id:f.dataset.rid, kind, cycle:kind === "LICENSE" ? v("rn_cycle_LICENSE") : "YEARLY", plan:kind === "MAINTENANCE" ? v("rn_plan") : null, amount:v("rn_amt_"+kind) ? Number(v("rn_amt_"+kind)) : null, currency:v("rn_ccy_"+kind) || null,
+          payment_method:v("rn_pm_"+kind), payment_status:v("rn_ps_"+kind), reference:v("rn_ref_"+kind) || null};
+        t.disabled = true;
+        try{ const r = await api("POST", "/api/license-mgmt/companies/"+S.detail.id+"/renew", b); S.detail = r.company; say(r.renewed ? "Renewed" : "Already renewed (nothing changed)", "New expiry "+dmy(kind === "LICENSE" ? r.company.license_expiry : r.company.maintenance_expiry)); S.dtab = "history"; paintDrawer(); }
+        finally{ t.disabled = false; }
+      }
+      else if(d.licPerm){ const [cid, u] = d.licPerm.split(":"); const r = await api("GET", "/api/license-mgmt/companies/"+cid+"/users/"+u);
+        openModal({title:"Permissions of "+esc2(r.username), bodyHTML:'<div style="margin-bottom:8px">Role: <b>'+esc2(r.roles.join(", "))+'</b></div><div style="display:flex;flex-wrap:wrap;gap:5px">'+r.permissions.map(p=>'<span class="b b-gy">'+esc2(p)+'</span>').join("")+'</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'}); }
+      else if(d.licRole){ const [cid, u] = d.licRole.split(":"); const r = await api("GET", "/api/license-mgmt/companies/"+cid+"/users/"+u);
+        openModal({title:"Role of "+esc2(r.username), bodyHTML:'<div class="fg"><label class="fl">Role</label><select class="fc" id="ro_sel">'+r.available_roles.map(([k, l])=>opt(k, l, r.roles.includes(k))).join("")+'</select></div><div style="font-size:11.5px;color:var(--g5)">The role decides the permissions of the user.</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="ro_go">Change role</button>'});
+        el("ro_go").onclick = async ()=>{ const role = el("ro_sel").value; closeModal(); await userAction(cid, u, {role}, "Role changed"); }; }
+      else if(d.licPwd){ const [cid, u] = d.licPwd.split(":");
+        openModal({title:"Set a new password", bodyHTML:'<div class="fg"><label class="fl">New password (any length)</label><input class="fc" id="pw_new" type="text" autocomplete="off"></div><div style="font-size:11.5px;color:var(--g5)">The user is signed out and can sign in with this password at once. The password is not stored in the audit trail.</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="pw_go">Set password</button>'});
+        el("pw_go").onclick = async ()=>{ const pw = el("pw_new").value; if(!pw){ say("Type the new password", "", "warn"); return; } closeModal(); await userAction(cid, u, {new_password:pw}, "Password set"); }; }
+      else if(d.licTgl){ const [cid, u, to] = d.licTgl.split(":"); await userAction(cid, u, {status:to}, to === "ACTIVE" ? "User enabled" : "User disabled"); }
+      else if(d.licUnlock){ const [cid, u] = d.licUnlock.split(":"); await userAction(cid, u, {unlock:true}, "User unlocked"); }
+      else if(d.licPay){ const r = (await api("GET", "/api/license-mgmt/renewals?limit=1000")).items.find(x=>String(x.id) === d.licPay); if(!r) return;
+        openModal({title:"Record payment — "+esc2(r.company), bodyHTML:'<div class="lic-form">'+field("Payment", '<select class="fc" id="pm_st">'+["PENDING", "RECEIVED", "WAIVED"].map(x=>opt(x, cap(x), r.payment_status === x)).join("")+'</select>')+field("Method", '<select class="fc" id="pm_m">'+METHODS.map(m=>opt(m, m, r.payment_method === m)).join("")+'</select>')+field("Amount", '<input class="fc" type="number" min="0" step="0.01" id="pm_a" value="'+esc2(r.amount || "")+'">')+field("Reference", '<input class="fc" id="pm_r" value="'+esc2(r.reference || "")+'">')+'</div><div style="font-size:11.5px;color:var(--g5);margin-top:8px">This records what you were told or saw; the system does not check any bank. The renewal dates do not change.</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="pm_go">Save</button>'});
+        el("pm_go").onclick = async ()=>{ const b = {payment_status:el("pm_st").value, payment_method:el("pm_m").value, reference:el("pm_r").value.trim(), amount:el("pm_a").value ? Number(el("pm_a").value) : null}; try{ await api("POST", "/api/license-mgmt/renewals/"+r.id+"/payment", b); closeModal(); say("Payment recorded", ""); await load(); }catch(err){ say("Not saved", err.message, "warn"); } }; }
+      else if(d.licAck){ await api("POST", "/api/license-mgmt/notifications/"+d.licAck+"/ack"); await load(); }
+      else if(d.licRetry){ const r = await api("POST", "/api/license-mgmt/notifications/"+d.licRetry+"/retry"); say("Retry recorded", r.channel_status === "EMAIL_NOT_CONFIGURED" ? "No e-mail service is set up yet, so nothing could be sent" : r.channel_status); await load(); }
+    }catch(err){ say("Not done", err.message, "warn"); }
+  });
+  document.addEventListener("input", e=>{ if(e.target.id === "licUsrQ"){ clearTimeout(S.t2); S.t2 = setTimeout(()=>{ S.userQ = e.target.value.trim(); load().then(()=>{ const i = el("licUsrQ"); if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 350); }
+  if(e.target.id === "licQ"){ clearTimeout(S.t); S.t = setTimeout(()=>{ S.q = e.target.value.trim(); S.page = 1; load().then(()=>{ const i = el("licQ"); if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 350); } });
+  document.addEventListener("change", e=>{
+    const id = e.target.id;
+    if(id === "licStatus"){ S.status = e.target.value; S.page = 1; load(); }
+    else if(id === "licUC"){ S.usageCompany = e.target.value; load(); } else if(id === "licUD"){ S.usageDays = Number(e.target.value); load(); } else if(id === "licUK"){ S.usageCat = e.target.value; load(); }
+    else if(id === "licUsrC"){ S.userCompany = e.target.value; load(); } else if(id === "licRF"){ S.renewFilter = e.target.value; load(); }
+  });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "license-mgmt") load(); };
+  window.LicenseKit = {load, openCompany};
 })();
 
 /* ============================================================

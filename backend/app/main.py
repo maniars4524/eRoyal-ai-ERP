@@ -19,6 +19,7 @@ from .gl_api import router as gl_router
 from .mis_api import router as mis_router
 from .network_api import router as network_router
 from .audit_api import router as audit_router
+from .license_mgmt_api import router as license_router
 from .job_details_api import company as company_doc_router, router as job_details_router
 from .crm_api import router as crm_router
 from .org_ext_api import router as org_ext_router
@@ -80,6 +81,7 @@ app.include_router(gl_router)
 app.include_router(mis_router)
 app.include_router(network_router)
 app.include_router(audit_router)
+app.include_router(license_router)
 app.include_router(crm_router)
 app.include_router(org_ext_router)
 app.include_router(jobs_lifecycle_router)
@@ -101,6 +103,21 @@ def _sync_template_roles() -> None:
             std_masters.seed_all_orgs(db)
     except Exception:  # database unavailable at boot: the health endpoint reports it
         pass
+
+
+@app.on_event("startup")
+async def _license_reminders() -> None:
+    """Expiry reminders: catch up at start-up, then look again every few hours. The state lives in the database (one reminder per company, reminder and expiry date), so a restart never repeats or loses one."""
+    import asyncio
+
+    from .license_mgmt import run_notification_job
+
+    async def loop() -> None:
+        while True:
+            await asyncio.to_thread(run_notification_job)
+            await asyncio.sleep(6 * 3600)
+
+    asyncio.create_task(loop())
 
 
 @app.get("/api/health")

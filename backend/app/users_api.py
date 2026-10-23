@@ -110,6 +110,9 @@ def create_user(payload: UserCreate, actor: User = Depends(permission_required("
     org_id = _tenant(actor)
     if db.scalar(select(User.id).where((func.lower(User.email) == payload.email.lower()) | (func.lower(User.username) == payload.username.lower()))):
         raise HTTPException(status_code=409, detail="A user with this username or email already exists")
+    from .license_mgmt import assert_user_capacity
+
+    assert_user_capacity(db, org_id)               # the licensed number of users, checked on the server
     role = ensure_role(db, org_id, payload.role)
     user = User(organization_id=org_id, username=payload.username.lower(), email=payload.email.lower(), password_hash=hash_password(payload.password), first_name=payload.first_name, last_name=payload.last_name, phone=payload.phone, status="ACTIVE", profile=payload.profile)
     user.roles.append(role)
@@ -139,7 +142,11 @@ def update_user(user_id: int, payload: UserPatch, actor: User = Depends(permissi
     if "role" in changes and changes["role"] is not None:
         if user.id == actor.id and changes["role"] != "ERP_ADMIN" and "ERP_ADMIN" in [r.name for r in user.roles]:
             raise HTTPException(status_code=422, detail="You cannot remove your own administrator role")
-        user.roles = [ensure_role(db, org_id, changes["role"])]
+        user.roles = [ensure_role(db, org_id, changes["role"])] + [r for r in user.roles if r.name == "LICENSE_SUPER_ADMIN"]     # a role change never drops the license-management role
+    if changes.get("status") == "ACTIVE" and user.status != "ACTIVE":
+        from .license_mgmt import assert_user_capacity
+
+        assert_user_capacity(db, org_id)           # re-enabling a user needs a free licensed seat
     audit: dict[str, Any] = {}
     for key in ("first_name", "last_name", "phone", "status", "profile"):
         if key in changes and changes[key] is not None:

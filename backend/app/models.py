@@ -41,6 +41,8 @@ class Organization(Base):
     modules: Mapped[list | None] = mapped_column(JSON)                      # enabled module keys; NULL = every module
     contact: Mapped[dict | None] = mapped_column(JSON)                      # contact person, email, phone, address
     license_notes: Mapped[str | None] = mapped_column(Text)
+    maintenance_plan: Mapped[str | None] = mapped_column(String(10))        # AMC (annual) | MMC (monthly) | NULL = none
+    maintenance_expiry: Mapped[date | None] = mapped_column(Date)
     demo_portal: Mapped[bool] = mapped_column(default=False, server_default="false")   # a normal company whose users may also sign in on the Demo login page
     users: Mapped[list["User"]] = relationship(back_populates="organization", foreign_keys="User.organization_id")
 
@@ -1140,6 +1142,12 @@ class LicenseRenewal(Base):
     reference: Mapped[str | None] = mapped_column(String(120))              # free text (invoice / receipt no); a renewal is not proof of payment
     performed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     performed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    kind: Mapped[str] = mapped_column(String(12), default="LICENSE", server_default="LICENSE")      # LICENSE | MAINTENANCE (AMC / MMC)
+    amount: Mapped[float | None] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str | None] = mapped_column(String(3))
+    payment_method: Mapped[str | None] = mapped_column(String(20))
+    payment_status: Mapped[str] = mapped_column(String(10), default="PENDING", server_default="PENDING")   # what the administrator recorded: PENDING | RECEIVED | WAIVED
+    payment_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class LicenseNotification(Base):
@@ -1157,3 +1165,18 @@ class LicenseNotification(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserUsage(Base):
+    """How long a user was active on a day (one row per user and day), used by License Management for online time and top users."""
+    __tablename__ = "user_usage"
+    __table_args__ = (UniqueConstraint("user_id", "day", name="uq_user_usage_day"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date, index=True)
+    active_seconds: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    requests: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
