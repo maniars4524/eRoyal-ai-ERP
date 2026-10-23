@@ -17397,7 +17397,7 @@ function makePrintFit(){
     const d = JD.data; if(!d) return;
     if(Object.keys(d.parties || {}).length || Object.keys(d.cargo || {}).length) window.pcApplySaved(d.job_number, Object.assign({}, d.parties), d.cargo);
     const jt = el("jc_pkgType"); if(jt){ const cur = (d.cargo || {}).pkgType || ""; jt.innerHTML = pkgOpts(cur); jt.value = cur; }
-    JD.renderContainers(d.containers || []); JD.renderDims(d.dims || {});
+    JD.renderContainers(d.containers || []); JD.renderDims(d.dims || {}); JD.suggest();
     const cg = d.cargo || {}; [["jc_marks", cg.marks], ["jc_desc", cg.cargoDesc], ["jc_gwt", cg.gwt], ["jc_nwt", cg.nwt], ["jc_pkgs", cg.pkgs]].forEach(([id, v])=>{ const n = el(id); if(n) n.value = v == null ? "" : v; }); JD.totals();
     const b = d.bl || {}; const set = (id, v)=>{ const n = el(id); if(n && v != null) n.value = v; };
     const scac = el("jobBlScac"); if(scac && b.scac && ![].some.call(scac.options, o=>o.value === b.scac)) scac.add(new Option(b.scac, b.scac));
@@ -17480,10 +17480,25 @@ function makePrintFit(){
     return tr;
   }
   function contFoot(){ const n = document.querySelectorAll("#containerTableBody tr[data-jd-cont]").length; const f = document.querySelector("#jt2Sea .cf"); if(f) f.textContent = "Total: "+n+" container"+(n === 1 ? "" : "s"); }
+  /* the booking / quotation already planned these boxes: offer them instead of typing them again */
+  JD.suggest = function(){
+    const tab = el("containerTable"); if(!tab) return; let host = el("jcSuggest");
+    if(!host){ host = document.createElement("div"); host.id = "jcSuggest"; const wrap = tab.closest(".tw"); wrap.parentNode.insertBefore(host, wrap); }
+    const have = {}; document.querySelectorAll("#containerTableBody tr[data-jd-cont] [data-k=type]").forEach(s=>{ have[s.value] = (have[s.value] || 0) + 1; });
+    const need = ((JD.data && JD.data.suggested_containers) || []).map(x=>Object.assign({}, x, {missing:Math.max(0, x.qty - (have[x.type] || 0))})).filter(x=>x.missing > 0);
+    JD.needBoxes = need;
+    host.innerHTML = need.length ? '<div class="ib ib-bl" style="margin:8px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Containers already planned:</b> '+need.map(x=>esc2(x.qty+" × "+x.type)+' <span style="color:var(--g5)">('+esc2(x.sources.join(", "))+')</span>').join(" · ")+'<br><span style="font-size:11px">The same containers can be used here; add the container numbers and seals afterwards.</span></div><button class="btn btn-pri btn-sm" type="button" data-jd-usecont>Use these ('+need.reduce((a, x)=>a + x.missing, 0)+' row'+(need.reduce((a, x)=>a + x.missing, 0) === 1 ? "" : "s")+')</button></div>' : "";
+  };
+  document.addEventListener("click", e=>{
+    if(!e.target.closest("[data-jd-usecont]")) return;
+    const tb = el("containerTableBody"); const empty = tb.querySelector(".empty-row"); if(empty) empty.remove();
+    (JD.needBoxes || []).forEach(x=>{ for(let i = 0; i < x.missing; i++) tb.appendChild(contRow({type:x.type})); });
+    contFoot(); JD.totals(); JD.suggest(); say("Containers added", "Enter the container numbers and seals, then save the tab");
+  });
   JD.renderContainers = function(rows){
     const tb = el("containerTableBody"); if(!tb) return; tb.innerHTML = "";
     if(!rows.length) tb.innerHTML = '<tr class="empty-row"><td colspan="14" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr>';
-    rows.forEach(r=> tb.appendChild(contRow(r))); contFoot();
+    rows.forEach(r=> tb.appendChild(contRow(r))); contFoot(); if(JD.suggest) JD.suggest();
   };
   const num = v=> { const n = parseFloat(String(v || "").replace(/,/g, "")); return isNaN(n) ? 0 : n; };
   JD.totals = function(){

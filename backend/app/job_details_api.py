@@ -14,7 +14,7 @@ from . import billing, job_lifecycle as jl
 from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
-from .models import Booking, CompanyDocProfile, Document, HblCounter, JobDetail, Organization, Shipment, User
+from .models import Booking, CompanyDocProfile, Document, HblCounter, JobDetail, Organization, Quotation, Shipment, User
 
 router = APIRouter(prefix="/api/jobs", tags=["job details"])
 
@@ -110,6 +110,45 @@ def booking_defaults(db: Session, job: Shipment) -> dict:
     return {"parties": {k: v for k, v in parties.items() if v}, "cargo": {k: v for k, v in cargo.items() if v not in ("", None)}, "containers": containers}
 
 
+def suggested_containers(db: Session, job: Shipment) -> list[dict]:
+    """The containers the booking and the quotation already planned (type and number of boxes), offered on the job's Containers tab so they are not typed again."""
+    found: dict[str, dict] = {}
+    b = db.get(Booking, job.booking_id) if job.booking_id else None
+    if b:
+        d = b.data or {}
+        t = str(d.get("container_type") or "").strip()
+        if t:
+            try:
+                qty = int(float(str(d.get("container_qty") or 1)))
+            except ValueError:
+                qty = 1
+            found[t] = {"type": t, "qty": max(qty, 1), "sources": ["Booking " + (b.number or "draft")]}
+    quotes = []
+    if b and b.quotation_id:
+        q = db.get(Quotation, b.quotation_id)
+        if q:
+            quotes.append(q)
+    quotes += [q for q in db.scalars(select(Quotation).where(Quotation.organization_id == job.organization_id, Quotation.job_number == job.job_number)) if q not in quotes]
+    for q in quotes:
+        per: dict[str, int] = {}
+        for ln in q.lines:
+            for bu in (ln.container_breakup or []):
+                t = str(bu.get("type") or "").strip()
+                try:
+                    n = int(float(str(bu.get("qty") or 0)))
+                except ValueError:
+                    n = 0
+                if t and n > 0:
+                    per[t] = max(per.get(t, 0), n)       # sell and buy lines repeat the same boxes: take the larger, never add them up
+        for t, n in per.items():
+            src = "Quotation " + (q.number or "draft")
+            if t in found:
+                found[t]["sources"].append(src)
+            else:
+                found[t] = {"type": t, "qty": n, "sources": [src]}
+    return list(found.values())
+
+
 def _out(db: Session, job: Shipment, row: JobDetail | None, user: User | None = None) -> dict:
     saved = (row.saved_sections if row else {}) or {}
     pre = booking_defaults(db, job)
@@ -117,7 +156,7 @@ def _out(db: Session, job: Shipment, row: JobDetail | None, user: User | None = 
     return {"job_number": job.job_number, "mode": job.mode, "direction": job.direction, "pol": job.pol, "pod": job.pod, "pol_code": location_code(job.pol), "pod_code": location_code(job.pod),
             "company_code": company_code(db.get(Organization, job.organization_id)),
             "parties": ((row.parties if row else {}) or {}) if saved.get("parties") else pre["parties"], "cargo": ((row.cargo if row else {}) or {}) if saved.get("cargo") else pre["cargo"], "containers": ((row.containers if row else []) or []) if saved.get("containers") else pre["containers"],
-            "release": release_check(db, job, user),
+            "release": release_check(db, job, user), "suggested_containers": suggested_containers(db, job),
             "from_booking": {"parties": not saved.get("parties") and bool(pre["parties"]), "cargo": not saved.get("cargo") and bool(pre["cargo"])}, "dims": (row.dims if row else {}) or {}, "bl": (row.bl if row else {}) or {}, "impdocs": (row.impdocs if row else {}) or {},
             "saved_sections": (row.saved_sections if row else {}) or {}, "version": row.version if row else 0, "updated_at": row.updated_at if row and row.version else None,
             "updated_by": jl.display_name(by) if by else None}

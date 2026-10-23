@@ -167,3 +167,17 @@ def test_air_job_gets_a_house_awb_number_company_hawb_running_pol_pod(h):
     assert client.post(f"/api/jobs/{sea}/hbl", json={"hbl_type": "HAWB"}, headers=h).status_code == 422     # an air type on a sea job
     saved = client.put(f"/api/jobs/{j}/details/bl", json={"data": {"bookingType": "House", "mblNo": "020-12345678", "awb": {"rate": "185.5", "payment": "Prepaid"}}}, headers=h).json()
     assert saved["bl"]["hblNo"] == no and saved["bl"]["awb"]["rate"] == "185.5" and saved["bl"]["mblNo"] == "020-12345678"
+
+
+def test_job_from_a_booking_suggests_the_planned_containers(h):
+    from datetime import date, timedelta
+
+    body = {"mode": "Sea", "direction": "Export", "shipment_type": "FCL", "booking_type": "Direct", "party_name": "Acme Exports", "carrier": "MSC", "carrier_booking_no": "MSC10", "vessel": "MSC ROMA", "pol": "INMAA", "pod": "BEANR",
+            "etd": str(date.today() + timedelta(days=10)), "eta": str(date.today() + timedelta(days=30)), "si_cutoff": str(date.today() + timedelta(days=1)), "vgm_cutoff": str(date.today() + timedelta(days=1)),
+            "data": {"container_type": "20GP", "container_qty": "3", "charges": []}}
+    b = client.post("/api/bookings", json=body, headers=h).json()
+    jn = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()["job_number"]
+    sug = client.get(f"/api/jobs/{jn}/details", headers=h).json()["suggested_containers"]
+    assert len(sug) == 1 and sug[0]["type"] == "20GP" and sug[0]["qty"] == 3 and sug[0]["sources"][0].startswith("Booking")
+    plain = job(h)
+    assert client.get(f"/api/jobs/{plain}/details", headers=h).json()["suggested_containers"] == []
