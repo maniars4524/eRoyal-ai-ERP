@@ -572,6 +572,7 @@ class JobCharge(Base):
     sell_tax_pct = mapped_column(Numeric(6, 2), default=0)
     client: Mapped[str] = mapped_column(String(160), default="")
     use_client: Mapped[bool] = mapped_column(default=False)
+    breakup: Mapped[list | None] = mapped_column(JSON)       # container-wise break-up: [{type, qty, sell, buy}] (the line then carries qty 1 and the totals as its rates)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

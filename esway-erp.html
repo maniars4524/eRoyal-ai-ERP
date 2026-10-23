@@ -1147,9 +1147,9 @@ tbody tr:hover{background:var(--g0)}
 .ecitem.hidden{display:none}
 .ecgrp.filtered-empty{display:none}
 /* Drawer */
-.drawer-ovl{position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s var(--ease)}
+.drawer-ovl{position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:400;opacity:0;pointer-events:none;transition:opacity .18s var(--ease)}
 .drawer-ovl.on{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;background:var(--wh);z-index:91;box-shadow:-8px 0 30px rgba(11,31,58,.18);transform:translateX(100%);transition:transform .22s var(--ease);display:flex;flex-direction:column}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;background:var(--wh);z-index:401;box-shadow:-8px 0 30px rgba(11,31,58,.18);transform:translateX(100%);transition:transform .22s var(--ease);display:flex;flex-direction:column}
 .drawer-ovl.on .drawer{transform:translateX(0)}
 .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:0.5px solid var(--g2);gap:10px}
 .drawer-head h3{font-size:14px;font-weight:600;color:var(--g8);display:flex;align-items:center;gap:8px}
@@ -1234,7 +1234,7 @@ tbody tr:hover{background:var(--g0)}
        Added purely alongside the existing login card; the card
        itself (markup below) is untouched. -->
   <div class="login-info-panel" aria-label="eSway ERP 2.0 features">
-    <div class="lip-brand"><svg viewBox="0 0 1024 450" role="img" aria-label="SWAY" style="display:block;width:100%;height:auto"><path d="M425 100 C560 42 800 12 912 80 C800 42 560 64 425 100 Z" fill="#4da3ff"/><g fill="#ffffff"><path transform="translate(-12,0)" d="M290 167 H158 Q128 167 128 196 Q128 224 158 224 H236 Q262 224 262 252 Q262 282 236 282 H102" fill="none" stroke="#ffffff" stroke-width="47" stroke-linecap="butt"/><polygon points="296,145 356,145 414,305 354,305"/><polygon points="354,305 414,305 446,192 386,192"/><polygon points="386,192 446,192 478,305 418,305"/><polygon points="418,305 478,305 536,145 476,145"/><polygon points="780,145 840,145 891,238 831,238"/><polygon points="882,145 942,145 891,238 831,238"/><polygon points="831,235 891,235 891,305 831,305"/><polygon points="556,305 636,145 692,145 772,305 712,305 664,203 616,305"/></g><path d="M98 250 C28 298 24 406 162 403 C322 400 502 352 616 312 C486 342 322 376 192 374 C92 372 66 312 98 250 Z" fill="#4da3ff"/><polygon points="590,298 644,306 606,344" fill="#4da3ff"/></svg></div>
+    <div class="lip-brand"><svg viewBox="0 0 1024 450" role="img" aria-label="SWAY" style="display:block;width:100%;height:auto"><defs><clipPath id="swc1"><rect x="0" y="143" width="1024" height="162"/></clipPath></defs><path d="M425 101 C560 46 790 16 910 80 C790 40 560 68 425 101 Z" fill="#4da3ff"/><path d="M306 166 H156 Q112 166 112 196 Q112 224 156 224 H240 Q285 224 285 254 Q285 282 240 282 H104" fill="none" stroke="#ffffff" stroke-width="46" stroke-linecap="butt" stroke-linejoin="round"/><g clip-path="url(#swc1)" fill="none" stroke="#ffffff" stroke-width="47" stroke-linejoin="miter" stroke-miterlimit="10" stroke-linecap="butt"><polyline points="336,128 385,318 434,188 483,318 532,128"/><polyline points="574,318 652,118 730,318"/><polyline points="784,128 838,246 892,128"/><line x1="838" y1="236" x2="838" y2="320"/></g><path d="M96 252 C26 300 24 408 162 405 C322 402 502 354 612 314 C486 344 322 378 192 376 C92 374 64 314 96 252 Z" fill="#4da3ff"/><polygon points="588,297 646,306 604,344" fill="#4da3ff"/></svg></div>
     <span class="lip-eyebrow">eSway ERP 2.0</span>
     <div class="lip-slides">
     <div class="lip-slide on">
@@ -1256,7 +1256,7 @@ tbody tr:hover{background:var(--g0)}
 
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-icon"><svg viewBox="0 0 1024 450" role="img" aria-label="SWAY" style="display:block;width:100%;height:auto"><path d="M425 100 C560 42 800 12 912 80 C800 42 560 64 425 100 Z" fill="#1565c0"/><g fill="#0d1b3a"><path transform="translate(-12,0)" d="M290 167 H158 Q128 167 128 196 Q128 224 158 224 H236 Q262 224 262 252 Q262 282 236 282 H102" fill="none" stroke="#0d1b3a" stroke-width="47" stroke-linecap="butt"/><polygon points="296,145 356,145 414,305 354,305"/><polygon points="354,305 414,305 446,192 386,192"/><polygon points="386,192 446,192 478,305 418,305"/><polygon points="418,305 478,305 536,145 476,145"/><polygon points="780,145 840,145 891,238 831,238"/><polygon points="882,145 942,145 891,238 831,238"/><polygon points="831,235 891,235 891,305 831,305"/><polygon points="556,305 636,145 692,145 772,305 712,305 664,203 616,305"/></g><path d="M98 250 C28 298 24 406 162 403 C322 400 502 352 616 312 C486 342 322 376 192 374 C92 372 66 312 98 250 Z" fill="#1565c0"/><polygon points="590,298 644,306 606,344" fill="#1565c0"/></svg></div>
+      <div class="login-logo-icon"><svg viewBox="0 0 1024 450" role="img" aria-label="SWAY" style="display:block;width:100%;height:auto"><defs><clipPath id="swc2"><rect x="0" y="143" width="1024" height="162"/></clipPath></defs><path d="M425 101 C560 46 790 16 910 80 C790 40 560 68 425 101 Z" fill="#1565c0"/><path d="M306 166 H156 Q112 166 112 196 Q112 224 156 224 H240 Q285 224 285 254 Q285 282 240 282 H104" fill="none" stroke="#0d1b3a" stroke-width="46" stroke-linecap="butt" stroke-linejoin="round"/><g clip-path="url(#swc2)" fill="none" stroke="#0d1b3a" stroke-width="47" stroke-linejoin="miter" stroke-miterlimit="10" stroke-linecap="butt"><polyline points="336,128 385,318 434,188 483,318 532,128"/><polyline points="574,318 652,118 730,318"/><polyline points="784,128 838,246 892,128"/><line x1="838" y1="236" x2="838" y2="320"/></g><path d="M96 252 C26 300 24 408 162 405 C322 402 502 354 612 314 C486 344 322 378 192 376 C92 374 64 314 96 252 Z" fill="#1565c0"/><polygon points="588,297 646,306 604,344" fill="#1565c0"/></svg></div>
       <div>
         <div class="login-logo-text">eSway ERP 2.0</div>
         <div class="login-logo-sub">eSway Platform</div>
@@ -1353,7 +1353,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-logo" data-go="dashboard">
-    <div class="hdr-logo-icon hdr-logo-brand" id="hdrLogo" title="eSway"><svg viewBox="0 0 1024 450" role="img" aria-label="SWAY" style="display:block;width:100%;height:100%"><path d="M425 100 C560 42 800 12 912 80 C800 42 560 64 425 100 Z" fill="#1565c0"/><g fill="#0d1b3a"><path transform="translate(-12,0)" d="M290 167 H158 Q128 167 128 196 Q128 224 158 224 H236 Q262 224 262 252 Q262 282 236 282 H102" fill="none" stroke="#0d1b3a" stroke-width="47" stroke-linecap="butt"/><polygon points="296,145 356,145 414,305 354,305"/><polygon points="354,305 414,305 446,192 386,192"/><polygon points="386,192 446,192 478,305 418,305"/><polygon points="418,305 478,305 536,145 476,145"/><polygon points="780,145 840,145 891,238 831,238"/><polygon points="882,145 942,145 891,238 831,238"/><polygon points="831,235 891,235 891,305 831,305"/><polygon points="556,305 636,145 692,145 772,305 712,305 664,203 616,305"/></g><path d="M98 250 C28 298 24 406 162 403 C322 400 502 352 616 312 C486 342 322 376 192 374 C92 372 66 312 98 250 Z" fill="#1565c0"/><polygon points="590,298 644,306 606,344" fill="#1565c0"/></svg></div>
+    <div class="hdr-logo-icon hdr-logo-brand" id="hdrLogo" title="eSway"><svg viewBox="0 0 1024 450" role="img" aria-label="SWAY" style="display:block;width:100%;height:100%"><defs><clipPath id="swc3"><rect x="0" y="143" width="1024" height="162"/></clipPath></defs><path d="M425 101 C560 46 790 16 910 80 C790 40 560 68 425 101 Z" fill="#1565c0"/><path d="M306 166 H156 Q112 166 112 196 Q112 224 156 224 H240 Q285 224 285 254 Q285 282 240 282 H104" fill="none" stroke="#0d1b3a" stroke-width="46" stroke-linecap="butt" stroke-linejoin="round"/><g clip-path="url(#swc3)" fill="none" stroke="#0d1b3a" stroke-width="47" stroke-linejoin="miter" stroke-miterlimit="10" stroke-linecap="butt"><polyline points="336,128 385,318 434,188 483,318 532,128"/><polyline points="574,318 652,118 730,318"/><polyline points="784,128 838,246 892,128"/><line x1="838" y1="236" x2="838" y2="320"/></g><path d="M96 252 C26 300 24 408 162 405 C322 402 502 354 612 314 C486 344 322 378 192 376 C92 374 64 314 96 252 Z" fill="#1565c0"/><polygon points="588,297 646,306 604,344" fill="#1565c0"/></svg></div>
     <div>
       <div class="hdr-logo-text">eSway ERP 2.0</div>
       <div class="hdr-logo-sub">eSway Platform</div>
@@ -1657,8 +1657,6 @@ tbody tr:hover{background:var(--g0)}
 <div class="bc-bar">
   <div class="bc-text" id="bc">eSway ERP 2.0 / <strong>Dashboard</strong></div>
   <div class="bc-actions">
-    <button class="btn btn-out btn-sm" data-go="org-new" data-hide-on="dashboard"><svg class="ic" data-icon="plus"></svg> New Org</button>
-    <button class="btn btn-pri btn-sm" data-go="job-new"><svg class="ic" data-icon="plus"></svg> New Job</button>
   </div>
 </div>
 <!-- ====== DASHBOARD ====== -->
@@ -2060,6 +2058,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Country <span class="r">*</span></label><select class="fc" id="org_country"><option>India (IN)</option><option>UAE (AE)</option><option>USA (US)</option><option>Germany (DE)</option><option>Belgium (BE)</option><option>Switzerland (CH)</option></select></div>
   <div class="fg"><label class="fl">Screening</label><select class="fc" id="org_screening"><option>Not Screened</option><option>Cleared</option><option>Hold</option></select></div>
   <div class="fg"><label class="fl">Language</label><select class="fc"><option>English (EN)</option><option>Hindi</option><option>Arabic</option></select></div>
+  <div class="fg"><label class="fl">GST Applicable</label><select class="fc" id="org_gst_applicable"><option value="Yes">Yes</option><option value="No">No</option></select></div>
 </div>
 
 <!-- INDIA: full GST/PAN/TAN/IEC + State / State Code -->
@@ -2088,18 +2087,16 @@ tbody tr:hover{background:var(--g0)}
       <option data-code="09">Uttar Pradesh</option><option data-code="05">Uttarakhand</option><option data-code="19">West Bengal</option>
     </select></div>
     <div class="fg"><label class="fl">State Code</label><input class="fc" id="org_state_code" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-    <div class="fg"><label class="fl">GST Applicable</label><input class="fc" id="org_gst_applicable_in" readonly style="background:var(--g0);color:var(--gr);font-weight:600"></div>
   </div>
 </div>
 
 <!-- FOREIGN: no GST/PAN/TAN/IEC — auto Place of Supply / Foreign Territory / Code 96 -->
 <div id="orgForeignTaxWrap" style="display:none">
   <div class="fsec">Overseas Party — No Indian GST Registration</div>
-  <div class="ib ib-bl"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>GST, PAN, TAN and IEC do not apply to overseas parties. Place of Supply is automatically set to Foreign Territory (Code 96) with GST Applicable = No — no GST validation is performed.</div>
+  <div class="ib ib-bl"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>GST, PAN, TAN and IEC do not apply to overseas parties. Place of Supply is automatically set to Foreign Territory (Code 96); choose GST Applicable = Yes above only if the party has an Indian GST registration — no GST validation is performed.</div>
   <div class="fr">
     <div class="fg"><label class="fl">Place of Supply</label><input class="fc" id="org_place_of_supply" readonly style="background:var(--g0)"></div>
     <div class="fg"><label class="fl">Supply Code</label><input class="fc" id="org_supply_code" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-    <div class="fg"><label class="fl">GST Applicable</label><select class="fc" id="org_gst_applicable_foreign"><option value="No">No</option><option value="Yes">Yes</option></select></div>
   </div>
 </div>
 
@@ -2146,8 +2143,6 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Pincode</label><input class="fc" placeholder="600001"></div><div class="fg"><label class="fl">UNLOCODE</label><input class="fc" placeholder="INMAA" style="font-family:var(--font-mono)"></div></div>
 <div class="fr"><div class="fg"><label class="fl">Country</label><select class="fc" id="org_addr_country"><option>India (IN)</option><option>UAE (AE)</option><option>USA (US)</option><option>Germany (DE)</option><option>Belgium (BE)</option><option>Switzerland (CH)</option></select></div>
   <div class="fg"><label class="fl">Primary Address</label><select class="fc"><option>Yes</option><option>No</option></select></div>
-  <div class="fg"><label class="fl">State Code</label><input class="fc" id="org_addr_state_code" readonly style="font-family:var(--font-mono);background:var(--g0)"></div>
-  <div class="fg"><label class="fl">GST Applicable</label><input class="fc" id="org_addr_gst_applicable" readonly style="background:var(--g0);font-weight:600"></div>
 </div>
 <div class="ib ib-am" id="org_addr_foreign_note" style="display:none"><svg class="ic" data-icon="info" style="margin-right:5px"></svg>Foreign Territory — Place of Supply Code 96 applies automatically, no GST registration required.</div>
 <div class="divider"></div>
@@ -2672,7 +2667,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- ====== JOB DETAIL ====== -->
 
 <div id="s-job-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="clipboard" style="color:var(--bl)"></svg><span id="jobDetailNo">—</span></div><div class="ps" id="jobDetailSub">Loading job…</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="jobSendDocsBtn"><svg class="ic" data-icon="mail"></svg> Send Docs</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="clipboard" style="color:var(--bl)"></svg><span id="jobDetailNo">—</span></div><div class="ps" id="jobDetailSub">Loading job…</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="jobSendDocsBtn"><svg class="ic" data-icon="mail"></svg> Send Docs</button><button class="btn btn-out btn-sm" id="jobDuplicateBtn"><svg class="ic" data-icon="copy"></svg> Duplicate</button></div></div>
 
 <div class="sf">
 <div class="sfn done">Open</div><div class="sfa done"></div>
@@ -3678,7 +3673,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">Carrier / Line <span class="r">*</span></label><select class="fc" id="bk_carrier"><option>— Select —</option><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>ONE Line</option><option>Air India</option><option>Emirates SkyCargo</option></select></div>
-  <div class="fg"><label class="fl">Booking No</label><input class="fc" id="bk_no" placeholder="Auto-generated on confirm" readonly style="background:var(--g0)"></div>
+  <div class="fg"><label class="fl">Booking No</label><input class="fc" id="bk_no" placeholder="Issued when the booking is first saved" readonly style="background:var(--g0)"></div>
   <div class="fg"><label class="fl">Carrier Booking Ref</label><input class="fc" id="bk_carrierref" placeholder="Reference given by the carrier"></div>
   <div class="fg"><label class="fl">POD <span class="r">*</span></label><input class="fc" id="bk_pod" placeholder="e.g. BEANR(ANTWERPEN)" autocomplete="off"></div>
 </div>
@@ -6384,20 +6379,20 @@ const TOPNAV_MENU = [
       {label:"Sequence Setting", icon:"tag", go:"sequence-setting"},
     ]},
     {label:"Organisation", icon:"building", children:[
-      {label:"Organisation Settings", icon:"building", go:"org-list"},
-      {label:"User Management", icon:"user", go:"org-list"},
-      {label:"Roles & Permissions", icon:"license", go:"org-list"},
+      {label:"Organisation Settings", icon:"building", act:"docprofile"},
+      {label:"User Management", icon:"user", go:"user-master"},
+      {label:"Roles & Permissions", icon:"license", go:"user-master"},
     ]},
     {label:"Configuration", icon:"gear", children:[
-      {label:"Email Configuration", icon:"mail", go:"sop"},
-      {label:"SMS Configuration", icon:"bell", go:"sop"},
-      {label:"Preferences", icon:"gear", go:"sop"},
+      {label:"Email Configuration", icon:"mail", act:"info:email"},
+      {label:"SMS Configuration", icon:"bell", act:"info:sms"},
+      {label:"Preferences", icon:"gear", go:"themes"},
       {label:"Themes", icon:"dashboard", go:"themes"},
     ]},
     {label:"System", icon:"download", children:[
-      {label:"Backup", icon:"download", go:"sop"},
-      {label:"Restore", icon:"upload", go:"sop"},
-      {label:"License Information", icon:"license", go:"sop"},
+      {label:"Backup", icon:"download", act:"info:backup"},
+      {label:"Restore", icon:"upload", act:"info:restore"},
+      {label:"License Information", icon:"license", act:"licenseinfo"},
     ]},
   ]},
 ];
@@ -6417,6 +6412,7 @@ function tnBuildLevel(nodes, depth){
     row.tabIndex = 0;
     row.setAttribute("role","menuitem");
     if(node.go) row.dataset.go = node.go;
+    if(node.act) row.dataset.act = node.act;
     if(node.prltype) row.dataset.prltype = node.prltype;
     if(node.gltab) row.dataset.gltab = node.gltab;
     if(node.report) row.dataset.rpt = node.report;
@@ -7129,6 +7125,7 @@ const JC_UOM = ["Per Shipment","Per Container","Per KG","Per CBM","Per Document"
 const JOB_CHARGES_DB = {};
 let jcCurrentJob = null;
 let jcRowSeq = 1;
+window.JCX = {cur:()=>jcCurrentJob, render:()=>jcRenderRows(), api:(m,p,b)=>jcApi(m,p,b), state:j=>jcGetState(j)};       /* for the container break-up kit */
 
 function jcNewChargeRow(seed){
   seed = seed || {};
@@ -7147,7 +7144,8 @@ function jcNewChargeRow(seed){
     // Party selection: a charge can be tagged to a Vendor (brown), a Client (blue), or both
     useVendor: seed.useVendor !== undefined ? !!seed.useVendor : !!buy.vendor,
     useClient: seed.useClient !== undefined ? !!seed.useClient : !!sell.client,
-    hsn: seed.hsn || m.code || ""
+    hsn: seed.hsn || m.code || "",
+    breakup: seed.breakup || []
   };
 }
 function jcDefaultRows(){
@@ -7179,16 +7177,18 @@ function jcSetSaveState(text, kind){
   el.textContent = text; el.style.color = kind==="ok" ? "var(--gr)" : kind==="err" ? "var(--rd)" : "var(--g5)";
 }
 function jcFromServer(l){
-  return {id: jcRowSeq++, selected:false, chargeName:l.charge_name, desc:l.description, uom:l.uom, qty:Number(l.qty), hsn:l.hsn,
+  return {id: jcRowSeq++, selected:false, chargeName:l.charge_name, desc:l.description, uom:l.uom, qty:Number(l.qty), hsn:l.hsn || ((JC_CHARGE_MASTER.find(c=>c.name===l.charge_name) || {}).code || ""),
     buy:{ccy:l.buy.ccy, exch:Number(l.buy.exch), rate:Number(l.buy.rate), taxType:l.buy.tax_type, taxPct:Number(l.buy.tax_pct), vendor:l.buy.party},
     sell:{ccy:l.sell.ccy, exch:Number(l.sell.exch), rate:Number(l.sell.rate), taxType:l.sell.tax_type, taxPct:Number(l.sell.tax_pct), client:l.sell.party},
-    useVendor:l.buy.use_party, useClient:l.sell.use_party};
+    useVendor:l.buy.use_party, useClient:l.sell.use_party,
+    breakup:(l.breakup || []).map(b=>({type:b.type, qty:Number(b.qty), sell:Number(b.sell), buy:Number(b.buy)}))};
 }
 function jcToServer(r){
   const n = v=> String(Number(v)||0);
   return {charge_name:r.chargeName||"", description:r.desc||"", uom:r.uom||"Per Shipment", qty:n(r.qty), hsn:r.hsn||"",
     buy:{ccy:r.buy.ccy, exch:n(r.buy.exch), rate:n(r.buy.rate), tax_type:r.buy.taxType, tax_pct:n(r.buy.taxPct), party:r.buy.vendor||"", use_party:!!r.useVendor},
-    sell:{ccy:r.sell.ccy, exch:n(r.sell.exch), rate:n(r.sell.rate), tax_type:r.sell.taxType, tax_pct:n(r.sell.taxPct), party:r.sell.client||"", use_party:!!r.useClient}};
+    sell:{ccy:r.sell.ccy, exch:n(r.sell.exch), rate:n(r.sell.rate), tax_type:r.sell.taxType, tax_pct:n(r.sell.taxPct), party:r.sell.client||"", use_party:!!r.useClient},
+    breakup:(r.breakup || []).filter(b=>Number(b.qty) > 0).map(b=>({type:b.type||"", qty:n(b.qty), sell:n(b.sell), buy:n(b.buy)}))};
 }
 function jcLoadMaster(){
   return jcApi("GET", "/api/masters/charge").then(rows=>{
@@ -7371,13 +7371,14 @@ function jcRenderRows(){
   jcRenderHead();
   tb.innerHTML = st.rows.length ? st.rows.map((r,idx)=>{
     const chargeOpts = (r.chargeName && !JC_CHARGE_MASTER.some(m=>m.name===r.chargeName) ? `<option selected>${esc(r.chargeName)}</option>` : "") + JC_CHARGE_MASTER.map(m=>`<option ${m.name===r.chargeName?"selected":""}>${esc(m.name)}</option>`).join("");
-    const uomOpts = JC_UOM.map(u=>`<option ${u===r.uom?"selected":""}>${esc(u)}</option>`).join("");
+    const airJob = ((typeof JOB_DB !== "undefined" && JOB_DB[jcCurrentJob]) || {}).mode === "Air";       // an air shipment has no containers: no "Per Container" basis and no container break-up
+    const uomOpts = JC_UOM.filter(u=>!(airJob && /container/i.test(u) && u !== r.uom)).map(u=>`<option ${u===r.uom?"selected":""}>${esc(u)}</option>`).join("");
     const buyCcyOpts = JC_CCY.map(c2=>`<option ${c2===r.buy.ccy?"selected":""}>${c2}</option>`).join("");
     const sellCcyOpts = JC_CCY.map(c2=>`<option ${c2===r.sell.ccy?"selected":""}>${c2}</option>`).join("");
     const buyCells = `
       <td class="jc-col-buy"><select class="fc" data-jc-f="buy.ccy" data-jc-id="${r.id}">${buyCcyOpts}</select></td>
       <td class="jc-col-buy"><input class="fc" type="number" step="0.0001" style="width:72px" data-jc-f="buy.exch" data-jc-id="${r.id}" value="${r.buy.exch}" ${r.buy.ccy==="INR"?"disabled":""}></td>
-      <td class="jc-col-buy"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="buy.rate" data-jc-id="${r.id}" value="${r.buy.rate}"></td>
+      <td class="jc-col-buy"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="buy.rate" data-jc-id="${r.id}" value="${r.buy.rate}" ${(r.breakup||[]).some(b=>Number(b.buy)>0)?"disabled title=\"Total of the container break-up\"":""}></td>
       <td class="jc-col-buy"><select class="fc" data-jc-f="buy.taxType" data-jc-id="${r.id}" style="width:86px">${["Taxable","Non-Taxable","Pure Agent","RCM"].map(t=>`<option ${r.buy.taxType===t?"selected":""}>${t}</option>`).join("")}</select></td>
       <td class="jc-col-buy"><input class="fc" type="number" style="width:48px" data-jc-f="buy.taxPct" data-jc-id="${r.id}" value="${r.buy.taxPct}" ${r.buy.taxType!=="Taxable" && r.buy.taxType!=="RCM"?"disabled":""}></td>
       <td class="jc-col-buy mono">${jcFmtMoney(jcRowCalc(r).buyAmt)}</td>
@@ -7389,7 +7390,7 @@ function jcRenderRows(){
 `, sellCells = `
       <td class="jc-col-sell"><select class="fc" data-jc-f="sell.ccy" data-jc-id="${r.id}">${sellCcyOpts}</select></td>
       <td class="jc-col-sell"><input class="fc" type="number" step="0.0001" style="width:72px" data-jc-f="sell.exch" data-jc-id="${r.id}" value="${r.sell.exch}" ${r.sell.ccy==="INR"?"disabled":""}></td>
-      <td class="jc-col-sell"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="sell.rate" data-jc-id="${r.id}" value="${r.sell.rate}"></td>
+      <td class="jc-col-sell"><input class="fc" type="number" step="0.01" style="width:75px" data-jc-f="sell.rate" data-jc-id="${r.id}" value="${r.sell.rate}" ${(r.breakup||[]).some(b=>Number(b.sell)>0)?"disabled title=\"Total of the container break-up\"":""}></td>
       <td class="jc-col-sell"><select class="fc" data-jc-f="sell.taxType" data-jc-id="${r.id}" style="width:86px">${["Taxable","Non-Taxable","Pure Agent","RCM"].map(t=>`<option ${r.sell.taxType===t?"selected":""}>${t}</option>`).join("")}</select></td>
       <td class="jc-col-sell"><input class="fc" type="number" style="width:48px" data-jc-f="sell.taxPct" data-jc-id="${r.id}" value="${r.sell.taxPct}" ${r.sell.taxType!=="Taxable" && r.sell.taxType!=="RCM"?"disabled":""}></td>
       <td class="jc-col-sell mono">${jcFmtMoney(jcRowCalc(r).sellAmt)}</td>
@@ -7407,9 +7408,9 @@ function jcRenderRows(){
         <select class="fc" data-jc-f="chargeName" data-jc-id="${r.id}" style="min-width:140px"><option value="">— Select —</option>${chargeOpts}</select>
         <button class="ta" title="Add new charge to master" data-jc-newcharge="${r.id}" style="flex-shrink:0;font-weight:700">+</button>
       </div></td>
-      <td style="min-width:140px"><input class="fc" data-jc-f="desc" data-jc-id="${r.id}" value="${esc(r.desc)}" placeholder="Enter remarks" title="${esc(r.desc)}"></td>
+      <td style="min-width:140px"><input class="fc" data-jc-f="desc" data-jc-id="${r.id}" value="${esc(r.desc)}" placeholder="Enter remarks" title="${esc(r.desc)}">${(r.breakup||[]).length ? `<div style="font-size:10.5px;color:var(--g6);margin-top:2px;line-height:1.35">${(r.breakup||[]).map(b=>esc(b.type||"Container")+" x"+b.qty+(Number(b.sell)>0?" · sell "+b.sell:"")+(Number(b.buy)>0?" · buy "+b.buy:"")).join("<br>")}</div>` : ""}</td>
       <td><select class="fc" data-jc-f="uom" data-jc-id="${r.id}">${uomOpts}</select></td>
-      <td><input class="fc" type="number" min="0" style="width:55px" data-jc-f="qty" data-jc-id="${r.id}" value="${r.qty}"></td>
+      <td><input class="fc" type="number" min="0" style="width:55px" data-jc-f="qty" data-jc-id="${r.id}" value="${r.qty}" ${(r.breakup||[]).length?"disabled title=\"Quantity comes from the container break-up\"":""}>${!airJob && (r.uom==="Per Container" || (r.breakup||[]).length) ? `<button class="btn btn-out btn-sm" style="margin-top:3px;white-space:nowrap" data-jc-bu="${r.id}" title="Container-wise break-up of this charge">Break-up${(r.breakup||[]).length ? " ("+r.breakup.length+")" : ""}</button>` : ""}</td>
 ${firstCells}${secondCells}
       <td class="mono"><input class="fc" style="width:72px" data-jc-f="hsn" data-jc-id="${r.id}" value="${esc(r.hsn)}" placeholder="HSN/SAC"></td>
       <td><button class="ta" data-jc-removerow="${r.id}" title="Remove row">✕</button></td>
@@ -9390,7 +9391,7 @@ function crmRenderEnquiryForm(prefill){
     const tpl = CRM_SERVICE_TEMPLATES[e.target.value];
     if(!tpl) return;
     $("#crmEq_shptype").value = tpl.shipmentType;
-    $("#crmEq_mode").value = tpl.mode;
+    $("#crmEq_mode").value = tpl.mode; $("#crmEq_mode").dispatchEvent(new Event("change", {bubbles:true}));
     $("#crmEq_conttype").value = tpl.containerType;
     toast("Template applied", e.target.value+" — services and fields prefilled");
   });
@@ -9414,7 +9415,7 @@ function crmRenderEnquiryForm(prefill){
       shipmentType, department, modeOfTransport:$("#crmEq_mode").value, incoterm:$("#crmEq_incoterm").value,
       commodity:$("#crmEq_commodity").value.trim(), cargoDesc:$("#crmEq_cargodesc").value.trim(),
       packages:$("#crmEq_pkgs").value, grossWeight:$("#crmEq_gw").value, volumeCBM:$("#crmEq_cbm").value,
-      containerType:$("#crmEq_conttype").value, containerQty:$("#crmEq_contqty").value,
+      containerType:["Sea","Multimodal"].includes($("#crmEq_mode").value) ? $("#crmEq_conttype").value : "", containerQty:["Sea","Multimodal"].includes($("#crmEq_mode").value) ? $("#crmEq_contqty").value : "",
       hazardous:$("#crmEq_hazmat").value, tempControlled:$("#crmEq_temp").value, insurance:$("#crmEq_ins").value,
       customsClearance:$("#crmEq_customs").value, packing:$("#crmEq_packing").value, pickup:$("#crmEq_pickup").value, delivery:$("#crmEq_delivery").value,
       origin:$("#crmEq_origin").value.trim(), pol:$("#crmEq_pol").value.trim(), pod:$("#crmEq_pod").value.trim(),
@@ -10104,22 +10105,20 @@ function orgApplyCountryLogic(source){
 
   const isIndia = countryEl.value.indexOf("India") === 0;
   const inWrap = $("#orgIndiaTaxWrap"), fWrap = $("#orgForeignTaxWrap");
-  const fGst = $("#org_gst_applicable_foreign"), fYes = !isIndia && fGst && fGst.value === "Yes";
-  if(inWrap) inWrap.style.display = (isIndia || fYes) ? "" : "none";
+  /* GST Applicable is asked once, for Indian and overseas parties alike: Yes shows the GST / PAN / state block, No hides and clears it. Changing the country resets it to its natural default (India Yes, overseas No). */
+  const fGst = $("#org_gst_applicable");
+  if(fGst){ const cls = isIndia ? "in" : "fx"; if(fGst.dataset.cls !== cls){ if(!fGst.dataset.keep) fGst.value = isIndia ? "Yes" : "No"; fGst.dataset.cls = cls; } }
+  const gstYes = !fGst || fGst.value === "Yes";
+  if(inWrap) inWrap.style.display = gstYes ? "" : "none";
   if(fWrap) fWrap.style.display = isIndia ? "none" : "";
   if(!isIndia){
     const pos = $("#org_place_of_supply"), sc = $("#org_supply_code");
     if(pos) pos.value = "Foreign Territory"; if(sc) sc.value = "96";
-    if(fGst && !fGst.value) fGst.value = "No";
-    if(!fYes) ["org_gstin","org_pan","org_tan","org_iec"].forEach(id=>{ const el=$("#"+id); if(el) el.value=""; });
   }
+  if(!gstYes) ["org_gstin","org_pan","org_tan","org_iec"].forEach(id=>{ const el=$("#"+id); if(el) el.value=""; });
 
   // mirror onto the Address tab so the GST / Foreign Territory status is visible there too
-  const addrGst = $("#org_addr_gst_applicable"), addrNote = $("#org_addr_foreign_note"), addrStateLbl = $("#org_addr_state_lbl");
-  if(addrGst){
-    addrGst.value = isIndia ? "Yes" : (fGst && fGst.value) || "No";
-    addrGst.style.color = isIndia ? "var(--gr)" : "var(--rd)";
-  }
+  const addrNote = $("#org_addr_foreign_note"), addrStateLbl = $("#org_addr_state_lbl");
   if(addrNote) addrNote.style.display = isIndia ? "none" : "block";
   if(addrStateLbl) addrStateLbl.innerHTML = isIndia ? 'State / Province <span class="r">*</span>' : "State / Province";
   orgApplyStateCode(source);
@@ -10145,7 +10144,7 @@ function wireOrgCountryLogic(){
   if(addrCountryEl && !addrCountryEl.dataset.wired){ addrCountryEl.dataset.wired = "1"; addrCountryEl.addEventListener("change", ()=>orgApplyCountryLogic("address")); }
   if(stateEl && !stateEl.dataset.wired){ stateEl.dataset.wired = "1"; stateEl.addEventListener("change", ()=>orgApplyStateCode("details")); }
   if(addrStateEl && !addrStateEl.dataset.wired){ addrStateEl.dataset.wired = "1"; addrStateEl.addEventListener("change", ()=>orgApplyStateCode("address")); }
-  const fg = $("#org_gst_applicable_foreign"); if(fg && !fg.dataset.wired){ fg.dataset.wired = "1"; fg.addEventListener("change", ()=>orgApplyCountryLogic("details")); }
+  const fg = $("#org_gst_applicable"); if(fg && !fg.dataset.wired){ fg.dataset.wired = "1"; fg.addEventListener("change", ()=>orgApplyCountryLogic("details")); }
   orgApplyCountryLogic("details");
 }
 document.addEventListener("DOMContentLoaded", wireOrgCountryLogic);
@@ -11549,25 +11548,22 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeDrawer(); })
 
 /* Generic module-config drawer used by every Enterprise Config Center card
    (except the two AI modules, which route to their own dedicated screens) */
+const EC_REAL = {          /* configuration cards that have a real screen */
+  "Document Sequence Setup":{go:"sequence-setting"}, "Number Series Configuration":{go:"sequence-setting"}, "Quote Terms & Conditions":{go:"quot-templates"}, "AI Template Configuration":{go:"ai-template-config"},
+  "AI Workflow Configuration":{go:"ai-workflow-config"}, "Company Parameters":{act:"docprofile"}, "Digital Signature Configuration":{act:"docprofile"}, "Currency Defaults":{go:"currency-master"},
+  "Exchange Rate Configuration":{go:"currency-master"}, "Charge Mapping Rules":{go:"charge-master"}, "Incoterm Automation Rules":{go:"incoterms-master"}, "Default Value Configuration":{go:"themes"},
+  "License & ERP Version":{act:"licenseinfo"}, "Branch Parameters":{go:"branch-master"}, "Tax Configuration":{go:"hsn-master"}
+};
 window.openECDrawer = function(name, icon, desc){
+  const real = EC_REAL[name];
+  if(real){ if(real.go) go(real.go); else if(window.menuAct) window.menuAct(real.act); return; }
   openDrawer({
     title: `<svg class="ic" data-icon="${icon}" style="color:var(--pu)"></svg> ${name}`,
     bodyHTML: `
       <p style="font-size:12.3px;color:var(--g6);line-height:1.6;margin-bottom:14px">${desc}</p>
-      <div class="fsec">Module Status</div>
-      <div class="ai-row" style="margin-bottom:14px">
-        <div style="font-size:12.5px;color:var(--g7)">Enable this configuration</div>
-        <label class="toggle-sw"><input type="checkbox" checked><span></span></label>
-      </div>
-      <div class="fsec">Applicable Scope</div>
-      <div class="fr">
-        <div class="fg"><label class="fl">Applies To</label><select class="fc"><option>All Branches</option><option>Chennai HO</option><option>Mumbai Branch</option><option>Delhi Branch</option></select></div>
-        <div class="fg"><label class="fl">Visible To Role</label><select class="fc"><option>All Roles</option><option>Admin Only</option><option>Accounts</option><option>Operations</option></select></div>
-      </div>
-      <div class="fg" style="margin-top:8px"><label class="fl">Configuration Notes</label><textarea class="fc" rows="3" placeholder="Optional notes for this configuration..."></textarea></div>
-      <div class="ib ib-bl" style="margin-top:12px"><svg class="ic" data-icon="info" style="width:12px;height:12px;vertical-align:-1px"></svg>&nbsp;This is a modular plug-in configuration — it reuses existing masters/tables and does not alter any current page, API or workflow.</div>
+      <div class="ib ib-am"><svg class="ic" data-icon="info" style="width:12px;height:12px;vertical-align:-1px"></svg>&nbsp;This configuration is not available yet, so there is nothing to save here. The configuration that already works lives in Settings → Numbering (Sequence Setting), Quotation Templates, Company profile and the Masters menu.</div>
     `,
-    footHTML: `<button class="btn btn-out" onclick="closeDrawer()">Cancel</button><button class="btn btn-pri" onclick="closeDrawer(); toast('Saved', '${name} configuration updated');">Save Configuration</button>`
+    footHTML: `<button class="btn btn-out" onclick="closeDrawer()">Close</button>`
   });
 };
 
@@ -13295,7 +13291,7 @@ if(document.readyState !== "loading") initChatWidget();
       welcome.textContent = "Welcome back, " + cap(full) + " \u{1F44B}";
     }
     if(window.ThemeKit) ThemeKit.fromAccount(user);
-    window.LICENSE_ADMIN = user.license_admin === true; { const vs = document.getElementById("viewSuper"); if(vs) vs.style.display = window.LICENSE_ADMIN ? "" : "none"; if(window.LICENSE_ADMIN && window.getViewRole && window.getViewRole() === "Admin") window.setViewRole("Super Admin"); } if(window.renderTopNav) window.renderTopNav();      // the License Management menu appears only for its super admin
+    window.SESSION_USER = user; window.LICENSE_ADMIN = user.license_admin === true; { const vs = document.getElementById("viewSuper"); if(vs) vs.style.display = window.LICENSE_ADMIN ? "" : "none"; if(window.LICENSE_ADMIN && window.getViewRole && window.getViewRole() === "Admin") window.setViewRole("Super Admin"); } if(window.renderTopNav) window.renderTopNav();      // the License Management menu appears only for its super admin
     try{
       const lg = document.getElementById("hdrLogo");
       if(lg && !lg.dataset.default) lg.dataset.default = lg.innerHTML;
@@ -13991,10 +13987,11 @@ if(document.readyState !== "loading") initChatWidget();
   /* what the master knows about the party (GSTIN, place of supply, CGST + SGST or IGST) and the jobs that still have unbilled entries for that party */
   async function loadParty(S, fill){
     const name = (S.head.party_name || "").trim(); S.jobs = []; if(!name) return;
-    if(fill){ try{ const pd = await api("GET", "/api/documents/billing/party-defaults?party="+encodeURIComponent(name)+"&doc_type="+S.type); if(pd.known){ if(pd.party_gstin) S.head.party_gstin = pd.party_gstin; if(pd.place_of_supply) S.head.place_of_supply = pd.place_of_supply; if(pd.supply_type) S.head.supply_type = pd.supply_type; } }catch(e){} }
+    if(fill){ try{ const pd = await api("GET", "/api/documents/billing/party-defaults?party="+encodeURIComponent(name)+"&doc_type="+S.type); if(pd.known){ GST_OFF = pd.gst_applicable === "No"; if(GST_OFF) S.head.party_gstin = ""; (S.lines || []).forEach(l=>{ if(!l.charge_name && Number(l.rate) === 0){ l.tax_type = GST_OFF ? "Non-Taxable" : "Taxable"; l.tax_pct = GST_OFF ? "0" : "18"; } }); if(pd.party_gstin) S.head.party_gstin = pd.party_gstin; if(pd.place_of_supply) S.head.place_of_supply = pd.place_of_supply; if(pd.supply_type) S.head.supply_type = pd.supply_type; } }catch(e){} }
     if(pickable(S) && !S.doc){ try{ S.jobs = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(name)+"&doc_type="+S.type); }catch(e){} }
   }
-  const blankLine = ()=> ({charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:"Taxable", tax_pct:"18"});
+  let GST_OFF = false;        // the party of the document has GST Applicable = No in the Organization Master: new lines default to Non-Taxable
+  const blankLine = ()=> ({charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:GST_OFF ? "Non-Taxable" : "Taxable", tax_pct:GST_OFF ? "0" : "18"});
   const badge = d=>{
     const s = d.status === "POSTED" ? d.payment_status : d.status;
     const cls = {PAID:"b-gr", PARTIAL:"b-am", UNPAID:"b-rd", POSTED:"b-bl", CONFIRMED:"b-am", DRAFT:"b-gy", CANCELLED:"b-gy"}[s] || "b-gy";
@@ -14425,7 +14422,7 @@ if(document.readyState !== "loading") initChatWidget();
     const rec = pending; pending = null; scr.dataset.orgId = rec ? rec.id : "";
     if(window.OrgExt) OrgExt.fill(rec);
     const fields = fieldNodes(scr); fields.forEach(clearField);
-    scr.querySelectorAll("#orgIndiaTaxWrap input, #orgIndiaTaxWrap select").forEach(()=>{});
+    const gstSel = document.getElementById("org_gst_applicable"); if(gstSel){ gstSel.dataset.cls = ""; delete gstSel.dataset.keep; if(rec){ const sv = (rec.data || {}).gst_applicable; gstSel.value = sv === "No" || sv === "Yes" ? sv : (rec.gstin ? "Yes" : gstSel.value); if(sv === "No" || sv === "Yes" || rec.gstin) gstSel.dataset.keep = "1"; } }
     const by = k=> fields.find(f=>f.key===k);
     // status control (not on the original form)
     if(!document.getElementById("org_status_fg")){
@@ -14442,6 +14439,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(rec.credit_limit) setValue(by("credit_limit"), String(rec.credit_limit)); setValue(by("payment_terms"), rec.payment_terms);
       fields.forEach(f=>{ if(!["org_code","full_legal_name","short_name","category","country","gstin","pan","credit_limit","payment_terms"].includes(f.key) && (rec.data||{})[f.key] !== undefined) loose(f, rec.data[f.key]); });
       const ctry = by("country"); if(ctry && ctry.ctl) ctry.ctl.dispatchEvent(new Event("change", {bubbles:true}));
+      if(gstSel) delete gstSel.dataset.keep;
       const st = by("state"); if(st && (rec.data||{}).state) { loose(st, rec.data.state); st.ctl.dispatchEvent(new Event("change", {bubbles:true})); }
     }
     const pt = scr.querySelector(".pt"), ps = scr.querySelector(".ps");
@@ -14647,6 +14645,17 @@ if(document.readyState !== "loading") initChatWidget();
     if(!out.credit_customer) out.credit_customer = "no";
     return out;
   };
+  /* Choosing Customer makes the party an AR (receivable) party, choosing Vendor an AP (payable) party - the AR / AP flags and the accounting classification follow the choice, in both directions. */
+  document.addEventListener("click", e=>{
+    const c = e.target.closest && e.target.closest('#orgRoleFlags .fi[data-role="customer"], #orgRoleFlags .fi[data-role="vendor"]'); if(!c) return;
+    setTimeout(()=>{
+      const chip = r=> document.querySelector('#orgRoleFlags .fi[data-role="'+r+'"]'), isOn = r=> !!(chip(r) && chip(r).classList.contains("on"));
+      const flag = c.dataset.role === "customer" ? "ar" : "ap"; if(chip(flag)) chip(flag).classList.toggle("on", isOn(c.dataset.role));
+      const cu = isOn("customer"), ve = isOn("vendor"), prev = X.acct.acct_class || "";
+      const next = cu && ve ? "both" : cu ? "customer" : ve ? "vendor" : (prev === "customer" || prev === "vendor" || prev === "both" ? "" : prev);
+      if(next !== prev){ X.acct.acct_class = next; if(!next) delete X.acct.acct_class; renderAcct(); renderCredit(); }
+    }, 0);
+  });
   X.roles = function(){ const k = X.acct.acct_class; return k === "customer" ? ["ar"] : k === "vendor" ? ["ap"] : k === "both" ? ["ar","ap"] : []; };
   X.fill = function(rec){ const d = (rec && rec.data) || {}; X.acct = {}; ["acct_class","ar_account","ap_account","ar_currency","ap_currency","ar_terms","ap_terms","credit_customer","credit_notify_days"].forEach(k=>{ if(d[k]) X.acct[k] = String(d[k]); });
     if(!X.acct.acct_class && rec){ const r = rec.roles || []; if(r.includes("ar") && r.includes("ap")) X.acct.acct_class = "both"; else if(r.includes("ar")) X.acct.acct_class = "customer"; else if(r.includes("ap")) X.acct.acct_class = "vendor"; }
@@ -14821,7 +14830,7 @@ if(document.readyState !== "loading") initChatWidget();
   const closeChip = s=> '<span class="b '+(CLOSE_CLS[s]||"b-gy")+'" title="Closure status"'+(s==="CLOSED"?' style="background:var(--n);color:#fff"':'')+'>'+esc2(s)+'</span>';
 
   (function css(){ const st = document.createElement("style"); st.textContent = `
-  #jlDrawer{position:fixed;top:0;right:0;height:100vh;width:430px;max-width:96vw;background:var(--wh);box-shadow:-8px 0 28px rgba(11,31,58,.22);z-index:120;transform:translateX(105%);transition:transform .2s ease;display:flex;flex-direction:column}
+  #jlDrawer{position:fixed;top:0;right:0;height:100vh;width:430px;max-width:96vw;background:var(--wh);box-shadow:-8px 0 28px rgba(11,31,58,.22);z-index:400;transform:translateX(105%);transition:transform .2s ease;display:flex;flex-direction:column}
   #jlDrawer.on{transform:none}
   #jlDrawer .jl-h{padding:12px 14px;background:linear-gradient(135deg,var(--n) 55%,var(--bl));color:#fff}
   #jlDrawer .jl-body{flex:1;overflow:auto;padding:10px 14px}
@@ -15968,6 +15977,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(r && r.approval_status === "SUBMITTED" && can("quote.approve")) h += btn("approve","Approve","btn-suc") + btn("reject","Reject","btn-out",'style="color:var(--rd)"');
       if(r && r.approval_status === "APPROVED" && r.status === "DRAFT" && can("quote.send")) h += btn("issue","Issue to Client","btn-pri");
       h += btn("preview","Preview","btn-out") + btn("print","Print / PDF","btn-out");
+      if(r) h += btn("dup","Duplicate","btn-out");
       h += '<span class="qk-menu" id="qkMore"><button class="btn btn-sm btn-out" data-qa="more">More ▾</button><div class="qk-menu-pop">'+
         (r ? '<button data-qa="history">Revision history</button><button data-qa="audit">Audit trail</button>' : '')+
         (r && (r.status==="SENT"||r.effective_status==="EXPIRED"||r.effective_status==="REJECTED"||(r.status==="DRAFT"&&r.approval_status==="APPROVED")) ? '<button data-qa="revise">Create revision</button>' : '')+
@@ -16022,7 +16032,7 @@ if(document.readyState !== "loading") initChatWidget();
     const inp = (k, type, ph, extra)=> '<input class="fc" '+(type?'type="'+type+'" ':'')+'data-qh="'+k+'" value="'+esc2(h[k])+'" placeholder="'+esc2(ph||"")+'"'+d+(extra||"")+'>';
     const w = wiz();
     return '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Quotation Information</div><div style="font-size:11.5px;color:var(--g6)">'+esc2([w.dir, w.mode, w.type].filter(Boolean).join(" · "))+' · '+esc2(w.qtype||"")+' · '+(isMulti()?"Multiple carriers":"Single carrier")+(ro?"":' <span class="ta" data-qa="changewiz">Change</span>')+'</div></div><div class="cb"><div class="qk-grid">'+
-      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Generated when approved")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
+      f("Quotation No", '<input class="fc" readonly value="'+esc2(r && r.number ? r.number : "Issued when first saved")+'" style="font-family:var(--font-mono);background:var(--g0)">')+
       f("Customer", custControl(h, d), "", true)+
       f("Quotation Date", inp("quote_date","date"))+f("Valid Until", inp("valid_until","date"), "", true)+
       f("Currency", '<select class="fc" data-qh="currency"'+d+'>'+ccyList().map(c=>opt(c, c, c===h.currency)).join("")+'</select>', "", true)+
@@ -16166,7 +16176,7 @@ if(document.readyState !== "loading") initChatWidget();
       approvalCard();
     setActions(); if(keepScroll) window.scrollTo(0, y);
     const t = document.getElementById("quotNewTitle"); if(t) t.textContent = "Quotation Preparation";
-    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft · number generated when approved")+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
+    const st = document.getElementById("quotNewSub"); if(st) st.textContent = Q.rec ? (Q.rec.number || "Draft")+(Q.rec.revision_no?" · Revision "+Q.rec.revision_no:"")+" · "+(Q.rec.party_name||"") : "New quotation";
   }
   function refreshComputed(){
     ["sell","buy"].forEach(side=>{
@@ -16274,6 +16284,7 @@ if(document.readyState !== "loading") initChatWidget();
       }
       if(name === "issue"){ if(!window.confirm("Issue this approved quotation to the client? It gets its number and is locked.")) return; const s = await api("POST","/api/quotations/"+Q.rec.id+"/send"); say("Quotation issued", s.number+" — email delivery is not set up yet; use Print / PDF to share it."); openView(s.id); return; }
       if(name === "preview" || name === "print"){ const r = Q.rec && Q.rec.editable ? await save() : Q.rec; if(!r) return; await openView(r.id, name === "print"); return; }
+      if(name === "dup"){ const r = await api("POST","/api/quotations/"+Q.rec.id+"/duplicate"); say("Draft created", "A copy of the quotation is open as a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
       if(name === "revise"){ const r = await api("POST","/api/quotations/"+Q.rec.id+"/revise"); say("Revision created", "Revision "+r.revision_no+" is a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
       if(name === "delete"){ if(!window.confirm("Delete this draft quotation?")) return; await api("DELETE","/api/quotations/"+Q.rec.id); say("Draft deleted", ""); go("quotation"); return; }
       if(name === "history") return showHistory();
@@ -16425,6 +16436,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(["DRAFT","SENT","ACCEPTED","REJECTED"].includes(q.status)) add("Cancel Quote", "cancel", "btn-out");
       if(q.status === "ACCEPTED"){ add("Create Booking", "book", "btn-pri"); add("Convert to Job", "convert", "btn-out"); }
       if(q.status === "DRAFT" && q.approval_status === "APPROVED" && can("quote.send")) add("Issue to Client", "issue", "btn-pri");
+      add("Duplicate", "dup", "btn-out");
       add("New Quote", "newquote", "btn-out");
     }
     go("quotation-print");
@@ -16470,6 +16482,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(kind === "book"){ if(window.BKG) await BKG.fromQuotation(id); return; }
       if(kind === "email"){ say("Email is not available yet", "Use Download PDF and send the file yourself. Email sending needs an email provider to be configured.", "warn"); return; }
       if(kind === "newquote"){ go("quotation-new"); return; }
+      if(kind === "dup"){ const r = await api("POST","/api/quotations/"+id+"/duplicate"); say("Draft created", "A copy of the quotation is open as a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
       if(kind === "revise"){ const r = await api("POST","/api/quotations/"+id+"/revise"); say("Revision created", "Revision "+r.revision_no+" is a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
       if(kind === "edit"){
         const q = await api("GET","/api/quotations/"+id);
@@ -16827,6 +16840,7 @@ if(document.readyState !== "loading") initChatWidget();
   document.addEventListener("change", e=>{ if(e.target && e.target.id === "bk_carrier") fillNet(); });
 
   /* ---------- masters ---------- */
+  BKG.reload = ()=>loadMasters();
   async function loadMasters(){
     const get = p=> api("GET", p).catch(()=>[]);
     BKG.m.net = await api("GET", "/api/network/pickers").catch(()=>({}));
@@ -16971,9 +16985,10 @@ if(document.readyState !== "loading") initChatWidget();
   };
   function quoteNote(){
     const old = el("bk_quoteNote"); if(old) old.remove();
+    const bn = el("bk_no"); if(bn) bn.value = (BKG.rec && BKG.rec.number) || "";        /* the number is issued when the booking is first saved */
     const q = BKG.quote ? BKG.quote.number : (BKG.rec && (BKG.rec.data||{}).quotation_no);
     const cn = el("bk_costNote"); if(cn){ cn.style.display = q ? "" : "none"; cn.textContent = q ? "Charges below are the ones approved in quotation "+q+". Choose the vendor for every buy (AP) charge; you can change rates here if the carrier or vendor quoted differently." : ""; }
-    if(!q) return; const n = document.createElement("div"); n.id = "bk_quoteNote"; n.className = "ib ib-bl"; n.style.marginBottom = "10px"; n.textContent = "Raised from quotation "+q+". Confirm the booking to get the booking number; the jobs (freight, CHA, transport ...) are then created from the booking page and carry these charges.";
+    if(!q) return; const n = document.createElement("div"); n.id = "bk_quoteNote"; n.className = "ib ib-bl"; n.style.marginBottom = "10px"; n.textContent = "Raised from quotation "+q+". Save it to get the booking number and confirm it to create the jobs; the jobs (freight, CHA, transport ...) are then created from the booking page and carry these charges.";
     $("#bookFormWrap").insertBefore(n, $("#bookFormWrap").firstChild);
   }
 
@@ -16992,7 +17007,7 @@ if(document.readyState !== "loading") initChatWidget();
     const w = window.bookWiz || {}; const mode = d.mode || w.mode || "Sea";
     const equip = mode === "Air" ? [["Chargeable weight", d.data.chargeable_weight], ["ULD type", d.data.uld_type]] : (mode === "Road" || mode === "Rail") ? [["Vehicle type", d.data.vehicle_type], ["No. of vehicles", d.data.vehicle_qty]] : [["Container type", d.data.container_type], ["Container no", d.data.container_no], ["No. of containers", d.data.container_qty], ["TEU", d.data.teu]];
     const party = (title, name, addr)=> '<div style="flex:1;min-width:210px;border:1px solid var(--g2);border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:var(--g5);font-weight:700;text-transform:uppercase">'+title+'</div><div style="font-weight:600;margin-top:3px">'+(name ? esc2(name) : "—")+'</div><div style="font-size:11.5px;color:var(--g6);margin-top:3px;white-space:pre-line">'+esc2(addr || "")+'</div></div>';
-    return '<div class="fsec">Booking details</div>'+kvRow([["Booking no", d.number || "To be issued on confirmation"], ["Date", dmy(d.booking_date)], ["Mode / direction / type", [mode, d.direction, d.shipment_type].filter(Boolean).join(" · ")], ["Branch", d.data.branch], ["Freight", d.data.freight_pp], ["Service type", d.data.service_type]])+
+    return '<div class="fsec">Booking details</div>'+kvRow([["Booking no", d.number || "Issued when first saved"], ["Date", dmy(d.booking_date)], ["Mode / direction / type", [mode, d.direction, d.shipment_type].filter(Boolean).join(" · ")], ["Branch", d.data.branch], ["Freight", d.data.freight_pp], ["Service type", d.data.service_type]])+
       kvRow([["POL", d.pol], ["POD", d.pod], ["Place of receipt", d.data.place_of_receipt], ["Place of delivery", d.data.place_of_delivery], ["ETD", dmy(d.etd)], ["ETA", dmy(d.eta)]])+
       kvRow([["Carrier", d.carrier], ["Vessel / flight", d.vessel], ["Carrier booking ref", d.carrier_booking_no], ["SI cutoff", dmy(d.si_cutoff)], ["VGM cutoff", dmy(d.vgm_cutoff)], ["Services booked", d.data.services], ["Quotation", d.data.quotation_no]])+
       '<div class="fsec">Parties</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+party("Customer", d.party_name, d.data.customer_address)+party("Shipper", d.data.shipper, d.data.shipper_address)+party("Consignee", d.data.consignee, d.data.consignee_address)+party("Notify", d.data.notify, d.data.notify_address)+'</div>'+
@@ -17360,7 +17375,7 @@ function makePrintFit(){
   };
   JD.stage = function(){
     const d = JD.data, b = d.bl || {}, r = d.release || {}, st = b.blStage || "Draft"; const set = (id, v)=>{ const n = el(id); if(n) n.value = v; };
-    set("jobBl_stage", st); if(b.releaseType) set("jobBl_relType", b.releaseType); const dg = el("jobBl_digSign"); if(dg) dg.checked = !!b.digitalSign;
+    set("jobBl_stage", st); if(b.releaseType) set("jobBl_relType", b.releaseType); const dg = el("jobBl_digSign"); if(dg) dg.checked = (b.blStage === "Released") ? !!b.digitalSign : true;       /* releasing signs and seals the BL by default (needs the signature / seal under Company documents profile) */
     const show = (id, on)=>{ const n = el(id); if(n) n.style.display = on ? "" : "none"; };
     show("jobBl_confirmBtn", st === "Draft"); show("jobBl_releaseBtn", st === "Confirmed"); show("jobBl_draftBtn", st === "Confirmed");
     ["jobBl_relType", "jobBl_digSign"].forEach(id=>{ const n = el(id); if(n) n.disabled = st === "Released"; });
@@ -19380,7 +19395,7 @@ function makePrintFit(){
     return o;
   }
   function closeDrawer(){ const o = document.getElementById("netDrawerOvl"); if(o) o.classList.remove("on"); }
-  async function openDrawer(kind, rec){
+  async function openDrawer(kind, rec, onSaved){
     const K = KINDS[kind]; const o = drawerEl(); const edit = !!rec;
     if(!cache.airlines) await lookups(); const og = K.noLink ? await orgs() : await orgs();
     const v = k=> rec && rec[k] !== null && rec[k] !== undefined ? rec[k] : "";
@@ -19427,7 +19442,7 @@ function makePrintFit(){
       try{
         if(edit) await api("PATCH","/api/network/"+kind+"/"+rec.id, out); else await api("POST","/api/network/"+kind, out);
         cache.orgs = null; if(kind === "airlines") cache.airlines = null;
-        say(edit ? K.noun+" updated" : K.noun+" added", out.name || out.iata_code || (out.from_awb+" – "+out.to_awb)); closeDrawer(); load(kind);
+        say(edit ? K.noun+" updated" : K.noun+" added", out.name || out.iata_code || (out.from_awb+" – "+out.to_awb)); closeDrawer(); try{ load(kind); }catch(e2){} if(onSaved) try{ onSaved(out); }catch(e3){}
       }catch(e){ say("Could not save", e.message, "warn"); btn.disabled = false; }
     };
   }
@@ -19562,7 +19577,7 @@ function makePrintFit(){
 
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); const kind = Object.keys(KINDS).find(k=>KINDS[k].screen === screen); if(kind){ cache.airlines = null; cache.orgs = null; load(kind); } };
-  window.NetKit = {KINDS, load, state:S};
+  window.NetKit = {KINDS, load, state:S, add:(kind, cb)=>openDrawer(kind, null, cb)};
 })();
 
 /* ============================================================
@@ -20150,9 +20165,9 @@ function makePrintFit(){
   const uid = ()=> (window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, "") : String(Date.now())+Math.random().toString(16).slice(2);
 
   (function css(){ const st = document.createElement("style"); st.textContent =
-    ".lic-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.lic-tabs button{border:1px solid var(--g3);background:var(--wh);padding:7px 14px;border-radius:20px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--g7)}.lic-tabs button.on{background:var(--n);color:#fff;border-color:var(--n)}"+
+    ".lic-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.lic-tabs button{border:1px solid var(--g3);background:var(--wh);padding:7px 14px;border-radius:20px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--g7)}.lic-tabs button.on{background:var(--n);color:#fff;border-color:var(--n)}.lic-db .lic-tabs{position:sticky;top:-14px;background:var(--wh);padding:14px 0 8px;margin:-14px 0 10px;z-index:3}.lic-stick{position:sticky;bottom:-14px;background:var(--wh);padding:10px 0;margin-top:10px;border-top:1px solid var(--g2);z-index:3}"+
     ".lic-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:1000px){.lic-grid2{grid-template-columns:1fr}}.lic-bar{height:8px;background:var(--g2);border-radius:6px;overflow:hidden}.lic-bar i{display:block;height:100%;background:var(--bl)}"+
-    ".lic-ovl{position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:80;display:none}.lic-ovl.on{display:block}.lic-drawer{position:fixed;top:0;right:0;bottom:0;width:min(900px,96vw);background:var(--wh);box-shadow:-8px 0 30px rgba(11,31,58,.2);display:flex;flex-direction:column}"+
+    ".lic-ovl{position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:400;display:none}.lic-ovl.on{display:block}.lic-drawer{position:fixed;top:0;right:0;bottom:0;width:min(900px,96vw);background:var(--wh);box-shadow:-8px 0 30px rgba(11,31,58,.2);display:flex;flex-direction:column}"+
     ".lic-dh{padding:14px 18px;border-bottom:1px solid var(--g2);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.lic-db{flex:1;overflow:auto;padding:14px 18px}.lic-form{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.lic-form .s2{grid-column:span 2}.lic-form .fg{margin:0}"+
     ".lic-mod{display:flex;gap:8px 14px;flex-wrap:wrap}.lic-mod label{font-size:12.5px;display:flex;gap:5px;align-items:center}.lic-big{font-size:26px;font-weight:800}";
     document.head.appendChild(st); })();
@@ -20303,7 +20318,7 @@ function makePrintFit(){
         field("Maximum users (blank = unlimited)", '<input class="fc" type="number" min="1" id="le_mu" value="'+(d.max_users || "")+'">')+field("Maximum sessions (blank = unlimited)", '<input class="fc" type="number" min="1" id="le_ms" value="'+(d.max_sessions || "")+'">')+
         field("Maintenance contract", '<select class="fc" id="le_mp">'+[["NONE", "None"], ["AMC", "AMC — annual"], ["MMC", "MMC — monthly"]].map(([v, t])=>opt(v, t, (d.maintenance_plan || "NONE") === v)).join("")+'</select>')+
         field("Modules", '<div class="lic-mod" id="le_mods">'+d.available_modules.map(m=>'<label><input type="checkbox" value="'+m+'"'+(!mods || mods.includes(m) ? " checked" : "")+'> '+esc2(MODULES[m] || m)+'</label>').join("")+'</div>', "s2")+
-        field("Notes", '<textarea class="fc" id="le_nt" rows="2">'+esc2(d.license_notes || "")+'</textarea>', "s2")+'</div><div style="margin-top:10px"><button class="btn btn-pri" data-lic="saveterms">Save changes</button></div>';
+        field("Notes", '<textarea class="fc" id="le_nt" rows="2">'+esc2(d.license_notes || "")+'</textarea>', "s2")+'</div><div class="lic-stick"><button class="btn btn-pri" data-lic="saveterms">Save changes</button></div>';
     } else if(S.dtab === "users"){
       box.innerHTML = usersTable(d);
     } else if(S.dtab === "renew"){
@@ -20385,7 +20400,7 @@ function makePrintFit(){
         if(v("le_mu")) b.max_users = Number(v("le_mu")); else b.unlimited_users = true;
         if(v("le_ms")) b.max_sessions = Number(v("le_ms")); else b.unlimited_sessions = true;
         if(mods.length === c.available_modules.length) b.all_modules = true; else b.modules = mods;
-        S.detail = await api("PATCH", "/api/license-mgmt/companies/"+c.id, b); say("Saved", c.name); paintDrawer();
+        S.detail = await api("PATCH", "/api/license-mgmt/companies/"+c.id, b); say("Saved", c.name); el("licDrawer").classList.remove("on"); if(S.tab === "companies" || S.tab === "overview") load();
       }
       else if(d.licAct){ const [act, id] = d.licAct.split(":"); const labels = {suspend:["Suspend license", "Reason for suspending"], reactivate:["Reactivate license", "Reason for reactivating"], cancel:["Cancel license", "Reason for cancelling"]};
         reasonModal(labels[act][0], labels[act][1], async reason=>{ S.detail = await api("POST", "/api/license-mgmt/companies/"+id+"/"+act, {reason}); say(labels[act][0]+" done", S.detail.name); paintDrawer(); if(S.tab === "companies" || S.tab === "overview") load(); }, act !== "reactivate"); }
@@ -20425,6 +20440,285 @@ function makePrintFit(){
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "license-mgmt") load(); };
   window.LicenseKit = {load, openCompany};
+})();
+
+/* ============================================================
+   DUPLICATE JOB: a fresh Draft job with the next running job number, the details and the charges of the open job (any stage).
+   ============================================================ */
+(function(){
+  "use strict";
+  document.addEventListener("click", async e=>{
+    const b = e.target.closest && e.target.closest("#jobDuplicateBtn"); if(!b) return;
+    const no = (document.getElementById("jobDetailNo") || {}).textContent || ""; if(!/^[A-Z0-9-]{5,}$/.test(no.trim())) return;
+    if(!window.confirm("Create a new Draft job from "+no.trim()+"? It gets the next job number and a copy of the details and charges.")) return;
+    b.disabled = true;
+    try{
+      const r = await fetch("/api/shipments/by-number/"+encodeURIComponent(no.trim())+"/duplicate", {method:"POST", headers:{Authorization:"Bearer "+(sessionStorage.getItem("esway_access_token") || "")}});
+      const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Could not duplicate the job");
+      if(window.toast) window.toast("Draft job created", d.job_number+" is a copy of "+no.trim(), "success");
+      window.go("job-detail", {jobNo:d.job_number});
+    }catch(err){ if(window.toast) window.toast("Could not duplicate", err.message, "warn"); }
+    b.disabled = false;
+  });
+})();
+
+/* ============================================================
+   JOB COST CONTAINER BREAK-UP: a charge on a "Per Container" basis can be split by container type (type, quantity, sell rate, buy rate), like the quotation. The charge stays ONE head
+   (quantity 1, rates = totals); the break-up is shown in the description of the invoice / purchase bill, the job charges screen and the reports.
+   ============================================================ */
+(function(){
+  "use strict";
+  const esc4 = v=>String(v == null ? "" : v).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  let types = null, editing = null, draft = [];
+  async function loadTypes(){
+    if(types) return types;
+    try{ const rows = await JCX.api("GET", "/api/masters/container_type"); types = rows.filter(r=>r.status === "ACTIVE").map(r=>r.name); }catch(e){ types = []; }
+    return types;
+  }
+  const num = v=> Number(v) || 0, fmt = v=> (Math.round(v * 100) / 100).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  function body(){
+    const opts = cur=> '<option value="">— Type —</option>'+(types || []).concat(cur && !(types || []).includes(cur) ? [cur] : []).map(t=>'<option'+(t === cur ? " selected" : "")+'>'+esc4(t)+'</option>').join("");
+    const sell = draft.reduce((a,b)=>a + num(b.qty) * num(b.sell), 0), buy = draft.reduce((a,b)=>a + num(b.qty) * num(b.buy), 0);
+    return '<div style="font-size:12px;color:var(--g6);margin-bottom:8px">Enter the quantity and rate of each container type. The charge keeps one line: its sell and buy rates become the totals below, and the break-up is printed in the description of the invoice and the purchase bill.</div>'+
+      '<table class="tbl" style="width:100%"><thead><tr><th>Container type</th><th style="width:80px">Qty</th><th style="width:120px">Sell rate</th><th style="width:120px">Buy rate</th><th style="width:34px"></th></tr></thead><tbody>'+
+      draft.map((b,i)=>'<tr><td><select class="fc" data-bu="type:'+i+'">'+opts(b.type)+'</select></td><td><input class="fc" type="number" min="0" data-bu="qty:'+i+'" value="'+esc4(b.qty)+'"></td><td><input class="fc" type="number" min="0" step="0.01" data-bu="sell:'+i+'" value="'+esc4(b.sell)+'"></td><td><input class="fc" type="number" min="0" step="0.01" data-bu="buy:'+i+'" value="'+esc4(b.buy)+'"></td><td><button class="ta" data-bu-del="'+i+'" title="Remove">✕</button></td></tr>').join("")+
+      '</tbody><tfoot><tr><td colspan="2" style="text-align:right;font-weight:700">Total</td><td id="buSell" style="font-weight:700">'+fmt(sell)+'</td><td id="buBuy" style="font-weight:700">'+fmt(buy)+'</td><td></td></tr></tfoot></table>'+
+      '<button class="btn btn-out btn-sm" style="margin-top:8px" id="buAdd">+ Add container type</button>';
+  }
+  function paint(){ const b = document.getElementById("modalBody"); if(b) b.innerHTML = body(); }
+  async function open(id){
+    const st = JCX.state(JCX.cur()); const r = st.rows.find(x=>String(x.id) === String(id)); if(!r) return;
+    await loadTypes(); editing = r;
+    draft = (r.breakup || []).length ? r.breakup.map(b=>({...b})) : [{type:"", qty:r.qty > 0 ? r.qty : 1, sell:r.sell.rate || 0, buy:r.buy.rate || 0}];
+    window.openModal({title:"Container break-up — "+esc4(r.chargeName || "charge"), bodyHTML:body(), size:"lg",
+      footHTML:'<button class="btn btn-out" id="buClear">Remove break-up</button><button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="buApply">Apply</button>'});
+  }
+  function apply(){
+    const rows = draft.filter(b=>num(b.qty) > 0 && (b.type || num(b.sell) || num(b.buy)));
+    if(!rows.length){ window.toast("Nothing to apply", "Add at least one container type with a quantity", "warn"); return; }
+    const r = editing; r.breakup = rows.map(b=>({type:b.type || "", qty:num(b.qty), sell:num(b.sell), buy:num(b.buy)})); r.qty = 1; r.uom = "Per Container";
+    const sell = rows.reduce((a,b)=>a + num(b.qty) * num(b.sell), 0), buy = rows.reduce((a,b)=>a + num(b.qty) * num(b.buy), 0);
+    if(sell > 0) r.sell.rate = Math.round(sell * 10000) / 10000; if(buy > 0) r.buy.rate = Math.round(buy * 10000) / 10000;
+    window.closeModal(); JCX.render(); window.toast("Break-up applied", "Save the charges to keep it", "success");
+  }
+  document.addEventListener("click", e=>{
+    const t = e.target.closest ? e.target : null; if(!t) return;
+    const o = t.closest("[data-jc-bu]"); if(o){ open(o.dataset.jcBu); return; }
+    if(t.closest("#buAdd")){ draft.push({type:"", qty:1, sell:0, buy:0}); paint(); return; }
+    const del = t.closest("[data-bu-del]"); if(del){ draft.splice(Number(del.dataset.buDel), 1); paint(); return; }
+    if(t.closest("#buApply")){ apply(); return; }
+    if(t.closest("#buClear")){ editing.breakup = []; window.closeModal(); JCX.render(); }
+  });
+  document.addEventListener("input", e=>{
+    const f = e.target.dataset && e.target.dataset.bu; if(!f) return; const [k, i] = f.split(":"); draft[Number(i)][k] = e.target.value;
+    const sell = draft.reduce((a,b)=>a + num(b.qty) * num(b.sell), 0), buy = draft.reduce((a,b)=>a + num(b.qty) * num(b.buy), 0);
+    const a = document.getElementById("buSell"), b = document.getElementById("buBuy"); if(a) a.textContent = fmt(sell); if(b) b.textContent = fmt(buy);
+  });
+  document.addEventListener("change", e=>{ const f = e.target.dataset && e.target.dataset.bu; if(f && f.startsWith("type:")) draft[Number(f.split(":")[1])].type = e.target.value; });
+})();
+
+/* ============================================================
+   AIR (AND ROAD / RAIL) HAS NO CONTAINERS: only a Sea / Multimodal shipment shows the container type / quantity fields (enquiry; booking, quotation and job screens do the same for their own mode).
+   ============================================================ */
+(function(){
+  "use strict";
+  const GROUPS = [["crmEq_mode", ["crmEq_conttype", "crmEq_contqty"]]];
+  const MODE_OF = t=> /^air/i.test(t) ? "Air" : /^sea/i.test(t) ? "Sea" : /^road/i.test(t) ? "Road" : /^rail/i.test(t) ? "Rail" : "";
+  function apply(){
+    GROUPS.forEach(([modeId, ids])=>{
+      const m = document.getElementById(modeId); if(!m) return; const st = document.getElementById("crmEq_shptype");
+      const air = !(m.value === "Sea" || m.value === "Multimodal") || !!(st && /LCL/i.test(st.value));       /* containers belong to FCL sea (and multimodal) shipments only */
+      ids.forEach(id=>{ const f = document.getElementById(id); const g = f && f.closest(".fg"); if(!g) return; g.style.display = air ? "none" : ""; if(air){ if(f.tagName === "SELECT") f.selectedIndex = 0; else f.value = ""; } });
+    });
+  }
+  document.addEventListener("change", e=>{
+    if(!e.target) return;
+    if(e.target.id === "crmEq_shptype"){ const md = MODE_OF(e.target.value), m = document.getElementById("crmEq_mode"); if(md && m && m.value !== md){ m.value = md; m.dispatchEvent(new Event("change", {bubbles:true})); } apply(); return; }       /* the shipment type decides the mode */
+    if(GROUPS.some(g=>g[0] === e.target.id)) apply();
+  });
+  new MutationObserver(()=>apply()).observe(document.body, {childList:true, subtree:true});
+  apply();
+})();
+
+/* ============================================================
+   BOOKING QUICK ADD: a "+" beside Carrier / Line (Airline or Sea Line by the mode), Customer, Shipper, Consignee and Notify opens the add form in a pop-up; the new record is picked straight away.
+   ============================================================ */
+(function(){
+  "use strict";
+  const esc5 = v=>String(v == null ? "" : v).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const tok = ()=> sessionStorage.getItem("esway_access_token") || "";
+  async function call(method, path, body){
+    const r = await fetch(path, {method, headers:{Authorization:"Bearer "+tok(), "Content-Type":"application/json"}, body: body ? JSON.stringify(body) : undefined});
+    const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : (Array.isArray(d.detail) ? d.detail.map(x=>x.msg).join("; ") : "Request failed")); return d;
+  }
+  const mode = ()=> (window.bookWiz || {}).mode || "Sea";
+  const TARGETS = {bk_carrier:"carrier", bk_customer:"customer", bk_shipper:"shipper", bk_consignee:"consignee", bk_notify:"consignee"};
+  function wire(){
+    Object.keys(TARGETS).forEach(id=>{
+      const sel = document.getElementById(id); if(!sel || sel.dataset.plus) return; sel.dataset.plus = "1";
+      const wrap = document.createElement("div"); wrap.style.cssText = "display:flex;gap:4px;align-items:center"; sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(sel); sel.style.flex = "1";
+      const b = document.createElement("button"); b.type = "button"; b.className = "ta"; b.dataset.bkPlus = id; b.textContent = "+"; b.style.cssText = "flex-shrink:0;font-weight:700;width:30px;height:30px"; b.title = id === "bk_carrier" ? "Add an airline / sea line" : "Add a new organization"; wrap.appendChild(b);
+    });
+  }
+  async function pick(id, name, value){
+    if(window.BKG && BKG.reload) await BKG.reload();
+    const sel = document.getElementById(id); if(!sel) return;
+    const o = Array.from(sel.options).find(x=>x.value === String(value) || x.value === name || x.text.trim() === name);
+    if(o) sel.value = o.value; else { sel.insertAdjacentHTML("beforeend", '<option value="'+esc5(name)+'">'+esc5(name)+'</option>'); sel.value = name; }
+    sel.dispatchEvent(new Event("change", {bubbles:true}));
+  }
+  function addOrg(id){
+    const role = TARGETS[id], isCust = id === "bk_customer";
+    window.openModal({title:"Add organization", bodyHTML:'<div class="fr"><div class="fg"><label class="fl">Org Code <span class="r">*</span></label><input class="fc" id="qa_code" maxlength="20" style="font-family:var(--font-mono);text-transform:uppercase"></div><div class="fg" style="grid-column:span 2"><label class="fl">Full Legal Name <span class="r">*</span></label><input class="fc" id="qa_name"></div></div>'+
+      '<div class="fr"><div class="fg"><label class="fl">Country</label><input class="fc" id="qa_country" value="India"></div><div class="fg"><label class="fl">GST Applicable</label><select class="fc" id="qa_gst"><option>Yes</option><option>No</option></select></div><div class="fg"><label class="fl">GSTIN</label><input class="fc" id="qa_gstin" maxlength="15" style="font-family:var(--font-mono);text-transform:uppercase"></div></div>'+
+      '<div style="font-size:11.5px;color:var(--g5)">Saved as '+(isCust ? "a customer (Receivable)" : role)+'. Open Masters → Organization later to complete addresses, contacts and credit.</div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="qa_go">Save</button>'});
+    document.getElementById("qa_name").addEventListener("input", e=>{ const c = document.getElementById("qa_code"); if(c && !c.dataset.edited) c.value = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 8); });
+    document.getElementById("qa_code").addEventListener("input", e=>{ e.target.dataset.edited = "1"; });
+    document.getElementById("qa_go").addEventListener("click", async ()=>{
+      const v = i=> (document.getElementById(i).value || "").trim(); const code = v("qa_code").toUpperCase(), name = v("qa_name");
+      if(!code || !name){ window.toast("Code and name are required", "", "warn"); return; }
+      const gst = v("qa_gst"), roles = isCust ? ["customer", "ar"] : [role];
+      try{
+        const r = await call("POST", "/api/customers", {code, name, country: v("qa_country") || "India", gstin: gst === "Yes" ? (v("qa_gstin").toUpperCase() || null) : null, roles, data:{gst_applicable: gst}});
+        window.closeModal(); window.toast("Organization added", name, "success"); await pick(id, name, r.id);
+      }catch(e){ window.toast("Could not save", e.message, "warn"); }
+    });
+  }
+  document.addEventListener("click", e=>{
+    const b = e.target.closest && e.target.closest("[data-bk-plus]"); if(!b) return;
+    const id = b.dataset.bkPlus;
+    if(id !== "bk_carrier") return addOrg(id);
+    const m = mode();
+    if(m !== "Air" && m !== "Sea"){ addOrg(id); return; }
+    const kind = m === "Air" ? "airlines" : "sea-lines";
+    window.NetKit.add(kind, out=> pick("bk_carrier", out.name, out.name));
+  });
+  new MutationObserver(()=>wire()).observe(document.body, {childList:true, subtree:true});
+  wire();
+})();
+
+/* ============================================================
+   MENU ACTIONS (Settings): company documents profile, license information and the honest "not available yet" notes.
+   ============================================================ */
+(function(){
+  "use strict";
+  const esc6 = v=>String(v == null ? "" : v).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const INFO = {
+    email:["Email Configuration", "Sending e-mail from the ERP needs an SMTP account, which is not set up yet. Until then documents are downloaded as PDF and sent by hand; quotation e-mail and licence reminders stay in-app."],
+    sms:["SMS Configuration", "SMS sending needs an SMS gateway account, which is not set up yet. Nothing is sent by SMS today."],
+    backup:["Backup", "Backups are taken at server level (database dump of the esway_erp database), not from this screen. See docs/RUN-AND-DEPLOY-GUIDE.md for the backup steps."],
+    restore:["Restore", "Restoring is done at server level from a database dump, by the system administrator. See docs/RUN-AND-DEPLOY-GUIDE.md. It is intentionally not a button in the ERP."]
+  };
+  window.menuAct = function(act){
+    if(act === "docprofile"){ if(window.BLDocKit && BLDocKit.profile) BLDocKit.profile(); return; }
+    if(act === "licenseinfo"){
+      const u = window.SESSION_USER || {};
+      window.openModal({title:"License information", bodyHTML:'<table class="tbl" style="width:100%"><tbody>'+[["Company", u.organization_name], ["License number", u.license_number], ["Status", u.license_status], ["License expiry", u.license_expiry || "No expiry"]].map(([k,v])=>'<tr><td style="width:40%;color:var(--g5)">'+k+'</td><td style="font-weight:600">'+esc6(v || "—")+'</td></tr>').join("")+'</tbody></table>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
+      return;
+    }
+    if(act.startsWith("info:")){ const i = INFO[act.slice(5)]; if(i) window.openModal({title:i[0], bodyHTML:'<div class="ib ib-bl">'+esc6(i[1])+'</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'}); }
+  };
+  document.addEventListener("click", e=>{
+    const r = e.target.closest && e.target.closest("[data-act]"); if(!r || !r.classList.contains("tn-row")) return;
+    e.preventDefault(); if(window.tnCloseAll) window.tnCloseAll(); window.menuAct(r.dataset.act);
+  });
+})();
+
+/* ============================================================
+   SEARCH + CHAT PLACEMENT KIT: the header search looks across jobs, parties, invoices, quotations, bookings, CRM, payments, vouchers, masters and users and opens the
+   chosen result; the chat can be opened from a header button next to the search box and both the chat button and the chat window can be dragged anywhere (remembered).
+   ============================================================ */
+(function(){
+  "use strict";
+  const esc3 = v=>String(v == null ? "" : v).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const input = document.getElementById("globalSearch"); if(!input) return;
+  const tok = ()=> sessionStorage.getItem("esway_access_token") || "";
+  const box = document.createElement("div"); box.id = "gsResults"; box.className = "gs-results"; input.parentElement.appendChild(box);
+  const st = document.createElement("style");
+  st.textContent = ".gs-results{display:none;position:absolute;top:calc(100% + 6px);left:0;width:min(460px,92vw);max-height:70vh;overflow:auto;background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;box-shadow:0 14px 40px rgba(11,31,58,.28);z-index:520;color:var(--g8)}.gs-results.on{display:block}"+
+    ".gs-g{padding:8px 12px 3px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--g5)}.gs-i{padding:7px 12px;cursor:pointer;display:flex;flex-direction:column;gap:1px}.gs-i:hover,.gs-i.sel{background:var(--g1,#f1f5f9)}"+
+    ".gs-i b{font-size:12.5px;font-weight:600}.gs-i span{font-size:11px;color:var(--g5)}.gs-none{padding:14px 12px;font-size:12px;color:var(--g5)}"+
+    ".hdr-chat-btn{background:rgba(255,255,255,.08);border:0.5px solid rgba(255,255,255,.12);color:#fff;border-radius:6px;width:30px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}.hdr-chat-btn:hover{background:rgba(255,255,255,.18)}.hdr-chat-btn .ic{width:16px;height:16px}"+
+    ".chat-launcher{touch-action:none;user-select:none}.chat-x{position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--g8,#1e293b);color:#fff;border:2px solid #fff;font-size:11px;line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;padding:0}.chat-launcher:hover .chat-x,.chat-launcher:focus-within .chat-x{display:flex}.chat-launcher.gone{display:none!important}.chat-head{cursor:grab;touch-action:none}.chat-head:active{cursor:grabbing}";
+  document.head.appendChild(st);
+
+  /* ---------- search ---------- */
+  let seq = 0, flat = [], sel = -1, timer = null;
+  function close(){ box.classList.remove("on"); sel = -1; }
+  function render(d, q){
+    flat = []; let h = "";
+    (d.groups || []).forEach(g=>{ h += '<div class="gs-g">'+esc3(g.title)+'</div>'; g.items.forEach(it=>{ flat.push(it); h += '<div class="gs-i" data-gs="'+(flat.length-1)+'"><b>'+esc3(it.label)+'</b>'+(it.sub ? '<span>'+esc3(it.sub)+'</span>' : "")+'</div>'; }); });
+    box.innerHTML = h || '<div class="gs-none">No result for “'+esc3(q)+'” in jobs, organizations, invoices, quotations, bookings, CRM, payments, vouchers, masters or users.</div>';
+    box.classList.add("on"); sel = -1;
+  }
+  async function run(){
+    const q = input.value.trim(); if(q.length < 2){ close(); return; }
+    const me = ++seq;
+    try{
+      const r = await fetch("/api/search?q="+encodeURIComponent(q), {headers:{Authorization:"Bearer "+tok()}});
+      if(me !== seq) return;
+      if(!r.ok){ box.innerHTML = '<div class="gs-none">Search is not available right now.</div>'; box.classList.add("on"); return; }
+      render(await r.json(), q);
+    }catch(e){ if(me === seq){ box.innerHTML = '<div class="gs-none">Search is not available right now.</div>'; box.classList.add("on"); } }
+  }
+  function open(it){
+    close(); const q = input.value.trim();
+    if(it.go === "job-detail" && it.job){ window.go("job-detail", {jobNo: it.job}); return; }
+    if(it.booking && window.BKG && window.BKG.view){ window.BKG.view(it.booking); return; }
+    window.go(it.go);
+    const fill = (tries)=>{
+      const scr = document.getElementById("s-"+it.go); if(!scr) return;
+      const f = Array.from(scr.querySelectorAll('input[type="search"], input[type="text"], input:not([type])')).find(x=>x.offsetParent !== null && /search|find|filter/i.test((x.placeholder || "")+" "+(x.id || "")));
+      if(f){ f.value = it.q || q; f.dispatchEvent(new Event("input", {bubbles:true})); f.dispatchEvent(new Event("change", {bubbles:true})); }
+      else if(tries > 0) setTimeout(()=>fill(tries-1), 300);
+    };
+    setTimeout(()=>fill(5), 350);
+  }
+  input.addEventListener("input", ()=>{ clearTimeout(timer); timer = setTimeout(run, 250); });
+  input.addEventListener("focus", ()=>{ if(box.innerHTML && input.value.trim().length >= 2) box.classList.add("on"); });
+  /* capture phase: the older job-only Enter handler is no longer reached */
+  input.addEventListener("keydown", e=>{
+    if(e.key === "Escape"){ close(); return; }
+    const items = Array.from(box.querySelectorAll(".gs-i"));
+    if(e.key === "ArrowDown" || e.key === "ArrowUp"){ if(!items.length) return; e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; items.forEach((x,i)=>x.classList.toggle("sel", i === sel)); items[sel].scrollIntoView({block:"nearest"}); return; }
+    if(e.key === "Enter"){ e.stopImmediatePropagation(); e.preventDefault(); clearTimeout(timer); const pick = flat[sel >= 0 ? sel : 0]; if(pick && box.classList.contains("on")) open(pick); else run().then(()=>{ if(flat[0]) open(flat[0]); }); }
+  }, true);
+  box.addEventListener("mousedown", e=>{ const i = e.target.closest("[data-gs]"); if(i){ e.preventDefault(); open(flat[Number(i.dataset.gs)]); } });
+  document.addEventListener("click", e=>{ if(!e.target.closest(".hdr-search")) close(); });
+
+  /* ---------- chat: header button + dragging ---------- */
+  const launcher = document.getElementById("chatLauncher"), panel = document.getElementById("chatPanel"), head = document.getElementById("chatHead");
+  const KEY = "esway_chat_pos", store = {get(){ try{ return JSON.parse(localStorage.getItem(KEY) || "{}"); }catch(e){ return {}; } }, set(v){ try{ localStorage.setItem(KEY, JSON.stringify(v)); }catch(e){} }};
+  const clamp = (v, lo, hi)=> Math.max(lo, Math.min(hi, v));
+  function place(el, x, y){ el.style.left = clamp(x, 0, Math.max(0, window.innerWidth - el.offsetWidth))+"px"; el.style.top = clamp(y, 0, Math.max(0, window.innerHeight - el.offsetHeight))+"px"; el.style.right = "auto"; el.style.bottom = "auto"; }
+  function drag(el, handle, key, skip){
+    let sx, sy, ox, oy, moved = false, on = false;
+    handle.addEventListener("pointerdown", e=>{ if(e.button > 0 || (skip && e.target.closest(skip))) return; const r = el.getBoundingClientRect(); sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top; moved = false; on = true; try{ handle.setPointerCapture(e.pointerId); }catch(x){} });
+    handle.addEventListener("pointermove", e=>{ if(!on) return; if(Math.abs(e.clientX-sx) + Math.abs(e.clientY-sy) > 4) moved = true; if(moved){ place(el, ox + e.clientX - sx, oy + e.clientY - sy); e.preventDefault(); } });
+    const end = ()=>{ if(!on) return; on = false; if(moved){ const r = el.getBoundingClientRect(), s = store.get(); s[key] = {x:r.left, y:r.top}; store.set(s); handle._dragged = true; setTimeout(()=>{ handle._dragged = false; }, 50); } };
+    handle.addEventListener("pointerup", end); handle.addEventListener("pointercancel", end);
+    handle.addEventListener("click", e=>{ if(handle._dragged){ e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  }
+  function restore(){ const s = store.get(); if(launcher && s.launcher) place(launcher, s.launcher.x, s.launcher.y); if(panel && s.panel){ const was = panel.style.display; panel.style.display = "flex"; place(panel, s.panel.x, s.panel.y); panel.style.display = was; } }
+  if(launcher) drag(launcher, launcher, "launcher");
+  /* the X on the chat button hides it; the header chat button brings it back (remembered) */
+  const hideKey = "esway_chat_hidden", hidden = ()=>{ try{ return localStorage.getItem(hideKey) === "1"; }catch(e){ return false; } };
+  const setHidden = on=>{ try{ localStorage.setItem(hideKey, on ? "1" : "0"); }catch(e){} if(launcher) launcher.classList.toggle("gone", on); };
+  if(launcher){ const x = document.createElement("button"); x.type = "button"; x.className = "chat-x"; x.id = "chatHideBtn"; x.title = "Hide chat button"; x.textContent = "✕"; launcher.appendChild(x);
+    x.addEventListener("click", e=>{ e.stopPropagation(); e.preventDefault(); setHidden(true); if(panel) panel.style.display = "none"; });
+    x.addEventListener("pointerdown", e=>e.stopPropagation()); if(hidden()) launcher.classList.add("gone"); }
+  if(panel && head) drag(panel, head, "panel", ".chat-head-btn");
+  restore();
+  window.addEventListener("resize", ()=>{ if(launcher && launcher.style.left) place(launcher, launcher.offsetLeft, launcher.offsetTop); if(panel && panel.style.left && panel.style.display !== "none") place(panel, panel.offsetLeft, panel.offsetTop); });
+  const hb = document.createElement("button"); hb.type = "button"; hb.id = "hdrChatBtn"; hb.className = "hdr-chat-btn"; hb.title = "Chat with support";
+  hb.innerHTML = '<svg class="ic" data-icon="message-circle"></svg>';
+  input.closest(".hdr-search").insertAdjacentElement("afterend", hb); if(window.renderIcons) window.renderIcons(hb);
+  hb.addEventListener("click", ()=>{
+    if(!panel) return;
+    if(launcher && launcher.classList.contains("gone")) setHidden(false);
+    if(panel.style.display === "none"){ if(launcher) launcher.click(); } else { panel.style.display = "none"; }
+  });
 })();
 
 /* ============================================================

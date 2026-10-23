@@ -110,6 +110,18 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const jobRows = Array.from(d.querySelectorAll("#jobTableBody tr[data-job-row]")).map(r => r.textContent.replace(/\s+/g, " "));
   check("Jobs list loads real jobs from the database", jobRows.length === 1 && /Tata Chemicals Limited/.test(jobRows[0]) && /Solvay SA/.test(jobRows[0]), jobRows.join("|"));
 
+  // ---- GST Applicable is asked once; Customer = AR, Vendor = AP
+  w.go("org-new"); await sleep(500);
+  const gstLabels = Array.from(d.querySelectorAll("#s-org-new label.fl")).filter(l => /GST Applicable/.test(l.textContent));
+  check("GST Applicable is asked once (no duplicate, no read-only copies)", gstLabels.length === 1 && q("#org_gst_applicable").value === "Yes" && !q("#org_addr_gst_applicable") && !q("#org_gst_applicable_in") && !q("#org_gst_applicable_foreign"));
+  const ctry = field("Country"); ctry.value = Array.from(ctry.options).find(o => /Switzerland/.test(o.text)).value; ctry.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(200);
+  check("an overseas party defaults to GST Applicable = No and hides the GST block; Yes brings it back", q("#org_gst_applicable").value === "No" && q("#orgIndiaTaxWrap").style.display === "none" && (q("#org_gst_applicable").value = "Yes", q("#org_gst_applicable").dispatchEvent(new w.Event("change", { bubbles: true })), q("#orgIndiaTaxWrap").style.display !== "none"));
+  chip("customer").click(); await sleep(100);
+  check("choosing Customer turns on Receivable (AR) and classifies the party as a customer", chip("ar").classList.contains("on") && !chip("ap").classList.contains("on") && w.OrgExt.acct.acct_class === "customer");
+  chip("vendor").click(); await sleep(100);
+  check("choosing Vendor as well turns on Payable (AP) and classifies it as both", chip("ap").classList.contains("on") && w.OrgExt.acct.acct_class === "both");
+  chip("customer").click(); await sleep(100);
+  check("un-choosing Customer switches AR off again", !chip("ar").classList.contains("on") && chip("ap").classList.contains("on") && w.OrgExt.acct.acct_class === "vendor");
   // ---- delete
   w.go("org-list"); await sleep(800);
   d.querySelector('[data-od="' + msc.id + '"]').click(); await sleep(1200);

@@ -39,6 +39,13 @@ class Side(BaseModel):
         return value
 
 
+class Breakup(BaseModel):
+    type: str = Field(default="", max_length=40)
+    qty: Decimal = Field(default=Decimal("1"), ge=0, max_digits=14, decimal_places=3)
+    sell: Decimal = Field(default=Decimal("0"), ge=0, max_digits=16, decimal_places=4)
+    buy: Decimal = Field(default=Decimal("0"), ge=0, max_digits=16, decimal_places=4)
+
+
 class ChargeLine(BaseModel):
     charge_name: str = Field(default="", max_length=160)
     description: str = Field(default="", max_length=240)
@@ -47,6 +54,7 @@ class ChargeLine(BaseModel):
     hsn: str = Field(default="", max_length=20)
     buy: Side = Field(default_factory=Side)
     sell: Side = Field(default_factory=Side)
+    breakup: list[Breakup] | None = Field(default=None, max_length=30)
 
 
 class ChargesPayload(BaseModel):
@@ -64,7 +72,7 @@ def line_out(row: JobCharge) -> dict:
     buy = compute_side(row.qty, row.buy_ccy, row.buy_exch, row.buy_rate, row.buy_tax_type, row.buy_tax_pct)
     sell = compute_side(row.qty, row.sell_ccy, row.sell_exch, row.sell_rate, row.sell_tax_type, row.sell_tax_pct)
     return {
-        "id": row.id, "line_no": row.line_no, "charge_name": row.charge_name, "description": row.description, "uom": row.uom, "qty": str(row.qty), "hsn": row.hsn,
+        "id": row.id, "line_no": row.line_no, "breakup": row.breakup or [], "charge_name": row.charge_name, "description": row.description, "uom": row.uom, "qty": str(row.qty), "hsn": row.hsn,
         "buy": {"ccy": row.buy_ccy, "exch": str(row.buy_exch), "rate": str(row.buy_rate), "tax_type": row.buy_tax_type, "tax_pct": str(row.buy_tax_pct), "party": row.vendor, "use_party": row.use_vendor, **{k: str(v) for k, v in buy.items()}},
         "sell": {"ccy": row.sell_ccy, "exch": str(row.sell_exch), "rate": str(row.sell_rate), "tax_type": row.sell_tax_type, "tax_pct": str(row.sell_tax_pct), "party": row.client, "use_party": row.use_client, **{k: str(v) for k, v in sell.items()}},
         "_buy": buy, "_sell": sell,
@@ -139,11 +147,20 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
     db.execute(delete(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id))
     rows = []
     for index, line in enumerate(payload.lines, start=1):
+        bu = [{"type": b.type.strip(), "qty": str(b.qty), "sell": str(b.sell), "buy": str(b.buy)} for b in (line.breakup or []) if b.qty > 0]
+        if bu:      # a container-wise charge is one head: quantity 1, the total of the break-up as the rate of each side that has one
+            sell_total, buy_total = sum((b.qty * b.sell for b in line.breakup if b.qty > 0), Decimal(0)), sum((b.qty * b.buy for b in line.breakup if b.qty > 0), Decimal(0))
+            if sell_total > 0:
+                line.sell.rate = sell_total
+            if buy_total > 0:
+                line.buy.rate = buy_total
+            line.qty = Decimal(1)
         row = JobCharge(
             organization_id=job.organization_id, shipment_id=job.id, line_no=index, charge_name=line.charge_name.strip(), description=line.description.strip(), uom=line.uom, qty=line.qty, hsn=line.hsn.strip(),
             buy_ccy=line.buy.ccy, buy_exch=Decimal(1) if line.buy.ccy == "INR" else line.buy.exch, buy_rate=line.buy.rate, buy_tax_type=line.buy.tax_type, buy_tax_pct=line.buy.tax_pct if line.buy.tax_type in ("Taxable", "RCM") else Decimal(0), vendor=line.buy.party.strip(), use_vendor=line.buy.use_party,
             sell_ccy=line.sell.ccy, sell_exch=Decimal(1) if line.sell.ccy == "INR" else line.sell.exch, sell_rate=line.sell.rate, sell_tax_type=line.sell.tax_type, sell_tax_pct=line.sell.tax_pct if line.sell.tax_type in ("Taxable", "RCM") else Decimal(0), client=line.sell.party.strip(), use_client=line.sell.use_party,
         )
+        row.breakup = bu or None
         db.add(row)
         rows.append(row)
     db.flush()

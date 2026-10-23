@@ -41,6 +41,19 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // convert to enquiry
   q("[data-crm-convert-lead]").click(); await sleep(600);
   check("enquiry form shows the customer picker", /Customer/.test(text("#crmEnquiryFormWrap")) && q("#crmEq_company").value === "Acme Exports");
+  const vis = id => q("#" + id).closest(".fg").style.display !== "none";
+  q("#crmEq_mode").value = "Air"; q("#crmEq_mode").dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(100);
+  check("an air enquiry has no container type or container quantity", !vis("crmEq_conttype") && !vis("crmEq_contqty"));
+  q("#crmEq_mode").value = "Road"; q("#crmEq_mode").dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(100);
+  check("a road enquiry has none either", !vis("crmEq_conttype") && !vis("crmEq_contqty"));
+  q("#crmEq_shptype").value = "Sea Export (FCL)"; q("#crmEq_shptype").dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(100);
+  check("choosing the shipment type Sea Export (FCL) sets the mode to Sea and shows the container fields", q("#crmEq_mode").value === "Sea" && vis("crmEq_conttype") && vis("crmEq_contqty"));
+  q("#crmEq_shptype").value = "Sea Export (LCL)"; q("#crmEq_shptype").dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(100);
+  check("Sea LCL has no container fields", !vis("crmEq_conttype"));
+  q("#crmEq_shptype").value = "Air Export"; q("#crmEq_shptype").dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(100);
+  check("Air Export sets the mode to Air and hides them", q("#crmEq_mode").value === "Air" && !vis("crmEq_conttype"));
+  q("#crmEq_mode").value = "Sea"; q("#crmEq_mode").dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(100);
+  check("a sea enquiry shows them", vis("crmEq_conttype") && vis("crmEq_contqty"));
   setf(q("#crmEq_company"), "Nobody Ltd"); d.querySelector("#crmEq_save").click(); await sleep(300);
   // converting from a lead is allowed; test the strict path below with a fresh enquiry
   await sleep(1800);

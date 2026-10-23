@@ -176,6 +176,9 @@ def create_company(db: Session, payload: OrganizationAdminCreate, actor: User, c
     admin.roles.append(admin_role)
     try:
         db.flush()
+        from .reference_masters import provision_new_company
+
+        provision_new_company(db, organization)        # Airline, Sea Line, Charge and HSN masters start from the owner company's lists
         record_audit(db, "ORGANIZATION_CREATED", "ORGANIZATION", actor, organization.id, "Organization", str(organization.id), {"code": organization.code, "name": organization.name})
         record_audit(db, "USER_CREATED", "USER", actor, organization.id, "User", str(admin.id), {"username": admin.username, "role": "ERP_ADMIN"})
         if commit:

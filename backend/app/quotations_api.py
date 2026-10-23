@@ -239,6 +239,7 @@ def create_quotation(payload: QuotationIn, user: User = Depends(permission_requi
     db.add(quote)
     db.flush()
     quote.root_id = quote.id
+    _assign_number(db, org_id, quote, user)        # the number is issued when the quotation is first saved and kept through approval, sending, acceptance and conversion
     _event(db, quote, "CREATED", None, "DRAFT", user)
     record_audit(db, "QUOTATION_CREATED", "SALES", user, org_id, "Quotation", str(quote.id), {"party": quote.party_name})
     db.commit()
@@ -313,6 +314,8 @@ def _sod_blocked(db: Session, user: User, quote: Quotation) -> bool:
     org = db.get(Organization, quote.organization_id)
     if not (config.QUOTE_SOD and not (org and org.is_demo) and quote.prepared_by == user.id):
         return False
+    if config.QUOTE_SOD_ADMIN_EXEMPT and any(r.name == "ERP_ADMIN" for r in user.roles):
+        return False        # the company Admin can always approve (and review) quotations, including their own
     # segregation of duties applies only while another active user can approve; a one-person company must still be able to issue quotations
     approvers = [u for u in db.scalars(select(User).where(User.organization_id == quote.organization_id, User.status == "ACTIVE", User.id != user.id))
                  if u.is_super_admin or any(p.code == "quote.approve" for r in u.roles for p in r.permissions)]
@@ -320,7 +323,7 @@ def _sod_blocked(db: Session, user: User, quote: Quotation) -> bool:
 
 
 def _assign_number(db: Session, org_id: int, quote: Quotation, user: User) -> None:
-    """The official quotation number (from Settings -> Sequence Setting) is generated when the quotation is approved, once, and kept through later revisions (-R1, -R2)."""
+    """The official quotation number (from Settings -> Sequence Setting) is generated when the quotation is first saved, once, and kept through later revisions (-R1, -R2)."""
     if quote.number:
         return
     root = db.get(Quotation, quote.root_id) if quote.root_id and quote.root_id != quote.id else None
@@ -390,11 +393,35 @@ def revise(quote_id: int, user: User = Depends(permission_required("quote.create
                                         rate=l.rate, qty=l.qty, taxable=l.taxable, tax_pct=l.tax_pct, remarks=l.remarks, amount_fcy=l.amount_fcy, amount=l.amount, gst_amount=l.gst_amount, total_inr=l.total_inr))
     db.add(copy)
     db.flush()
+    _assign_number(db, org_id, copy, user)
     if src.status in ("DRAFT", "SENT"):
         _event(db, src, "SUPERSEDED", src.status, "SUPERSEDED", user, f"Replaced by revision {copy.revision_no}")
         src.status = "SUPERSEDED"
     _event(db, copy, "REVISED", None, "DRAFT", user, f"Revision {copy.revision_no} of {src.number or 'draft #' + str(src.id)}")
     record_audit(db, "QUOTATION_REVISED", "SALES", user, org_id, "Quotation", str(copy.id), {"from": src.id, "revision": copy.revision_no})
+    db.commit()
+    return _out(db, _load(db, org_id, copy.id), user, True)
+
+
+@router.post("/{quote_id}/duplicate", status_code=201)
+def duplicate(quote_id: int, user: User = Depends(permission_required("quote.create")), db: Session = Depends(get_db)):
+    """A brand-new DRAFT quotation with the details and charges of an existing one, whatever its status (approved, sent, accepted, converted ...). It is its own quotation, not a revision: it gets its own number
+    from the running sequence when it is approved, like any new quotation, and starts without the old job link."""
+    org_id = _tenant(user)
+    src = _load(db, org_id, quote_id)
+    today = date.today()
+    copy = Quotation(organization_id=org_id, status="DRAFT", approval_status="DRAFT", quote_date=today, valid_until=today + timedelta(days=15), customer_id=src.customer_id, party_name=src.party_name, mode=src.mode,
+                     direction=src.direction, shipment_type=src.shipment_type, quote_type=src.quote_type, carrier_mode=src.carrier_mode, pol=src.pol, pod=src.pod, terms=src.terms, remarks=src.remarks,
+                     header=dict(src.header or {}), created_by=user.id, prepared_by=user.id, prepared_at=datetime.now(timezone.utc))
+    for l in src.lines:
+        copy.lines.append(QuotationLine(line_no=l.line_no, side=l.side, charge_name=l.charge_name, carrier=l.carrier, basis=l.basis, container_type=l.container_type, container_breakup=l.container_breakup, ccy=l.ccy, exch=l.exch,
+                                        rate=l.rate, qty=l.qty, taxable=l.taxable, tax_pct=l.tax_pct, remarks=l.remarks, amount_fcy=l.amount_fcy, amount=l.amount, gst_amount=l.gst_amount, total_inr=l.total_inr))
+    db.add(copy)
+    db.flush()
+    copy.root_id = copy.id
+    _assign_number(db, org_id, copy, user)
+    _event(db, copy, "CREATED", None, "DRAFT", user, f"Duplicate of {src.number or 'draft #' + str(src.id)}")
+    record_audit(db, "QUOTATION_DUPLICATED", "SALES", user, org_id, "Quotation", str(copy.id), {"from": src.id})
     db.commit()
     return _out(db, _load(db, org_id, copy.id), user, True)
 
@@ -502,21 +529,28 @@ def reject(quote_id: int, user: User = Depends(permission_required("quote.send")
 
 
 def _copy_quote_to_job(db: Session, org_id: int, quote: Quotation, job: Shipment, sell: list, buy: list) -> None:
-    """Sell charges become the job's sell side; matching buy costs its buy side."""
+    """Sell charges become the job's sell side; matching buy costs its buy side. A charge quoted per container (the same charge on several lines) is ONE head on the job; its break-up is kept in the
+    description, which the invoice carries. HSN / SAC and the default GST come from the Charge Master."""
+    from .charge_utils import add_side, charge_info, hsn_for, merge_lines
+
+    info = charge_info(db, org_id)
     rows: list[JobCharge] = []
-    for l in sell:
-        detail = "; ".join(f"{b['type']} x{b['qty']} @ {b['rate']}" for b in (l.container_breakup or []))
-        rows.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=l.charge_name, description=(f"From quotation {quote.number}" + (f" ({detail})" if detail else ""))[:240], uom=l.basis, qty=l.qty, hsn="",
-                              sell_ccy=l.ccy, sell_exch=l.exch, sell_rate=l.rate, sell_tax_type="Taxable" if l.taxable else "Non-Taxable", sell_tax_pct=l.tax_pct if l.taxable else Decimal(0), client=quote.party_name, use_client=True))
-    for b in buy:
+    for l, detail, parts in merge_lines(sell):
+        rows.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=l.charge_name, description=(f"From quotation {quote.number}" + (f" ({detail})" if detail and not parts else ""))[:240], uom=l.basis, qty=l.qty, hsn=hsn_for(info, l.charge_name),
+                              sell_ccy=l.ccy, sell_exch=l.exch, sell_rate=l.rate, sell_tax_type="Taxable" if l.taxable else "Non-Taxable", sell_tax_pct=l.tax_pct if l.taxable else Decimal(0), client=quote.party_name, use_client=True,
+                              breakup=add_side(None, "sell", parts) if parts else None))
+    for b, merged, parts in merge_lines(buy):
         match = next((r for r in rows if r.charge_name.strip().lower() == b.charge_name.strip().lower() and not r.buy_rate), None)
         base_rate = b.rate if (match is None or match.qty == b.qty or not match.qty) else (b.amount_fcy / match.qty).quantize(Decimal("0.0001"))
         fields = dict(buy_ccy=b.ccy, buy_exch=b.exch, buy_rate=base_rate, buy_tax_type="Taxable" if b.taxable else "Non-Taxable", buy_tax_pct=b.tax_pct if b.taxable else Decimal(0))
         if match is not None:
             for k, v in fields.items():
                 setattr(match, k, v)
+            if parts:
+                match.breakup = add_side(match.breakup, "buy", parts)
         else:
-            rows.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=b.charge_name, description=f"Buy cost from quotation {quote.number}"[:240], uom=b.basis, qty=b.qty, hsn="", sell_rate=Decimal(0), **fields))
+            rows.append(JobCharge(organization_id=org_id, shipment_id=job.id, charge_name=b.charge_name, description=(f"Buy cost from quotation {quote.number}" + (f" ({merged})" if merged and not parts else ""))[:240], uom=b.basis, qty=b.qty, hsn=hsn_for(info, b.charge_name),
+                                  sell_rate=Decimal(0), breakup=add_side(None, "buy", parts) if parts else None, **fields))
     for i, r in enumerate(rows, start=1):
         r.line_no = i
         db.add(r)

@@ -153,6 +153,7 @@ def test_express_release_with_digital_signature_and_company_profile(h):
     assert r.status_code == 200 and r.json()["bl"]["digitalSign"] is True and r.json()["bl"]["releaseType"] == "Express Release"
     rd = client.get(f"/api/jobs/{j}/report-data", headers=h).json()
     assert rd["company"]["profile"]["reg_mto"] == "OTI LICENCE NO. 019654N" and rd["company"]["code"] and "party_text" in rd and "booking" in rd
+    assert rd["company"]["profile"]["sign_image"] == img and rd["details"]["bl"]["digitalSign"] is True and rd["details"]["bl"]["blStage"] == "Released"        # what the BL print needs to draw the signature
 
 
 def test_air_job_gets_a_house_awb_number_company_hawb_running_pol_pod(h):

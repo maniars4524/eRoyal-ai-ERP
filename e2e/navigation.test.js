@@ -36,11 +36,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.go("dashboard"); await sleep(400);
   const dash = d.getElementById("s-dashboard");
   check("the dashboard has no Export, Refresh or New Shipment button", !dash.querySelector('[data-export="dashboard"]') && !d.getElementById("dashRefreshBtn") && !/New Shipment/.test(dash.querySelector(".ph").textContent) && !/Export|Refresh/.test(dash.querySelector(".ph").textContent), dash.querySelector(".ph").textContent.replace(/\s+/g, " "));
-  const newOrg = d.querySelector('.bc-actions [data-go="org-new"]');
-  check("New Org is hidden on the dashboard", d.body.dataset.screen === "dashboard" && /body\[data-screen="dashboard"\] \[data-hide-on="dashboard"\]\{display:none!important\}/.test(css) && newOrg.dataset.hideOn === "dashboard");
-  check("New Job is still there", !!d.querySelector('.bc-actions [data-go="job-new"]'));
-  w.go("org-list"); await sleep(300);
-  check("on other screens New Org is available again", d.body.dataset.screen === "org-list");
+  check("the top bar has no duplicate New Org / New Job buttons (each list has its own)", !d.querySelector('.bc-actions [data-go="org-new"]') && !d.querySelector('.bc-actions [data-go="job-new"]'));
   check("the page starts with the dashboard flag so New Org is hidden from the first paint", /<body data-screen="dashboard">/.test(await (await fetch(BASE + "/erp")).text()));
 
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");

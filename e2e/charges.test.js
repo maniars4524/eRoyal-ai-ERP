@@ -83,6 +83,26 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("Generate Invoice creates a real draft invoice from the charges", drafts.length === 1 && drafts[0].status === "DRAFT" && drafts[0].grand_total === "167501.00", JSON.stringify(drafts));
   w.go("job-detail", { jobNo }); await sleep(1800);
 
+  // container-wise break-up of a charge
+  d.getElementById("jc_addRowBtn").click(); await sleep(300);
+  const id2 = rowIds()[rowIds().length - 1];
+  setf(id2, "chargeName", "Documentation Charges", "change"); setf(id2, "uom", "Per Container", "change"); await sleep(300);
+  const bu = d.querySelector(`[data-jc-bu="${id2}"]`);
+  check("a Per Container charge offers a Break-up button", !!bu);
+  bu.click(); await sleep(800);
+  const bt = d.querySelector('#modalBody [data-bu="type:0"]'); bt.insertAdjacentHTML("beforeend", "<option>20GP</option><option>40HC</option>"); bt.value = "20GP"; fire(bt, "change");
+  const bset = (f, v) => { const e = d.querySelector(`#modalBody [data-bu="${f}"]`); e.value = v; fire(e, "input"); };
+  bset("qty:0", "2"); bset("sell:0", "1500"); bset("buy:0", "1000");
+  d.getElementById("buAdd").click(); await sleep(100);
+  const bt2 = d.querySelector('#modalBody [data-bu="type:1"]'); bt2.insertAdjacentHTML("beforeend", "<option>40HC</option>"); bt2.value = "40HC"; fire(bt2, "change");
+  bset("qty:1", "1"); bset("sell:1", "2000"); bset("buy:1", "1500");
+  check("the break-up dialog totals sell and buy", /5,000\.00/.test(d.getElementById("buSell").textContent) && /3,500\.00/.test(d.getElementById("buBuy").textContent), d.getElementById("buSell").textContent + "|" + d.getElementById("buBuy").textContent);
+  d.getElementById("buApply").click(); await sleep(600);
+  check("applying makes it one head: quantity 1 and the totals as rates", d.querySelector(`[data-jc-id="${id2}"][data-jc-f="qty"]`).value === "1" && Number(d.querySelector(`[data-jc-id="${id2}"][data-jc-f="sell.rate"]`).value) === 5000 && Number(d.querySelector(`[data-jc-id="${id2}"][data-jc-f="buy.rate"]`).value) === 3500 && /40HC x1/.test(d.querySelector(`tr[data-jc-row="${id2}"]`).textContent));
+  d.getElementById("jc_saveBtn").click(); await sleep(1800);
+  const bsaved = (await j("GET", `/api/shipments/by-number/${jobNo}/charges`, null, token)).body.lines.find(l => l.charge_name === "Documentation Charges");
+  check("the break-up is saved with the charge", bsaved && bsaved.breakup.length === 2 && bsaved.qty === "1.000" && Number(bsaved.sell.rate) === 5000, JSON.stringify(bsaved));
+
   // manual save + clear
   toasts._clear(); d.getElementById("jc_saveBtn").click(); await sleep(1200);
   check("manual Save confirms only after the server accepts", toasts.some(t => /Job cost saved/.test(t)), toasts.join(";"));

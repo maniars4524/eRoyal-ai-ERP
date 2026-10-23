@@ -158,6 +158,7 @@ def create_booking(payload: BookingIn, user: User = Depends(permission_required(
     _check_dates(b)
     db.add(b)
     db.flush()
+    b.number = next_number(db, org_id, "booking", "BKG", b.booking_date, user=user)        # the number is issued when the booking is first saved; draft / confirmed / closed keep it
     record_audit(db, "BOOKING_CREATED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"party": b.party_name})
     db.commit()
     return _out(_get(db, org_id, b.id))
@@ -229,7 +230,8 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
     from .credit_control import enforce as credit_enforce
 
     credit_enforce(db, org_id, b.customer_id, "confirm booking", user.id, None, Decimal(0))
-    b.number = next_number(db, org_id, "booking", "BKG", b.booking_date, user=user)
+    if not b.number:        # normally issued when the draft was first saved
+        b.number = next_number(db, org_id, "booking", "BKG", b.booking_date, user=user)
     b.status = "CONFIRMED"
     b.confirmed_at = datetime.now(timezone.utc)
     record_audit(db, "BOOKING_CONFIRMED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number})
@@ -263,16 +265,45 @@ def _dec(value: Any, default: str = "0") -> Decimal:
         return Decimal(default)
 
 
+def _merge_booking_rows(rows: list[dict]) -> list[dict]:
+    """Costing rows of the same charge (e.g. Ocean Freight - 20GP and Ocean Freight - 40HC) become ONE head on the job: one row for the total, the container break-up kept in its description so the invoice shows it."""
+    groups: dict[tuple, list[dict]] = {}
+    for r in rows:
+        name = (r.get("description") or r.get("code") or "").strip()
+        base = name.split(" — ")[0].strip()
+        groups.setdefault((base.lower(), r.get("type"), (r.get("currency") or "INR")[:3], str(_dec(r.get("exch"), "1")), str(_dec(r.get("tax_pct"))), (r.get("vendor") or "").strip().lower(), r.get("service") or "Freight"), []).append(r)
+    out = []
+    for rs in groups.values():
+        first = rs[0]
+        base = (first.get("description") or first.get("code") or "").strip().split(" — ")[0].strip()
+        if len(rs) == 1:
+            out.append({**first, "_base": base})
+            continue
+        parts = []
+        total = Decimal(0)
+        for r in rs:
+            qty, rate = _dec(r.get("qty"), "1") or Decimal(1), _dec(r.get("rate"))
+            total += qty * rate
+            suffix = (r.get("description") or "").strip().split(" — ", 1)
+            parts.append({"type": suffix[1].strip() if len(suffix) > 1 else "", "qty": qty, "rate": rate})
+        out.append({**first, "description": base, "qty": "1", "rate": str(total), "uom": "Per Container", "_base": base, "_parts": parts})
+    return out
+
+
 def _charges_from_booking(db: Session, org_id: int, job: Shipment, rows: list[dict], client: str, service: str = "Freight") -> Decimal:
-    """The booking's costing rows become the job's charge lines: AR rows are the sell side, AP rows the buy side (with the vendor chosen on the booking)."""
+    """The booking's costing rows become the job's charge lines: AR rows are the sell side, AP rows the buy side (with the vendor chosen on the booking). HSN / SAC comes from the Charge Master."""
+    from .charge_utils import add_side, charge_info, hsn_for
     from .models import JobCharge
 
+    info = charge_info(db, org_id)
     lines: list[JobCharge] = []
     revenue = Decimal(0)
-    for r in rows:
+    for r in _merge_booking_rows(rows):
         name = (r.get("description") or r.get("code") or "").strip()
         if not name:
             continue
+        cname = (r.get("_base") or name)[:160]
+        hsn = hsn_for(info, cname)
         qty, rate, exch = _dec(r.get("qty"), "1") or Decimal(1), _dec(r.get("rate")), _dec(r.get("exch"), "1") or Decimal(1)
         ccy = (r.get("currency") or "INR")[:3]
         if ccy == "INR":
@@ -280,16 +311,19 @@ def _charges_from_booking(db: Session, org_id: int, job: Shipment, rows: list[di
         tax = _dec(r.get("tax_pct"))
         taxtype = "Taxable" if tax > 0 else "Non-Taxable"
         if r.get("type") == "AP":
-            match = next((l for l in lines if l.charge_name.strip().lower() == name.lower() and not l.buy_rate), None)
+            match = next((l for l in lines if l.charge_name.strip().lower() == cname.lower() and not l.buy_rate), None)
             fields = dict(buy_ccy=ccy, buy_exch=exch, buy_rate=rate, buy_tax_type=taxtype, buy_tax_pct=tax, vendor=(r.get("vendor") or "")[:160], use_vendor=bool(r.get("vendor")))
             if match is not None:
                 for k, v in fields.items():
                     setattr(match, k, v)
+                if r.get("_parts"):
+                    match.breakup = add_side(match.breakup, "buy", r["_parts"])
             else:
-                lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, service=service, charge_name=name[:160], description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn="", sell_rate=Decimal(0), **fields))
+                lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, service=service, charge_name=cname, description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn=hsn, sell_rate=Decimal(0),
+                                       breakup=add_side(None, "buy", r["_parts"]) if r.get("_parts") else None, **fields))
         else:
-            lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, service=service, charge_name=name[:160], description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn="", sell_ccy=ccy, sell_exch=exch, sell_rate=rate,
-                                   sell_tax_type=taxtype, sell_tax_pct=tax, client=client, use_client=True))
+            lines.append(JobCharge(organization_id=org_id, shipment_id=job.id, service=service, charge_name=cname, description=name[:240], uom=(r.get("uom") or "Per Shipment")[:40], qty=qty, hsn=hsn, sell_ccy=ccy, sell_exch=exch, sell_rate=rate,
+                                   sell_tax_type=taxtype, sell_tax_pct=tax, client=client, use_client=True, breakup=add_side(None, "sell", r["_parts"]) if r.get("_parts") else None))
             revenue += (qty * rate * exch).quantize(Decimal("0.01"))
     for i, l in enumerate(lines, start=1):
         l.line_no = i
@@ -432,6 +466,7 @@ def duplicate(booking_id: int, user: User = Depends(permission_required("booking
                    customer_id=src.customer_id, party_name=src.party_name, carrier=src.carrier, vessel=src.vessel, pol=src.pol, pod=src.pod, data=dict(src.data or {}), created_by=user.id)
     db.add(copy)
     db.flush()
+    copy.number = next_number(db, org_id, "booking", "BKG", copy.booking_date, user=user)
     record_audit(db, "BOOKING_DUPLICATED", "OPERATIONS", user, org_id, "Booking", str(copy.id), {"from": src.number or src.id})
     db.commit()
     return _out(_get(db, org_id, copy.id))

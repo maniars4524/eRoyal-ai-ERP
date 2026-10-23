@@ -14,6 +14,7 @@ from .billing import CREDIT_TARGET, DOC_TYPES, calc_line, doc_side, fiscal_year,
 from .db import get_db
 from . import gl
 from . import job_lifecycle as jl
+from .charge_utils import side_description
 from .models import Customer, Document, DocumentLine, JobCharge, Shipment, User, OrgBranch
 
 router = APIRouter(prefix="/api/documents", tags=["billing-documents"])
@@ -171,7 +172,7 @@ def party_defaults(db: Session, org_id: int, name: str, doc_type: str) -> dict:
     from .job_details_api import _profile
 
     cust = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == (name or "").strip()))
-    out = {"customer_id": cust.id if cust else None, "party_gstin": "", "state_code": "", "place_of_supply": "", "supply_type": None, "known": bool(cust)}
+    out = {"customer_id": cust.id if cust else None, "party_gstin": "", "state_code": "", "place_of_supply": "", "supply_type": None, "known": bool(cust), "gst_applicable": "Yes"}
     if cust is None:
         return out
     branch = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == cust.id, OrgBranch.status == "ACTIVE", OrgBranch.gstin.is_not(None), OrgBranch.gstin != "").order_by(OrgBranch.sl_no, OrgBranch.id))
@@ -188,8 +189,13 @@ def party_defaults(db: Session, org_id: int, name: str, doc_type: str) -> dict:
     sale = doc_type in AR_DOC_TYPES
     pos_sc, pos_state = (sc, state) if sale else (csc, cstate)
     from_sc = csc if sale else sc
+    stored = str(d.get("gst_applicable") or "").strip().title()
+    foreign = bool(cust.country) and not str(cust.country).upper().startswith("INDIA") and str(cust.country).upper() not in ("IN", "IND")
+    gst_applicable = stored if stored in ("Yes", "No") else ("Yes" if gstin or not foreign else "No")        # asked once in the Organization Master; older records fall back to GSTIN / country
+    if gst_applicable == "No":
+        gstin = ""
     out.update({"party_gstin": gstin, "state_code": sc, "place_of_supply": (pos_sc + ("-" + pos_state if pos_state else "")) if pos_sc else "",
-                "supply_type": (("intra" if from_sc == pos_sc else "inter") if from_sc and pos_sc else None)})
+                "supply_type": (("intra" if from_sc == pos_sc else "inter") if from_sc and pos_sc else None), "gst_applicable": gst_applicable})
     return out
 
 
@@ -313,7 +319,7 @@ def from_job(payload: FromJob, user: User = Depends(permission_required("billing
             clients = sorted({c.client for c in usable if c.client})
             party = customer.name if customer else (clients[0] if clients else "")
     def make_line(c):
-        return LineIn(charge_name=c.charge_name, description=c.description, hsn=c.hsn, uom=c.uom, qty=c.qty, ccy=(c.sell_ccy if sell else c.buy_ccy), exch=(c.sell_exch if sell else c.buy_exch), rate=(c.sell_rate if sell else c.buy_rate),
+        return LineIn(charge_name=c.charge_name, description=side_description(c, sell), hsn=c.hsn, uom=c.uom, qty=c.qty, ccy=(c.sell_ccy if sell else c.buy_ccy), exch=(c.sell_exch if sell else c.buy_exch), rate=(c.sell_rate if sell else c.buy_rate),
                       tax_type=(c.sell_tax_type if sell else c.buy_tax_type), tax_pct=(c.sell_tax_pct if sell else c.buy_tax_pct))
 
     groups: dict[str, list] = {}
@@ -564,7 +570,7 @@ def _unbilled(db: Session, org_id: int, job: Shipment, party: str, doc_type: str
         if (job.job_number, c.charge_name) in billed:
             continue
         side = (c.sell_ccy, c.sell_exch, c.sell_rate, c.sell_tax_type, c.sell_tax_pct) if sale else (c.buy_ccy, c.buy_exch, c.buy_rate, c.buy_tax_type, c.buy_tax_pct)
-        out.append({"job_number": job.job_number, "charge_name": c.charge_name, "description": c.description, "hsn": c.hsn, "uom": c.uom, "qty": str(c.qty), "ccy": side[0], "exch": str(side[1]), "rate": str(side[2]), "tax_type": side[3], "tax_pct": str(side[4])})
+        out.append({"job_number": job.job_number, "charge_name": c.charge_name, "description": side_description(c, sale), "hsn": c.hsn, "uom": c.uom, "qty": str(c.qty), "ccy": side[0], "exch": str(side[1]), "rate": str(side[2]), "tax_type": side[3], "tax_pct": str(side[4])})
     return out
 
 

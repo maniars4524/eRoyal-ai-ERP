@@ -60,6 +60,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     d.getElementById("bk_carrier").value = "Qatar Test Cargo"; d.getElementById("bk_carrier").dispatchEvent(new w.Event("change", { bubbles: true }));
     check("choosing the airline offers its AWB stock lines", opts("bk_stock").some(v => /15700000 – 15700099 \(100 AWBs\)/.test(v)), opts("bk_stock").join("|"));
     w.bookWiz.mode = m0; w.BKG.applyMode(); }
+  check("a + shortcut sits beside Carrier / Line, Customer, Shipper, Consignee and Notify", ["bk_carrier", "bk_customer", "bk_shipper", "bk_consignee", "bk_notify"].every(id => d.querySelector(`[data-bk-plus="${id}"]`)));
+  d.querySelector('[data-bk-plus="bk_customer"]').click(); await sleep(300);
+  check("+ beside Customer opens the add-organization pop-up", d.getElementById("modalOvl").classList.contains("on") && !!d.getElementById("qa_code"));
+  { const nm = "Quick Add Co " + Date.now().toString(36); d.getElementById("qa_name").value = nm; d.getElementById("qa_name").dispatchEvent(new w.Event("input", { bubbles: true })); d.getElementById("qa_gst").value = "No"; d.getElementById("qa_go").click(); await sleep(2500);
+    const mine = (await j("GET", "/api/customers", null, token)).body.find(c => c.name === nm);
+    check("the new customer is saved as an AR party and picked in the booking", !!mine && mine.roles.includes("ar") && mine.roles.includes("customer") && d.getElementById("bk_customer").value === String(mine.id) && !d.getElementById("modalOvl").classList.contains("on"), JSON.stringify(mine)); }
+  d.querySelector('[data-bk-plus="bk_carrier"]').click(); await sleep(800);
+  check("+ beside Carrier / Line opens the Sea Line add form (Sea booking)", d.getElementById("netDrawerOvl") && d.getElementById("netDrawerOvl").classList.contains("on") && /Sea Line/i.test(d.getElementById("netDrawerTitle").textContent), d.getElementById("netDrawerTitle") && d.getElementById("netDrawerTitle").textContent);
+  d.getElementById("netCancel").click(); await sleep(200);
   setf("bk_carrier", "MSC Mediterranean"); setf("bk_vessel", "MSC ROMA / 254W"); setf("bk_etd", "2030-01-10"); setf("bk_eta", "2030-02-05"); setf("bk_sicutoff", "2030-01-05"); setf("bk_shipper", "Acme Exports"); setf("bk_consignee", "Acme Exports"); setf("bk_pcs", "120"); setf("bk_gwt", "24000"); setf("bk_marks", "SODA ASH");
   const costRows = () => Array.from(d.querySelectorAll("#bk_chargeRows tr[data-bk-charge]"));
   check("the costing step already holds the charges approved in the quotation (sell and buy)", costRows().length === 2 && costRows().some(r => r.querySelector('[data-f="type"]').value === "AR" && r.querySelector('[data-f="rate"]').value === "850") && costRows().some(r => r.querySelector('[data-f="type"]').value === "AP" && r.querySelector('[data-f="rate"]').value === "700"), String(costRows().length));
@@ -101,7 +110,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the KPI cards count it", Number(text("#s-booking .kpi:nth-child(1) .kpi-val")) === 1, text("#s-booking .kpi-row"));
   q$(`[data-bk-act="dup:${all[0].id}"]`).click(); await sleep(1800);
   const after = (await j("GET", "/api/bookings", null, token)).body;
-  check("Duplicate opens a new draft without number, job or quotation link", after.length === 2 && after.some(b => b.status === "DRAFT" && !b.number && !b.job_number && !b.quotation_id));
+  check("Duplicate opens a new draft with its own number and no job or quotation link", after.length === 2 && after.some(b => b.status === "DRAFT" && b.number && !b.job_number && !b.quotation_id));
   w.go("booking"); await sleep(1500);
   const draftRow = after.find(b => b.status === "DRAFT");
   q$(`[data-bk-act="delete:${draftRow.id}"]`).click(); await sleep(1200);

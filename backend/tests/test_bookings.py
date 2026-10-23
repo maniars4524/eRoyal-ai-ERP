@@ -37,7 +37,7 @@ def draft(h, **extra):
 
 def test_draft_roundtrip_and_validation(h):
     b = draft(h)
-    assert b["status"] == "DRAFT" and b["number"] is None and b["data"]["charges"][0]["code"] == "OFR"
+    assert b["status"] == "DRAFT" and b["number"].startswith("BKG/") and b["data"]["charges"][0]["code"] == "OFR"
     assert client.post("/api/bookings", json={"mode": "Teleport"}, headers=h).status_code == 422
     assert client.post("/api/bookings", json={"customer_id": 99999999}, headers=h).status_code == 404
     assert client.post("/api/bookings", json={"etd": "2026-12-10", "eta": "2026-12-01"}, headers=h).status_code == 422
@@ -150,7 +150,7 @@ def test_duplicate_creates_a_clean_draft(h):
     copy = client.post(f"/api/bookings/{src['id']}/duplicate", headers=h)
     assert copy.status_code == 201
     c = copy.json()
-    assert c["status"] == "DRAFT" and c["number"] is None and c["job_number"] is None and c["carrier_booking_no"] is None and c["pol"] == "INMAA" and c["data"]["consignee"] == "Solvay SA"
+    assert c["status"] == "DRAFT" and c["number"].startswith("BKG/") and c["number"] != src["number"] and c["job_number"] is None and c["carrier_booking_no"] is None and c["pol"] == "INMAA" and c["data"]["consignee"] == "Solvay SA"
 
 
 def test_draft_delete_and_search(h):
@@ -211,3 +211,64 @@ def test_a_quotation_that_is_not_accepted_cannot_be_booked(h, h2):
     assert r.status_code == 409 and "accepted" in r.json()["detail"]
     assert client.get(f"/api/bookings/{b['id']}", headers=h).json()["status"] == "DRAFT"  # nothing was half-created
     assert client.post("/api/bookings", json={"party_name": "X", "quotation_id": 99999999}, headers=h).status_code == 404
+
+
+def test_container_wise_rows_become_one_head_with_hsn_from_the_charge_master(h):
+    code = "OFC" + uuid.uuid4().hex[:4].upper()
+    name = "Ocean Freight Charges " + code
+    made = client.post("/api/masters/charge", json={"code": code, "name": name, "data": {"hsn_code": "996521", "gst_percent": "5", "ar_ap": "Both", "category": "Freight"}}, headers=h)
+    assert made.status_code in (200, 201), made.text
+    b = draft(h, data={"pcs": "1", "consignee": "X", "services": "Freight",
+                       "charges": [{"type": "AR", "description": name + " — 20GP", "qty": "1", "rate": "2500", "currency": "USD", "exch": "88", "tax_pct": "5", "service": "Freight"},
+                                   {"type": "AR", "description": name + " — 40HC", "qty": "1", "rate": "3200", "currency": "USD", "exch": "88", "tax_pct": "5", "service": "Freight"},
+                                   {"type": "AP", "description": name + " — 20GP", "qty": "1", "rate": "2200", "currency": "USD", "exch": "88", "service": "Freight", "vendor": "MSC"},
+                                   {"type": "AP", "description": name + " — 40HC", "qty": "1", "rate": "1200", "currency": "USD", "exch": "88", "service": "Freight", "vendor": "MSC"}]})
+    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    jn = done["created_jobs"][0]
+    lines = client.get(f"/api/shipments/by-number/{jn}/charges", headers=h).json()["lines"]
+    assert len(lines) == 1, lines
+    ln = lines[0]
+    assert ln["charge_name"] == name and ln["hsn"] == "996521"
+    assert float(ln["sell"]["rate"]) == 5700 and float(ln["buy"]["rate"]) == 3400 and float(ln["qty"]) == 1
+    assert {b["type"]: (b["sell"], b["buy"]) for b in ln["breakup"]} == {"20GP": ("2500", "2200"), "40HC": ("3200", "1200")}
+    doc = client.get("/api/documents/billing/billable-jobs", params={"party": "Acme Exports", "doc_type": "invoice"}, headers=h)
+    assert doc.status_code == 200
+    unbilled = client.get("/api/documents/billing/job-lines", params={"job_number": jn, "party": "Acme Exports", "doc_type": "invoice"}, headers=h).json()
+    assert len(unbilled) == 1 and "20GP x1 @ 2500" in unbilled[0]["description"] and "40HC x1 @ 3200" in unbilled[0]["description"] and "2200" not in unbilled[0]["description"]
+    bills = client.get("/api/documents/billing/job-lines", params={"job_number": jn, "party": "MSC", "doc_type": "purchase_invoice"}, headers=h).json()
+    assert len(bills) == 1 and "20GP x1 @ 2200" in bills[0]["description"] and "40HC x1 @ 1200" in bills[0]["description"]
+
+
+def test_duplicate_job_booking_and_quotation_start_as_fresh_drafts(h):
+    b = draft(h)
+    conf = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    jn = conf["job_number"]
+    client.put(f"/api/shipments/by-number/{jn}/charges", json={"lines": [{"charge_name": "Ocean Freight", "qty": "1", "hsn": "996521", "sell": {"ccy": "INR", "rate": "100", "tax_type": "Taxable", "tax_pct": "18", "party": "Acme"}, "buy": {"ccy": "INR", "rate": "60", "tax_type": "Taxable", "tax_pct": "18", "party": "MSC"}}]}, headers=h)
+    d = client.post(f"/api/shipments/by-number/{jn}/duplicate", headers=h)
+    assert d.status_code == 201, d.text
+    new = d.json()
+    assert new["job_number"] != jn and new["job_number"].startswith("SEAEXP-") and new["job_stage"] == "Draft" and new["booking_id"] is None and new["pol"] == "INMAA"
+    lines = client.get(f"/api/shipments/by-number/{new['job_number']}/charges", headers=h).json()["lines"]
+    assert len(lines) == 1 and lines[0]["hsn"] == "996521"
+    bd = client.post(f"/api/bookings/{b['id']}/duplicate", headers=h).json()
+    assert bd["status"] == "DRAFT" and bd["number"] and bd["number"] != b["number"] and bd["id"] != b["id"]
+    q = client.post("/api/quotations", json={"party_name": "Dup Co", "mode": "Sea", "lines": [{"side": "SELL", "charge_name": "Ocean Freight", "ccy": "INR", "exch": "1", "rate": "100", "qty": "1", "basis": "Per Shipment"}]}, headers=h).json()
+    qd = client.post(f"/api/quotations/{q['id']}/duplicate", headers=h)
+    assert qd.status_code == 201, qd.text
+    assert qd.json()["status"] == "DRAFT" and qd.json()["id"] != q["id"] and qd.json()["number"] and qd.json()["number"] != q["number"] and len(qd.json()["lines"]) == 1 and qd.json()["revision_no"] == 0
+
+
+def test_job_cost_container_wise_breakup_is_totalled_by_the_server_and_reaches_the_invoice(h):
+    b = draft(h)
+    jn = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()["job_number"]
+    side = lambda rate: {"ccy": "INR", "exch": "1", "rate": rate, "tax_type": "Non-Taxable", "tax_pct": "0", "party": "", "use_party": False}
+    line = {"charge_name": "Terminal Handling", "qty": "5", "uom": "Per Container", "hsn": "996719", "sell": {**side("0"), "party": "Acme Exports", "use_party": True}, "buy": {**side("0"), "party": "CFS One", "use_party": True},
+            "breakup": [{"type": "20GP", "qty": "2", "sell": "15000", "buy": "12000"}, {"type": "40HC", "qty": "1", "sell": "19000", "buy": "15000"}]}
+    r = client.put(f"/api/shipments/by-number/{jn}/charges", json={"lines": [line]}, headers=h)
+    assert r.status_code == 200, r.text
+    saved = r.json()["lines"][0]
+    assert float(saved["qty"]) == 1 and float(saved["sell"]["rate"]) == 49000 and float(saved["buy"]["rate"]) == 39000 and len(saved["breakup"]) == 2
+    inv = client.get("/api/documents/billing/job-lines", params={"job_number": jn, "party": "Acme Exports", "doc_type": "invoice"}, headers=h).json()
+    assert inv[0]["description"].endswith("(20GP x2 @ 15000; 40HC x1 @ 19000)") or "20GP x2 @ 15000; 40HC x1 @ 19000" in inv[0]["description"]
+    pur = client.get("/api/documents/billing/job-lines", params={"job_number": jn, "party": "CFS One", "doc_type": "purchase_invoice"}, headers=h).json()
+    assert "20GP x2 @ 12000; 40HC x1 @ 15000" in pur[0]["description"]

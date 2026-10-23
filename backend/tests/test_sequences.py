@@ -168,8 +168,10 @@ def test_scope_resolution_branch_shipment_and_ambiguity(h, lic):
         body = {"mode": "Sea", "direction": "Export", "shipment_type": "FCL", "booking_type": "Direct", "party_name": "Acme Exports", "carrier": "MSC", "carrier_booking_no": "MSC123", "vessel": "MSC ROMA / 254W", "pol": "INMAA", "pod": "BEANR",
                 "etd": str(date.today() + timedelta(days=10)), "eta": str(date.today() + timedelta(days=30)), "si_cutoff": str(date.today() + timedelta(days=1)), "vgm_cutoff": str(date.today() + timedelta(days=2)),
                 "data": {"pcs": "120", "gwt": "24000", "consignee": "Solvay SA", "marks": "Soda ash", "charges": [{"type": "AP", "code": "OFR", "qty": "2", "rate": "680", "currency": "USD"}]}}
-        b = client.post("/api/bookings", json=body, headers=u).json()
-        r = client.post(f"/api/bookings/{b['id']}/confirm", headers=u)
+        created = client.post("/api/bookings", json=body, headers=u)        # the number is issued when the booking is first saved
+        if created.status_code != 201:
+            return created
+        r = client.post(f"/api/bookings/{created.json()['id']}/confirm", headers=u)
         return r
     r1 = book(maa_user)
     assert r1.status_code == 200 and r1.json()["number"].startswith("MAA/BK/")  # most specific (branch) sequence wins for that user's branch

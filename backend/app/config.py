@@ -21,6 +21,7 @@ if os.getenv("DEMO_ONLY", "").strip().lower() in ("1", "true", "yes"):
 PUBLIC_PORTALS = _public
 # Quotation approval: the person who prepared a quotation may not approve it (not enforced for demo companies).
 QUOTE_SOD = os.getenv("QUOTE_SOD", "true").strip().lower() not in ("0", "false", "no")
+QUOTE_SOD_ADMIN_EXEMPT = os.getenv("QUOTE_SOD_ADMIN_EXEMPT", "true").strip().lower() not in ("0", "false", "no")        # a company Admin may approve a quotation they prepared
 # One active sign-in per user: a second sign-in must confirm, and then ends the first one.
 SINGLE_SESSION = os.getenv("SINGLE_SESSION", "false").strip().lower() in ("1", "true", "yes")
 SESSION_ACTIVE_MINUTES = int(os.getenv("SESSION_ACTIVE_MINUTES", "10"))

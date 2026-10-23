@@ -186,3 +186,23 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - New: job page LINKED strip (/api/jobs/{no}/links), Excel (.xlsx) import for every CSV import, bank statement import for reconciliation (/api/gl/bank-recon/import-statement), Branch + Sales person on jobs (migration 0043) with Branch / Salesperson MIS, Vendor Master, single-entry shipment workflow (CRM opportunity -> one real booking), service screens (Console/CHA/Transport/Warehouse) read real jobs, Operations menu Import/Export submenus.
 - Tests: pytest 211 pass; UI suite passed except login.test.js (the QA accounts it uses get locked after repeated runs; rerun later).
 - STILL OPEN: MSC bill #4 correction (needs your go-ahead), GSP/IRP + SMTP + company profile, hosting/backups, OTL/FMC formats, transport/warehouse/customs depth, rate sheets / Get Rate, job document storage + manifest tabs, role editor + developer-portal company creation, fuller payroll, old-layout lists. Visual checks pending: HBL A4 print/PDF, menu flyout position, exact SWAY logo PNG.
+
+## 2026-10-23 (late) - License Management, dual portal, user menu, report focus
+- LICENSE MANAGEMENT (commit c58e2b9): migrations 0044/0045; backend `license_mgmt.py` + `license_mgmt_api.py` (/api/license-mgmt/*), UI LicKit. Visible/usable only to SWF00001 users holding `license.manage` (live: admin, mani; grant with `backend/scripts_grant_license_admin.py <username>`). The user menu has "View as Super Admin" (default for them); License Management shows only in that view.
+- Policy: suspended/cancelled/expired companies cannot sign in, data kept; owner/platform never blocked. NULL expiry/limits = unlimited. Renewals idempotent; AMC 12 months / MMC 1 month; payment status is only what the admin records. Reminders D30/D7/D1/D0/overdue (in-app; email not configured).
+- Dual portal: org flag `demo_portal` lets SWF00002 users sign in at /demo/login and /erp/login.
+- User menu shows the real signed-in name/roles (no dummy name); View as CHA / Transport added. Menu reports (Audit etc.) open as only that report with a Report Center button.
+- Limits: license `modules` stored not enforced; max_sessions only where SINGLE_SESSION is on; online time from request activity; storage approximate.
+- Live server restarted with this code on 8000 (localhost + LAN). Tests: pytest 231 pass; licmgmt/usermenu/reports e2e pass.
+
+## 2026-10-23 (evening) - search, chat, duplicate, numbering, container break-up, org GST
+- GLOBAL SEARCH (header box): `/api/search?q=` (backend/app/search_api.py) looks across jobs, organizations, invoices/notes, quotations, bookings, CRM, payments, vouchers, ledgers, airlines, sea lines, users (permission-gated, own company only); dropdown, Enter opens first hit; non-job results open the list screen filtered to the keyword.
+- CHAT: header chat button after the search box; chat button and window are draggable (position remembered in localStorage); X on the chat button hides it, the header button brings it back.
+- DUPLICATE: job (POST /api/shipments/by-number/{job}/duplicate - next running job number, copies details, charges, parties/cargo/containers/BL minus BL number/stage/release), quotation (POST /api/quotations/{id}/duplicate), booking (existing). Buttons on the right of each header.
+- NUMBERING: quotation and booking numbers are issued when first saved (draft) and kept through approve / confirm / revisions (QT/..-R1); duplicates get a new number. Company ERP_ADMIN can approve their own quotation (QUOTE_SOD_ADMIN_EXEMPT=true).
+- JOB COST: charges of the same name from quotation / booking combine into ONE head with a container-wise break-up (migration 0046 job_charges.breakup); "Break-up" button on Per Container rows; invoice / purchase bill description shows the break-up for its side; HSN/SAC filled from the Charge Master.
+- AIR / ROAD / RAIL enquiries and Air jobs show no container fields / Per Container basis; enquiry Shipment Type sets the Mode (Sea FCL shows containers, LCL no).
+- ORGANIZATION: GST Applicable asked once (Yes/No); Customer role -> AR, Vendor role -> AP automatically; billing party-defaults carries gst_applicable (No -> new lines Non-Taxable, no GSTIN).
+- BOOKING: + shortcut beside Carrier/Line, Customer, Shipper, Consignee, Notify opens an add pop-up. BL release now defaults to digital signature + seal ON (earlier released BLs on the live DB had it off).
+- UI: drawers/pop-ups sit above the header (z-index); license drawer has sticky tabs + Save and closes after saving. LOGO redrawn as SVG closer to the supplied SWAY logo (3 inline SVGs, generator kept out of repo).
+- Live: migrations through 0046 applied to live, QA, demo, test DBs; server on :8000 restarted with all of it.

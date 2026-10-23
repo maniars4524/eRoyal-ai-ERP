@@ -108,5 +108,8 @@ def safe_user(user: User) -> dict:
         "permissions": sorted({permission.code for role in user.roles for permission in role.permissions}),
         "portal": getattr(user, "_session_portal", portal_for(user)),
         "license_admin": _is_license_admin(user),
+        "license_number": user.organization.license_number if user.organization else None,
+        "license_status": (user.organization.status if user.organization else None),
+        "license_expiry": user.organization.license_expiry.isoformat() if user.organization and user.organization.license_expiry else None,
         "theme": (user.profile or {}).get("theme"),
     }

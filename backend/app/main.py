@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .auth_api import platform_router, router as auth_router
 from .customers_api import router as customers_router
+from .search_api import router as search_router
 from .dashboard_api import router as dashboard_router
 from .bookings_api import router as bookings_router
 from .customs_api import router as customs_router
@@ -62,6 +63,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(platform_router)
 app.include_router(customers_router)
+app.include_router(search_router)
 app.include_router(ports_router)
 app.include_router(masters_router)
 app.include_router(users_router)

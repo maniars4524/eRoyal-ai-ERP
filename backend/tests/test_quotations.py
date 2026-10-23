@@ -165,6 +165,7 @@ def test_submit_validation_and_lock_after_submission(h, without_admin_edit):
 
 
 def test_segregation_of_duties_and_permission_to_approve(world, admin, h, h2, monkeypatch):
+    monkeypatch.setattr(config, "QUOTE_SOD_ADMIN_EXEMPT", False)
     q = draft(h)
     client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h)
     own = client.post(f"/api/quotations/{q['id']}/approval/approve", json={}, headers=h)
@@ -204,7 +205,7 @@ def test_approved_quotation_cannot_be_modified_but_can_be_revised(h, h2, without
     rev = client.post(f"/api/quotations/{q['id']}/revise", headers=h)
     assert rev.status_code == 201, rev.text
     r1 = rev.json()
-    assert r1["revision_no"] == 1 and r1["status"] == "DRAFT" and r1["approval_status"] == "DRAFT" and r1["number"] is None and r1["root_id"] == q["root_id"] and len(r1["lines"]) == len(q["lines"])
+    assert r1["revision_no"] == 1 and r1["status"] == "DRAFT" and r1["approval_status"] == "DRAFT" and r1["number"] == q["number"] + "-R1" and r1["root_id"] == q["root_id"] and len(r1["lines"]) == len(q["lines"])
     assert client.get(f"/api/quotations/{q['id']}", headers=h).json()["status"] == "SUPERSEDED"
     assert client.post(f"/api/quotations/{q['id']}/revise", headers=h).status_code == 409  # a newer revision exists
     chain = client.get(f"/api/quotations/{r1['id']}/revisions", headers=h).json()
@@ -335,17 +336,17 @@ def test_tenant_isolation_and_permissions(world, admin, h):
 
 
 # ------------------------------------------------------------------ numbering at submission; one-person companies
-def test_the_quotation_number_is_generated_when_approved_and_kept_through_rejection(h, h2):
+def test_the_quotation_number_is_generated_when_first_saved_and_kept_through_every_stage(h, h2):
     q = draft(h)
-    assert q["number"] is None
+    assert q["number"] and q["number"].startswith("QT/") and q["status"] == "DRAFT"
     sub = client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h).json()
-    assert sub["approval_status"] == "SUBMITTED" and sub["number"] is None  # still a draft until it is approved
+    assert sub["approval_status"] == "SUBMITTED" and sub["number"] == q["number"]
     rej = client.post(f"/api/quotations/{q['id']}/approval/reject", json={"remarks": "Please recheck the buy rate"}, headers=h2).json()
-    assert rej["approval_status"] == "REJECTED" and rej["number"] is None
+    assert rej["approval_status"] == "REJECTED" and rej["number"] == q["number"]
     again = client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h).json()
-    assert again["number"] is None
+    assert again["number"] == q["number"]
     approved_q = client.post(f"/api/quotations/{q['id']}/approval/approve", json={}, headers=h2).json()
-    assert approved_q["approval_status"] == "APPROVED" and approved_q["number"] and approved_q["number"].startswith("QT/")
+    assert approved_q["approval_status"] == "APPROVED" and approved_q["number"] == q["number"]
     assert client.get(f"/api/quotations/{q['id']}", headers=h).json()["number"] == approved_q["number"]
 
 
@@ -402,3 +403,10 @@ def test_cancel_needs_a_reason_and_a_draft_cannot_be_lost(h, h2):
     accepted = client.post(f"/api/quotations/{sent['id']}/accept", headers=h)
     assert accepted.status_code == 200
     assert client.post(f"/api/quotations/{sent['id']}/cancel", json={"reason": "Customer withdrew the shipment"}, headers=h).json()["status"] == "CANCELLED"
+
+
+def test_company_admin_can_approve_their_own_quotation(world, admin, h, h2):
+    q = draft(h)
+    client.post(f"/api/quotations/{q['id']}/approval/submit", headers=h)
+    ok = client.post(f"/api/quotations/{q['id']}/approval/approve", json={"remarks": "Admin approval"}, headers=h)
+    assert ok.status_code == 200 and ok.json()["approval_status"] == "APPROVED" and ok.json()["number"]
