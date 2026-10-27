@@ -16,7 +16,7 @@ def h(world, admin):
 
 def test_the_theme_is_saved_on_the_account_and_comes_back(h):
     assert client.get("/api/auth/me", headers=h).json()["theme"] is None
-    assert client.put("/api/auth/preferences", json={"theme": "burgundy"}, headers=h).json() == {"theme": "burgundy"}
+    assert client.put("/api/auth/preferences", json={"theme": "burgundy"}, headers=h).json() == {"theme": "burgundy", "custom_colors": None}
     assert client.get("/api/auth/me", headers=h).json()["theme"] == "burgundy"
     assert client.put("/api/auth/preferences", json={"theme": "hot-pink"}, headers=h).status_code == 422  # only the eight themes
     assert client.put("/api/auth/preferences", json={"theme": "midnight"}, headers=h).status_code == 200
