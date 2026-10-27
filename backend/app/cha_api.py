@@ -2,6 +2,7 @@
 records and its own customs status. The freight job shows all of them in its CUSTOMS / CHA JOB INFORMATION section; nothing is merged and a booking number is never made unique."""
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -424,6 +425,100 @@ def party_details(db: Session, org: int, name: str | None) -> dict:
     return {}
 
 
+# ---------------------------------------------------------------- filing form (General tab of the Bill of Entry / Shipping Bill), modelled on the customs filing software
+def _o(*pairs: str) -> list[list[str]]:
+    return [[p.split(" - ", 1)[0], p] for p in pairs]
+
+
+TAX_TYPES = _o("V - VAT", "C - CST", "S - ST", "G - GST-IN", "A - Aadhar", "P - Passport", "I - Income Tax PAN", "T - Tin No", "O - GST Govt.")
+IMPORT_FORM = [
+    {"title": "Importer", "fields": [
+        {"k": "importer_name", "l": "Importer Name", "req": 1, "span": 2}, {"k": "iec", "l": "IEC Code", "req": 1}, {"k": "branch_sr_no", "l": "Branch Sr. No.", "req": 1, "ph": "e.g. 0 - CHENNAI"}]},
+    {"title": "Importer Address", "fields": [
+        {"k": "addr1", "l": "Address 1", "req": 1}, {"k": "addr2", "l": "Address 2"}, {"k": "addr3", "l": "Address 3 / City"}, {"k": "state", "l": "State"}, {"k": "pin", "l": "PIN"}]},
+    {"title": "Clearance details", "fields": [
+        {"k": "ad_code", "l": "Authorized Dealer Code", "req": 1}, {"k": "country_origin", "l": "Country of Origin", "req": 1, "ph": "e.g. SG - SINGAPORE"}, {"k": "country_consignment", "l": "Country of Consignment", "req": 1, "ph": "e.g. SG - SINGAPORE"},
+        {"k": "port_origin", "l": "Port of Origin", "req": 1, "ph": "e.g. SGSIN"}, {"k": "port_shipment", "l": "Port of Shipment", "req": 1, "ph": "e.g. SGSIN"},
+        {"k": "payment_method", "l": "Payment Method Code", "req": 1, "t": "select", "o": _o("T - Transactional", "D - Deferred")},
+        {"k": "be_type", "l": "BE Type", "req": 1, "t": "select", "o": _o("H - Home Consumption", "W - Warehouse", "X - Ex-bond", "Z - SEZ (FTA->SEZ)", "T - SEZ (DTA Sales - Trading)", "M - SEZ (DTA Sales - Manufacturing)", "V - SEZ Goods Movement", "S - SEZ (DTA Sales - Stock Clearance)")},
+        {"k": "importer_type", "l": "Importer Exporter Type", "ph": "e.g. P - Private"}, {"k": "mode_of_transport", "l": "Mode of Transport", "req": 1, "t": "select", "o": _o("L - Land", "S - Sea", "A - Air")},
+        {"k": "filing_status", "l": "Filing Status", "req": 1, "t": "select", "o": _o("N - Normal", "Y - Prior", "A - Advanced")}, {"k": "state_of_origin", "l": "State of Origin"},
+        {"k": "commercial_tax_type", "l": "Commercial Tax Type", "req": 1, "t": "select", "o": TAX_TYPES}, {"k": "commercial_tax_reg_no", "l": "Commercial Tax Registration No."}]},
+    {"title": "Warehouse / Ex-bond", "fields": [
+        {"k": "warehouse", "l": "Warehouse"}, {"k": "customs_location", "l": "Customs Location"}, {"k": "wh_be_no", "l": "Warehouse BE No."}, {"k": "wh_be_date", "l": "Warehouse BE Date", "t": "date"},
+        {"k": "packages_released", "l": "No. of Packages Released (Ex-bond)"}, {"k": "package_code", "l": "Package Code"}]},
+    {"title": "High Sea Sale and loads", "fields": [
+        {"k": "high_sea_sale", "l": "High Sea Sale Flag", "req": 1, "t": "select", "o": _o("Yes - Yes", "No - No")}, {"k": "high_sea_charge", "l": "Purchase on High Seas (Additional Charge)"}, {"k": "misc_load", "l": "Miscellaneous Load"},
+        {"k": "amendment_type", "l": "General Amendment Type", "t": "select", "o": _o("AMENDMENT - AMENDMENT")}]},
+]
+EXPORT_FORM = [
+    {"title": "Exporter", "fields": [
+        {"k": "exporter_name", "l": "Exporter Name", "req": 1, "span": 2}, {"k": "iec", "l": "Importer Exporter Code (IEC)", "req": 1}, {"k": "branch_sr_no", "l": "Branch Sr. No.", "req": 1, "ph": "e.g. 0 - INMUN1"}]},
+    {"title": "Exporter Address", "fields": [
+        {"k": "addr1", "l": "Address 1", "req": 1}, {"k": "addr2", "l": "Address 2"}, {"k": "addr3", "l": "Address 3 / City"}, {"k": "state", "l": "State"}, {"k": "pin", "l": "PIN"}]},
+    {"title": "Exporter details", "fields": [
+        {"k": "gstn_type", "l": "GSTN Type", "req": 1, "t": "select", "o": _o("GSN - GSTIN of Normal Persons", "GSG - GSTIN of Govt. Entities", "GSD - GSTIN of Diplomats", "PAN - PAN No", "TAN - TAN No", "PSP - Passport No (9 chars)", "ADH - Aadhar No (12 chars)")},
+        {"k": "gstn_id", "l": "GSTN ID", "req": 1}, {"k": "exporter_type", "l": "Type of Exporter", "t": "select", "o": _o("R - Merchant Exporter", "F - Manufacturing Exporter", "C - Merchant Exporter Courier", "D - Manufacturer Exporter Courier")},
+        {"k": "exporter_class", "l": "Exporter Class", "req": 1, "t": "select", "o": _o("P - Private", "G - Government", "W - Warehouse Shipping Bill", "O - Others")},
+        {"k": "ad_code", "l": "Authorized Dealer (Bank) Code", "req": 1}, {"k": "epz_code", "l": "EPZ Code"}]},
+    {"title": "Shipment", "fields": [
+        {"k": "port_origin", "l": "Port of Origin", "ph": "e.g. INMAA"}, {"k": "country_destination", "l": "Country of Destination", "ph": "e.g. BE - BELGIUM"}, {"k": "country_discharge", "l": "Country of Discharge", "ph": "e.g. BE - BELGIUM"},
+        {"k": "port_discharge", "l": "Port of Discharge", "ph": "e.g. BEANR"}, {"k": "state_of_origin", "l": "State of Origin"}, {"k": "port_loading", "l": "Port of Loading"}, {"k": "marks", "l": "Marks & Numbers", "span": 2}]},
+    {"title": "Consignee", "fields": [
+        {"k": "consignee", "l": "Consignee", "span": 2}, {"k": "cons_addr1", "l": "Consignee Address 1", "req": 1}, {"k": "cons_addr2", "l": "Consignee Address 2"}, {"k": "cons_addr3", "l": "Consignee Address 3"}, {"k": "cons_addr4", "l": "Consignee Address 4"},
+        {"k": "cons_country", "l": "Consignee Country"}, {"k": "cons_category", "l": "Consignee Category"}]},
+    {"title": "RBI waiver and amendment", "fields": [
+        {"k": "rbi_waiver_no", "l": "RBI Waiver Number"}, {"k": "rbi_waiver_date", "l": "RBI Waiver Date", "t": "date"}, {"k": "amendment_type", "l": "General Amendment Type", "t": "select", "o": _o("AMENDMENT - AMENDMENT")}]},
+]
+FILING_TABS = {"Import": ["General", "IGM", "Invoice", "Product"], "Export": ["General", "Invoice", "Item", "Annexure-C", "Annexure-C1 (EOU)", "AR4 Details", "ETP"]}
+
+
+def filing_form(direction: str) -> list[dict]:
+    return EXPORT_FORM if direction == "Export" else IMPORT_FORM
+
+
+def filing_defaults(db: Session, job: Shipment, row: dict, pd: dict) -> dict:
+    """What the job and the Organization master already know, offered in the form until the filer types over it."""
+    info = job.cha_info or {}
+    ex, im = pd.get("exporter") or {}, pd.get("importer") or {}
+    mode = {"Sea": "S", "Air": "A"}.get(job.mode, "L")
+    loc = lambda port: (re.split(r"[\(\s]", (port or "").strip(), maxsplit=1)[0].upper() if port else "")
+    if job.direction == "Export":
+        kind = (ex.get("unit_kind") or "").lower()
+        return {k: v for k, v in {"exporter_name": row["exporter"], "iec": ex.get("iec"), "gstn_type": "GSN" if ex.get("gstin") else ("PAN" if ex.get("pan") else None), "gstn_id": ex.get("gstin") or ex.get("pan"),
+                                  "exporter_type": "F" if "manufactur" in kind else ("R" if "merchant" in kind else None), "exporter_class": "P", "ad_code": ex.get("ad_code"), "port_origin": loc(job.pol), "port_loading": loc(job.pol),
+                                  "port_discharge": loc(job.pod), "consignee": row["importer"], "marks": job.commodity}.items() if v}
+    sez = "sez" in (im.get("unit_kind") or "").lower()
+    return {k: v for k, v in {"importer_name": row["importer"], "iec": im.get("iec"), "ad_code": im.get("ad_code"), "port_origin": loc(job.pol), "port_shipment": loc(job.pol), "payment_method": "T", "be_type": "Z" if sez else "H",
+                              "mode_of_transport": mode, "filing_status": "N", "commercial_tax_type": "G" if im.get("gstin") else None, "commercial_tax_reg_no": im.get("gstin"), "customs_location": info.get("customs_location"), "high_sea_sale": "No"}.items() if v}
+
+
+def validate_filing(job: Shipment, defaults: dict) -> dict:
+    saved = (job.cha_info or {}).get("filing") or {}
+    fields = [f for sec in filing_form(job.direction) for f in sec["fields"]]
+    errors, checked = [], 0
+    for f in fields:
+        if not f.get("req"):
+            continue
+        checked += 1
+        v = str(saved.get(f["k"]) if saved.get(f["k"]) not in (None, "") else defaults.get(f["k"], "")).strip()
+        if not v:
+            errors.append({"key": f["k"], "label": f["l"], "message": f["l"] + " is required"})
+    return {"checked": checked, "passed": checked - len(errors), "errors": errors, "ready": not errors}
+
+
+@router.get("/api/cha/jobs/{job_number:path}/validate")
+def validate_job(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """Checks the filing form: how many required fields were checked, how many passed and what is missing; `ready` when nothing is missing."""
+    org = _tenant(user)
+    job = _job(db, org, job_number)
+    if job.job_type != "Customs":
+        raise HTTPException(422, "Not a CHA job")
+    row = cha_row(db, job, freight_of(db, job))
+    d = filing_defaults(db, job, row, {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])})
+    return validate_filing(job, d)
+
+
 def source_info(db: Session, job: Shipment, freight: Shipment | None, booking: Booking | None) -> dict:
     """Source information of a CHA job: the booking it belongs to (its number is the main reference), what was booked, and the order of work."""
     d = (booking.data if booking else None) or {}
@@ -448,7 +543,8 @@ def get_cha_job(job_number: str, user: User = Depends(permission_required("shipm
     events = list(db.scalars(select(JobEvent).where(JobEvent.shipment_id == job.id).order_by(JobEvent.id.desc()).limit(40)))
     info = job.cha_info or {}
     return {**row, "info": {"file_ref": info.get("file_ref"), "customs_location": info.get("customs_location"), "cha_license": info.get("cha_license"), "mbl": info.get("mbl"), "hbl": info.get("hbl") or job.bl_awb,
-                            "containers": info.get("containers"), "source": ("Freight job " + freight.job_number) if freight else "CHA screen"}, "source_info": source_info(db, job, freight, booking), "party_details": {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}, "stages": CHA_STATUSES, "delayed": is_delayed(job), "siblings": siblings,
+                            "containers": info.get("containers"), "source": ("Freight job " + freight.job_number) if freight else "CHA screen"}, "source_info": source_info(db, job, freight, booking), "filing": (info.get("filing") or {}), "filing_form": filing_form(job.direction), "filing_tabs": FILING_TABS[job.direction],
+            "filing_defaults": filing_defaults(db, job, row, {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}), "filing_label": "Shipping Bill Filing" if job.direction == "Export" else "Bill of Entry Filing", "party_details": {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}, "stages": CHA_STATUSES, "delayed": is_delayed(job), "siblings": siblings,
             "events": [{"at": e.created_at, "type": e.event_type, "text": e.description, "previous": e.previous_value, "new": e.new_value} for e in events]}
 
 
@@ -461,6 +557,7 @@ class InfoIn(BaseModel):
     containers: str | None = Field(default=None, max_length=300)
     etd: date | None = None
     eta: date | None = None
+    filing: dict[str, Any] | None = None
 
 
 @router.patch("/api/cha/jobs/{job_number:path}")
@@ -471,6 +568,14 @@ def update_cha_job(job_number: str, body: InfoIn, user: User = Depends(permissio
         raise HTTPException(422, "Not a CHA job")
     jl.assert_job_editable(job, "the customs details")
     ch = body.model_dump(exclude_unset=True)
+    if "filing" in ch:
+        form = ch.pop("filing") or {}
+        allowed = {f["k"] for sec in filing_form(job.direction) for f in sec["fields"]}
+        bad = [k for k in form if k not in allowed]
+        if bad:
+            raise HTTPException(422, "Unknown filing field: " + ", ".join(sorted(bad)[:3]))
+        clean = {k: str(v).strip()[:300] for k, v in form.items() if v is not None and str(v).strip()}
+        job.cha_info = {**(job.cha_info or {}), "filing": clean}
     for k in ("etd", "eta"):
         if k in ch:
             setattr(job, k, ch.pop(k))

@@ -203,3 +203,23 @@ def test_cha_numbers_are_per_shipment_type(h):
         assert no.startswith(f"{code}/CC/") and len(no.rsplit("/", 1)[1]) >= 3
         seen[code] = no
     assert len(set(seen.values())) == 4
+
+
+def test_filing_form_defaults_validation_and_saving(h):
+    imp = client.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Sea", "exporter": "Overseas Co", "importer": "Local Importer", "pol": "SGSIN", "pod": "INMAA"}, headers=h).json()
+    no = imp["cha_job_number"]
+    assert imp["filing_label"] == "Bill of Entry Filing" and imp["filing_tabs"] == ["General", "IGM", "Invoice", "Product"]
+    keys = {f["k"] for sec in imp["filing_form"] for f in sec["fields"]}
+    assert {"importer_name", "iec", "ad_code", "be_type", "mode_of_transport", "high_sea_sale", "commercial_tax_type"} <= keys
+    assert imp["filing_defaults"]["importer_name"] == "Local Importer" and imp["filing_defaults"]["mode_of_transport"] == "S" and imp["filing_defaults"]["be_type"] == "H" and imp["filing_defaults"]["port_origin"] == "SGSIN"
+    v = client.get(f"/api/cha/jobs/{no}/validate", headers=h).json()
+    assert v["ready"] is False and v["checked"] >= 10 and v["passed"] < v["checked"] and any(e["key"] == "iec" for e in v["errors"])
+    form = {"iec": "ABCDE1234H", "branch_sr_no": "0 - CHENNAI", "addr1": "Address 1", "ad_code": "1234567", "country_origin": "SG - SINGAPORE", "country_consignment": "SG - SINGAPORE", "commercial_tax_type": "G"}
+    saved = client.patch(f"/api/cha/jobs/{no}", json={"filing": form}, headers=h)
+    assert saved.status_code == 200 and saved.json()["filing"]["iec"] == "ABCDE1234H"
+    v2 = client.get(f"/api/cha/jobs/{no}/validate", headers=h).json()
+    assert v2["ready"] is True and v2["errors"] == [] and v2["passed"] == v2["checked"], v2
+    assert client.patch(f"/api/cha/jobs/{no}", json={"filing": {"nonsense": "x"}}, headers=h).status_code == 422
+    exp = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "Madras Exports", "importer": "Buyer", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
+    assert exp["filing_label"] == "Shipping Bill Filing" and exp["filing_tabs"][:3] == ["General", "Invoice", "Item"] and "Annexure-C1 (EOU)" in exp["filing_tabs"]
+    assert {"gstn_type", "gstn_id", "exporter_class", "consignee"} <= {f["k"] for sec in exp["filing_form"] for f in sec["fields"]} and exp["filing_defaults"]["port_loading"] == "INMAA"

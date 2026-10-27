@@ -21327,7 +21327,7 @@ function makePrintFit(){
     if((b = T.closest("[data-cha-new]"))){ const [d, mo] = b.dataset.chaNew.split("|"); createModal(d, mo); return; }
     if((b = T.closest("[data-cha-group]"))){ const k = b.dataset.chaGroup; S.group = S.group === k ? "" : k; S.status = ""; await render(); return; }
     if((b = T.closest("[data-cha-type]"))){ const [d, mo] = b.dataset.chaType.split("|"); const on = S.direction === d && S.mode === mo; S.direction = on ? "" : d; S.mode = on ? "" : mo; await render(); return; }
-    if((b = T.closest("[data-cha-open]"))){ e.preventDefault(); await openJob(b.dataset.chaOpen); return; }
+    if((b = T.closest("[data-cha-open]"))){ e.preventDefault(); go("cha-job", {jobNo:b.dataset.chaOpen}); return; }
     if((b = T.closest("[data-cha-job-open]"))){ closeModal(); go("job-detail", {jobNo:b.dataset.chaJobOpen}); return; }
     if((b = T.closest("[data-cha-stage]")) && el("modalBody") && el("modalBody").dataset.chaJob){
       const no = el("modalBody").dataset.chaJob; let remarks = "";
@@ -21392,7 +21392,7 @@ function makePrintFit(){
   }
   document.addEventListener("click", e=>{
     if(e.target.closest("#chaJobsAdd")){ if(K.data) dialog(); return; }
-    const o = e.target.closest("[data-fjcha-open]"); if(o){ e.preventDefault(); if(window.ChaKit) ChaKit.openJob(o.dataset.fjchaOpen); return; }
+    const o = e.target.closest("[data-fjcha-open]"); if(o){ e.preventDefault(); go("cha-job", {jobNo:o.dataset.fjchaOpen}); return; }
     if(e.target.closest('.tbb[data-tab="jt3"]')) K.load();
   });
   const prev = MK.onScreen;
@@ -21423,6 +21423,141 @@ function makePrintFit(){
   });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-new") setTimeout(paint, 300); };
+})();
+
+/* ============================================================
+   CHA JOB SCREEN KIT: a CHA job opens as a full screen laid out like the customs filing software: title (Bill of Entry Filing / Shipping Bill Filing), status, customs house, CHA licence, BE / SB number and date,
+   the toolbar (Save, Validate, Checklist ...), the field check bar and the tabs (Import: General, IGM, Invoice, Product. Export: General, Invoice, Item, Annexure-C, Annexure-C1 (EOU), AR4 Details, ETP).
+   The first tab, Job, holds the customs stages, the bills, documents, other CHA jobs of the booking and the history. The form definition comes from the server (one source for the screen and for Validate).
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "";
+  const t = v=> v === null || v === undefined || v === "" ? '<span style="color:var(--g5)">—</span>' : esc2(v);
+  const TONE = {"CREATED":"b-gy", "DOCUMENTATION":"b-gy", "DATA ENTRY":"b-gy", "VALIDATED":"b-am", "CHECKLIST":"b-am", "CUSTOMS FILED":"b-bl", "CUSTOMS RESPONSE":"b-bl", "EXAMINATION":"b-am", "OOC / LEO CLEARED":"b-gr", "DELIVERED":"b-gr", "CLOSED":"b-gr"};
+  const S = {job:null, no:null, tab:"Job", val:null, chas:null, shown:false};
+  const NOT_CONNECTED = "Customs (ICEGATE) filing is not connected yet";
+
+  const anchor = document.getElementById("s-bank-master"); if(!anchor) return;
+  const sec = document.createElement("div"); sec.id = "s-cha-job"; sec.className = "scr"; sec.innerHTML = '<div id="chaJobRoot"></div>';
+  anchor.parentNode.insertBefore(sec, anchor);
+  if(window.SCREEN_META) window.SCREEN_META["cha-job"] = {title:"CHA Job", crumb:"eSway ERP 2.0 / Service Ops / CHA / <strong>Job</strong>", menu:"svc-cha"};
+
+  const val = k=> { const f = S.job.filing || {}; return f[k] !== undefined && f[k] !== "" ? f[k] : ((S.job.filing_defaults || {})[k] || ""); };
+  const errKeys = ()=> new Set(((S.val && S.val.errors) || []).map(e=>e.key));
+
+  async function load(no){
+    S.no = no || S.no; if(!S.no) return;
+    try{ S.job = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)); }catch(e){ say("Could not open the CHA job", e.message, "error"); return; }
+    if(!S.chas){ try{ S.chas = (await api("GET", "/api/customers?role=cha")).filter(c=>c.status !== "INACTIVE"); }catch(e){ S.chas = []; } }
+    try{ S.val = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/validate"); }catch(e){ S.val = null; }
+    render();
+  }
+
+  function bar(){
+    const v = S.val || {checked:0, passed:0, errors:[], ready:false};
+    return '<div class="card" style="margin:10px 0;padding:10px 14px;display:flex;gap:18px;flex-wrap:wrap;align-items:center"><b>'+v.checked+' Fields Checked</b><span style="color:var(--gr,#1E8E5A)">✓ '+v.passed+' Passed</span><span style="color:'+(v.errors.length ? "var(--rd,#C0392B)" : "var(--g5)")+'">⊗ '+v.errors.length+' Errors</span>'+
+      '<span class="b '+(v.ready ? "b-gr" : "b-am")+'">'+(v.ready ? "Ready to file" : "Not ready — "+v.errors.length+" to fix")+'</span></div>';
+  }
+
+  function header(){
+    const j = S.job; const bill = (j.bills || []).find(b=>b.status !== "Cancelled"); const exp = j.shipment_type === "Export"; const info = j.info || {};
+    const chaOpts = ['<option value="">Automatic</option>'].concat((S.chas || []).map(c=>'<option'+(info.cha_license === c.name ? " selected" : "")+'>'+esc2(c.name)+'</option>')).join("");
+    const pill = (label, inner)=> '<div style="display:flex;gap:8px;align-items:center;background:var(--g0);border:0.5px solid var(--g2);border-radius:999px;padding:5px 12px"><span style="font-size:11px;color:var(--g5);font-weight:700;text-transform:uppercase">'+label+'</span>'+inner+'</div>';
+    const btn = (id, label, extra)=> '<button class="btn btn-out btn-sm" id="'+id+'" type="button"'+(extra || "")+'>'+label+'</button>';
+    const off = label=> '<button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">'+label+'</button>';
+    return '<div class="card" style="padding:12px 14px"><div style="font-size:16px;font-weight:800;margin-bottom:8px">'+esc2(j.filing_label)+' — '+esc2(j.cha_job_number)+'</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'+pill("Status", '<span class="b '+(TONE[j.customs_status] || "b-gy")+' dot">'+esc2(j.customs_status)+'</span>'+(j.delayed ? ' <span class="b b-rd">Delayed</span>' : ""))+
+      pill("Customs House", '<input id="chjLoc" class="fi" style="width:110px" value="'+esc2(info.customs_location || "")+'" placeholder="e.g. INMAA1">')+pill("ICEGATE ID &amp; CHA", '<select id="chjCha" class="fi">'+chaOpts+'</select>')+
+      pill(exp ? "SB No." : "BE No.", (bill ? '<b class="mono">'+esc2(bill.bill_no)+'</b>'+(bill.bill_date ? ' <span style="color:var(--g5)">'+dmy(bill.bill_date)+'</span>' : "") : '<input id="chjBillNo" class="fi" style="width:130px" placeholder="Not yet allotted"><input id="chjBillDate" class="fi" type="date">'))+'</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+btn("chjSave", "Save")+btn("chjValidate", "Validate")+btn("chjChecklist", "Checklist")+off("Flat File")+off("JSON")+off("Sign Flat File")+off("Sign &amp; Submit JSON")+off("Sign PDF")+off("Job Excel")+off("Query Reply")+
+      '<span style="margin-left:auto;display:flex;gap:6px">'+btn("chjBack", "Back to Job")+btn("chjDup", "Duplicate Job")+'</span></div></div>';
+  }
+
+  function field(f){
+    const bad = errKeys().has(f.k); const v = val(f.k); const style = bad ? ' style="border-color:var(--rd,#C0392B)"' : "";
+    let ctl;
+    if(f.t === "select") ctl = '<select class="fc" data-ff="'+f.k+'"'+style+'><option value=""></option>'+f.o.map(o=>'<option value="'+esc2(o[0])+'"'+(String(v) === String(o[0]) ? " selected" : "")+'>'+esc2(o[1])+'</option>').join("")+'</select>';
+    else ctl = '<input class="fc" data-ff="'+f.k+'" type="'+(f.t === "date" ? "date" : "text")+'" value="'+esc2(v)+'" placeholder="'+esc2(f.ph || "")+'"'+style+'>';
+    return '<div class="fg"'+(f.span ? ' style="grid-column:span '+f.span+'"' : "")+'><label class="fl">'+esc2(f.l)+(f.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+(bad ? '<div style="font-size:11px;color:var(--rd,#C0392B)">Required</div>' : "")+'</div>';
+  }
+  function generalTab(){
+    const bad = errKeys();
+    return S.job.filing_form.map((sc, i)=>{ const n = sc.fields.filter(f=>bad.has(f.k)).length;
+      return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct"><span style="display:inline-flex;width:24px;height:24px;border-radius:6px;background:'+(n ? "var(--rd,#C0392B)" : "var(--bl)")+';color:#fff;align-items:center;justify-content:center;font-size:12px;margin-right:8px">'+(i + 1)+'</span>'+esc2(sc.title.toUpperCase())+
+        (n ? ' <span class="b b-rd" style="margin-left:8px">'+n+' to fix</span>' : "")+'</div></div><div class="cb"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">'+sc.fields.map(field).join("")+'</div></div></div>'; }).join("");
+  }
+  function laterTab(name){
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">'+esc2(name)+'</div></div><div class="cb"><div class="ib ib-bl">The <b>'+esc2(name)+'</b> part of the '+esc2(S.job.filing_label)+' is the next phase of the CHA module (its fields follow the customs filing software). The General tab and the job stages are live now.</div></div></div>';
+  }
+  function jobTab(){
+    const j = S.job; const info = j.info || {};
+    const row = (a, b)=>'<div><div style="font-size:11px;color:var(--g5)">'+a+'</div><div style="font-weight:600">'+b+'</div></div>';
+    const pd = p=> p ? [p.iec ? "IEC "+p.iec : "", p.ad_code ? "AD "+p.ad_code : "", p.unit_kind || "", p.approval_no ? "Appr. "+p.approval_no : "", p.lut_no ? "LUT "+p.lut_no : ""].filter(Boolean).join(" · ") : "";
+    const i = j.stages.indexOf(j.customs_status); const si = j.source_info || {};
+    const stepper = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 12px">'+j.stages.map((s, n)=>'<button class="btn btn-sm '+(n === i ? "btn-pri" : "btn-out")+'" data-chj-stage="'+esc2(s)+'" style="'+(n < i ? "opacity:.7;" : "")+'font-size:11px">'+(n < i ? "✓ " : "")+esc2(s)+'</button>').join("")+'</div>';
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Customs stages</div></div><div class="cb">'+stepper+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">'+row("Freight job", j.freight_job_number ? '<a href="#" data-svc-job="'+esc2(j.freight_job_number)+'">'+esc2(j.freight_job_number)+'</a>' : t(null))+row("Booking", t(j.booking_number))+row("Exporter", t(j.exporter))+row("Importer", t(j.importer))+row("Port of loading", t(j.pol))+row("Port of discharge", t(j.pod))+
+      row("ETD", t(dmy(j.etd)))+row("ETA", t(dmy(j.eta)))+row("MBL / HBL / AWB", t(info.hbl || info.mbl))+row("File ref", t(info.file_ref))+row("Exporter IEC / AD / unit", t(pd((j.party_details || {}).exporter)))+row("Importer IEC / unit", t(pd((j.party_details || {}).importer)))+
+      row("Source (booking)", si.booking_number ? '<b>'+esc2(si.booking_number)+'</b> · '+esc2(si.booking_source || "") : t(null))+row("Services booked", t((si.services || []).join(" + ")))+row("Order of work", t(si.order))+'</div></div></div>'+
+      '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">'+(j.shipment_type === "Export" ? "Shipping Bills" : "Bills of Entry")+'</div></div><div class="cb">'+(j.bills.length ? '<table><thead><tr><th>No</th><th>Date</th><th>Status</th><th>OOC / LEO</th></tr></thead><tbody>'+j.bills.map(b=>'<tr><td class="mono">'+esc2(b.bill_no)+'</td><td>'+t(dmy(b.bill_date))+'</td><td>'+esc2(b.status)+'</td><td>'+t(dmy(b.ooc_date))+'</td></tr>').join("")+'</tbody></table>' : '<div style="color:var(--g5);font-size:12px">None recorded yet. Enter the number in the header and Save, or add more on the job\'s Customs tab.</div>')+'</div></div>'+
+      '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Documents</div></div><div class="cb">'+j.documents.map(d=>'<span class="b '+(d.available ? "b-gr" : "b-gy")+'" style="margin-right:6px">'+esc2(d.name)+(d.available ? "" : " — not ready")+'</span>').join("")+'</div></div>'+
+      (j.siblings.length ? '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Other CHA jobs of this booking</div></div><div class="cb">'+j.siblings.map(s=>'<div><a href="#" data-cha-open="'+esc2(s.cha_job_number)+'">'+esc2(s.cha_job_number)+'</a> · '+esc2(s.exporter || "—")+' → '+esc2(s.importer || "—")+' · <span class="b '+(TONE[s.customs_status] || "b-gy")+'">'+esc2(s.customs_status)+'</span></div>').join("")+'</div></div>' : "")+
+      '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">History</div></div><div class="cb" style="max-height:200px;overflow:auto;font-size:12px">'+(j.events.map(e=>'<div>'+esc2(String(e.at || "").slice(0, 16).replace("T", " "))+' · '+esc2(e.text)+'</div>').join("") || "—")+'</div></div>';
+  }
+
+  function render(){
+    const root = el("chaJobRoot"); if(!root || !S.job) return;
+    const tabs = ["Job"].concat(S.job.filing_tabs);
+    const nGen = S.val ? S.val.errors.length : 0;
+    root.innerHTML = header()+bar()+'<div class="card" style="padding:8px 10px;display:flex;gap:6px;flex-wrap:wrap">'+tabs.map((n, k)=>'<button class="btn btn-sm '+(S.tab === n ? "btn-pri" : "btn-out")+'" data-chj-tab="'+esc2(n)+'">'+(k ? k+" " : "")+esc2(n)+(n === "General" && nGen ? ' <span class="b b-rd" style="margin-left:4px">'+nGen+'</span>' : "")+'</button>').join("")+'</div>'+
+      (S.tab === "Job" ? jobTab() : S.tab === "General" ? generalTab() : laterTab(S.tab));
+    if(window.renderIcons) window.renderIcons(root);
+  }
+
+  function collect(){ const f = {}; document.querySelectorAll("#chaJobRoot [data-ff]").forEach(e=>{ if(e.value.trim()) f[e.dataset.ff] = e.value.trim(); }); return f; }
+  async function save(quiet){
+    const body = {customs_location:(el("chjLoc") || {}).value || "", cha_license:(el("chjCha") || {}).value || ""};
+    if(S.tab === "General") body.filing = collect(); else if(el("chaJobRoot").querySelector("[data-ff]")) body.filing = collect();
+    try{
+      S.job = await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(S.no), body);
+      const no = el("chjBillNo") && el("chjBillNo").value.trim();
+      if(no){ try{ await api("POST", "/api/customs/by-job/"+encodeURIComponent(S.no), {bill_no:no, bill_date:(el("chjBillDate") || {}).value || null}); }catch(e){ say("The "+(S.job.shipment_type === "Export" ? "SB" : "BE")+" number was not saved", e.message, "warn"); } }
+      S.val = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/validate"); await load();
+      if(!quiet) say("CHA job saved", S.no);
+      return true;
+    }catch(e){ say("Could not save the CHA job", e.message, "error"); return false; }
+  }
+
+  document.addEventListener("click", async e=>{
+    const T = e.target; if(!T.closest || !el("s-cha-job") || !el("s-cha-job").classList.contains("on")) return;
+    let b;
+    if((b = T.closest("[data-chj-tab]"))){ if(S.tab === "General") S.job.filing = {...(S.job.filing || {}), ...collect()}; S.tab = b.dataset.chjTab; render(); return; }
+    if(T.closest("#chjSave")){ await save(); return; }
+    if(T.closest("#chjValidate")){ if(await save(true)){ const v = S.val; say(v.ready ? "Ready to file" : v.errors.length+" field(s) to fix", v.passed+" of "+v.checked+" required fields passed", v.ready ? "success" : "warn"); if(!v.ready){ S.tab = "General"; render(); } } return; }
+    if(T.closest("#chjChecklist")){
+      const v = S.val || {errors:[]}; const j = S.job;
+      openModal({title:"Checklist — "+esc2(j.cha_job_number), bodyHTML:'<div class="tw"><table><thead><tr><th>Check</th><th>Result</th></tr></thead><tbody>'+
+        [["Booking linked", !!j.booking_number], ["Exporter and importer named", !!(j.exporter && j.importer)], ["Ports of loading and discharge", !!(j.pol && j.pod)], ["Customs bill number recorded", j.bills.some(x=>x.status !== "Cancelled")], ["All required filing fields filled", v.ready], ["Documents ready", j.documents.every(d=>d.available)]]
+          .map(r=>'<tr><td>'+esc2(r[0])+'</td><td>'+(r[1] ? '<span class="b b-gr">OK</span>' : '<span class="b b-am">Pending</span>')+'</td></tr>').join("")+'</tbody></table></div>'+(v.errors.length ? '<div class="ib ib-am" style="margin-top:8px">To fix: '+v.errors.map(x=>esc2(x.label)).join(", ")+'</div>' : ""), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
+      return; }
+    if(T.closest("#chjBack")){ go("svc-cha"); return; }
+    if(T.closest("#chjDup")){
+      const j = S.job, si = j.source_info || {}; if(!window.confirm("Create another CHA job with these details?")) return;
+      try{ const r = await api("POST", "/api/cha/jobs", {job_type:j.shipment_type, mode:j.shipment_mode, exporter:j.exporter || "", importer:j.importer || "", pol:j.pol || "", pod:j.pod || "", etd:j.etd || null, eta:j.eta || null, booking_number:si.booking_source === "Booking" ? (si.booking_number || "") : ""});
+        say("CHA job created", r.cha_job_number); go("cha-job", {jobNo:r.cha_job_number}); }catch(err){ say("Could not duplicate the CHA job", err.detail && err.detail.message ? err.detail.message : err.message, "error"); }
+      return; }
+    if((b = T.closest("[data-chj-stage]"))){
+      const to = b.dataset.chjStage, cur = S.job.customs_status; let remarks = "";
+      if(S.job.stages.indexOf(to) < S.job.stages.indexOf(cur)){ remarks = window.prompt("Reason for moving this job back to "+to+":") || ""; if(!remarks.trim()) return; }
+      try{ await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/status", {status:to, remarks}); say("Stage updated", S.no+" → "+to); await load(); }catch(err){ say("Could not change the stage", err.message, "error"); }
+    }
+  });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "cha-job"){ S.tab = "Job"; S.job = null; el("chaJobRoot").innerHTML = '<div style="padding:20px;color:var(--g5)">Loading…</div>'; load(opts && opts.jobNo); } };
+  window.ChaJobScreen = {state:S, load, render};
 })();
 
 /* ============================================================
