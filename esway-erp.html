@@ -6797,6 +6797,7 @@ $all(".hdr-menu-item[data-role]").forEach(item=>{
   item.addEventListener("click", ()=>{
     const role = item.dataset.role;
     currentRole = role;
+    if(window.dashRoleRefresh) dashRoleRefresh();
     $("#userRoleLbl").textContent = role+" · Chennai";
     $("#userPop").classList.remove("on");
     renderTopNav();
@@ -12194,7 +12195,32 @@ const DASH_SLIDES = [
     render:(ctx,w,h)=>drawLine(ctx,w,h,[...CHART_DATA.months,"Jul*","Aug*","Sep*"],[...CHART_DATA.volume,50,53,57],DC.pu(),{dashed:true})},
 ];
 DASH_SLIDES.length = Math.min(DASH_SLIDES.length, 3); /* slides 3+ used hardcoded demo figures; they return when real reports exist */
-const DASH_TOTAL = DASH_SLIDES.length; // 26 (index 0 = existing chart)
+/* Business-line slides (live figures): Freight, CHA (Customs) and Transport. Super Admin / Admin see all three; a CHA user sees the CHA slide, a Transport user the Transport slide. */
+(function(){
+  const A = u=> (window.MK && MK.util ? MK.util.api("GET", u) : Promise.reject());
+  const tile = (name, n, sub, col, go)=> '<button class="kpi" data-go="'+(go||"")+'" style="text-align:left;cursor:pointer"><div style="font-size:10.5px;font-weight:700;color:var(--g5);text-transform:uppercase;letter-spacing:.06em">'+name+'</div><div style="font-size:24px;font-weight:800;color:'+col+'">'+n+'</div><div style="font-size:11px;color:var(--g5)">'+sub+'</div></button>';
+  const grid = html=> '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">'+html+'</div>';
+  const stages = (jobs)=> ["Draft", "Confirmed", "On Transit", "Closed"].map(st=>jobs.filter(j=>(j.job_stage || "Draft") === st).length);
+  const matrix = (jobs, go)=> ["Sea Export", "Air Export", "Sea Import", "Air Import"].map(k=>{ const [mo, di] = k.split(" "); const n = jobs.filter(j=>j.mode === mo && j.direction === di).length; return tile(k, n, "jobs", "var(--bl)", go); }).join("");
+  const fail = '<div style="color:var(--g5);padding:20px;text-align:center">Figures load when you are signed in to a company.</div>';
+  window.DASH_LIVE = {
+    freight: async body=>{ try{ const jobs = (await A("/api/shipments")).filter(j=>j.job_type === "Forwarding" || j.job_type === "Consol"); const [d, c, t, x] = stages(jobs);
+      body.innerHTML = grid(tile("Freight jobs", jobs.length, "all shipments", "var(--bl)", "svc-console")+tile("Draft", d, "being prepared", "var(--g5)", "svc-console")+tile("Confirmed", c, "booked", "var(--bl)", "svc-console")+tile("On transit", t, "moving", "var(--am,#C77700)", "svc-console")+tile("Closed", x, "completed", "var(--gr,#1E8E5A)", "svc-console"))+'<div style="height:8px"></div>'+grid(matrix(jobs, "svc-console")); }catch(e){ body.innerHTML = fail; } },
+    cha: async body=>{ try{ const d = await A("/api/cha/dashboard"); const g = d.groups || {}; const col = {draft:"var(--g5)", pending:"var(--am,#C77700)", filed:"var(--bl)", delayed:"var(--rd,#C0392B)", completed:"var(--gr,#1E8E5A)"};
+      body.innerHTML = grid([["draft", "Draft", "being prepared"], ["pending", "Pending", "ready to file"], ["filed", "Filed", "with customs"], ["delayed", "Delayed", "past ETD / ETA"], ["completed", "Completed", "delivered / closed"]].map(x=>tile(x[1], g[x[0]] || 0, x[2], col[x[0]], "svc-cha")).join(""))+'<div style="height:8px"></div>'+
+        grid(["Sea Export", "Air Export", "Sea Import", "Air Import"].map(k=>{ const m = (d.matrix || {})[k] || {active:0, pending_filing:0}; return tile(k, m.active, "active · "+m.pending_filing+" to file", "var(--bl)", "svc-cha"); }).join("")); }catch(e){ body.innerHTML = fail; } },
+    transport: async body=>{ try{ const jobs = (await A("/api/shipments")).filter(j=>j.job_type === "Transport"); const [d, c, t, x] = stages(jobs);
+      body.innerHTML = grid(tile("Transport jobs", jobs.length, "all trips", "var(--bl)", "svc-transport")+tile("Draft", d, "being planned", "var(--g5)", "svc-transport")+tile("Confirmed", c, "assigned", "var(--bl)", "svc-transport")+tile("On transit", t, "on the road", "var(--am,#C77700)", "svc-transport")+tile("Closed", x, "delivered", "var(--gr,#1E8E5A)", "svc-transport")); }catch(e){ body.innerHTML = fail; } }
+  };
+  const all = r=> r === "Super Admin" || r === "Admin";
+  DASH_SLIDES.push({title:"Freight", icon:"globe", type:"Freight dashboard", go:"svc-console", live:"freight", show:r=> all(r) || !["CHA", "Transport"].includes(r)},
+                   {title:"CHA (Customs)", icon:"license", type:"CHA dashboard", go:"svc-cha", live:"cha", show:r=> all(r) || r === "CHA"},
+                   {title:"Transport", icon:"truck", type:"Transport dashboard", go:"svc-transport", live:"transport", show:r=> all(r) || r === "Transport"});
+  DASH_SLIDES.forEach((s, i)=>{ if(i && !s.show) s.show = r=> all(r) || !["CHA", "Transport"].includes(r); });
+  DASH_SLIDES[0] = {title:"Monthly Revenue & Job Volume", show:r=> all(r) || !["CHA", "Transport"].includes(r)};
+})();
+const DASH_TOTAL = DASH_SLIDES.length;
+const dashVisible = i=> { const s = DASH_SLIDES[i]; return !s || !s.show || s.show(currentRole); };
 
 function buildDashSlides(){
   const host = $("#dashSlidesRest");
@@ -12212,7 +12238,7 @@ function buildDashSlides(){
           <span class="dash-slide-num">${s.type} · Slide ${i+1} of ${DASH_TOTAL}</span>
           ${s.go?`<span class="ta dash-slide-view" data-go="${s.go}" style="font-size:10.5px;flex-shrink:0">View detail →</span>`:''}
         </div>
-        <div class="dash-slide-body"><canvas data-h="230"></canvas></div>
+        <div class="dash-slide-body">${s.live?`<div data-live="${s.live}" style="min-height:200px"></div>`:'<canvas data-h="230"></canvas>'}</div>
       </div>`;
     dotsHTML += `<button class="dash-dot" data-idx="${i}" title="${s.title}"></button>`;
   }
@@ -12230,6 +12256,7 @@ function dashRenderActive(){
     return;
   }
   const s = DASH_SLIDES[dashIdx];
+  if(s && s.live){ const box = $(`.dash-slide[data-idx="${dashIdx}"] [data-live]`); if(box && window.DASH_LIVE) DASH_LIVE[s.live](box); return; }
   const canvas = $(`.dash-slide[data-idx="${dashIdx}"] canvas`);
   if(s && canvas){
     const {ctx,w,h} = setupCanvas(canvas);
@@ -12243,12 +12270,16 @@ function dashRenderActive(){
   }
 }
 function goToDashSlide(idx){
+  const step = idx >= dashIdx ? 1 : -1;
   idx = ((idx % DASH_TOTAL) + DASH_TOTAL) % DASH_TOTAL;
+  for(let n = 0; n < DASH_TOTAL && !dashVisible(idx); n++) idx = (idx + step + DASH_TOTAL) % DASH_TOTAL;
   dashIdx = idx;
+  $all(".dash-dot").forEach(el=>{ el.style.display = dashVisible(+el.dataset.idx) ? "" : "none"; });
   $all(".dash-slide").forEach(el=> el.classList.toggle("active", +el.dataset.idx===idx));
   $all(".dash-dot").forEach(el=> el.classList.toggle("active", +el.dataset.idx===idx));
   dashRenderActive();
 }
+window.dashRoleRefresh = ()=>{ if($("#dashCarousel") && $("#dashCarousel").dataset.inited){ dashIdx = -1; goToDashSlide(0); } };
 function updateDashPlayBtn(){
   const btn = $("#dashPlayBtn");
   if(!btn) return;
