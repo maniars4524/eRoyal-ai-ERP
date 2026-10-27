@@ -6,8 +6,8 @@ setlocal
 set ROOT=%~dp0
 set PORT=%1
 if "%PORT%"=="" set PORT=8000
-set HOST=127.0.0.1
-if not "%PORT%"=="8000" set HOST=0.0.0.0
+rem listens on every network card, so other computers on the same network can open it (needs ALLOW-NETWORK.cmd once, as administrator)
+set HOST=0.0.0.0
 cd /d "%ROOT%"
 if not exist "%ROOT%.env" (
   echo No .env file found. Copy .env.example to .env and fill it in first - see docs\RUN-AND-DEPLOY-GUIDE.md
@@ -22,4 +22,7 @@ if not exist ".venv\Scripts\python.exe" ( python -m venv .venv && .venv\Scripts\
 .venv\Scripts\python.exe -m app.seed
 echo.
 echo Open  http://127.0.0.1:%PORT%/erp/login   (Ctrl+C stops the app)
+echo From other computers on the network use one of these addresses (this PC's address can change - check it here each time):
+ipconfig | findstr /i "IPv4"
+echo   e.g.  http://THAT-ADDRESS:%PORT%/erp/login     or     http://%COMPUTERNAME%:%PORT%/erp/login
 .venv\Scripts\python.exe -m uvicorn app.main:app --host %HOST% --port %PORT%

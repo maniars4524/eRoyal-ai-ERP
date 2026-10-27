@@ -8,10 +8,11 @@ Needs: Windows / Linux / macOS, Docker Desktop (for PostgreSQL), Python 3.12.
 2. Start the database: `docker compose up -d postgres`
 3. In `backend/`: `python -m venv .venv`, then `.venv\Scripts\python.exe -m pip install -r requirements.txt` (Linux/macOS: `.venv/bin/python`).
 4. Update the database and create the first records: `python -m alembic upgrade head` then `python -m app.seed`
-5. Start the app: `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000`
+5. Start the app: `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000` (`0.0.0.0` = listen on every network card; use `127.0.0.1` to keep it on this computer only)
 6. Open **http://127.0.0.1:8000/erp/login**. Ctrl+C stops it.
+7. For other computers on the same network: run `ALLOW-NETWORK.cmd` once as administrator (opens port 8000 in the Windows firewall for the local network), then open `http://<this PC's address>:8000/erp/login` or `http://<PC name>:8000/erp/login`. This PC's address can change (Wi-Fi/DHCP) - `ipconfig` shows it; the PC name does not change.
 
-One click on Windows: double-click `RUN-LOCAL.cmd` (does steps 2 to 5). `RUN-LOCAL.cmd 8002` runs it on port 8002 listening on all network cards, which is what a port forward needs.
+One click on Windows: double-click `RUN-LOCAL.cmd` (does steps 2 to 5). It now listens on all network cards and prints this PC's addresses. `RUN-LOCAL.cmd 8002` runs it on another port.
 
 Portals: `/erp/login` (company staff), `/demo/login` (demo data), `/developer/login` (platform administration). Which of them are reachable from outside is set by `PUBLIC_PORTALS` in the env file.
 
@@ -19,7 +20,7 @@ Portals: `/erp/login` (company staff), `/demo/login` (demo data), `/developer/lo
 
 | Port | What | Env file |
 |---|---|---|
-| 8000 | private app, local only (127.0.0.1) | `.env` |
+| 8000 | the live app (all network cards, database esway_erp) | `.env` |
 | 8001 | shared / public app (all network cards) | `.env.demo` |
 | 8002 | same as 8001, for the VS Code dev tunnel | `.env.demo` |
 | 8010 | QA / automated UI tests | `.env.qa` |
