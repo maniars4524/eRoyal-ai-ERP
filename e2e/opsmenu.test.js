@@ -43,7 +43,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.go("container-master"); await sleep(600); w.go("hsn-master"); await sleep(600);
   const back = d.querySelector('#s-hsn-master [data-go="back"]');
   if (back) { back.click(); await sleep(600); }
-  check("a Back button on a master screen goes to its parent screen (not a dead button)", !!back && d.querySelector(".scr.on").id === "s-org-list", d.querySelector(".scr.on").id);
+  check("a Back button on a master screen returns to the page the user came from (not a dead button, not a fixed parent)", !!back && d.querySelector(".scr.on").id === "s-container-master", d.querySelector(".scr.on").id);
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });

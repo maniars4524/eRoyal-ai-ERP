@@ -30,8 +30,10 @@ const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   const html = w.BLDocKit.html(rd);
   const n = (html.match(/<img src="data:image\/png/g) || []).length;
   check("the printed House BL shows the digital signature and the seal", n >= 2, "images found: " + n);
-  check("the foot follows the sample: delivery agent, freight amount / payable at, originals, place and date, signature, clauses; the standard remark is printed", /Delivery Agent/.test(html) && /Freight Amount/.test(html) && /Freight Payable at/.test(html) && /Number of Original/.test(html) && /Place and date of issue/.test(html) && /Authorised Signatory/.test(html) && /STANDARD UNLOAD FREE TIME/.test(html) && /&quot;EXPRESS RELEASE&quot;/.test(html));
-  if (process.env.BL_PREVIEW) fs.writeFileSync(process.env.BL_PREVIEW, "<html><body style=\"margin:0;background:#fff\">" + html + "</body></html>");
+  check("the foot follows the sample: delivery agent, freight amount / payable at, originals, place and date, signature, clauses; the standard remark is printed", /Delivery Agent/.test(html) && /Freight Amount/.test(html) && /Freight Payable at/.test(html) && /Number of Original/.test(html) && /Place and date of issue/.test(html) && /Authorised Signatory/.test(html) && /STANDARD UNLOAD FREE TIME/.test(html) && /EXPRESS BL RELEASED/.test(html));
+  const sheets = w.BLDocKit.sheets(rd);
+  check("the BL is two A4 sheets (the BL face and the terms and conditions)", (sheets.match(/class="bl-sheet"/g) || []).length === 2 && /TERMS AND CONDITIONS OF THE MULTIMODAL TRANSPORT DOCUMENT/.test(sheets) && /EXPRESS BL RELEASED/.test(sheets), "");
+  if (process.env.BL_PREVIEW) fs.writeFileSync(process.env.BL_PREVIEW, "<html><head><style>@page{size:A4;margin:0}html,body{margin:0;background:#888}.bl-sheet{margin:0 auto 12px!important}</style></head><body>" + sheets + "<script>var fitSheet=" + w.BLDocKit.fitSheet.toString() + ";window.onload=function(){document.querySelectorAll('.bl-sheet').forEach(function(s){fitSheet(s,734,1063);});};<\/script></body></html>");
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });

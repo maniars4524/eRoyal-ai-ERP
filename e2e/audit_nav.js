@@ -4,10 +4,10 @@ const h = fs.readFileSync("../esway-erp.html", "utf8");
 const screens = new Set([...h.matchAll(/<div id="s-([a-z0-9-]+)"/g)].map(m => m[1]));
 // screens created at run time by kits
 for (const m of h.matchAll(/sec\.id\s*=\s*"s-(?:net-)?([a-z-]+)"|sec\.id = "s-([a-z-]+)"/g)) if (m[2]) screens.add(m[2]);
-["net-airlines", "net-sea-lines", "net-iata", "net-cfs", "net-stock-lines", "vendor-master"].forEach(s => screens.add(s));
+["net-airlines", "net-sea-lines", "net-iata", "net-cfs", "net-stock-lines", "vendor-master", "hbl-clauses", "license-mgmt"].forEach(s => screens.add(s));
 const metaBlock = h.slice(h.indexOf("const SCREEN_META = {"), h.indexOf("};", h.indexOf("const SCREEN_META = {")));
 const meta = new Set([...metaBlock.matchAll(/^\s*"([a-z0-9-]+)":\{/gm)].map(m => m[1]));
-["net-airlines", "net-sea-lines", "net-iata", "net-cfs", "net-stock-lines", "vendor-master"].forEach(s => meta.add(s));
+["net-airlines", "net-sea-lines", "net-iata", "net-cfs", "net-stock-lines", "vendor-master", "hbl-clauses", "license-mgmt"].forEach(s => meta.add(s));
 const targets = new Map();
 const add = (t, where) => { if (!t || /[${}+]/.test(t)) return; if (!targets.has(t)) targets.set(t, new Set()); targets.get(t).add(where); };
 for (const m of h.matchAll(/data-go="([^"]+)"/g)) add(m[1], "data-go");

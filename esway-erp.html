@@ -6349,11 +6349,13 @@ const TOPNAV_MENU = [
     {label:"Payables & Receivables", icon:"bank", children:[
       {label:"Vendor Bills", icon:"bank", go:"vendor-bill"},
       {label:"Customer Receipts", icon:"cash", go:"receipt-voucher"},
+      {label:"All Payments & Receipts", icon:"cash", go:"payment"},
       {label:"Debit Notes", icon:"file-minus", go:"debit-note-list"},
       {label:"Purchase Invoices", icon:"file-plus", go:"purchase-invoice-list"},
     ]},
     {label:"Tax", icon:"license", children:[
       {label:"Tax Master (SAC / HSN)", icon:"license", go:"hsn-master"},
+      {label:"GST Report (outward / inward, HSN-SAC)", icon:"receipt", go:"gst-report"},
       {label:"TDS Report", icon:"percent", go:"gl-reports", gltab:"tds"},
       {label:"Financial Year Closing", icon:"calendar-check", go:"gl-reports", gltab:"fy"},
     ]},
@@ -17686,6 +17688,7 @@ function makePrintFit(){
     const remarks = [terms, bk.container_mode ? esc2(bk.container_mode)+"/"+esc2(bk.container_mode) : "", stage === "Released" && rel ? esc2(rel.toUpperCase()) : ""].filter(Boolean).join("<br>");
     const origNo = express ? "0 (ZERO)" : esc2(bl.originals || "");
     const bnote = String(pr.bl_note || "").trim();
+    const relLabel = {"Telex Release":"TELEX RELEASED", "Express Release":"EXPRESS BL RELEASED", "Surrender":"BL SURRENDERED", "Original":"ORIGINAL BL RELEASED"}[bl.releaseType] || "";
     /* the clauses chosen on the BL tab (a snapshot saved with the BL: master edits never change an issued HBL), in their saved order, no clause codes */
     const savedClauses = (bl.clauses || []).slice().sort((a, b)=> (a.order || 0) - (b.order || 0)); const hasClauses = savedClauses.length > 0;
     const clauseHtml = savedClauses.map(x=>'<div style="margin:0 0 5px;text-transform:uppercase">'+esc2(x.text)+'</div>').join("");
@@ -17708,7 +17711,7 @@ function makePrintFit(){
       '<div style="border-top:'+BORDER+';display:grid;grid-template-columns:21% 14% 31% 17% 17%;font-size:9px;text-align:center"><div style="padding:6px">Container No(s)</div><div style="padding:6px">Marks and Numbers</div><div style="padding:6px">Number of packages, kind of packages, general description of goods, (Said to contain)</div><div style="padding:6px">Gross Weight</div><div style="padding:6px">Measurement</div></div>'+
       '<div style="display:grid;grid-template-columns:21% 14% 31% 17% 17%;font-size:11.5px;line-height:1.4;min-height:120px" class="bl-goods"><div style="padding:6px 7px">'+contLines+'</div><div style="padding:6px 7px">'+nl2br(c.marks || bk.marks || "")+'</div><div style="padding:6px 7px">'+pk+'<br>'+nl2br(c.cargoDesc || c.commodity || "")+(c.hscode ? "<br>HS CODE: "+esc2(c.hscode) : "")+'</div><div style="padding:6px 7px">'+gw+'</div><div style="padding:6px 7px">'+(c.vol ? esc2(c.vol)+" CBM" : "")+'</div></div>'+
       /* the band under the cargo: the company stamp (when released with the digital signature) on the left, shipping bill / freight / release lines and the standard remark across the rest */
-      '<div style="display:grid;grid-template-columns:30% 70%;min-height:170px;padding-bottom:6px"><div style="padding:8px 10px;text-align:center;align-self:end">'+(stage === "Released" && bl.digitalSign && pr.seal_image ? '<img src="'+pr.seal_image+'" style="max-height:130px;max-width:100%;object-fit:contain">'+(rel ? '<div style="font-family:Georgia,serif;font-size:13px;letter-spacing:.5px;margin-top:2px">&quot;'+esc2(rel.toUpperCase())+'&quot;</div>' : "") : "")+'</div>'+
+      '<div style="display:grid;grid-template-columns:30% 70%;min-height:170px;padding-bottom:6px"><div style="padding:8px 10px;text-align:center;align-self:end">'+(stage === "Released" ? (bl.digitalSign && pr.seal_image ? '<img src="'+pr.seal_image+'" style="max-height:130px;max-width:100%;object-fit:contain;display:block;margin:0 auto">' : "")+(relLabel ? '<div style="display:inline-block;margin-top:6px;border:2.5px solid #1b3a8a;color:#1b3a8a;padding:3px 12px;font:700 14px Arial,Helvetica,sans-serif;letter-spacing:1.2px;transform:rotate(-3deg);border-radius:3px">'+esc2(relLabel)+'</div>' : "") : "")+'</div>'+
         '<div style="padding:8px 10px 0 4px;font-size:13px;line-height:1.5;align-self:end">'+(sb ? sb+'<br><br>' : "")+(hasClauses ? clauseHtml : remarks+(bnote ? '<div style="margin-top:6px">'+nl2br(bnote)+'</div>' : ""))+'</div></div>'+
       /* the foot, as the sample: delivery agent (two rows) | freight amount / payable at | originals | place and date; signature block right; clauses under the left two columns */
       '<div style="display:grid;grid-template-columns:34% 24% 14% 28%;grid-template-areas:\'agent amount orig issue\' \'agent payable sign sign\' \'clauses clauses sign sign\';border-top:2px solid #000">'+
@@ -17721,10 +17724,38 @@ function makePrintFit(){
         '<div style="grid-area:sign;padding:8px;text-align:center;position:relative;min-height:150px"><div style="font-weight:700;font-size:12px">For '+esc2(co.name || "")+'</div><div style="margin-top:6px;min-height:80px">'+(stage === "Released" && bl.digitalSign && pr.sign_image ? '<img src="'+pr.sign_image+'" style="max-height:80px;max-width:210px">' : "")+'</div><div style="position:absolute;bottom:6px;left:0;right:0;font-size:10px">'+esc2(pr.signatory || "Authorised Signatory")+'</div></div></div></div>';
   };
 
+  /* ---------- A4 sheets: page 1 = the BL face, page 2 = the BL terms and conditions; every sheet is exactly 210 x 297 mm (794 x 1123 px), 8 mm margins ---------- */
+  const SHEET_W = 794, SHEET_H = 1123, PAD = 30, IN_W = SHEET_W - 2 * PAD, IN_H = SHEET_H - 2 * PAD, SHEET_RATIO = IN_H / IN_W;
+  BD.termsHtml = function(rd){
+    const d = rd.details || {}, bl = d.bl || {}, co = rd.company || {}, pr = co.profile || {}; const type = bl.hblType && TYPE[bl.hblType] ? bl.hblType : "MTO"; const T = TYPE[type];
+    const number = bl.bookingType === "Direct" ? bl.directNo : bl.hblNo; const stage = bl.blStage || "Draft";
+    const text = String(pr.terms || CLAUSES).split(/\n+/).filter(Boolean).map(t=>'<p style="margin:0 0 10px;text-align:justify">'+esc2(t)+'</p>').join("");
+    return '<div class="bldoc bl-terms" style="position:relative;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;border:2px solid #000;box-sizing:border-box;min-height:100%;padding:28px 34px">'+
+      (stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:110px;font-weight:700;color:rgba(0,0,0,.07);transform:rotate(-28deg)">DRAFT</div>' : "")+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:18px"><div style="font-weight:700;font-size:16px;letter-spacing:.3px">TERMS AND CONDITIONS OF THE '+esc2(T.title)+'</div><div style="font-size:12px;text-align:right">'+esc2(T.no)+': <b>'+esc2(number || "")+'</b><br>Shipment: '+esc2(rd.job_number || "")+'</div></div>'+
+      '<div style="font-size:12.5px;line-height:1.55">'+text+'</div>'+
+      '<div style="position:absolute;left:34px;right:34px;bottom:22px;border-top:1px solid #000;padding-top:6px;font-size:10px;display:flex;justify-content:space-between"><span>'+esc2(co.name || "")+'</span><span>Page 2 of 2 — Terms and conditions form part of this Bill of Lading</span></div></div>';
+  };
+  /* scales a document so that it exactly fills the printable area of its A4 sheet (called in the page and, serialised, in the print window) */
+  BD.fitSheet = function(sheet, inW, inH){
+    var doc = sheet.querySelector(".bldoc"), box = sheet.querySelector(".bl-inner"); if(!doc || !box) return;
+    if(doc.classList.contains("bl-terms")){ doc.style.width = inW + "px"; doc.style.height = inH + "px"; return; }
+    var w = 760, base = 300, goods = doc.querySelector(".bl-goods"), ratio = inH / inW;
+    doc.style.boxSizing = "border-box"; doc.style.width = w + "px"; doc.style.margin = "0"; if(goods) goods.style.minHeight = base + "px";
+    for(var i = 0; i < 6; i++){ var r = doc.offsetHeight / w; if(r <= ratio + 0.002) break; w = Math.round(w * Math.min(1.35, r / ratio)); doc.style.width = w + "px"; }
+    var h = doc.offsetHeight; if(goods && h < w * ratio) goods.style.minHeight = (base + (w * ratio - h) - 2) + "px";
+    doc.style.transformOrigin = "0 0"; doc.style.transform = "scale(" + (inW / w) + ")";
+  };
+  BD.sheets = function(rd){
+    const wrap = (html, n)=> '<div class="bl-sheet" data-page="'+n+'" style="width:'+SHEET_W+'px;height:'+SHEET_H+'px;box-sizing:border-box;padding:'+PAD+'px;background:#fff;position:relative;overflow:hidden;page-break-after:always;break-after:page"><div class="bl-inner" style="width:'+IN_W+'px;height:'+IN_H+'px;overflow:hidden;position:relative">'+html+'</div></div>';
+    return wrap(BD.html(rd), 1) + wrap(BD.termsHtml(rd), 2);
+  };
+  BD.fitAll = function(root){ root.querySelectorAll(".bl-sheet").forEach(sh=> BD.fitSheet(sh, IN_W, IN_H)); };
+
   BD.data = async function(jobNo){ return api("GET", "/api/jobs/"+encodeURIComponent(jobNo)+"/report-data"); };
   BD.build = async function(jobNo){
     const rd = await BD.data(jobNo); if(rd.mode !== "Sea") throw new Error("The Bill of Lading / Multimodal Transport Document is produced for sea jobs. Air jobs carry a House AWB");
-    return {rd, html:BD.html(rd), title:(((rd.details || {}).bl || {}).hblNo || ((rd.details || {}).bl || {}).directNo || rd.job_number)};
+    return {rd, html:BD.html(rd), sheets:BD.sheets(rd), title:(((rd.details || {}).bl || {}).hblNo || ((rd.details || {}).bl || {}).directNo || rd.job_number)};
   };
   const jobNo = ()=> window.__lastJobNo;
 
@@ -17733,7 +17764,7 @@ function makePrintFit(){
     const zone = el("blDraftPrintZone"); if(!zone) return; const body = zone.querySelector(".cb"); const no = jobNo();
     if(!no){ body.innerHTML = '<div style="padding:22px;color:var(--g5)">Open a job and choose this document from its Output Docs.</div>'; return; }
     body.innerHTML = '<div style="padding:22px;color:var(--g5)">Preparing the document…</div>';
-    try{ const b = await BD.build(no); body.innerHTML = '<div style="overflow:auto;padding:6px;background:#fff">'+b.html+'</div>'; BD.toolbar(); }
+    try{ const b = await BD.build(no); body.innerHTML = '<div class="bl-preprint" style="overflow:auto;padding:18px 10px;background:#e5e7eb"><div style="text-align:center;font-size:11.5px;color:var(--g6);margin-bottom:10px">Pre-print view — A4 (210 × 297 mm), 2 pages: the Bill of Lading and its terms and conditions</div>'+b.sheets.split('<div class="bl-sheet"').join('<div class="bl-sheet" data-view="1"').split('page-break-after:always;break-after:page').join('margin:0 auto 18px;box-shadow:0 2px 14px rgba(0,0,0,.25)')+'</div>'; BD.fitAll(body); BD.toolbar(); }
     catch(e){ body.innerHTML = '<div class="ib ib-am" style="margin:16px">'+esc2(e.message)+'</div>'; }
   };
   BD.toolbar = function(){
@@ -17753,20 +17784,22 @@ function makePrintFit(){
   };
   BD.print = async function(){
     try{ const b = await BD.build(jobNo()); const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
-      w.document.write('<!doctype html><title>'+esc2(b.title)+'</title><style>@page{size:A4;margin:8mm}html,body{margin:0;background:#fff}.bldoc{margin:0!important}</style>'+b.html+
-        '<script>var fit='+BD.fitDoc.toString()+';window.onload=function(){var d=document.querySelector(".bldoc");var w=fit(d,'+A4_RATIO+');document.body.style.zoom=String(733.2/w);setTimeout(function(){window.focus();window.print();},400);};<\/script>'); w.document.close();
+      w.document.write('<!doctype html><title>'+esc2(b.title)+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.bl-sheet{margin:0!important;box-shadow:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'+b.sheets+
+        '<script>var fitSheet='+BD.fitSheet.toString()+';window.onload=function(){document.querySelectorAll(".bl-sheet").forEach(function(s){fitSheet(s,'+IN_W+','+IN_H+');});setTimeout(function(){window.focus();window.print();},400);};<\/script>'); w.document.close();
     }catch(e){ say("Could not prepare the document", e.message, "error"); }
   };
   function loadScript(src){ return new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(s); }); }
   BD.pdf = async function(){
     const b = await BD.build(jobNo());
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff;padding:0"; host.innerHTML = b.html; document.body.appendChild(host);
+    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-12000px;top:0;background:#fff;padding:0;width:"+SHEET_W+"px"; host.innerHTML = b.sheets; document.body.appendChild(host);
     try{
-      const doc = host.firstChild; const fw = BD.fitDoc(doc, A4_RATIO); host.style.width = fw + "px";
-      const canvas = await window.html2canvas(doc, {scale:Math.max(2, Math.ceil(1600 / fw)), backgroundColor:"#fff", useCORS:true}); const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4"});
-      const w = 194, h = Math.min(281, canvas.height * w / canvas.width);
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 8, 8, w, h);
+      BD.fitAll(host);
+      const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4", compress:true}); const sheets = host.querySelectorAll(".bl-sheet");
+      for(let i = 0; i < sheets.length; i++){
+        const canvas = await window.html2canvas(sheets[i], {scale:3.6, backgroundColor:"#fff", useCORS:true, width:SHEET_W, height:SHEET_H, windowWidth:SHEET_W});
+        if(i) pdf.addPage("a4"); pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST");
+      }
       return {pdf, filename:"BL-"+b.title+".pdf", title:b.title};
     } finally { host.remove(); }
   };
@@ -20825,14 +20858,16 @@ function makePrintFit(){
   const isSea = ()=> !!el("hblClausesWrap");
   async function loadSel(){
     const wrap = el("hblClausesWrap"); if(!wrap) return; const no = window.__lastJobNo; if(!no) return;
-    S.job = no;
+    const sameJob = S.job === no; S.job = no;
     try{ S.info = await api("GET", "/api/jobs/"+encodeURIComponent(no)+"/hbl-clauses"); }catch(e){ wrap.innerHTML = ""; return; }
+    if(sameJob && S.dirty && !S.info.locked){ paintSel(); return; }          // unsaved choices stay on screen when the section is shown again
     S.sel = (S.info.saved ? S.info.selected : S.info.suggested.map(c=>({clause_id:c.id, code:c.code, title:c.title, text:c.text, category:c.category, group:c.exclusive_group, mandatory:c.is_mandatory, source:"master"}))).map(x=>({...x}));
     S.dirty = !S.info.saved && S.sel.length > 0; paintSel();
   }
   function ctxRow(k, v){ return '<div style="min-width:140px"><div style="font-size:10px;color:var(--g5);text-transform:uppercase">'+k+'</div><div style="font-size:12px;font-weight:600">'+esc2(v || "—")+'</div></div>'; }
   function paintSel(){
-    const wrap = el("hblClausesWrap"); if(!wrap || !S.info) return; const i = S.info, ctx = i.context || {}, locked = i.locked;
+    const wrap = el("hblClausesWrap"); if(!wrap || !S.info) return;
+    const keep = {page:window.scrollY, a:(el("hbsAvail") || {}).scrollTop || 0, b:(el("hbsPicked") || {}).scrollTop || 0, focus:document.activeElement && document.activeElement.id === "hbsQ"}; const i = S.info, ctx = i.context || {}, locked = i.locked;
     const q = S.q.toLowerCase(); const chosen = new Set(S.sel.map(x=>x.clause_id).filter(Boolean));
     const avail = i.available.filter(c=>!q || (c.code+" "+c.title+" "+c.text).toLowerCase().includes(q));
     const list = avail.map(c=>'<label style="display:flex;gap:8px;padding:5px 6px;border-bottom:1px solid var(--g1);'+(locked ? "opacity:.6;" : "cursor:pointer;")+'"><input type="checkbox" data-hbs-pick="'+c.id+'" '+(chosen.has(c.id) ? "checked " : "")+(locked || (c.is_mandatory && chosen.has(c.id) && !i.can_override) ? "disabled" : "")+'><span><b>'+esc2(c.code)+'</b> · '+esc2(c.title)+' <span class="b b-gy" style="font-size:9.5px">'+esc2(c.category)+'</span>'+(c.is_mandatory ? ' <span class="b b-am" style="font-size:9.5px">Mandatory</span>' : "")+'<div style="font-size:11px;color:var(--g6)">'+esc2(c.text.length > 140 ? c.text.slice(0,137)+"..." : c.text)+'</div></span></label>').join("") || '<div style="padding:10px;color:var(--g5)">No clause matches.</div>';
@@ -20842,11 +20877,13 @@ function makePrintFit(){
       '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px">'+ctxRow("Job", i.job_number)+ctxRow("HBL No", i.hbl_number)+ctxRow("Shipper", ctx.shipper)+ctxRow("Consignee", ctx.consignee)+ctxRow("Notify", ctx.notify)+ctxRow("POL", ctx.pol)+ctxRow("POD", ctx.pod)+ctxRow("Shipment type", ctx.shipment_type)+ctxRow("Freight term", ctx.freight_term)+ctxRow("BL stage", i.stage)+'</div>'+
       (locked ? '<div class="ib ib-am" style="margin-bottom:8px">The BL is '+esc2(i.stage)+': its clauses are locked. '+(i.stage === "Confirmed" ? "Return the BL to Draft to change them (re-approval is then needed)." : "A released BL cannot be changed.")+'</div>' : "")+
       (i.problems && i.problems.length ? '<div class="ib ib-am" style="margin-bottom:8px">'+i.problems.map(esc2).join("<br>")+'</div>' : "")+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b style="font-size:12px">Clause master (active, fitting this shipment)</b><input class="fc" id="hbsQ" placeholder="Search code, title, wording" style="max-width:220px" value="'+esc2(S.q)+'"></div><div style="max-height:300px;overflow:auto;border:1px solid var(--g2);border-radius:6px">'+list+'</div></div>'+
-      '<div><b style="font-size:12px">Selected clauses (printed in this order)</b><div style="max-height:300px;overflow:auto;border:1px solid var(--g2);border-radius:6px;margin-top:4px">'+picked+'</div></div></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b style="font-size:12px">Clause master (active, fitting this shipment)</b><input class="fc" id="hbsQ" placeholder="Search code, title, wording" style="max-width:220px" value="'+esc2(S.q)+'"></div><div id="hbsAvail" style="max-height:300px;overflow:auto;border:1px solid var(--g2);border-radius:6px">'+list+'</div></div>'+
+      '<div><b style="font-size:12px">Selected clauses (printed in this order)</b><div id="hbsPicked" style="max-height:300px;overflow:auto;border:1px solid var(--g2);border-radius:6px;margin-top:4px">'+picked+'</div></div></div>'+
       (!locked && i.can_custom ? '<div style="display:flex;gap:8px;margin-top:10px"><input class="fc" id="hbsOnce" placeholder="One-time clause for this HBL only" style="flex:1"><button class="btn btn-out btn-sm" id="hbsOnceAdd">Add one-time clause</button></div>' : "")+
       '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center"><button class="btn btn-out btn-sm" id="hbsPreview">Preview clauses</button>'+(locked ? "" : '<button class="btn btn-pri btn-sm" id="hbsSave">Save clause selection</button>')+
       '<span style="font-size:11px;color:var(--g5)">'+(S.dirty ? "Not saved yet" : i.saved ? "Saved (version "+i.version+") — the HBL print uses this saved selection. Use Confirm BL below to approve, then Release BL." : "")+'</span></div></div></div>';
+    window.scrollTo(0, keep.page); const A = el("hbsAvail"), B = el("hbsPicked"); if(A) A.scrollTop = keep.a; if(B) B.scrollTop = keep.b;
+    if(keep.focus){ const i = el("hbsQ"); if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
   }
   function preview(){
     const lines = S.sel.map(x=>'<div style="margin:0 0 8px;font-size:13px;line-height:1.5;text-transform:uppercase">'+esc2(x.text)+'</div>').join("") || '<div style="color:var(--g5)">No clause selected.</div>';
@@ -20878,7 +20915,20 @@ function makePrintFit(){
   document.addEventListener("input", e=>{ if(e.target.id === "hbsQ"){ S.q = e.target.value; clearTimeout(st); st = setTimeout(()=>{ paintSel(); const i = el("hbsQ"); if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 200); } });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "hbl-clauses") loadMaster(); if(screen === "job-detail") setTimeout(loadSel, 1800); };
-  document.addEventListener("click", e=>{ if(e.target.closest && e.target.closest('[data-tab="jt3"]')) setTimeout(loadSel, 300); });
+  /* leaving the BL tab, confirming / releasing the BL or generating the HBL number first saves a changed clause selection, so nothing chosen is lost */
+  let bypass = false;
+  document.addEventListener("click", async e=>{
+    const t = e.target.closest ? e.target : null; if(!t || bypass) return;
+    const tab = t.closest('.tabs .tbb[data-tab]');
+    if(tab && tab.dataset.tab === "jt3"){ setTimeout(loadSel, 300); return; }
+    const action = t.closest("#jobBl_confirmBtn, #jobBl_releaseBtn, #jobBl_genHblBtn, #jobBl_draftBtn");
+    if((tab && tab.dataset.tab !== "jt3" || action) && S.dirty && S.info && !S.info.locked && S.sel.length){
+      e.preventDefault(); e.stopPropagation();
+      await saveSel();
+      if(!S.dirty){ bypass = true; (tab || action).click(); bypass = false; }
+    }
+  }, true);
+  window.NAV_GUARDS = window.NAV_GUARDS || []; window.NAV_GUARDS.push(()=> S.dirty && S.info && !S.info.locked && el("hblClausesWrap") && el("s-job-detail") && el("s-job-detail").classList.contains("on"));
   window.HblClauseKit = {loadSel, loadMaster};
 })();
 

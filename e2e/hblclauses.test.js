@@ -48,6 +48,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const html = w.BLDocKit.html(rd);
   const up = html.toUpperCase(); const order = saved.selected.map(s => up.indexOf(s.text.toUpperCase()));
   check("the printed HBL has exactly the saved clauses in the saved order and no clause codes", order.every(i => i > 0) && order.slice().sort((a, b) => a - b).join() === order.join() && !/HBLC-\d{4}/.test(html), JSON.stringify(order));
+  // choices are not lost when the user goes to another tab and comes back, and the list does not jump to the top when a clause is ticked
+  w.go("job-detail", { jobNo: job }); await sleep(3500);
+  const extra = pickBy("DEMURRAGE AND DETENTION"); extra.checked = true; extra.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(200);
+  d.getElementById("hbsAvail").scrollTop = 140; const another = pickBy("PALLETIZED"); another.checked = true; another.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(200);
+  check("ticking a clause keeps the list where the user was scrolled", d.getElementById("hbsAvail").scrollTop === 140, d.getElementById("hbsAvail").scrollTop);
+  d.querySelector('[data-tab="jt1"]').click(); await sleep(2500);
+  d.querySelector('[data-tab="jt3"]').click(); await sleep(1500);
+  const after = (await j("GET", `/api/jobs/${job}/hbl-clauses`, null, token)).body.selected.map(x => x.text);
+  check("selected clauses are still there after going to another tab and back (an unsaved change is saved when leaving the BL tab)", /DEMURRAGE AND DETENTION/.test(after.join("|")) && /PALLETIZED/.test(after.join("|")) && /DEMURRAGE AND DETENTION/.test(d.getElementById("hblClausesWrap").textContent) && /PALLETIZED/.test(d.getElementById("hblClausesWrap").textContent), after.length + " saved");
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });
