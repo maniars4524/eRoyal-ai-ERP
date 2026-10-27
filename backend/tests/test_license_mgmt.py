@@ -356,3 +356,21 @@ def test_provider_manages_users_permissions_and_passwords(owner):
     own = client.get("/api/auth/me", headers=owner["h"]).json()
     own_company = client.get("/api/license-mgmt/companies?q=" + owner["license"], headers=owner["h"]).json()["items"][0]
     assert client.patch(f"/api/license-mgmt/companies/{own_company['id']}/users/{own['id']}", json={"status": "INACTIVE"}, headers=owner["h"]).status_code == 409      # the provider cannot disable itself
+
+
+def test_license_sheet_has_everything_for_the_pdf_and_passwords_only_when_reset(owner):
+    r, _ = new_company(owner, max_users=5, maintenance_plan="AMC")
+    assert r.status_code == 201, r.text
+    c = r.json()["company"]
+    first = client.post(f"/api/license-mgmt/companies/{c['id']}/license-sheet", json={}, headers=owner["h"])
+    assert first.status_code == 200, first.text
+    sheet = first.json()
+    assert sheet["company"]["name"] == c["name"] and sheet["company"]["license_number"] == c["license_number"]
+    assert sheet["access"]["url"].endswith("/erp/login") and sheet["terms"]["max_users"] == 5 and sheet["terms"]["maintenance_plan"] == "AMC"
+    assert sheet["total_users"] == 1 and len(sheet["users"]) == 1 and sheet["users"][0]["password"] is None          # passwords are stored hashed: never readable
+    assert sheet["roles"] and any(r["permissions"] for r in sheet["roles"].values()) and sheet["available_modules"]
+    again = client.post(f"/api/license-mgmt/companies/{c['id']}/license-sheet", json={"reset_passwords": True}, headers=owner["h"]).json()
+    pw = again["users"][0]["password"]
+    assert pw and len(pw) >= 8 and again["passwords_reset"]
+    assert client.post("/api/auth/login", json={"identifier": again["users"][0]["username"], "password": pw, "portal": "erp", "license_number": c["license_number"]}).status_code == 200
+    assert client.post(f"/api/license-mgmt/companies/{c['id']}/license-sheet", json={}, headers=owner["plain"]).status_code == 403          # only the license super admin

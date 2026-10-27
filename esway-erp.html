@@ -20463,7 +20463,7 @@ function makePrintFit(){
     const d = S.detail; if(!d) return;
     const tabs = [["terms", "License & contact"], ["users", "Users & permissions"], ["renew", "Renew / AMC / MMC"], ["history", "History"], ["usage", "Usage & storage"]];
     el("licDH").innerHTML = '<div><div style="font-size:16px;font-weight:800">'+esc2(d.name)+' '+badge(d.status)+'</div><div class="mono" style="font-size:12px;color:var(--g6)">'+esc2(d.license_number)+' · '+esc2(d.code)+(d.is_demo ? " · demo company" : "")+'</div></div>'+
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+(d.is_owner ? "" : (d.stored_status === "ACTIVE" ? '<button class="btn btn-out btn-sm" data-lic-act="suspend:'+d.id+'" style="color:var(--rd)">Suspend</button>' : '<button class="btn btn-out btn-sm" data-lic-act="reactivate:'+d.id+'" style="color:var(--gr)">Reactivate</button>')+(d.stored_status !== "CANCELLED" ? '<button class="btn btn-out btn-sm" data-lic-act="cancel:'+d.id+'" style="color:var(--rd)">Cancel license</button>' : ""))+'<button class="btn btn-out btn-sm" data-lic="closedrawer">Close</button></div>';
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+(d.is_owner ? "" : (d.stored_status === "ACTIVE" ? '<button class="btn btn-out btn-sm" data-lic-act="suspend:'+d.id+'" style="color:var(--rd)">Suspend</button>' : '<button class="btn btn-out btn-sm" data-lic-act="reactivate:'+d.id+'" style="color:var(--gr)">Reactivate</button>')+(d.stored_status !== "CANCELLED" ? '<button class="btn btn-out btn-sm" data-lic-act="cancel:'+d.id+'" style="color:var(--rd)">Cancel license</button>' : ""))+'<button class="btn btn-out btn-sm" data-lic="sheet">License sheet (PDF)</button><button class="btn btn-out btn-sm" data-lic="closedrawer">Close</button></div>';
     const tabBar = '<div class="lic-tabs">'+tabs.map(([k, t])=>'<button type="button" data-lic-dtab="'+k+'" class="'+(S.dtab === k ? "on" : "")+'">'+t+'</button>').join("")+'</div>';
     el("licDB").innerHTML = tabBar+'<div id="licDT"></div>';
     drawerTab();
@@ -20510,6 +20510,79 @@ function makePrintFit(){
     if(window.renderIcons) window.renderIcons(box);
   }
 
+  /* ---------------- license information sheet (PDF handed to the company) ---------------- */
+  const loadScript = src=> new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(t); });
+  const imgData = url=> fetch(url).then(r=>r.blob()).then(b=>new Promise(ok=>{ const f = new FileReader(); f.onload = ()=>ok(f.result); f.readAsDataURL(b); })).catch(()=>null);
+  const sheetDate = v=> v ? new Date(v).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
+  async function buildSheetPdf(d, known){
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const {jsPDF} = window.jspdf, pdf = new jsPDF({unit:"mm", format:"a4", compress:true, encryption:{userPassword:d.company.license_number, ownerPassword:Array.from(crypto.getRandomValues(new Uint8Array(12))).map(x=>x.toString(16)).join(""), userPermissions:["print"]}});      /* opens only with the license number as the password; the owner password is random and never shown */ const W = 210, M = 14, BOT = 280; let y = 0;
+    const logo = await imgData("/brand/logo-sway-white.png");
+    const NAVY = [11, 31, 58], BLUE = [26, 111, 191], GREY = [90, 100, 118];
+    const band = ()=>{ pdf.setFillColor(...NAVY); pdf.rect(0, 0, W, 28, "F"); if(logo) pdf.addImage(logo, "PNG", M, 5, 46, 18.4); pdf.setTextColor(255); pdf.setFont("helvetica", "bold"); pdf.setFontSize(15); pdf.text("LICENSE INFORMATION SHEET", W - M, 14, {align:"right"}); pdf.setFont("helvetica", "normal"); pdf.setFontSize(8.5); pdf.text("Issued "+sheetDate(d.generated_at)+" by "+d.generated_by, W - M, 20, {align:"right"}); y = 36; };
+    const need = h=>{ if(y + h > BOT){ pdf.addPage(); band(); } };
+    const section = t=>{ need(14); pdf.setFillColor(...BLUE); pdf.rect(M, y, 2.2, 6, "F"); pdf.setTextColor(...NAVY); pdf.setFont("helvetica", "bold"); pdf.setFontSize(11.5); pdf.text(t, M + 5, y + 4.7); y += 10; };
+    const kv = (k, v, wide)=>{ const lines = pdf.splitTextToSize(String(v == null || v === "" ? "—" : v), wide ? W - 2 * M - 50 : 112); need(lines.length * 4.6 + 1); pdf.setFont("helvetica", "bold"); pdf.setFontSize(9); pdf.setTextColor(...GREY); pdf.text(k, M, y); pdf.setFont("helvetica", "normal"); pdf.setTextColor(20); pdf.text(lines, M + 50, y); y += lines.length * 4.6 + 1.2; };
+    const table = (head, rows, widths)=>{
+      const x0 = M; const total = widths.reduce((a, b)=>a + b, 0); const rowH = lines=> Math.max(7, lines * 4.2 + 3);
+      const drawHead = ()=>{ need(9); pdf.setFillColor(...NAVY); pdf.rect(x0, y, total, 7, "F"); pdf.setTextColor(255); pdf.setFont("helvetica", "bold"); pdf.setFontSize(8.5); let x = x0; head.forEach((h, i)=>{ pdf.text(h, x + 2, y + 4.8); x += widths[i]; }); y += 7; };
+      drawHead(); rows.forEach((r, ri)=>{
+        const cells = r.map((c, i)=> pdf.splitTextToSize(String(c == null || c === "" ? "—" : c), widths[i] - 4)); const h = rowH(Math.max(...cells.map(c=>c.length)));
+        if(y + h > BOT){ pdf.addPage(); band(); drawHead(); }
+        if(ri % 2 === 0){ pdf.setFillColor(243, 246, 251); pdf.rect(x0, y, total, h, "F"); }
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(8.8); pdf.setTextColor(20); let x = x0; cells.forEach((c, i)=>{ if(i === widths.length - 1 || true) pdf.text(c, x + 2, y + 5); x += widths[i]; }); y += h;
+      }); y += 4;
+    };
+    band();
+    // company and license number
+    const c = d.company, t = d.terms; pdf.setTextColor(...NAVY); pdf.setFont("helvetica", "bold"); pdf.setFontSize(18); const nm = pdf.splitTextToSize(c.name, W - 2 * M); pdf.text(nm, M, y + 2); y += nm.length * 7 + 2;
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(13); pdf.setTextColor(...BLUE); pdf.text("License number  "+c.license_number, M, y + 2); y += 9;
+    section("Company");
+    kv("Company name", c.name); if(c.legal_name) kv("Legal name", c.legal_name); kv("Company code", c.code); kv("Country", c.country); const ct = c.contact || {}; kv("Contact person", ct.person || ct.contact_person); kv("Contact e-mail / phone", [ct.email || ct.contact_email, ct.phone || ct.contact_phone].filter(Boolean).join("  /  ")); kv("Status", c.status);
+    section("Access");
+    kv("Web address (URL)", d.access.url, true); kv("Sign in with", "License number "+c.license_number+", your user name and password (below)", true); if(d.access.note) kv("Network", d.access.note, true);
+    section("License terms");
+    kv("Start date", sheetDate(t.license_start)); kv("Expiry date", t.license_expiry ? sheetDate(t.license_expiry)+(t.days_left != null ? "  ("+t.days_left+" days left)" : "") : "No expiry"); kv("Renewal cycle", t.renewal_cycle === "MONTHLY" ? "Monthly" : t.renewal_cycle === "YEARLY" ? "Yearly" : "—");
+    kv("Number of users", d.total_users+" created"+(t.max_users ? " · maximum "+t.max_users : " · no maximum")); kv("Concurrent sessions", t.max_sessions ? "maximum "+t.max_sessions : "no limit");
+    kv("Maintenance contract", t.maintenance_plan ? (t.maintenance_plan === "AMC" ? "AMC (annual)" : "MMC (monthly)")+(t.maintenance_expiry ? " · valid to "+sheetDate(t.maintenance_expiry) : "") : "None");
+    const mods = (t.modules && t.modules.length ? t.modules : d.available_modules).map(m=>MODULES[m] || m); kv("Modules enabled", mods.join(", "), true);
+    if(t.license_notes) kv("Notes", t.license_notes, true);
+    section("Renewal");
+    const last = (d.renewals || []).find(r=>r.kind === "LICENSE"); const lastAm = (d.renewals || []).find(r=>r.kind === "MAINTENANCE");
+    kv("Next renewal due", t.license_expiry ? sheetDate(t.license_expiry) : "—");
+    kv("Last license renewal", last ? sheetDate(last.at)+" · new expiry "+sheetDate(last.new_expiry) : "No renewal recorded yet"); kv("Renewal amount", last && last.amount ? (last.currency || "")+" "+last.amount+" ("+(last.payment_status || "").toLowerCase()+")" : "To be quoted at renewal");
+    if(lastAm) kv("Last maintenance renewal", sheetDate(lastAm.at)+(lastAm.amount ? " · "+(lastAm.currency || "")+" "+lastAm.amount : ""));
+    section("Users and sign-in details ("+d.users.length+")");
+    table(["#", "User name", "Full name", "Role", "Password", "Status"], d.users.map((u, i)=>[String(i + 1), u.username, u.name, u.roles.join(", "), u.password || (known && known[u.username]) || "Chosen by the user", u.status === "ACTIVE" ? "Active" : u.status]), [9, 30, 38, 28, 44, 33]);
+    pdf.setFont("helvetica", "italic"); pdf.setFontSize(8); pdf.setTextColor(...GREY); need(8); pdf.text(pdf.splitTextToSize(d.passwords_reset ? "These are temporary passwords issued on "+sheetDate(d.generated_at)+"; each user should change the password after the first sign-in." : "Passwords are never stored in readable form: a password is shown only when it was set at creation or newly issued for this sheet.", W - 2 * M), M, y); y += 8;
+    section("User permissions");
+    Object.values(d.roles).forEach(r=>{
+      need(14); pdf.setFont("helvetica", "bold"); pdf.setFontSize(9.5); pdf.setTextColor(...NAVY); const who = d.users.filter(u=>u.roles.includes(r.label)).map(u=>u.username).join(", "); pdf.text(r.label+" — "+r.count+" permissions"+(who ? "  (users: "+who+")" : ""), M, y); y += 5;
+      Object.entries(r.permissions).forEach(([mod, list])=>{ const lines = pdf.splitTextToSize(mod.toUpperCase()+":  "+list.join("; "), W - 2 * M - 4); need(lines.length * 3.6 + 1); pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.8); pdf.setTextColor(40); pdf.text(lines, M + 2, y); y += lines.length * 3.6 + 1.2; });
+      y += 3;
+    });
+    const pages = pdf.internal.getNumberOfPages();
+    for(let i = 1; i <= pages; i++){ pdf.setPage(i); pdf.setDrawColor(200); pdf.line(M, 287, W - M, 287); pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5); pdf.setTextColor(...GREY); pdf.text("CONFIDENTIAL — contains sign-in details. Hand it over securely and change passwords after the first sign-in.", M, 291.5); pdf.text("Page "+i+" of "+pages, W - M, 291.5, {align:"right"}); }
+    return pdf;
+  }
+  function sheetDialog(company, known){
+    const hasKnown = known && Object.keys(known).length;
+    openModal({title:"License information sheet — "+esc2(company.license_number), bodyHTML:'<div style="font-size:12.5px;margin-bottom:10px">A password-protected PDF for <b>'+esc2(company.name)+'</b> (it opens with the license number <b>'+esc2(company.license_number)+'</b> as the password) with the company, web address, license terms, modules, renewal, every user with role and permissions, and sign-in details.</div>'+
+      '<div class="fg"><label class="fl">Passwords on the sheet</label><select class="fc" id="sh_pw">'+(hasKnown ? '<option value="known">The administrator password just entered (other users: none yet)</option>' : "")+'<option value="none">No passwords (users keep their own)</option><option value="reset">New temporary passwords for ALL users (their old passwords stop working)</option></select></div>'+
+      '<div class="ib ib-am" style="margin-top:8px">Passwords are stored only as hashes and cannot be read back. The only way to print a password for an existing user is to issue a new one; the sheet is then the only place it is shown.</div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Skip</button><button class="btn btn-pri" id="sh_go">Download PDF</button>'});
+    el("sh_go").onclick = async ()=>{
+      const mode = el("sh_pw").value; if(mode === "reset" && !window.confirm("This gives every user of "+company.name+" a new password. Continue?")) return;
+      el("sh_go").disabled = true; el("sh_go").textContent = "Preparing…";
+      try{
+        const d = await api("POST", "/api/license-mgmt/companies/"+company.id+"/license-sheet", {reset_passwords:mode === "reset"});
+        const pdf = await buildSheetPdf(d, mode === "known" ? known : null); pdf.save("License-"+company.license_number+"-"+company.name.replace(/[^A-Za-z0-9]+/g, "-")+".pdf"); closeModal(); say("License sheet downloaded", company.license_number);
+      }catch(e){ el("sh_go").disabled = false; el("sh_go").textContent = "Download PDF"; say("Could not make the sheet", e.message, "warn"); }
+    };
+  }
+  window.LicenseKit_sheet = sheetDialog;
+  window.LicenseKit_build = buildSheetPdf;
+
   /* ---------------- forms (modal) ---------------- */
   function createForm(){
     const today = new Date().toISOString().slice(0, 10);
@@ -20529,7 +20602,7 @@ function makePrintFit(){
       const miss = [["code", "Company code"], ["name", "Company name"], ["admin_username", "Administrator user name"], ["admin_first_name", "Administrator first name"], ["admin_email", "Administrator email"]].filter(([k])=>!b[k]).map(x=>x[1]); if(!b.admin_password) miss.push("Password");
       if(miss.length){ say("Please complete", miss.join(", "), "warn"); return; }
       el("nc_go").disabled = true;
-      try{ const r = await api("POST", "/api/license-mgmt/companies", b); closeModal(); say("Company created", r.company.name+" — license "+r.company.license_number); S.tab = "companies"; await load(); openCompany(r.company.id, "terms"); }
+      try{ const r = await api("POST", "/api/license-mgmt/companies", b); closeModal(); say("Company created", r.company.name+" — license "+r.company.license_number); S.tab = "companies"; await load(); openCompany(r.company.id, "terms"); setTimeout(()=>sheetDialog(r.company, {[b.admin_username]:b.admin_password}), 400); }
       catch(e){ say("Could not create the company", e.message, "warn"); el("nc_go").disabled = false; }
     };
   }
@@ -20557,6 +20630,7 @@ function makePrintFit(){
       else if(d.lic === "closedrawer"){ closeDrawer(); }
       else if(d.lic === "reset"){ S.q = ""; S.status = ""; S.page = 1; await load(); }
       else if(d.lic === "runnotes"){ const r = await api("POST", "/api/license-mgmt/notifications/run"); say("Reminder check done", r.created+" new reminder(s)"); await load(); }
+      else if(d.lic === "sheet"){ if(S.detail) sheetDialog(S.detail, null); }
       else if(d.lic === "saveterms"){
         const c = S.detail, v = id=> (el(id).value || "").trim(); const mods = Array.from(el("le_mods").querySelectorAll("input:checked")).map(x=>x.value);
         const b = {name:v("le_name"), legal_name:v("le_legal") || null, contact_person:v("le_cp"), contact_email:v("le_ce"), contact_phone:v("le_ph"), address:v("le_ad"), maintenance_plan:v("le_mp"), license_notes:v("le_nt") || null};

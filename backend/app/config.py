@@ -23,6 +23,8 @@ PUBLIC_PORTALS = _public
 QUOTE_SOD = os.getenv("QUOTE_SOD", "true").strip().lower() not in ("0", "false", "no")
 QUOTE_SOD_ADMIN_EXEMPT = os.getenv("QUOTE_SOD_ADMIN_EXEMPT", "true").strip().lower() not in ("0", "false", "no")        # a company Admin may approve a quotation they prepared
 # One active sign-in per user: a second sign-in must confirm, and then ends the first one.
+ACCESS_URL = os.getenv("ERP_ACCESS_URL", "").strip().rstrip("/")          # the permanent address handed to companies (printed on the license sheet), e.g. http://desktop-touf7i0:8000
+ACCESS_NOTE = os.getenv("ERP_ACCESS_NOTE", "").strip()
 SINGLE_SESSION = os.getenv("SINGLE_SESSION", "false").strip().lower() in ("1", "true", "yes")
 SESSION_ACTIVE_MINUTES = int(os.getenv("SESSION_ACTIVE_MINUTES", "10"))
 DEMO_ONLY = PUBLIC_PORTALS == {"demo"}

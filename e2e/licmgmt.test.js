@@ -89,6 +89,11 @@ const psql = sql => execSync(`docker exec esway-postgres psql -U esway -d esway_
   check("Audit shows what was done (issued, renewed, suspended, password...)", ["LICENSE ISSUED", "LICENSE RENEWED", "LICENSE SUSPENDED", "LICENSE USER MANAGED"].every(a => q("#licBody").textContent.includes(a)), q("#licBody").textContent.slice(0, 300));
   await tab("overview");
   check("Overview lists the online users and the biggest companies", /Top companies by online time/.test(q("#licBody").textContent) && /Companies with the most users/.test(q("#licBody").textContent));
+  // the license information sheet: a PDF that opens only with the license number
+  const sheetData = (await j("POST", "/api/license-mgmt/companies/" + cc.id + "/license-sheet", { reset_passwords: false }, ownerTok)).body;
+  const pdf = await w.LicenseKit_build(sheetData, { [nu]: "a" });
+  const bytes = Buffer.from(pdf.output("arraybuffer")).toString("latin1");
+  check("the license sheet PDF is generated, encrypted (opens only with the license number) and does not hold the text in the clear", bytes.startsWith("%PDF") && /\/Encrypt/.test(bytes) && !bytes.includes(cc.name) && !bytes.includes("License number"), bytes.slice(0, 60));
   psql(`update organizations set license_number = 'SWX' || id where id = ${owner.organization.id};`);
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);

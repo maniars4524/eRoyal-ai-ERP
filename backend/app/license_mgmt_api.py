@@ -6,15 +6,19 @@ from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
+
+import secrets
+import string
 
 from . import config
 from . import license_mgmt as lm
 from .auth_api import create_company, record_audit
 from .db import get_db
+from .roles import ROLE_LABELS
 from .models import AuditLog, LicenseNotification, LicenseRenewal, Organization, Role, User, UserUsage
 from .schemas_auth import OrganizationAdminCreate
 
@@ -566,3 +570,56 @@ def manage_user(org_id: int, uid: int, body: UserAdminIn, user: User = Depends(l
         record_audit(db, "LICENSE_USER_MANAGED", "LICENSE", user, org_id, "User", str(u.id), {"username": u.username, **changes})
         db.commit()
     return {**_user_row(u), "changes": sorted(changes)}
+
+
+# ---------------------------------------------------------------- license information sheet (the PDF handed to a company)
+class SheetIn(BaseModel):
+    reset_passwords: bool = False            # give every selected user a NEW temporary password (shown once on the sheet; the old password stops working)
+    user_ids: list[int] | None = None
+
+
+def _temp_password() -> str:
+    alphabet = "".join(c for c in string.ascii_letters + string.digits if c not in "0O1lI")
+    return "".join(secrets.choice(alphabet) for _ in range(10))
+
+
+@router.post("/companies/{org_id}/license-sheet")
+def license_sheet(org_id: int, body: SheetIn, request: Request, user: User = Depends(lm.require_license_admin), db: Session = Depends(get_db)):
+    """Everything the license sheet PDF needs: company, access address, terms, modules, renewals, users with their roles and permissions. Passwords are stored only as hashes and cannot be read back;
+    they appear on the sheet only when `reset_passwords` gives the selected users new temporary ones (returned once, never stored, audited by user name only)."""
+    org = _org(db, org_id)
+    detail = _detail(db, org)
+    users = list(db.scalars(select(User).options(selectinload(User.roles).selectinload(Role.permissions)).where(User.organization_id == org.id, User.is_super_admin.is_(False)).order_by(User.id)))
+    chosen = {u.id for u in users if body.user_ids is None or u.id in body.user_ids}
+    temp: dict[int, str] = {}
+    if body.reset_passwords:
+        from .security import hash_password
+
+        for u in users:
+            if u.id in chosen:
+                pw = _temp_password()
+                u.password_hash = hash_password(pw)
+                u.failed_login_count, u.locked_until, u.session_id = 0, None, None
+                temp[u.id] = pw
+        record_audit(db, "LICENSE_SHEET_PASSWORDS_RESET", "LICENSE", user, org.id, "Organization", str(org.id), {"license": org.license_number, "users": sorted(u.username for u in users if u.id in temp)})
+        db.commit()
+    else:
+        record_audit(db, "LICENSE_SHEET_ISSUED", "LICENSE", user, org.id, "Organization", str(org.id), {"license": org.license_number})
+        db.commit()
+    roles: dict[str, dict] = {}
+    for u in users:
+        for r in u.roles:
+            if r.name not in roles:
+                groups: dict[str, list[str]] = {}
+                for p in sorted(r.permissions, key=lambda x: (x.module, x.code)):
+                    groups.setdefault(p.module, []).append(p.name or p.code)
+                roles[r.name] = {"label": ROLE_LABELS.get(r.name, r.name), "permissions": groups, "count": len(r.permissions)}
+    base = config.ACCESS_URL or str(request.base_url).rstrip("/")
+    return {"company": {"name": org.name, "legal_name": org.legal_name, "code": org.code, "license_number": org.license_number, "country": org.country, "contact": org.contact or {}, "status": detail.get("effective_status") or detail.get("status")},
+            "access": {"url": base + "/erp/login", "note": config.ACCESS_NOTE},
+            "terms": {k: detail.get(k) for k in ("license_start", "license_expiry", "renewal_cycle", "max_users", "max_sessions", "modules", "maintenance_plan", "maintenance_expiry", "license_notes", "effective_status", "days_left")},
+            "available_modules": detail["available_modules"], "enabled_users": detail["enabled_users"], "total_users": detail["total_users"],
+            "renewals": detail["renewals"][:8],
+            "users": [{"id": u.id, "username": u.username, "name": (u.first_name + " " + u.last_name).strip(), "email": u.email, "status": u.status, "roles": [ROLE_LABELS.get(r.name, r.name) for r in u.roles],
+                       "password": temp.get(u.id)} for u in users],
+            "roles": roles, "generated_at": datetime.now(timezone.utc).isoformat(), "generated_by": (user.first_name + " " + user.last_name).strip() or user.username, "passwords_reset": bool(temp)}
