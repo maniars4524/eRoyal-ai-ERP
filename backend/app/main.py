@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import HTTPException, FastAPI
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -40,6 +40,8 @@ from .db import Base, engine
 from . import models
 
 UI_FILE = Path(__file__).resolve().parents[2] / "esway-erp.html"
+BRAND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+BRAND_FILES = {"logo-sway.png", "logo-sway-white.png"}
 
 app = FastAPI(title="eSway ERP 2.0 API", version="2.0.0", docs_url=None if PUBLIC_PORTALS else "/docs", redoc_url=None if PUBLIC_PORTALS else "/redoc", openapi_url=None if PUBLIC_PORTALS else "/openapi.json")
 
@@ -170,6 +172,14 @@ def _ui_response() -> FileResponse:
 
 
 _allowed = [p for p in ("erp", "demo", "developer") if not PUBLIC_PORTALS or p in PUBLIC_PORTALS]
+
+
+@app.get("/brand/{name}", include_in_schema=False)
+def brand_file(name: str) -> FileResponse:
+    """The SWAY logo images used by the login page and the header (a fixed list of two files; nothing else is served from here)."""
+    if name not in BRAND_FILES or not (BRAND_DIR / name).is_file():
+        raise HTTPException(404, "Not found")
+    return FileResponse(BRAND_DIR / name, media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/", include_in_schema=False)
