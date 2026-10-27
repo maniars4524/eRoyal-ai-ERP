@@ -274,6 +274,7 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
         raise HTTPException(409, "These details were changed by someone else. Reload the job and try again")
     if section == "bl":
         keep = {k: v for k, v in (row.bl or {}).items() if k in ("hblNo", "hblDate", "hblIssuedFor", "blStage", "releaseType", "digitalSign", "releasedAt", "releaseOverride") and not data.get(k)}
+        keep.update({k: v for k, v in (row.bl or {}).items() if k in ("clauses", "clausesSavedAt", "clauseVersion", "clauseHistory")})        # the clause snapshot is only changed from the HBL Clauses section
         data = {**data, **keep}   # the House BL number belongs to the system: a save never erases or replaces it
         if (row.bl or {}).get("hblNo"):
             data["hblType"] = (row.bl or {}).get("hblType") or data.get("hblType")
@@ -366,6 +367,10 @@ def bl_stage(job_number: str, body: BlStageIn, user: User = Depends(permission_r
         raise HTTPException(409, "Confirm the BL before releasing it")
     if body.stage in ("Confirmed", "Released") and not number:
         raise HTTPException(422, "Generate the House BL number (or enter the carrier BL number) before confirming the BL")
+    if body.stage in ("Confirmed", "Released"):
+        from .hbl_clauses import check_before_stage
+
+        check_before_stage(db, job, row, bl)       # mandatory clauses present, saved, no conflicting pair
     event, text, detail = "BL_CONFIRMED", "BL confirmed", {}
     if body.stage == "Draft":
         event, text = "BL_RETURNED_TO_DRAFT", "BL returned to Draft"

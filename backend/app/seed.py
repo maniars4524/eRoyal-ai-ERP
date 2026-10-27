@@ -49,6 +49,8 @@ PERMISSIONS = [
     ("job.close", "Close a job (manual closure)", "job", "close"),
     ("job.reopen", "Reopen a closed job", "job", "reopen"),
     ("bl.release_override", "Release an Original BL before full payment is confirmed (logged with a reason)", "bl", "release_override"),
+    ("hbl.clause.custom", "Add a one-time clause to a House BL", "bl", "clause_custom"),
+    ("hbl.clause.override", "Remove a mandatory HBL clause (logged with a reason)", "bl", "clause_override"),
     ("job.exceptional_close", "Approve an exceptional job closure", "job", "exceptional_close"),
     ("sequence.view", "View Sequence Setting", "sequence", "view"),
     ("sequence.create", "Create numbering sequences", "sequence", "create"),

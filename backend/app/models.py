@@ -1181,3 +1181,31 @@ class UserUsage(Base):
     requests: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class HblClause(Base):
+    """HBL Clause Master: a wording that can be printed on a House BL. Selections are snapshotted on the BL, so editing a clause never changes a saved or released HBL."""
+    __tablename__ = "hbl_clauses"
+    __table_args__ = (UniqueConstraint("organization_id", "code", name="uq_hbl_clause_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(160))
+    text: Mapped[str] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(20), default="Other")
+    shipment_type: Mapped[str] = mapped_column(String(4), default="Both")
+    movement_type: Mapped[str] = mapped_column(String(20), default="All")
+    country: Mapped[str | None] = mapped_column(String(80))
+    pol: Mapped[str | None] = mapped_column(String(80))
+    pod: Mapped[str | None] = mapped_column(String(80))
+    freight_term: Mapped[str] = mapped_column(String(8), default="Both")
+    is_default: Mapped[bool] = mapped_column(default=False)
+    is_mandatory: Mapped[bool] = mapped_column(default=False)
+    display_order: Mapped[int] = mapped_column(Integer, default=100)
+    exclusive_group: Mapped[str | None] = mapped_column(String(40))       # clauses of one group cannot be on the same HBL (e.g. FCL vs LCL, Prepaid vs Collect)
+    status: Mapped[str] = mapped_column(String(10), default="ACTIVE", index=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

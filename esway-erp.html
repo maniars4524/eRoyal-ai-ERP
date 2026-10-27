@@ -2974,6 +2974,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <div class="fr" id="jobBlGenericRow"><div class="fg"><label class="fl">Originals</label><input class="fc" id="jobBl_originals" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc" id="jobBl_terms"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" id="jobBl_place" value=""></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date" id="jobBl_released"></div></div>
+<div id="hblClausesWrap"></div>
 <div class="fsec">BL stage and release</div>
 <div class="fr"><div class="fg"><label class="fl">BL Stage</label><input class="fc" id="jobBl_stage" readonly value="Draft" style="font-weight:700;background:var(--g0)"></div><div class="fg"><label class="fl">Release Type</label><select class="fc" id="jobBl_relType"><option>Original</option><option>Express Release</option><option>Telex Release</option><option>Surrender</option></select></div><div class="fg" style="display:flex;align-items:flex-end"><label style="display:flex;gap:6px;align-items:center;font-size:12px"><input type="checkbox" id="jobBl_digSign"> Apply digital signature &amp; seal</label></div></div>
 <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" id="jobBl_confirmBtn">Confirm BL</button><button class="btn btn-pri btn-sm" type="button" id="jobBl_releaseBtn">Release BL</button><button class="btn btn-out btn-sm" type="button" id="jobBl_draftBtn">Back to Draft</button><button class="btn btn-out btn-sm" type="button" data-doc-profile>Company letterhead &amp; registration</button></div>
@@ -6055,6 +6056,7 @@ const SCREEN_META = {
   "themes":{title:"Themes", crumb:"eSway ERP 2.0 / Settings / <strong>Themes</strong>", menu:""},
   "booking-view":{title:"Booking", crumb:"eSway ERP 2.0 / Operations / Bookings / <strong>Booking</strong>", menu:""},
 };
+window.SCREEN_META = SCREEN_META;      /* kits that add screens at run time register their title / breadcrumb here */
 
 function go(screen, opts){
   opts = opts||{};
@@ -6064,6 +6066,7 @@ function go(screen, opts){
   if(screen==="purchase-invoice-detail") screen = "purchase-invoice-list";
   const target = $("#s-"+screen);
   if(!target) return;
+  if(window.navRecord) navRecord(screen, opts);
   $all(".scr").forEach(s=>s.classList.remove("on"));
   target.classList.add("on");
   const meta = SCREEN_META[screen] || {title:screen, crumb:"eSway ERP 2.0 / "+screen, menu:""};
@@ -6105,6 +6108,100 @@ function go(screen, opts){
   if(screen==="import-csn" && window.renderCsnFiling) renderCsnFiling();
 }
 window.go = go; // exposed for inline calls if ever needed
+
+/* ============================================================
+   NAVIGATION HISTORY. One stack per browser tab (sessionStorage) mirrors the browser history (history.pushState), so the ERP Back button, the browser Back / Forward buttons and a page refresh all
+   walk the same sequence of pages. Back goes to the page the user was actually on before, with its record, tab and scroll position; the fixed parent page of a screen is only the fallback when there
+   is no earlier page (direct URL, fresh login). Back first closes an open pop-up / drawer, asks before leaving unsaved work and ignores double clicks.
+   ============================================================ */
+(function(){
+  "use strict";
+  const START_HASH = (location.hash || "").replace(/^#/, "");        // the address the page was opened with, before the first page change rewrites it
+  const KEY = "esway_nav", NAV = window.NAV = {stack:[], idx:-1, restoring:false, ignore:false, lock:false};
+  const RECORD_SCREENS = ["job-detail","org-detail","debit-note-detail","purchase-invoice-detail","rate-sheet-detail","booking-view","quotation-print","tax-invoice-print","bl-draft","doc-view","user-detail","branch-detail","country-detail","currency-detail","port-detail"];
+  const plain = o=>{ const r = {}; Object.keys(o || {}).forEach(k=>{ const v = o[k]; if(v === undefined || v === null || typeof v === "function" || typeof v === "object") return; r[k] = v; }); return r; };
+  const same = (a, b)=> JSON.stringify(a) === JSON.stringify(b);
+  const save = ()=>{ try{ sessionStorage.setItem(KEY, JSON.stringify({stack:NAV.stack.slice(-60).map(e=>({screen:e.screen, opts:e.opts, scroll:e.scroll || 0, tab:e.tab || ""})), idx:Math.min(NAV.idx, 59), off:Math.max(0, NAV.stack.length - 60)})); }catch(e){} };
+  const here = ()=> NAV.stack[NAV.idx];
+  const fresh = ()=> !NAV.stack.length || (NAV.stack.length === 1 && NAV.stack[0].screen === "dashboard");        // nothing but the start page so far
+  const activeTab = ()=>{ const t = document.querySelector(".scr.on .tabs .tbb.on[data-tab]"); return t ? t.dataset.tab : ""; };
+  function remember(){ const c = here(); if(c){ c.scroll = window.scrollY || 0; c.tab = activeTab(); } }
+  function hist(fn, state, screen){ try{ history[fn](state, "", "#"+screen); }catch(e){} }
+
+  window.navRecord = function(screen, opts){
+    if(NAV.restoring) return;
+    const o = plain(opts), c = here();
+    if(c && c.screen === screen && same(c.opts, o)) return;           // the same page again: no extra history entry
+    remember();
+    NAV.stack.length = NAV.idx + 1;                                      // a new page after going back drops the forward pages, like a browser
+    NAV.stack.push({screen, opts:o, scroll:0, tab:""}); NAV.idx = NAV.stack.length - 1;
+    hist(NAV.idx === 0 ? "replaceState" : "pushState", {navIdx:NAV.idx}, screen);
+    save();
+  };
+  const overlays = ()=> [
+    ["#modalOvl.on", ()=>{ if(window.closeModal) closeModal(); }], [".drawer-ovl.on", o=>o.classList.remove("on")], [".lic-ovl.on", o=>o.classList.remove("on")], ["#jlDrawer.on", o=>o.classList.remove("on")]
+  ];
+  function closeTopOverlay(){
+    for(const [sel, close] of overlays()){ const o = document.querySelector(sel); if(o){ close(o); return true; } }
+    return false;
+  }
+  window.NAV_GUARDS = window.NAV_GUARDS || [];
+  const dirty = ()=> window.NAV_GUARDS.some(g=>{ try{ return g(); }catch(e){ return false; } });
+  const leave = ()=> !dirty() || window.confirm("You have unsaved changes on this page. Leave without saving?");
+  function show(ent){
+    NAV.restoring = true;
+    try{ window.go(ent.screen, Object.assign({}, ent.opts)); }finally{ NAV.restoring = false; }
+    setTimeout(()=>{ if(ent.tab){ const t = document.querySelector('.scr.on .tabs .tbb[data-tab="'+ent.tab+'"]'); if(t && !t.classList.contains("on")) t.click(); } window.scrollTo(0, ent.scroll || 0); }, 120);
+  }
+  function navTo(idx){ const ent = NAV.stack[idx]; if(!ent) return false; remember(); NAV.idx = idx; show(ent); save(); return true; }
+  window.navBack = function(fallback){
+    if(NAV.lock) return; NAV.lock = true; setTimeout(()=>{ NAV.lock = false; }, 300);
+    if(closeTopOverlay()) return;
+    if(NAV.idx > 0 && NAV.stack[NAV.idx - 1]){
+      if(!leave()) return;
+      NAV.ignore = true; setTimeout(()=>{ NAV.ignore = false; }, 400);
+      try{ history.back(); }catch(e){}
+      navTo(NAV.idx - 1);
+      return;
+    }
+    if(!leave()) return;
+    window.go(fallback || "dashboard");                                  // no earlier page (direct URL / fresh login): the parent page
+  };
+  window.addEventListener("popstate", e=>{
+    if(NAV.ignore){ NAV.ignore = false; return; }
+    const st = e.state; if(!st || typeof st.navIdx !== "number" || !NAV.stack[st.navIdx]) return;
+    if(closeTopOverlay()){ NAV.ignore = true; setTimeout(()=>{ NAV.ignore = false; }, 400); try{ history.go(NAV.idx - st.navIdx); }catch(x){} return; }      // Back / Forward with a pop-up open only closes it
+    if(!leave()){ NAV.ignore = true; setTimeout(()=>{ NAV.ignore = false; }, 400); try{ history.go(NAV.idx - st.navIdx); }catch(x){} return; }
+    navTo(st.navIdx);
+  });
+  /* every Back button of a screen (title "Go back", or labelled Back, with a fixed destination) walks the history instead */
+  document.addEventListener("click", e=>{
+    const b = e.target.closest && e.target.closest("button, a, [data-go]"); if(!b || b.closest(".tn-row, .mn-item, .mn-sub-item, #topnavMenu, .wiz-nav, .modal-ovl, .drawer")) return;
+    const label = (b.textContent || "").replace(/\s+/g, " ").trim();
+    const isBack = b.getAttribute("title") === "Go back" || b.dataset.go === "back" || (/^\W*back\W*$/i.test(label) && (b.dataset.go || b.closest(".ph .pa, .pa")));      // a page-level Back button (not a wizard step)
+    if(!isBack) return;
+    e.preventDefault(); e.stopPropagation();
+    const scr = b.closest(".scr"), fb = b.dataset.go && b.dataset.go !== "back" ? b.dataset.go : (window.BACK_MAP && BACK_MAP[(scr || {}).id]);
+    navBack(fb);
+  }, true);
+  /* after a refresh: the same page again, with the same history */
+  window.navRestore = function(){
+    let saved = null; try{ saved = JSON.parse(sessionStorage.getItem(KEY) || "null"); }catch(e){}
+    if(!saved || !saved.stack || !saved.stack.length || !fresh()) return;
+    NAV.stack = saved.stack; NAV.idx = Math.max(0, Math.min(saved.idx, saved.stack.length - 1));
+    const ent = NAV.stack[NAV.idx]; if(!ent || ent.screen === "dashboard") return;
+    show(ent); hist("replaceState", {navIdx:NAV.idx}, ent.screen);
+  };
+  window.closeTopOverlayOnly = closeTopOverlay;
+  window.navReset = function(){ NAV.stack = []; NAV.idx = -1; try{ sessionStorage.removeItem(KEY); }catch(e){} };
+  /* a page opened by its address (#screen) with no history: only screens that need no record are opened, anything else falls back to the dashboard */
+  window.navFromHash = function(){
+    const h = START_HASH; if(!h || !fresh() || RECORD_SCREENS.indexOf(h) > -1 || !document.getElementById("s-"+h)) return;
+    window.go(h);
+  };
+  // the unsaved quotation editor asks before it is left
+  window.NAV_GUARDS.push(()=> window.QK && QK.dirty && document.getElementById("s-quotation-new") && document.getElementById("s-quotation-new").classList.contains("on"));
+})();
 window.dashApplyData = function(months, volume, revenue){ CHART_DATA.months = months; CHART_DATA.volume = volume; CHART_DATA.revenue = revenue; renderDashChart((document.querySelector('[data-chart].on')||{dataset:{}}).dataset.chart || 'volume'); if(typeof dashRenderActive === 'function') dashRenderActive(); };
 window.renderJobRows = renderJobRows; window.renderPortRows = renderPortRows; window.populateCustomerSelect = populateCustomerSelect;
 
@@ -6171,6 +6268,7 @@ const TOPNAV_MENU = [
       {label:"Pack Master", icon:"package", go:"pack-master"},
       {label:"Inco Terms", icon:"tag", go:"incoterms-master"},
       {label:"SAC / HSN Master", icon:"license", go:"hsn-master"},
+      {label:"HBL Clause Master", icon:"file-text", go:"hbl-clauses"},
     ]},
     {label:"Product Masters", icon:"chart-pie", children:[
       {label:"Rate Master", icon:"tag", go:"rate-master"},
@@ -6183,7 +6281,7 @@ const TOPNAV_MENU = [
       {label:"Employee Master", icon:"user", go:"emp-list"},
     ]},
     {label:"System", icon:"book2", children:[
-      {label:"Document Sequence", icon:"book2", go:"entcfg"},
+      {label:"Document Sequence", icon:"book2", go:"sequence-setting"},
       {label:"Terms & Conditions", icon:"book", go:"terms-master"},
       {label:"Financial Year", icon:"calendar-check", go:"entcfg"},
     ]},
@@ -8961,13 +9059,13 @@ const BACK_MAP = {
   's-reports':'dashboard',
 };
 
+window.BACK_MAP = BACK_MAP;
 // Wire all data-go="back" buttons
 document.querySelectorAll('[data-go="back"]').forEach(btn=>{
   btn.addEventListener('click',()=>{
     const scr = btn.closest('.scr');
     if(!scr) return;
-    const dest = BACK_MAP[scr.id] || 'dashboard';
-    go(dest);
+    navBack(BACK_MAP[scr.id] || 'dashboard');
   });
 });
 
@@ -8975,9 +9073,9 @@ document.querySelectorAll('[data-go="back"]').forEach(btn=>{
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape'){
     const active = document.querySelector('.scr.on');
-    if(active && active.id !== 's-dashboard'){
-      const dest = BACK_MAP[active.id] || 'dashboard';
-      go(dest);
+    if(window.closeTopOverlayOnly && window.closeTopOverlayOnly()) return;
+    if(active && active.id !== 's-dashboard' && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "")){
+      navBack(BACK_MAP[active.id] || 'dashboard');
     }
   }
 });
@@ -13300,6 +13398,7 @@ if(document.readyState !== "loading") initChatWidget();
       }
     }catch(e){ /* the default logo stays */ }
     if(window.dashKitLoad) setTimeout(window.dashKitLoad, 50);
+    if(window.navRestore) setTimeout(()=>{ navRestore(); if(window.navFromHash) navFromHash(); }, 150);
   }
 
   /* Restore a persisted session (Remember me) on page load / browser restart, without re-prompting for credentials */
@@ -13386,6 +13485,7 @@ if(document.readyState !== "loading") initChatWidget();
       })
       .then(data=>{
         const user = data.user;
+        if(window.navReset) navReset();
         sessionStorage.setItem("esway_access_token", data.access_token);
         try{
           if(rememberChk && rememberChk.checked){
@@ -17586,6 +17686,9 @@ function makePrintFit(){
     const remarks = [terms, bk.container_mode ? esc2(bk.container_mode)+"/"+esc2(bk.container_mode) : "", stage === "Released" && rel ? esc2(rel.toUpperCase()) : ""].filter(Boolean).join("<br>");
     const origNo = express ? "0 (ZERO)" : esc2(bl.originals || "");
     const bnote = String(pr.bl_note || "").trim();
+    /* the clauses chosen on the BL tab (a snapshot saved with the BL: master edits never change an issued HBL), in their saved order, no clause codes */
+    const savedClauses = (bl.clauses || []).slice().sort((a, b)=> (a.order || 0) - (b.order || 0)); const hasClauses = savedClauses.length > 0;
+    const clauseHtml = savedClauses.map(x=>'<div style="margin:0 0 5px;text-transform:uppercase">'+esc2(x.text)+'</div>').join("");
     const placeDate = [bl.place || "", bl.hblDate ? dmy(bl.hblDate) : ""].filter(Boolean).join(", ");
     const sig = stage === "Released" && bl.digitalSign ? (pr.sign_image ? '<img src="'+pr.sign_image+'" style="max-height:54px;max-width:170px">' : "")+(pr.seal_image ? '<img src="'+pr.seal_image+'" style="max-height:70px;max-width:110px;margin-left:10px">' : "") : "";
     const water = stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:110px;font-weight:700;color:rgba(0,0,0,.07);transform:rotate(-28deg)">DRAFT</div>' : "";
@@ -17606,7 +17709,7 @@ function makePrintFit(){
       '<div style="display:grid;grid-template-columns:21% 14% 31% 17% 17%;font-size:11.5px;line-height:1.4;min-height:120px" class="bl-goods"><div style="padding:6px 7px">'+contLines+'</div><div style="padding:6px 7px">'+nl2br(c.marks || bk.marks || "")+'</div><div style="padding:6px 7px">'+pk+'<br>'+nl2br(c.cargoDesc || c.commodity || "")+(c.hscode ? "<br>HS CODE: "+esc2(c.hscode) : "")+'</div><div style="padding:6px 7px">'+gw+'</div><div style="padding:6px 7px">'+(c.vol ? esc2(c.vol)+" CBM" : "")+'</div></div>'+
       /* the band under the cargo: the company stamp (when released with the digital signature) on the left, shipping bill / freight / release lines and the standard remark across the rest */
       '<div style="display:grid;grid-template-columns:30% 70%;min-height:170px;padding-bottom:6px"><div style="padding:8px 10px;text-align:center;align-self:end">'+(stage === "Released" && bl.digitalSign && pr.seal_image ? '<img src="'+pr.seal_image+'" style="max-height:130px;max-width:100%;object-fit:contain">'+(rel ? '<div style="font-family:Georgia,serif;font-size:13px;letter-spacing:.5px;margin-top:2px">&quot;'+esc2(rel.toUpperCase())+'&quot;</div>' : "") : "")+'</div>'+
-        '<div style="padding:8px 10px 0 4px;font-size:13px;line-height:1.5;align-self:end">'+(sb ? sb+'<br><br>' : "")+remarks+(bnote ? '<div style="margin-top:6px">'+nl2br(bnote)+'</div>' : "")+'</div></div>'+
+        '<div style="padding:8px 10px 0 4px;font-size:13px;line-height:1.5;align-self:end">'+(sb ? sb+'<br><br>' : "")+(hasClauses ? clauseHtml : remarks+(bnote ? '<div style="margin-top:6px">'+nl2br(bnote)+'</div>' : ""))+'</div></div>'+
       /* the foot, as the sample: delivery agent (two rows) | freight amount / payable at | originals | place and date; signature block right; clauses under the left two columns */
       '<div style="display:grid;grid-template-columns:34% 24% 14% 28%;grid-template-areas:\'agent amount orig issue\' \'agent payable sign sign\' \'clauses clauses sign sign\';border-top:2px solid #000">'+
         '<div style="grid-area:agent;border-right:'+BORDER+';border-bottom:'+BORDER+'">'+cell("Delivery Agent", nl2br(pt.deliveryAgent || p.deliveryAgent), "min-height:150px;font-size:12px")+'</div>'+
@@ -20635,6 +20738,148 @@ function makePrintFit(){
     const r = e.target.closest && e.target.closest("[data-act]"); if(!r || !r.classList.contains("tn-row")) return;
     e.preventDefault(); if(window.tnCloseAll) window.tnCloseAll(); window.menuAct(r.dataset.act);
   });
+})();
+
+/* ============================================================
+   HBL CLAUSE KIT: Masters > Sea Export > HBL Clause Master (list, filters, add / edit / activate), and the HBL CLAUSES section on the job's BL tab (searchable multi-select, order, one-time clause,
+   preview, save). The saved selection is a snapshot on the BL; the BL print reads it. Mandatory clauses cannot be removed without the override right.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const CATS = ["Freight","Container","Cargo","Delivery","Customs","Documentation","Liability","Charges","Release","Other"];
+  const MOVES = ["All","CY/CY","CY/CFS","CFS/CY","CFS/CFS","Door Delivery","Port-to-Port","Door-to-Door"];
+  const opt = (v, t, sel)=> '<option value="'+esc2(v)+'"'+(sel ? " selected" : "")+'>'+esc2(t)+'</option>';
+  const dmy = d=> d ? new Date(d).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "";
+
+  /* ---------------- master screen ---------------- */
+  const M = {q:"", cat:"", status:"", page:1, size:25, data:null};
+  const anchor = el("s-bank-master");
+  if(anchor){
+    const sec = document.createElement("div"); sec.id = "s-hbl-clauses"; sec.className = "scr";
+    anchor.parentNode.insertBefore(sec, anchor);
+    sec.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>HBL Clause Master</div><div class="ps">Wording that can be printed on a House BL. Choose clauses on the job\'s BL tab; mandatory and default clauses are set here.</div></div>'+
+      '<div class="pa"><button class="btn btn-out btn-sm" id="hbcSample">Load sample clauses</button><button class="btn btn-pri btn-sm" id="hbcNew"><svg class="ic" data-icon="plus"></svg> New Clause</button></div></div>'+
+      '<div class="kpi-row" id="hbcKpi"></div>'+
+      '<div class="card" style="margin-bottom:12px"><div class="cb"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><div class="fg" style="flex:2;min-width:220px"><label class="fl">Search</label><input class="fc" id="hbcQ" placeholder="Code, title or wording"></div>'+
+      '<div class="fg"><label class="fl">Category</label><select class="fc" id="hbcCat"><option value="">All</option>'+CATS.map(c=>opt(c, c)).join("")+'</select></div><div class="fg"><label class="fl">Status</label><select class="fc" id="hbcStatus"><option value="">All</option><option>ACTIVE</option><option>INACTIVE</option></select></div><button class="btn btn-out btn-sm" id="hbcReset">Reset</button></div></div></div>'+
+      '<div class="card"><div class="tw"><table class="tbl" style="width:100%"><thead><tr><th>Code</th><th>Title / wording</th><th>Category</th><th>Type</th><th>Movement</th><th>Freight</th><th>Default</th><th>Mandatory</th><th>Order</th><th>Status</th><th>Modified</th><th></th></tr></thead><tbody id="hbcBody"></tbody></table></div><div id="hbcPager" class="net-pager"></div></div>';
+    if(window.SCREEN_META) window.SCREEN_META["hbl-clauses"] = {title:"HBL Clause Master", crumb:"eSway ERP 2.0 / Masters / Common Masters / <strong>HBL Clause Master</strong>", menu:""};
+  }
+  async function loadMaster(){
+    const p = new URLSearchParams({limit:String(M.size), offset:String((M.page-1)*M.size)}); if(M.q) p.set("q", M.q); if(M.cat) p.set("category", M.cat); if(M.status) p.set("status", M.status);
+    try{ M.data = await api("GET", "/api/hbl-clauses?"+p); }catch(e){ say("Could not load the clauses", e.message, "warn"); return; }
+    const d = M.data, s = d.stats, pages = Math.max(1, Math.ceil(d.total/M.size));
+    const kpi = (l, v)=> '<div class="kpi"><div class="kpi-lbl">'+l+'</div><div class="kpi-val">'+v+'</div></div>';
+    el("hbcKpi").innerHTML = kpi("Clauses", s.total)+kpi("Active", s.active)+kpi("Mandatory", s.mandatory)+kpi("Default", s.default);
+    el("hbcBody").innerHTML = d.items.length ? d.items.map(c=>'<tr><td class="mono">'+esc2(c.code)+'</td><td style="max-width:420px"><b>'+esc2(c.title)+'</b>'+(c.text !== c.title ? '<div style="font-size:11px;color:var(--g6)">'+esc2(c.text.length > 160 ? c.text.slice(0,157)+"..." : c.text)+'</div>' : "")+'</td><td>'+esc2(c.category)+'</td><td>'+esc2(c.shipment_type)+'</td><td>'+esc2(c.movement_type)+'</td><td>'+esc2(c.freight_term)+'</td>'+
+      '<td>'+(c.is_default ? '<span class="b b-bl">Default</span>' : "")+'</td><td>'+(c.is_mandatory ? '<span class="b b-am">Mandatory</span>' : "")+'</td><td>'+c.display_order+'</td><td><span class="b '+(c.status === "ACTIVE" ? "b-gr" : "b-gy")+'">'+(c.status === "ACTIVE" ? "Active" : "Inactive")+'</span></td><td style="font-size:11px">'+esc2(c.updated_by || c.created_by || "")+'<br>'+dmy(c.updated_at || c.created_at)+'</td>'+
+      '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-hbc-edit="'+c.id+'">Edit</button> <button class="btn btn-out btn-sm" data-hbc-toggle="'+c.id+'">'+(c.status === "ACTIVE" ? "Deactivate" : "Activate")+'</button></td></tr>').join("") :
+      '<tr><td colspan="12" style="text-align:center;padding:18px;color:var(--g5)">No clauses yet. Use "New Clause", or "Load sample clauses" to add the standard list that you can then edit.</td></tr>';
+    el("hbcPager").innerHTML = '<div>Showing '+(d.total ? (M.page-1)*M.size+1 : 0)+' to '+Math.min(d.total, M.page*M.size)+' of '+d.total+' clauses</div><div class="pgs"><button data-hbc-page="prev"'+(M.page <= 1 ? " disabled" : "")+'>‹</button><span style="padding:0 8px">Page '+M.page+' of '+pages+'</span><button data-hbc-page="next"'+(M.page >= pages ? " disabled" : "")+'>›</button></div>';
+  }
+  function drawerEl(){
+    let o = el("hbcDrawerOvl"); if(o) return o;
+    o = document.createElement("div"); o.className = "drawer-ovl"; o.id = "hbcDrawerOvl";
+    o.innerHTML = '<div class="drawer" style="width:560px"><div class="drawer-head"><h3 id="hbcDTitle"></h3><button class="drawer-close" id="hbcDClose"><svg class="ic" data-icon="close"></svg></button></div><div class="drawer-body" id="hbcDBody"></div><div class="drawer-foot" id="hbcDFoot"></div></div>';
+    document.body.appendChild(o); o.addEventListener("click", e=>{ if(e.target === o) o.classList.remove("on"); }); o.querySelector("#hbcDClose").onclick = ()=> o.classList.remove("on"); if(window.renderIcons) renderIcons(o); return o;
+  }
+  function openForm(rec){
+    const o = drawerEl(), v = (k, d)=> rec && rec[k] !== null && rec[k] !== undefined ? rec[k] : d;
+    el("hbcDTitle").textContent = rec ? "Edit clause "+rec.code : "New HBL clause";
+    const sel = (id, label, list, cur)=> '<div class="fg"><label class="fl">'+label+'</label><select class="fc" id="'+id+'">'+list.map(x=>opt(x, x, x === cur)).join("")+'</select></div>';
+    el("hbcDBody").innerHTML = '<div class="fg"><label class="fl">Clause Code</label><input class="fc" readonly style="background:var(--g0);font-family:var(--font-mono)" value="'+esc2(rec ? rec.code : "Assigned automatically")+'"></div>'+
+      '<div class="fg"><label class="fl">Clause Title <span class="r">*</span></label><input class="fc" id="hf_title" value="'+esc2(v("title", ""))+'"></div>'+
+      '<div class="fg"><label class="fl">Clause Text (printed on the HBL) <span class="r">*</span></label><textarea class="fc" id="hf_text" rows="5">'+esc2(v("text", ""))+'</textarea></div>'+
+      '<div class="fr">'+sel("hf_cat", "Category", CATS, v("category", "Other"))+sel("hf_st", "Applicable Shipment Type", ["Both","FCL","LCL"], v("shipment_type", "Both"))+sel("hf_mv", "Applicable Movement", MOVES, v("movement_type", "All"))+'</div>'+
+      '<div class="fr">'+sel("hf_ft", "Applicable Freight Term", ["Both","Prepaid","Collect"], v("freight_term", "Both"))+'<div class="fg"><label class="fl">Display Order</label><input class="fc" type="number" min="0" id="hf_ord" value="'+esc2(v("display_order", 100))+'"></div>'+sel("hf_status", "Status", ["ACTIVE","INACTIVE"], v("status", "ACTIVE"))+'</div>'+
+      '<div class="fr"><div class="fg"><label class="fl">Applicable Country / Region (optional)</label><input class="fc" id="hf_country" value="'+esc2(v("country", ""))+'"></div><div class="fg"><label class="fl">Applicable POL (optional)</label><input class="fc" id="hf_pol" value="'+esc2(v("pol", ""))+'"></div><div class="fg"><label class="fl">Applicable POD (optional)</label><input class="fc" id="hf_pod" value="'+esc2(v("pod", ""))+'"></div></div>'+
+      '<div class="fr">'+sel("hf_def", "Default Clause", ["No","Yes"], v("is_default", false) ? "Yes" : "No")+sel("hf_man", "Mandatory Clause", ["No","Yes"], v("is_mandatory", false) ? "Yes" : "No")+'<div class="fg"><label class="fl">Exclusive Group (optional)</label><input class="fc" id="hf_grp" placeholder="e.g. freight-term" value="'+esc2(v("exclusive_group", ""))+'"></div></div>'+
+      '<div style="font-size:11px;color:var(--g5)">Clauses with the same Exclusive Group cannot be on the same HBL (for example FCL/FCL and LCL/LCL, or Freight Prepaid and Freight Collect). Mandatory clauses are always on the HBL; default clauses are suggested when they fit the shipment.</div>';
+    el("hbcDFoot").innerHTML = '<button class="btn btn-out" id="hbcCancel">Cancel</button><button class="btn btn-pri" id="hbcSave">'+(rec ? "Update" : "Save")+'</button>';
+    o.classList.add("on"); el("hbcCancel").onclick = ()=> o.classList.remove("on");
+    el("hbcSave").onclick = async ()=>{
+      const g = id=> el(id).value.trim();
+      const body = {title:g("hf_title"), text:g("hf_text"), category:g("hf_cat"), shipment_type:g("hf_st"), movement_type:g("hf_mv"), freight_term:g("hf_ft"), display_order:Number(g("hf_ord")) || 0, status:g("hf_status"), country:g("hf_country"), pol:g("hf_pol"), pod:g("hf_pod"), is_default:g("hf_def") === "Yes", is_mandatory:g("hf_man") === "Yes", exclusive_group:g("hf_grp")};
+      if(body.title.length < 2 || body.text.length < 2){ say("Title and clause text are required", "", "warn"); return; }
+      try{ if(rec) await api("PATCH", "/api/hbl-clauses/"+rec.id, body); else await api("POST", "/api/hbl-clauses", body); say(rec ? "Clause updated" : "Clause added", body.title); o.classList.remove("on"); loadMaster(); }
+      catch(e){ say("Could not save", e.message, "warn"); }
+    };
+  }
+  document.addEventListener("click", async e=>{
+    const t = e.target.closest ? e.target : null; if(!t) return;
+    if(t.closest("#hbcNew")){ openForm(null); return; }
+    if(t.closest("#hbcSample")){ try{ const r = await api("POST", "/api/hbl-clauses/load-sample"); say("Sample clauses loaded", r.created+" added, "+r.skipped+" already there"); loadMaster(); }catch(err){ say("Could not load", err.message, "warn"); } return; }
+    if(t.closest("#hbcReset")){ M.q = M.cat = M.status = ""; M.page = 1; ["hbcQ","hbcCat","hbcStatus"].forEach(i=>{ if(el(i)) el(i).value = ""; }); loadMaster(); return; }
+    const ed = t.closest("[data-hbc-edit]"); if(ed){ const c = (M.data.items || []).find(x=>String(x.id) === ed.dataset.hbcEdit); if(c) openForm(c); return; }
+    const tg = t.closest("[data-hbc-toggle]"); if(tg){ const c = (M.data.items || []).find(x=>String(x.id) === tg.dataset.hbcToggle); if(c){ try{ await api("PATCH", "/api/hbl-clauses/"+c.id, {status:c.status === "ACTIVE" ? "INACTIVE" : "ACTIVE"}); loadMaster(); }catch(err){ say("Could not change", err.message, "warn"); } } return; }
+    const pg = t.closest("[data-hbc-page]"); if(pg){ M.page = Math.max(1, M.page + (pg.dataset.hbcPage === "next" ? 1 : -1)); loadMaster(); }
+  });
+  let qt = null;
+  document.addEventListener("input", e=>{ if(e.target.id === "hbcQ"){ clearTimeout(qt); qt = setTimeout(()=>{ M.q = e.target.value.trim(); M.page = 1; loadMaster(); }, 300); } });
+  document.addEventListener("change", e=>{ if(e.target.id === "hbcCat"){ M.cat = e.target.value; M.page = 1; loadMaster(); } if(e.target.id === "hbcStatus"){ M.status = e.target.value; M.page = 1; loadMaster(); } });
+
+  /* ---------------- HBL CLAUSES section on the job's BL tab ---------------- */
+  const S = {job:null, info:null, sel:[], q:"", dirty:false};
+  const isSea = ()=> !!el("hblClausesWrap");
+  async function loadSel(){
+    const wrap = el("hblClausesWrap"); if(!wrap) return; const no = window.__lastJobNo; if(!no) return;
+    S.job = no;
+    try{ S.info = await api("GET", "/api/jobs/"+encodeURIComponent(no)+"/hbl-clauses"); }catch(e){ wrap.innerHTML = ""; return; }
+    S.sel = (S.info.saved ? S.info.selected : S.info.suggested.map(c=>({clause_id:c.id, code:c.code, title:c.title, text:c.text, category:c.category, group:c.exclusive_group, mandatory:c.is_mandatory, source:"master"}))).map(x=>({...x}));
+    S.dirty = !S.info.saved && S.sel.length > 0; paintSel();
+  }
+  function ctxRow(k, v){ return '<div style="min-width:140px"><div style="font-size:10px;color:var(--g5);text-transform:uppercase">'+k+'</div><div style="font-size:12px;font-weight:600">'+esc2(v || "—")+'</div></div>'; }
+  function paintSel(){
+    const wrap = el("hblClausesWrap"); if(!wrap || !S.info) return; const i = S.info, ctx = i.context || {}, locked = i.locked;
+    const q = S.q.toLowerCase(); const chosen = new Set(S.sel.map(x=>x.clause_id).filter(Boolean));
+    const avail = i.available.filter(c=>!q || (c.code+" "+c.title+" "+c.text).toLowerCase().includes(q));
+    const list = avail.map(c=>'<label style="display:flex;gap:8px;padding:5px 6px;border-bottom:1px solid var(--g1);'+(locked ? "opacity:.6;" : "cursor:pointer;")+'"><input type="checkbox" data-hbs-pick="'+c.id+'" '+(chosen.has(c.id) ? "checked " : "")+(locked || (c.is_mandatory && chosen.has(c.id) && !i.can_override) ? "disabled" : "")+'><span><b>'+esc2(c.code)+'</b> · '+esc2(c.title)+' <span class="b b-gy" style="font-size:9.5px">'+esc2(c.category)+'</span>'+(c.is_mandatory ? ' <span class="b b-am" style="font-size:9.5px">Mandatory</span>' : "")+'<div style="font-size:11px;color:var(--g6)">'+esc2(c.text.length > 140 ? c.text.slice(0,137)+"..." : c.text)+'</div></span></label>').join("") || '<div style="padding:10px;color:var(--g5)">No clause matches.</div>';
+    const picked = S.sel.map((x,idx)=>'<div style="display:flex;gap:6px;align-items:flex-start;padding:5px 6px;border-bottom:1px solid var(--g1)"><span style="width:20px;color:var(--g5)">'+(idx+1)+'</span><span style="flex:1;font-size:12px">'+(x.source === "custom" ? '<span class="b b-bl" style="font-size:9.5px">One-time</span> ' : '<b>'+esc2(x.code)+'</b> · ')+esc2(x.text)+(x.mandatory ? ' <span class="b b-am" style="font-size:9.5px">Mandatory</span>' : "")+'</span>'+
+      (locked ? "" : '<button class="ta" data-hbs-up="'+idx+'" title="Move up">▲</button><button class="ta" data-hbs-down="'+idx+'" title="Move down">▼</button><button class="ta" data-hbs-del="'+idx+'" title="Remove"'+(x.mandatory && !i.can_override ? " disabled" : "")+'>✕</button>')+'</div>').join("") || '<div style="padding:10px;color:var(--g5)">No clause selected.</div>';
+    wrap.innerHTML = '<div class="fsec">HBL CLAUSES</div><div class="card" style="margin-bottom:12px"><div class="cb">'+
+      '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px">'+ctxRow("Job", i.job_number)+ctxRow("HBL No", i.hbl_number)+ctxRow("Shipper", ctx.shipper)+ctxRow("Consignee", ctx.consignee)+ctxRow("Notify", ctx.notify)+ctxRow("POL", ctx.pol)+ctxRow("POD", ctx.pod)+ctxRow("Shipment type", ctx.shipment_type)+ctxRow("Freight term", ctx.freight_term)+ctxRow("BL stage", i.stage)+'</div>'+
+      (locked ? '<div class="ib ib-am" style="margin-bottom:8px">The BL is '+esc2(i.stage)+': its clauses are locked. '+(i.stage === "Confirmed" ? "Return the BL to Draft to change them (re-approval is then needed)." : "A released BL cannot be changed.")+'</div>' : "")+
+      (i.problems && i.problems.length ? '<div class="ib ib-am" style="margin-bottom:8px">'+i.problems.map(esc2).join("<br>")+'</div>' : "")+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b style="font-size:12px">Clause master (active, fitting this shipment)</b><input class="fc" id="hbsQ" placeholder="Search code, title, wording" style="max-width:220px" value="'+esc2(S.q)+'"></div><div style="max-height:300px;overflow:auto;border:1px solid var(--g2);border-radius:6px">'+list+'</div></div>'+
+      '<div><b style="font-size:12px">Selected clauses (printed in this order)</b><div style="max-height:300px;overflow:auto;border:1px solid var(--g2);border-radius:6px;margin-top:4px">'+picked+'</div></div></div>'+
+      (!locked && i.can_custom ? '<div style="display:flex;gap:8px;margin-top:10px"><input class="fc" id="hbsOnce" placeholder="One-time clause for this HBL only" style="flex:1"><button class="btn btn-out btn-sm" id="hbsOnceAdd">Add one-time clause</button></div>' : "")+
+      '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center"><button class="btn btn-out btn-sm" id="hbsPreview">Preview clauses</button>'+(locked ? "" : '<button class="btn btn-pri btn-sm" id="hbsSave">Save clause selection</button>')+
+      '<span style="font-size:11px;color:var(--g5)">'+(S.dirty ? "Not saved yet" : i.saved ? "Saved (version "+i.version+") — the HBL print uses this saved selection. Use Confirm BL below to approve, then Release BL." : "")+'</span></div></div></div>';
+  }
+  function preview(){
+    const lines = S.sel.map(x=>'<div style="margin:0 0 8px;font-size:13px;line-height:1.5;text-transform:uppercase">'+esc2(x.text)+'</div>').join("") || '<div style="color:var(--g5)">No clause selected.</div>';
+    window.openModal({title:"HBL clauses — preview", bodyHTML:'<div style="border:1px solid var(--g3);padding:14px;background:#fff">'+lines+'</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
+  }
+  async function saveSel(){
+    const body = {items:S.sel.map(x=>x.source === "custom" ? {title:x.title, text:x.text} : {clause_id:x.clause_id}), override_reason:""};
+    const removedMandatory = (S.info.available || []).filter(c=>c.is_mandatory && !S.sel.some(x=>x.clause_id === c.id));
+    if(removedMandatory.length){ const r = window.prompt("You are removing a mandatory clause ("+removedMandatory.map(c=>c.code).join(", ")+"). Reason:"); if(!r) return; body.override_reason = r; }
+    try{ S.info = await api("PUT", "/api/jobs/"+encodeURIComponent(S.job)+"/hbl-clauses", body); S.sel = S.info.selected.map(x=>({...x})); S.dirty = false; paintSel(); say("HBL clauses saved", S.sel.length+" clause(s)"); }
+    catch(e){ say("Could not save the clauses", e.message, "warn"); }
+  }
+  document.addEventListener("click", e=>{
+    const t = e.target.closest ? e.target : null; if(!t || !el("hblClausesWrap") || !el("hblClausesWrap").contains(t)) return;
+    const up = t.closest("[data-hbs-up]"), dn = t.closest("[data-hbs-down]"), del = t.closest("[data-hbs-del]");
+    const mv = (a, b)=>{ if(b < 0 || b >= S.sel.length) return; const x = S.sel[a]; S.sel[a] = S.sel[b]; S.sel[b] = x; S.dirty = true; paintSel(); };
+    if(up) return mv(Number(up.dataset.hbsUp), Number(up.dataset.hbsUp)-1); if(dn) return mv(Number(dn.dataset.hbsDown), Number(dn.dataset.hbsDown)+1);
+    if(del){ S.sel.splice(Number(del.dataset.hbsDel), 1); S.dirty = true; paintSel(); return; }
+    if(t.closest("#hbsPreview")) return preview(); if(t.closest("#hbsSave")) return saveSel();
+    if(t.closest("#hbsOnceAdd")){ const v = el("hbsOnce").value.trim(); if(!v) return; if(S.sel.some(x=>x.text.trim().toUpperCase() === v.toUpperCase())){ say("Already selected", "", "warn"); return; } S.sel.push({clause_id:null, code:"ONE-TIME", title:v.slice(0,60), text:v, source:"custom", mandatory:false}); S.dirty = true; paintSel(); }
+  });
+  document.addEventListener("change", e=>{
+    const p = e.target.dataset && e.target.dataset.hbsPick; if(!p || !S.info) return; const c = S.info.available.find(x=>String(x.id) === p); if(!c) return;
+    if(e.target.checked){ if(!S.sel.some(x=>x.clause_id === c.id)) S.sel.push({clause_id:c.id, code:c.code, title:c.title, text:c.text, category:c.category, group:c.exclusive_group, mandatory:c.is_mandatory, source:"master"}); }
+    else S.sel = S.sel.filter(x=>x.clause_id !== c.id);
+    S.dirty = true; paintSel();
+  });
+  let st = null;
+  document.addEventListener("input", e=>{ if(e.target.id === "hbsQ"){ S.q = e.target.value; clearTimeout(st); st = setTimeout(()=>{ paintSel(); const i = el("hbsQ"); if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 200); } });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "hbl-clauses") loadMaster(); if(screen === "job-detail") setTimeout(loadSel, 1800); };
+  document.addEventListener("click", e=>{ if(e.target.closest && e.target.closest('[data-tab="jt3"]')) setTimeout(loadSel, 300); });
+  window.HblClauseKit = {loadSel, loadMaster};
 })();
 
 /* ============================================================
