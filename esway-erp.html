@@ -21205,6 +21205,7 @@ function makePrintFit(){
       return '<button class="kpi" data-cha-type="'+dir+'|'+mode+'" style="text-align:left;cursor:pointer;'+(S.direction === dir && S.mode === mode ? "outline:2px solid var(--bl);" : "")+'"><div style="font-weight:800">'+k+'</div><div style="font-size:12px;color:var(--g5)">Active <b>'+m.active+'</b> · Pending filing <b>'+m.pending_filing+'</b> · Closed <b>'+m.closed+'</b></div></button>'; }).join("");
     const extra = dash ? [["Pending documents", dash.pending_documents], ["OOC pending (import)", dash.ooc_pending_import], ["EP copy pending (export)", dash.ep_copy_pending_export], ["Delivery pending", dash.delivery_pending], ["Closure pending", dash.closure_pending]]
       .map(([n, v])=>'<span class="b b-gy" style="margin:2px 6px 2px 0">'+n+': <b>'+(v || 0)+'</b></span>').join("") : "";
+    list.items.forEach(r=> window.CHA_JOBS && window.CHA_JOBS.add(r.cha_job_number));
     const rows = list.items.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc2(r.cha_job_number)+'</td><td class="mono">'+t(r.freight_job_number)+'</td><td class="mono">'+t(r.booking_number)+'</td><td><span class="b b-bl">'+esc2(r.shipment_type)+'</span> <span class="b b-gy">'+esc2(r.shipment_mode)+'</span></td>'+
       '<td>'+t(r.exporter)+'</td><td>'+t(r.importer)+'</td><td>'+esc2([r.pol, r.pod].filter(Boolean).join(" → ") || "—")+'</td><td>'+(r.shipment_type === "Export" ? bill(r.shipping_bill_no, r.shipping_bill_date) : bill(r.bill_of_entry_no, r.bill_of_entry_date))+'</td>'+
       '<td>'+badge(r.customs_status)+'</td><td class="no-print"><button class="btn btn-out btn-sm" data-cha-open="'+esc2(r.cha_job_number)+'">Open</button></td></tr>').join("");
@@ -21451,6 +21452,7 @@ function makePrintFit(){
   async function load(no){
     S.no = no || S.no; if(!S.no) return;
     try{ S.job = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)); }catch(e){ say("Could not open the CHA job", e.message, "error"); return; }
+    S.dirty = false; if(window.CHA_JOBS) window.CHA_JOBS.add(S.no); (S.job.siblings || []).forEach(x=> window.CHA_JOBS && window.CHA_JOBS.add(x.cha_job_number));
     if(!S.chas){ try{ S.chas = (await api("GET", "/api/customers?role=cha")).filter(c=>c.status !== "INACTIVE"); }catch(e){ S.chas = []; } }
     try{ S.val = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/validate"); }catch(e){ S.val = null; }
     render();
@@ -21499,9 +21501,9 @@ function makePrintFit(){
     const i = j.stages.indexOf(j.customs_status); const si = j.source_info || {};
     const stepper = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 12px">'+j.stages.map((s, n)=>'<button class="btn btn-sm '+(n === i ? "btn-pri" : "btn-out")+'" data-chj-stage="'+esc2(s)+'" style="'+(n < i ? "opacity:.7;" : "")+'font-size:11px">'+(n < i ? "✓ " : "")+esc2(s)+'</button>').join("")+'</div>';
     return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Customs stages</div></div><div class="cb">'+stepper+
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">'+row("Freight job", j.freight_job_number ? '<a href="#" data-svc-job="'+esc2(j.freight_job_number)+'">'+esc2(j.freight_job_number)+'</a>' : t(null))+row("Booking", t(j.booking_number))+row("Exporter", t(j.exporter))+row("Importer", t(j.importer))+row("Port of loading", t(j.pol))+row("Port of discharge", t(j.pod))+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">'+row("Freight job", j.freight_job_number ? '<a href="#" data-svc-job="'+esc2(j.freight_job_number)+'">'+esc2(j.freight_job_number)+'</a>' : t(null))+row("Booking", j.booking_number && j.booking_id ? '<a href="#" data-chj-booking="'+j.booking_id+'">'+esc2(j.booking_number)+'</a>' : t(j.booking_number))+row("Exporter", t(j.exporter))+row("Importer", t(j.importer))+row("Port of loading", t(j.pol))+row("Port of discharge", t(j.pod))+
       row("ETD", t(dmy(j.etd)))+row("ETA", t(dmy(j.eta)))+row("MBL / HBL / AWB", t(info.hbl || info.mbl))+row("File ref", t(info.file_ref))+row("Exporter IEC / AD / unit", t(pd((j.party_details || {}).exporter)))+row("Importer IEC / unit", t(pd((j.party_details || {}).importer)))+
-      row("Source (booking)", si.booking_number ? '<b>'+esc2(si.booking_number)+'</b> · '+esc2(si.booking_source || "") : t(null))+row("Services booked", t((si.services || []).join(" + ")))+row("Order of work", t(si.order))+'</div></div></div>'+
+      row("Source (booking)", si.booking_number ? '<a href="#" data-chj-booking="'+si.booking_id+'"><b>'+esc2(si.booking_number)+'</b></a> · '+esc2(si.booking_source || "") : t(null))+row("Services booked", t((si.services || []).join(" + ")))+row("Order of work", t(si.order))+'</div></div></div>'+
       '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">'+(j.shipment_type === "Export" ? "Shipping Bills" : "Bills of Entry")+'</div></div><div class="cb">'+(j.bills.length ? '<table><thead><tr><th>No</th><th>Date</th><th>Status</th><th>OOC / LEO</th></tr></thead><tbody>'+j.bills.map(b=>'<tr><td class="mono">'+esc2(b.bill_no)+'</td><td>'+t(dmy(b.bill_date))+'</td><td>'+esc2(b.status)+'</td><td>'+t(dmy(b.ooc_date))+'</td></tr>').join("")+'</tbody></table>' : '<div style="color:var(--g5);font-size:12px">None recorded yet. Enter the number in the header and Save, or add more on the job\'s Customs tab.</div>')+'</div></div>'+
       '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Documents</div></div><div class="cb">'+j.documents.map(d=>'<span class="b '+(d.available ? "b-gr" : "b-gy")+'" style="margin-right:6px">'+esc2(d.name)+(d.available ? "" : " — not ready")+'</span>').join("")+'</div></div>'+
       (j.siblings.length ? '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Other CHA jobs of this booking</div></div><div class="cb">'+j.siblings.map(s=>'<div><a href="#" data-cha-open="'+esc2(s.cha_job_number)+'">'+esc2(s.cha_job_number)+'</a> · '+esc2(s.exporter || "—")+' → '+esc2(s.importer || "—")+' · <span class="b '+(TONE[s.customs_status] || "b-gy")+'">'+esc2(s.customs_status)+'</span></div>').join("")+'</div></div>' : "")+
@@ -21525,7 +21527,7 @@ function makePrintFit(){
       S.job = await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(S.no), body);
       const no = el("chjBillNo") && el("chjBillNo").value.trim();
       if(no){ try{ await api("POST", "/api/customs/by-job/"+encodeURIComponent(S.no), {bill_no:no, bill_date:(el("chjBillDate") || {}).value || null}); }catch(e){ say("The "+(S.job.shipment_type === "Export" ? "SB" : "BE")+" number was not saved", e.message, "warn"); } }
-      S.val = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/validate"); await load();
+      S.val = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/validate"); await load(); S.dirty = false;
       if(!quiet) say("CHA job saved", S.no);
       return true;
     }catch(e){ say("Could not save the CHA job", e.message, "error"); return false; }
@@ -21543,7 +21545,8 @@ function makePrintFit(){
         [["Booking linked", !!j.booking_number], ["Exporter and importer named", !!(j.exporter && j.importer)], ["Ports of loading and discharge", !!(j.pol && j.pod)], ["Customs bill number recorded", j.bills.some(x=>x.status !== "Cancelled")], ["All required filing fields filled", v.ready], ["Documents ready", j.documents.every(d=>d.available)]]
           .map(r=>'<tr><td>'+esc2(r[0])+'</td><td>'+(r[1] ? '<span class="b b-gr">OK</span>' : '<span class="b b-am">Pending</span>')+'</td></tr>').join("")+'</tbody></table></div>'+(v.errors.length ? '<div class="ib ib-am" style="margin-top:8px">To fix: '+v.errors.map(x=>esc2(x.label)).join(", ")+'</div>' : ""), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
       return; }
-    if(T.closest("#chjBack")){ go("svc-cha"); return; }
+    if((b = T.closest("[data-chj-booking]"))){ e.preventDefault(); if(window.BKG && BKG.view) BKG.view(Number(b.dataset.chjBooking)); return; }
+    if(T.closest("#chjBack")){ if(window.navBack) navBack("svc-cha"); else go("svc-cha"); return; }
     if(T.closest("#chjDup")){
       const j = S.job, si = j.source_info || {}; if(!window.confirm("Create another CHA job with these details?")) return;
       try{ const r = await api("POST", "/api/cha/jobs", {job_type:j.shipment_type, mode:j.shipment_mode, exporter:j.exporter || "", importer:j.importer || "", pol:j.pol || "", pod:j.pod || "", etd:j.etd || null, eta:j.eta || null, booking_number:si.booking_source === "Booking" ? (si.booking_number || "") : ""});
@@ -21555,6 +21558,13 @@ function makePrintFit(){
       try{ await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/status", {status:to, remarks}); say("Stage updated", S.no+" → "+to); await load(); }catch(err){ say("Could not change the stage", err.message, "error"); }
     }
   });
+  /* Any link to a CHA job number (booking page, search, reports, other CHA jobs) opens the CHA job screen, not the freight job page */
+  window.CHA_JOBS = window.CHA_JOBS || new Set();
+  const isCha = no=> !!no && (window.CHA_JOBS.has(no) || /^[A-Z]{2}\/CC\//.test(no));
+  if(!window.__goChaWrapped){ window.__goChaWrapped = true; const baseGo = window.go; window.go = function(screen, opts){ if(screen === "job-detail" && opts && isCha(opts.jobNo)) screen = "cha-job"; return baseGo.call(this, screen, opts); }; }
+  /* unsaved filing-form changes are guarded like every other form */
+  window.NAV_GUARDS = window.NAV_GUARDS || []; window.NAV_GUARDS.push(()=> S.dirty && !!el("s-cha-job") && el("s-cha-job").classList.contains("on"));
+  document.addEventListener("input", e=>{ if(e.target && e.target.closest && e.target.closest("#chaJobRoot") && e.target.dataset && e.target.dataset.ff) S.dirty = true; });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "cha-job"){ S.tab = "Job"; S.job = null; el("chaJobRoot").innerHTML = '<div style="padding:20px;color:var(--g5)">Loading…</div>'; load(opts && opts.jobNo); } };
   window.ChaJobScreen = {state:S, load, render};

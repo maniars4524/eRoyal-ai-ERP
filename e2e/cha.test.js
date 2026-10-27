@@ -78,7 +78,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the register shows the booking number of the jobs", root.textContent.includes(bkDone.number));
   const direct = (await j("GET", "/api/cha/jobs?q=HAWB900", null, token)).body.items[0];
   check("the direct CHA job got a system generated booking number", /^BKG\//.test(direct.booking_number || ""), direct.booking_number);
-  root.querySelector(`[data-cha-open="${mine[0].cha_job_number}"]`).click(); await sleep(1500);
+  w.go("svc-cha"); await sleep(1800);
+  root.querySelector(`[data-cha-open="${mine[0].cha_job_number}"]`).click(); await sleep(1800);
   check("the job screen shows the source booking and the order of work", jobScr().textContent.includes(bkDone.number) && /CHA first, then freight/.test(jobScr().textContent));
   // the General tab of the Bill of Entry / Shipping Bill filing form: fill, validate, save
   jobScr().querySelector('[data-chj-tab="General"]').click(); await sleep(400);
