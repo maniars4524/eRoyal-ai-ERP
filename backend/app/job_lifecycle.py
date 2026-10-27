@@ -129,7 +129,7 @@ def milestone_map(db: Session, job: Shipment) -> dict[str, JobMilestone]:
         ts = booking.created_at
         if "booking_started" not in got:
             got["booking_started"] = JobMilestone(code="booking_started", actual_at=ts, remarks="From booking " + (booking.number or "draft"))
-        if booking.status == "CONFIRMED" and "booking_confirmed" not in got:
+        if booking.status == "CONFIRMED" and "booking_confirmed" not in got and not (booking.data or {}).get("auto_generated"):
             got["booking_confirmed"] = JobMilestone(code="booking_confirmed", actual_at=booking.updated_at or ts, remarks="Booking " + (booking.number or "") + " confirmed")
     return got
 
@@ -191,7 +191,13 @@ def derive_stage(db: Session, job: Shipment) -> tuple[str, str]:
     transit = sorted(c for c in ms if c in TRANSIT_MILESTONES)
     if transit:
         return "On Transit", "MILESTONE:" + transit[-1]
-    if job.booking_id or (job.status or "Draft") != "Draft" or "booking_confirmed" in ms:
+    real_booking = False
+    if job.booking_id:          # the booking number a direct job is given by the system does not confirm the job
+        from .models import Booking
+
+        bk = db.get(Booking, job.booking_id)
+        real_booking = not (bk is not None and (bk.data or {}).get("auto_generated"))
+    if real_booking or (job.status or "Draft") != "Draft" or "booking_confirmed" in ms:
         return "Confirmed", "JOB_CONFIRMED"
     return "Draft", "JOB_CREATED"
 

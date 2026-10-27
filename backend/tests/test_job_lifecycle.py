@@ -129,7 +129,7 @@ def test_manual_stage_needs_a_reason_and_only_draft_confirmed_on_transit(h, view
 def test_the_job_source_says_how_it_was_created(h):
     jn = new_job(h, charges=False)
     src = client.get(f"/api/jobs/{jn}/source", headers=h).json()
-    assert src["created_via"] == "Created directly" and src["booking"] is None and src["quotation"] is None and src["created_by"]
+    assert src["created_via"] == "Created directly" and src["auto_booking"] is True and src["booking"]["number"].startswith("BKG/") and src["quotation"] is None and src["created_by"]      # a direct job carries a system generated booking number
 
 
 def test_a_finished_job_is_on_transit_and_stays_open_until_closed(h):

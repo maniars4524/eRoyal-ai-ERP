@@ -32,13 +32,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("CHA role opens licence no, validity, stations and filing mode", ["net_cha_license_no", "net_cha_license_valid_to", "net_cha_customs_stations", "net_cha_filing_mode"].every(id => d.getElementById(id)));
   const put = (id, v) => { d.getElementById(id).value = v; };
   put("net_exp_ad_code", "ad77"); put("net_exp_default_pol", "inmaa"); put("net_cha_license_no", "chn/12"); put("net_cha_filing_mode", "Export and Import");
+  check("Exporter / Importer open Unit kind (General, SEZ ...) and approval; Exporter also LUT", ["net_trade_unit_kind", "net_trade_approval_no", "net_exp_lut_no", "net_exp_lut_valid_to"].every(id => d.getElementById(id)) && Array.from(d.getElementById("net_trade_unit_kind").options).map(x => x.text).includes("SEZ"));
+  put("net_trade_unit_kind", "SEZ"); put("net_trade_approval_no", "sez/77");
   const got = w.OrgExt.collect();
-  check("the values are collected into the organization data", got.exp_ad_code === "AD77" && got.exp_default_pol === "INMAA" && got.cha_license_no === "CHN/12" && got.cha_filing_mode === "Export and Import", JSON.stringify(got));
+  check("the values are collected into the organization data", got.trade_unit_kind === "SEZ" && got.trade_approval_no === "SEZ/77" && got.exp_ad_code === "AD77" && got.exp_default_pol === "INMAA" && got.cha_license_no === "CHN/12" && got.cha_filing_mode === "Export and Import", JSON.stringify(got));
   await click('#orgRoleFlags .fi[data-role="shipper"]');
   check("un-ticking a role drops its fields from the data", w.OrgExt.collect().exp_ad_code === undefined && w.OrgExt.collect().cha_license_no === "CHN/12");
   // saved through the API and read back
   const chaOrg = await cust("CHAX1", "Sway Impex CHA", ["cha", "ar"], { cha_license_no: "CHN/12", cha_filing_mode: "Export and Import" });
-  const expOrg = await cust("EXPX1", "Madras Exports", ["shipper"], { exp_default_pol: "INMAA", exp_default_cha: "Sway Impex CHA" });
+  const expOrg = await cust("EXPX1", "Madras Exports", ["shipper"], { exp_default_pol: "INMAA", exp_default_cha: "Sway Impex CHA", iec_code: "0512098765", exp_ad_code: "AD1", trade_unit_kind: "SEZ" });
   check("organizations keep the role fields", chaOrg.status === 201 && expOrg.status === 201 && expOrg.body.data.exp_default_cha === "Sway Impex CHA", JSON.stringify(expOrg.body).slice(0, 200));
   const chas = (await j("GET", "/api/customers?role=cha", null, token)).body;
   check("only CHA organizations are listed for the CHA role", chas.length === 1 && chas[0].name === "Sway Impex CHA");

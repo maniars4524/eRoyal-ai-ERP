@@ -19434,13 +19434,13 @@ function makePrintFit(){
   const host = ()=> document.getElementById("netRoleBlocks");
   const on = r=> !!document.querySelector('#orgRoleFlags .fi[data-role="'+r+'"].on');
   const st = {rec:null, airline:false, sea:false, links:{}};
-  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode"];
+  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to"];
   const val = id=> { const e = document.getElementById(id); return e ? e.value.trim() : ""; };
   const fld = (id, label, ph, cur, req, extra)=> '<div class="fg"><label class="fl">'+label+(req?' <span class="r">*</span>':'')+'</label><input class="fc" id="'+id+'" value="'+esc2(cur||"")+'" placeholder="'+esc2(ph||"")+'" autocomplete="off"'+(extra||"")+'></div>';
   const d = ()=> (st.rec && st.rec.data) || {};
   const linkNote = k=> st.links[k] ? '<div style="font-size:11px;color:var(--g6);margin:2px 0 8px">Linked master record: <strong>'+esc2(st.links[k].code)+'</strong> — '+esc2(st.links[k].name)+' ('+esc2(st.links[k].status)+')</div>' : '';
   function read(){ // keep what was typed while the blocks are redrawn
-    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
+    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
   }
   const cur = k=> st[k] !== undefined ? st[k] : (d()[k] || "");
   /* CHA organizations of the company, for the "default CHA" pick-lists of an exporter / importer */
@@ -19448,9 +19448,11 @@ function makePrintFit(){
   const chaPick = (id, curv)=> sel(id, "Default CHA", (st.chas || []).map(c=>c.name), curv);
   function drawTrade(){
     let out = "";
+    if(on("shipper") || on("consignee")) out += '<div class="fsec" style="margin-top:12px">Trade unit (exporter / importer)</div><div class="ib ib-bl" style="margin-bottom:6px">Kind of unit and its approval. It shows on the booking, the CHA job and the customs filing of this party. IEC and GST are entered above with the tax details.</div><div class="fr">'+
+      sel("net_trade_unit_kind","Unit kind",["General","SEZ","EOU","STP","EHTP","FTWZ","Merchant exporter","Manufacturer exporter"],cur("trade_unit_kind"))+fld("net_trade_approval_no","Approval / SEZ unit no","Letter of approval, unit or bond no",cur("trade_approval_no"))+'</div>';
     if(on("shipper")) out += '<div class="fsec" style="margin-top:12px">Exporter / Shipper details</div><div class="ib ib-bl" style="margin-bottom:6px">Used when this organization is the exporter on a booking, job or CHA job. The IEC code is entered above with the tax details.</div><div class="fr">'+
       fld("net_exp_ad_code","AD Code","Authorised dealer code",cur("exp_ad_code"),false,' maxlength="20" style="text-transform:uppercase"')+fld("net_exp_ad_bank","AD Bank","Bank holding the AD code",cur("exp_ad_bank"))+fld("net_exp_default_pol","Default Port of Loading","e.g. INMAA",cur("exp_default_pol"),false,' maxlength="5" style="text-transform:uppercase"')+
-      sel("net_exp_rodtep","RODTEP / Drawback claims",["Yes","No"],cur("exp_rodtep"))+chaPick("net_exp_default_cha", cur("exp_default_cha"))+'</div>';
+      sel("net_exp_rodtep","RODTEP / Drawback claims",["Yes","No"],cur("exp_rodtep"))+fld("net_exp_lut_no","LUT / Bond no","Letter of undertaking",cur("exp_lut_no"))+fld("net_exp_lut_valid_to","LUT valid until","",cur("exp_lut_valid_to"),false,' type="date"')+chaPick("net_exp_default_cha", cur("exp_default_cha"))+'</div>';
     if(on("consignee")) out += '<div class="fsec" style="margin-top:12px">Importer / Consignee details</div><div class="ib ib-bl" style="margin-bottom:6px">Used when this organization is the importer on a booking, job or CHA job. The IEC code is entered above with the tax details.</div><div class="fr">'+
       fld("net_imp_default_pod","Default Port of Discharge","e.g. INMAA",cur("imp_default_pod"),false,' maxlength="5" style="text-transform:uppercase"')+fld("net_imp_customs_location","Customs Location / ICD","e.g. INMAA4",cur("imp_customs_location"))+chaPick("net_imp_default_cha", cur("imp_default_cha"))+'</div>';
     if(on("cha")) out += '<div class="fsec" style="margin-top:12px">CHA / Customs Broker details</div><div class="ib ib-bl" style="margin-bottom:6px">Organizations with this role appear in the CHA pick-lists of exporters and importers.</div><div class="fr">'+
@@ -19501,7 +19503,8 @@ function makePrintFit(){
       if(on("iata")){ o.iata_agent_code = val("net_iata_agent_code").toUpperCase(); if(val("net_cass_code")) o.cass_code = val("net_cass_code"); }
       if(on("cfs")){ o.cfs_code = val("net_cfs_code").toUpperCase(); if(val("net_cfs_port_code")) o.cfs_port_code = val("net_cfs_port_code").toUpperCase(); }
       const keep = (k, up)=> { if(val("net_"+k)) o[k] = up ? val("net_"+k).toUpperCase() : val("net_"+k); };
-      if(on("shipper")){ keep("exp_ad_code", 1); keep("exp_ad_bank"); keep("exp_default_pol", 1); keep("exp_rodtep"); keep("exp_default_cha"); }
+      if(on("shipper") || on("consignee")){ keep("trade_unit_kind"); keep("trade_approval_no", 1); }
+      if(on("shipper")){ keep("exp_lut_no", 1); keep("exp_lut_valid_to"); keep("exp_ad_code", 1); keep("exp_ad_bank"); keep("exp_default_pol", 1); keep("exp_rodtep"); keep("exp_default_cha"); }
       if(on("consignee")){ keep("imp_default_pod", 1); keep("imp_customs_location"); keep("imp_default_cha"); }
       if(on("cha")){ keep("cha_license_no", 1); keep("cha_license_valid_to"); keep("cha_customs_stations"); keep("cha_filing_mode"); }
       return o;
@@ -21226,10 +21229,11 @@ function makePrintFit(){
     let j; try { j = await api("GET", "/api/cha/jobs/"+encodeURIComponent(no)); } catch(e){ say("Could not open the CHA job", e.message, "error"); return; }
     const row = (a, b)=>'<div><div style="font-size:11px;color:var(--g5)">'+a+'</div><div style="font-weight:600">'+b+'</div></div>';
     const info = j.info || {};
+    const pd = p=> p ? [p.iec ? "IEC "+p.iec : "", p.ad_code ? "AD "+p.ad_code : "", p.unit_kind || "", p.approval_no ? "Appr. "+p.approval_no : "", p.lut_no ? "LUT "+p.lut_no : ""].filter(Boolean).join(" · ") : "";
     const body = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="b b-bl">'+esc2(j.shipment_type)+'</span> <span class="b b-gy">'+esc2(j.shipment_mode)+'</span> '+badge(j.customs_status)+(j.delayed ? ' <span class="b b-rd">Delayed</span>' : "")+'</div>'+
       stepper(j.stages, j.customs_status)+
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px">'+row("Freight job", j.freight_job_number ? '<a href="#" data-svc-job="'+esc2(j.freight_job_number)+'">'+esc2(j.freight_job_number)+'</a>' : t(null))+row("Booking", t(j.booking_number))+row("Exporter", t(j.exporter))+row("Importer", t(j.importer))+
-      row("Port of loading", t(j.pol))+row("Port of discharge", t(j.pod))+row("ETD", t(dmy(j.etd)))+row("ETA", t(dmy(j.eta)))+row("MBL / HBL / AWB", t(info.hbl || info.mbl))+row("File ref", t(info.file_ref))+row("Customs location", t(info.customs_location))+row("Created from", t(info.source))+'</div>'+
+      row("Port of loading", t(j.pol))+row("Port of discharge", t(j.pod))+row("ETD", t(dmy(j.etd)))+row("ETA", t(dmy(j.eta)))+row("MBL / HBL / AWB", t(info.hbl || info.mbl))+row("File ref", t(info.file_ref))+row("Customs location", t(info.customs_location))+row("Exporter IEC / AD / unit", t(pd(j.party_details && j.party_details.exporter)))+row("Importer IEC / unit", t(pd(j.party_details && j.party_details.importer)))+row("Source (booking)", j.source_info && j.source_info.booking_number ? '<b>'+esc2(j.source_info.booking_number)+'</b> · '+esc2(j.source_info.booking_source || "") : t(null))+row("Services booked", t((j.source_info && j.source_info.services || []).join(" + ")))+row("Order of work", t(j.source_info && j.source_info.order))+'</div>'+
       '<div class="ct" style="margin:6px 0">'+(j.shipment_type === "Export" ? "Shipping Bills" : "Bills of Entry")+'</div>'+
       (j.bills.length ? '<table><thead><tr><th>No</th><th>Date</th><th>Status</th><th>OOC / LEO</th></tr></thead><tbody>'+j.bills.map(b=>'<tr><td class="mono">'+esc2(b.bill_no)+'</td><td>'+t(dmy(b.bill_date))+'</td><td>'+esc2(b.status)+'</td><td>'+t(dmy(b.ooc_date))+'</td></tr>').join("")+'</tbody></table>' : '<div style="color:var(--g5);font-size:12px">None recorded yet. Add them on the job\'s Customs tab.</div>')+
       '<div class="ct" style="margin:12px 0 6px">Documents</div><div>'+j.documents.map(d=>'<span class="b '+(d.available ? "b-gr" : "b-gy")+'" style="margin-right:6px">'+esc2(d.name)+(d.available ? "" : " — not ready")+'</span>').join("")+'</div>'+
@@ -21242,7 +21246,7 @@ function makePrintFit(){
   async function create(dir, mode, extra){
     const f = id=> (el(id) ? el(id).value.trim() : "");
     const body = {job_type:dir, mode, exporter:f("chaNExp"), importer:f("chaNImp"), pol:f("chaNPol"), pod:f("chaNPod"), etd:f("chaNEtd") || null, eta:f("chaNEta") || null, hbl:f("chaNHbl"), mbl:f("chaNMbl"), containers:f("chaNCont"), file_ref:f("chaNRef"),
-      customs_location:f("chaNLoc"), freight_job_number:f("chaNFj"), exception_reason:f("chaNWhy")};
+      customs_location:f("chaNLoc"), freight_job_number:f("chaNFj"), booking_number:f("chaNBk"), exception_reason:f("chaNWhy")};
     try { const j = await api("POST", "/api/cha/jobs", body); closeModal(); say("CHA job created", j.cha_job_number+" is at stage "+j.customs_status); await render(); }
     catch(e){
       const d = e.detail;
@@ -21254,26 +21258,64 @@ function makePrintFit(){
   function createModal(dir, mode){
     const inp = (id, label, ph, type, list)=>'<div><label>'+label+'</label><input id="'+id+'" class="fi" type="'+(type || "text")+'" placeholder="'+(ph || "")+'"'+(list ? ' list="'+list+'" autocomplete="off"' : "")+'></div>';
     const exp = dir === "Export";
-    openModal({title:"Create CHA job — "+mode+" "+dir, size:"lg", bodyHTML:'<div id="chaNMsg" style="display:none;background:#fff4e5;border:1px solid #f0b46a;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px"></div>'+
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">'+inp("chaNExp", exp ? "Exporter / shipper" : "Exporter / supplier", "Pick from Organization or type", "", "chaOrgExp")+inp("chaNImp", exp ? "Consignee / importer" : "Importer", "Pick from Organization or type", "", "chaOrgImp")+inp("chaNPol", "Port of loading", "e.g. INMAA")+inp("chaNPod", "Port of discharge", "e.g. BEANR")+
+    const pill = (kind, val, label, on)=> '<button type="button" class="btn btn-sm '+(on ? "btn-pri" : "btn-out")+'" data-cha-pick="'+kind+'|'+val+'" style="min-width:110px">'+label+'</button>';
+    openModal({title:"Create CHA job — "+mode+" "+dir, size:"lg", bodyHTML:'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--g5);margin-bottom:4px">1. TRANSPORT MODE</div><div style="display:flex;gap:6px;margin-bottom:8px">'+pill("mode", "Sea", "Sea Freight", mode === "Sea")+pill("mode", "Air", "Air Freight", mode === "Air")+'</div>'+
+      '<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--g5);margin-bottom:4px">2. DIRECTION</div><div style="display:flex;gap:6px">'+pill("dir", "Export", "Export", exp)+pill("dir", "Import", "Import", !exp)+'</div></div><div id="chaNMsg" style="display:none;background:#fff4e5;border:1px solid #f0b46a;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px"></div>'+
+      '<div style="margin-bottom:10px"><label>Booking number <span style="color:var(--rd,#C0392B)">*</span></label><select id="chaNBk" class="fi" style="width:100%"><option value="">Loading bookings…</option></select>'+
+      '<div style="font-size:11px;color:var(--g5);margin-top:4px">Bookings that include the CHA service (CHA, CHA + Freight, CHA + Transport …). Everything on the booking is carried into the CHA job. '+(exp ? "Export: the CHA job comes first and the freight job follows after clearance." : "Import: the freight job comes first and the CHA job follows.")+'</div></div>'+
+      '<div id="chaNBkInfo" style="display:none" class="ib ib-bl"></div><div id="chaNPartyInfo" style="display:none;margin-bottom:8px;font-size:12px" class="ib ib-gr"></div>'+
+      '<div id="chaNFields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">'+inp("chaNExp", exp ? "Exporter / shipper" : "Exporter / supplier", "Pick from Organization or type", "", "chaOrgExp")+inp("chaNImp", exp ? "Consignee / importer" : "Importer", "Pick from Organization or type", "", "chaOrgImp")+inp("chaNPol", "Port of loading", "Type a port or code, e.g. INMAA", "", "chaPorts")+inp("chaNPod", "Port of discharge", "Type a port or code, e.g. BEANR", "", "chaPorts")+
       inp("chaNEtd", "ETD", "", "date")+inp("chaNEta", "ETA", "", "date")+inp("chaNMbl", mode === "Air" ? "Master AWB" : "MBL No")+inp("chaNHbl", mode === "Air" ? "House AWB" : "HBL No")+(mode === "Sea" ? inp("chaNCont", "Containers", "e.g. MSKU1234567, 40HC") : "")+
-      inp("chaNRef", "File / reference no")+inp("chaNLoc", "Customs location")+inp("chaNFj", "Freight job no (optional, to link)", "e.g. SEAEXP-…")+'</div>'+
-      '<div id="chaNWhyWrap" style="display:none;margin-top:10px"><label>Reason for the exception</label><input id="chaNWhy" class="fi" placeholder="Why this differs from the freight job"></div>'+
-      '<div style="font-size:11px;color:var(--g5);margin-top:10px">Leave the freight job blank for a stand-alone customs job. When a freight job is given, the exporter, importer and ports must match it unless an authorised user records an exception.</div>',
+      inp("chaNRef", "File / reference no")+inp("chaNLoc", "Customs location")+'<div id="chaNFjWrap">'+inp("chaNFj", "Freight job no (optional, direct job only)", "e.g. SEAEXP-…")+'</div></div>'+
+      '<div id="chaNWhyWrap" style="display:none;margin-top:10px"><label>Reason for the exception</label><input id="chaNWhy" class="fi" placeholder="Why this differs from the booking"></div>'+
+      '<div id="chaNHint" style="font-size:11px;color:var(--g5);margin-top:10px">Choose "Direct CHA job" when there is no booking: the system then generates the booking number for it.</div>',
       footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button> <button class="btn btn-pri" id="chaNSave">Create job</button>'});
     el("chaNSave").addEventListener("click", ()=>create(dir, mode));
     orgPick(dir);
+    bookingPick(dir, mode);
+    portPick(mode);
+  }
+  /* Ports and airports come from the Port master as you type (about 21,000 records) */
+  function portPick(mode){
+    const body = el("modalBody"); if(!body || !el("chaNPol")) return;
+    const dl = document.createElement("datalist"); dl.id = "chaPorts"; body.appendChild(dl);
+    let timer = null;
+    const load = async q=> { try{ const r = await fetch("/api/ports?limit=25&q="+encodeURIComponent(q), {headers:{Authorization:"Bearer "+(sessionStorage.getItem("esway_access_token") || "")}}); const rows = r.ok ? await r.json() : [];
+      const want = mode === "Air" ? /air/i : /sea|port|icd|inland/i; const pick = rows.filter(p=>want.test(p.port_type || "")); dl.innerHTML = (pick.length ? pick : rows).map(p=>'<option value="'+esc2(p.code+"("+p.name+")")+'">'+esc2(p.city || p.country || "")+'</option>').join(""); }catch(e){} };
+    ["chaNPol", "chaNPod"].forEach(id=> el(id).addEventListener("input", e=>{ clearTimeout(timer); const v = e.target.value.trim(); if(v.length >= 2) timer = setTimeout(()=>load(v), 250); }));
+    load(mode === "Air" ? "IN" : "INMAA");
+  }
+  /* The booking comes first: its parties, route and dates are carried into the CHA job */
+  async function bookingPick(dir, mode){
+    const sel = el("chaNBk"); let items = [];
+    try { items = (await api("GET", "/api/cha/bookings?direction="+dir+"&mode="+mode)).items; } catch(e){ items = []; }
+    if(!sel) return; window.ChaKit.bookings = items;
+    sel.innerHTML = '<option value="">— Direct CHA job (no booking: the system generates the booking number) —</option>'+items.map(b=>'<option value="'+esc2(b.number)+'">'+esc2(b.number+" · "+b.combo+" · "+(b.exporter || "—")+" → "+(b.importer || "—")+" · "+(b.pol || "")+" → "+(b.pod || "")+(b.cha_jobs.length ? " · "+b.cha_jobs.length+" CHA job(s)" : ""))+'</option>').join("");
+    sel.addEventListener("change", ()=>{
+      const b = items.find(x=>x.number === sel.value); const set = (id, v, lock)=> { const e = el(id); if(!e) return; if(b){ e.value = v || ""; } e.readOnly = !!(b && lock); e.style.background = b && lock ? "var(--g0)" : ""; };
+      const first = !!b && !b.cha_jobs.length;       /* the booking's first CHA job takes everything from the booking; further ones may differ only with an authorised exception */
+      set("chaNExp", b && b.exporter, first); set("chaNImp", b && b.importer, first); set("chaNPol", b && b.pol, first); set("chaNPod", b && b.pod, first);
+      set("chaNEtd", b && b.etd, first); set("chaNEta", b && b.eta, first);
+      el("chaNFjWrap").style.display = b ? "none" : "";
+      const info = el("chaNBkInfo"); info.style.display = b ? "block" : "none";
+      if(b) info.innerHTML = '<b>'+esc2(b.number)+'</b> · '+esc2(b.combo)+(b.carrier ? ' · '+esc2(b.carrier)+(b.vessel ? ' / '+esc2(b.vessel) : "") : "")+'<br>Freight job: <b>'+esc2(b.freight_job_number || "none on this booking")+'</b> · CHA jobs: <b>'+esc2(b.cha_jobs.join(", ") || "none yet")+'</b>'+(b.commodity ? ' · '+esc2(b.commodity) : "")+
+        '<br>'+(first ? "This is the first CHA job of the booking; its details come from the booking." : "Another CHA job under the same booking: exporter, importer and ports must match the booking unless an authorised user records an exception.");
+    });
   }
   /* Exporters / importers come from the Organization master (by role); picking one fills the defaults kept on its record (port, customs location) */
   async function orgPick(dir){
     const get = role=> api("GET", "/api/customers?role="+role).catch(()=>[]);
-    const [ex, im] = await Promise.all([get("shipper"), get("consignee")]);
+    const [ex0, im0, cl] = await Promise.all([get("shipper"), get("consignee"), get("client")]);
+    const merge = (a, b)=> a.concat(b.filter(x=>!a.some(y=>y.id === x.id)));
+    const ex = merge(ex0, cl), im = merge(im0, cl);
     const body = el("modalBody"); if(!body || !el("chaNExp")) return;
     const dl = (id, rows)=> { const o = document.createElement("datalist"); o.id = id; o.innerHTML = rows.filter(r=>r.status !== "INACTIVE").map(r=>'<option value="'+esc2(r.name)+'"></option>').join(""); body.appendChild(o); };
     dl("chaOrgExp", ex); dl("chaOrgImp", im);
     const fill = (id, v)=> { const e = el(id); if(e && v && !e.value.trim()) e.value = v; };
-    el("chaNExp").addEventListener("change", ()=>{ const r = ex.find(x=>x.name === el("chaNExp").value.trim()); if(r && dir === "Export") fill("chaNPol", (r.data || {}).exp_default_pol); });
-    el("chaNImp").addEventListener("change", ()=>{ const r = im.find(x=>x.name === el("chaNImp").value.trim()); if(r && dir === "Import"){ fill("chaNPod", (r.data || {}).imp_default_pod); fill("chaNLoc", (r.data || {}).imp_customs_location); } });
+    const hint = r=> { const box = el("chaNPartyInfo"); if(!box || !r) return; const d = r.data || {}; const bits = [["IEC", d.iec_code || d.org_iec], ["AD code", d.exp_ad_code], ["Unit", d.trade_unit_kind], ["Approval", d.trade_approval_no], ["LUT", d.exp_lut_no], ["GSTIN", r.gstin]].filter(x=>x[1]);
+      box.innerHTML += (box.innerHTML ? "<br>" : "")+'<b>'+esc2(r.name)+'</b> — '+(bits.length ? bits.map(x=>esc2(x[0])+': <b>'+esc2(x[1])+'</b>').join(" · ") : "no IEC / AD / unit details in the Organization master yet"); box.style.display = "block"; };
+    el("chaNExp").addEventListener("change", ()=>{ const r = ex.find(x=>x.name === el("chaNExp").value.trim()); if(r && dir === "Export") fill("chaNPol", (r.data || {}).exp_default_pol); hint(r); });
+    el("chaNImp").addEventListener("change", ()=>{ const r = im.find(x=>x.name === el("chaNImp").value.trim()); if(r && dir === "Import"){ fill("chaNPod", (r.data || {}).imp_default_pod); fill("chaNLoc", (r.data || {}).imp_customs_location); } hint(r); });
   }
 
   document.addEventListener("click", async e=>{
@@ -21293,6 +21335,8 @@ function makePrintFit(){
       if(stages.indexOf(b.dataset.chaStage) < stages.indexOf(cur)){ remarks = window.prompt("Reason for moving this job back to "+b.dataset.chaStage+":") || ""; if(!remarks.trim()) return; }
       try { await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(no)+"/status", {status:b.dataset.chaStage, remarks}); say("Stage updated", no+" → "+b.dataset.chaStage); await openJob(no); await render(); } catch(err){ say("Could not change the stage", err.message, "error"); }
       return; }
+    if((b = T.closest("[data-cha-pick]"))){ const [k, v] = b.dataset.chaPick.split("|"); const cur = document.querySelector("[data-cha-pick^='mode'].btn-pri"), dcur = document.querySelector("[data-cha-pick^='dir'].btn-pri");
+      const mo = k === "mode" ? v : cur.dataset.chaPick.split("|")[1], di = k === "dir" ? v : dcur.dataset.chaPick.split("|")[1]; createModal(di, mo); return; }
     if(T.closest("#chaFClear")){ Object.keys(S).forEach(k=>{ S[k] = ""; }); await render(); }
   });
   document.addEventListener("change", async e=>{ const id = e.target && e.target.id; if(id === "chaFDir"){ S.direction = e.target.value; } else if(id === "chaFMode"){ S.mode = e.target.value; } else if(id === "chaFStatus"){ S.status = e.target.value; S.group = ""; } else return; await render(); });
@@ -21326,7 +21370,7 @@ function makePrintFit(){
       return '<tr><td class="mono" style="font-weight:700"><a href="#" data-fjcha-open="'+esc2(r.cha_job_number)+'">'+esc2(r.cha_job_number)+'</a></td><td class="mono">'+c(r.booking_number)+'</td><td>'+c(r.exporter)+'</td><td>'+c(r.importer)+'</td><td>'+c(r.pol)+'</td><td>'+c(r.pod)+'</td><td>'+esc2(r.shipment_type)+'</td><td>'+esc2(r.shipment_mode)+'</td>'+
         '<td>'+(ex ? c(r.shipping_bill_no)+(r.shipping_bill_date ? '<div style="font-size:11px;color:var(--g5)">'+dmy(r.shipping_bill_date)+'</div>' : "") : '<span style="color:var(--g5)">—</span>')+'</td><td>'+(!ex ? c(r.bill_of_entry_no)+(r.bill_of_entry_date ? '<div style="font-size:11px;color:var(--g5)">'+dmy(r.bill_of_entry_date)+'</div>' : "") : '<span style="color:var(--g5)">—</span>')+'</td>'+
         '<td><span class="b '+(TONE[r.customs_status] || "b-gy")+' dot">'+esc2(r.customs_status)+'</span></td><td>'+r.documents.map(x=>'<span class="b '+(x.available ? "b-gr" : "b-gy")+'" style="margin:1px 3px 1px 0" title="'+(x.available ? "Ready" : "Not ready yet")+'">'+esc2(x.name)+'</span>').join("")+'</td></tr>'; }).join("");
-    el("chaJobsBody").innerHTML = '<div style="font-size:12px;color:var(--g5);margin-bottom:8px">Freight job <b>'+esc2(d.freight_job_number)+'</b>'+(d.booking_number ? ' · Booking <b>'+esc2(d.booking_number)+'</b>' : "")+' — every CHA job of this booking is listed here. Each keeps its own customs bills and status.</div>'+
+    el("chaJobsBody").innerHTML = '<div style="font-size:12px;color:var(--g5);margin-bottom:8px">Freight job <b>'+esc2(d.freight_job_number)+'</b>'+(d.booking_number ? ' · Booking <b>'+esc2(d.booking_number)+'</b>' : "")+' — every CHA job of this booking is listed here. Each keeps its own customs bills and status.</div>'+(d.workflow ? '<div class="ib '+(d.workflow.cha_cleared || d.freight.shipment_type === "Import" ? "ib-bl" : "ib-am")+'" style="margin-bottom:8px"><b>'+esc2(d.workflow.order)+'.</b> '+esc2(d.workflow.message)+'</div>' : "")+
       '<div class="tw"><table><thead><tr><th>CHA Job No</th><th>Booking No</th><th>Exporter</th><th>Importer</th><th>POL</th><th>POD</th><th>Shipment Type</th><th>Mode</th><th>SB No / Date</th><th>BE No / Date</th><th>Customs Status</th><th>Documents</th></tr></thead><tbody>'+
       (rows || '<tr><td colspan="12" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">No CHA job yet. Use Add CHA job, or add the CHA service to the booking.</td></tr>')+'</tbody></table></div>';
   };

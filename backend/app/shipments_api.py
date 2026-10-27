@@ -58,6 +58,10 @@ def create_shipment(payload: ShipmentCreate, user: User = Depends(permission_req
     try:
         db.flush()
         jl.on_job_created(db, shipment, user, "manual entry")
+        if shipment.job_type == "Forwarding" and not shipment.booking_id:
+            from .bookings_api import auto_booking
+
+            auto_booking(db, organization_id, user, shipment, "Freight")          # a direct freight job still carries a (system generated) booking number
         record_audit(db, "SHIPMENT_CREATED", "SHIPMENT", user, organization_id, "Shipment", str(shipment.id), {"job_number": job_number})
         db.commit()
     except IntegrityError:

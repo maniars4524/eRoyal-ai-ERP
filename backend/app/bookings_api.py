@@ -390,6 +390,22 @@ def _make_job(db: Session, org_id: int, b: Booking, service: str, user: User) ->
     return job
 
 
+def auto_booking(db: Session, org_id: int, user: User, job: Shipment, services: str) -> Booking:
+    """A direct job (no booking behind it) gets a booking of its own, numbered like any other, so every job carries a booking number. It is marked as system generated."""
+    if job.booking_id:
+        return db.get(Booking, job.booking_id)
+    party = db.get(Customer, job.customer_id) if job.customer_id else None
+    now = datetime.now(timezone.utc)
+    b = Booking(organization_id=org_id, number=next_number(db, org_id, "booking", "BKG", date.today(), user=user), status="CONFIRMED", booking_date=date.today(), mode=job.mode, direction=job.direction, shipment_type=job.container_mode,
+                booking_type="Direct", customer_id=job.customer_id, party_name=(party.name if party else (job.consignee or "")), pol=job.pol, pod=job.pod, etd=job.etd, eta=job.eta, job_number=job.job_number, confirmed_at=now, created_by=user.id,
+                data={"services": services, "auto_generated": True, "booking_source": "System generated for a direct job", "consignee": job.consignee or ""})
+    db.add(b)
+    db.flush()
+    job.booking_id = b.id
+    record_audit(db, "BOOKING_AUTO_CREATED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number, "job_number": job.job_number, "services": services})
+    return b
+
+
 @router.post("/{booking_id}/jobs", status_code=201)
 def create_job_from_booking(booking_id: int, payload: JobFromBooking, user: User = Depends(permission_required("booking.confirm")), db: Session = Depends(get_db)):
     """Freight and CHA jobs are created automatically when the booking is released; this creates any other service (consol, transport, warehouse) or one that was missed."""

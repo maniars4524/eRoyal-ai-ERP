@@ -120,9 +120,10 @@ def job_source(job_number: str, user: User = Depends(permission_required("shipme
     quote = db.get(Quotation, qid) if qid else db.scalar(select(Quotation).where(Quotation.organization_id == job.organization_id, Quotation.job_number == job.job_number))
     creator = db.get(User, job.created_by) if job.created_by else None
     first = db.scalar(select(JobEvent).where(JobEvent.shipment_id == job.id, JobEvent.event_type == "JOB_CREATED").order_by(JobEvent.id).limit(1))
-    via = "Booking" if booking else ("Quotation" if quote else "Created directly")
+    auto = bool(booking and (booking.data or {}).get("auto_generated"))
+    via = ("Created directly" if auto else "Booking") if booking else ("Quotation" if quote else "Created directly")
     names = lambda uid: jl.display_name(db.get(User, uid)) if uid else None
-    return {"job_number": job.job_number, "created_via": via, "created_at": _ts(job.created_at), "created_by": jl.display_name(creator) if creator else None, "creation_note": (first.description if first else None),
+    return {"job_number": job.job_number, "created_via": via, "auto_booking": auto, "created_at": _ts(job.created_at), "created_by": jl.display_name(creator) if creator else None, "creation_note": (first.description if first else None),
             "booking": {"number": booking.number, "date": str(booking.booking_date), "status": booking.status, "carrier": booking.carrier, "confirmed_at": _ts(booking.confirmed_at), "created_by": names(booking.created_by), "services": (booking.data or {}).get("services")} if booking else None,
             "quotation": {"number": quote.number, "date": str(quote.quote_date), "status": quote.status, "party": quote.party_name, "prepared_by": names(quote.prepared_by), "approved_by": names(quote.approved_by), "approved_at": _ts(quote.approved_at), "valid_until": str(quote.valid_until) if quote.valid_until else None,
                           "reference": (quote.header or {}).get("reference_no")} if quote else None}

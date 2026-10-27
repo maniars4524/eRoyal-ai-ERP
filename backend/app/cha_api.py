@@ -62,6 +62,11 @@ def parties_of(db: Session, job: Shipment) -> tuple[str, str]:
     cons = str(p.get("consignee") or "").strip()
     if not cons or cons.startswith("__"):
         cons = job.consignee or ""
+    if (not shipper or not cons) and job.booking_id:          # nothing saved on the job yet: the booking's parties
+        b = db.get(Booking, job.booking_id)
+        if b:
+            shipper = shipper or (b.party_name or "")
+            cons = cons or str((b.data or {}).get("consignee") or "")
     return shipper, cons
 
 
@@ -126,7 +131,7 @@ def consolidated(db: Session, any_job: Shipment) -> dict:
     booking = db.get(Booking, freight.booking_id) if freight.booking_id else None
     jobs = cha_jobs_of(db, freight)
     ex, im = parties_of(db, freight)
-    return {"freight_job_number": freight.job_number, "freight_job_id": freight.id, "booking_number": booking.number if booking else None, "count": len(jobs),
+    return {"freight_job_number": freight.job_number, "freight_job_id": freight.id, "booking_number": booking.number if booking else None, "count": len(jobs), "workflow": workflow_of(freight, jobs),
             "freight": {"exporter": ex, "importer": im, "pol": freight.pol, "pod": freight.pod, "shipment_type": freight.direction, "shipment_mode": freight.mode}, "cha_jobs": [cha_row(db, j, freight, booking) for j in jobs]}
 
 
@@ -150,12 +155,41 @@ class ChaIn(BaseModel):
     exception_reason: str = Field(default="", max_length=300)
 
 
-@router.post("/api/jobs/{job_number}/cha-jobs", status_code=201)
-def add_cha_job(job_number: str, body: ChaIn, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
-    """Another CHA job under the same booking and freight job. The exporter, importer, port of loading and port of discharge must match the freight job; an authorised user can record an exception with a reason.
-    No new freight job is created and the booking number is shared."""
+def _add_cha(db: Session, user: User, org: int, ref: Shipment, body: ChaIn, parent: Shipment | None) -> tuple[Shipment, list[str]]:
+    """One more CHA job of the booking of `ref` (the freight job, or the first CHA job of a CHA-only booking). Its exporter, importer, port of loading and port of discharge must match `ref`; an authorised user can record
+    an exception with a reason. Nothing else is created: the booking number is shared and there is still one freight job."""
     from .shipments_api import _next_job_number
 
+    jl.assert_job_editable(ref, "its CHA jobs")
+    fex, fim = parties_of(db, ref)
+    ex, im = (body.exporter or fex).strip(), (body.importer or fim).strip()
+    pol, pod = (body.pol or ref.pol or "").strip(), (body.pod or ref.pod or "").strip()
+    wrong = []
+    if _norm(ex) != _norm(fex):
+        wrong.append(f"Exporter ({ex or 'blank'}) differs from the booking ({fex or 'blank'})")
+    if _norm(im) != _norm(fim):
+        wrong.append(f"Importer ({im or 'blank'}) differs from the booking ({fim or 'blank'})")
+    if location_code(pol) != location_code(ref.pol):
+        wrong.append(f"Port of loading ({pol or 'blank'}) differs from the booking ({ref.pol or 'blank'})")
+    if location_code(pod) != location_code(ref.pod):
+        wrong.append(f"Port of discharge ({pod or 'blank'}) differs from the booking ({ref.pod or 'blank'})")
+    can_override = has_permission(user, "cha.exception")
+    if wrong and not (can_override and len(body.exception_reason.strip()) >= 5):
+        raise HTTPException(409, {"code": "CHA_MISMATCH", "message": "The CHA job does not match the booking: " + "; ".join(wrong), "mismatches": wrong, "can_override": can_override})
+    cha = Shipment(organization_id=org, job_number=_next_job_number(db, org, ref.mode, ref.direction, ref.container_mode, user), job_type="Customs", booking_id=ref.booking_id, parent_job_id=parent.id if parent else None, mode=ref.mode,
+                   direction=ref.direction, container_mode=ref.container_mode, pol=pol or None, pod=pod or None, etd=ref.etd, eta=ref.eta, customer_id=ref.customer_id, consignee=im or None, packages=ref.packages,
+                   gross_weight=ref.gross_weight, volume=ref.volume, package_type=ref.package_type, commodity=ref.commodity, status="Booked", created_by=user.id, branch=ref.branch, salesperson=ref.salesperson, customs_status="CREATED")
+    db.add(cha)
+    db.flush()
+    db.add(JobDetail(organization_id=org, shipment_id=cha.id, parties={"shipper": ex, "consignee": im}, cargo={}, containers=[], dims={}, bl={}, saved_sections={"parties": datetime.now(timezone.utc).isoformat()}, version=1, updated_by=user.id))
+    jl.on_job_created(db, cha, user, f"additional CHA job of {ref.job_number}", {"booking_job": ref.job_number})
+    record_audit(db, "CHA_JOB_ADDED", "OPERATIONS", user, org, "Shipment", str(cha.id), {"job_number": cha.job_number, "from_job": ref.job_number, "booking_id": ref.booking_id, "exception": bool(wrong), "reason": body.exception_reason.strip() if wrong else ""})
+    return cha, wrong
+
+
+@router.post("/api/jobs/{job_number}/cha-jobs", status_code=201)
+def add_cha_job(job_number: str, body: ChaIn, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
+    """Another CHA job under the same booking and freight job. No new freight job is created and the booking number is shared."""
     org = _tenant(user)
     freight = _job(db, org, job_number)
     if freight.job_type == "Customs":
@@ -164,32 +198,7 @@ def add_cha_job(job_number: str, body: ChaIn, user: User = Depends(permission_re
             raise HTTPException(409, "This CHA job has no freight job to add another CHA job to")
     if freight.direction not in ("Export", "Import"):
         raise HTTPException(422, "CHA jobs apply to export and import shipments")
-    jl.assert_job_editable(freight, "its CHA jobs")
-    fex, fim = parties_of(db, freight)
-    ex, im = (body.exporter or fex).strip(), (body.importer or fim).strip()
-    pol, pod = (body.pol or freight.pol or "").strip(), (body.pod or freight.pod or "").strip()
-    wrong = []
-    if _norm(ex) != _norm(fex):
-        wrong.append(f"Exporter ({ex or 'blank'}) differs from the freight job ({fex or 'blank'})")
-    if _norm(im) != _norm(fim):
-        wrong.append(f"Importer ({im or 'blank'}) differs from the freight job ({fim or 'blank'})")
-    if location_code(pol) != location_code(freight.pol):
-        wrong.append(f"Port of loading ({pol or 'blank'}) differs from the freight job ({freight.pol or 'blank'})")
-    if location_code(pod) != location_code(freight.pod):
-        wrong.append(f"Port of discharge ({pod or 'blank'}) differs from the freight job ({freight.pod or 'blank'})")
-    can_override = has_permission(user, "cha.exception")
-    if wrong:
-        if not (can_override and len(body.exception_reason.strip()) >= 5):
-            raise HTTPException(409, {"code": "CHA_MISMATCH", "message": "The CHA job does not match the freight job: " + "; ".join(wrong), "mismatches": wrong, "can_override": can_override})
-    cha = Shipment(organization_id=org, job_number=_next_job_number(db, org, freight.mode, freight.direction, freight.container_mode, user), job_type="Customs", booking_id=freight.booking_id, parent_job_id=freight.id, mode=freight.mode,
-                   direction=freight.direction, container_mode=freight.container_mode, pol=pol or None, pod=pod or None, etd=freight.etd, eta=freight.eta, customer_id=freight.customer_id, consignee=im or None, packages=freight.packages,
-                   gross_weight=freight.gross_weight, volume=freight.volume, package_type=freight.package_type, commodity=freight.commodity, status="Booked", created_by=user.id, branch=freight.branch, salesperson=freight.salesperson,
-                   customs_status="CREATED")
-    db.add(cha)
-    db.flush()
-    db.add(JobDetail(organization_id=org, shipment_id=cha.id, parties={"shipper": ex, "consignee": im}, cargo={}, containers=[], dims={}, bl={}, saved_sections={"parties": datetime.now(timezone.utc).isoformat()}, version=1, updated_by=user.id))
-    jl.on_job_created(db, cha, user, f"additional CHA job of {freight.job_number}", {"freight_job": freight.job_number})
-    record_audit(db, "CHA_JOB_ADDED", "OPERATIONS", user, org, "Shipment", str(cha.id), {"job_number": cha.job_number, "freight_job": freight.job_number, "booking_id": freight.booking_id, "exception": bool(wrong), "reason": body.exception_reason.strip() if wrong else ""})
+    cha, _ = _add_cha(db, user, org, freight, body, freight)
     db.commit()
     out = consolidated(db, freight)
     out["created"] = cha.job_number
@@ -290,6 +299,45 @@ def dashboard(user: User = Depends(permission_required("shipment.read")), db: Se
             "matrix": matrix, "by_status": by_status, "statuses": CHA_STATUSES}
 
 
+def _services(b: Booking) -> list[str]:
+    return [x.strip() for x in str((b.data or {}).get("services") or "Freight").split(",") if x.strip()]
+
+
+def booking_row(db: Session, b: Booking) -> dict:
+    """A booking as offered to the CHA screen: its parties, route, dates and services, with the freight and CHA jobs already made from it."""
+    jobs = list(db.scalars(select(Shipment).where(Shipment.organization_id == b.organization_id, Shipment.booking_id == b.id).order_by(Shipment.id)))
+    d = b.data or {}
+    cust = db.get(Customer, b.customer_id) if b.customer_id else None
+    exporter, importer = (b.party_name or (cust.name if cust else "")), str(d.get("consignee") or "")
+    freight = next((j for j in jobs if j.job_type == "Forwarding"), None)
+    return {"id": b.id, "number": b.number, "date": b.booking_date, "status": b.status, "mode": b.mode, "direction": b.direction, "shipment_type": b.shipment_type, "services": _services(b), "exporter": exporter, "importer": importer, "pol": b.pol, "pod": b.pod,
+            "etd": b.etd, "eta": b.eta, "carrier": b.carrier, "vessel": b.vessel, "carrier_booking_no": b.carrier_booking_no, "auto_generated": bool(d.get("auto_generated")), "freight_job_number": freight.job_number if freight else None,
+            "cha_jobs": [j.job_number for j in jobs if j.job_type == "Customs"], "commodity": d.get("commodity") or d.get("marks"), "packages": d.get("pcs"), "gross_weight": d.get("gwt"), "consignee": importer,
+            "combo": " + ".join(x for x in _services(b))}
+
+
+@router.get("/api/cha/bookings")
+def cha_bookings(direction: str = "", mode: str = "", user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """Confirmed bookings that include the CHA service (CHA only, CHA + Freight, CHA + Transport ...), for the Create Job screen."""
+    org = _tenant(user)
+    cond = [Booking.organization_id == org, Booking.status == "CONFIRMED"]
+    if direction in ("Export", "Import"):
+        cond.append(Booking.direction == direction)
+    if mode in ("Air", "Sea"):
+        cond.append(Booking.mode == mode)
+    rows = [b for b in db.scalars(select(Booking).where(*cond).order_by(Booking.id.desc()).limit(500)) if "CHA" in _services(b)]
+    return {"items": [booking_row(db, b) for b in rows]}
+
+
+def workflow_of(freight: Shipment, chas: list[Shipment]) -> dict:
+    """Export: the CHA job comes first and the freight job follows once customs is cleared. Import: the freight job comes first and the CHA job follows."""
+    done = ("OOC / LEO CLEARED", "DELIVERED", "CLOSED")
+    cleared = bool(chas) and all((j.customs_status or "CREATED") in done for j in chas)
+    if freight.direction == "Export":
+        return {"order": "CHA first, then freight", "cha_cleared": cleared, "message": "Customs (CHA) clearance is complete; the freight job can proceed." if cleared else "Export: CHA jobs come first. The freight job follows after customs clearance."}
+    return {"order": "Freight first, then CHA", "cha_cleared": cleared, "message": "Import: the freight job comes first; CHA jobs follow after arrival."}
+
+
 class NewChaIn(BaseModel):
     job_type: str = Field(pattern="^(Export|Import)$")
     mode: str = Field(pattern="^(Sea|Air)$")
@@ -307,6 +355,7 @@ class NewChaIn(BaseModel):
     cha_license: str = Field(default="", max_length=40)
     customer_id: int | None = None
     freight_job_number: str = Field(default="", max_length=40)
+    booking_number: str = Field(default="", max_length=40)
     exception_reason: str = Field(default="", max_length=300)
 
 
@@ -316,7 +365,25 @@ def create_cha_job(body: NewChaIn, user: User = Depends(permission_required("shi
     from .shipments_api import _next_job_number
 
     org = _tenant(user)
-    if body.freight_job_number.strip():
+    if body.booking_number.strip():
+        from .bookings_api import _make_job
+
+        bk = db.scalar(select(Booking).where(Booking.organization_id == org, Booking.number == body.booking_number.strip()))
+        if not bk or bk.status != "CONFIRMED":
+            raise HTTPException(404, "Confirmed booking not found")
+        if "CHA" not in _services(bk):
+            raise HTTPException(422, "CHA was not booked on this booking (booked: " + ", ".join(_services(bk)) + ")")
+        if bk.direction != body.job_type or bk.mode != body.mode:
+            raise HTTPException(409, f"The booking is {bk.mode} {bk.direction}; choose a {bk.mode} {bk.direction} CHA job for it")
+        existing = list(db.scalars(select(Shipment).where(Shipment.organization_id == org, Shipment.booking_id == bk.id, Shipment.job_type == "Customs").order_by(Shipment.id)))
+        freight = db.scalar(select(Shipment).where(Shipment.organization_id == org, Shipment.booking_id == bk.id, Shipment.job_type == "Forwarding").order_by(Shipment.id))
+        if not existing:
+            cha = _make_job(db, org, bk, "CHA", user)               # the first CHA job of the booking carries everything from it (parties, route, dates, CHA charges)
+        else:
+            cha, _ = _add_cha(db, user, org, freight or existing[0], ChaIn(exporter=body.exporter or None, importer=body.importer or None, pol=body.pol or None, pod=body.pod or None, exception_reason=body.exception_reason), freight)
+        d = bk.data or {}
+        cha.cha_info = {**(cha.cha_info or {}), "exporter": body.exporter or booking_row(db, bk)["exporter"], "importer": body.importer or booking_row(db, bk)["importer"], "booking_carrier": bk.carrier, "vessel": bk.vessel, "commodity": d.get("commodity") or d.get("marks")}
+    elif body.freight_job_number.strip():
         freight = _job(db, org, body.freight_job_number.strip())
         if freight.direction != body.job_type or freight.mode != body.mode:
             raise HTTPException(409, f"The freight job is {freight.direction} {freight.mode}; a {body.job_type} {body.mode} CHA job cannot be linked to it")
@@ -330,6 +397,9 @@ def create_cha_job(body: NewChaIn, user: User = Depends(permission_required("shi
         db.add(cha)
         db.flush()
         jl.on_job_created(db, cha, user, "CHA screen", {"standalone": True})
+        from .bookings_api import auto_booking
+
+        auto_booking(db, org, user, cha, "CHA")          # a direct CHA job gets a system generated booking number
         record_audit(db, "CHA_JOB_CREATED", "OPERATIONS", user, org, "Shipment", str(cha.id), {"job_number": cha.job_number, "type": body.job_type, "mode": body.mode})
     cha.etd = body.etd or cha.etd
     cha.eta = body.eta or cha.eta
@@ -339,6 +409,27 @@ def create_cha_job(body: NewChaIn, user: User = Depends(permission_required("shi
         cha.bl_awb = body.hbl or body.mbl
     db.commit()
     return get_cha_job(cha.job_number, user, db)
+
+
+def party_details(db: Session, org: int, name: str | None) -> dict:
+    """What the Organization master holds for an exporter / importer: IEC, AD code and bank, unit kind (General / SEZ ...), approval and LUT numbers, GSTIN and PAN, default CHA."""
+    n = _norm(name)
+    if not n:
+        return {}
+    for c in db.scalars(select(Customer).where(Customer.organization_id == org, func.upper(Customer.name) == n)):
+        d = c.data or {}
+        pick = lambda *keys: next((str(d[k]) for k in keys if d.get(k)), None)
+        return {"name": c.name, "code": c.code, "iec": pick("iec_code", "org_iec", "iec"), "ad_code": pick("exp_ad_code"), "ad_bank": pick("exp_ad_bank"), "unit_kind": pick("trade_unit_kind"), "approval_no": pick("trade_approval_no"),
+                "lut_no": pick("exp_lut_no"), "lut_valid_to": pick("exp_lut_valid_to"), "gstin": c.gstin, "pan": c.pan, "default_cha": pick("exp_default_cha", "imp_default_cha"), "rodtep": pick("exp_rodtep")}
+    return {}
+
+
+def source_info(db: Session, job: Shipment, freight: Shipment | None, booking: Booking | None) -> dict:
+    """Source information of a CHA job: the booking it belongs to (its number is the main reference), what was booked, and the order of work."""
+    d = (booking.data if booking else None) or {}
+    return {"booking_number": booking.number if booking else None, "booking_id": booking.id if booking else None, "booking_source": "System generated (direct job)" if d.get("auto_generated") else ("Booking" if booking else None),
+            "services": _services(booking) if booking else [], "freight_job_number": freight.job_number if freight else None,
+            "order": ("CHA first, then freight" if job.direction == "Export" else "Freight first, then CHA")}
 
 
 @router.get("/api/cha/jobs/{job_number}")
@@ -357,7 +448,7 @@ def get_cha_job(job_number: str, user: User = Depends(permission_required("shipm
     events = list(db.scalars(select(JobEvent).where(JobEvent.shipment_id == job.id).order_by(JobEvent.id.desc()).limit(40)))
     info = job.cha_info or {}
     return {**row, "info": {"file_ref": info.get("file_ref"), "customs_location": info.get("customs_location"), "cha_license": info.get("cha_license"), "mbl": info.get("mbl"), "hbl": info.get("hbl") or job.bl_awb,
-                            "containers": info.get("containers"), "source": ("Freight job " + freight.job_number) if freight else "CHA screen"}, "stages": CHA_STATUSES, "delayed": is_delayed(job), "siblings": siblings,
+                            "containers": info.get("containers"), "source": ("Freight job " + freight.job_number) if freight else "CHA screen"}, "source_info": source_info(db, job, freight, booking), "party_details": {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}, "stages": CHA_STATUSES, "delayed": is_delayed(job), "siblings": siblings,
             "events": [{"at": e.created_at, "type": e.event_type, "text": e.description, "previous": e.previous_value, "new": e.new_value} for e in events]}
 
 
