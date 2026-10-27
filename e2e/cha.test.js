@@ -23,6 +23,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const root = d.getElementById("svcChaRoot");
   check("the CHA screen has Back and a Create Job button", !!root.querySelector('[data-go="dashboard"]') && /Create Job/.test(root.textContent), root.textContent.slice(0, 200));
   for (const n of ["Draft", "Pending", "Filed", "Delayed", "Completed", "Examination", "Cleared"]) check("dashboard card " + n, !!Array.from(root.querySelectorAll("[data-cha-group]")).find(b => b.textContent.includes(n)));
+  const scr = d.getElementById("s-svc-cha"); check("the old Total customs jobs / Draft / Confirmed / On transit / Closed strip is gone", !/TOTAL CUSTOMS JOBS|ON TRANSIT|CONFIRMED/i.test(scr.textContent), scr.textContent.slice(0, 160));
   check("the four Sea / Air x Export / Import tiles", root.querySelectorAll("[data-cha-type]").length === 4);
   d.getElementById("chaCreate").click(); await sleep(200);
   const opts = Array.from(root.querySelectorAll("[data-cha-new]")).map(b => b.dataset.chaNew);
