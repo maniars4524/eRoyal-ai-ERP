@@ -2988,7 +2988,9 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr"><div class="fg"><label class="fl">BL Stage</label><input class="fc" id="jobBl_stage" readonly value="Draft" style="font-weight:700;background:var(--g0)"></div><div class="fg"><label class="fl">Release Type</label><select class="fc" id="jobBl_relType"><option>Original</option><option>Express Release</option><option>Telex Release</option><option>Surrender</option></select></div><div class="fg" style="display:flex;align-items:flex-end"><label style="display:flex;gap:6px;align-items:center;font-size:12px"><input type="checkbox" id="jobBl_digSign"> Apply digital signature &amp; seal</label></div></div>
 <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" id="jobBl_confirmBtn">Confirm BL</button><button class="btn btn-pri btn-sm" type="button" id="jobBl_releaseBtn">Release BL</button><button class="btn btn-out btn-sm" type="button" id="jobBl_draftBtn">Back to Draft</button><button class="btn btn-out btn-sm" type="button" data-doc-profile>Company letterhead &amp; registration</button></div>
 <div class="ib ib-am" id="jobBl_releaseNote" style="margin-top:8px"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg>Original BL is released only after full payment is confirmed by Accounts.</div>
-</div></div></div>
+</div></div>
+<div class="card" id="chaJobsCard" style="margin-top:14px;display:none"><div class="ch"><div class="ct">CUSTOMS / CHA JOB INFORMATION <span class="mn-badge" id="chaJobsCount">0</span></div><button class="btn btn-out btn-sm" id="chaJobsAdd" type="button">＋ Add CHA job</button></div><div class="cb" id="chaJobsBody"></div></div>
+</div>
 
 <!-- JT4 CUSTOMS -->
 <div id="jt4" class="tp"><div class="card"><div class="ch"><div class="ct">Customs Clearance</div><button class="btn btn-out btn-sm" id="cusAddBtn" style="display:none">＋ Add clearance bill</button></div><div class="cb" id="cusBody"><div style="color:var(--g5);font-style:italic">Open a job to see its customs clearance.</div></div></div></div>
@@ -21267,6 +21269,60 @@ function makePrintFit(){
   document.addEventListener("keydown", async e=>{ if(e.target && e.target.id === "chaFQ" && e.key === "Enter"){ S.q = e.target.value.trim(); await render(); } });
   window.renderSvcCha = render;
   window.ChaKit = {render, openJob, createModal, state:S};
+})();
+
+/* ============================================================
+   FREIGHT JOB CHA KIT: "CUSTOMS / CHA JOB INFORMATION" after the BL section of a job. Lists ALL CHA jobs linked to the freight job (one booking, one freight job, many CHA jobs), each with its own
+   Shipping Bill / Bill of Entry, customs status and documents. Add CHA job checks exporter, importer and ports against the freight job; an authorised user can record an exception with a reason.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "";
+  const TONE = {"OOC / LEO CLEARED":"b-gr", DELIVERED:"b-gr", CLOSED:"b-gr", "CUSTOMS FILED":"b-bl", "CUSTOMS RESPONSE":"b-bl", EXAMINATION:"b-am", VALIDATED:"b-am", CHECKLIST:"b-am"};
+  const K = window.FjChaKit = {job:null, data:null};
+  const c = v=> v ? esc2(v) : '<span style="color:var(--g5)">—</span>';
+  K.load = async function(jobNo){
+    jobNo = jobNo || window.__lastJobNo; K.job = jobNo; const card = el("chaJobsCard"); if(!card || !jobNo) return;
+    let d; try{ d = await api("GET", "/api/jobs/"+encodeURIComponent(jobNo)+"/cha-jobs"); }catch(e){ card.style.display = "none"; return; }
+    K.data = d; K.render();
+  };
+  K.render = function(){
+    const d = K.data, card = el("chaJobsCard"); if(!d || !card) return;
+    const f = d.freight || {}; card.style.display = (f.shipment_type === "Export" || f.shipment_type === "Import") ? "" : "none";
+    el("chaJobsCount").textContent = d.count;
+    const rows = d.cha_jobs.map(r=>{ const ex = r.shipment_type === "Export";
+      return '<tr><td class="mono" style="font-weight:700"><a href="#" data-fjcha-open="'+esc2(r.cha_job_number)+'">'+esc2(r.cha_job_number)+'</a></td><td class="mono">'+c(r.booking_number)+'</td><td>'+c(r.exporter)+'</td><td>'+c(r.importer)+'</td><td>'+c(r.pol)+'</td><td>'+c(r.pod)+'</td><td>'+esc2(r.shipment_type)+'</td><td>'+esc2(r.shipment_mode)+'</td>'+
+        '<td>'+(ex ? c(r.shipping_bill_no)+(r.shipping_bill_date ? '<div style="font-size:11px;color:var(--g5)">'+dmy(r.shipping_bill_date)+'</div>' : "") : '<span style="color:var(--g5)">—</span>')+'</td><td>'+(!ex ? c(r.bill_of_entry_no)+(r.bill_of_entry_date ? '<div style="font-size:11px;color:var(--g5)">'+dmy(r.bill_of_entry_date)+'</div>' : "") : '<span style="color:var(--g5)">—</span>')+'</td>'+
+        '<td><span class="b '+(TONE[r.customs_status] || "b-gy")+' dot">'+esc2(r.customs_status)+'</span></td><td>'+r.documents.map(x=>'<span class="b '+(x.available ? "b-gr" : "b-gy")+'" style="margin:1px 3px 1px 0" title="'+(x.available ? "Ready" : "Not ready yet")+'">'+esc2(x.name)+'</span>').join("")+'</td></tr>'; }).join("");
+    el("chaJobsBody").innerHTML = '<div style="font-size:12px;color:var(--g5);margin-bottom:8px">Freight job <b>'+esc2(d.freight_job_number)+'</b>'+(d.booking_number ? ' · Booking <b>'+esc2(d.booking_number)+'</b>' : "")+' — every CHA job of this booking is listed here. Each keeps its own customs bills and status.</div>'+
+      '<div class="tw"><table><thead><tr><th>CHA Job No</th><th>Booking No</th><th>Exporter</th><th>Importer</th><th>POL</th><th>POD</th><th>Shipment Type</th><th>Mode</th><th>SB No / Date</th><th>BE No / Date</th><th>Customs Status</th><th>Documents</th></tr></thead><tbody>'+
+      (rows || '<tr><td colspan="12" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">No CHA job yet. Use Add CHA job, or add the CHA service to the booking.</td></tr>')+'</tbody></table></div>';
+  };
+  function dialog(){
+    const d = K.data, f = d.freight || {};
+    const inp = (id, label, v)=> '<div class="fg"><label class="fl">'+label+'</label><input class="fc" id="'+id+'" value="'+esc2(v || "")+'"></div>';
+    openModal({title:"Add CHA job to "+esc2(d.freight_job_number), bodyHTML:'<div id="fjMsg" style="display:none;background:#fff4e5;border:1px solid #f0b46a;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px"></div>'+
+      '<div class="ib ib-bl" style="margin-bottom:8px">Same booking, same freight job. Exporter, importer, port of loading and port of discharge must match the freight job.</div><div class="fr">'+inp("fjExp", "Exporter", f.exporter)+inp("fjImp", "Importer", f.importer)+'</div><div class="fr">'+inp("fjPol", "Port of loading", f.pol)+inp("fjPod", "Port of discharge", f.pod)+'</div>'+
+      '<div id="fjWhyWrap" style="display:none"><div class="fg"><label class="fl">Reason for the exception</label><input class="fc" id="fjWhy" placeholder="Why this CHA job differs from the freight job"></div></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="fjSave">Add CHA job</button>'});
+    el("fjSave").addEventListener("click", async ()=>{
+      const g = id=> (el(id) || {}).value || "";
+      try{ const out = await api("POST", "/api/jobs/"+encodeURIComponent(K.job)+"/cha-jobs", {exporter:g("fjExp"), importer:g("fjImp"), pol:g("fjPol"), pod:g("fjPod"), exception_reason:g("fjWhy")});
+        closeModal(); K.data = out; K.render(); say("CHA job added", out.created+" is linked to "+out.freight_job_number); }
+      catch(e){ const x = e.detail;
+        if(x && x.code === "CHA_MISMATCH"){ const m = el("fjMsg"); m.style.display = "block"; m.innerHTML = esc2(x.message)+(x.can_override ? "<br><b>Enter a reason below to record this as an authorised exception.</b>" : "<br>Only a user with the CHA exception permission can override this."); if(x.can_override) el("fjWhyWrap").style.display = "block"; return; }
+        say("Could not add the CHA job", e.message, "error"); }
+    });
+  }
+  document.addEventListener("click", e=>{
+    if(e.target.closest("#chaJobsAdd")){ if(K.data) dialog(); return; }
+    const o = e.target.closest("[data-fjcha-open]"); if(o){ e.preventDefault(); if(window.ChaKit) ChaKit.openJob(o.dataset.fjchaOpen); return; }
+    if(e.target.closest('.tbb[data-tab="jt3"]')) K.load();
+  });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>K.load(opts && opts.jobNo), 1000); };
 })();
 
 /* ============================================================
