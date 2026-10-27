@@ -145,6 +145,10 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
             if side.ccy != "INR" and side.exch <= 0:
                 raise HTTPException(status_code=422, detail="Exchange rate must be greater than zero for non-INR charges")
     db.execute(delete(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id))
+    from . import air_weight
+
+    det = db.scalar(select(JobDetail).where(JobDetail.shipment_id == job.id))
+    chargeable_kg = air_weight.compute((det.dims if det else None) or {}).get("chargeable_kg") or 0          # from the package dimensions on the job
     rows = []
     for index, line in enumerate(payload.lines, start=1):
         bu = [{"type": b.type.strip(), "qty": str(b.qty), "sell": str(b.sell), "buy": str(b.buy)} for b in (line.breakup or []) if b.qty > 0]
@@ -155,6 +159,8 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
             if buy_total > 0:
                 line.buy.rate = buy_total
             line.qty = Decimal(1)
+        if chargeable_kg > 0 and air_weight.is_chargeable_uom(line.uom) and not bu:        # a charge on a chargeable-weight basis is quoted on the weight calculated from the dimensions
+            line.qty = Decimal(str(chargeable_kg))
         row = JobCharge(
             organization_id=job.organization_id, shipment_id=job.id, line_no=index, charge_name=line.charge_name.strip(), description=line.description.strip(), uom=line.uom, qty=line.qty, hsn=line.hsn.strip(),
             buy_ccy=line.buy.ccy, buy_exch=Decimal(1) if line.buy.ccy == "INR" else line.buy.exch, buy_rate=line.buy.rate, buy_tax_type=line.buy.tax_type, buy_tax_pct=line.buy.tax_pct if line.buy.tax_type in ("Taxable", "RCM") else Decimal(0), vendor=line.buy.party.strip(), use_vendor=line.buy.use_party,

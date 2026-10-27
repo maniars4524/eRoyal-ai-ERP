@@ -157,9 +157,17 @@ def _out(db: Session, job: Shipment, row: JobDetail | None, user: User | None = 
             "company_code": company_code(db.get(Organization, job.organization_id)),
             "parties": ((row.parties if row else {}) or {}) if saved.get("parties") else pre["parties"], "cargo": ((row.cargo if row else {}) or {}) if saved.get("cargo") else pre["cargo"], "containers": ((row.containers if row else []) or []) if saved.get("containers") else pre["containers"],
             "release": release_check(db, job, user), "suggested_containers": suggested_containers(db, job),
-            "from_booking": {"parties": not saved.get("parties") and bool(pre["parties"]), "cargo": not saved.get("cargo") and bool(pre["cargo"])}, "dims": (row.dims if row else {}) or {}, "bl": (row.bl if row else {}) or {}, "impdocs": (row.impdocs if row else {}) or {},
+            "from_booking": {"parties": not saved.get("parties") and bool(pre["parties"]), "cargo": not saved.get("cargo") and bool(pre["cargo"])}, "dims": _dims_out(row.dims if row else None), "bl": (row.bl if row else {}) or {}, "impdocs": (row.impdocs if row else {}) or {},
             "saved_sections": (row.saved_sections if row else {}) or {}, "version": row.version if row else 0, "updated_at": row.updated_at if row and row.version else None,
             "updated_by": jl.display_name(by) if by else None}
+
+
+def _dims_out(dims: dict | None) -> dict:
+    from . import air_weight
+
+    d = dict(dims or {})
+    d["totals"] = air_weight.compute(d)
+    return d
 
 
 def _num(v: Any) -> float | None:
@@ -213,6 +221,19 @@ def _validate(section: str, data: Any) -> Any:
         if data.get("scac") and not SCAC.match(str(data["scac"]).upper()):
             raise HTTPException(422, "SCAC code is 4 capital letters")
     return data
+
+
+def _apply_chargeable_weight(db: Session, job: Shipment, row: JobDetail) -> None:
+    """Dimensions -> chargeable weight -> the job's charge lines charged on a chargeable-weight basis (quantity = chargeable weight), so the job cost, the invoice and the purchase bill follow the dimensions."""
+    from . import air_weight
+    from .models import JobCharge
+
+    kg = air_weight.compute(row.dims or {}).get("chargeable_kg") or 0
+    if kg <= 0:
+        return
+    for c in db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id)):
+        if air_weight.is_chargeable_uom(c.uom) and not c.breakup:
+            c.qty = kg
 
 
 def _reflect(job: Shipment, row: JobDetail) -> None:
@@ -287,6 +308,8 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
     row.version = (row.version or 0) + 1
     row.updated_by = user.id
     _reflect(job, row)
+    if section == "dims":
+        _apply_chargeable_weight(db, job, row)
     jl.log_event(db, job, user, "JOB_DETAILS_SAVED" if first else "JOB_DETAILS_UPDATED", "HEADER", f"{section.capitalize()} {'saved' if first else 'updated'}", detail={"section": section, "version": row.version})
     record_audit(db, "JOB_DETAILS_SAVED", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "section": section})
     db.commit()

@@ -182,3 +182,28 @@ def test_job_from_a_booking_suggests_the_planned_containers(h):
     assert len(sug) == 1 and sug[0]["type"] == "20GP" and sug[0]["qty"] == 3 and sug[0]["sources"][0].startswith("Booking")
     plain = job(h)
     assert client.get(f"/api/jobs/{plain}/details", headers=h).json()["suggested_containers"] == []
+
+
+def test_dimensions_give_the_chargeable_weight_that_reaches_the_job_cost_lines(h):
+    from app import air_weight
+
+    j = job(h, mode="Air", pol="MAA(CHENNAI)", pod="FRA(FRANKFURT)")
+    # 2 packages 100 x 60 x 50 cm, 40 kg each: volumetric 2 x 50 = 100 kg > actual 80 kg -> chargeable 100.0
+    saved = client.put(f"/api/jobs/{j}/details/dims", json={"data": {"unit": "cm_kg", "rows": [{"desc": "Cartons", "pkg": "2", "l": "100", "w": "60", "h": "50", "awt": "40"}]}}, headers=h)
+    assert saved.status_code == 200, saved.text
+    t = saved.json()["dims"]["totals"]
+    assert t["actual_kg"] == 80 and t["volumetric_kg"] == 100 and t["chargeable_kg"] == 100 and t["basis"] == "volumetric"
+    # a charge on a chargeable-kg basis takes the quantity from the dimensions, whatever was typed
+    side = lambda rate: {"ccy": "INR", "exch": "1", "rate": rate, "tax_type": "Non-Taxable", "tax_pct": "0", "party": "", "use_party": False}
+    put = client.put(f"/api/shipments/by-number/{j}/charges", json={"lines": [{"charge_name": "Air Freight", "qty": "1", "uom": "Per Chargeable KG", "sell": side("350"), "buy": side("300")}, {"charge_name": "Handling", "qty": "1", "uom": "Per Shipment", "sell": side("500"), "buy": side("0")}]}, headers=h)
+    lines = put.json()["lines"]
+    assert float(lines[0]["qty"]) == 100 and float(lines[1]["qty"]) == 1
+    # new dimensions later: the chargeable-weight lines follow, other lines do not
+    client.put(f"/api/jobs/{j}/details/dims", json={"data": {"unit": "cm_kg", "rows": [{"desc": "Cartons", "pkg": "2", "l": "100", "w": "60", "h": "50", "awt": "60"}]}}, headers=h)
+    again = client.get(f"/api/shipments/by-number/{j}/charges", headers=h).json()["lines"]
+    assert float(again[0]["qty"]) == 120 and float(again[1]["qty"]) == 1                      # actual 120 kg now exceeds volumetric 100
+    inv = client.get("/api/documents/billing/job-lines", params={"job_number": j, "party": "", "doc_type": "invoice"}, headers=h)
+    assert inv.status_code in (200, 404, 422)
+    assert air_weight.round_up_half(100.01) == 100.5 and air_weight.round_up_half(99.5) == 99.5
+    assert air_weight.compute({"unit": "in_lbs", "rows": [{"pkg": "1", "l": "40", "w": "20", "h": "20", "awt": "30"}]})["actual_kg"] == round(30 * 0.45359237, 3)
+    assert air_weight.compute({"unit": "cbm", "rows": [{"pkg": "1", "l": "100", "w": "100", "h": "100", "awt": "10"}]})["volumetric_kg"] == 167.0

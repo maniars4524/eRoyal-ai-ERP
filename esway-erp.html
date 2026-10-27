@@ -2741,6 +2741,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="card"><div class="ch"><div class="ct">Finance Summary</div></div><div class="cb">
 <div class="sr"><span class="lbl">Packages</span><span id="jd_packages">—</span></div>
 <div class="sr"><span class="lbl">Gross Weight / Volume</span><span id="jd_weight">—</span></div>
+<div class="sr" id="jd_chgRow" style="display:none"><span class="lbl">Chargeable Weight (Air)</span><span id="jd_chargeable" style="font-weight:700">—</span></div>
 <div class="sr"><span class="lbl">BL / AWB No</span><span id="jd_bl">—</span></div>
 <div class="divider"></div>
 <div class="sr"><span class="lbl">Total AR (Sell)</span><span class="ap" id="jd_ar">₹0.00</span></div>
@@ -2859,6 +2860,7 @@ tbody tr:hover{background:var(--g0)}
   </select>
   <div style="margin-left:auto;font-size:11px;color:var(--g5)" id="dimFormulaLabel">Formula: (L × W × H) ÷ 6,000</div>
 </div>
+<div class="ib ib-bl" id="dimChgNote" style="margin:-6px 0 12px;font-size:12px"></div>
 
 <!-- Dimensions table -->
 <div class="tw" style="margin-bottom:14px">
@@ -2878,39 +2880,15 @@ tbody tr:hover{background:var(--g0)}
   </tr>
 </thead>
 <tbody id="dimTableBody">
-<tr data-row="1">
-  <td>1</td>
-  <td><input class="fc" value="Electronic Components" style="width:140px"></td>
-  <td><input class="fc dim-pkg" value="5" style="width:50px" oninput="recalcRow(this)"></td>
-  <td><input class="fc dim-l" value="120" style="width:65px" oninput="recalcRow(this)"></td>
-  <td><input class="fc dim-w" value="80" style="width:65px" oninput="recalcRow(this)"></td>
-  <td><input class="fc dim-h" value="50" style="width:65px" oninput="recalcRow(this)"></td>
-  <td><input class="fc dim-awt" value="45" style="width:65px" oninput="recalcRow(this)"></td>
-  <td class="dim-vw" style="font-weight:700;color:var(--tl);text-align:right">80.00</td>
-  <td class="dim-cw" style="font-weight:700;color:var(--gr);text-align:right">80.00</td>
-  <td class="no-print"><button class="ta" onclick="this.closest('tr').remove();recalcDim()">✕</button></td>
-</tr>
-<tr data-row="2">
-  <td>2</td>
-  <td><input class="fc" value="Accessories Box" style="width:140px"></td>
-  <td><input class="fc dim-pkg" value="10" style="width:50px" oninput="recalcRow(this)"></td>
-  <td><input class="fc dim-l" value="60" style="width:65px" oninput="recalcRow(this)"></td>
-  <td><input class="fc dim-w" value="40" style="width:65px" oninput="recalcRow(this)"></td>
-  <td><input class="fc dim-h" value="30" style="width:65px" oninput="recalcRow(this)"></td>
-  <td><input class="fc dim-awt" value="8" style="width:65px" oninput="recalcRow(this)"></td>
-  <td class="dim-vw" style="font-weight:700;color:var(--tl);text-align:right">12.00</td>
-  <td class="dim-cw" style="font-weight:700;color:var(--gr);text-align:right">12.00</td>
-  <td class="no-print"><button class="ta" onclick="this.closest('tr').remove();recalcDim()">✕</button></td>
-</tr>
 </tbody>
 <tfoot>
   <tr style="background:var(--g1);font-weight:700">
     <td colspan="2" style="padding:8px 10px;color:var(--g6)">TOTALS</td>
-    <td id="dimTotPkg" style="padding:8px 10px;color:var(--n)">15</td>
+    <td id="dimTotPkg" style="padding:8px 10px;color:var(--n)">0</td>
     <td colspan="3" style="padding:8px 10px;color:var(--g5);font-size:11px">Total packages</td>
-    <td id="dimTotAct" style="padding:8px 10px;color:var(--rd)">53.00 kg</td>
-    <td id="dimTotVol" style="padding:8px 10px;color:var(--tl)">92.00 kg</td>
-    <td id="dimTotChg" style="padding:8px 10px;color:var(--gr);font-size:13px">92.00 kg</td>
+    <td id="dimTotAct" style="padding:8px 10px;color:var(--rd)">0.00 kg</td>
+    <td id="dimTotVol" style="padding:8px 10px;color:var(--tl)">0.00 kg</td>
+    <td id="dimTotChg" style="padding:8px 10px;color:var(--gr);font-size:13px">0.00 kg</td>
     <td class="no-print"></td>
   </tr>
 </tfoot>
@@ -2921,22 +2899,22 @@ tbody tr:hover{background:var(--g0)}
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
   <div style="border:1.5px solid var(--tl);border-radius:8px;padding:12px;background:var(--tlt);text-align:center">
     <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--tl);text-transform:uppercase;margin-bottom:4px">Total Packages</div>
-    <div style="font-size:24px;font-weight:800;color:var(--n)" id="sumPkg">15</div>
+    <div style="font-size:24px;font-weight:800;color:var(--n)" id="sumPkg">0</div>
     <div style="font-size:10.5px;color:var(--g5)">pieces</div>
   </div>
   <div style="border:1.5px solid var(--rd);border-radius:8px;padding:12px;background:var(--rdt);text-align:center">
     <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--rd);text-transform:uppercase;margin-bottom:4px">Actual Weight</div>
-    <div style="font-size:24px;font-weight:800;color:var(--rd)" id="sumAct">53.00</div>
+    <div style="font-size:24px;font-weight:800;color:var(--rd)" id="sumAct">0.00</div>
     <div style="font-size:10.5px;color:var(--g5)">kg</div>
   </div>
   <div style="border:1.5px solid var(--tl);border-radius:8px;padding:12px;background:var(--tlt);text-align:center">
     <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--tl);text-transform:uppercase;margin-bottom:4px">Volumetric Weight</div>
-    <div style="font-size:24px;font-weight:800;color:var(--tl)" id="sumVol">92.00</div>
+    <div style="font-size:24px;font-weight:800;color:var(--tl)" id="sumVol">0.00</div>
     <div style="font-size:10.5px;color:var(--g5)">kg</div>
   </div>
   <div style="border:2px solid var(--gr);border-radius:8px;padding:12px;background:var(--grt);text-align:center">
     <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--gr);text-transform:uppercase;margin-bottom:4px">⭐ Chargeable Weight</div>
-    <div style="font-size:28px;font-weight:800;color:var(--gr)" id="sumChg">92.00</div>
+    <div style="font-size:28px;font-weight:800;color:var(--gr)" id="sumChg">0.00</div>
     <div style="font-size:10.5px;color:var(--g5)">kg (higher of actual vs vol.)</div>
   </div>
 </div>
@@ -7253,7 +7231,7 @@ function populateJobDetail(jobNo){
    ============================================================ */
 const JC_CHARGE_MASTER = [];  /* filled from Charge Master (/api/masters/charge) */
 const JC_CCY = ["INR","USD","EUR","GBP","AED","SGD","JPY"];
-const JC_UOM = ["Per Shipment","Per Container","Per KG","Per CBM","Per Document","Per Job","Per Hour","Per Unit","Per BL"];
+const JC_UOM = ["Per Shipment","Per Container","Per Chargeable KG","Per KG","Per CBM","Per Document","Per Job","Per Hour","Per Unit","Per BL"];
 const JOB_CHARGES_DB = {};
 let jcCurrentJob = null;
 let jcRowSeq = 1;
@@ -7441,6 +7419,7 @@ function jcSetField(id, path, value){
     r[path] = !!value;
   } else {
     r[path] = (path==="qty") ? (value===""?0:Number(value)) : value;
+    if(path==="uom" && /chargeable/i.test(String(value))) jcFillChargeable(r);
     if(path==="chargeName"){
       const m = JC_CHARGE_MASTER.find(c=>c.name===value);
       if(m){ r.hsn = m.code; r.buy.taxPct = m.gst; r.sell.taxPct = m.gst; }
@@ -7449,6 +7428,11 @@ function jcSetField(id, path, value){
   }
 }
 
+/* quantity of a chargeable-weight charge = the chargeable weight calculated from the job's package dimensions (the server applies the same figure when the charges are saved) */
+function jcFillChargeable(r){
+  if(!jcCurrentJob) return;
+  jcApi("GET", "/api/jobs/"+encodeURIComponent(jcCurrentJob)+"/details").then(d=>{ const kg = (((d || {}).dims || {}).totals || {}).chargeable_kg; if(kg > 0){ r.qty = kg; jcRenderRows(); if(window.toast) toast("Quantity set from the dimensions", "Chargeable weight "+kg+" kg", "success"); } else if(window.toast) toast("No package dimensions yet", "Enter them on the job's Dimensions tab; the quantity then follows automatically.", "warn"); }).catch(()=>{});
+}
 function jcUpdateRowComputedCells(id){
   const st = jcGetState(jcCurrentJob);
   const r = st.rows.find(x=>x.id===id);
@@ -8998,7 +8982,7 @@ function recalcDim(){
   const tbody = document.getElementById('dimTableBody');
   if(!tbody) return;
   const rows = tbody.querySelectorAll('tr');
-  let totPkg=0, totAct=0, totVol=0, totChg=0;
+  let totPkg=0, totAct=0, totVol=0;
 
   rows.forEach(tr=>{
     const pkg = parseFloat(tr.querySelector('.dim-pkg')?.value)||1;
@@ -9013,17 +8997,21 @@ function recalcDim(){
     else if(unit==='cbm') vw = (l*w*h/1000000)*167 * pkg;
 
     const aw = awt * pkg;
-    const cw = Math.max(aw, vw);
+    const cw = Math.max(aw, vw);                       // per line: the heavier of the two (information only)
 
     const vwEl = tr.querySelector('.dim-vw');
     const cwEl = tr.querySelector('.dim-cw');
     if(vwEl) vwEl.textContent = vw.toFixed(2);
     if(cwEl){ cwEl.textContent = cw.toFixed(2); cwEl.style.color = cw===vw ? 'var(--tl)':'var(--gr)'; }
 
-    totPkg += pkg; totAct += aw; totVol += vw; totChg += cw;
+    totPkg += pkg; totAct += aw; totVol += vw;
   });
 
+  /* the CHARGEABLE weight belongs to the whole shipment: the greater of the total actual and the total volumetric weight, rounded up to the next 0.5 kg (the server does the same sum) */
   const wt = unit==='in_lbs' ? 'lbs' : 'kg';
+  const toKg = unit==='in_lbs' ? 0.45359237 : 1;
+  const chgKg = (function(v){ return v > 0 ? Math.ceil(Math.round(v*2*1e6)/1e6)/2 : 0; })(Math.max(totAct, totVol) * toKg);
+  const totChg = unit==='in_lbs' ? chgKg / toKg : chgKg;
   const tP = document.getElementById('dimTotPkg');
   const tA = document.getElementById('dimTotAct');
   const tV = document.getElementById('dimTotVol');
@@ -9042,8 +9030,13 @@ function recalcDim(){
   if(sA) sA.textContent = totAct.toFixed(2);
   if(sV) sV.textContent = totVol.toFixed(2);
   if(sC) sC.textContent = totChg.toFixed(2);
+  const basis = totVol > totAct ? "volumetric weight is higher" : "actual weight is higher";
+  const note = document.getElementById('dimChgNote'); if(note) note.textContent = totPkg ? "Chargeable weight "+chgKg.toFixed(1)+" kg — the greater of actual and volumetric weight ("+basis+"), rounded up to the next 0.5 kg. It goes to the job overview, the Air Waybill and the job cost." : "";
+  window.AIR_DIMS = {actual_kg:Math.round(totAct*toKg*1000)/1000, volumetric_kg:Math.round(totVol*toKg*1000)/1000, chargeable_kg:chgKg, packages:totPkg};
+  if(window.JobAirSync) JobAirSync();
 }
 
+window.recalcDim = recalcDim; window.recalcRow = recalcRow;        /* the dimension table's inline handlers (oninput / onchange / onclick) call these by name */
 // Add new dimension row
 const addDimBtn = document.getElementById('addDimBtn');
 if(addDimBtn) addDimBtn.addEventListener('click',()=>{
@@ -12593,11 +12586,23 @@ function jobWizRefresh(){
 function jobWizProcessTitle(){
   return `${jobWiz.dir} ${jobWiz.mode} — ${jobWiz.type} Creation Process`;
 }
+/* the department of a job follows its mode and direction: Air Export = AEX, Air Import = AIM, Sea Export = SEX, Sea Import = SIM, Road / Rail = TRP (a Customs job = CUS, a Transport job = TRP) */
+window.njDeptFor = function(mode, dir, type){
+  const t = String(type || ""), m = String(mode || ""), d = /import/i.test(dir || "") ? "I" : "E";
+  if(/^Customs/i.test(t)) return "CUS"; if(/^Transport/i.test(t)) return "TRP";
+  if(/air/i.test(m)) return d === "I" ? "AIM" : "AEX"; if(/sea|ocean/i.test(m)) return d === "I" ? "SIM" : "SEX"; if(/road|rail/i.test(m)) return "TRP"; return "";
+};
+window.njSyncDept = function(){
+  const dept = $("#nj_dept"); if(!dept) return; const code = njDeptFor(($("#nj_mode") || {}).value, ($("#nj_dir") || {}).value, ($("#nj_type") || {}).value); if(!code) return;
+  const o = Array.from(dept.options).find(x=>x.text.indexOf(code + " ") === 0); if(o) dept.value = o.value || o.text;
+};
+document.addEventListener("change", e=>{ if(e.target && ["nj_mode", "nj_dir", "nj_type"].indexOf(e.target.id) > -1) njSyncDept(); });
 function jobWizApplyAndShowForm(){
   window.lastJobBookingType = jobWiz.bookingType;
   const modeSel = $("#nj_mode"), contSel = $("#nj_contmode"), dirSel = $("#nj_dir");
   if(modeSel) modeSel.value = jobWiz.mode;
   if(dirSel) dirSel.value = jobWiz.dir;
+  njSyncDept(); if(modeSel) modeSel.dispatchEvent(new Event("change", {bubbles:true}));
   if(contSel){
     if(jobWiz.mode === "Sea" || jobWiz.mode === "Rail"){
       if(jobWiz.type === "FCL" || jobWiz.type === "LCL") contSel.value = jobWiz.type;
@@ -16043,7 +16048,8 @@ if(document.readyState !== "loading") initChatWidget();
       get("/api/customers?role=carrier", []), get("/api/customers?role=client", []), get("/api/ports?limit=30", []), get("/api/users", [])]);
     Q.me = me; const act = a=> a.filter(x=>x.status==="ACTIVE");
     Q.m.charges = act(charges); Q.m.currencies = act(currencies); Q.m.containers = act(containers); Q.m.units = act(units);
-    Q.m.carriers = act(carriers).map(c=>c.name); Q.m.customers = customers.filter(c=>c.status==="ACTIVE"); Q.m.ports = ports; Q.m.users = (users||[]).filter(u=>u.status==="ACTIVE");
+    Q.m.carriers = act(carriers).map(c=>c.name);
+    try{ const pk = await api("GET", "/api/network/pickers"); Q.m.airlines = Array.from(new Set((pk.airlines || []).map(x=>x.name))); Q.m.seaLines = Array.from(new Set((pk.sea_lines || []).map(x=>x.name))); }catch(e){ Q.m.airlines = []; Q.m.seaLines = []; } Q.m.customers = customers.filter(c=>c.status==="ACTIVE"); Q.m.ports = ports; Q.m.users = (users||[]).filter(u=>u.status==="ACTIVE");
     Q.m.rates = {INR:1};
     Q.m.currencies.forEach(c=>{ const r = Number(String((c.data||{}).exchange_rate||"").replace(/,/g,"")); if(r > 0) Q.m.rates[c.code.toUpperCase()] = r; });
   }
@@ -16194,7 +16200,7 @@ if(document.readyState !== "loading") initChatWidget();
       f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+f("Dimensions (L x W x H cm)", inp("dimensions","text","e.g. 80 x 60 x 45"))+
       f("Billing Branch", '<select class="fc" data-qh="billing_branch_id"'+d+'><option value="">— Registered address —</option>'+(Q.m.custBranches||[]).filter(b=>b.status==="ACTIVE" && b.billing_enabled).map(b=>opt(String(b.id), b.code+" — "+b.name, String(b.id)===String(h.billing_branch_id))).join("")+'</select>', "span2")+
       f("Contact Person", '<select class="fc" data-qh="contact_id"'+d+'><option value="">— Select contact —</option>'+contactChoices().map(c=>opt(String(c.id), c.name+(c.designation?" · "+c.designation:"")+(c.branch_code?" ("+c.branch_code+")":""), String(c.id)===String(h.contact_id))).join("")+'</select>', "span2")+
-      '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2((p.unlocode||p.code)+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+Q.m.carriers.map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
+      '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2((p.unlocode||p.code)+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+carrierNames().map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
   }
   async function reloadCharges(){
     try{ const rows = await api("GET","/api/masters/charge"); Q.m.charges = rows.filter(c=>c.status === "ACTIVE"); return true; }catch(e){ return false; }
@@ -16271,9 +16277,14 @@ if(document.readyState !== "loading") initChatWidget();
       foot("Total", (sd, t)=> '<td colspan="7">'+(sd === "sell" ? "Sell" : "Buy")+' total</td><td class="r" data-t="'+sd+':amount">'+num(t.amount, 2)+'</td><td class="r" data-t="'+sd+':total">'+num(t.total, 2)+'</td>')+
       foot("GST (₹)", (sd, t)=> '<td colspan="7" style="font-weight:600;color:var(--g6)">'+(sd === "sell" ? "Sell" : "Buy")+' GST</td><td colspan="2" class="r" data-t="'+sd+':gst" style="font-weight:600">'+num(t.gst, 2)+'</td>')+'</tfoot></table></div></div>';
   }
+  /* carriers of the quotation's mode: Air = Airline Master, Sea = Sea Line Master (never the other kind); other modes keep the Carrier organizations */
+  function carrierNames(){
+    const mode = String((wiz().mode || (Q.rec && Q.rec.mode)) || "");
+    if(/air/i.test(mode)) return Q.m.airlines || []; if(/sea|ocean/i.test(mode)) return Q.m.seaLines || []; return Q.m.carriers;
+  }
   function chosenCarriers(){
     const picked = Array.from(document.querySelectorAll("#quotCarrierRows select")).map(s=>s.value).filter(Boolean);
-    return picked.length ? picked : Q.m.carriers;
+    return picked.length ? picked : carrierNames();
   }
   function pane(side){
     const lines = side === "SELL" ? Q.sell : Q.buy, key = side.toLowerCase(), ro = Q.rec && !Q.rec.editable;
@@ -16683,7 +16694,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(e.target.closest("#quotAddCarrierBtn")){
       e.stopImmediatePropagation(); e.preventDefault();
       loadMasters().then(()=>{ const row = document.createElement("div"); row.className = "fr quotCarrierRow";
-        row.innerHTML = '<div class="fg"><label class="fl">Carrier / Line</label><select class="fc">'+(Q.m.carriers.length ? Q.m.carriers.map(c=>'<option>'+esc2(c)+'</option>').join("") : '<option value="">No carriers yet — add them in Organizations (role: Carrier)</option>')+'</select></div><div class="fg"><label class="fl">Notes</label><input class="fc"></div>';
+        row.innerHTML = '<div class="fg"><label class="fl">Carrier / Line</label><select class="fc">'+(carrierNames().length ? carrierNames().map(c=>'<option>'+esc2(c)+'</option>').join("") : '<option value="">No carrier in the master yet — add it under Masters ('+(/air/i.test(String(wiz().mode || "")) ? "Airline Master" : "Sea Line Master")+')</option>')+'</select></div><div class="fg"><label class="fl">Notes</label><input class="fc"></div>';
         document.getElementById("quotCarrierRows").appendChild(row); });
       return;
     }
@@ -17511,7 +17522,7 @@ function makePrintFit(){
     ["jobBlDirectWrap", "jobBlHouseWrap", "jobBlHbltypeWrap", "jobBlScacWrap", "jobBlBookingTypeNote", "jobBlGenericRow"].forEach(id=> show(id, false));
     const set = (id, v)=>{ const n = el(id); if(n && v != null && v !== "") n.value = v; };
     set("jobAwb_hawbNo", b.hblNo); set("jobAwb_hawbDate", b.hblDate); set("jobAwb_mawb", b.mblNo); set("jobAwb_mawbDate", b.mblDate); set("jobAwb_airline", a.airline); set("jobAwb_to", a.routingTo); set("jobAwb_flight", a.flight); set("jobAwb_flightDate", a.flightDate);
-    set("jobAwb_declCarriage", a.declCarriage); set("jobAwb_declCustoms", a.declCustoms); set("jobAwb_insurance", a.insurance); set("jobAwb_rateClass", a.rateClass); set("jobAwb_rate", a.rate); set("jobAwb_chg", a.chargeableWt); set("jobAwb_payment", a.payment);
+    set("jobAwb_declCarriage", a.declCarriage); set("jobAwb_declCustoms", a.declCustoms); set("jobAwb_insurance", a.insurance); set("jobAwb_rateClass", a.rateClass); set("jobAwb_rate", a.rate); { const cf = el("jobAwb_chg"); if(cf){ if(a.chargeableWt){ cf.dataset.manual = "1"; cf.value = a.chargeableWt; } else { delete cf.dataset.manual; } if(window.JobAirSync) JobAirSync(); } } set("jobAwb_payment", a.payment);
     set("jobAwb_other", a.otherCharges); set("jobAwb_currency", a.currency); set("jobAwb_place", a.place); set("jobAwb_execDate", a.execDate); set("jobAwb_handling", a.handling); set("jobAwb_accounting", a.accounting);
     const gen = el("jobAwb_genBtn"); if(gen){ gen.disabled = !!b.hblNo; gen.style.opacity = b.hblNo ? ".5" : ""; }
   };
@@ -17619,8 +17630,14 @@ function makePrintFit(){
       '<td class="dim-vw" style="font-weight:700;color:var(--tl);text-align:right">0.00</td><td class="dim-cw" style="font-weight:700;color:var(--gr);text-align:right">0.00</td><td class="no-print"><button class="ta" onclick="this.closest(\'tr\').remove();recalcDim()">✕</button></td>';
     return tr;
   }
+  window.JobAirSync = function(){                                                  // dimensions -> job overview + Air Waybill field
+    const t = window.AIR_DIMS, row = el("jd_chgRow"), v = el("jd_chargeable"); if(!(JD.data && JD.data.mode === "Air")) return; if(row) row.style.display = "";
+    if(v) v.textContent = t && t.chargeable_kg ? t.chargeable_kg.toFixed(1)+" KG  (actual "+t.actual_kg.toFixed(1)+" · volumetric "+t.volumetric_kg.toFixed(1)+")" : "— enter the package dimensions";
+    const f = el("jobAwb_chg"); if(f && !f.dataset.manual) f.value = t && t.chargeable_kg ? String(t.chargeable_kg) : "";
+  };
+  document.addEventListener("input", e=>{ if(e.target && e.target.id === "jobAwb_chg"){ const t = window.AIR_DIMS; if(e.target.value && (!t || String(t.chargeable_kg) !== e.target.value)) e.target.dataset.manual = "1"; else delete e.target.dataset.manual; } });
   JD.renderDims = function(d){
-    const tb = el("dimTableBody"); if(!tb) return; if(!d || !d.rows || !d.rows.length) return;
+    const tb = el("dimTableBody"); if(!tb) return; if(!d || !d.rows || !d.rows.length){ window.AIR_DIMS = null; if(window.JobAirSync) JobAirSync(); return; }
     tb.innerHTML = ""; d.rows.forEach((r, i)=> tb.appendChild(dimRow(r, i+1)));
     const u = el("dimUnit"); if(u && d.unit) u.value = d.unit; if(window.recalcDim) window.recalcDim();
   };
@@ -17635,7 +17652,7 @@ function makePrintFit(){
     const g = id=> ((el(id) || {}).value || "").trim();
     if(JD.data && JD.data.mode === "Air"){
       return {bookingType:"House", mblNo:g("jobAwb_mawb"), mblDate:g("jobAwb_mawbDate"), hblDate:g("jobAwb_hawbDate"), originals:g("jobBl_originals"), terms:g("jobAwb_payment"), place:g("jobAwb_place"), released:g("jobBl_released"),
-        awb:{airline:g("jobAwb_airline"), routingTo:g("jobAwb_to"), flight:g("jobAwb_flight"), flightDate:g("jobAwb_flightDate"), declCarriage:g("jobAwb_declCarriage"), declCustoms:g("jobAwb_declCustoms"), insurance:g("jobAwb_insurance"), rateClass:g("jobAwb_rateClass"), rate:g("jobAwb_rate"), chargeableWt:g("jobAwb_chg"),
+        awb:{airline:g("jobAwb_airline"), routingTo:g("jobAwb_to"), flight:g("jobAwb_flight"), flightDate:g("jobAwb_flightDate"), declCarriage:g("jobAwb_declCarriage"), declCustoms:g("jobAwb_declCustoms"), insurance:g("jobAwb_insurance"), rateClass:g("jobAwb_rateClass"), rate:g("jobAwb_rate"), chargeableWt:((el("jobAwb_chg") || {}).dataset || {}).manual ? g("jobAwb_chg") : "",
           payment:g("jobAwb_payment"), otherCharges:g("jobAwb_other"), currency:g("jobAwb_currency"), place:g("jobAwb_place"), execDate:g("jobAwb_execDate"), handling:(el("jobAwb_handling") || {}).value || "", accounting:(el("jobAwb_accounting") || {}).value || ""}};
     }
     const b = {bookingType:g("jobBlBookingType")};
@@ -18192,11 +18209,13 @@ function makePrintFit(){
   DK.awbWeights = function(d){
     const dims = (d && d.dims) || {}; const rows = dims.rows || []; const unit = dims.unit || "cm_kg"; let act = 0, vol = 0, pk = 0;
     rows.forEach(r=>{ const p = num(r.pkg) || 1, l = num(r.l), w = num(r.w), h = num(r.h); act += num(r.awt) * p; pk += p; vol += unit === "cm_kg" ? l * w * h / 6000 * p : unit === "in_lbs" ? l * w * h / 166 * p : l * w * h / 1000000 * 167 * p; });
+    const tt = dims.totals;                                                       // the server's calculation (kg): the same figures the job overview and the job cost use
+    if(tt && tt.packages) return {act:tt.actual_kg, vol:tt.volumetric_kg, chg:tt.chargeable_kg, pk:tt.packages, rows, unit, lbs:false};
     return {act, vol, pk, rows, unit, lbs:unit === "in_lbs"};
   };
   DK.awb = function(rd){
     const co = rd.company || {}, P = co.profile || {}, f = facts(rd); const bl = f.bl || {}; const a = bl.awb || {}; const stage = bl.blStage || "Draft";
-    const wt = DK.awbWeights(f.d); const gross = num(first(f.gw, wt.act)); const chargeable = num(first(a.chargeableWt, Math.max(gross, wt.vol))); const rate = num(a.rate); const wtCharge = rate * chargeable; const other = num(a.otherCharges);
+    const wt = DK.awbWeights(f.d); const gross = num(first(f.gw, wt.act)); const chargeable = num(first(a.chargeableWt, wt.chg || Math.max(gross, wt.vol))); const rate = num(a.rate); const wtCharge = rate * chargeable; const other = num(a.otherCharges);
     const pc = (a.payment || "Prepaid") === "Prepaid"; const total = wtCharge + other; const money = v=> v ? fmt(v) : "";
     const hawb = f.hbl || ""; const cell = (label, inner, st)=> '<div style="border:1px solid #333;padding:2px 5px;'+(st || "")+'"><div style="font-size:6.8px;color:#444;line-height:1.1">'+label+'</div><div style="font-size:9px;line-height:1.3;margin-top:1px">'+(inner || "&nbsp;")+'</div></div>';
     const partyTxt = t=> { const l = lines(t); return l.length ? "<b>"+esc2(l[0])+"</b><br>"+l.slice(1).map(esc2).join("<br>") : ""; };
