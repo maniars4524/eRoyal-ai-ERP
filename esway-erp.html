@@ -17384,7 +17384,9 @@ function makePrintFit(){
   async function stageTo(stage, extra){
     try{ JD.data = await api("POST", "/api/jobs/"+encodeURIComponent(JD.job)+"/bl/stage", Object.assign({stage}, extra || {})); JD.apply(); JD.bars();
       say(stage === "Released" ? "BL Released Successfully!" : stage === "Confirmed" ? "BL Confirmed Successfully!" : "BL Moved Back To Draft", (JD.data.bl.hblNo || JD.data.bl.directNo || JD.job)); return true;
-    }catch(e){ if(e.detail && e.detail.code === "PAYMENT_PENDING") return overrideDialog(stage, extra, e.detail); say("Could not change the BL stage", e.message, "error"); return false; }
+    }catch(e){ if(e.detail && e.detail.code === "PAYMENT_PENDING") return overrideDialog(stage, extra, e.detail);
+      if(e.status === 422 && /Digital signature/i.test(e.message || "") && extra && extra.digital_sign){ say("No signature / seal image yet", "The BL is released without the digital signature and seal. Add them under Company documents profile, then re-print.", "warn"); return stageTo(stage, Object.assign({}, extra, {digital_sign:false})); }
+      say("Could not change the BL stage", e.message, "error"); return false; }
   }
   function overrideDialog(stage, extra, det){
     if(!det.can_override){ say("Original BL cannot be released yet", det.message+" Ask a user with the release-override right, or collect the payment.", "error"); return false; }
