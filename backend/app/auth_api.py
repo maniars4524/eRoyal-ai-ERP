@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -134,6 +135,27 @@ def portal_info(portal: str = "demo", db: Session = Depends(get_db)):
     org = db.scalar(select(Organization).where(Organization.demo_portal.is_(True), Organization.status == "ACTIVE").order_by(Organization.id)) or \
         db.scalar(select(Organization).where(Organization.is_demo.is_(True), Organization.status == "ACTIVE").order_by(Organization.id))
     return {"license": org.license_number if org else None}
+
+
+_LICENSE_LOOKUPS: dict[str, list[float]] = {}
+
+
+@router.get("/license-company")
+def license_company(license: str = "", request: Request = None, db: Session = Depends(get_db)):
+    """The login card shows the company name once a license number is typed. Only the name of an active company comes back (a license number is an identifier, not a secret); lookups are limited per address."""
+    import time
+
+    now = time.time()
+    ip = (request.client.host if request and request.client else "?")
+    hits = [t for t in _LICENSE_LOOKUPS.get(ip, []) if now - t < 60]
+    if len(hits) >= 30:
+        raise HTTPException(status_code=429, detail="Too many lookups, try again in a minute")
+    _LICENSE_LOOKUPS[ip] = hits + [now]
+    lic = (license or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{2,5}\d{3,8}", lic):
+        return {"name": None}
+    org = db.scalar(select(Organization).where(Organization.license_number == lic, Organization.status == "ACTIVE"))
+    return {"name": (org.legal_name or org.name) if org and org.id and not getattr(org, "is_platform", False) and lic != "RTS0001" else None}
 
 
 @router.get("/me", response_model=SafeUser)

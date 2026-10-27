@@ -44,3 +44,13 @@ def test_party_defaults_follow_gst_applicable(world, admin):
         pd = client.get("/api/documents/billing/party-defaults", params={"party": name, "doc_type": "invoice"}, headers=h).json()
         assert pd["gst_applicable"] == expect, (name, pd)
         assert pd["party_gstin"] == ""
+
+
+def test_login_card_company_name_lookup(world, admin):
+    c = TestClient(app)
+    lic = admin["license"]
+    ok = c.get("/api/auth/license-company", params={"license": lic.lower()}).json()
+    assert ok["name"]                                        # the company name for an active license number
+    assert c.get("/api/auth/license-company", params={"license": "ZZZ99999"}).json()["name"] is None
+    assert c.get("/api/auth/license-company", params={"license": "nonsense!"}).json()["name"] is None
+    assert c.get("/api/auth/license-company").json()["name"] is None

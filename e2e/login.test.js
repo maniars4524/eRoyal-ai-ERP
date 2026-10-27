@@ -68,7 +68,7 @@ const login = async (identifier, password, portal, license) => {
     const w = dom.window, d = w.document;
     await sleep(2000);
     const licenseGroup = d.getElementById("loginLicense").closest(".login-field");
-    check(`${portal}: page title and license field match the portal`, (portal === "developer" ? licenseGroup.style.display === "none" : licenseGroup.style.display !== "none") && new RegExp(portal === "developer" ? "Administration" : portal === "demo" ? "Demo" : "^ERP$").test(d.querySelector(".login-title").textContent.trim()), d.querySelector(".login-title").textContent);
+    check(`${portal}: page title and license field match the portal`, (portal === "developer" ? licenseGroup.style.display === "none" : licenseGroup.style.display !== "none") && (portal === "erp" ? (d.querySelector(".login-title").textContent.trim() === "" && d.querySelector(".login-title").style.display === "none") : new RegExp(portal === "developer" ? "Administration" : "Demo").test(d.querySelector(".login-title").textContent.trim())), d.querySelector(".login-title").textContent);
     // wrong password shows an error and keeps the form
     d.getElementById("loginLicense").value = a.license || ""; d.getElementById("loginUser").value = a.user; d.getElementById("loginPass").value = a.pass + "x";
     d.getElementById("loginBtn").click(); await sleep(2200);

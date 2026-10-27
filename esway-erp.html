@@ -973,12 +973,15 @@ tbody tr:hover{background:var(--g0)}
   overflow-y:auto;
 }
 @keyframes loginIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
-.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.login-logo-icon{width:104px;height:auto;background:none;border-radius:0;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:none}
+.login-logo{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:14px}
+.login-logo-icon{width:250px;max-width:100%;height:auto;background:none;border-radius:0;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:none}
 .login-logo-icon .ic{color:#fff;width:21px;height:21px}
 .login-logo-img{width:100%;height:100%;object-fit:contain;display:block;border-radius:7px}
 .login-logo-text{font-size:18px;font-weight:700;color:var(--n);letter-spacing:-.4px;line-height:1.2}
-.login-logo-sub{font-size:11px;color:var(--g5);line-height:1.3}
+.login-logo-sub{font-size:12px;color:var(--g5);line-height:1.3;min-height:16px}.login-logo-sub.has-company{display:inline-flex;align-items:center;gap:9px;margin-top:6px;padding:8px 16px 8px 13px;border-radius:999px;font-size:15px;font-weight:700;letter-spacing:.2px;color:#0b1f3a;background:linear-gradient(135deg,rgba(26,111,191,.10),rgba(99,102,241,.12));border:1px solid rgba(26,111,191,.30);box-shadow:0 0 0 3px rgba(26,111,191,.06),0 6px 22px rgba(26,111,191,.30);animation:companyIn .45s ease-out both,companyGlow 3s ease-in-out .45s infinite}
+.login-logo-sub.has-company::before{content:"";width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.22),0 0 10px rgba(34,197,94,.9);flex:none}
+@keyframes companyIn{from{opacity:0;transform:translateY(-4px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes companyGlow{0%,100%{box-shadow:0 0 0 3px rgba(26,111,191,.06),0 6px 22px rgba(26,111,191,.26)}50%{box-shadow:0 0 0 4px rgba(26,111,191,.12),0 8px 30px rgba(26,111,191,.5)}}
 .login-title{font-size:19px;font-weight:700;color:var(--g8);margin-bottom:2px}
 .login-sub{font-size:12px;color:var(--g5);margin-bottom:14px}
 .login-field{margin-bottom:10px}
@@ -1258,8 +1261,7 @@ tbody tr:hover{background:var(--g0)}
     <div class="login-logo">
       <div class="login-logo-icon"><img src="/brand/logo-sway.png" alt="SWAY ERP 2.0" style="display:block;width:100%;height:auto"></div>
       <div>
-        <div class="login-logo-text">eSway ERP 2.0</div>
-        <div class="login-logo-sub">eSway Platform</div>
+        <div class="login-logo-sub" id="loginCompany">eSway Platform</div>
       </div>
     </div>
 
@@ -13311,7 +13313,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* ---- Portal selection: derived from the URL; the server independently enforces which portal an account may use ---- */
   const PORTALS = {
     developer:{title:"ERP System Administration", sub:"System Administrator Access", btn:"Sign In", foot:"System administrator access only", needsLicense:false, label:"Developer / System Administrator"},
-    erp:{title:"ERP", sub:"Sign in to your workspace", btn:"Sign In", foot:"eSway ERP 2.0 · © 2026", needsLicense:true, label:"ERP"},
+    erp:{title:"", sub:"Sign in to your workspace", btn:"Sign In", foot:"eSway ERP 2.0 · © 2026", needsLicense:true, label:"ERP"},
     demo:{title:"ERP Demo", sub:"Explore the ERP system using sample data.", btn:"Enter Demo", foot:"Demo environment — no production data", needsLicense:false, label:"Demo"}
   };
   const seg = (location.pathname.split("/")[1] || "").toLowerCase();
@@ -13320,7 +13322,7 @@ if(document.readyState !== "loading") initChatWidget();
   window.ESWAY_PORTAL = PORTAL;
   (function applyPortalUI(){
     const set = (sel, text)=>{ const el = document.querySelector(sel); if(el) el.textContent = text; };
-    set(".login-title", P.title); set(".login-sub", P.sub); set("#loginBtnText", P.btn); set(".login-footer", P.foot);
+    set(".login-title", P.title); { const lt = document.querySelector(".login-title"); if(lt && !P.title) lt.style.display = "none"; } set(".login-sub", P.sub); set("#loginBtnText", P.btn); set(".login-footer", P.foot);
     const userLabel = document.querySelector('label[for="loginUser"]'); if(userLabel) userLabel.textContent = "Email or Username";
     const userField = document.getElementById("loginUser"); if(userField) userField.placeholder = "Enter your email or username";
     if(!P.needsLicense && PORTAL !== "demo"){ const lf = document.getElementById("loginLicense"); if(lf && lf.closest(".login-field")) lf.closest(".login-field").style.display = "none"; }
@@ -13331,6 +13333,19 @@ if(document.readyState !== "loading") initChatWidget();
   const licenseInp = document.getElementById("loginLicense");
   /* the Demo page shows the license it belongs to, above the user name */
   if(PORTAL === "demo" && licenseInp){ fetch("/api/auth/portal-info?portal=demo").then(r=>r.ok ? r.json() : null).then(d=>{ if(d && d.license && !licenseInp.value) licenseInp.value = d.license; }).catch(()=>{}); }
+  /* the company name appears under the logo once a license number is typed */
+  (function companyName(){
+    const box = document.getElementById("loginCompany"); if(!box || !licenseInp) return; let t = null, seq = 0;
+    const base = box.textContent;
+    const look = ()=>{
+      const v = licenseInp.value.trim(), me = ++seq;
+      if(!/^[A-Za-z]{2,5}\d{3,8}$/.test(v)){ box.textContent = base; box.classList.remove("has-company"); return; }
+      fetch("/api/auth/license-company?license="+encodeURIComponent(v)).then(r=>r.ok ? r.json() : null).then(d=>{ if(me !== seq) return; if(d && d.name){ box.textContent = d.name; box.classList.add("has-company"); } else { box.textContent = base; box.classList.remove("has-company"); } }).catch(()=>{});
+    };
+    licenseInp.addEventListener("input", ()=>{ clearTimeout(t); t = setTimeout(look, 350); });
+    licenseInp.addEventListener("change", look);
+    setTimeout(look, 600); setTimeout(look, 1800);        // a license that was filled in for the user (Demo page, remembered sign-in)
+  })();
   const userInp  = document.getElementById("loginUser");
   const passInp  = document.getElementById("loginPass");
   const loginBtn = document.getElementById("loginBtn");
