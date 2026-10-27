@@ -69,7 +69,7 @@ async function openPage(token) {
   const alerts = d.getElementById("dashAlerts").textContent.replace(/\s+/g, " ");
   check("alerts list overdue invoices and arriving jobs", /Overdue invoices/.test(alerts) && /Arriving within 7 days/.test(alerts), alerts);
   check("chart is drawn from real months/jobs", /<text[^>]*>3<\/text>/.test(d.getElementById("dashChart").innerHTML), d.getElementById("dashChart").innerHTML.slice(0, 200));
-  check("carousel only offers slides driven by real data", w.document.querySelectorAll("#dashDots > *").length === 3, w.document.querySelectorAll("#dashDots > *").length);
+  check("carousel only offers slides driven by real data (revenue, volume and the live Freight / CHA / Transport slides)", w.document.querySelectorAll("#dashDots > *").length === 6 && w.document.querySelectorAll("#dashSlideViewport [data-live]").length === 3, w.document.querySelectorAll("#dashDots > *").length);
   check("decorative branch/company filters are gone", !d.getElementById("dfBranch") && !d.querySelector("#s-dashboard .dash-filters"));
   check("no dummy names remain on the dashboard", !/Chennai → Hamburg|Halifax|Jebel Ali|RG Cargo|Tata|TVS|Infosys|Arun Kumar|Priya S|Rahul M/.test(text));
   w.close();
