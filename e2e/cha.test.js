@@ -51,9 +51,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.closeModal();
   // a CHA job starts from a booking
   const bk = (await j("POST", "/api/bookings", { mode: "Sea", direction: "Export", shipment_type: "FCL", booking_type: "Direct", party_name: "Booked Exporter", carrier: "MSC", pol: "INMAA", pod: "BEANR", data: { services: "CHA, Transport", pcs: "10", consignee: "Booked Importer" } }, token)).body;
-  const bkDone = (await j("POST", `/api/bookings/${bk.id}/confirm`, null, token)).body;
+  const bkDone = (await confirmJobs(bk.id, token)).body;
   const plain = (await j("POST", "/api/bookings", { mode: "Sea", direction: "Export", shipment_type: "FCL", booking_type: "Direct", party_name: "No CHA", carrier: "MSC", pol: "INMAA", pod: "BEANR", data: { services: "Freight" } }, token)).body;
-  await j("POST", `/api/bookings/${plain.id}/confirm`, null, token);
+  await confirmJobs(plain.id, token);
   d.getElementById("chaCreate").click(); await sleep(200);
   root.querySelector('[data-cha-new="Export|Sea"]').click(); await sleep(1500);
   const opts2 = Array.from(d.querySelectorAll("#chaNBk option")).map(o => o.value);
@@ -85,3 +85,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the Sea Export tile filters the register", !root.textContent.includes(no));
   console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
+
+async function confirmJobs(id, token, jobs = ["Freight", "CHA"]) {
+  const c = await j("POST", `/api/bookings/${id}/confirm`, null, token); if (c.status !== 200) return c;
+  const services = String((c.body.data || {}).services || "Freight").split(",").map(s => s.trim()); let body = c.body; const created = [];
+  for (const s of jobs) if (services.includes(s)) { const r = await j("POST", `/api/bookings/${id}/jobs`, { service: s }, token); created.push(r.body.created_job); body = r.body; }
+  body.created_jobs = created; return { status: 200, body };
+}

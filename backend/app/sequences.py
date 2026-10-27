@@ -40,6 +40,7 @@ LEGACY_DIR = {"Export": "EXP", "Import": "IMP", "Domestic": "DOM", "Cross-Trade"
 # doc_type -> (module, label, doc code, financial?, shipment aware?, integrated into a screen/API today?, legacy seq_type, default width, default reset)
 REGISTRY = {
     "job": ("Jobs & Shipments", "Job Number", "JOB", False, True, True, "job", 6, "CALENDAR"),
+    "cha_job": ("Jobs & Shipments", "CHA Job Number (customs clearance)", "CC", False, True, True, None, 3, "NEVER"),
     "master_job": ("Jobs & Shipments", "Master Job Reference", "MJ", False, True, False, None, 5, "FY"),
     "house_job": ("Jobs & Shipments", "House Job Reference", "HJ", False, True, False, None, 5, "FY"),
     "lead": ("Sales & CRM", "Lead Number", "LEAD", False, False, True, None, 5, "FY"),
@@ -110,6 +111,8 @@ def default_components(doc_type: str) -> list[dict]:
     i = info(doc_type)
     if doc_type == "job":
         return [{"k": "shipment"}, {"k": "sep", "v": "-"}, {"k": "cyear2"}, {"k": "sep", "v": "-"}, {"k": "number"}]
+    if doc_type == "cha_job":          # SE/CC/001: Sea Export Clearance, SI/CC/001, AE/CC/001, AI/CC/001 ... a numbering of its own, apart from the freight jobs
+        return [{"k": "shipment"}, {"k": "sep", "v": "/"}, {"k": "doctype"}, {"k": "sep", "v": "/"}, {"k": "number"}]
     return [{"k": "prefix", "v": i["doc_code"]}, {"k": "sep", "v": "/"}, {"k": "fy"}, {"k": "sep", "v": "/"}, {"k": "number"}]
 
 
@@ -152,7 +155,7 @@ def legacy_code(key: str | None) -> str:
 def shipment_code(cfg, key: str | None) -> str:
     """Code of the shipment type: the sequence's own mapping, then the standard code (system defaults keep the legacy MODE+DIRECTION code)."""
     key = key or ""
-    if getattr(cfg, "is_system_default", False):
+    if getattr(cfg, "is_system_default", False) and cfg.doc_type == "job":
         return legacy_code(key)
     codes = {**DEFAULT_SHIPMENT_CODES, **(cfg.shipment_codes or {})}
     if key in codes:
@@ -372,7 +375,7 @@ def resolve(db: Session, org_id: int, doc_type: str, on: date, branch: str | Non
 
 def exists_in_business(db: Session, org_id: int, doc_type: str, number: str) -> bool:
     q = None
-    if doc_type == "job":
+    if doc_type in ("job", "cha_job"):
         q = select(Shipment.id).where(Shipment.organization_id == org_id, Shipment.job_number == number)
     elif doc_type == "quotation":
         q = select(Quotation.id).where(Quotation.organization_id == org_id, Quotation.number == number)

@@ -21,7 +21,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const w = dom.window, d = w.document;
   await sleep(6500);
   const bk = (await j("POST", "/api/bookings", { mode: "Sea", direction: "Export", shipment_type: "FCL", booking_type: "Direct", party_name: "Acme", carrier: "MSC", pol: "INMAA", pod: "BEANR", data: { services: "Freight, CHA", pcs: "10", consignee: "X" } }, token)).body;
-  await j("POST", `/api/bookings/${bk.id}/confirm`, null, token);
+  await confirmJobs(bk.id, token);
   w.go("dashboard"); await sleep(1500);
   const dots = () => Array.from(d.querySelectorAll(".dash-dot")).filter(x => x.style.display !== "none").map(x => x.title);
   const active = () => (d.querySelector(".dash-slide.active .ct") || {}).textContent || "";
@@ -46,3 +46,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("Admin gets all of them back", dots().includes("CHA (Customs)") && dots().includes("Transport"));
   console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
+
+async function confirmJobs(id, token, jobs = ["Freight", "CHA"]) {
+  const c = await j("POST", `/api/bookings/${id}/confirm`, null, token); if (c.status !== 200) return c;
+  const services = String((c.body.data || {}).services || "Freight").split(",").map(s => s.trim()); let body = c.body; const created = [];
+  for (const s of jobs) if (services.includes(s)) { const r = await j("POST", `/api/bookings/${id}/jobs`, { service: s }, token); created.push(r.body.created_job); body = r.body; }
+  body.created_jobs = created; return { status: 200, body };
+}

@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from app.billing import fiscal_year
 from app.main import app
 
+from tests.helpers import confirm_with_jobs  # noqa: E402
 client = TestClient(app)
 PASSWORD = "Portal-Test-Passw0rd!"
 
@@ -49,7 +50,7 @@ def test_draft_roundtrip_and_validation(h):
 
 def test_release_numbers_the_booking_and_creates_the_freight_job_automatically(h):
     b = draft(h)
-    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    done = confirm_with_jobs(client, h, b['id'])
     assert done.status_code == 200, done.text
     body = done.json()
     fy = fiscal_year(date.today())
@@ -59,7 +60,7 @@ def test_release_numbers_the_booking_and_creates_the_freight_job_automatically(h
     assert [j["job_type"] for j in client.get(f"/api/bookings/{b['id']}/jobs", headers=h).json()] == ["Forwarding"]
     assert client.patch(f"/api/bookings/{b['id']}", json={"carrier": "x"}, headers=h).status_code == 409
     assert client.delete(f"/api/bookings/{b['id']}", headers=h).status_code == 409
-    assert client.post(f"/api/bookings/{b['id']}/confirm", headers=h).status_code == 409
+    assert confirm_with_jobs(client, h, b['id']).status_code == 409
     assert client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h).status_code == 409  # already created
 
 
@@ -70,7 +71,7 @@ def test_freight_plus_cha_release_creates_both_jobs_under_one_booking_number(h):
                                    {"type": "AR", "description": "Customs Clearance", "qty": "1", "rate": "4500", "currency": "INR", "exch": "1", "tax_pct": "18", "service": "CHA"},
                                    {"type": "AP", "description": "Customs Clearance", "qty": "1", "rate": "3000", "currency": "INR", "exch": "1", "service": "CHA", "vendor": "Sea Air Marine Surveyors"}]})
     assert client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h).status_code == 409  # not confirmed yet
-    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    done = confirm_with_jobs(client, h, b['id']).json()
     assert done["number"].startswith("BKG/") and len(done["created_jobs"]) == 2 and {j["job_type"] for j in done["jobs"]} == {"Forwarding", "Customs"}
     fjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Forwarding")
     cjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
@@ -89,7 +90,7 @@ def test_freight_plus_cha_release_creates_both_jobs_under_one_booking_number(h):
 
 def test_customs_bills_are_kept_per_booking_and_show_in_the_freight_job(h):
     b = draft(h, data={"pcs": "10", "services": "Freight, CHA", "consignee": "X"})
-    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    done = confirm_with_jobs(client, h, b['id']).json()
     fjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Forwarding")
     cjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
     first = client.post(f"/api/customs/by-job/{cjob}", json={"bill_no": "SB7001", "bill_date": "2026-10-10", "reference": "CHA-REF-1", "assessable_value": "500000", "duty_amount": "0"}, headers=h)
@@ -108,7 +109,7 @@ def test_customs_bills_are_kept_per_booking_and_show_in_the_freight_job(h):
     rd = client.get(f"/api/jobs/{fjob}/report-data", headers=h).json()
     assert rd["booking_number"] == done["number"] and rd["shipping_bills"][0]["bill_no"] == "SB7001" and rd["bills_of_entry"] == [] and rd["bl_awb"]["label"] == "BL"
     imp = client.post("/api/bookings", json={"mode": "Sea", "direction": "Import", "shipment_type": "FCL", "booking_type": "Direct", "party_name": "Acme", "carrier": "MSC", "pol": "DEHAM", "pod": "INMAA", "data": {"services": "Freight", "pcs": "5"}}, headers=h).json()
-    ij = client.post(f"/api/bookings/{imp['id']}/confirm", headers=h).json()["job_number"]
+    ij = confirm_with_jobs(client, h, imp['id']).json()["job_number"]
     be = client.post(f"/api/customs/by-job/{ij}", json={"bill_no": "BE9001", "bill_date": "2026-10-14"}, headers=h).json()
     assert be["bill_type"] == "BE" and be["label"] == "Bill of Entry"
     assert client.get(f"/api/jobs/{ij}/report-data", headers=h).json()["bills_of_entry"][0]["bill_no"] == "BE9001"
@@ -116,7 +117,7 @@ def test_customs_bills_are_kept_per_booking_and_show_in_the_freight_job(h):
 
 def test_confirm_requires_the_key_fields(h):
     empty = client.post("/api/bookings", json={}, headers=h).json()
-    r = client.post(f"/api/bookings/{empty['id']}/confirm", headers=h)
+    r = confirm_with_jobs(client, h, empty['id'])
     assert r.status_code == 422 and "carrier" in r.json()["detail"] and "port of loading" in r.json()["detail"]
 
 
@@ -133,8 +134,8 @@ def test_numbers_are_gap_free_even_under_concurrency(h):
 
 def test_cancel_release_space_and_summary(h):
     a, b = draft(h), draft(h, si_cutoff=str(date.today() + timedelta(days=1)))
-    client.post(f"/api/bookings/{a['id']}/confirm", headers=h)
-    client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    confirm_with_jobs(client, h, a['id'])
+    confirm_with_jobs(client, h, b['id'])
     assert client.post(f"/api/bookings/{a['id']}/cancel", headers=h).json()["status"] == "CANCELLED"
     assert client.post(f"/api/bookings/{b['id']}/release-space", headers=h).json()["status"] == "SPACE_RELEASED"
     assert client.post(f"/api/bookings/{a['id']}/cancel", headers=h).status_code == 409
@@ -146,7 +147,7 @@ def test_cancel_release_space_and_summary(h):
 
 def test_duplicate_creates_a_clean_draft(h):
     src = draft(h)
-    client.post(f"/api/bookings/{src['id']}/confirm", headers=h)
+    confirm_with_jobs(client, h, src['id'])
     copy = client.post(f"/api/bookings/{src['id']}/duplicate", headers=h)
     assert copy.status_code == 201
     c = copy.json()
@@ -194,7 +195,7 @@ def test_booking_raised_from_a_quotation_converts_it_when_the_job_is_created_at_
     qid = _accepted_quote(h, h2)
     b = draft(h, quotation_id=qid, data={"pcs": "120", "gwt": "24000", "consignee": "Solvay SA"})
     assert b["quotation_id"] == qid
-    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    done = confirm_with_jobs(client, h, b['id'])
     assert done.status_code == 200, done.text
     job_no = done.json()["job_number"]  # the freight job is created at release
     quote = client.get(f"/api/quotations/{qid}", headers=h).json()
@@ -207,7 +208,7 @@ def test_a_quotation_that_is_not_accepted_cannot_be_booked(h, h2):
     line = {"side": "SELL", "charge_name": "Ocean Freight", "carrier": "", "basis": "Per Container", "ccy": "USD", "exch": "83.5", "rate": "850", "qty": "2", "tax_pct": "0"}
     q = client.post("/api/quotations", json={"party_name": "Acme Exports", "mode": "Sea", "direction": "Export", "shipment_type": "FCL", "pol": "INMAA", "pod": "BEANR", "lines": [line]}, headers=h).json()
     b = draft(h, quotation_id=q["id"])
-    r = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    r = confirm_with_jobs(client, h, b['id'])
     assert r.status_code == 409 and "accepted" in r.json()["detail"]
     assert client.get(f"/api/bookings/{b['id']}", headers=h).json()["status"] == "DRAFT"  # nothing was half-created
     assert client.post("/api/bookings", json={"party_name": "X", "quotation_id": 99999999}, headers=h).status_code == 404
@@ -223,7 +224,7 @@ def test_container_wise_rows_become_one_head_with_hsn_from_the_charge_master(h):
                                    {"type": "AR", "description": name + " — 40HC", "qty": "1", "rate": "3200", "currency": "USD", "exch": "88", "tax_pct": "5", "service": "Freight"},
                                    {"type": "AP", "description": name + " — 20GP", "qty": "1", "rate": "2200", "currency": "USD", "exch": "88", "service": "Freight", "vendor": "MSC"},
                                    {"type": "AP", "description": name + " — 40HC", "qty": "1", "rate": "1200", "currency": "USD", "exch": "88", "service": "Freight", "vendor": "MSC"}]})
-    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    done = confirm_with_jobs(client, h, b['id']).json()
     jn = done["created_jobs"][0]
     lines = client.get(f"/api/shipments/by-number/{jn}/charges", headers=h).json()["lines"]
     assert len(lines) == 1, lines
@@ -241,7 +242,7 @@ def test_container_wise_rows_become_one_head_with_hsn_from_the_charge_master(h):
 
 def test_duplicate_job_booking_and_quotation_start_as_fresh_drafts(h):
     b = draft(h)
-    conf = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    conf = confirm_with_jobs(client, h, b['id']).json()
     jn = conf["job_number"]
     client.put(f"/api/shipments/by-number/{jn}/charges", json={"lines": [{"charge_name": "Ocean Freight", "qty": "1", "hsn": "996521", "sell": {"ccy": "INR", "rate": "100", "tax_type": "Taxable", "tax_pct": "18", "party": "Acme"}, "buy": {"ccy": "INR", "rate": "60", "tax_type": "Taxable", "tax_pct": "18", "party": "MSC"}}]}, headers=h)
     d = client.post(f"/api/shipments/by-number/{jn}/duplicate", headers=h)
@@ -260,7 +261,7 @@ def test_duplicate_job_booking_and_quotation_start_as_fresh_drafts(h):
 
 def test_job_cost_container_wise_breakup_is_totalled_by_the_server_and_reaches_the_invoice(h):
     b = draft(h)
-    jn = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()["job_number"]
+    jn = confirm_with_jobs(client, h, b['id']).json()["job_number"]
     side = lambda rate: {"ccy": "INR", "exch": "1", "rate": rate, "tax_type": "Non-Taxable", "tax_pct": "0", "party": "", "use_party": False}
     line = {"charge_name": "Terminal Handling", "qty": "5", "uom": "Per Container", "hsn": "996719", "sell": {**side("0"), "party": "Acme Exports", "use_party": True}, "buy": {**side("0"), "party": "CFS One", "use_party": True},
             "breakup": [{"type": "20GP", "qty": "2", "sell": "15000", "buy": "12000"}, {"type": "40HC", "qty": "1", "sell": "19000", "buy": "15000"}]}

@@ -16,7 +16,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const org = await j("POST", "/api/organizations", { code: "JL" + tag.slice(-5).toUpperCase(), name: "Joblinks " + tag, admin_email: `jl${tag}@t.test`, admin_username: "jl" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Jl" }, dev.body.access_token);
   const token = (await j("POST", "/api/auth/login", { identifier: "jl" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
   const b = (await j("POST", "/api/bookings", { mode: "Sea", direction: "Export", shipment_type: "FCL", booking_type: "Direct", party_name: "Links Exports", carrier: "MSC", carrier_booking_no: "L1", vessel: "V", pol: "INMAA", pod: "BEANR", etd: "2030-01-10", eta: "2030-02-05", si_cutoff: "2030-01-05", vgm_cutoff: "2030-01-05", data: { services: "Freight, CHA", container_type: "40HC", container_qty: "2", charges: [] } }, token)).body;
-  const conf = (await j("POST", `/api/bookings/${b.id}/confirm`, null, token)).body;
+  const conf = (await confirmJobs(b.id, token)).body;
   const freight = conf.jobs.find(x => x.job_type === "Forwarding").job_number, cha = conf.jobs.find(x => x.job_type === "Customs").job_number;
   const inv = (await j("POST", "/api/documents", { doc_type: "invoice", party_name: "Links Exports", job_number: freight, lines: [{ charge_name: "Ocean Freight", hsn: "996521", uom: "Per Shipment", qty: "1", ccy: "INR", exch: "1", rate: "500", tax_type: "Non-Taxable", tax_pct: "0" }] }, token)).body;
   const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
@@ -45,3 +45,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });
+
+async function confirmJobs(id, token, jobs = ["Freight", "CHA"]) {
+  const c = await j("POST", `/api/bookings/${id}/confirm`, null, token); if (c.status !== 200) return c;
+  const services = String((c.body.data || {}).services || "Freight").split(",").map(s => s.trim()); let body = c.body; const created = [];
+  for (const s of jobs) if (services.includes(s)) { const r = await j("POST", `/api/bookings/${id}/jobs`, { service: s }, token); created.push(r.body.created_job); body = r.body; }
+  body.created_jobs = created; return { status: 200, body };
+}

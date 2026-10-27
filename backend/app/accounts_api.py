@@ -108,7 +108,7 @@ def outstanding_report(side: str = Query(default="AR", pattern="^(AR|AP)$"), use
     return {"side": side, "as_on": today, "parties": rows, "total_outstanding": _s(sum((v["outstanding"] for v in parties.values()), Decimal(0)))}
 
 
-@router.get("/job/{job_number}/profit-loss")
+@router.get("/job/{job_number:path}/profit-loss")
 def job_profit_loss(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """The job profit and loss: provisional figures from the job's charge sheet (sell and cost), actual figures from the posted invoices / purchase invoices (and the notes
     against them), tax on sale and on cost, revenue by customer, expense by vendor and what has been received and paid."""

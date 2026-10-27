@@ -17324,7 +17324,7 @@ if(document.readyState !== "loading") initChatWidget();
       }
     }
     const summary = summaryHtml({...b, number:b.number, data:d}, rows);
-    root.innerHTML = '<div class="card"><div class="ch"><div class="ct">Jobs under booking '+esc2(b.number || "")+'</div></div><div class="cb">'+(b.status === "CONFIRMED" ? '<div class="ib ib-bl" style="margin-bottom:10px">One booking number covers every service booked. The Freight job and, when CHA is booked, the Customs Clearance job are created automatically when the booking is released; other services (consol, transport, warehouse) are created here.</div>' : '')+jobTable+(b.quotation_id ? '<div style="margin-top:8px;font-size:11.5px;color:var(--g6)">Quotation '+esc2(d.quotation_no || "")+' is marked Converted when the first job is created.</div>' : '')+'</div></div>'+
+    root.innerHTML = '<div class="card"><div class="ch"><div class="ct">Jobs under booking '+esc2(b.number || "")+'</div></div><div class="cb">'+(b.status === "CONFIRMED" ? '<div class="ib ib-bl" style="margin-bottom:10px">One booking number covers every service booked. Confirming the booking only issues the booking number; no job is created. Create the Freight job here or in the Freight module, and the CHA job here or in the CHA module, from this booking: both carry this same booking number (CHA jobs are numbered separately, e.g. SE/CC/001).</div>' : '')+jobTable+(b.quotation_id ? '<div style="margin-top:8px;font-size:11.5px;color:var(--g6)">Quotation '+esc2(d.quotation_no || "")+' is marked Converted when the first job is created.</div>' : '')+'</div></div>'+
       costCard+'<div class="card"><div class="ch"><div class="ct">Booking summary</div></div><div class="cb">'+summary+'</div></div>';
   };
   document.addEventListener("click", async e=>{
@@ -21397,6 +21397,32 @@ function makePrintFit(){
   });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-detail") setTimeout(()=>K.load(opts && opts.jobNo), 1000); };
+})();
+
+/* ============================================================
+   FREIGHT FROM BOOKING KIT: a booking only issues the booking number. The freight job is created in the Freight module (New Shipment Job) by choosing the booking number; everything on the booking is carried into the job.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  async function paint(){
+    const wrap = el("jobWizWrap"); if(!wrap) return;
+    let bar = el("jobFromBooking");
+    if(!bar){ bar = document.createElement("div"); bar.id = "jobFromBooking"; bar.className = "card"; bar.style.marginBottom = "12px"; wrap.parentNode.insertBefore(bar, wrap); }
+    let items = []; try{ items = (await api("GET", "/api/bookings/open-for/Freight")).items; }catch(e){ items = []; }
+    bar.innerHTML = '<div class="ch"><div class="ct">Freight job from a booking</div></div><div class="cb"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="jfbSel" class="fc" style="min-width:320px;flex:1"><option value="">'+(items.length ? "Choose a booking number …" : "No confirmed booking is waiting for a freight job")+'</option>'+
+      items.map(b=>'<option value="'+b.id+'">'+esc2(b.number+" · "+b.mode+" "+b.direction+" · "+(b.party_name || "—")+" · "+(b.pol || "")+" → "+(b.pod || "")+" · "+b.services.join(" + "))+'</option>').join("")+'</select><button class="btn btn-pri btn-sm" id="jfbGo" type="button">Create freight job</button></div>'+
+      '<div style="font-size:11.5px;color:var(--g5);margin-top:6px">The job takes its parties, route, dates and charges from the booking and carries the booking number. Or create a direct job below: the system then generates the booking number.</div></div>';
+  }
+  document.addEventListener("click", async e=>{
+    if(!e.target.closest("#jfbGo")) return;
+    const id = el("jfbSel").value; if(!id){ say("Choose a booking", "Pick the booking number the freight job is for", "warn"); return; }
+    try{ const r = await api("POST", "/api/bookings/"+id+"/jobs", {service:"Freight"}); say("Job Created Successfully!", r.created_job+" under booking "+r.number); go("job-detail", {jobNo:r.created_job}); }
+    catch(err){ say("Could not create the freight job", err.message, "error"); }
+  });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-new") setTimeout(paint, 300); };
 })();
 
 /* ============================================================

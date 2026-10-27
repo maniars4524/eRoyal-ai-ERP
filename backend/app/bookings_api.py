@@ -164,6 +164,21 @@ def create_booking(payload: BookingIn, user: User = Depends(permission_required(
     return _out(_get(db, org_id, b.id))
 
 
+@router.get("/open-for/{service}")
+def bookings_open_for(service: str, user: User = Depends(permission_required("booking.read")), db: Session = Depends(get_db)):
+    """Confirmed bookings that include this service (Freight, CHA, Transport ...) and have no job of it yet: what the Freight module offers when a freight job is created from a booking."""
+    if service not in SERVICE_JOB_TYPES:
+        raise HTTPException(status_code=422, detail="Unknown service")
+    org_id = _tenant(user)
+    job_type = SERVICE_JOB_TYPES[service]
+    made = {bid for (bid,) in db.execute(select(Shipment.booking_id).where(Shipment.organization_id == org_id, Shipment.job_type == job_type, Shipment.booking_id.is_not(None)))}
+    out = []
+    for b in db.scalars(select(Booking).where(Booking.organization_id == org_id, Booking.status == "CONFIRMED").order_by(Booking.id.desc()).limit(500)):
+        if service in _booked_services(b) and b.id not in made:
+            out.append({"id": b.id, "number": b.number, "mode": b.mode, "direction": b.direction, "party_name": b.party_name, "pol": b.pol, "pod": b.pod, "etd": b.etd, "carrier": b.carrier, "services": _booked_services(b)})
+    return {"items": out}
+
+
 @router.get("/{booking_id}")
 def get_booking(booking_id: int, user: User = Depends(permission_required("booking.read")), db: Session = Depends(get_db)):
     b = _get(db, _tenant(user), booking_id)
@@ -235,12 +250,7 @@ def confirm_booking(booking_id: int, user: User = Depends(permission_required("b
     b.status = "CONFIRMED"
     b.confirmed_at = datetime.now(timezone.utc)
     record_audit(db, "BOOKING_CONFIRMED", "OPERATIONS", user, org_id, "Booking", str(b.id), {"number": b.number})
-    created: list[str] = []
-    if has_permission(user, "shipment.create"):
-        booked = _booked_services(b)
-        for service in ("Freight", "CHA"):
-            if service in booked:
-                created.append(_make_job(db, org_id, b, service, user).job_number)
+    created: list[str] = []          # confirming only numbers the booking; the freight job is made in the Freight module and the CHA job in the CHA module, both from this booking number
     db.commit()
     return {**_out(_get(db, org_id, booking_id)), "jobs": _jobs(db, _get(db, org_id, booking_id)), "created_jobs": created}
 
@@ -352,12 +362,12 @@ def _make_job(db: Session, org_id: int, b: Booking, service: str, user: User) ->
     """Create one job of a confirmed booking (all booking details carried over, costing rows of that service become its charges)."""
     needed = "Freight" if service == "Consol" else service
     job_type = SERVICE_JOB_TYPES[service]
-    from .shipments_api import _next_job_number
+    from .shipments_api import _next_cha_number, _next_job_number
 
     data = b.data or {}
     pcs, gwt = _num(data.get("pcs")), _num(data.get("gwt"))
     container_mode = "LCL" if service == "Consol" else (b.shipment_type if b.shipment_type in ("FCL", "LCL") else None)
-    job = Shipment(organization_id=org_id, job_number=_next_job_number(db, org_id, b.mode, b.direction, container_mode, user), job_type=job_type, booking_id=b.id, mode=b.mode, direction=b.direction, container_mode=container_mode,
+    job = Shipment(organization_id=org_id, job_number=(_next_cha_number(db, org_id, b.mode, b.direction, user) if job_type == "Customs" else _next_job_number(db, org_id, b.mode, b.direction, container_mode, user)), job_type=job_type, booking_id=b.id, mode=b.mode, direction=b.direction, container_mode=container_mode,
                    pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
                    gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id,
                    branch=(str(data.get("branch") or "").strip() or None), salesperson=_booking_salesperson(db, b))

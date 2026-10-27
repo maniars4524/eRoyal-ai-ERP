@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from app.job_details_api import location_code
 from app.main import app
 
+from tests.helpers import confirm_with_jobs  # noqa: E402
 client = TestClient(app)
 PASSWORD = "Portal-Test-Passw0rd!"
 
@@ -107,7 +108,7 @@ def test_job_from_a_booking_shows_the_booking_parties_and_cargo_until_saved(h):
             "etd": str(date.today() + timedelta(days=10)), "eta": str(date.today() + timedelta(days=30)), "si_cutoff": str(date.today() + timedelta(days=1)), "vgm_cutoff": str(date.today() + timedelta(days=1)),
             "data": {"pcs": "120", "gwt": "24000", "shipper": "Acme Exports", "consignee": "Solvay SA", "notify": "Same as Consignee", "marks": "Soda ash", "pack_type": "Bag", "container_no": "mscu1234567", "container_type": "40HC", "charges": []}}
     b = client.post("/api/bookings", json=body, headers=h).json()
-    jn = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()["job_number"]
+    jn = confirm_with_jobs(client, h, b['id']).json()["job_number"]
     d = client.get(f"/api/jobs/{jn}/details", headers=h).json()
     assert d["parties"]["shipper"] == "Acme Exports" and d["parties"]["notify1"] == "Solvay SA" and d["parties"]["consignee"] == "Solvay SA"
     assert d["cargo"]["pkgs"] == "120" and d["containers"][0]["container_no"] == "MSCU1234567" and d["saved_sections"] == {}
@@ -177,7 +178,7 @@ def test_job_from_a_booking_suggests_the_planned_containers(h):
             "etd": str(date.today() + timedelta(days=10)), "eta": str(date.today() + timedelta(days=30)), "si_cutoff": str(date.today() + timedelta(days=1)), "vgm_cutoff": str(date.today() + timedelta(days=1)),
             "data": {"container_type": "20GP", "container_qty": "3", "charges": []}}
     b = client.post("/api/bookings", json=body, headers=h).json()
-    jn = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()["job_number"]
+    jn = confirm_with_jobs(client, h, b['id']).json()["job_number"]
     sug = client.get(f"/api/jobs/{jn}/details", headers=h).json()["suggested_containers"]
     assert len(sug) == 1 and sug[0]["type"] == "20GP" and sug[0]["qty"] == 3 and sug[0]["sources"][0].startswith("Booking")
     plain = job(h)

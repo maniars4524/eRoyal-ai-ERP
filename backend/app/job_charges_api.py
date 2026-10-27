@@ -104,14 +104,14 @@ def _response(rows: list[JobCharge]) -> dict:
     return {"lines": clean, "totals": totals(lines)}
 
 
-@router.get("/by-number/{job_number}/charges")
+@router.get("/by-number/{job_number:path}/charges")
 def get_charges(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)
     rows = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id).order_by(JobCharge.line_no)))
     return _response(rows)
 
 
-@router.get("/by-number/{job_number}/charge-parties")
+@router.get("/by-number/{job_number:path}/charge-parties")
 def charge_parties(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Who can be named on the charges of a job: the Client of a sell charge is one of the job's own parties (its customer and the parties of the Parties & Cargo tab or the booking); the Vendor of a buy charge is a party
     of the Organization Master in a vendor category (carrier, agent, CHA, transporter, AP)."""
@@ -133,7 +133,7 @@ def charge_parties(job_number: str, user: User = Depends(permission_required("sh
     return {"clients": clients, "vendors": vendors}
 
 
-@router.put("/by-number/{job_number}/charges")
+@router.put("/by-number/{job_number:path}/charges")
 def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """Replace all charge lines of a job atomically; the server recalculates every amount."""
     job = _job(db, user, job_number)

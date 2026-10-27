@@ -258,13 +258,13 @@ def _reflect(job: Shipment, row: JobDetail) -> None:
         job.bl_awb = str(ref)[:60]
 
 
-@router.get("/{job_number}/details")
+@router.get("/{job_number:path}/details")
 def get_details(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)
     return _out(db, job, _row(db, job), user)
 
 
-@router.get("/{job_number}/links")
+@router.get("/{job_number:path}/links")
 def job_links(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Everything connected to this shipment: its booking, the quotation behind it, the other jobs of the same booking, and its invoices / bills / notes. Used for the links on the job page."""
     job = _job(db, user, job_number)
@@ -283,7 +283,7 @@ def job_links(job_number: str, user: User = Depends(permission_required("shipmen
     return {"job_number": job.job_number, "booking": {"id": b.id, "number": b.number, "status": b.status} if b else None, "quotations": [{"id": q.id, "number": q.number, "status": q.status} for q in quotes], "related_jobs": related, "documents": docs}
 
 
-@router.put("/{job_number}/details/{section}")
+@router.put("/{job_number:path}/details/{section}")
 def save_section(job_number: str, section: str, body: SectionIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     if section not in SECTIONS:
         raise HTTPException(404, "Unknown section")
@@ -316,7 +316,7 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
     return _out(db, job, row, user)
 
 
-@router.post("/{job_number}/hbl")
+@router.post("/{job_number:path}/hbl")
 def issue_hbl(job_number: str, body: HblIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """Issue the House BL number: company code + type + running number + POL code + POD code (e.g. RTSMTO001MAASIN). A job gets one; asking again returns it."""
     job = _job(db, user, job_number, lock=True)
@@ -355,7 +355,7 @@ def issue_hbl(job_number: str, body: HblIn, user: User = Depends(permission_requ
     return {**_out(db, job, row, user), "existing": False}
 
 
-@router.get("/{job_number}/hbl-preview")
+@router.get("/{job_number:path}/hbl-preview")
 def hbl_next(job_number: str, hbl_type: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """What the next House BL number of this type would look like for this job (not issued)."""
     if hbl_type not in HBL_TYPES:
@@ -373,7 +373,7 @@ class BlStageIn(BaseModel):
     reason: str | None = Field(default=None, max_length=1000)
 
 
-@router.post("/{job_number}/bl/stage")
+@router.post("/{job_number:path}/bl/stage")
 def bl_stage(job_number: str, body: BlStageIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """Draft -> Confirmed -> Released. An Original BL is released only after full payment; a user with the release-override right may release it earlier, with a reason that goes to the job history."""
     job = _job(db, user, job_number, lock=True)
@@ -527,7 +527,7 @@ class SendDocIn(BaseModel):
     pdf_base64: str = Field(max_length=8_000_000)
 
 
-@router.post("/{job_number}/send-document")
+@router.post("/{job_number:path}/send-document")
 def send_document(job_number: str, body: SendDocIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """Email a job document (the PDF made in the browser) to the customer. Needs SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASSWORD / SMTP_FROM in the server settings."""
     import base64
@@ -570,7 +570,7 @@ def send_document(job_number: str, body: SendDocIn, user: User = Depends(permiss
     return {"sent": True, "to": to}
 
 
-@router.post("/{job_number}/do-issue")
+@router.post("/{job_number:path}/do-issue")
 def issue_do(job_number: str, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """The Delivery Order number: a running number per company, given once to a job."""
     job = _job(db, user, job_number, lock=True)

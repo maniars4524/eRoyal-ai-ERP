@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+from tests.helpers import confirm_with_jobs  # noqa: E402
 client = TestClient(app)
 PASSWORD = "Portal-Test-Passw0rd!"
 D = Decimal
@@ -105,6 +106,6 @@ def test_branch_and_salesperson_mis_group_revenue_and_cost_by_the_job(h):
             "etd": str(date.today() + timedelta(days=10)), "eta": str(date.today() + timedelta(days=30)), "si_cutoff": str(date.today() + timedelta(days=1)), "vgm_cutoff": str(date.today() + timedelta(days=1)),
             "data": {"services": "Freight", "branch": "Chennai HO", "sales_person": "Booked Seller", "charges": []}}
     bk = client.post("/api/bookings", json=body, headers=h).json()
-    jn = client.post(f"/api/bookings/{bk['id']}/confirm", headers=h).json()["job_number"]
+    jn = confirm_with_jobs(client, h, bk['id']).json()["job_number"]
     job = next(x for x in client.get("/api/shipments", headers=h).json() if x["job_number"] == jn)
     assert job["branch"] == "Chennai HO" and job["salesperson"] == "Booked Seller"

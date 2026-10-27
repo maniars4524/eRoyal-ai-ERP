@@ -81,7 +81,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await j("POST", `/api/quotations/${q.id}/approval/submit`, null, token); const apq = (await j("POST", `/api/quotations/${q.id}/approval/approve`, {}, token)).body;
   await j("POST", `/api/quotations/${q.id}/send`, null, token); await j("POST", `/api/quotations/${q.id}/accept`, null, token);
   const bk = (await j("POST", "/api/bookings", { mode: "Sea", direction: "Export", shipment_type: "FCL", booking_type: "Direct", customer_id: cust.id, party_name: "Acme Exports", carrier: "MSC", pol: "INMAA", pod: "BEANR", quotation_id: q.id, data: { services: "Freight", pcs: "10" } }, token)).body;
-  const cb = (await j("POST", `/api/bookings/${bk.id}/confirm`, null, token)).body;
+  const cb = (await confirmJobs(bk.id, token)).body;
   const bj = cb.job_number;
   w.go("job-detail", { jobNo: bj }); await sleep(2500);
   check("a job from a booking starts as Confirmed", /STAGE\s*CONFIRMED/i.test(text("#jlChips")), text("#jlChips"));
@@ -91,3 +91,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });
+
+async function confirmJobs(id, token, jobs = ["Freight", "CHA"]) {
+  const c = await j("POST", `/api/bookings/${id}/confirm`, null, token); if (c.status !== 200) return c;
+  const services = String((c.body.data || {}).services || "Freight").split(",").map(s => s.trim()); let body = c.body; const created = [];
+  for (const s of jobs) if (services.includes(s)) { const r = await j("POST", `/api/bookings/${id}/jobs`, { service: s }, token); created.push(r.body.created_job); body = r.body; }
+  body.created_jobs = created; return { status: 200, body };
+}

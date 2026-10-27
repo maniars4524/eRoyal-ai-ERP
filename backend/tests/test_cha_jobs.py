@@ -3,6 +3,7 @@ from datetime import date, timedelta
 import pytest
 
 from tests.test_bookings import client, draft, hdr  # noqa: F401  (same login helpers and fixtures)
+from tests.helpers import confirm_with_jobs  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -12,7 +13,7 @@ def h(world, admin):
 
 def released(h, **data):
     b = draft(h, data={"pcs": "10", "services": "Freight, CHA", "consignee": "Solvay SA", **data})
-    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    done = confirm_with_jobs(client, h, b['id']).json()
     fjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Forwarding")
     cjob = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
     return b, done, fjob, cjob
@@ -98,7 +99,7 @@ def test_standalone_cha_job_can_link_to_a_freight_job_only_when_it_matches(h):
 
 def booking(h, services, direction="Export", mode="Sea", **extra):
     b = draft(h, direction=direction, mode=mode, data={"pcs": "10", "services": services, "consignee": "Solvay SA", "commodity": "Soda ash"}, **extra)
-    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    done = confirm_with_jobs(client, h, b['id']).json()
     return done
 
 
@@ -166,3 +167,39 @@ def test_direct_jobs_get_a_system_generated_booking_number(h):
     fsrc = client.get(f"/api/jobs/{fj.json()['job_number']}/source", headers=h).json()
     assert fsrc["booking"]["number"].startswith("BKG/") and fsrc["auto_booking"] is True
     assert fsrc["booking"]["number"] != job["booking_number"]
+
+
+def test_confirming_a_booking_only_numbers_it_and_the_jobs_are_made_from_the_booking_number(h):
+    b = draft(h, data={"pcs": "10", "services": "Freight, CHA", "consignee": "Solvay SA"})
+    done = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    assert done["number"].startswith("BKG/") and done["created_jobs"] == [] and done["jobs"] == [] and done["job_number"] is None
+    # both modules offer the booking
+    assert done["number"] in [x["number"] for x in client.get("/api/bookings/open-for/Freight", headers=h).json()["items"]]
+    assert done["number"] in [x["number"] for x in client.get("/api/bookings/open-for/CHA", headers=h).json()["items"]]
+    assert client.get("/api/bookings/open-for/Teleport", headers=h).status_code == 422
+    # the CHA job is made in the CHA module: its own number series, the booking number is shared
+    cha = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "booking_number": done["number"]}, headers=h)
+    assert cha.status_code == 201, cha.text
+    cj = cha.json()
+    assert cj["cha_job_number"].startswith("SE/CC/") and cj["booking_number"] == done["number"] and cj["freight_job_number"] is None
+    # the freight job is made from the same booking number in the Freight module
+    fr = client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "Freight"}, headers=h)
+    assert fr.status_code == 201 and fr.json()["created_job"].startswith("SEAEXP-")
+    assert done["number"] not in [x["number"] for x in client.get("/api/bookings/open-for/Freight", headers=h).json()["items"]]
+    view = client.get(f"/api/jobs/{fr.json()['created_job']}/cha-jobs", headers=h).json()
+    assert view["count"] == 1 and view["cha_jobs"][0]["cha_job_number"] == cj["cha_job_number"] and view["booking_number"] == done["number"]
+    # a second CHA job of the same booking: the next number of the same series
+    again = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "booking_number": done["number"]}, headers=h).json()
+    n1, n2 = int(cj["cha_job_number"].rsplit("/", 1)[1]), int(again["cha_job_number"].rsplit("/", 1)[1])
+    assert again["cha_job_number"].startswith("SE/CC/") and n2 == n1 + 1
+
+
+def test_cha_numbers_are_per_shipment_type(h):
+    seen = {}
+    for mode, direction, code in (("Sea", "Export", "SE"), ("Sea", "Import", "SI"), ("Air", "Export", "AE"), ("Air", "Import", "AI")):
+        r = client.post("/api/cha/jobs", json={"job_type": direction, "mode": mode, "exporter": "Num Test", "importer": "Num Buyer"}, headers=h)
+        assert r.status_code == 201, r.text
+        no = r.json()["cha_job_number"]
+        assert no.startswith(f"{code}/CC/") and len(no.rsplit("/", 1)[1]) >= 3
+        seen[code] = no
+    assert len(set(seen.values())) == 4

@@ -109,7 +109,7 @@ def stage_config(user: User = Depends(permission_required("shipment.read"))):
     return {"stages": jl.STAGES, "milestones": [{"code": c, "label": jl.MILESTONE_LABEL.get(c, c), "stage": jl.MILESTONES.get(c)} for c in jl.ALL_MILESTONES], "reopen_reasons": REOPEN_REASONS}
 
 
-@router.get("/{job_number}/source")
+@router.get("/{job_number:path}/source")
 def job_source(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Where the job came from: the quotation, the booking, or created directly."""
     from .models import Booking, Quotation
@@ -197,7 +197,7 @@ def party_text(db: Session, org_id: int, name: str | None, fallback: str | None 
     return "\n".join(lines)
 
 
-@router.get("/{job_number}/report-data")
+@router.get("/{job_number:path}/report-data")
 def report_data(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Everything the job documents need, taken from the booking, the job, the customs clearance bills and the posted invoices: BL / AWB, invoices, SB, BE."""
     from . import customs_api
@@ -221,7 +221,7 @@ def report_data(job_number: str, user: User = Depends(permission_required("shipm
             "shipping_bills": [b for b in bills if b["bill_type"] == "SB"], "bills_of_entry": [b for b in bills if b["bill_type"] == "BE"], "customs_bill_count": cus["count"], "customs_jobs": cus["customs_jobs"]}
 
 
-@router.get("/{job_number}/lifecycle")
+@router.get("/{job_number:path}/lifecycle")
 def get_lifecycle(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     return lifecycle_out(db, _job(db, user, job_number), user)
 
@@ -233,7 +233,7 @@ class MilestoneIn(BaseModel):
     correction_reason: str | None = Field(default=None, max_length=1000)
 
 
-@router.put("/{job_number}/milestones/{code}")
+@router.put("/{job_number:path}/milestones/{code}")
 def record_milestone(job_number: str, code: str, body: MilestoneIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number, lock=True)
     jl.assert_job_editable(job, "milestones")
@@ -268,7 +268,7 @@ class StageIn(BaseModel):
     approval_ref: str | None = Field(default=None, max_length=60)
 
 
-@router.post("/{job_number}/stage")
+@router.post("/{job_number:path}/stage")
 def change_stage(job_number: str, body: StageIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     job = _job(db, user, job_number, lock=True)
     if not _can(user, "job.change_stage"):
@@ -307,7 +307,7 @@ class ReopenIn(BaseModel):
     remarks: str | None = Field(default=None, max_length=2000)
 
 
-@router.post("/{job_number}/closure/validate")
+@router.post("/{job_number:path}/closure/validate")
 def validate_closure(job_number: str, body: AckIn, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)
     out = jl.checklist(db, job, user, body.model_dump())
@@ -315,7 +315,7 @@ def validate_closure(job_number: str, body: AckIn, user: User = Depends(permissi
     return out
 
 
-@router.post("/{job_number}/close")
+@router.post("/{job_number:path}/close")
 def close_job(job_number: str, body: CloseIn, user: User = Depends(get_current_user), db: Session = Depends(get_db), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
     job = _job(db, user, job_number, lock=True)
     if not _can(user, "job.close"):
@@ -364,7 +364,7 @@ def close_job(job_number: str, body: CloseIn, user: User = Depends(get_current_u
     return lifecycle_out(db, job, user)
 
 
-@router.post("/{job_number}/reopen")
+@router.post("/{job_number:path}/reopen")
 def reopen_job(job_number: str, body: ReopenIn, user: User = Depends(get_current_user), db: Session = Depends(get_db), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
     job = _job(db, user, job_number, lock=True)
     if not _can(user, "job.reopen"):
@@ -390,13 +390,13 @@ def reopen_job(job_number: str, body: ReopenIn, user: User = Depends(get_current
 
 
 # ------------------------------------------------------------------ history
-@router.get("/{job_number}/closures")
+@router.get("/{job_number:path}/closures")
 def closure_history(job_number: str, user: User = Depends(permission_required("job.view_history")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)
     return [_closure_out(c) for c in db.scalars(select(JobClosure).where(JobClosure.shipment_id == job.id).order_by(JobClosure.id.desc()))]
 
 
-@router.get("/{job_number}/stage-history")
+@router.get("/{job_number:path}/stage-history")
 def stage_history(job_number: str, user: User = Depends(permission_required("job.view_history")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)
     return [{"id": h.id, "previous_stage": h.previous_stage, "new_stage": h.new_stage, "source": h.source, "trigger": h.trigger, "reason": h.reason, "actor": h.actor_name, "at": _ts(h.created_at), "related_ref": h.related_ref}
@@ -428,7 +428,7 @@ def _activity_query(job: Shipment, category, actor_id, event_type, q, date_from,
     return and_(*cond)
 
 
-@router.get("/{job_number}/activity")
+@router.get("/{job_number:path}/activity")
 def activity(job_number: str, category: str | None = None, actor_id: int | None = None, event_type: str | None = None, q: str | None = Query(default=None, max_length=100), date_from: date | None = None,
              date_to: date | None = None, result: str | None = None, order: str = Query(default="desc", pattern="^(asc|desc)$"), limit: int = Query(default=30, ge=1, le=200), offset: int = Query(default=0, ge=0),
              user: User = Depends(permission_required("job.view_history")), db: Session = Depends(get_db)):
@@ -441,7 +441,7 @@ def activity(job_number: str, category: str | None = None, actor_id: int | None 
     return {"total": total, "items": [_event_out(e) for e in rows], "actors": [{"id": a, "name": n} for a, n in actors], "categories": list(CATEGORY_FILTERS), "limit": limit, "offset": offset}
 
 
-@router.get("/{job_number}/activity/export")
+@router.get("/{job_number:path}/activity/export")
 def export_activity(job_number: str, category: str | None = None, q: str | None = None, user: User = Depends(permission_required("job.export_history")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)
     where = _activity_query(job, category, None, None, q, None, None, None)

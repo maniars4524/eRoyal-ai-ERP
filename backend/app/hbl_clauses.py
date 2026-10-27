@@ -267,7 +267,7 @@ class SelectionIn(BaseModel):
     override_reason: str = Field(default="", max_length=300)
 
 
-@job_router.get("/{job_number}/hbl-clauses")
+@job_router.get("/{job_number:path}/hbl-clauses")
 def get_selection(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     from .job_details_api import _job, _row
 
@@ -285,7 +285,7 @@ def get_selection(job_number: str, user: User = Depends(permission_required("shi
             "can_custom": has_permission(user, "hbl.clause.custom"), "can_override": has_permission(user, "hbl.clause.override"), "history": list(bl.get("clauseHistory") or [])[-10:], "problems": validate_selection(db, job, bl, selected)}
 
 
-@job_router.put("/{job_number}/hbl-clauses")
+@job_router.put("/{job_number:path}/hbl-clauses")
 def save_selection(job_number: str, body: SelectionIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     from .job_details_api import _job, _row
 

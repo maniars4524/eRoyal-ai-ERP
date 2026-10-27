@@ -94,13 +94,13 @@ def summary(db: Session, job: Shipment) -> dict:
             "booking_number": booking.number if booking else None, "bills": [_out(b, jobs) for b in job_bills(db, job)], "customs_jobs": [{"job_number": c.job_number, "stage": c.job_stage} for c in cha], "customs_charges": charges}
 
 
-@router.get("/by-job/{job_number}")
+@router.get("/by-job/{job_number:path}")
 def list_for_job(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     return summary(db, _job(db, org_id, job_number))
 
 
-@router.post("/by-job/{job_number}", status_code=201)
+@router.post("/by-job/{job_number:path}", status_code=201)
 def add_bill(job_number: str, body: BillIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     from . import job_lifecycle as jl
 

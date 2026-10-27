@@ -142,7 +142,7 @@ def _job(db: Session, org: int, job_number: str) -> Shipment:
     return j
 
 
-@router.get("/api/jobs/{job_number}/cha-jobs")
+@router.get("/api/jobs/{job_number:path}/cha-jobs")
 def list_cha_jobs(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     return consolidated(db, _job(db, _tenant(user), job_number))
 
@@ -158,7 +158,7 @@ class ChaIn(BaseModel):
 def _add_cha(db: Session, user: User, org: int, ref: Shipment, body: ChaIn, parent: Shipment | None) -> tuple[Shipment, list[str]]:
     """One more CHA job of the booking of `ref` (the freight job, or the first CHA job of a CHA-only booking). Its exporter, importer, port of loading and port of discharge must match `ref`; an authorised user can record
     an exception with a reason. Nothing else is created: the booking number is shared and there is still one freight job."""
-    from .shipments_api import _next_job_number
+    from .shipments_api import _next_cha_number
 
     jl.assert_job_editable(ref, "its CHA jobs")
     fex, fim = parties_of(db, ref)
@@ -176,7 +176,7 @@ def _add_cha(db: Session, user: User, org: int, ref: Shipment, body: ChaIn, pare
     can_override = has_permission(user, "cha.exception")
     if wrong and not (can_override and len(body.exception_reason.strip()) >= 5):
         raise HTTPException(409, {"code": "CHA_MISMATCH", "message": "The CHA job does not match the booking: " + "; ".join(wrong), "mismatches": wrong, "can_override": can_override})
-    cha = Shipment(organization_id=org, job_number=_next_job_number(db, org, ref.mode, ref.direction, ref.container_mode, user), job_type="Customs", booking_id=ref.booking_id, parent_job_id=parent.id if parent else None, mode=ref.mode,
+    cha = Shipment(organization_id=org, job_number=_next_cha_number(db, org, ref.mode, ref.direction, user), job_type="Customs", booking_id=ref.booking_id, parent_job_id=parent.id if parent else None, mode=ref.mode,
                    direction=ref.direction, container_mode=ref.container_mode, pol=pol or None, pod=pod or None, etd=ref.etd, eta=ref.eta, customer_id=ref.customer_id, consignee=im or None, packages=ref.packages,
                    gross_weight=ref.gross_weight, volume=ref.volume, package_type=ref.package_type, commodity=ref.commodity, status="Booked", created_by=user.id, branch=ref.branch, salesperson=ref.salesperson, customs_status="CREATED")
     db.add(cha)
@@ -187,7 +187,7 @@ def _add_cha(db: Session, user: User, org: int, ref: Shipment, body: ChaIn, pare
     return cha, wrong
 
 
-@router.post("/api/jobs/{job_number}/cha-jobs", status_code=201)
+@router.post("/api/jobs/{job_number:path}/cha-jobs", status_code=201)
 def add_cha_job(job_number: str, body: ChaIn, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
     """Another CHA job under the same booking and freight job. No new freight job is created and the booking number is shared."""
     org = _tenant(user)
@@ -210,7 +210,7 @@ class StatusIn(BaseModel):
     remarks: str = Field(default="", max_length=300)
 
 
-@router.patch("/api/cha/jobs/{job_number}/status")
+@router.patch("/api/cha/jobs/{job_number:path}/status")
 def set_status(job_number: str, body: StatusIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """Moves a CHA job along its customs stages (Created ... Closed). Going back needs a reason; the move is written to the job's history."""
     org = _tenant(user)
@@ -362,7 +362,7 @@ class NewChaIn(BaseModel):
 @router.post("/api/cha/jobs", status_code=201)
 def create_cha_job(body: NewChaIn, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
     """Create a CHA job from the CHA screen (Export or Import, Air or Sea). Linked to a freight job, under the same rules as an additional CHA job, when a freight job number is given; otherwise a stand-alone customs job."""
-    from .shipments_api import _next_job_number
+    from .shipments_api import _next_cha_number
 
     org = _tenant(user)
     if body.booking_number.strip():
@@ -392,7 +392,7 @@ def create_cha_job(body: NewChaIn, user: User = Depends(permission_required("shi
     else:
         if body.customer_id and not db.scalar(select(Customer.id).where(Customer.id == body.customer_id, Customer.organization_id == org)):
             raise HTTPException(404, "Organization not found")
-        cha = Shipment(organization_id=org, job_number=_next_job_number(db, org, body.mode, body.job_type, None, user), job_type="Customs", mode=body.mode, direction=body.job_type, pol=body.pol or None, pod=body.pod or None,
+        cha = Shipment(organization_id=org, job_number=_next_cha_number(db, org, body.mode, body.job_type, user), job_type="Customs", mode=body.mode, direction=body.job_type, pol=body.pol or None, pod=body.pod or None,
                        etd=body.etd, eta=body.eta, customer_id=body.customer_id, consignee=body.importer or None, status="Booked", created_by=user.id, customs_status="CREATED")
         db.add(cha)
         db.flush()
@@ -432,7 +432,7 @@ def source_info(db: Session, job: Shipment, freight: Shipment | None, booking: B
             "order": ("CHA first, then freight" if job.direction == "Export" else "Freight first, then CHA")}
 
 
-@router.get("/api/cha/jobs/{job_number}")
+@router.get("/api/cha/jobs/{job_number:path}")
 def get_cha_job(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """One CHA job: details, stages, customs bills, documents, its freight job, the sibling CHA jobs of that freight job and its history."""
     from .models import JobEvent
@@ -463,7 +463,7 @@ class InfoIn(BaseModel):
     eta: date | None = None
 
 
-@router.patch("/api/cha/jobs/{job_number}")
+@router.patch("/api/cha/jobs/{job_number:path}")
 def update_cha_job(job_number: str, body: InfoIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     org = _tenant(user)
     job = _job(db, org, job_number)

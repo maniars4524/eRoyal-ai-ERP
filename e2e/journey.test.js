@@ -50,9 +50,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("and a refresh plus retry still creates no second booking", (await j("GET", "/api/bookings", null, token)).body.length === 1);
   // complete the booking and confirm: the shipment gets its jobs
   await j("PATCH", `/api/bookings/${b0.id}`, { carrier: "MSC", etd: "2030-01-10", eta: "2030-02-05", si_cutoff: "2030-01-05", vgm_cutoff: "2030-01-05" }, token);
-  const conf = await j("POST", `/api/bookings/${b0.id}/confirm`, null, token);
+  const conf = await confirmJobs(b0.id, token);
   check("confirming the booking creates the freight job and the customs job (one shipment)", conf.status === 200 && conf.body.created_jobs.length === 2, JSON.stringify(conf.body && conf.body.created_jobs));
-  check("confirming twice is refused", (await j("POST", `/api/bookings/${b0.id}/confirm`, null, token)).status === 409);
+  check("confirming twice is refused", (await confirmJobs(b0.id, token)).status === 409);
   const jobs = (await j("GET", "/api/shipments", null, token)).body;
   check("the database holds exactly two jobs for the shipment, no extra shipment", jobs.length === 2 && jobs.every(x => x.booking_id === b0.id), JSON.stringify(jobs.map(x => [x.job_number, x.job_type])));
   const freight = jobs.find(x => x.job_type === "Forwarding"), cha = jobs.find(x => x.job_type === "Customs");
@@ -62,11 +62,18 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.go("svc-cha"); await sleep(2500);
   const crow = qa("#svcChaRoot tbody tr").filter(r => !r.querySelector("td[colspan]"));
   check("CHA screen lists the customs job linked to the same freight job", crow.length === 1 && crow[0].textContent.includes(cha.job_number) && crow[0].textContent.includes(freight.job_number), crow.map(r => r.textContent.slice(0, 120)).join("|"));
-  check("its summary cards count the real job", Array.from(w.document.querySelectorAll("#s-svc-cha .dash-cards[data-dash] .kpi-val")).map(x => x.textContent).slice(0, 2).join() === "1,0");
-  q('[data-svc-job="' + cha.job_number + '"]').click(); await sleep(2500);
+  check("its dashboard cards (Draft ...) count the real job", /1/.test(w.document.querySelector('#s-svc-cha [data-cha-group="draft"]').textContent) && /0/.test(w.document.querySelector('#s-svc-cha [data-cha-group="completed"]').textContent));
+  q('[data-cha-open="' + cha.job_number + '"]').click(); await sleep(1500); q("[data-cha-job-open]").click(); await sleep(2500);
   check("Open job goes to that job's page", w.document.getElementById("s-job-detail").classList.contains("on") && /Customs|CHA|SEA|AEX|CUS/i.test(w.document.getElementById("s-job-detail").textContent) );
   w.go("svc-transport"); await sleep(1500);
   check("Transport and Warehouse screens say there is nothing yet, instead of inventing jobs", /No transport jobs yet/.test(w.document.getElementById("svcTransportRoot").textContent));
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });
+
+async function confirmJobs(id, token, jobs = ["Freight", "CHA"]) {
+  const c = await j("POST", `/api/bookings/${id}/confirm`, null, token); if (c.status !== 200) return c;
+  const services = String((c.body.data || {}).services || "Freight").split(",").map(s => s.trim()); let body = c.body; const created = [];
+  for (const s of jobs) if (services.includes(s)) { const r = await j("POST", `/api/bookings/${id}/jobs`, { service: s }, token); created.push(r.body.created_job); body = r.body; }
+  body.created_jobs = created; return { status: 200, body };
+}

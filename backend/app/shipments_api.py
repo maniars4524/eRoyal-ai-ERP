@@ -39,6 +39,13 @@ def _next_job_number(db: Session, organization_id: int, mode: str, direction: st
     return issue(db, organization_id, "job", user=user, shipment_key=job_shipment_key(mode, direction, container_mode))
 
 
+def _next_cha_number(db: Session, organization_id: int, mode: str, direction: str, user=None) -> str:
+    """CHA (customs clearance) jobs have a numbering of their own: SE/CC/001 (Sea Export), SI/CC/001, AE/CC/001, AI/CC/001 ..., separate from the freight job numbers."""
+    from .sequences import issue
+
+    return issue(db, organization_id, "cha_job", user=user, shipment_key=f"{mode} {direction}")
+
+
 @router.get("")
 def list_shipments_full(user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
@@ -71,7 +78,7 @@ def create_shipment(payload: ShipmentCreate, user: User = Depends(permission_req
     return shipment
 
 
-@router.post("/by-number/{job_number}/duplicate", status_code=201)
+@router.post("/by-number/{job_number:path}/duplicate", status_code=201)
 def duplicate_shipment_by_number(job_number: str, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
     src = db.scalar(select(Shipment).where(Shipment.job_number == job_number, Shipment.organization_id == organization_id))

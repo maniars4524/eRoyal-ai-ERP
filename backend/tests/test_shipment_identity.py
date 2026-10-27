@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+from tests.helpers import confirm_with_jobs  # noqa: E402
 client = TestClient(app)
 PASSWORD = "Portal-Test-Passw0rd!"
 
@@ -26,7 +27,7 @@ def booking_body(services):
 def test_one_booking_gives_one_job_per_service_and_repeats_create_nothing_new(h):
     b = client.post("/api/bookings", json=booking_body("Freight, CHA, Transport"), headers=h).json()
     # a repeated confirm (double click, retry after a slow answer) must not create a second shipment
-    first = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    first = confirm_with_jobs(client, h, b['id'])
     assert first.status_code == 200, first.text
     again = client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
     assert again.status_code == 409
@@ -49,20 +50,20 @@ def test_a_draft_booking_cannot_make_jobs_and_a_cancelled_one_stays_cancelled(h)
     b = client.post("/api/bookings", json=booking_body("Freight, CHA"), headers=h).json()
     assert client.post(f"/api/bookings/{b['id']}/jobs", json={"service": "CHA"}, headers=h).status_code == 409     # not confirmed yet
     assert [j for j in client.get("/api/shipments", headers=h).json() if j["booking_id"] == b["id"]] == []
-    client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    confirm_with_jobs(client, h, b['id'])
     assert client.post(f"/api/bookings/{b['id']}/cancel", headers=h).status_code == 200
     assert client.post(f"/api/bookings/{b['id']}/confirm", headers=h).status_code == 409
 
 
 def test_booking_edits_after_confirmation_are_refused_so_the_shipment_data_stays_consistent(h):
     b = client.post("/api/bookings", json=booking_body("Freight"), headers=h).json()
-    client.post(f"/api/bookings/{b['id']}/confirm", headers=h)
+    confirm_with_jobs(client, h, b['id'])
     assert client.patch(f"/api/bookings/{b['id']}", json={"pol": "INBOM"}, headers=h).status_code == 409
 
 
 def test_job_links_show_the_booking_the_sibling_jobs_and_the_invoices(h):
     b = client.post("/api/bookings", json=booking_body("Freight, CHA"), headers=h).json()
-    conf = client.post(f"/api/bookings/{b['id']}/confirm", headers=h).json()
+    conf = confirm_with_jobs(client, h, b['id']).json()
     jobs = {j["job_type"]: j["job_number"] for j in conf["jobs"]}
     freight = client.get(f"/api/jobs/{jobs['Forwarding']}/links", headers=h).json()
     assert freight["booking"]["id"] == b["id"] and freight["booking"]["number"] == conf["number"]
