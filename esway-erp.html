@@ -6,6 +6,35 @@
 <title>eSway ERP 2.0</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b2a5b'/%3E%3Cpath d='M45 21c-2.600-3.700-6.800-5.500-12-5.500-7.200 0-11.800 3.600-11.800 9 0 11.800 23 6.800 23 16.800 0 5-4.800 8.200-11.800 8.200-5.800 0-10.200-2.200-12.800-6.200' stroke='%23fff' stroke-width='7.500' fill='none' stroke-linecap='round'/%3E%3Cpath d='M14 53c10 4 24 3.500 36-6' stroke='%232f9bff' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <script>try{var __t=localStorage.getItem("esway_theme");if(__t)document.documentElement.setAttribute("data-theme",__t)}catch(e){}</script>
+<script>
+/* The user's own colours: three choices (page background, titles and header, accent for buttons and highlights) become the theme's variables. Applied here, before the page paints. */
+window.EswayColors=(function(){
+  function rgb(h){h=String(h||"").replace("#","");return [0,2,4].map(function(i){return parseInt(h.substr(i,2),16)||0;});}
+  function hex(a){return "#"+a.map(function(v){v=Math.max(0,Math.min(255,Math.round(v)));return (v<16?"0":"")+v.toString(16);}).join("").toUpperCase();}
+  function mix(a,b,t){a=rgb(a);b=rgb(b);return hex([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]);}
+  function lum(h){var c=rgb(h).map(function(v){v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return .2126*c[0]+.7152*c[1]+.0722*c[2];}
+  function cr(a,b){var x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
+  /* keeps the text readable: the header colour carries white text, the page background carries dark text, buttons carry white or dark text */
+  function fix(c){
+    var out={bg:c.bg,title:c.title,accent:c.accent},note=[];
+    var n=0;while(cr(out.title,"#FFFFFF")<4.5&&n++<40)out.title=mix(out.title,"#000000",.08);if(out.title!==c.title)note.push("Titles / header was darkened so the white header text stays readable");
+    n=0;while(cr(out.bg,"#1E293B")<8&&n++<40)out.bg=mix(out.bg,"#FFFFFF",.1);if(out.bg!==c.bg)note.push("Background was lightened so the dark text stays readable");
+    return {colors:out,notes:note};
+  }
+  function css(c){
+    var f=fix(c).colors,onAcc=cr(f.accent,"#FFFFFF")>=3.5?"#FFFFFF":"#111827";
+    return 'html:root[data-theme]{--g0:'+f.bg+';--g1:'+mix(f.bg,"#000000",.035)+';--n:'+f.title+';--n2:'+mix(f.title,"#FFFFFF",.07)+';--n3:'+mix(f.title,"#FFFFFF",.14)+';--bl:'+f.accent+';--bl2:'+mix(f.accent,"#FFFFFF",.12)+';--blt:'+mix(f.accent,"#FFFFFF",.9)+';--bl-ink:'+mix(f.accent,"#000000",.4)+';--on-bl:'+onAcc+'}';
+  }
+  function apply(c){
+    var el=document.getElementById("esway-custom-colors");
+    if(!c){if(el)el.remove();return;}
+    if(!el){el=document.createElement("style");el.id="esway-custom-colors";(document.head||document.documentElement).appendChild(el);}
+    el.textContent=css(c);
+  }
+  return {rgb:rgb,hex:hex,mix:mix,lum:lum,contrast:cr,fix:fix,css:css,apply:apply};
+})();
+try{var __c=JSON.parse(localStorage.getItem("esway_theme_custom")||"null");if(__c&&__c.bg&&__c.title&&__c.accent)window.EswayColors.apply(__c);}catch(e){}
+</script>
 <style>
 /* ============================================================
    eSway ERP 2.0 — Freight Forwarding & Logistics Management
@@ -2599,7 +2628,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="card"><div class="ch"><div class="ct">Route &amp; Schedule</div></div><div class="cb">
 <div class="fr"><div class="fg"><label class="fl">Port of Loading <span class="r">*</span></label><input class="fc" id="nj_pol" placeholder="e.g. INMAA(CHENNAI)" autocomplete="off"><span class="ferr">Port of loading is required</span></div><div class="fg"><label class="fl">Port of Discharge <span class="r">*</span></label><input class="fc" id="nj_pod" placeholder="BEANR - Antwerp"><span class="ferr">Port of discharge is required</span></div></div>
 <div class="fr"><div class="fg"><label class="fl">ETD</label><input class="fc" type="date" id="nj_etd"></div><div class="fg"><label class="fl">ETA</label><input class="fc" type="date" id="nj_eta"></div></div>
-<div class="fr"><div class="fg"><label class="fl">Carrier / Line</label><select class="fc"><option>— Select —</option><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>Air India</option></select></div><div class="fg"><label class="fl">Vessel / Flight</label><input class="fc" placeholder="Vessel / Voyage No"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Carrier / Line</label><select class="fc" id="nj_carrier" data-carrier-src="mode:nj_mode"><option value="">— Select —</option></select></div><div class="fg"><label class="fl">Vessel / Flight</label><input class="fc" placeholder="Vessel / Voyage No"></div></div>
 </div></div>
 
 <!-- ====== NEW: Shipment Configuration (mode-aware — containers for Sea, chargeable weight for Air, vehicle for Road) ====== -->
@@ -2653,7 +2682,7 @@ tbody tr:hover{background:var(--g0)}
 <div>
 <div class="card"><div class="ch"><div class="ct">Parties</div></div><div class="cb">
 <div class="fg" style="margin-bottom:7px"><label class="fl">Shipper / Exporter <span class="r">*</span></label><select class="fc" id="nj_shipper"><option value="">— Search or select —</option></select><span class="ferr">Shipper is required</span></div>
-<div class="fg" style="margin-bottom:7px"><label class="fl">Consignee / Importer <span class="r">*</span></label><select class="fc" id="nj_consignee"><option value="">— Search or select —</option><option>Solvay SA (Belgium)</option><option>Honda Japan</option></select><span class="ferr">Consignee is required</span></div>
+<div class="fg" style="margin-bottom:7px"><label class="fl">Consignee / Importer <span class="r">*</span></label><select class="fc" id="nj_consignee"><option value="">— Search or select —</option></select><span class="ferr">Consignee is required</span></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Notify Party</label><select class="fc"><option>Same as Consignee</option></select></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Overseas Agent</label><select class="fc"><option>— None —</option><option>Panalpina Belgium</option></select></div>
 <div class="fg"><label class="fl">CHA Broker</label><select class="fc"><option>— None —</option><option>Sea Air Marine Surveyors</option></select></div>
@@ -3675,7 +3704,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">POL <span class="r">*</span></label><input class="fc" id="bk_pol" placeholder="e.g. INMAA(CHENNAI)" autocomplete="off"></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Carrier / Line <span class="r">*</span></label><select class="fc" id="bk_carrier"><option>— Select —</option><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>ONE Line</option><option>Air India</option><option>Emirates SkyCargo</option></select></div>
+  <div class="fg"><label class="fl">Carrier / Line <span class="r">*</span></label><select class="fc" id="bk_carrier"><option>— Select —</option></select></div>
   <div class="fg"><label class="fl">Booking No</label><input class="fc" id="bk_no" placeholder="Issued when the booking is first saved" readonly style="background:var(--g0)"></div>
   <div class="fg"><label class="fl">Carrier Booking Ref</label><input class="fc" id="bk_carrierref" placeholder="Reference given by the carrier"></div>
   <div class="fg"><label class="fl">POD <span class="r">*</span></label><input class="fc" id="bk_pod" placeholder="e.g. BEANR(ANTWERPEN)" autocomplete="off"></div>
@@ -4376,7 +4405,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Default POL</label><select class="fc"><option>Chennai Sea Port (INCHENNAI)</option><option>Mumbai (INBOM)</option></select></div>
 </div>
 <div class="fr">
-  <div class="fg"><label class="fl">Default Carrier</label><select class="fc"><option>MSC Mediterranean</option><option>CMA CGM</option><option>Hapag-Lloyd</option><option>ONE Line</option></select></div>
+  <div class="fg"><label class="fl">Default Carrier</label><select class="fc" data-carrier-src="sea"><option value="">— Select —</option></select></div>
   <div class="fg"><label class="fl">Free Days (Detention)</label><input class="fc"></div>
   <div class="fg"><label class="fl">Free Days (Demurrage)</label><input class="fc"></div>
   <div class="fg"><label class="fl">BL Signing Agent</label><input class="fc"></div>
@@ -4386,7 +4415,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Air Export Enabled</label><select class="fc"><option>Yes</option><option>No</option></select></div>
   <div class="fg"><label class="fl">Air Import Enabled</label><select class="fc"><option>Yes</option><option>No</option></select></div>
   <div class="fg"><label class="fl">Default POL Airport</label><select class="fc"><option>Chennai (MAA)</option><option>Mumbai (BOM)</option><option>Bangalore (BLR)</option></select></div>
-  <div class="fg"><label class="fl">Default Airline</label><select class="fc"><option>Air India</option><option>Emirates</option><option>Singapore Airlines</option></select></div>
+  <div class="fg"><label class="fl">Default Airline</label><select class="fc" data-carrier-src="air"><option value="">— Select —</option></select></div>
 </div>
 <div class="fr">
   <div class="fg"><label class="fl">CASS Participant</label><select class="fc"><option>Yes</option><option>No</option></select></div>
@@ -5479,6 +5508,7 @@ tbody tr:hover{background:var(--g0)}
 <div id="s-themes" class="scr">
 <div class="ph"><div><div class="pt"><svg class="ic" data-icon="dashboard" style="color:var(--bl)"></svg>Themes</div><div class="ps">Choose how eSway ERP looks. The whole application changes at once and your choice is remembered.</div></div></div>
 <div class="ib ib-bl" style="margin-bottom:14px" id="themeNow"></div>
+<div class="card" style="margin-bottom:16px"><div class="ch"><div class="ct">Your own colours</div></div><div class="cb" id="themeCustom"></div></div>
 <div id="themeGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px"><button type="button" class="theme-card" data-theme-pick="navy" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="navy"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Navy Blue &amp; White</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Professional, corporate, clean and trustworthy.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="brown" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="brown"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Brown &amp; Cream</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Elegant, warm, premium and sophisticated.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="charcoal" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="charcoal"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Charcoal &amp; Silver</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Modern, minimal and professional.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="forest" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="forest"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Forest Green &amp; Ivory</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Natural, calm and refined.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="purple" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="purple"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Royal Purple &amp; White</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Premium, creative and elegant.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="teal" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="teal"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Teal &amp; Soft White</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Fresh, modern and balanced.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="burgundy" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="burgundy"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Burgundy &amp; Champagne</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Luxurious and executive.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button><button type="button" class="theme-card" data-theme-pick="midnight" aria-pressed="false"><span class="theme-tick">✓</span><div data-theme-preview="midnight"></div><div style="font-weight:700;font-size:13.5px;color:var(--g8)">Midnight Black &amp; Gold</div><div style="font-size:11.5px;color:var(--g5);margin-top:2px">Bold, premium and high-end.</div><div class="theme-state" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--bl)"></div></button></div>
 </div>
 
@@ -8238,7 +8268,7 @@ $("#jobCreateBtn") && $("#jobCreateBtn").addEventListener("click", ()=>{
       etd: val("nj_etd") || null,
       eta: val("nj_eta") || null,
       customer_id: num("nj_shipper"),
-      consignee: consigneeSelect ? (consigneeSelect.options[consigneeSelect.selectedIndex]?.text || null) : null,
+      consignee: consigneeSelect ? ((consigneeSelect.options[consigneeSelect.selectedIndex] || {}).dataset && consigneeSelect.options[consigneeSelect.selectedIndex].dataset.name || consigneeSelect.options[consigneeSelect.selectedIndex]?.text || null) : null,
       packages: num("nj_pkgs"),
       gross_weight: num("nj_wt"),
       commodity: val("nj_commodity")
@@ -8624,7 +8654,7 @@ function grwRender(){
     foot = `${backBtn}<button class="btn btn-pri" id="grwNext">Next →</button>`;
   } else if(q.step===3){
     body = grwStepsHTML() + `<div class="grw-title">Step 3 — Carrier Selection</div><div class="grw-sub">Narrow the search to a carrier, agent or vendor — or leave blank to compare all</div>
-    <div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Carrier</label><select class="fc" id="grw_carrier"><option value="">— Any carrier —</option><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>ONE Line</option><option>Air India</option><option>Emirates SkyCargo</option></select></div>
+    <div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">Carrier</label><select class="fc" id="grw_carrier" data-carrier-src="any"><option value="">— Any carrier —</option></select></div>
     <div class="fg"><label class="fl">Agent</label><input class="fc" id="grw_agent" value="${q.agent}" placeholder="Overseas agent (optional)"></div></div>
     <div class="fr"><div class="fg"><label class="fl">Vendor</label><input class="fc" id="grw_vendor" value="${q.vendor}" placeholder="Optional"></div>
     <div class="fg"><label class="fl">Preferred Carrier Only</label><select class="fc" id="grw_preferred"><option value="yes"${q.preferred?" selected":""}>Yes</option><option value="no"${!q.preferred?" selected":""}>No</option></select></div></div>`;
@@ -12967,7 +12997,7 @@ function initQuotWizard(){
   $("#quotAddCarrierBtn").addEventListener("click", ()=>{
     const row = document.createElement("div");
     row.className = "fr quotCarrierRow";
-    row.innerHTML = `<div class="fg"><label class="fl">Carrier / Line</label><select class="fc"><option>MSC Mediterranean</option><option>Hapag-Lloyd</option><option>ONE Line</option><option>Air India</option><option>Emirates SkyCargo</option></select></div><div class="fg"><label class="fl">Notes</label><input class="fc" placeholder="e.g. fastest transit"></div>`;
+    row.innerHTML = `<div class="fg"><label class="fl">Carrier / Line</label><select class="fc" data-carrier-src="quotwiz"><option value="">— Select —</option></select></div><div class="fg"><label class="fl">Notes</label><input class="fc" placeholder="e.g. fastest transit"></div>`;
     $("#quotCarrierRows").appendChild(row);
   });
 }
@@ -21022,6 +21052,49 @@ function makePrintFit(){
 })();
 
 /* ============================================================
+   CARRIER AND CONSIGNEE PICK-LISTS: no sample names anywhere. Air shows the Airline Master, Sea the Sea Line Master (an Air job never shows sea lines and the other way round), other modes no carrier;
+   the Consignee / Importer list is the company's own Organization Master.
+   ============================================================ */
+(function(){
+  "use strict";
+  const tok = ()=> sessionStorage.getItem("esway_access_token") || "";
+  const get = p=> fetch(p, {headers:{Authorization:"Bearer "+tok()}}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  let cache = null, at = 0;
+  async function pickers(){ if(cache && Date.now() - at < 30000) return cache; const d = await get("/api/network/pickers"); if(d){ cache = d; at = Date.now(); } return cache || {}; }
+  const names = (list)=> Array.from(new Set((list || []).map(x=>x.name).filter(Boolean)));
+  function modeOf(sel){
+    const src = sel.dataset.carrierSrc || "";
+    if(src.indexOf("mode:") === 0){ const m = document.getElementById(src.slice(5)); return m ? m.value : ""; }
+    if(src === "quotwiz"){ try{ return (window.quotWiz || {}).mode || ""; }catch(e){ return ""; } }
+    return src;                                   // "sea" | "air" | "any"
+  }
+  async function fill(sel){
+    if(!tok()) return; const mode = modeOf(sel), key = mode + "|" + (cache ? at : 0);
+    const n = await pickers(); let list = [];
+    if(/air/i.test(mode)) list = names(n.airlines); else if(/sea|ocean/i.test(mode)) list = names(n.sea_lines); else if(mode === "any") list = names(n.airlines).concat(names(n.sea_lines));
+    const sig = mode + ":" + list.join("|"); if(sel.dataset.cf === sig) return; sel.dataset.cf = sig;
+    const cur = sel.value, first = sel.options[0] ? sel.options[0].outerHTML : '<option value="">— Select —</option>';
+    sel.innerHTML = first + list.map(x=>'<option>'+x.replace(/&/g, "&amp;").replace(/</g, "&lt;")+'</option>').join("");
+    if(cur && list.includes(cur)) sel.value = cur;
+    sel.title = list.length ? "" : (/air|sea|ocean|any/i.test(mode) ? "No "+(/air/i.test(mode) ? "airline" : "sea line")+" in the master yet: add it under Masters" : "No carrier is needed for this mode");
+  }
+  const fillAll = ()=> document.querySelectorAll("select[data-carrier-src]").forEach(fill);
+  async function consignees(){
+    const sel = document.getElementById("nj_consignee"); if(!sel || !tok()) return;
+    const a = (await get("/api/customers?role=consignee")) || [], b = (await get("/api/customers?role=client")) || [];
+    const seen = new Set(), rows = a.concat(b).filter(c=>c.status === "ACTIVE" && !seen.has(c.id) && seen.add(c.id));
+    const sig = rows.map(c=>c.id).join(","); if(sel.dataset.cf === sig) return; sel.dataset.cf = sig;
+    const first = sel.options[0] ? sel.options[0].outerHTML : '<option value="">— Search or select —</option>';
+    sel.innerHTML = first + (rows.length ? rows.map(c=>'<option value="'+c.id+'" data-name="'+String(c.name).replace(/"/g, "&quot;")+'">'+String(c.name).replace(/&/g, "&amp;").replace(/</g, "&lt;")+(c.code ? " ("+c.code+")" : "")+'</option>').join("") : '<option value="" disabled>No consignee yet — add one in the Organization Master</option>');
+  }
+  document.addEventListener("change", e=>{ if(e.target && (e.target.id === "nj_mode" || e.target.id === "nj_dir" || e.target.id === "nj_dept")) setTimeout(fillAll, 60); });
+  new MutationObserver(()=>{ clearTimeout(window.__cfT); window.__cfT = setTimeout(()=>{ fillAll(); consignees(); }, 120); }).observe(document.body, {childList:true, subtree:true});
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-new"){ cache = null; setTimeout(()=>{ fillAll(); consignees(); }, 200); } };
+  setTimeout(()=>{ fillAll(); consignees(); }, 1500);
+})();
+
+/* ============================================================
    SEARCH + CHAT PLACEMENT KIT: the header search looks across jobs, parties, invoices, quotations, bookings, CRM, payments, vouchers, masters and users and opens the
    chosen result; the chat can be opened from a header button next to the search box and both the chat button and the chat window can be dragged anywhere (remembered).
    ============================================================ */
@@ -21216,13 +21289,68 @@ function makePrintFit(){
   document.addEventListener("click", e=>{
     const card = e.target.closest("[data-theme-pick]"); if(!card) return;
     const id = card.dataset.themePick; const t = THEMES.find(x=>x.id === id); const before = TK.current();
+    if(localStorage.getItem("esway_theme_custom")){ try{ localStorage.removeItem("esway_theme_custom"); }catch(x){} window.EswayColors.apply(null); work = null; if(token()) fetch("/api/auth/preferences", {method:"PUT", headers:{"Content-Type":"application/json", Authorization:"Bearer "+token()}, body:JSON.stringify({clear_custom:true})}).catch(()=>{}); paintCustom(); }
     TK.apply(id, {save:true}).then(()=>{ if(typeof toast === "function") toast("Theme Applied Successfully!", t.name+" is now active across the whole application.", "success"); })
       .catch(()=>{ if(typeof toast === "function") toast("Theme applied here but not saved to your account", "It will stay on this browser. Sign in again and retry to save it.", "warn"); });
   });
+  /* ---------- your own colours: Background, Titles, Accent ---------- */
+  const EC = window.EswayColors, CKEY = "esway_theme_custom", SKEY = "esway_color_swatches";
+  const BASIC = ["#F28B82","#E8341C","#7B4444","#8E4B3F","#3B0A06","#8EF0F0","#6BF2F2","#2F7DF0","#0A2EF0","#0A1E99","#173F7A","#050E70",
+                 "#FFF59D","#FFEB3B","#EE9B63","#EF8546","#7B4510","#7F7F1E","#8083F5","#7B2FF0","#3A7BB8","#04043F","#4F1560","#2E0636",
+                 "#A5F58E","#98F04A","#71F040","#6EF06E","#6FF59A","#7E7E4C","#F08EBB","#EE88F5","#EE2FEE","#EE3A80","#7E80C0","#6E1440",
+                 "#2E7D1E","#2F7D4B","#3A7F83","#4F8080","#143F0E","#173F3F","#7A1B80","#380F78","#000000","#808080","#C0C0C0","#FFFFFF"];
+  const LABEL = {bg:"Background", title:"Titles & header", accent:"Accent (buttons, highlights)"};
+  const HINT = {bg:"The page background behind the screens", title:"The top bar and the title bars", accent:"Buttons, links, selected items"};
+  const base = ()=> { const cs = getComputedStyle(document.documentElement); return {bg:(cs.getPropertyValue("--g0") || "#F8FAFC").trim().toUpperCase(), title:(cs.getPropertyValue("--n") || "#0B1F3A").trim().toUpperCase(), accent:(cs.getPropertyValue("--bl") || "#1A6FBF").trim().toUpperCase()}; };
+  const stored = ()=>{ try{ return JSON.parse(localStorage.getItem(CKEY) || "null"); }catch(e){ return null; } };
+  let work = null;                                  // the colours being chosen (live preview)
+  const swatches = ()=>{ try{ return JSON.parse(localStorage.getItem(SKEY) || "[]"); }catch(e){ return []; } };
+  function paintCustom(){
+    const host = document.getElementById("themeCustom"); if(!host) return;
+    const cur = work || stored(); const c = cur || base();
+    const row = k=> '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--g1)"><button type="button" class="cc-sw" data-cc-pick="'+k+'" title="Choose the colour" style="width:44px;height:44px;border-radius:10px;border:2px solid var(--g3);background:'+c[k]+';cursor:pointer;flex:none"></button><div style="flex:1"><div style="font-weight:700;font-size:13px">'+LABEL[k]+'</div><div style="font-size:11.5px;color:var(--g5)">'+HINT[k]+'</div></div><code style="font-size:12px">'+c[k]+'</code><button type="button" class="btn btn-out btn-sm" data-cc-pick="'+k+'">Change</button></div>';
+    const fx = EC.fix(c);
+    host.innerHTML = '<div style="font-size:12.5px;color:var(--g6);margin-bottom:6px">Choose three colours; the whole ERP changes at once (reports and printed documents keep their own colours). It is saved on your account and follows you to every computer and phone.</div>'+row("bg")+row("title")+row("accent")+
+      (fx.notes.length ? '<div class="ib ib-am" style="margin-top:8px">'+fx.notes.join(". ")+".</div>" : "")+
+      '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-pri btn-sm" id="ccSave">Apply and save my colours</button><button class="btn btn-out btn-sm" id="ccReset">Back to the theme colours</button><span id="ccState" style="font-size:11.5px;color:var(--g5);align-self:center">'+(stored() ? "Your own colours are active." : "Using the theme colours.")+'</span></div>';
+  }
+  function openPicker(key){
+    const start = (work || stored() || base())[key]; let cur = start;
+    const sw = swatches(); const customCells = Array.from({length:12}, (_, i)=> sw[i] ? '<button type="button" data-cc-set="'+sw[i]+'" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--g3);background:'+sw[i]+';cursor:pointer"></button>' : '<span style="width:26px;height:26px;border-radius:50%;border:1px dashed var(--g4);display:inline-block"></span>').join("");
+    openModal({title:"Edit colour — "+LABEL[key], size:"lg", bodyHTML:'<div style="display:grid;grid-template-columns:minmax(200px,260px) 1fr;gap:18px"><div><input type="color" id="ccNative" value="'+start+'" style="width:100%;height:150px;border:none;padding:0;background:none;cursor:pointer"><div id="ccPrev" style="height:34px;border-radius:8px;margin-top:8px;border:1px solid var(--g3);background:'+start+'"></div></div>'+
+      '<div><div class="fr"><div class="fg"><label class="fl">Hex</label><input class="fc" id="ccHex" value="'+start+'" maxlength="7" style="font-family:var(--font-mono)"></div></div><div class="fr"><div class="fg"><label class="fl">Red</label><input class="fc" type="number" min="0" max="255" id="ccR"></div><div class="fg"><label class="fl">Green</label><input class="fc" type="number" min="0" max="255" id="ccG"></div><div class="fg"><label class="fl">Blue</label><input class="fc" type="number" min="0" max="255" id="ccB"></div></div></div></div>'+
+      '<div style="display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:18px;margin-top:14px"><div><div style="font-weight:700;font-size:12.5px;margin-bottom:6px">Basic colours</div><div style="display:grid;grid-template-columns:repeat(12,1fr);gap:7px">'+BASIC.map(h=>'<button type="button" data-cc-set="'+h+'" title="'+h+'" style="aspect-ratio:1;border-radius:50%;border:1px solid var(--g3);background:'+h+';cursor:pointer"></button>').join("")+'</div></div>'+
+      '<div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:12.5px">Custom colours</b><button type="button" class="btn btn-out btn-sm" id="ccAdd" title="Keep this colour">＋</button></div><div id="ccCustom" style="display:flex;flex-wrap:wrap;gap:8px">'+customCells+'</div></div></div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="ccOk">OK</button>'});
+    const set = h=>{ if(!/^#[0-9a-fA-F]{6}$/.test(h)) return; cur = h.toUpperCase(); document.getElementById("ccNative").value = cur.toLowerCase(); document.getElementById("ccHex").value = cur; const [r, g, b] = EC.rgb(cur); document.getElementById("ccR").value = r; document.getElementById("ccG").value = g; document.getElementById("ccB").value = b; document.getElementById("ccPrev").style.background = cur; };
+    set(start);
+    document.getElementById("ccNative").addEventListener("input", e=>set(e.target.value));
+    document.getElementById("ccHex").addEventListener("input", e=>{ let v = e.target.value.trim(); if(v && v[0] !== "#") v = "#"+v; if(/^#[0-9a-fA-F]{6}$/.test(v)) set(v); });
+    ["ccR", "ccG", "ccB"].forEach(id=> document.getElementById(id).addEventListener("input", ()=>{ const v = ["ccR", "ccG", "ccB"].map(i=>Math.max(0, Math.min(255, Number(document.getElementById(i).value) || 0))); set(EC.hex(v)); }));
+    document.querySelector("#modalBody").addEventListener("click", e=>{ const b = e.target.closest("[data-cc-set]"); if(b) set(b.dataset.ccSet); });
+    document.getElementById("ccAdd").addEventListener("click", ()=>{ const l = swatches().filter(x=>x !== cur); l.unshift(cur); try{ localStorage.setItem(SKEY, JSON.stringify(l.slice(0, 12))); }catch(e){} document.getElementById("ccCustom").innerHTML = l.slice(0, 12).map(h=>'<button type="button" data-cc-set="'+h+'" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--g3);background:'+h+';cursor:pointer"></button>').join(""); });
+    document.getElementById("ccOk").addEventListener("click", ()=>{ const next = Object.assign({}, work || stored() || base(), {[key]:cur}); work = next; EC.apply(next); closeModal(); paintCustom(); });
+  }
+  document.addEventListener("click", e=>{
+    const pk = e.target.closest && e.target.closest("[data-cc-pick]"); if(pk){ openPicker(pk.dataset.ccPick); return; }
+    if(e.target.closest && e.target.closest("#ccSave")){
+      const c = work || stored() || base(), f = EC.fix(c).colors; try{ localStorage.setItem(CKEY, JSON.stringify(f)); }catch(x){} EC.apply(f); work = null; paintCustom();
+      if(token()) fetch("/api/auth/preferences", {method:"PUT", headers:{"Content-Type":"application/json", Authorization:"Bearer "+token()}, body:JSON.stringify({custom_colors:f})}).then(r=>{ if(typeof toast === "function") toast(r.ok ? "Colours saved" : "Colours applied here only", r.ok ? "Your colours follow your account to every device." : "They could not be saved to your account; they stay on this browser.", r.ok ? "success" : "warn"); }).catch(()=>{});
+      return;
+    }
+    if(e.target.closest && e.target.closest("#ccReset")){
+      try{ localStorage.removeItem(CKEY); }catch(x){} EC.apply(null); work = null; paintCustom();
+      if(token()) fetch("/api/auth/preferences", {method:"PUT", headers:{"Content-Type":"application/json", Authorization:"Bearer "+token()}, body:JSON.stringify({clear_custom:true})}).catch(()=>{});
+      if(typeof toast === "function") toast("Theme colours restored", "Your own colours are removed.", "success");
+    }
+  });
   /* the user's saved theme (account) wins after sign-in; screens opened later simply read the same variables */
-  TK.fromAccount = function(user){ if(user && user.theme && user.theme !== TK.current()) TK.apply(user.theme); };
+  TK.fromAccount = function(user){
+    if(user && user.theme && user.theme !== TK.current()) TK.apply(user.theme);
+    if(user && user.custom_colors && user.custom_colors.bg){ try{ localStorage.setItem(CKEY, JSON.stringify(user.custom_colors)); }catch(e){} EC.apply(user.custom_colors); }
+  };
   const prev = MK.onScreen;
-  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "themes") paint(); };
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "themes"){ paint(); paintCustom(); } };
   /* charts read the variables when they draw: redraw them after a switch */
   window.addEventListener("esway-theme", ()=>{ setTimeout(()=>{ try{ if(typeof window.dashRenderActive === "function") window.dashRenderActive(); if(typeof window.renderDashChart === "function" && document.getElementById("s-dashboard")) window.renderDashChart("volume"); }catch(e){} }, 30); });
   paint();

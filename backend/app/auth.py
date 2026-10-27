@@ -112,4 +112,5 @@ def safe_user(user: User) -> dict:
         "license_status": (user.organization.status if user.organization else None),
         "license_expiry": user.organization.license_expiry.isoformat() if user.organization and user.organization.license_expiry else None,
         "theme": (user.profile or {}).get("theme"),
+        "custom_colors": (user.profile or {}).get("custom_colors"),
     }

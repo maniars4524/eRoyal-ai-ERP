@@ -237,6 +237,7 @@ class SafeUser(BaseModel):
     license_status: str | None = None
     license_expiry: str | None = None
     theme: str | None = None
+    custom_colors: dict[str, str] | None = None
 
 
 class LoginResponse(BaseModel):

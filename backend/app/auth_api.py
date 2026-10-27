@@ -116,15 +116,30 @@ THEMES = ("navy", "brown", "charcoal", "forest", "purple", "teal", "burgundy", "
 
 
 class Preferences(BaseModel):
-    theme: str = Field(pattern="^(navy|brown|charcoal|forest|purple|teal|burgundy|midnight)$")
+    theme: str | None = Field(default=None, pattern="^(navy|brown|charcoal|forest|purple|teal|burgundy|midnight)$")
+    custom_colors: dict[str, str] | None = None            # the user's own three colours: bg (page background), title (header and titles), accent (buttons and highlights); an empty dict clears them
+    clear_custom: bool = False
+
+
+_HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 @router.put("/preferences")
 def save_preferences(body: Preferences, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """The user's own display preferences (the colour theme). It follows the account to every computer."""
-    user.profile = {**(user.profile or {}), "theme": body.theme}
+    """The user's own display preferences (the colour theme and optional own colours). It follows the account to every computer."""
+    prof = dict(user.profile or {})
+    if body.theme:
+        prof["theme"] = body.theme
+    if body.clear_custom:
+        prof.pop("custom_colors", None)
+    elif body.custom_colors is not None:
+        colors = {k: v.upper() for k, v in body.custom_colors.items() if k in ("bg", "title", "accent")}
+        if any(not _HEX.match(v) for v in colors.values()) or set(colors) != {"bg", "title", "accent"}:
+            raise HTTPException(status_code=422, detail="Give the three colours (background, titles, accent) as #RRGGBB")
+        prof["custom_colors"] = colors
+    user.profile = prof
     db.commit()
-    return {"theme": body.theme}
+    return {"theme": prof.get("theme"), "custom_colors": prof.get("custom_colors")}
 
 
 @router.get("/portal-info")
