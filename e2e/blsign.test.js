@@ -16,7 +16,7 @@ const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   const tag = Date.now().toString(36);
   const org = await j("POST", "/api/organizations", { code: "BS" + tag.slice(-6).toUpperCase(), name: "Blsign " + tag, admin_email: `bs${tag}@t.test`, admin_username: "bs" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Bo" }, dev.body.access_token);
   const token = (await j("POST", "/api/auth/login", { identifier: "bs" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
-  check("company profile accepts a signature and a seal", (await j("PUT", "/api/company/doc-profile", { signatory: "Authorised Signatory", sign_image: PNG, seal_image: PNG }, token)).status === 200);
+  check("company profile accepts a signature, a seal and the standard BL remark", (await j("PUT", "/api/company/doc-profile", { signatory: "Authorised Signatory", sign_image: PNG, seal_image: PNG, bl_note: "FOR ALL DOOR, HOUSE DELIVERIES THE STANDARD UNLOAD FREE TIME AS PREVALENT WILL APPLY." }, token)).status === 200);
   const job = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA", pod: "BEANR" }, token)).body.job_number;
   await j("POST", `/api/jobs/${job}/hbl`, { hbl_type: "MTO" }, token);
   await j("POST", `/api/jobs/${job}/bl/stage`, { stage: "Confirmed" }, token);
@@ -30,6 +30,8 @@ const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   const html = w.BLDocKit.html(rd);
   const n = (html.match(/<img src="data:image\/png/g) || []).length;
   check("the printed House BL shows the digital signature and the seal", n >= 2, "images found: " + n);
+  check("the foot follows the sample: delivery agent, freight amount / payable at, originals, place and date, signature, clauses; the standard remark is printed", /Delivery Agent/.test(html) && /Freight Amount/.test(html) && /Freight Payable at/.test(html) && /Number of Original/.test(html) && /Place and date of issue/.test(html) && /Authorised Signatory/.test(html) && /STANDARD UNLOAD FREE TIME/.test(html) && /&quot;EXPRESS RELEASE&quot;/.test(html));
+  if (process.env.BL_PREVIEW) fs.writeFileSync(process.env.BL_PREVIEW, "<html><body style=\"margin:0;background:#fff\">" + html + "</body></html>");
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });

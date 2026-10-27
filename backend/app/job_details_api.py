@@ -77,7 +77,7 @@ def hbl_preview(db: Session, job: Shipment, hbl_type: str, number: int | None = 
 
 BL_STAGES = ("Draft", "Confirmed", "Released")
 RELEASE_TYPES = ("Original", "Express Release", "Telex Release", "Surrender")
-PROFILE_TEXT = ("hbl_scac_codes", "tagline", "address", "phone", "mobile", "fax", "email", "web", "reg_otl", "reg_mto", "reg_fmc", "signatory", "signatory_name", "terms", "legal_name", "gstin", "pan", "cin", "state", "state_code",
+PROFILE_TEXT = ("hbl_scac_codes", "tagline", "address", "phone", "mobile", "fax", "email", "web", "reg_otl", "reg_mto", "reg_fmc", "signatory", "signatory_name", "terms", "bl_note", "legal_name", "gstin", "pan", "cin", "state", "state_code",
                 "bank_name", "bank_account", "bank_ifsc", "bank_swift", "bank_branch", "payment_modes", "tracking_url", "invoice_terms", "do_terms", "eoe", "footer_note", "usd_bank_name", "usd_bank_account", "usd_bank_swift", "usd_bank_address", "usd_bank_intermediary")
 PROFILE_IMAGES = ("sign_image", "seal_image")
 IMG_RE = re.compile(r"^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$")
