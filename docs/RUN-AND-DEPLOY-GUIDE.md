@@ -14,6 +14,11 @@ Needs: Windows / Linux / macOS, Docker Desktop (for PostgreSQL), Python 3.12.
 
 One click on Windows: double-click `RUN-LOCAL.cmd` (does steps 2 to 5). It now listens on all network cards and prints this PC's addresses. `RUN-LOCAL.cmd 8002` runs it on another port.
 
+### Permanent address from any network (Tailscale)
+
+Tailscale (private VPN, free) is installed on this PC (account maniars4524) and starts with Windows. The address never changes:
+**http://desktop-touf7i0:8000/erp/login** (or http://100.120.249.72:8000/erp/login). Every other computer / phone must install Tailscale (tailscale.com/download) and sign in with the same account, or be invited to share this PC. Windows firewall rules `eSway ERP 8000 (LAN)` and `eSway ERP 8000 (Tailscale)` allow port 8000. Each day only the app has to be started (`RUN-LOCAL.cmd`); the address stays the same. It is not exposed to the public internet.
+
 Portals: `/erp/login` (company staff), `/demo/login` (demo data), `/developer/login` (platform administration). Which of them are reachable from outside is set by `PUBLIC_PORTALS` in the env file.
 
 ## 2. The ports used on this machine
