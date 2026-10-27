@@ -361,8 +361,14 @@ def _make_job(db: Session, org_id: int, b: Booking, service: str, user: User) ->
                    pol=b.pol, pod=b.pod, etd=b.etd, eta=b.eta, customer_id=b.customer_id, consignee=(data.get("consignee") or None), packages=int(pcs) if pcs is not None and pcs == pcs.to_integral_value() else None,
                    gross_weight=gwt, volume=_num(data.get("volume")), package_type=(data.get("pack_type") or None), commodity=(data.get("commodity") or data.get("marks") or None), status="Booked", created_by=user.id,
                    branch=(str(data.get("branch") or "").strip() or None), salesperson=_booking_salesperson(db, b))
+    if job_type == "Customs":
+        job.customs_status = "CREATED"
+        job.parent_job_id = db.scalar(select(Shipment.id).where(Shipment.organization_id == org_id, Shipment.booking_id == b.id, Shipment.job_type == "Forwarding").order_by(Shipment.id))
     db.add(job)
     db.flush()
+    if job_type == "Forwarding":          # CHA jobs made before the freight job now point at it explicitly
+        for orphan in db.scalars(select(Shipment).where(Shipment.organization_id == org_id, Shipment.booking_id == b.id, Shipment.job_type == "Customs", Shipment.parent_job_id.is_(None))):
+            orphan.parent_job_id = job.id
     first = not _jobs_exist(db, b, exclude=job.id)
     from . import job_lifecycle as jl
 

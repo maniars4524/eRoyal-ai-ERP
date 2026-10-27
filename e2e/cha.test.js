@@ -1,0 +1,55 @@
+// CHA screen: Back + Create Job (Export / Import x Sea / Air), dashboard cards (Draft, Pending, Filed, Delayed, Completed ...), register, job window with stages.
+const { JSDOM } = require("jsdom");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => {
+  const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  return { status: r.status, body: r.status === 204 ? null : await r.json().catch(() => null) };
+};
+let failures = 0;
+const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  -> " + (extra || ""))); if (!ok) failures++; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36);
+  const org = await j("POST", "/api/organizations", { code: "CH" + tag.slice(-6).toUpperCase(), name: "Cha " + tag, admin_email: `ch${tag}@t.test`, admin_username: "ch" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Ava" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "ch" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
+    beforeParse(w) { w.fetch = async (u, o) => { for (let i = 0; ; i++) { try { return await fetch(new URL(u, BASE).href, o); } catch (e) { if (i >= 2) throw e; await sleep(200); } } }; w.sessionStorage.setItem("esway_access_token", token); w.localStorage.setItem("esway_persistent_token", token); w.confirm = () => true; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.print = () => {}; w.prompt = () => "wrong HS code"; } });
+  const w = dom.window, d = w.document;
+  await sleep(6500);
+  w.go("svc-cha"); await sleep(2000);
+  const root = d.getElementById("svcChaRoot");
+  check("the CHA screen has Back and a Create Job button", !!root.querySelector('[data-go="dashboard"]') && /Create Job/.test(root.textContent), root.textContent.slice(0, 200));
+  for (const n of ["Draft", "Pending", "Filed", "Delayed", "Completed", "Examination", "Cleared"]) check("dashboard card " + n, !!Array.from(root.querySelectorAll("[data-cha-group]")).find(b => b.textContent.includes(n)));
+  check("the four Sea / Air x Export / Import tiles", root.querySelectorAll("[data-cha-type]").length === 4);
+  d.getElementById("chaCreate").click(); await sleep(200);
+  const opts = Array.from(root.querySelectorAll("[data-cha-new]")).map(b => b.dataset.chaNew);
+  check("Create Job offers Export / Import for Sea and Air", ["Export|Sea", "Export|Air", "Import|Sea", "Import|Air"].every(x => opts.includes(x)), opts.join());
+  root.querySelector('[data-cha-new="Import|Air"]').click(); await sleep(400);
+  const set = (id, v) => { d.getElementById(id).value = v; };
+  check("the Air form has no container field", !d.getElementById("chaNCont") && !!d.getElementById("chaNHbl"));
+  set("chaNExp", "Berlin GmbH"); set("chaNImp", "Chennai Traders"); set("chaNPol", "DEFRA"); set("chaNPod", "INMAA"); set("chaNEta", "2020-01-05"); set("chaNHbl", "HAWB900");
+  d.getElementById("chaNSave").click(); await sleep(2500);
+  const list = (await j("GET", "/api/cha/jobs?q=HAWB900", null, token)).body;
+  check("the job was created as an Air Import CHA job at CREATED", list.total === 1 && list.items[0].customs_status === "CREATED" && list.items[0].shipment_mode === "Air" && list.items[0].shipment_type === "Import");
+  const no = list.items[0].cha_job_number;
+  check("the register lists it", root.textContent.includes(no));
+  const card = n => Number(Array.from(root.querySelectorAll("[data-cha-group]")).find(b => b.textContent.includes(n)).querySelector("div:nth-child(2)").textContent);
+  check("Draft and Delayed count it", card("Draft") === 1 && card("Delayed") === 1, card("Draft") + "/" + card("Delayed"));
+  root.querySelector('[data-cha-group="delayed"]').click(); await sleep(1200);
+  check("the Delayed card filters the register", root.querySelectorAll("tbody tr [data-cha-open]").length === 1);
+  root.querySelector(`[data-cha-open="${no}"]`).click(); await sleep(1500);
+  const body = d.getElementById("modalBody");
+  check("the job window shows the stages and the import documents", body.querySelectorAll("[data-cha-stage]").length === 11 && /Cargo Arrival Notice/.test(body.textContent) && /Delivery Order/.test(body.textContent));
+  body.querySelector('[data-cha-stage="CUSTOMS FILED"]').click(); await sleep(1800);
+  check("moving to CUSTOMS FILED is saved", (await j("GET", "/api/cha/jobs/" + encodeURIComponent(no), null, token)).body.customs_status === "CUSTOMS FILED");
+  d.getElementById("modalBody").querySelector('[data-cha-stage="DOCUMENTATION"]').click(); await sleep(1800);
+  check("moving back uses the reason", (await j("GET", "/api/cha/jobs/" + encodeURIComponent(no), null, token)).body.customs_status === "DOCUMENTATION");
+  w.closeModal();
+  root.querySelector("#chaFClear").click(); await sleep(800);
+  root.querySelector('[data-cha-type="Export|Sea"]').click(); await sleep(1000);
+  check("the Sea Export tile filters the register", !root.textContent.includes(no));
+  console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

@@ -186,6 +186,9 @@ class Shipment(Base):
     last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     branch: Mapped[str | None] = mapped_column(String(80), index=True)            # the office that handles the job (Branch MIS)
     salesperson: Mapped[str | None] = mapped_column(String(120), index=True)      # who sold it (Salesperson MIS)
+    parent_job_id: Mapped[int | None] = mapped_column(ForeignKey("shipments.id", ondelete="SET NULL"), index=True)          # a CHA (customs) job points at its freight job; many CHA jobs can share one freight job and one booking
+    cha_info: Mapped[dict | None] = mapped_column(JSON)                                                                      # customs details of a CHA job: file_ref, customs_location, cha_license, mbl, hbl, containers, exporter, importer
+    customs_status: Mapped[str | None] = mapped_column(String(30))                                                            # CHA job stage: CREATED ... CLOSED
     consignee: Mapped[str | None] = mapped_column(String(160))
     packages: Mapped[int | None] = mapped_column(Integer)
     package_type: Mapped[str | None] = mapped_column(String(40))

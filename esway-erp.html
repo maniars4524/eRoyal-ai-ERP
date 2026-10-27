@@ -19401,15 +19401,31 @@ function makePrintFit(){
   const host = ()=> document.getElementById("netRoleBlocks");
   const on = r=> !!document.querySelector('#orgRoleFlags .fi[data-role="'+r+'"].on');
   const st = {rec:null, airline:false, sea:false, links:{}};
-  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code"];
+  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode"];
   const val = id=> { const e = document.getElementById(id); return e ? e.value.trim() : ""; };
   const fld = (id, label, ph, cur, req, extra)=> '<div class="fg"><label class="fl">'+label+(req?' <span class="r">*</span>':'')+'</label><input class="fc" id="'+id+'" value="'+esc2(cur||"")+'" placeholder="'+esc2(ph||"")+'" autocomplete="off"'+(extra||"")+'></div>';
   const d = ()=> (st.rec && st.rec.data) || {};
   const linkNote = k=> st.links[k] ? '<div style="font-size:11px;color:var(--g6);margin:2px 0 8px">Linked master record: <strong>'+esc2(st.links[k].code)+'</strong> — '+esc2(st.links[k].name)+' ('+esc2(st.links[k].status)+')</div>' : '';
   function read(){ // keep what was typed while the blocks are redrawn
-    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
+    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
   }
   const cur = k=> st[k] !== undefined ? st[k] : (d()[k] || "");
+  /* CHA organizations of the company, for the "default CHA" pick-lists of an exporter / importer */
+  const sel = (id, label, options, curv)=> '<div class="fg"><label class="fl">'+label+'</label><select class="fc" id="'+id+'"><option value="">-- Select --</option>'+options.map(o=>'<option'+(String(o)===String(curv)?" selected":"")+'>'+esc2(o)+'</option>').join("")+'</select></div>';
+  const chaPick = (id, curv)=> sel(id, "Default CHA", (st.chas || []).map(c=>c.name), curv);
+  function drawTrade(){
+    let out = "";
+    if(on("shipper")) out += '<div class="fsec" style="margin-top:12px">Exporter / Shipper details</div><div class="ib ib-bl" style="margin-bottom:6px">Used when this organization is the exporter on a booking, job or CHA job. The IEC code is entered above with the tax details.</div><div class="fr">'+
+      fld("net_exp_ad_code","AD Code","Authorised dealer code",cur("exp_ad_code"),false,' maxlength="20" style="text-transform:uppercase"')+fld("net_exp_ad_bank","AD Bank","Bank holding the AD code",cur("exp_ad_bank"))+fld("net_exp_default_pol","Default Port of Loading","e.g. INMAA",cur("exp_default_pol"),false,' maxlength="5" style="text-transform:uppercase"')+
+      sel("net_exp_rodtep","RODTEP / Drawback claims",["Yes","No"],cur("exp_rodtep"))+chaPick("net_exp_default_cha", cur("exp_default_cha"))+'</div>';
+    if(on("consignee")) out += '<div class="fsec" style="margin-top:12px">Importer / Consignee details</div><div class="ib ib-bl" style="margin-bottom:6px">Used when this organization is the importer on a booking, job or CHA job. The IEC code is entered above with the tax details.</div><div class="fr">'+
+      fld("net_imp_default_pod","Default Port of Discharge","e.g. INMAA",cur("imp_default_pod"),false,' maxlength="5" style="text-transform:uppercase"')+fld("net_imp_customs_location","Customs Location / ICD","e.g. INMAA4",cur("imp_customs_location"))+chaPick("net_imp_default_cha", cur("imp_default_cha"))+'</div>';
+    if(on("cha")) out += '<div class="fsec" style="margin-top:12px">CHA / Customs Broker details</div><div class="ib ib-bl" style="margin-bottom:6px">Organizations with this role appear in the CHA pick-lists of exporters and importers.</div><div class="fr">'+
+      fld("net_cha_license_no","CHA Licence No","Customs broker licence",cur("cha_license_no"),false,' maxlength="30" style="text-transform:uppercase"')+fld("net_cha_license_valid_to","Licence valid until","",cur("cha_license_valid_to"),false,' type="date"')+
+      fld("net_cha_customs_stations","Customs stations","e.g. Chennai Sea, Chennai Air",cur("cha_customs_stations"))+sel("net_cha_filing_mode","Files",["Export","Import","Export and Import"],cur("cha_filing_mode"))+'</div>';
+    return out;
+  }
+  async function loadChas(){ if(st.chas) return; try{ st.chas = (await api("GET","/api/customers?role=cha")).filter(c=>c.status !== "INACTIVE"); }catch(e){ st.chas = []; } }
   function draw(){
     const h = host(); if(!h) return;
     let out = "";
@@ -19421,9 +19437,9 @@ function makePrintFit(){
     }
     if(on("iata")) out += '<div class="fsec" style="margin-top:12px">IATA details (linked to the IATA Master)</div>'+linkNote("iata")+'<div class="fr">'+fld("net_iata_agent_code","IATA Agent Code","IATA agent code",cur("iata_agent_code"),true,' maxlength="20" style="text-transform:uppercase"')+fld("net_cass_code","CASS Code","CASS code",cur("cass_code"),false,' maxlength="20"')+'</div>';
     if(on("cfs")) out += '<div class="fsec" style="margin-top:12px">CFS details (linked to the CFS Master)</div>'+linkNote("cfs")+'<div class="fr">'+fld("net_cfs_code","CFS Code","CFS code",cur("cfs_code"),true,' maxlength="20" style="text-transform:uppercase"')+fld("net_cfs_port_code","Port Code","5-letter port code e.g. INMAA",cur("cfs_port_code"),false,' maxlength="5" style="text-transform:uppercase"')+'</div>';
-    h.innerHTML = out;
+    h.innerHTML = out+drawTrade();
   }
-  const redraw = ()=> { read(); draw(); };
+  const redraw = ()=> { read(); loadChas().then(()=>{ read(); draw(); }); draw(); };
   document.addEventListener("click", e=>{
     const t = e.target;
     if(t.closest && t.closest("#orgRoleFlags .fi")) { setTimeout(redraw, 0); return; }
@@ -19438,7 +19454,7 @@ function makePrintFit(){
       Object.keys(st).forEach(k=>{ if(!["rec","airline","sea","links"].includes(k)) delete st[k]; });
       st.rec = rec || null; st.links = {}; const dd = (rec && rec.data) || {};
       st.airline = U.yes ? U.yes(dd.carrier_airline) : /^(yes|true|1)$/i.test(String(dd.carrier_airline||"")); st.sea = /^(yes|true|1)$/i.test(String(dd.carrier_sea_line||""));
-      setTimeout(async ()=>{ draw(); if(rec && rec.id){ try{ st.links = await api("GET","/api/network/by-organization/"+rec.id); draw(); }catch(e){ /* no links yet */ } } }, 0);
+      setTimeout(async ()=>{ draw(); await loadChas(); draw(); if(rec && rec.id){ try{ st.links = await api("GET","/api/network/by-organization/"+rec.id); draw(); }catch(e){ /* no links yet */ } } }, 0);
       return r;
     };
     OrgExt.collect = function(){
@@ -19451,6 +19467,10 @@ function makePrintFit(){
       }
       if(on("iata")){ o.iata_agent_code = val("net_iata_agent_code").toUpperCase(); if(val("net_cass_code")) o.cass_code = val("net_cass_code"); }
       if(on("cfs")){ o.cfs_code = val("net_cfs_code").toUpperCase(); if(val("net_cfs_port_code")) o.cfs_port_code = val("net_cfs_port_code").toUpperCase(); }
+      const keep = (k, up)=> { if(val("net_"+k)) o[k] = up ? val("net_"+k).toUpperCase() : val("net_"+k); };
+      if(on("shipper")){ keep("exp_ad_code", 1); keep("exp_ad_bank"); keep("exp_default_pol", 1); keep("exp_rodtep"); keep("exp_default_cha"); }
+      if(on("consignee")){ keep("imp_default_pod", 1); keep("imp_customs_location"); keep("imp_default_cha"); }
+      if(on("cha")){ keep("cha_license_no", 1); keep("cha_license_valid_to"); keep("cha_customs_stations"); keep("cha_filing_mode"); }
       return o;
     };
     return true;
@@ -19467,6 +19487,7 @@ function makePrintFit(){
       if(st.sea){ need("net_sea_line_code","Sea Line Code"); fmt("net_sea_line_code", /^[A-Z0-9_\-]{2,20}$/, "Sea Line Code (letters, digits, - or _)"); fmt("net_scac_code", /^[A-Z]{2,4}$/, "SCAC Code (2 to 4 letters)"); }
     }
     if(on("iata")){ need("net_iata_agent_code","IATA Agent Code"); fmt("net_iata_agent_code", /^[A-Z0-9\-]{3,20}$/, "IATA Agent Code (3 to 20 letters or digits)"); }
+    ["net_exp_default_pol","net_imp_default_pod"].forEach(id=> fmt(id, /^[A-Z]{5}$/, "Port code (5 letters, e.g. INMAA)"));
     if(on("cfs")){ need("net_cfs_code","CFS Code"); fmt("net_cfs_port_code", /^[A-Z]{5}$/, "Port Code (5 letters, e.g. INMAA)"); }
     if(bad.length){ e.stopImmediatePropagation(); e.preventDefault(); say("Please complete the role details", bad.join(", "), "warn"); }
   }, true);
@@ -21111,6 +21132,141 @@ function makePrintFit(){
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "job-new"){ cache = null; setTimeout(()=>{ fillAll(); consignees(); }, 200); } };
   setTimeout(()=>{ fillAll(); consignees(); }, 1500);
+})();
+
+/* ============================================================
+   CHA KIT: Service Ops > CHA. A dashboard (Draft, Pending, Filed, Delayed, Completed ...), Create Job for Export / Import x Sea / Air, a register of every CHA job with its freight job and customs references, and a job window
+   with the customs stages. A CHA job is a Customs job: one booking has one freight job and any number of CHA jobs, each with its own Shipping Bill / Bill of Entry and stage.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const el = id=> document.getElementById(id);
+  const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "";
+  const t = v=> v === null || v === undefined || v === "" ? '<span style="color:var(--g5)">—</span>' : esc2(v);
+  const TONE = {"CREATED":"b-gy", "DOCUMENTATION":"b-gy", "DATA ENTRY":"b-gy", "VALIDATED":"b-am", "CHECKLIST":"b-am", "CUSTOMS FILED":"b-bl", "CUSTOMS RESPONSE":"b-bl", "EXAMINATION":"b-am", "OOC / LEO CLEARED":"b-gr", "DELIVERED":"b-gr", "CLOSED":"b-gr"};
+  const CARDS = [["draft", "Draft", "Being prepared", "var(--g5)"], ["pending", "Pending", "Ready to file", "var(--am,#C77700)"], ["filed", "Filed", "With customs", "var(--bl)"], ["delayed", "Delayed", "Past ETD / ETA", "var(--rd,#C0392B)"],
+                 ["completed", "Completed", "Delivered / closed", "var(--gr,#1E8E5A)"], ["examination", "Examination", "Under inspection", "var(--am,#C77700)"], ["cleared", "Cleared", "OOC / LEO given", "var(--gr,#1E8E5A)"]];
+  const S = {direction:"", mode:"", group:"", status:"", q:""};
+  const badge = s=> '<span class="b '+(TONE[s] || "b-gy")+' dot">'+esc2(s)+'</span>';
+  const bill = (no, date)=> no ? '<span class="mono">'+esc2(no)+'</span>'+(date ? '<div style="font-size:11px;color:var(--g5)">'+dmy(date)+'</div>' : "") : '<span style="color:var(--g5)">—</span>';
+
+  function menu(){
+    const items = [["Export", "Sea"], ["Export", "Air"], ["Import", "Sea"], ["Import", "Air"]];
+    return '<div style="position:relative;display:inline-block"><button class="btn btn-pri btn-sm" id="chaCreate"><svg class="ic" data-icon="plus"></svg> Create Job</button>'+
+      '<div id="chaMenu" style="display:none;position:absolute;right:0;top:34px;z-index:30;background:var(--wh);border:0.5px solid var(--g2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);min-width:210px;padding:6px">'+
+      ["Export", "Import"].map(d=>'<div style="font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--g5);padding:6px 10px 2px">'+d.toUpperCase()+'</div>'+items.filter(x=>x[0] === d).map(x=>'<button class="btn btn-out btn-sm" style="display:block;width:100%;text-align:left;margin:2px 0;border:0" data-cha-new="'+x[0]+'|'+x[1]+'">'+x[1]+' '+x[0]+'</button>').join("")).join("")+'</div></div>';
+  }
+
+  async function render(){
+    const root = el("svcChaRoot"); if(!root) return;
+    const qs = new URLSearchParams({limit:"200"}); Object.entries(S).forEach(([k, v])=>{ if(v) qs.set(k, v); });
+    const [dash, list] = await Promise.all([api("GET", "/api/cha/dashboard").catch(()=>null), api("GET", "/api/cha/jobs?"+qs).catch(()=>({items:[], total:0, statuses:[]}))]);
+    const g = (dash && dash.groups) || {};
+    const cards = CARDS.map(([k, name, sub, col])=>'<button class="kpi" data-cha-group="'+k+'" style="text-align:left;cursor:pointer;'+(S.group === k ? "outline:2px solid "+col+";" : "")+'"><div style="font-size:11px;font-weight:700;color:var(--g5);text-transform:uppercase;letter-spacing:.06em">'+name+'</div>'+
+      '<div style="font-size:26px;font-weight:800;color:'+col+'">'+(g[k] || 0)+'</div><div style="font-size:11px;color:var(--g5)">'+sub+'</div></button>').join("");
+    const mx = (dash && dash.matrix) || {};
+    const matrix = ["Sea Export", "Air Export", "Sea Import", "Air Import"].map(k=>{ const m = mx[k] || {active:0, closed:0, pending_filing:0}; const [mode, dir] = k.split(" ");
+      return '<button class="kpi" data-cha-type="'+dir+'|'+mode+'" style="text-align:left;cursor:pointer;'+(S.direction === dir && S.mode === mode ? "outline:2px solid var(--bl);" : "")+'"><div style="font-weight:800">'+k+'</div><div style="font-size:12px;color:var(--g5)">Active <b>'+m.active+'</b> · Pending filing <b>'+m.pending_filing+'</b> · Closed <b>'+m.closed+'</b></div></button>'; }).join("");
+    const extra = dash ? [["Pending documents", dash.pending_documents], ["OOC pending (import)", dash.ooc_pending_import], ["EP copy pending (export)", dash.ep_copy_pending_export], ["Delivery pending", dash.delivery_pending], ["Closure pending", dash.closure_pending]]
+      .map(([n, v])=>'<span class="b b-gy" style="margin:2px 6px 2px 0">'+n+': <b>'+(v || 0)+'</b></span>').join("") : "";
+    const rows = list.items.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc2(r.cha_job_number)+'</td><td class="mono">'+t(r.freight_job_number)+'</td><td class="mono">'+t(r.booking_number)+'</td><td><span class="b b-bl">'+esc2(r.shipment_type)+'</span> <span class="b b-gy">'+esc2(r.shipment_mode)+'</span></td>'+
+      '<td>'+t(r.exporter)+'</td><td>'+t(r.importer)+'</td><td>'+esc2([r.pol, r.pod].filter(Boolean).join(" → ") || "—")+'</td><td>'+(r.shipment_type === "Export" ? bill(r.shipping_bill_no, r.shipping_bill_date) : bill(r.bill_of_entry_no, r.bill_of_entry_date))+'</td>'+
+      '<td>'+badge(r.customs_status)+'</td><td class="no-print"><button class="btn btn-out btn-sm" data-cha-open="'+esc2(r.cha_job_number)+'">Open</button></td></tr>').join("");
+    root.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="license" style="color:var(--bl)"></svg>CHA — Customs House Agency</div><div class="ps">Customs jobs for Export and Import, Air and Sea. One booking has one freight job and any number of CHA jobs, each with its own Shipping Bill / Bill of Entry.</div></div>'+
+      '<div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard"><svg class="ic" data-icon="arrow-left"></svg> Back</button> '+menu()+'</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:10px">'+cards+'</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:10px">'+matrix+'</div>'+
+      (extra ? '<div style="margin-bottom:10px">'+extra+'</div>' : "")+
+      '<div class="card"><div class="ch"><div class="ct">CHA jobs <span class="mn-badge">'+list.total+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+
+      '<select id="chaFDir" class="fi"><option value="">All types</option><option>Export</option><option>Import</option></select><select id="chaFMode" class="fi"><option value="">Air + Sea</option><option>Sea</option><option>Air</option></select>'+
+      '<select id="chaFStatus" class="fi"><option value="">All stages</option>'+(list.statuses || []).map(s=>'<option>'+esc2(s)+'</option>').join("")+'</select><input id="chaFQ" class="fi" placeholder="Search job, BL, party, port" value="'+esc2(S.q)+'">'+
+      '<button class="btn btn-out btn-sm" id="chaFClear">Clear</button></div></div><div class="tw"><table><thead><tr><th>CHA Job</th><th>Freight Job</th><th>Booking</th><th>Type</th><th>Exporter</th><th>Importer</th><th>Route</th><th>SB / BE</th><th>Stage</th><th></th></tr></thead><tbody>'+
+      (rows || '<tr><td colspan="10" class="tbl-empty">No CHA jobs here. Use Create Job (Export / Import, Air / Sea), or add the CHA service to a booking.</td></tr>')+'</tbody></table></div></div>';
+    el("chaFDir").value = S.direction; el("chaFMode").value = S.mode; el("chaFStatus").value = S.status;
+    if(window.renderIcons) window.renderIcons(root);
+  }
+
+  function stepper(stages, cur){ const i = stages.indexOf(cur);
+    return '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 12px">'+stages.map((s, n)=>'<button class="btn btn-sm '+(n === i ? "btn-pri" : "btn-out")+'" data-cha-stage="'+esc2(s)+'" style="'+(n < i ? "opacity:.7;" : "")+'font-size:11px">'+(n < i ? "✓ " : "")+esc2(s)+'</button>').join("")+'</div>'; }
+
+  async function openJob(no){
+    let j; try { j = await api("GET", "/api/cha/jobs/"+encodeURIComponent(no)); } catch(e){ say("Could not open the CHA job", e.message, "error"); return; }
+    const row = (a, b)=>'<div><div style="font-size:11px;color:var(--g5)">'+a+'</div><div style="font-weight:600">'+b+'</div></div>';
+    const info = j.info || {};
+    const body = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="b b-bl">'+esc2(j.shipment_type)+'</span> <span class="b b-gy">'+esc2(j.shipment_mode)+'</span> '+badge(j.customs_status)+(j.delayed ? ' <span class="b b-rd">Delayed</span>' : "")+'</div>'+
+      stepper(j.stages, j.customs_status)+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px">'+row("Freight job", j.freight_job_number ? '<a href="#" data-svc-job="'+esc2(j.freight_job_number)+'">'+esc2(j.freight_job_number)+'</a>' : t(null))+row("Booking", t(j.booking_number))+row("Exporter", t(j.exporter))+row("Importer", t(j.importer))+
+      row("Port of loading", t(j.pol))+row("Port of discharge", t(j.pod))+row("ETD", t(dmy(j.etd)))+row("ETA", t(dmy(j.eta)))+row("MBL / HBL / AWB", t(info.hbl || info.mbl))+row("File ref", t(info.file_ref))+row("Customs location", t(info.customs_location))+row("Created from", t(info.source))+'</div>'+
+      '<div class="ct" style="margin:6px 0">'+(j.shipment_type === "Export" ? "Shipping Bills" : "Bills of Entry")+'</div>'+
+      (j.bills.length ? '<table><thead><tr><th>No</th><th>Date</th><th>Status</th><th>OOC / LEO</th></tr></thead><tbody>'+j.bills.map(b=>'<tr><td class="mono">'+esc2(b.bill_no)+'</td><td>'+t(dmy(b.bill_date))+'</td><td>'+esc2(b.status)+'</td><td>'+t(dmy(b.ooc_date))+'</td></tr>').join("")+'</tbody></table>' : '<div style="color:var(--g5);font-size:12px">None recorded yet. Add them on the job\'s Customs tab.</div>')+
+      '<div class="ct" style="margin:12px 0 6px">Documents</div><div>'+j.documents.map(d=>'<span class="b '+(d.available ? "b-gr" : "b-gy")+'" style="margin-right:6px">'+esc2(d.name)+(d.available ? "" : " — not ready")+'</span>').join("")+'</div>'+
+      (j.siblings.length ? '<div class="ct" style="margin:12px 0 6px">Other CHA jobs of this freight job</div>'+j.siblings.map(s=>'<div><a href="#" data-cha-open="'+esc2(s.cha_job_number)+'">'+esc2(s.cha_job_number)+'</a> · '+esc2(s.exporter || "—")+' → '+esc2(s.importer || "—")+' · '+badge(s.customs_status)+'</div>').join("") : "")+
+      '<div class="ct" style="margin:12px 0 6px">History</div><div style="max-height:150px;overflow:auto;font-size:12px">'+(j.events.map(e=>'<div>'+esc2(String(e.at || "").slice(0, 16).replace("T", " "))+' · '+esc2(e.text)+'</div>').join("") || "—")+'</div>';
+    openModal({title:"CHA job "+esc2(j.cha_job_number), bodyHTML:body, footHTML:'<button class="btn btn-out" data-cha-job-open="'+esc2(j.cha_job_number)+'">Open job screen (Customs tab)</button> <button class="btn btn-out" onclick="closeModal()">Close</button>', size:"lg"});
+    el("modalBody").dataset.chaJob = j.cha_job_number;
+  }
+
+  async function create(dir, mode, extra){
+    const f = id=> (el(id) ? el(id).value.trim() : "");
+    const body = {job_type:dir, mode, exporter:f("chaNExp"), importer:f("chaNImp"), pol:f("chaNPol"), pod:f("chaNPod"), etd:f("chaNEtd") || null, eta:f("chaNEta") || null, hbl:f("chaNHbl"), mbl:f("chaNMbl"), containers:f("chaNCont"), file_ref:f("chaNRef"),
+      customs_location:f("chaNLoc"), freight_job_number:f("chaNFj"), exception_reason:f("chaNWhy")};
+    try { const j = await api("POST", "/api/cha/jobs", body); closeModal(); say("CHA job created", j.cha_job_number+" is at stage "+j.customs_status); await render(); }
+    catch(e){
+      const d = e.detail;
+      if(d && d.code === "CHA_MISMATCH"){ const box = el("chaNMsg"); box.style.display = "block"; box.innerHTML = esc2(d.message)+(d.can_override ? "<br><b>Enter a reason below to record this as an authorised exception.</b>" : "<br>Only a user with the CHA exception permission can override this."); if(d.can_override) el("chaNWhyWrap").style.display = "block"; return; }
+      say("Could not create the CHA job", e.message, "error");
+    }
+  }
+
+  function createModal(dir, mode){
+    const inp = (id, label, ph, type, list)=>'<div><label>'+label+'</label><input id="'+id+'" class="fi" type="'+(type || "text")+'" placeholder="'+(ph || "")+'"'+(list ? ' list="'+list+'" autocomplete="off"' : "")+'></div>';
+    const exp = dir === "Export";
+    openModal({title:"Create CHA job — "+mode+" "+dir, size:"lg", bodyHTML:'<div id="chaNMsg" style="display:none;background:#fff4e5;border:1px solid #f0b46a;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px"></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">'+inp("chaNExp", exp ? "Exporter / shipper" : "Exporter / supplier", "Pick from Organization or type", "", "chaOrgExp")+inp("chaNImp", exp ? "Consignee / importer" : "Importer", "Pick from Organization or type", "", "chaOrgImp")+inp("chaNPol", "Port of loading", "e.g. INMAA")+inp("chaNPod", "Port of discharge", "e.g. BEANR")+
+      inp("chaNEtd", "ETD", "", "date")+inp("chaNEta", "ETA", "", "date")+inp("chaNMbl", mode === "Air" ? "Master AWB" : "MBL No")+inp("chaNHbl", mode === "Air" ? "House AWB" : "HBL No")+(mode === "Sea" ? inp("chaNCont", "Containers", "e.g. MSKU1234567, 40HC") : "")+
+      inp("chaNRef", "File / reference no")+inp("chaNLoc", "Customs location")+inp("chaNFj", "Freight job no (optional, to link)", "e.g. SEAEXP-…")+'</div>'+
+      '<div id="chaNWhyWrap" style="display:none;margin-top:10px"><label>Reason for the exception</label><input id="chaNWhy" class="fi" placeholder="Why this differs from the freight job"></div>'+
+      '<div style="font-size:11px;color:var(--g5);margin-top:10px">Leave the freight job blank for a stand-alone customs job. When a freight job is given, the exporter, importer and ports must match it unless an authorised user records an exception.</div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button> <button class="btn btn-pri" id="chaNSave">Create job</button>'});
+    el("chaNSave").addEventListener("click", ()=>create(dir, mode));
+    orgPick(dir);
+  }
+  /* Exporters / importers come from the Organization master (by role); picking one fills the defaults kept on its record (port, customs location) */
+  async function orgPick(dir){
+    const get = role=> api("GET", "/api/customers?role="+role).catch(()=>[]);
+    const [ex, im] = await Promise.all([get("shipper"), get("consignee")]);
+    const body = el("modalBody"); if(!body || !el("chaNExp")) return;
+    const dl = (id, rows)=> { const o = document.createElement("datalist"); o.id = id; o.innerHTML = rows.filter(r=>r.status !== "INACTIVE").map(r=>'<option value="'+esc2(r.name)+'"></option>').join(""); body.appendChild(o); };
+    dl("chaOrgExp", ex); dl("chaOrgImp", im);
+    const fill = (id, v)=> { const e = el(id); if(e && v && !e.value.trim()) e.value = v; };
+    el("chaNExp").addEventListener("change", ()=>{ const r = ex.find(x=>x.name === el("chaNExp").value.trim()); if(r && dir === "Export") fill("chaNPol", (r.data || {}).exp_default_pol); });
+    el("chaNImp").addEventListener("change", ()=>{ const r = im.find(x=>x.name === el("chaNImp").value.trim()); if(r && dir === "Import"){ fill("chaNPod", (r.data || {}).imp_default_pod); fill("chaNLoc", (r.data || {}).imp_customs_location); } });
+  }
+
+  document.addEventListener("click", async e=>{
+    const T = e.target.closest ? e.target : null; if(!T) return;
+    const m = el("chaMenu");
+    if(T.closest("#chaCreate")){ if(m) m.style.display = m.style.display === "block" ? "none" : "block"; return; }
+    if(m && !T.closest("#chaMenu")) m.style.display = "none";
+    let b;
+    if((b = T.closest("[data-cha-new]"))){ const [d, mo] = b.dataset.chaNew.split("|"); createModal(d, mo); return; }
+    if((b = T.closest("[data-cha-group]"))){ const k = b.dataset.chaGroup; S.group = S.group === k ? "" : k; S.status = ""; await render(); return; }
+    if((b = T.closest("[data-cha-type]"))){ const [d, mo] = b.dataset.chaType.split("|"); const on = S.direction === d && S.mode === mo; S.direction = on ? "" : d; S.mode = on ? "" : mo; await render(); return; }
+    if((b = T.closest("[data-cha-open]"))){ e.preventDefault(); await openJob(b.dataset.chaOpen); return; }
+    if((b = T.closest("[data-cha-job-open]"))){ closeModal(); go("job-detail", {jobNo:b.dataset.chaJobOpen}); return; }
+    if((b = T.closest("[data-cha-stage]")) && el("modalBody") && el("modalBody").dataset.chaJob){
+      const no = el("modalBody").dataset.chaJob; let remarks = "";
+      const cur = (document.querySelector("#modalBody .btn-pri[data-cha-stage]") || {dataset:{}}).dataset.chaStage; const stages = Array.from(document.querySelectorAll("#modalBody [data-cha-stage]")).map(x=>x.dataset.chaStage);
+      if(stages.indexOf(b.dataset.chaStage) < stages.indexOf(cur)){ remarks = window.prompt("Reason for moving this job back to "+b.dataset.chaStage+":") || ""; if(!remarks.trim()) return; }
+      try { await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(no)+"/status", {status:b.dataset.chaStage, remarks}); say("Stage updated", no+" → "+b.dataset.chaStage); await openJob(no); await render(); } catch(err){ say("Could not change the stage", err.message, "error"); }
+      return; }
+    if(T.closest("#chaFClear")){ Object.keys(S).forEach(k=>{ S[k] = ""; }); await render(); }
+  });
+  document.addEventListener("change", async e=>{ const id = e.target && e.target.id; if(id === "chaFDir"){ S.direction = e.target.value; } else if(id === "chaFMode"){ S.mode = e.target.value; } else if(id === "chaFStatus"){ S.status = e.target.value; S.group = ""; } else return; await render(); });
+  document.addEventListener("keydown", async e=>{ if(e.target && e.target.id === "chaFQ" && e.key === "Enter"){ S.q = e.target.value.trim(); await render(); } });
+  window.renderSvcCha = render;
+  window.ChaKit = {render, openJob, createModal, state:S};
 })();
 
 /* ============================================================
