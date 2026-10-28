@@ -31,6 +31,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await click('#orgRoleFlags .fi[data-role="cha"]');
   check("CHA role opens licence no, validity, stations and filing mode", ["net_cha_license_no", "net_cha_license_valid_to", "net_cha_customs_stations", "net_cha_filing_mode"].every(id => d.getElementById(id)));
   const put = (id, v) => { d.getElementById(id).value = v; };
+  check("with GST Applicable = Yes the IEC Code is in the tax block, not repeated in the exporter block", !d.getElementById("net_iec_code") && !!d.getElementById("org_iec"));
+  { const c = d.getElementById("org_country"); c.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(300); }
+  { const g = d.getElementById("org_gst_applicable"); g.value = "No"; g.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(400); }
+  check("with GST Applicable = No the Exporter / Importer block shows the IEC Code", !!d.getElementById("net_iec_code"));
+  put("net_iec_code", "0512098765");
+  check("the IEC typed there is collected as iec_code", w.OrgExt.collect().iec_code === "0512098765", JSON.stringify(w.OrgExt.collect()).slice(0, 200));
+  { const g = d.getElementById("org_gst_applicable"); g.value = "Yes"; g.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(400); }
+  check("back to GST Yes the block hides it again", !d.getElementById("net_iec_code"));
   put("net_exp_ad_code", "ad77"); put("net_exp_default_pol", "inmaa"); put("net_cha_license_no", "chn/12"); put("net_cha_filing_mode", "Export and Import");
   check("Exporter / Importer open Unit kind (General, SEZ ...) and approval; Exporter also LUT", ["net_trade_unit_kind", "net_trade_approval_no", "net_exp_lut_no", "net_exp_lut_valid_to"].every(id => d.getElementById(id)) && Array.from(d.getElementById("net_trade_unit_kind").options).map(x => x.text).includes("SEZ"));
   put("net_trade_unit_kind", "SEZ"); put("net_trade_approval_no", "sez/77");

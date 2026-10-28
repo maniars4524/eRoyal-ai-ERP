@@ -19440,26 +19440,29 @@ function makePrintFit(){
   const host = ()=> document.getElementById("netRoleBlocks");
   const on = r=> !!document.querySelector('#orgRoleFlags .fi[data-role="'+r+'"].on');
   const st = {rec:null, airline:false, sea:false, links:{}};
-  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to"];
+  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to","iec_code"];
   const val = id=> { const e = document.getElementById(id); return e ? e.value.trim() : ""; };
   const fld = (id, label, ph, cur, req, extra)=> '<div class="fg"><label class="fl">'+label+(req?' <span class="r">*</span>':'')+'</label><input class="fc" id="'+id+'" value="'+esc2(cur||"")+'" placeholder="'+esc2(ph||"")+'" autocomplete="off"'+(extra||"")+'></div>';
   const d = ()=> (st.rec && st.rec.data) || {};
   const linkNote = k=> st.links[k] ? '<div style="font-size:11px;color:var(--g6);margin:2px 0 8px">Linked master record: <strong>'+esc2(st.links[k].code)+'</strong> — '+esc2(st.links[k].name)+' ('+esc2(st.links[k].status)+')</div>' : '';
   function read(){ // keep what was typed while the blocks are redrawn
-    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
+    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to","iec_code"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
   }
   const cur = k=> st[k] !== undefined ? st[k] : (d()[k] || "");
   /* CHA organizations of the company, for the "default CHA" pick-lists of an exporter / importer */
   const sel = (id, label, options, curv)=> '<div class="fg"><label class="fl">'+label+'</label><select class="fc" id="'+id+'"><option value="">-- Select --</option>'+options.map(o=>'<option'+(String(o)===String(curv)?" selected":"")+'>'+esc2(o)+'</option>').join("")+'</select></div>';
   const chaPick = (id, curv)=> sel(id, "Default CHA", (st.chas || []).map(c=>c.name), curv);
+  /* IEC Code: the tax block above carries it while GST is applicable (India); an exporter / importer without GST, or an overseas party, gets the field here so it is never missing */
+  const iecInTax = ()=> { const w = document.getElementById("orgIndiaTaxWrap"); return !!w && w.style.display !== "none"; };
+  const iecField = ()=> iecInTax() ? "" : fld("net_iec_code","IEC Code","Importer Exporter Code",cur("iec_code"),false,' maxlength="10" style="text-transform:uppercase;font-family:var(--font-mono)"');
   function drawTrade(){
     let out = "";
     if(on("shipper") || on("consignee")) out += '<div class="fsec" style="margin-top:12px">Trade unit (exporter / importer)</div><div class="ib ib-bl" style="margin-bottom:6px">Kind of unit and its approval. It shows on the booking, the CHA job and the customs filing of this party. IEC and GST are entered above with the tax details.</div><div class="fr">'+
       sel("net_trade_unit_kind","Unit kind",["General","SEZ","EOU","STP","EHTP","FTWZ","Merchant exporter","Manufacturer exporter"],cur("trade_unit_kind"))+fld("net_trade_approval_no","Approval / SEZ unit no","Letter of approval, unit or bond no",cur("trade_approval_no"))+'</div>';
-    if(on("shipper")) out += '<div class="fsec" style="margin-top:12px">Exporter / Shipper details</div><div class="ib ib-bl" style="margin-bottom:6px">Used when this organization is the exporter on a booking, job or CHA job. The IEC code is entered above with the tax details.</div><div class="fr">'+
+    if(on("shipper")) out += '<div class="fsec" style="margin-top:12px">Exporter / Shipper details</div><div class="ib ib-bl" style="margin-bottom:6px">Used when this organization is the exporter on a booking, job or CHA job. </div><div class="fr">'+iecField()+
       fld("net_exp_ad_code","AD Code","Authorised dealer code",cur("exp_ad_code"),false,' maxlength="20" style="text-transform:uppercase"')+fld("net_exp_ad_bank","AD Bank","Bank holding the AD code",cur("exp_ad_bank"))+fld("net_exp_default_pol","Default Port of Loading","e.g. INMAA",cur("exp_default_pol"),false,' maxlength="5" style="text-transform:uppercase"')+
       sel("net_exp_rodtep","RODTEP / Drawback claims",["Yes","No"],cur("exp_rodtep"))+fld("net_exp_lut_no","LUT / Bond no","Letter of undertaking",cur("exp_lut_no"))+fld("net_exp_lut_valid_to","LUT valid until","",cur("exp_lut_valid_to"),false,' type="date"')+chaPick("net_exp_default_cha", cur("exp_default_cha"))+'</div>';
-    if(on("consignee")) out += '<div class="fsec" style="margin-top:12px">Importer / Consignee details</div><div class="ib ib-bl" style="margin-bottom:6px">Used when this organization is the importer on a booking, job or CHA job. The IEC code is entered above with the tax details.</div><div class="fr">'+
+    if(on("consignee")) out += '<div class="fsec" style="margin-top:12px">Importer / Consignee details</div><div class="ib ib-bl" style="margin-bottom:6px">Used when this organization is the importer on a booking, job or CHA job. </div><div class="fr">'+iecField()+
       fld("net_imp_default_pod","Default Port of Discharge","e.g. INMAA",cur("imp_default_pod"),false,' maxlength="5" style="text-transform:uppercase"')+fld("net_imp_customs_location","Customs Location / ICD","e.g. INMAA4",cur("imp_customs_location"))+chaPick("net_imp_default_cha", cur("imp_default_cha"))+'</div>';
     if(on("cha")) out += '<div class="fsec" style="margin-top:12px">CHA / Customs Broker details</div><div class="ib ib-bl" style="margin-bottom:6px">Organizations with this role appear in the CHA pick-lists of exporters and importers.</div><div class="fr">'+
       fld("net_cha_license_no","CHA Licence No","Customs broker licence",cur("cha_license_no"),false,' maxlength="30" style="text-transform:uppercase"')+fld("net_cha_license_valid_to","Licence valid until","",cur("cha_license_valid_to"),false,' type="date"')+
@@ -19480,6 +19483,7 @@ function makePrintFit(){
     if(on("cfs")) out += '<div class="fsec" style="margin-top:12px">CFS details (linked to the CFS Master)</div>'+linkNote("cfs")+'<div class="fr">'+fld("net_cfs_code","CFS Code","CFS code",cur("cfs_code"),true,' maxlength="20" style="text-transform:uppercase"')+fld("net_cfs_port_code","Port Code","5-letter port code e.g. INMAA",cur("cfs_port_code"),false,' maxlength="5" style="text-transform:uppercase"')+'</div>';
     h.innerHTML = out+drawTrade();
   }
+  document.addEventListener("change", e=>{ if(e.target && ["org_gst_applicable","org_country"].includes(e.target.id)) setTimeout(()=>{ read(); draw(); }, 50); });
   const redraw = ()=> { read(); loadChas().then(()=>{ read(); draw(); }); draw(); };
   document.addEventListener("click", e=>{
     const t = e.target;
@@ -19509,6 +19513,7 @@ function makePrintFit(){
       if(on("iata")){ o.iata_agent_code = val("net_iata_agent_code").toUpperCase(); if(val("net_cass_code")) o.cass_code = val("net_cass_code"); }
       if(on("cfs")){ o.cfs_code = val("net_cfs_code").toUpperCase(); if(val("net_cfs_port_code")) o.cfs_port_code = val("net_cfs_port_code").toUpperCase(); }
       const keep = (k, up)=> { if(val("net_"+k)) o[k] = up ? val("net_"+k).toUpperCase() : val("net_"+k); };
+      if((on("shipper") || on("consignee")) && val("net_iec_code")) o.iec_code = val("net_iec_code").toUpperCase();
       if(on("shipper") || on("consignee")){ keep("trade_unit_kind"); keep("trade_approval_no", 1); }
       if(on("shipper")){ keep("exp_lut_no", 1); keep("exp_lut_valid_to"); keep("exp_ad_code", 1); keep("exp_ad_bank"); keep("exp_default_pol", 1); keep("exp_rodtep"); keep("exp_default_cha"); }
       if(on("consignee")){ keep("imp_default_pod", 1); keep("imp_customs_location"); keep("imp_default_cha"); }
