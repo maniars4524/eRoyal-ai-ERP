@@ -228,3 +228,18 @@ def test_filing_form_defaults_validation_and_saving(h):
 def test_cha_jobs_are_not_created_through_the_shipment_job_form(h):
     r = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "job_type": "Customs"}, headers=h)
     assert r.status_code == 422 and "CHA module" in r.json()["detail"]
+
+
+def test_invoice_job_picker_can_be_limited_to_freight_cha_or_transport(h):
+    done = booking(h, "Freight, CHA")
+    fj = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Forwarding")
+    cj = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
+    party = "Category Customer Ltd"
+    for jn, name in ((fj, "Ocean Freight"), (cj, "Customs Clearance")):
+        r = client.put(f"/api/shipments/by-number/{jn}/charges", json={"lines": [{"charge_name": name, "uom": "Per Shipment", "qty": "1", "sell": {"ccy": "INR", "exch": "1", "rate": "1000", "tax_type": "Taxable", "tax_pct": "18", "party": party}, "buy": {}}]}, headers=h)
+        assert r.status_code == 200, r.text
+    q = lambda svc: {x["job_number"]: x for x in client.get("/api/documents/billing/billable-jobs", params={"party": party, "doc_type": "invoice", "service": svc}, headers=h).json()}
+    allj, fr, ch, tr = q(""), q("Freight"), q("CHA"), q("Transport")
+    assert fj in allj and cj in allj and allj[cj]["job_type"] == "Customs"
+    assert fj in fr and cj not in fr and cj in ch and fj not in ch and not tr
+    assert client.get("/api/documents/billing/billable-jobs", params={"party": party, "service": "Bogus"}, headers=h).status_code == 422
