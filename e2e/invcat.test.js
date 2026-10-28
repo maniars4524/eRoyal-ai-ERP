@@ -42,9 +42,23 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // a slow earlier request (the party field losing focus as the category is clicked) must not bring back the other category's jobs
   { const p = d.querySelector('#s-invoice-new [data-bkh="party_name"]'); p.dispatchEvent(new w.Event("change", { bubbles: true })); d.querySelector('#s-invoice-new [data-bk-svc="CHA"]').click(); await sleep(2500);
     check("clicking CHA right after the party field changed still lists only the CHA job", jobs().join() === cj && !jobs().includes(fj), jobs().join()); }
+  // a CHA job with no charges goes straight to Accounts: its cost and selling are entered on the invoice screen
+  const bare = (await j("POST", "/api/cha/jobs", { job_type: "Export", mode: "Sea", exporter: party, importer: "Bare Buyer", pol: "INMAA", pod: "BEANR" }, token)).body.cha_job_number;
+  d.querySelector('#s-invoice-new [data-bk-svc="CHA"]').click(); await sleep(1800);
+  const opt = Array.from(d.querySelectorAll('#s-invoice-new [data-bk-jobpick] option')).find(o => o.value === bare);
+  check("the CHA job without charges is listed, marked 'no charges yet'", !!opt && /no charges yet/.test(opt.textContent), jobs().join());
+  const pk = d.querySelector('#s-invoice-new [data-bk-jobpick]'); pk.value = bare; pk.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(800);
+  check("choosing it opens the cost and selling entry", /Enter cost and selling/.test(d.getElementById("modalTitle").textContent));
+  const row1 = d.querySelector("#qcBody tr"); const set = (k, v) => { row1.querySelector('[data-qc="' + k + '"]').value = v; };
+  set("charge", "Customs Clearance"); set("buy", "3000"); set("vendor", "Broker A"); set("sell", "4500");
+  d.getElementById("qcSave").click(); await sleep(3000);
+  const ln = Array.from(d.querySelectorAll('#s-invoice-new [data-f="charge_name"]')).map(x => x.value);
+  check("the saved selling line comes onto the invoice for that job", ln.includes("Customs Clearance"), ln.join());
+  const saved = (await j("GET", "/api/shipments/by-number/" + bare + "/charges", null, token)).body.lines;
+  check("the cost (3000, Broker A) and selling (4500) are stored on the job itself", saved.length === 1 && Number(saved[0].buy.rate) === 3000 && saved[0].buy.party === "Broker A" && Number(saved[0].sell.rate) === 4500, JSON.stringify(saved[0] && [saved[0].buy, saved[0].sell]));
   d.querySelector('.hdr-menu-item[data-role="CHA"]').click(); await sleep(500);
   await open();
-  check("a CHA user sees only the CHA category, with the CHA job", cats().join() === "CHA" && jobs().join() === cj, cats().join() + " / " + jobs().join());
+  check("a CHA user sees only the CHA category, with the CHA job", cats().join() === "CHA" && jobs().includes(cj), cats().join() + " / " + jobs().join());
   d.querySelector('.hdr-menu-item[data-role="Transport"]').click(); await sleep(500);
   await open();
   check("a Transport user sees only the Transport category", cats().join() === "Transport" && jobs().length === 0, cats().join());

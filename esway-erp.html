@@ -14189,7 +14189,7 @@ if(document.readyState !== "loading") initChatWidget();
   async function loadParty(S, fill){
     const name = (S.head.party_name || "").trim(); S.jobs = []; const seq = S.jobSeq = (S.jobSeq || 0) + 1; if(!name) return;       // seq: a slower earlier request (e.g. the party field losing focus as a category is clicked) must not overwrite the newer list
     if(fill){ try{ const pd = await api("GET", "/api/documents/billing/party-defaults?party="+encodeURIComponent(name)+"&doc_type="+S.type); if(pd.known){ GST_OFF = pd.gst_applicable === "No"; if(GST_OFF) S.head.party_gstin = ""; (S.lines || []).forEach(l=>{ if(!l.charge_name && Number(l.rate) === 0){ l.tax_type = GST_OFF ? "Non-Taxable" : "Taxable"; l.tax_pct = GST_OFF ? "0" : "18"; } }); if(pd.party_gstin) S.head.party_gstin = pd.party_gstin; if(pd.place_of_supply) S.head.place_of_supply = pd.place_of_supply; if(pd.supply_type) S.head.supply_type = pd.supply_type; } }catch(e){} }
-    if(pickable(S) && !S.doc){ const cat = svcOf(S); try{ const list = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(name)+"&doc_type="+S.type+"&service="+encodeURIComponent(cat === "All" ? "" : cat)); if(seq === S.jobSeq) S.jobs = list; }catch(e){} }
+    if(pickable(S) && !S.doc){ const cat = svcOf(S); try{ const list = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(name)+"&doc_type="+S.type+"&service="+encodeURIComponent(cat === "All" ? "" : cat)+"&include_empty=true"); if(seq === S.jobSeq) S.jobs = list; }catch(e){} }
   }
   /* Job category of the invoice: a CHA or Transport user (only their module + Accounts) bills their own jobs; Admin / Accounts choose All, Freight, CHA or Transport */
   const svcChoices = ()=> { const r = window.getViewRole ? getViewRole() : "Admin"; if(r === "CHA") return ["CHA"]; if(r === "Transport") return ["Transport"];
@@ -14284,7 +14284,7 @@ if(document.readyState !== "loading") initChatWidget();
       '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">'+esc2(T.party)+' <span class="r">*</span></label><input class="fc" list="bkParties_'+S.screen+'" data-bkh="party_name" value="'+esc2(h.party_name)+'" placeholder="'+(T.ar?"Select or type customer":"Vendor name")+'"'+dis+'></div><div class="fg"><label class="fl">GSTIN</label><input class="fc" data-bkh="party_gstin" maxlength="15" value="'+esc2(h.party_gstin)+'"'+dis+'></div></div>'+
       ((S.type === "purchase_invoice" || S.type === "purchase_credit_note") ? '<div class="fr"><div class="fg"><label class="fl">Vendor invoice no.</label><input class="fc" data-bkh="vendor_inv_no" maxlength="40" value="'+esc2(h.vendor_inv_no)+'" placeholder="as printed on the vendor bill (matches GSTR-2B)"'+dis+'></div><div class="fg"><label class="fl">Vendor invoice date</label><input class="fc" type="date" data-bkh="vendor_inv_date" value="'+esc2(h.vendor_inv_date)+'"'+dis+'></div></div>' : '')+
       (pickable(S) && !d ? '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Job category</label><div style="display:flex;gap:8px;flex-wrap:wrap">'+svcChoices().map(x=>'<button type="button" class="btn btn-sm '+(svcOf(S) === x ? "btn-pri" : "btn-out")+'" data-bk-svc="'+x+'" style="min-width:110px">'+(x === "CHA" ? "CHA (Customs)" : x)+'</button>').join("")+'</div></div></div>' : '')+
-      '<div class="fr"><div class="fg"><label class="fl">Job Reference'+(pickable(S) && !d ? ' <span style="font-weight:400;text-transform:none;color:var(--g5)">(jobs with unbilled entries)</span>' : '')+'</label>'+(pickable(S) && !d ? '<select class="fc" data-bkh="job_number" data-bk-jobpick="1"><option value="">'+(h.party_name.trim() ? (S.jobs.length ? "— Select a job —" : (svcOf(S) !== "All" ? "No "+svcOf(S)+" job with unbilled entries for this party (enter the job's selling charges first)" : "No job with unbilled entries for this party")) : "Choose the party first")+'</option>'+S.jobs.map(j=>'<option value="'+esc2(j.job_number)+'"'+(j.job_number === h.job_number ? " selected" : "")+'>'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+" · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount))+'</option>').join("")+(h.job_number && !S.jobs.some(j=>j.job_number === h.job_number) ? '<option value="'+esc2(h.job_number)+'" selected>'+esc2(h.job_number)+'</option>' : "")+'</select>' : '<input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'>')+'</div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
+      '<div class="fr"><div class="fg"><label class="fl">Job Reference'+(pickable(S) && !d ? ' <span style="font-weight:400;text-transform:none;color:var(--g5)">(jobs with unbilled entries)</span>' : '')+'</label>'+(pickable(S) && !d ? '<select class="fc" data-bkh="job_number" data-bk-jobpick="1"><option value="">'+(h.party_name.trim() ? (S.jobs.length ? "— Select a job —" : (svcOf(S) !== "All" ? "No "+svcOf(S)+" job with unbilled entries for this party (enter the job's selling charges first)" : "No job with unbilled entries for this party")) : "Choose the party first")+'</option>'+S.jobs.map(j=>'<option value="'+esc2(j.job_number)+'"'+(j.job_number === h.job_number ? " selected" : "")+'>'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+(j.empty ? " · no charges yet — enter cost &amp; selling" : " · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount)))+'</option>').join("")+(h.job_number && !S.jobs.some(j=>j.job_number === h.job_number) ? '<option value="'+esc2(h.job_number)+'" selected>'+esc2(h.job_number)+'</option>' : "")+'</select>' : '<input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'>')+'</div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
       (refSelect ? '<div class="fr">'+refSelect+'</div>' : '')+
       '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Remarks</label><textarea class="fc" rows="2" data-bkh="remarks"'+dis+'>'+esc2(h.remarks)+'</textarea></div></div></div></div>'+
       '<div class="card"><div class="ch"><div class="ct">Amount Summary</div></div><div class="cb">'+
@@ -14324,6 +14324,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(t.dataset.bkh === "party_name"){ readHead(); await loadParty(S, true); if(pickable(S) && !S.doc){ S.head.job_number = ""; } S.dirty = true; renderEditor(); return; }
     if(t.dataset.bkJobpick){
       readHead(); const jn = S.head.job_number; if(!jn){ renderEditor(); return; }
+      if((S.jobs.find(x=>x.job_number === jn) || {}).empty){ quickCharges(S, jn); return; }
       try{ const rows = await api("GET", "/api/documents/billing/job-lines?job_number="+encodeURIComponent(jn)+"&party="+encodeURIComponent(S.head.party_name.trim())+"&doc_type="+S.type);
         const real = S.lines.filter(l=>l.charge_name || Number(l.rate)); const fresh = rows.filter(r=>!real.some(l=>(l.job_number || jn) === r.job_number && l.charge_name === r.charge_name));
         S.lines = real.concat(fresh); if(!S.lines.length) S.lines = [blankLine()];
@@ -14331,6 +14332,26 @@ if(document.readyState !== "loading") initChatWidget();
       }catch(err){ say("Could not load the job", err.message, "error"); }
     }
   });
+  /* A job that has no charges yet (typically a CHA job that goes straight to Accounts): the cost and the selling are entered here, stored as the job's own charges (so Job Cost, P&L and every report see them), then the selling lines come onto this document */
+  function quickCharges(S, jn){
+    const purchase = S.type === "purchase_invoice"; const party = S.head.party_name.trim();
+    const rowH = i=> '<tr><td><input class="fc" list="qcCharges" data-qc="charge" placeholder="Charge e.g. Customs Clearance"></td><td><input class="fc" type="number" min="0" step="any" value="1" data-qc="qty" style="width:70px"></td><td><input class="fc" type="number" min="0" step="any" data-qc="buy" placeholder="Cost" style="width:100px"></td><td><input class="fc" data-qc="vendor" placeholder="Vendor" value="'+esc2(purchase ? party : "")+'"></td><td><input class="fc" type="number" min="0" step="any" data-qc="sell" placeholder="Selling" style="width:100px"></td><td><input class="fc" type="number" min="0" step="any" data-qc="gst" value="'+(GST_OFF ? "0" : "18")+'" style="width:64px"></td></tr>';
+    openModal({title:"Enter cost and selling — "+esc2(jn), size:"lg", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">This job has no charges yet. Enter what it costs (expenses) and what you bill <b>'+esc2(party)+'</b>. They are saved on the job, so Job Cost, P&amp;L and the invoice all use the same figures.</div>'+
+      '<datalist id="qcCharges">'+(S.charges || []).map(c=>'<option value="'+esc2(c.name || c.code || "")+'">').join("")+'</datalist><div class="tw"><table><thead><tr><th>Charge</th><th>Qty</th><th>Cost (INR)</th><th>Vendor</th><th>Selling (INR)</th><th>GST %</th></tr></thead><tbody id="qcBody">'+rowH(0)+rowH(1)+rowH(2)+'</tbody></table></div><button class="btn btn-out btn-sm" type="button" id="qcMore" style="margin-top:6px">＋ Add line</button>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="qcSave">Save charges</button>'});
+    document.getElementById("qcMore").addEventListener("click", ()=>{ document.getElementById("qcBody").insertAdjacentHTML("beforeend", rowH(9)); });
+    document.getElementById("qcSave").addEventListener("click", async ()=>{
+      const lines = Array.from(document.querySelectorAll("#qcBody tr")).map(tr=>{ const g = k=> (tr.querySelector('[data-qc="'+k+'"]') || {}).value || ""; return {charge:g("charge").trim(), qty:g("qty") || "1", buy:g("buy"), vendor:g("vendor").trim(), sell:g("sell"), gst:g("gst") || "0"}; }).filter(l=>l.charge && (Number(l.buy) || Number(l.sell)));
+      if(!lines.length){ say("Enter at least one charge", "A charge name with a cost or a selling amount", "warn"); return; }
+      const side = (rate, gst, who)=> ({ccy:"INR", exch:"1", rate:String(Number(rate) || 0), tax_type:Number(gst) > 0 ? "Taxable" : "Non-Taxable", tax_pct:String(Number(gst) || 0), party:who || ""});
+      try{
+        await api("PUT", "/api/shipments/by-number/"+encodeURIComponent(jn)+"/charges", {lines:lines.map(l=>({charge_name:l.charge, uom:"Per Shipment", qty:l.qty, buy:side(l.buy, 0, l.vendor), sell:side(l.sell, l.gst, party)}))});
+        closeModal(); say("Charges saved", jn+" — "+lines.length+" line(s)");
+        await loadParty(S, false); S.head.job_number = jn; renderEditor();
+        const pick = document.querySelector('#s-'+S.screen+' [data-bk-jobpick]'); if(pick){ pick.value = jn; pick.dispatchEvent(new Event("change", {bubbles:true})); }
+      }catch(err){ say("Could not save the charges", err.message, "error"); }
+    });
+  }
   document.addEventListener("click", async e=>{ const b = e.target.closest && e.target.closest("[data-bk-svc]"); if(!b || !BK.state) return; const S = BK.state; readHead(); S.svc = b.dataset.bkSvc; S.head.job_number = ""; await loadParty(S, false); renderEditor(); });
   function readHead(){ const S = BK.state; document.querySelectorAll("#s-"+S.screen+" [data-bkh]").forEach(el=>{ S.head[el.dataset.bkh] = el.value; }); }
   function payload(){
@@ -15904,12 +15925,35 @@ if(document.readyState !== "loading") initChatWidget();
     const head = (icon, color, title, hint)=> '<div class="ch"><div class="ct"><svg class="ic" data-icon="'+icon+'" style="color:var(--'+color+')"></svg>'+title+'</div>'+(hint ? '<div style="font-size:11px;color:var(--g5)">'+hint+'</div>' : "")+'</div>';
     const byMode = (obj, fmt)=> { const rows = Object.entries(obj || {}).filter(([k,v])=>Number(v) !== 0); return rows.length ? '<div class="cb" style="padding:12px 16px"><table><thead><tr><th>Mode</th><th style="text-align:right">Amount</th></tr></thead><tbody>'+rows.map(([k,v])=>'<tr><td>'+esc2(k)+'</td><td style="text-align:right;font-weight:600">'+fmt(v)+'</td></tr>').join("")+'</tbody></table></div>' : null; };
     if(which === "jobs"){
-      const cell = (label, kind, n, bg, col)=> '<div class="dd-cell" data-go="job-list" data-filter="'+slug(label)+"-"+kind+'" style="background:'+bg+';border-radius:7px;padding:10px;text-align:center;cursor:pointer;transition:transform .12s"><div style="font-size:20px;font-weight:800;color:'+col+'">'+n+'</div></div>';
-      const h = t=> '<div style="text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding-bottom:4px;color:'+t[1]+'">'+t[0]+'</div>';
-      const total = Object.values(j.matrix).reduce((a, r)=>a + r.active + r.closed_mtd + r.pending, 0);
-      if(!total) return head("package", "bl", "Active Jobs — By Shipment Type") + none("package", "Job data will appear here once shipments are created.");
-      return head("package", "bl", "Active Jobs — By Shipment Type", "Click any cell to view the filtered job list") + '<div class="cb" style="padding:12px 16px"><div style="display:grid;grid-template-columns:140px repeat(3,1fr);gap:8px;align-items:stretch"><div></div>'+h(["Active","var(--bl)"])+h(["Closed (MTD)","var(--gr)"])+h(["Pending Action","var(--am)"])+
-        Object.entries(j.matrix).map(([label, r])=>'<div style="display:flex;align-items:center;font-size:12px;font-weight:600;color:var(--n)">'+esc2(label)+'</div>'+cell(label, "active", r.active, "var(--blt)", "var(--bl)")+cell(label, "closed", r.closed_mtd, "var(--grt)", "var(--gr)")+cell(label, "pending", r.pending, "var(--amt)", "var(--am)")).join("")+'</div></div>';
+      const cats = j.categories || {freight:{active:0, closed_mtd:0, pending:0}, cha:{active:0, closed_mtd:0, pending:0}, transport:{active:0, closed_mtd:0, pending:0}};
+      const sel = window.__dashCat || "";
+      const CAT = [["freight", "Freight Jobs", "ship", "bl", "var(--blt)"], ["cha", "CHA Jobs", "license", "pu", "var(--put,#F1EAFB)"], ["transport", "Transport Jobs", "truck", "tl", "var(--tlt,#E4F6F3)"]];
+      const cards = CAT.map(([k, label, icon, col, bg])=>'<button type="button" class="dd-cat" data-dash-cat="'+k+'" aria-pressed="'+(sel === k)+'" style="all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;border:'+(sel === k ? "2px solid var(--"+col+")" : "1px solid var(--g2)")+';border-radius:10px;background:'+(sel === k ? bg : "var(--wh)")+';flex:1;min-width:200px">'+
+        '<span style="width:40px;height:40px;border-radius:10px;background:var(--'+col+');display:flex;align-items:center;justify-content:center;color:#fff"><svg class="ic" data-icon="'+icon+'" style="width:20px;height:20px"></svg></span>'+
+        '<span style="flex:1"><span style="display:block;font-weight:700;color:var(--'+col+')">'+label+'</span><span style="font-size:22px;font-weight:800;color:var(--n)">'+cats[k].active+'</span> <span style="font-size:11px;color:var(--g5)">active jobs</span></span><span style="color:var(--g4)">›</span></button>').join("");
+      const picker = '<div class="cb" style="padding:12px 16px"><div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--g5);text-transform:uppercase;margin-bottom:8px">Active Jobs — Select Job Category</div><div style="display:flex;gap:10px;flex-wrap:wrap">'+cards+'</div></div>';
+      const back = '<div style="padding:8px 16px 0"><a href="#" data-dash-cat="" style="font-size:12px;color:var(--bl)">← Back to Active Jobs</a></div>';
+      const th = (label, col)=> '<th style="text-align:center;color:'+col+'">'+label+'</th>';
+      const num = (n, col, attrs)=> '<td style="text-align:center"><a href="#" '+attrs+' style="font-weight:800;color:'+col+';text-decoration:'+(n ? "underline" : "none")+'">'+n+'</a></td>';
+      const table = (title, icon, col, rows, attrOf)=> back+'<div class="cb" style="padding:8px 16px 14px"><div style="font-weight:700;margin:6px 0 8px;color:var(--'+col+')"><svg class="ic" data-icon="'+icon+'" style="width:16px;height:16px;vertical-align:-3px"></svg> '+title+'</div><div class="tw"><table><thead><tr><th>Category</th>'+th("Active Jobs", "var(--bl)")+th("Closed Jobs (MTD)", "var(--gr)")+th("Pending Action", "var(--am)")+'</tr></thead><tbody>'+
+        rows.map(r=>'<tr><td style="font-weight:600">'+esc2(r.label)+'</td>'+num(r.active, "var(--bl)", attrOf(r, "active"))+num(r.closed_mtd, "var(--gr)", attrOf(r, "closed"))+num(r.pending, "var(--am)", attrOf(r, "pending"))+'</tr>').join("")+'</tbody></table></div></div>';
+      const slugRow = l=> slug(l);
+      if(sel === "freight"){
+        const rows = Object.entries(j.matrix).map(([label, r])=>({label, ...r}));
+        if(!rows.some(r=>r.active + r.closed_mtd + r.pending)) return head("package", "bl", "Active Jobs") + picker + back + none("ship", "No freight jobs yet. They appear once a freight job is created from a booking.");
+        return head("package", "bl", "Active Jobs", "Click a count to open the filtered job list") + picker + table("Freight Jobs — Shipment Type Wise Breakup", "ship", "bl", rows, (r, kind)=>'class="dd-cell" data-go="job-list" data-filter="'+slugRow(r.label)+"-"+kind+'"');
+      }
+      if(sel === "cha"){
+        const rows = j.cha_breakdown || [];
+        if(!rows.some(r=>r.active + r.closed_mtd + r.pending)) return head("package", "pu", "Active Jobs") + picker + back + none("license", "No CHA jobs yet. They appear once a CHA job is created from a booking in Logistics & Customs > CHA.");
+        return head("package", "pu", "Active Jobs", "Click a count to open the filtered CHA jobs") + picker + table("CHA Jobs — Operational Breakup", "license", "pu", rows, (r, kind)=>'data-dash-open="cha" data-dash-f="'+esc2(JSON.stringify({...r.filter, kind}))+'"');
+      }
+      if(sel === "transport"){
+        const rows = j.transport_breakdown || [];
+        if(!rows.some(r=>r.active + r.closed_mtd + r.pending)) return head("package", "tl", "Active Jobs") + picker + back + none("truck", "No transport jobs yet. They appear once a transport job is created from a booking.");
+        return head("package", "tl", "Active Jobs", "Click a count to open the Transport jobs") + picker + table("Transport Jobs — Operational Breakup", "truck", "tl", rows, (r, kind)=>'data-dash-open="transport"');
+      }
+      return head("package", "bl", "Active Jobs", "Choose Freight, CHA or Transport to see its breakup") + picker;
     }
     if(which === "revenue"){ const t = byMode(m.revenue_by_mode, v=>inr(v)); return head("rupee", "gr", "Revenue MTD — By Mode") + (t || none("rupee", "Revenue data will appear here once invoices are posted.")); }
     if(which === "gp"){ const t = byMode(m.gp_by_mode, v=>inr(v)); return head("trending-up", "pu", "GP% — By Mode") + (t || none("trending-up", "Gross profit data will appear here once invoices are posted.")); }
@@ -15919,6 +15963,16 @@ if(document.readyState !== "loading") initChatWidget();
     }
     return null;
   };
+  document.addEventListener("click", e=>{
+    const c = e.target.closest && e.target.closest("[data-dash-cat]");
+    if(c){ e.preventDefault(); window.__dashCat = c.dataset.dashCat || ""; if(typeof renderKpiDetailPanel === "function") renderKpiDetailPanel("jobs"); return; }
+    const o = e.target.closest && e.target.closest("[data-dash-open]");
+    if(!o) return; e.preventDefault();
+    if(o.dataset.dashOpen === "transport"){ go("svc-transport"); return; }
+    let f = {}; try{ f = JSON.parse(o.dataset.dashF || "{}"); }catch(x){}
+    const S = window.ChaKit && ChaKit.state; if(S){ Object.keys(S).forEach(k=>{ S[k] = ""; }); if(f.direction) S.direction = f.direction; S.group = f.group || (f.kind === "closed" ? "completed" : f.kind === "pending" ? "draft" : ""); }
+    go("svc-cha");
+  });
   const ago = t=> { if(!t) return ""; const m = Math.round((Date.now() - new Date(t).getTime())/60000); return m < 1 ? "just now" : m < 60 ? m+" min ago" : m < 1440 ? Math.round(m/60)+" h ago" : Math.round(m/1440)+" d ago"; };
   const when = t=> t ? new Date(t).toLocaleString("en-GB", {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"}) : "—";
   const openItem = it=>{ if(it.open === "quotation" && window.QK && QK.openView){ go("quotation"); setTimeout(()=>QK.openView(it.id, false), 200); } else go(it.go || "dashboard"); };

@@ -33,13 +33,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const card = title => Array.from(d.querySelectorAll("#s-dashboard .card")).find(c => ((c.querySelector(".ct") || { textContent: "" }).textContent.trim() === title));
 
   // the shipment-type panel
+  { const f = d.querySelector('#kpiDetailPanel [data-dash-cat="freight"]'); if (f) { f.click(); await sleep(500); } }
   const panel = text("#kpiDetailPanel");
-  check("Active Jobs — By Shipment Type shows the real counts", /Sea Export/.test(panel) && /Air Import/.test(panel) && !/No data yet/.test(panel), panel.slice(0, 200));
+  check("Active Jobs > Freight Jobs shows the real shipment-type counts", /Sea Export/.test(panel) && /Air Import/.test(panel) && !/No data yet/.test(panel), panel.slice(0, 200));
   const seaCells = Array.from(d.querySelectorAll('#kpiDetailPanel .dd-cell[data-filter^="sea-export"]')).map(c => c.textContent.trim());
   check("Sea Export: 2 active, 0 closed, 2 pending; Air Import has 1 active", seaCells.join(",") === "2,0,2" && q$('#kpiDetailPanel .dd-cell[data-filter="air-import-active"]').textContent.trim() === "1", seaCells.join(","));
   q$('#s-dashboard [data-kpi-select="revenue"]').click(); await sleep(300);
   check("the Revenue panel is live too (no invoices yet, so it says so)", /Revenue MTD — By Mode/.test(text("#kpiDetailPanel")));
   q$('#s-dashboard [data-kpi-select="jobs"]').click(); await sleep(300);
+  { const f = d.querySelector('#kpiDetailPanel [data-dash-cat="freight"]'); if (f) { f.click(); await sleep(500); } }
   check("and the jobs panel comes back with its figures", /Sea Export/.test(text("#kpiDetailPanel")) && !!q$('#kpiDetailPanel .dd-cell'));
 
   // the side lists

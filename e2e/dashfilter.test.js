@@ -39,7 +39,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const w = dom.window, d = w.document;
   await sleep(3000); w.go("dashboard"); await sleep(2500);
   const shown = () => Array.from(d.querySelectorAll("#jobTableBody tr[data-job-row]")).filter(r => r.style.display !== "none").map(r => r.querySelector("td .mono").textContent.trim()).sort();
-  const click = async (f) => { w.go("dashboard"); await sleep(900); d.querySelector(`#kpiDetailPanel .dd-cell[data-filter="${f}"]`).click(); await sleep(2200); };
+  const click = async (f) => { w.go("dashboard"); await sleep(900); d.querySelector('#kpiDetailPanel [data-dash-cat="freight"]').click(); await sleep(400); d.querySelector(`#kpiDetailPanel .dd-cell[data-filter="${f}"]`).click(); await sleep(2200); };
   const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b.slice().sort());
 
   await click("sea-export-pending");

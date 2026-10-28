@@ -71,8 +71,9 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     live = [j for j in jobs if j.status != "Cancelled"]
     active = [j for j in live if not is_closed(j)]
 
+    freight_jobs = [j for j in live if j.job_type not in ("Customs", "Transport", "Warehouse")]          # a job is counted in one category only: Freight, CHA or Transport
     matrix = {label: {"active": 0, "closed_mtd": 0, "pending": 0} for label in TYPE_ORDER}
-    for j in live:
+    for j in freight_jobs:
         row = matrix.setdefault(_bucket(j), {"active": 0, "closed_mtd": 0, "pending": 0})
         if not is_closed(j):
             row["active"] += 1
@@ -80,8 +81,23 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
                 row["pending"] += 1
         elif closed_this_month(j, month_start):
             row["closed_mtd"] += 1
-    mix = Counter(_bucket(j) for j in live)
+    mix = Counter(_bucket(j) for j in freight_jobs)
     lanes = Counter(f"{j.pol or '—'} → {j.pod or '—'}" for j in live if j.pol or j.pod)
+
+    def counts(rows):
+        return {"active": sum(1 for j in rows if not is_closed(j)), "closed_mtd": sum(1 for j in rows if closed_this_month(j, month_start)), "pending": sum(1 for j in rows if is_pending(j))}
+    cha_jobs = [j for j in live if j.job_type == "Customs"]
+    trp_jobs = [j for j in live if j.job_type == "Transport"]
+    st = lambda j: j.customs_status or "CREATED"
+    cha_rows = [("Customs clearance (all)", {}, cha_jobs), ("Import clearance", {"direction": "Import"}, [j for j in cha_jobs if j.direction == "Import"]), ("Export clearance", {"direction": "Export"}, [j for j in cha_jobs if j.direction == "Export"]),
+                ("Documentation pending", {"group": "draft"}, [j for j in cha_jobs if st(j) in ("CREATED", "DOCUMENTATION", "DATA ENTRY")]), ("Ready to file with customs", {"group": "pending"}, [j for j in cha_jobs if st(j) in ("VALIDATED", "CHECKLIST")]),
+                ("Filed / with customs", {"group": "filed"}, [j for j in cha_jobs if st(j) in ("CUSTOMS FILED", "CUSTOMS RESPONSE")]), ("Examination / assessment pending", {"group": "examination"}, [j for j in cha_jobs if st(j) == "EXAMINATION"]),
+                ("Cleared (OOC / LEO), delivery pending", {"group": "cleared"}, [j for j in cha_jobs if st(j) == "OOC / LEO CLEARED"])]
+    trp_rows = [("Transport jobs (all)", {}, trp_jobs), ("Export transportation", {"direction": "Export"}, [j for j in trp_jobs if j.direction == "Export"]), ("Import delivery", {"direction": "Import"}, [j for j in trp_jobs if j.direction == "Import"]),
+                ("Local / domestic transport", {"direction": "Domestic"}, [j for j in trp_jobs if j.direction not in ("Export", "Import")]), ("In transit", {"stage": "On Transit"}, [j for j in trp_jobs if j.job_stage == "On Transit"])]
+    categories = {"freight": counts(freight_jobs), "cha": counts(cha_jobs), "transport": counts(trp_jobs)}
+    cha_breakdown = [{"label": l, "filter": f, **counts(r)} for l, f, r in cha_rows]
+    trp_breakdown = [{"label": l, "filter": f, **counts(r)} for l, f, r in trp_rows]
 
     months = _month_keys(today)
     jobs_by_month = Counter(j.created_at.strftime("%Y-%m") for j in live if j.created_at)
@@ -125,7 +141,7 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     s = str
     return {
         "generated_for": today.isoformat(), "fiscal_year": fiscal_label(today),
-        "jobs": {"active": len(active), "total": len(live), "by_status": dict(Counter(j.status for j in active)), "matrix": matrix, "mix": [{"label": k, "count": v} for k, v in mix.most_common()], "top_lanes": [{"lane": k, "count": v} for k, v in lanes.most_common(5)],
+        "jobs": {"active": len(active), "total": len(live), "categories": categories, "cha_breakdown": cha_breakdown, "transport_breakdown": trp_breakdown, "by_status": dict(Counter(j.status for j in active)), "matrix": matrix, "mix": [{"label": k, "count": v} for k, v in mix.most_common()], "top_lanes": [{"lane": k, "count": v} for k, v in lanes.most_common(5)],
                  "customs_pending": sum(1 for j in active if j.job_type == "Customs"), "recent": [{"job_number": j.job_number, "customer": names.get(j.customer_id) or j.consignee or "—", "mode": j.mode, "direction": j.direction, "status": j.status, "route": " → ".join(x for x in (j.pol, j.pod) if x) or "—"} for j in recent]},
         "monthly": [{"month": k, "label": date(int(k[:4]), int(k[5:]), 1).strftime("%b"), "jobs": jobs_by_month.get(k, 0), "revenue": s(revenue_by_month.get(k, Decimal(0)))} for k in months],
         "money": {"revenue_mtd": s(revenue_mtd), "cost_mtd": s(cost_mtd), "gp_mtd": s(gp_mtd), "gp_pct": s(round(gp_mtd / revenue_mtd * 100, 1)) if revenue_mtd else "0", "revenue_by_mode": {k: s(v) for k, v in rev_mode.items()}, "gp_by_mode": {k: s(rev_mode.get(k, Decimal(0)) - cost_mode.get(k, Decimal(0))) for k in set(rev_mode) | set(cost_mode)},

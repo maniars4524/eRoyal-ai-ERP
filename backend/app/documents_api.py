@@ -585,7 +585,7 @@ def job_lines(job_number: str = Query(max_length=40), party: str = Query(max_len
 
 
 @router.get("/billing/billable-jobs")
-def billable_jobs(party: str = Query(max_length=200), doc_type: str = Query(default="invoice", pattern=DOC_TYPE_PATTERN), service: str = Query(default="", pattern="^(|Freight|CHA|Transport|Warehouse)$"), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+def billable_jobs(party: str = Query(max_length=200), doc_type: str = Query(default="invoice", pattern=DOC_TYPE_PATTERN), service: str = Query(default="", pattern="^(|Freight|CHA|Transport|Warehouse)$"), include_empty: bool = False, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
     """Jobs that still have unbilled entries for this party: the sell charges of the customer (sales documents) or the buy charges of the vendor (purchase documents)."""
     org_id = _tenant(user)
     sale = doc_type in AR_DOC_TYPES
@@ -594,6 +594,10 @@ def billable_jobs(party: str = Query(max_length=200), doc_type: str = Query(defa
     cond = [Shipment.organization_id == org_id] + ([Shipment.job_type.in_(kinds)] if kinds else [])
     for job in db.scalars(select(Shipment).where(*cond).order_by(Shipment.id.desc()).limit(500)):
         open_lines = _unbilled(db, org_id, job, party, doc_type)
+        if not open_lines and include_empty and not db.scalar(select(JobCharge.id).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id).limit(1)):
+            # a job with no charges at all (e.g. a CHA job that goes straight to Accounts): offered so its cost and selling can be entered there
+            out.append({"job_number": job.job_number, "job_type": job.job_type, "mode": job.mode, "direction": job.direction, "pol": job.pol, "pod": job.pod, "lines": 0, "amount": "0", "empty": True})
+            continue
         if open_lines:
             out.append({"job_number": job.job_number, "job_type": job.job_type, "mode": job.mode, "direction": job.direction, "pol": job.pol, "pod": job.pod, "lines": len(open_lines), "amount": str(q2(sum((Decimal(l["qty"]) * Decimal(l["rate"]) * (1 if l["ccy"] == "INR" else Decimal(l["exch"])) for l in open_lines), Decimal(0))))})
     return out

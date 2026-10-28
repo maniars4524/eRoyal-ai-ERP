@@ -69,3 +69,19 @@ def test_dashboard_reflects_real_jobs_and_billing(h):
 def test_dashboard_is_tenant_isolated(world, h):
     demo = client.get("/api/dashboard/summary", headers=hdr(world["demo"], portal="demo")).json()
     assert demo["jobs"]["total"] == 0 and demo["money"]["ar_outstanding"] == "0"
+
+
+def test_active_jobs_split_into_freight_cha_and_transport_without_double_counting(world, admin):
+    from tests.test_cha_jobs import booking, client as cl, hdr as hd
+    hh = hd(admin["username"], admin["license"])
+    s0 = cl.get("/api/dashboard/summary", headers=hh).json()["jobs"]
+    booking(hh, "Freight, CHA")
+    done = cl.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Air", "exporter": "Cat A", "importer": "Cat B"}, headers=hh).json()
+    s1 = cl.get("/api/dashboard/summary", headers=hh).json()["jobs"]
+    c0, c1 = s0["categories"], s1["categories"]
+    assert c1["cha"]["active"] == c0["cha"]["active"] + 2          # the booking's CHA job and the direct one
+    assert s1["active"] == c1["freight"]["active"] + c1["cha"]["active"] + c1["transport"]["active"]          # each job in exactly one category
+    assert sum(r["active"] for r in s1["matrix"].values()) == c1["freight"]["active"]          # the shipment-type table is freight only
+    rows = {r["label"]: r for r in s1["cha_breakdown"]}
+    assert rows["Customs clearance (all)"]["active"] == c1["cha"]["active"] and rows["Import clearance"]["active"] >= 1 and rows["Documentation pending"]["active"] >= 1
+    assert {"Export transportation", "Import delivery", "In transit"} <= {r["label"] for r in s1["transport_breakdown"]}

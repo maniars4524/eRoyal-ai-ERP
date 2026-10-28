@@ -273,3 +273,19 @@ def test_company_licence_modules_gate_the_cha_module_and_reach_the_client(h):
             db.get(Organization, me["organization_id"]).modules = saved
             db.commit()
     assert client.get("/api/cha/dashboard", headers=h).status_code == 200
+
+
+def test_invoice_job_picker_offers_a_job_without_charges_so_cost_and_selling_can_be_entered(h):
+    done = booking(h, "CHA")
+    cj = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
+    party = "Straight To Accounts Ltd"
+    get = lambda **kw: {x["job_number"]: x for x in client.get("/api/documents/billing/billable-jobs", params={"party": party, "doc_type": "invoice", "service": "CHA", **kw}, headers=h).json()}
+    assert cj not in get()
+    row = get(include_empty="true")[cj]
+    assert row["empty"] is True and row["lines"] == 0 and row["job_type"] == "Customs"
+    r = client.put(f"/api/shipments/by-number/{cj}/charges", json={"lines": [{"charge_name": "Customs Clearance", "uom": "Per Shipment", "qty": "1", "buy": {"ccy": "INR", "exch": "1", "rate": "3000", "tax_type": "Non-Taxable", "tax_pct": "0", "party": "Broker A"}, "sell": {"ccy": "INR", "exch": "1", "rate": "4500", "tax_type": "Taxable", "tax_pct": "18", "party": party}}]}, headers=h)
+    assert r.status_code == 200, r.text
+    after = get(include_empty="true")[cj]
+    assert not after.get("empty") and after["lines"] == 1 and float(after["amount"]) > 0
+    lines = client.get("/api/documents/billing/job-lines", params={"job_number": cj, "party": party, "doc_type": "invoice"}, headers=h).json()
+    assert [l["charge_name"] for l in lines] == ["Customs Clearance"] and float(lines[0]["rate"]) == 4500
