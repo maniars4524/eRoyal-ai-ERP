@@ -42,6 +42,9 @@ def is_delayed(j: Shipment, today: date | None = None) -> bool:
 def _tenant(user: User) -> int:
     if user.organization_id is None:
         raise HTTPException(403, "CHA jobs are company data")
+    mods = user.organization.modules if user.organization else None
+    if mods is not None and "customs" not in mods:
+        raise HTTPException(403, "The Customs / CHA module is not enabled in this company's licence")
     return user.organization_id
 
 

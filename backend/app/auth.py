@@ -104,6 +104,7 @@ def safe_user(user: User) -> dict:
         "organization_id": user.organization_id,
         "organization_name": user.organization.name if user.organization else "eSway ERP 2.0",
         "is_super_admin": user.is_super_admin,
+        "company_modules": (user.organization.modules if user.organization else None),          # modules the company's licence enables (None = all)
         "roles": [role.name for role in user.roles],
         "permissions": sorted({permission.code for role in user.roles for permission in role.permissions}),
         "portal": getattr(user, "_session_portal", portal_for(user)),

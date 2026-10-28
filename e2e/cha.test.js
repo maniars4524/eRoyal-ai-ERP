@@ -89,6 +89,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   Array.from(jobScr().querySelectorAll("button")).find(x => x.textContent.trim() === "Validate").click(); await sleep(2500);
   check("after filling the required fields the bar says Ready to file", /Ready to file/.test(jobScr().textContent), jobScr().textContent.slice(0, 200));
   check("Flat File / JSON / Sign buttons are shown but off until customs filing is connected", Array.from(jobScr().querySelectorAll("button[disabled]")).map(x => x.textContent.trim()).includes("Flat File"));
+  // Accounts needs the job's charges: the CHA job screen opens the Charges tab (job cost: expenses and selling)
+  Array.from(jobScr().querySelectorAll("button")).find(x => /^Charges/.test(x.textContent.trim())).click(); await sleep(3500);
+  check("the Charges button opens the job's Charges tab (expenses and selling)", d.getElementById("s-job-detail").classList.contains("on") && d.getElementById("jt5").classList.contains("on"));
+  w.navBack(); await sleep(1800);
   // documents: entering the BL number on the CHA job makes the document ready
   jobScr().querySelector('[data-chj-tab="Job"]').click(); await sleep(400);
   check("Documents card says the BL is not ready", /Bill of Lading \(BL\) — not ready/.test(jobScr().textContent));

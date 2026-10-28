@@ -233,6 +233,7 @@ class SafeUser(BaseModel):
     permissions: list[str]
     portal: str
     license_admin: bool = False
+    company_modules: list[str] | None = None
     license_number: str | None = None
     license_status: str | None = None
     license_expiry: str | None = None

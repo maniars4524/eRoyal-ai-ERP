@@ -250,3 +250,26 @@ def test_cha_job_documents_become_ready_when_the_bl_number_is_entered_on_the_cha
     assert [d["available"] for d in j["documents"]] == [False]
     ok = client.patch(f"/api/cha/jobs/{j['cha_job_number']}", json={"hbl": "HBL12345"}, headers=h).json()
     assert ok["documents"][0]["available"] is True and ok["documents"][0]["number"] == "HBL12345"
+
+
+def test_company_licence_modules_gate_the_cha_module_and_reach_the_client(h):
+    from app.db import SessionLocal
+    from app.models import Organization, User
+    from sqlalchemy import select
+
+    me = client.get("/api/auth/me", headers=h).json()
+    assert "company_modules" in me and me["company_modules"] is None           # None = every module
+    with SessionLocal() as db:
+        org = db.get(Organization, me["organization_id"])
+        saved = org.modules
+        org.modules = ["accounts", "transport"]
+        db.commit()
+    try:
+        assert client.get("/api/auth/me", headers=h).json()["company_modules"] == ["accounts", "transport"]
+        denied = client.get("/api/cha/dashboard", headers=h)
+        assert denied.status_code == 403 and "licence" in denied.json()["detail"]
+    finally:
+        with SessionLocal() as db:
+            db.get(Organization, me["organization_id"]).modules = saved
+            db.commit()
+    assert client.get("/api/cha/dashboard", headers=h).status_code == 200

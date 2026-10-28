@@ -1199,6 +1199,18 @@ tbody tr:hover{background:var(--g0)}
 .ai-badge{background:linear-gradient(135deg,var(--pu),#9061F0);color:#fff;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:.3px}
 
 </style>
+<style id="formReadability">
+/* FORM READABILITY (global): one set of colours for every form control in the ERP - light grey placeholders, dark slate entered values, darker slate labels.
+   Applies to the screens, pop-ups and drawers; the login card and the header search keep their own look. */
+:root{--ff-ph:#9CA3AF;--ff-val:#334155;--ff-lbl:#475569;--ff-dis:#64748B}
+:is(.scr,#modalOvl,.drawer-ovl,.lic-ovl) :is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=button],[type=submit],[type=reset]),select,textarea){color:var(--ff-val);font-weight:500}
+:is(.scr,#modalOvl,.drawer-ovl,.lic-ovl) :is(input,textarea)::placeholder{color:var(--ff-ph);font-weight:400;opacity:1}
+:is(.scr,#modalOvl,.drawer-ovl,.lic-ovl) select.ff-empty,:is(.scr,#modalOvl,.drawer-ovl,.lic-ovl) select:has(option:checked[value=""]){color:var(--ff-ph);font-weight:400}
+:is(.scr,#modalOvl,.drawer-ovl,.lic-ovl) select option{color:var(--ff-val);font-weight:500}
+:is(.scr,#modalOvl,.drawer-ovl,.lic-ovl) select option[value=""]{color:var(--ff-ph);font-weight:400}
+:is(.scr,#modalOvl,.drawer-ovl,.lic-ovl) :is(input,select,textarea):is(:disabled,[readonly]){color:var(--ff-dis)}
+:is(.scr,#modalOvl,.drawer-ovl,.lic-ovl) :is(.fl,.fg>label,.fg>.fl){color:var(--ff-lbl)}
+</style>
 </head>
 <body data-screen="dashboard">
 
@@ -6256,7 +6268,7 @@ document.addEventListener("click", e=>{
    ============================================================ */
 const TOPNAV_MENU = [
   {id:"dashboard", label:"Dashboard", icon:"dashboard", go:"dashboard"},
-  {id:"masters", label:"Masters", icon:"adjustments", roles:["Admin","Operations"], children:[
+  {id:"masters", module:"masters", label:"Masters", icon:"adjustments", roles:["Admin","Operations"], children:[
     {label:"Organisation", icon:"building", children:[
       {label:"Organisation Master", icon:"building", go:"org-list"},
       {label:"Vendor Master", icon:"truck", go:"vendor-master"},
@@ -6298,7 +6310,7 @@ const TOPNAV_MENU = [
       {label:"Financial Year", icon:"calendar-check", go:"entcfg"},
     ]},
   ]},
-  {id:"crm", label:"CRM", icon:"users", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
+  {id:"crm", module:"crm", label:"CRM", icon:"users", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
     {label:"Lead", icon:"user", go:"crm-lead"},
     {label:"Enquiries", icon:"file-text", go:"crm-enquiry", badge:"badgeCrmEnq"},
     {label:"Opportunities", icon:"trending-up", go:"crm-opportunity"},
@@ -6306,16 +6318,16 @@ const TOPNAV_MENU = [
     {label:"Quotation", icon:"file-text", go:"quotation"},
   ]},
   {id:"svcops", label:"Logistics & Customs", icon:"truck", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
-    {label:"Booking", icon:"calendar-check", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
+    {label:"Booking", module:"booking", icon:"calendar-check", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
       {label:"Create Booking", icon:"plus", go:"booking-new"},
       {label:"Booking Status", icon:"calendar-check", go:"booking"},
       {label:"Carrier Booking", icon:"ship", go:"booking"},
     ]},
-    {label:"CHA", icon:"license", go:"svc-cha", badge:"badgeSvcCha", roles:["Admin","Operations","CHA"]},
-    {label:"Transport", icon:"truck", go:"svc-transport", badge:"badgeSvcTrans", roles:["Admin","Operations","Transport"]},
-    {label:"Warehouse", icon:"warehouse", go:"svc-warehouse", roles:["Admin","Operations"]},
+    {label:"CHA", module:"customs", icon:"license", go:"svc-cha", badge:"badgeSvcCha", roles:["Admin","Operations","CHA"]},
+    {label:"Transport", module:"transport", icon:"truck", go:"svc-transport", badge:"badgeSvcTrans", roles:["Admin","Operations","Transport"]},
+    {label:"Warehouse", module:"warehouse", icon:"warehouse", go:"svc-warehouse", roles:["Admin","Operations"]},
   ]},
-  {id:"ops", label:"Operations", icon:"clipboard", badge:"badgeJobs", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
+  {id:"ops", module:"jobs", label:"Operations", icon:"clipboard", badge:"badgeJobs", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
     {label:"All Jobs", icon:"package", roles:["Admin","Operations","Sales"], children:[
       {label:"View All Jobs", icon:"package", go:"job-list"},
     ]},
@@ -6341,7 +6353,7 @@ const TOPNAV_MENU = [
       {label:"Shipment Console", icon:"globe", go:"svc-console", roles:["Admin","Operations"]},
     ]},
   ]},
-  {id:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts","CHA","Transport"], children:[
+  {id:"accounts", module:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts","CHA","Transport"], children:[
     {label:"Ledger", icon:"book", children:[
       {label:"Chart of Accounts", icon:"book", go:"coa"},
       {label:"General Ledger", icon:"book", go:"gl-reports", gltab:"ledger"},
@@ -6387,7 +6399,7 @@ const TOPNAV_MENU = [
       {label:"Business Analytics", icon:"chart-pie", go:"reports"},
     ]},
   ]},
-  {id:"reports", label:"Reports", icon:"report", children:[
+  {id:"reports", module:"reports", label:"Reports", icon:"report", children:[
     {label:"Operations", icon:"package", children:[
       {label:"Shipment Pre Alert", icon:"alert-triangle", go:"reports", report:"shipment-pre-alert"},
       {label:"Job Closer Report", icon:"check-circle", go:"reports", report:"job-closer"},
@@ -6511,7 +6523,9 @@ const TOPNAV_MENU = [
 
 let currentRole = "Admin";
 let tnIdSeq = 0;
-function tnVisible(node){ if(node.licenseOnly && (window.LICENSE_ADMIN !== true || currentRole !== "Super Admin")) return false; const r = currentRole === "Super Admin" ? "Admin" : currentRole; return !node.roles || node.roles.indexOf(r) !== -1; }
+/* a company licence can enable only some modules (e.g. CHA + Accounts): menu nodes carry a module key and disappear when the licence does not include it */
+window.modOn = m=> !window.COMPANY_MODULES || window.COMPANY_MODULES.indexOf(m) !== -1;
+function tnVisible(node){ if(node.licenseOnly && (window.LICENSE_ADMIN !== true || currentRole !== "Super Admin")) return false; if(node.module && !window.modOn(node.module)) return false; if(node.children && node.children.length && !node.module && node.children.every(c=>c.module && !window.modOn(c.module))) return false; const r = currentRole === "Super Admin" ? "Admin" : currentRole; return !node.roles || node.roles.indexOf(r) !== -1; }
 
 /* ---- build the DOM for one level (called recursively for unlimited depth) ---- */
 function tnBuildLevel(nodes, depth){
@@ -12214,9 +12228,10 @@ DASH_SLIDES.length = Math.min(DASH_SLIDES.length, 3); /* slides 3+ used hardcode
       body.innerHTML = grid(tile("Transport jobs", jobs.length, "all trips", "var(--bl)", "svc-transport")+tile("Draft", d, "being planned", "var(--g5)", "svc-transport")+tile("Confirmed", c, "assigned", "var(--bl)", "svc-transport")+tile("On transit", t, "on the road", "var(--am,#C77700)", "svc-transport")+tile("Closed", x, "delivered", "var(--gr,#1E8E5A)", "svc-transport")); }catch(e){ body.innerHTML = fail; } }
   };
   const all = r=> r === "Super Admin" || r === "Admin";
-  DASH_SLIDES.push({title:"Freight", icon:"globe", type:"Freight dashboard", go:"svc-console", live:"freight", show:r=> all(r) || !["CHA", "Transport"].includes(r)},
-                   {title:"CHA (Customs)", icon:"license", type:"CHA dashboard", go:"svc-cha", live:"cha", show:r=> all(r) || r === "CHA"},
-                   {title:"Transport", icon:"truck", type:"Transport dashboard", go:"svc-transport", live:"transport", show:r=> all(r) || r === "Transport"});
+  const lic = m=> !window.modOn || window.modOn(m);          // the company's licence must include the module
+  DASH_SLIDES.push({title:"Freight", icon:"globe", type:"Freight dashboard", go:"svc-console", live:"freight", show:r=> lic("jobs") && (all(r) || !["CHA", "Transport"].includes(r))},
+                   {title:"CHA (Customs)", icon:"license", type:"CHA dashboard", go:"svc-cha", live:"cha", show:r=> lic("customs") && (all(r) || r === "CHA")},
+                   {title:"Transport", icon:"truck", type:"Transport dashboard", go:"svc-transport", live:"transport", show:r=> lic("transport") && (all(r) || r === "Transport")});
   DASH_SLIDES.forEach((s, i)=>{ if(i && !s.show) s.show = r=> all(r) || !["CHA", "Transport"].includes(r); });
   DASH_SLIDES[0] = {title:"Monthly Revenue & Job Volume", show:r=> all(r) || !["CHA", "Transport"].includes(r)};
 })();
@@ -13475,7 +13490,7 @@ if(document.readyState !== "loading") initChatWidget();
       welcome.textContent = "Welcome back, " + cap(full) + " \u{1F44B}";
     }
     if(window.ThemeKit) ThemeKit.fromAccount(user);
-    window.SESSION_USER = user; window.LICENSE_ADMIN = user.license_admin === true; { const vs = document.getElementById("viewSuper"); if(vs) vs.style.display = window.LICENSE_ADMIN ? "" : "none"; if(window.LICENSE_ADMIN && window.getViewRole && window.getViewRole() === "Admin") window.setViewRole("Super Admin"); } if(window.renderTopNav) window.renderTopNav();      // the License Management menu appears only for its super admin
+    window.SESSION_USER = user; window.COMPANY_MODULES = Array.isArray(user.company_modules) ? user.company_modules : null; window.LICENSE_ADMIN = user.license_admin === true; { const vs = document.getElementById("viewSuper"); if(vs) vs.style.display = window.LICENSE_ADMIN ? "" : "none"; if(window.LICENSE_ADMIN && window.getViewRole && window.getViewRole() === "Admin") window.setViewRole("Super Admin"); } if(window.renderTopNav) window.renderTopNav();      // the License Management menu appears only for its super admin
     try{
       const lg = document.getElementById("hdrLogo");
       if(lg && !lg.dataset.default) lg.dataset.default = lg.innerHTML;
@@ -14177,7 +14192,9 @@ if(document.readyState !== "loading") initChatWidget();
     if(pickable(S) && !S.doc){ const cat = svcOf(S); try{ const list = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(name)+"&doc_type="+S.type+"&service="+encodeURIComponent(cat === "All" ? "" : cat)); if(seq === S.jobSeq) S.jobs = list; }catch(e){} }
   }
   /* Job category of the invoice: a CHA or Transport user (only their module + Accounts) bills their own jobs; Admin / Accounts choose All, Freight, CHA or Transport */
-  const svcChoices = ()=> { const r = window.getViewRole ? getViewRole() : "Admin"; return r === "CHA" ? ["CHA"] : r === "Transport" ? ["Transport"] : ["All", "Freight", "CHA", "Transport"]; };
+  const svcChoices = ()=> { const r = window.getViewRole ? getViewRole() : "Admin"; if(r === "CHA") return ["CHA"]; if(r === "Transport") return ["Transport"];
+    const on = [["Freight", "jobs"], ["CHA", "customs"], ["Transport", "transport"], ["Warehouse", "warehouse"]].filter(x=>!window.modOn || window.modOn(x[1])).map(x=>x[0]);       // only the categories the company's licence includes
+    return on.length > 1 ? ["All"].concat(on) : (on.length ? on : ["All"]); };
   const svcOf = S=> { const c = svcChoices(); return c.includes(S.svc) ? S.svc : c[0]; };
   let GST_OFF = false;        // the party of the document has GST Applicable = No in the Organization Master: new lines default to Non-Taxable
   const blankLine = ()=> ({charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:GST_OFF ? "Non-Taxable" : "Taxable", tax_pct:GST_OFF ? "0" : "18"});
@@ -14267,7 +14284,7 @@ if(document.readyState !== "loading") initChatWidget();
       '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">'+esc2(T.party)+' <span class="r">*</span></label><input class="fc" list="bkParties_'+S.screen+'" data-bkh="party_name" value="'+esc2(h.party_name)+'" placeholder="'+(T.ar?"Select or type customer":"Vendor name")+'"'+dis+'></div><div class="fg"><label class="fl">GSTIN</label><input class="fc" data-bkh="party_gstin" maxlength="15" value="'+esc2(h.party_gstin)+'"'+dis+'></div></div>'+
       ((S.type === "purchase_invoice" || S.type === "purchase_credit_note") ? '<div class="fr"><div class="fg"><label class="fl">Vendor invoice no.</label><input class="fc" data-bkh="vendor_inv_no" maxlength="40" value="'+esc2(h.vendor_inv_no)+'" placeholder="as printed on the vendor bill (matches GSTR-2B)"'+dis+'></div><div class="fg"><label class="fl">Vendor invoice date</label><input class="fc" type="date" data-bkh="vendor_inv_date" value="'+esc2(h.vendor_inv_date)+'"'+dis+'></div></div>' : '')+
       (pickable(S) && !d ? '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Job category</label><div style="display:flex;gap:8px;flex-wrap:wrap">'+svcChoices().map(x=>'<button type="button" class="btn btn-sm '+(svcOf(S) === x ? "btn-pri" : "btn-out")+'" data-bk-svc="'+x+'" style="min-width:110px">'+(x === "CHA" ? "CHA (Customs)" : x)+'</button>').join("")+'</div></div></div>' : '')+
-      '<div class="fr"><div class="fg"><label class="fl">Job Reference'+(pickable(S) && !d ? ' <span style="font-weight:400;text-transform:none;color:var(--g5)">(jobs with unbilled entries)</span>' : '')+'</label>'+(pickable(S) && !d ? '<select class="fc" data-bkh="job_number" data-bk-jobpick="1"><option value="">'+(h.party_name.trim() ? (S.jobs.length ? "— Select a job —" : "No job with unbilled entries for this party") : "Choose the party first")+'</option>'+S.jobs.map(j=>'<option value="'+esc2(j.job_number)+'"'+(j.job_number === h.job_number ? " selected" : "")+'>'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+" · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount))+'</option>').join("")+(h.job_number && !S.jobs.some(j=>j.job_number === h.job_number) ? '<option value="'+esc2(h.job_number)+'" selected>'+esc2(h.job_number)+'</option>' : "")+'</select>' : '<input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'>')+'</div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
+      '<div class="fr"><div class="fg"><label class="fl">Job Reference'+(pickable(S) && !d ? ' <span style="font-weight:400;text-transform:none;color:var(--g5)">(jobs with unbilled entries)</span>' : '')+'</label>'+(pickable(S) && !d ? '<select class="fc" data-bkh="job_number" data-bk-jobpick="1"><option value="">'+(h.party_name.trim() ? (S.jobs.length ? "— Select a job —" : (svcOf(S) !== "All" ? "No "+svcOf(S)+" job with unbilled entries for this party (enter the job's selling charges first)" : "No job with unbilled entries for this party")) : "Choose the party first")+'</option>'+S.jobs.map(j=>'<option value="'+esc2(j.job_number)+'"'+(j.job_number === h.job_number ? " selected" : "")+'>'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+" · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount))+'</option>').join("")+(h.job_number && !S.jobs.some(j=>j.job_number === h.job_number) ? '<option value="'+esc2(h.job_number)+'" selected>'+esc2(h.job_number)+'</option>' : "")+'</select>' : '<input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'>')+'</div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
       (refSelect ? '<div class="fr">'+refSelect+'</div>' : '')+
       '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Remarks</label><textarea class="fc" rows="2" data-bkh="remarks"'+dis+'>'+esc2(h.remarks)+'</textarea></div></div></div></div>'+
       '<div class="card"><div class="ch"><div class="ct">Amount Summary</div></div><div class="cb">'+
@@ -21485,7 +21502,7 @@ function makePrintFit(){
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'+pill("Status", '<span class="b '+(TONE[j.customs_status] || "b-gy")+' dot">'+esc2(j.customs_status)+'</span>'+(j.delayed ? ' <span class="b b-rd">Delayed</span>' : ""))+
       pill("Customs House", '<input id="chjLoc" class="fi" style="width:110px" value="'+esc2(info.customs_location || "")+'" placeholder="e.g. INMAA1">')+pill("ICEGATE ID &amp; CHA", '<select id="chjCha" class="fi">'+chaOpts+'</select>')+
       pill(exp ? "SB No." : "BE No.", (bill ? '<b class="mono">'+esc2(bill.bill_no)+'</b>'+(bill.bill_date ? ' <span style="color:var(--g5)">'+dmy(bill.bill_date)+'</span>' : "") : '<input id="chjBillNo" class="fi" style="width:130px" placeholder="Not yet allotted"><input id="chjBillDate" class="fi" type="date">'))+'</div>'+
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+btn("chjSave", "Save")+btn("chjValidate", "Validate")+btn("chjChecklist", "Checklist")+off("Flat File")+off("JSON")+off("Sign Flat File")+off("Sign &amp; Submit JSON")+off("Sign PDF")+off("Job Excel")+off("Query Reply")+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+btn("chjSave", "Save")+btn("chjValidate", "Validate")+btn("chjChecklist", "Checklist")+btn("chjCharges", "Charges (expenses &amp; selling)")+off("Flat File")+off("JSON")+off("Sign Flat File")+off("Sign &amp; Submit JSON")+off("Sign PDF")+off("Job Excel")+off("Query Reply")+
       '<span style="margin-left:auto;display:flex;gap:6px">'+btn("chjBack", "Back to Job")+btn("chjDup", "Duplicate Job")+'</span></div></div>';
   }
 
@@ -21559,6 +21576,7 @@ function makePrintFit(){
       return; }
     if((b = T.closest("[data-chj-booking]"))){ e.preventDefault(); if(window.BKG && BKG.view) BKG.view(Number(b.dataset.chjBooking)); return; }
     if(T.closest("[data-chj-customs]")){ go("job-detail", {jobNo:S.no, raw:true}); setTimeout(()=>{ const tb = document.querySelector('.tbb[data-tab="jt4"]'); if(tb) tb.click(); }, 1800); return; }
+    if(T.closest("#chjCharges")){ go("job-detail", {jobNo:S.no, raw:true}); setTimeout(()=>{ const tb = document.querySelector('.tbb[data-tab="jt5"]'); if(tb) tb.click(); }, 1800); return; }
     if(T.closest("#chjBack")){ if(window.navBack) navBack("svc-cha"); else go("svc-cha"); return; }
     if(T.closest("#chjDup")){
       const j = S.job, si = j.source_info || {}; if(!window.confirm("Create another CHA job with these details?")) return;
@@ -21573,6 +21591,9 @@ function makePrintFit(){
   });
   /* Any link to a CHA job number (booking page, search, reports, other CHA jobs) opens the CHA job screen, not the freight job page */
   window.CHA_JOBS = window.CHA_JOBS || new Set();
+  /* the numbers of the company's CHA jobs are loaded once, so links work whatever number format Sequence Setting gives them */
+  const preloadCha = async ()=> { if(!sessionStorage.getItem("esway_access_token") || (window.modOn && !window.modOn("customs"))) return; try{ (await api("GET", "/api/cha/jobs?limit=500")).items.forEach(r=> window.CHA_JOBS.add(r.cha_job_number)); }catch(e){} };
+  setTimeout(preloadCha, 4000); window.chaPreload = preloadCha;
   const isCha = no=> !!no && (window.CHA_JOBS.has(no) || /^[A-Z]{2}\/CC\//.test(no));
   if(!window.__goChaWrapped){ window.__goChaWrapped = true; const baseGo = window.go; window.go = function(screen, opts){ if(screen === "job-detail" && opts && !opts.raw && isCha(opts.jobNo)) screen = "cha-job"; return baseGo.call(this, screen, opts); }; }
   /* unsaved filing-form changes are guarded like every other form */
@@ -21581,6 +21602,39 @@ function makePrintFit(){
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "cha-job"){ S.tab = "Job"; S.job = null; el("chaJobRoot").innerHTML = '<div style="padding:20px;color:var(--g5)">Loading…</div>'; load(opts && opts.jobNo); } };
   window.ChaJobScreen = {state:S, load, render};
+})();
+
+/* ============================================================
+   FORM READABILITY KIT: every empty field shows a helpful placeholder ("Enter IEC Code (e.g., 0512098765)") and every drop-down still on its empty choice is shown light grey, so a placeholder is never mistaken for a value.
+   Placeholders are only hints: they are never part of the value and are never saved. Existing placeholders are kept; a bare example ("BLRG19369A") gets the label in front of it.
+   ============================================================ */
+(function(){
+  "use strict";
+  const SCOPE = ".scr, #modalOvl, .drawer-ovl, .lic-ovl";
+  const TEXT = /^(text|email|tel|url|search|number|password)?$/i;
+  const labelOf = e=> { const fg = e.closest(".fg, .fi-wrap, div"); const l = (e.id && document.querySelector('label[for="'+e.id+'"]')) || (fg && fg.querySelector("label")) ; return l ? l.textContent.replace(/[*:]/g, "").replace(/\s+/g, " ").trim() : ""; };
+  const nice = t=> t.length > 38 ? "" : t.replace(/\(.*?\)/g, "").trim();
+  function hint(root){
+    root.querySelectorAll("input, textarea").forEach(e=>{
+      if(e.dataset.ffp || e.readOnly || e.disabled || e.type === "hidden" || (e.tagName === "INPUT" && !TEXT.test(e.type || ""))) return;
+      if(e.type === "password" || e.closest("table")) { e.dataset.ffp = "1"; return; }
+      e.dataset.ffp = "1";
+      const lab = nice(labelOf(e)); if(!lab) return;
+      const cur = e.getAttribute("placeholder") || "";
+      if(!cur) e.setAttribute("placeholder", "Enter "+lab);
+      else if(/^[A-Za-z0-9][A-Za-z0-9\-\/.]{3,}$/.test(cur) && /\d|^[A-Z]+$/.test(cur)) e.setAttribute("placeholder", "Enter "+lab+" (e.g., "+cur+")");
+    });
+  }
+  const isEmptyChoice = o=> !o || o.value === "" || /^\s*[-—–]+\s*(select|choose|all)|^\s*(select|choose)\b/i.test(o.textContent || "");
+  function marks(root){ root.querySelectorAll("select").forEach(s=>{ const o = s.options[s.selectedIndex]; s.classList.toggle("ff-empty", !!(o && isEmptyChoice(o) && !s.multiple)); }); }
+  let timer = null;
+  function pass(){ document.querySelectorAll(SCOPE).forEach(r=>{ hint(r); marks(r); }); }
+  const later = ()=> { clearTimeout(timer); timer = setTimeout(pass, 250); };
+  document.addEventListener("change", e=>{ if(e.target && e.target.tagName === "SELECT") marks(e.target.parentNode || document); });
+  new MutationObserver(later).observe(document.body, {childList:true, subtree:true});
+  setInterval(()=>{ document.querySelectorAll(".scr.on, #modalOvl.on").forEach(marks); }, 1200);
+  setTimeout(pass, 1500);
+  window.FormReadability = {pass};
 })();
 
 /* ============================================================

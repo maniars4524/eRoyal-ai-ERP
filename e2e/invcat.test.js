@@ -31,7 +31,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const cats = () => Array.from(d.querySelectorAll("#s-invoice-new [data-bk-svc]")).map(x => x.dataset.bkSvc);
   const jobs = () => Array.from(d.querySelectorAll('#s-invoice-new [data-bk-jobpick] option')).map(o => o.value).filter(Boolean);
   await open();
-  check("Admin sees the job categories All, Freight, CHA and Transport", cats().join() === "All,Freight,CHA,Transport", cats().join());
+  check("Admin sees the job categories All, Freight, CHA, Transport and Warehouse", cats().join() === "All,Freight,CHA,Transport,Warehouse", cats().join());
   check("All lists the freight job and the CHA job", jobs().includes(fj) && jobs().includes(cj), jobs().join());
   d.querySelector('#s-invoice-new [data-bk-svc="CHA"]').click(); await sleep(1800);
   check("CHA lists only the CHA job", jobs().join() === cj, jobs().join());
