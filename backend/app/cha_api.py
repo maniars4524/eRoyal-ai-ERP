@@ -24,7 +24,7 @@ CHA_STATUSES = ["CREATED", "DOCUMENTATION", "DATA ENTRY", "VALIDATED", "CHECKLIS
 FILING_PENDING = {"CREATED", "DOCUMENTATION", "DATA ENTRY", "VALIDATED", "CHECKLIST"}          # not yet filed with customs
 DONE = {"DELIVERED", "CLOSED"}
 # dashboard cards: Draft = being prepared, Pending = ready to file, Filed = with customs, Cleared = out of charge / let export order
-GROUPS = {"draft": {"CREATED", "DOCUMENTATION", "DATA ENTRY"}, "pending": {"VALIDATED", "CHECKLIST"}, "filed": {"CUSTOMS FILED", "CUSTOMS RESPONSE"}, "examination": {"EXAMINATION"}, "cleared": {"OOC / LEO CLEARED"},
+GROUPS = {"draft": {"CREATED", "DOCUMENTATION", "DATA ENTRY"}, "pending": {"VALIDATED", "CHECKLIST"}, "filed": {"CUSTOMS FILED", "CUSTOMS RESPONSE"}, "sent": {"CUSTOMS FILED"}, "received": {"CUSTOMS RESPONSE"}, "examination": {"EXAMINATION"}, "cleared": {"OOC / LEO CLEARED"},
           "completed": {"DELIVERED", "CLOSED"}}
 
 
@@ -253,6 +253,10 @@ def list_jobs(direction: str = "", mode: str = "", status: str = "", group: str 
         cond.append(Shipment.mode == mode)
     if status:
         cond.append(func.coalesce(Shipment.customs_status, "CREATED") == status)
+    if group == "cancelled":
+        cond.append(Shipment.status == "Cancelled")
+    elif group:
+        cond.append(Shipment.status != "Cancelled")
     if group in GROUPS:
         cond.append(func.coalesce(Shipment.customs_status, "CREATED").in_(sorted(GROUPS[group])))
     if date_from:
@@ -282,7 +286,8 @@ def list_jobs(direction: str = "", mode: str = "", status: str = "", group: str 
 def dashboard(user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """The CHA dashboard figures: totals, pending, delayed, completed, import / export, documents and filing pending, the stage pipeline and Sea / Air x Export / Import."""
     org = _tenant(user)
-    jobs = list(db.scalars(select(Shipment).where(Shipment.organization_id == org, Shipment.job_type == "Customs")))
+    every = list(db.scalars(select(Shipment).where(Shipment.organization_id == org, Shipment.job_type == "Customs")))
+    jobs = [j for j in every if j.status != "Cancelled"]          # cancelled jobs are counted on their own
     today = date.today()
     pending = [j for j in jobs if (j.customs_status or "CREATED") not in DONE]
     delayed = [j for j in pending if ((j.direction == "Export" and j.etd and j.etd < today and (j.customs_status or "CREATED") in FILING_PENDING) or (j.direction == "Import" and j.eta and j.eta < today and (j.customs_status or "CREATED") not in ("OOC / LEO CLEARED",)))]
@@ -296,6 +301,8 @@ def dashboard(user: User = Depends(permission_required("shipment.read")), db: Se
     with_bill = {sid for (sid,) in db.execute(select(CustomsBill.shipment_id).where(CustomsBill.shipment_id.in_(ids), CustomsBill.status != "Cancelled"))} if ids else set()
     groups = {g: sum(1 for j in jobs if (j.customs_status or "CREATED") in st) for g, st in GROUPS.items()}
     groups["delayed"] = len(delayed)
+    groups["total"] = len(jobs)
+    groups["cancelled"] = len(every) - len(jobs)
     return {"groups": groups, "total": len(jobs), "pending": len(pending), "delayed": len(delayed), "completed": len(jobs) - len(pending), "import_jobs": sum(1 for j in jobs if j.direction == "Import"), "export_jobs": sum(1 for j in jobs if j.direction == "Export"),
             "pending_documents": sum(1 for j in pending if j.id not in with_bill and (j.customs_status or "CREATED") not in FILING_PENDING), "pending_customs_filing": sum(1 for j in jobs if (j.customs_status or "CREATED") in FILING_PENDING),
             "examination": by_status["EXAMINATION"], "ooc_pending_import": sum(1 for j in jobs if j.direction == "Import" and (j.customs_status or "CREATED") in ("CUSTOMS FILED", "CUSTOMS RESPONSE", "EXAMINATION")),

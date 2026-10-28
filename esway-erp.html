@@ -15936,7 +15936,7 @@ if(document.readyState !== "loading") initChatWidget();
       const th = (label, col)=> '<th style="text-align:center;color:'+col+'">'+label+'</th>';
       const num = (n, col, attrs)=> '<td style="text-align:center"><a href="#" '+attrs+' style="font-weight:800;color:'+col+';text-decoration:'+(n ? "underline" : "none")+'">'+n+'</a></td>';
       const table = (title, icon, col, rows, attrOf)=> back+'<div class="cb" style="padding:8px 16px 14px"><div style="font-weight:700;margin:6px 0 8px;color:var(--'+col+')"><svg class="ic" data-icon="'+icon+'" style="width:16px;height:16px;vertical-align:-3px"></svg> '+title+'</div><div class="tw"><table><thead><tr><th>Category</th>'+th("Active Jobs", "var(--bl)")+th("Closed Jobs (MTD)", "var(--gr)")+th("Pending Action", "var(--am)")+'</tr></thead><tbody>'+
-        rows.map(r=>'<tr><td style="font-weight:600">'+esc2(r.label)+'</td>'+num(r.active, "var(--bl)", attrOf(r, "active"))+num(r.closed_mtd, "var(--gr)", attrOf(r, "closed"))+num(r.pending, "var(--am)", attrOf(r, "pending"))+'</tr>').join("")+'</tbody></table></div></div>';
+        rows.map(r=>'<tr'+(/^Total/.test(r.label) ? ' style="background:var(--g0);font-weight:800"' : "")+'><td style="font-weight:600">'+esc2(r.label)+'</td>'+num(r.active, "var(--bl)", attrOf(r, "active"))+num(r.closed_mtd, "var(--gr)", attrOf(r, "closed"))+num(r.pending, "var(--am)", attrOf(r, "pending"))+'</tr>').join("")+'</tbody></table></div></div>';
       const slugRow = l=> slug(l);
       if(sel === "freight"){
         const rows = Object.entries(j.matrix).map(([label, r])=>({label, ...r}));
@@ -15946,7 +15946,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(sel === "cha"){
         const rows = j.cha_breakdown || [];
         if(!rows.some(r=>r.active + r.closed_mtd + r.pending)) return head("package", "pu", "Active Jobs") + picker + back + none("license", "No CHA jobs yet. They appear once a CHA job is created from a booking in Logistics & Customs > CHA.");
-        return head("package", "pu", "Active Jobs", "Click a count to open the filtered CHA jobs") + picker + table("CHA Jobs — Operational Breakup", "license", "pu", rows, (r, kind)=>'data-dash-open="cha" data-dash-f="'+esc2(JSON.stringify({...r.filter, kind}))+'"');
+        return head("package", "pu", "Active Jobs", "Click a count to open the filtered CHA jobs") + picker + table("CHA Jobs — Operational Breakup"+(j.cha_split ? " (Import "+j.cha_split.Import+" · Export "+j.cha_split.Export+")" : ""), "license", "pu", rows, (r, kind)=>'data-dash-open="cha" data-dash-f="'+esc2(JSON.stringify({...r.filter, kind}))+'"');
       }
       if(sel === "transport"){
         const rows = j.transport_breakdown || [];
@@ -21262,8 +21262,8 @@ function makePrintFit(){
   const dmy = d=> d ? String(d).slice(8,10)+"-"+String(d).slice(5,7)+"-"+String(d).slice(0,4) : "";
   const t = v=> v === null || v === undefined || v === "" ? '<span style="color:var(--g5)">—</span>' : esc2(v);
   const TONE = {"CREATED":"b-gy", "DOCUMENTATION":"b-gy", "DATA ENTRY":"b-gy", "VALIDATED":"b-am", "CHECKLIST":"b-am", "CUSTOMS FILED":"b-bl", "CUSTOMS RESPONSE":"b-bl", "EXAMINATION":"b-am", "OOC / LEO CLEARED":"b-gr", "DELIVERED":"b-gr", "CLOSED":"b-gr"};
-  const CARDS = [["draft", "Draft", "Being prepared", "var(--g5)"], ["pending", "Pending", "Ready to file", "var(--am,#C77700)"], ["filed", "Filed", "With customs", "var(--bl)"], ["delayed", "Delayed", "Past ETD / ETA", "var(--rd,#C0392B)"],
-                 ["completed", "Completed", "Delivered / closed", "var(--gr,#1E8E5A)"], ["examination", "Examination", "Under inspection", "var(--am,#C77700)"], ["cleared", "Cleared", "OOC / LEO given", "var(--gr,#1E8E5A)"]];
+  const CARDS = [["total", "Total CHA jobs", "All jobs", "var(--bl)"], ["draft", "Created", "Being prepared", "var(--g5)"], ["pending", "Pending", "Ready to file", "var(--am,#C77700)"], ["sent", "BE / SB Sent", "Filed with customs", "var(--bl)"], ["received", "BE / SB Received", "Customs response", "var(--tl,#0E8A7D)"],
+                 ["examination", "Examination", "Under inspection", "var(--am,#C77700)"], ["cleared", "OOC / LEO Received", "Out of charge / LEO", "var(--pu,#6D28D9)"], ["delayed", "Delayed", "Past ETD / ETA", "var(--rd,#C0392B)"], ["completed", "Completed", "Delivered / closed", "var(--gr,#1E8E5A)"], ["cancelled", "Cancelled", "Cancelled jobs", "var(--rd,#C0392B)"]];
   const S = {direction:"", mode:"", group:"", status:"", q:""};
   const badge = s=> '<span class="b '+(TONE[s] || "b-gy")+' dot">'+esc2(s)+'</span>';
   const bill = (no, date)=> no ? '<span class="mono">'+esc2(no)+'</span>'+(date ? '<div style="font-size:11px;color:var(--g5)">'+dmy(date)+'</div>' : "") : '<span style="color:var(--g5)">—</span>';

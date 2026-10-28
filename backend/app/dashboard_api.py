@@ -89,10 +89,12 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     cha_jobs = [j for j in live if j.job_type == "Customs"]
     trp_jobs = [j for j in live if j.job_type == "Transport"]
     st = lambda j: j.customs_status or "CREATED"
-    cha_rows = [("Customs clearance (all)", {}, cha_jobs), ("Import clearance", {"direction": "Import"}, [j for j in cha_jobs if j.direction == "Import"]), ("Export clearance", {"direction": "Export"}, [j for j in cha_jobs if j.direction == "Export"]),
-                ("Documentation pending", {"group": "draft"}, [j for j in cha_jobs if st(j) in ("CREATED", "DOCUMENTATION", "DATA ENTRY")]), ("Ready to file with customs", {"group": "pending"}, [j for j in cha_jobs if st(j) in ("VALIDATED", "CHECKLIST")]),
-                ("Filed / with customs", {"group": "filed"}, [j for j in cha_jobs if st(j) in ("CUSTOMS FILED", "CUSTOMS RESPONSE")]), ("Examination / assessment pending", {"group": "examination"}, [j for j in cha_jobs if st(j) == "EXAMINATION"]),
-                ("Cleared (OOC / LEO), delivery pending", {"group": "cleared"}, [j for j in cha_jobs if st(j) == "OOC / LEO CLEARED"])]
+    # every CHA job sits in exactly one stage row, so the rows add up to the total CHA jobs; Import / Export is only a split of that total
+    cha_rows = [("Total CHA jobs", {}, cha_jobs),
+                ("Created / documentation pending", {"group": "draft"}, [j for j in cha_jobs if st(j) in ("CREATED", "DOCUMENTATION", "DATA ENTRY")]), ("Ready to file with customs", {"group": "pending"}, [j for j in cha_jobs if st(j) in ("VALIDATED", "CHECKLIST")]),
+                ("BE / SB sent to customs", {"group": "sent"}, [j for j in cha_jobs if st(j) == "CUSTOMS FILED"]), ("BE / SB received (customs response)", {"group": "received"}, [j for j in cha_jobs if st(j) == "CUSTOMS RESPONSE"]),
+                ("Examination / assessment pending", {"group": "examination"}, [j for j in cha_jobs if st(j) == "EXAMINATION"]), ("OOC / LEO received, delivery pending", {"group": "cleared"}, [j for j in cha_jobs if st(j) == "OOC / LEO CLEARED"]),
+                ("Delivered / closed", {"group": "completed"}, [j for j in cha_jobs if st(j) in ("DELIVERED", "CLOSED")])]
     trp_rows = [("Transport jobs (all)", {}, trp_jobs), ("Export transportation", {"direction": "Export"}, [j for j in trp_jobs if j.direction == "Export"]), ("Import delivery", {"direction": "Import"}, [j for j in trp_jobs if j.direction == "Import"]),
                 ("Local / domestic transport", {"direction": "Domestic"}, [j for j in trp_jobs if j.direction not in ("Export", "Import")]), ("In transit", {"stage": "On Transit"}, [j for j in trp_jobs if j.job_stage == "On Transit"])]
     categories = {"freight": counts(freight_jobs), "cha": counts(cha_jobs), "transport": counts(trp_jobs)}
@@ -141,7 +143,7 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     s = str
     return {
         "generated_for": today.isoformat(), "fiscal_year": fiscal_label(today),
-        "jobs": {"active": len(active), "total": len(live), "categories": categories, "cha_breakdown": cha_breakdown, "transport_breakdown": trp_breakdown, "by_status": dict(Counter(j.status for j in active)), "matrix": matrix, "mix": [{"label": k, "count": v} for k, v in mix.most_common()], "top_lanes": [{"lane": k, "count": v} for k, v in lanes.most_common(5)],
+        "jobs": {"active": len(active), "total": len(live), "categories": categories, "cha_breakdown": cha_breakdown, "cha_split": {"Import": sum(1 for j in cha_jobs if j.direction == "Import" and not is_closed(j)), "Export": sum(1 for j in cha_jobs if j.direction == "Export" and not is_closed(j))}, "transport_breakdown": trp_breakdown, "by_status": dict(Counter(j.status for j in active)), "matrix": matrix, "mix": [{"label": k, "count": v} for k, v in mix.most_common()], "top_lanes": [{"lane": k, "count": v} for k, v in lanes.most_common(5)],
                  "customs_pending": sum(1 for j in active if j.job_type == "Customs"), "recent": [{"job_number": j.job_number, "customer": names.get(j.customer_id) or j.consignee or "—", "mode": j.mode, "direction": j.direction, "status": j.status, "route": " → ".join(x for x in (j.pol, j.pod) if x) or "—"} for j in recent]},
         "monthly": [{"month": k, "label": date(int(k[:4]), int(k[5:]), 1).strftime("%b"), "jobs": jobs_by_month.get(k, 0), "revenue": s(revenue_by_month.get(k, Decimal(0)))} for k in months],
         "money": {"revenue_mtd": s(revenue_mtd), "cost_mtd": s(cost_mtd), "gp_mtd": s(gp_mtd), "gp_pct": s(round(gp_mtd / revenue_mtd * 100, 1)) if revenue_mtd else "0", "revenue_by_mode": {k: s(v) for k, v in rev_mode.items()}, "gp_by_mode": {k: s(rev_mode.get(k, Decimal(0)) - cost_mode.get(k, Decimal(0))) for k in set(rev_mode) | set(cost_mode)},

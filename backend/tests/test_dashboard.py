@@ -83,5 +83,7 @@ def test_active_jobs_split_into_freight_cha_and_transport_without_double_countin
     assert s1["active"] == c1["freight"]["active"] + c1["cha"]["active"] + c1["transport"]["active"]          # each job in exactly one category
     assert sum(r["active"] for r in s1["matrix"].values()) == c1["freight"]["active"]          # the shipment-type table is freight only
     rows = {r["label"]: r for r in s1["cha_breakdown"]}
-    assert rows["Customs clearance (all)"]["active"] == c1["cha"]["active"] and rows["Import clearance"]["active"] >= 1 and rows["Documentation pending"]["active"] >= 1
+    assert rows["Total CHA jobs"]["active"] == c1["cha"]["active"] and rows["Created / documentation pending"]["active"] >= 1
+    assert sum(r["active"] for l, r in rows.items() if l != "Total CHA jobs") == rows["Total CHA jobs"]["active"]          # the stage rows add up to the total: no job is counted twice
+    assert s1["cha_split"]["Import"] + s1["cha_split"]["Export"] == c1["cha"]["active"]
     assert {"Export transportation", "Import delivery", "In transit"} <= {r["label"] for r in s1["transport_breakdown"]}
