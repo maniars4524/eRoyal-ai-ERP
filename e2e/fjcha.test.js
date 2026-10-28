@@ -28,7 +28,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const card = d.getElementById("chaJobsCard");
   check("the section is shown after the BL section, inside the BL / AWB tab", card.style.display !== "none" && d.getElementById("jt3").contains(card) && /CUSTOMS \/ CHA JOB INFORMATION/.test(card.textContent));
   const heads = Array.from(card.querySelectorAll("th")).map(x => x.textContent);
-  check("it has the columns of the CHA job list", ["CHA Job No", "Booking No", "Exporter", "Importer", "POL", "POD", "Shipment Type", "Mode", "SB No / Date", "BE No / Date", "Customs Status", "Documents"].every(h => heads.includes(h)), heads.join());
+  check("it has the columns of the CHA job list", ["CHA Job No", "Booking No", "Exporter", "Importer", "POL", "POD", "Shipment Type", "Mode", "SB No / Date", "BE No / Date", "Customs Status", "Cost / Selling", "Documents"].every(h => heads.includes(h)), heads.join());
   check("the booking's CHA job is listed with its status and the BL document", card.querySelectorAll("tbody tr").length === 1 && /CREATED/.test(card.textContent) && /Bill of Lading/.test(card.textContent) && /1/.test(d.getElementById("chaJobsCount").textContent));
   d.getElementById("chaJobsAdd").click(); await sleep(400);
   d.getElementById("fjSave").click(); await sleep(2000);

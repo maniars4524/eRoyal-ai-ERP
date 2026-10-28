@@ -278,9 +278,10 @@ def test_company_licence_modules_gate_the_cha_module_and_reach_the_client(h):
 def test_invoice_job_picker_offers_a_job_without_charges_so_cost_and_selling_can_be_entered(h):
     done = booking(h, "CHA")
     cj = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
-    party = "Straight To Accounts Ltd"
+    party = "Acme Exports"          # the bill-to party is the job's own exporter
     get = lambda **kw: {x["job_number"]: x for x in client.get("/api/documents/billing/billable-jobs", params={"party": party, "doc_type": "invoice", "service": "CHA", **kw}, headers=h).json()}
     assert cj not in get()
+    assert cj not in {x["job_number"] for x in client.get("/api/documents/billing/billable-jobs", params={"party": "Somebody Else", "doc_type": "invoice", "service": "CHA", "include_empty": "true"}, headers=h).json()}
     row = get(include_empty="true")[cj]
     assert row["empty"] is True and row["lines"] == 0 and row["job_type"] == "Customs"
     r = client.put(f"/api/shipments/by-number/{cj}/charges", json={"lines": [{"charge_name": "Customs Clearance", "uom": "Per Shipment", "qty": "1", "buy": {"ccy": "INR", "exch": "1", "rate": "3000", "tax_type": "Non-Taxable", "tax_pct": "0", "party": "Broker A"}, "sell": {"ccy": "INR", "exch": "1", "rate": "4500", "tax_type": "Taxable", "tax_pct": "18", "party": party}}]}, headers=h)
@@ -289,3 +290,32 @@ def test_invoice_job_picker_offers_a_job_without_charges_so_cost_and_selling_can
     assert not after.get("empty") and after["lines"] == 1 and float(after["amount"]) > 0
     lines = client.get("/api/documents/billing/job-lines", params={"job_number": cj, "party": party, "doc_type": "invoice"}, headers=h).json()
     assert [l["charge_name"] for l in lines] == ["Customs Clearance"] and float(lines[0]["rate"]) == 4500
+
+
+def test_import_job_tabs_are_saved_validated_and_logged(h):
+    imp = client.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Air", "exporter": "Sup Co", "importer": "Imp Co", "pol": "SGSIN", "pod": "INMAA"}, headers=h).json()
+    no = imp["cha_job_number"]
+    tabs = {t["tab"] for t in imp["spec"]}
+    assert tabs == {"IGM", "Invoice", "Product"} and imp["data"] == {}
+    exp = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "E", "importer": "I", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
+    assert exp["spec"] == []
+    data = {"igm": [{"igm_no": "9854321", "igm_date": "2026-05-13", "mawb_no": "110897654321", "packages": "1", "gross_weight": "2.000"}],
+            "invoices": [{"invoice_no": "7534451158", "invoice_date": "2025-07-10", "terms": "FOB", "currency": "USD", "invoice_value": "886526.03", "exchange_rate": "97.05", "supplier_name": "SUPPLIER"}],
+            "items": [{"invoice_sr": "1", "description": "TEST", "qty": "24", "qty_unit": "KGS", "unit_price": "8865.26", "cth_no": "29199090", "levy_pct": "5.00"}]}
+    ok = client.patch(f"/api/cha/jobs/{no}", json={"data": data}, headers=h)
+    assert ok.status_code == 200, ok.text
+    body = ok.json()
+    assert body["data"]["invoices"][0]["invoice_no"] == "7534451158" and body["data"]["items"][0]["cth_no"] == "29199090" and len(body["data"]["igm"]) == 1
+    assert client.patch(f"/api/cha/jobs/{no}", json={"data": {"items": [{"nonsense": "x"}]}}, headers=h).status_code == 422
+    assert client.patch(f"/api/cha/jobs/{no}", json={"data": {"mystery": []}}, headers=h).status_code == 422
+    # every change goes to the job log with who and what
+    edit = client.patch(f"/api/cha/jobs/{no}", json={"data": {"items": [{**data["items"][0], "qty": "30"}]}, "filing": {"iec": "ABCDE1234H"}}, headers=h).json()
+    log = [e for e in edit["events"] if e["type"] in ("CHA_DATA_CHANGED", "CHA_FILING_CHANGED")]
+    assert any(e["type"] == "CHA_FILING_CHANGED" and e["detail"]["changes"][0]["field"] == "iec" and e["by"] for e in log)
+    assert any(e["type"] == "CHA_DATA_CHANGED" and e["detail"]["section"] == "items" and e["detail"]["changed"] == [1] for e in log)
+    # cost and selling on the job: the totals reach every CHA row
+    put = client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": [{"charge_name": "Customs Clearance", "uom": "Per Shipment", "qty": "1", "buy": {"ccy": "INR", "exch": "1", "rate": "3000", "tax_type": "Non-Taxable", "tax_pct": "0", "party": "Broker"},
+                                                                         "sell": {"ccy": "INR", "exch": "1", "rate": "4500", "tax_type": "Taxable", "tax_pct": "18", "party": "Imp Co"}}]}, headers=h)
+    assert put.status_code == 200
+    row = client.get(f"/api/cha/jobs/{no}", headers=h).json()
+    assert row["charges_cost"] == 3000 and row["charges_sell"] == 4500.0

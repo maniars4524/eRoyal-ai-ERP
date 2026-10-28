@@ -1,0 +1,63 @@
+// CHA Import job: IGM / Invoice / Product tabs, Checklist, Charges, Financials, Job log.
+// CHA screen: Back + Create Job (Export / Import x Sea / Air), dashboard cards (Draft, Pending, Filed, Delayed, Completed ...), register, job window with stages.
+const { JSDOM } = require("jsdom");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => {
+  const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  return { status: r.status, body: r.status === 204 ? null : await r.json().catch(() => null) };
+};
+let failures = 0;
+const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  -> " + (extra || ""))); if (!ok) failures++; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36);
+  const org = await j("POST", "/api/organizations", { code: "IT" + tag.slice(-6).toUpperCase(), name: "ImpTab " + tag, admin_email: `it${tag}@t.test`, admin_username: "it" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Ava" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "it" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
+    beforeParse(w) { w.fetch = async (u, o) => { for (let i = 0; ; i++) { try { return await fetch(new URL(u, BASE).href, o); } catch (e) { if (i >= 2) throw e; await sleep(200); } } }; w.sessionStorage.setItem("esway_access_token", token); w.localStorage.setItem("esway_persistent_token", token); w.confirm = () => true; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.print = () => {}; w.prompt = () => "wrong HS code"; } });
+  const w = dom.window, d = w.document;
+  await sleep(6500);
+  const no = (await j("POST", "/api/cha/jobs", { job_type: "Import", mode: "Air", exporter: "SUPPLIER", importer: "TESTING", pol: "SGSIN", pod: "INMAA" }, token)).body.cha_job_number;
+  w.go("cha-job", { jobNo: no }); await sleep(3500);
+  const R = () => d.getElementById("chaJobRoot");
+  const tab = async n => { R().querySelector(`[data-chj-tab="${n}"]`).click(); await sleep(500); };
+  const set = (sel, v) => { const e = R().querySelector(sel); e.value = v; e.dispatchEvent(new w.Event("input", { bubbles: true })); };
+  const tabsText = Array.from(R().querySelectorAll("[data-chj-tab]")).map(x => x.textContent.replace(/\d+/g, "").trim());
+  check("an Import job has the tabs Job, General, IGM, Invoice, Product, Checklist, Charges, Financials, Job Log", ["Job", "General", "IGM", "Invoice", "Product", "Checklist", "Charges", "Financials", "Job Log"].every(x => tabsText.some(y => y.startsWith(x))), tabsText.join("|"));
+  await tab("IGM");
+  set('[data-cdr="igm|igm_no"]', "9854321"); set('[data-cdr="igm|mawb_no"]', "110897654321"); set('[data-cdr="igm|packages"]', "1");
+  R().querySelector('[data-cd-rowsave="igm"]').click(); await sleep(400);
+  check("an IGM row is added to the table", /9854321/.test(R().textContent) && /110897654321/.test(R().textContent));
+  await tab("Invoice");
+  R().querySelector('[data-cd-new="invoices"]').click(); await sleep(400);
+  set('[data-cd="invoices|invoice_no"]', "7534451158"); set('[data-cd="invoices|currency"]', "USD"); set('[data-cd="invoices|invoice_value"]', "886526.03");
+  R().querySelector('[data-cd-sub="invoices|3"]').click(); await sleep(300);
+  set('[data-cd="invoices|supplier_name"]', "SUPPLIER");
+  check("the invoice has seven sections (main, freight & misc, other charges, supplier, SVB, other, third party)", R().querySelectorAll("[data-cd-sub]").length === 7);
+  await tab("Product");
+  R().querySelector('[data-cd-new="items"]').click(); await sleep(400);
+  set('[data-cd="items|description"]', "TEST"); set('[data-cd="items|qty"]', "24"); set('[data-cd="items|qty_unit"]', "KGS");
+  R().querySelector('[data-cd-sub="items|2"]').click(); await sleep(300);
+  set('[data-cd="items|cth_no"]', "29199090");
+  check("the item has its sections (main, general, CTH, CETH, IGST, SVB, re-import, declaration, supporting document)", R().querySelectorAll("[data-cd-sub]").length === 9);
+  Array.from(R().querySelectorAll("button")).find(x => x.textContent.trim() === "Save").click(); await sleep(2500);
+  const saved = (await j("GET", "/api/cha/jobs/" + encodeURIComponent(no), null, token)).body;
+  check("Save stores the IGM row, the invoice and the item on the job", saved.data.igm[0].igm_no === "9854321" && saved.data.invoices[0].supplier_name === "SUPPLIER" && saved.data.items[0].cth_no === "29199090", JSON.stringify(saved.data).slice(0, 200));
+  await tab("Checklist");
+  check("the Checklist shows 1 invoice, 1 item, 1 IGM entry", /Invoices\s*1/.test(R().textContent) && /Items\s*1/.test(R().textContent) && /IGM entries\s*1/.test(R().textContent), R().textContent.slice(0, 300));
+  await tab("Charges");
+  await sleep(1000);
+  R().querySelector("[data-chg-add]").click(); await sleep(300);
+  set('[data-chg="0|charge_name"]', "Customs Clearance"); set('[data-chg="0|buy_rate"]', "3000"); set('[data-chg="0|buy_party"]', "Broker A"); set('[data-chg="0|sell_rate"]', "4500"); set('[data-chg="0|sell_gst"]', "18");
+  R().querySelector("[data-chg-save]").click(); await sleep(3000);
+  const chg = (await j("GET", "/api/shipments/by-number/" + encodeURIComponent(no) + "/charges", null, token)).body.lines;
+  check("the cost and selling are stored on the CHA job and Accounts can see it", chg.length === 1 && Number(chg[0].buy.rate) === 3000 && chg[0].buy.party === "Broker A" && Number(chg[0].sell.rate) === 4500 && chg[0].sell.party === "TESTING");
+  await tab("Financials");
+  check("Financials shows cost 3,000, selling 4,500 and margin 1,500", /3,000\.00/.test(R().textContent) && /4,500\.00/.test(R().textContent) && /1,500\.00/.test(R().textContent), R().textContent.slice(0, 200));
+  await tab("Job Log");
+  check("the Job log lists who changed what (invoices, items, filing)", /Invoice/.test(R().textContent) && /Item/.test(R().textContent) && /IGM/.test(R().textContent), R().textContent.slice(0, 300));
+  console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

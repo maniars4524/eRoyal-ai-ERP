@@ -16,7 +16,8 @@ from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
 from .job_details_api import _row, location_code
-from .models import Booking, CustomsBill, Customer, JobDetail, Shipment, User
+from . import cha_spec
+from .models import Booking, CustomsBill, Customer, JobCharge, JobDetail, Shipment, User
 
 router = APIRouter(tags=["cha jobs"])
 
@@ -99,6 +100,12 @@ def cha_row(db: Session, cha: Shipment, freight: Shipment | None = None, booking
     exporter, importer = parties_of(db, cha)
     bills = list(db.scalars(select(CustomsBill).where(CustomsBill.shipment_id == cha.id, CustomsBill.organization_id == cha.organization_id).order_by(CustomsBill.id)))
     live = [b for b in bills if b.status != "Cancelled"]
+    from .job_charges_api import compute_side
+
+    cost = sell = 0.0
+    for c in db.scalars(select(JobCharge).where(JobCharge.shipment_id == cha.id, JobCharge.organization_id == cha.organization_id)):
+        cost += float(compute_side(c.qty, c.buy_ccy, c.buy_exch, c.buy_rate, c.buy_tax_type, c.buy_tax_pct)["inr"])
+        sell += float(compute_side(c.qty, c.sell_ccy, c.sell_exch, c.sell_rate, c.sell_tax_type, c.sell_tax_pct)["inr"])
     export = cha.direction == "Export"
     first = live[0] if live else None
     return {"id": cha.id, "cha_job_number": cha.job_number, "booking_number": booking.number if booking else None, "booking_id": cha.booking_id, "freight_job_number": freight.job_number if freight else None,
@@ -107,7 +114,7 @@ def cha_row(db: Session, cha: Shipment, freight: Shipment | None = None, booking
             "bill_of_entry_no": first.bill_no if (first and not export) else None, "bill_of_entry_date": first.bill_date if (first and not export) else None,
             "bills": [{"id": b.id, "bill_type": b.bill_type, "bill_no": b.bill_no, "bill_date": b.bill_date, "status": b.status, "ooc_date": b.ooc_date, "examination": b.examination} for b in bills],
             "customs_status": cha.customs_status or "CREATED", "job_stage": cha.job_stage, "etd": cha.etd, "eta": cha.eta, "created_at": cha.created_at,
-            "documents": documents_for(db, freight, cha), "linked_by": "parent" if cha.parent_job_id else "booking"}
+            "charges_cost": round(cost, 2), "charges_sell": round(sell, 2), "documents": documents_for(db, freight, cha), "linked_by": "parent" if cha.parent_job_id else "booking"}
 
 
 def freight_of(db: Session, job: Shipment) -> Shipment | None:
@@ -551,12 +558,12 @@ def get_cha_job(job_number: str, user: User = Depends(permission_required("shipm
     booking = db.get(Booking, job.booking_id) if job.booking_id else None
     row = cha_row(db, job, freight, booking)
     siblings = [cha_row(db, j, freight, booking) for j in (cha_jobs_of(db, freight) if freight else []) if j.id != job.id]
-    events = list(db.scalars(select(JobEvent).where(JobEvent.shipment_id == job.id).order_by(JobEvent.id.desc()).limit(40)))
+    events = list(db.scalars(select(JobEvent).where(JobEvent.shipment_id == job.id).order_by(JobEvent.id.desc()).limit(200)))
     info = job.cha_info or {}
     return {**row, "info": {"file_ref": info.get("file_ref"), "customs_location": info.get("customs_location"), "cha_license": info.get("cha_license"), "mbl": info.get("mbl"), "hbl": info.get("hbl") or job.bl_awb,
-                            "containers": info.get("containers"), "source": ("Freight job " + freight.job_number) if freight else "CHA screen"}, "source_info": source_info(db, job, freight, booking), "filing": (info.get("filing") or {}), "filing_form": filing_form(job.direction), "filing_tabs": FILING_TABS[job.direction],
+                            "containers": info.get("containers"), "source": ("Freight job " + freight.job_number) if freight else "CHA screen"}, "source_info": source_info(db, job, freight, booking), "filing": (info.get("filing") or {}), "data": (info.get("data") or {}), "spec": cha_spec.IMPORT_SPEC if job.direction == "Import" else [], "filing_form": filing_form(job.direction), "filing_tabs": FILING_TABS[job.direction],
             "filing_defaults": filing_defaults(db, job, row, {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}), "filing_label": "Shipping Bill Filing" if job.direction == "Export" else "Bill of Entry Filing", "party_details": {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}, "stages": CHA_STATUSES, "delayed": is_delayed(job), "siblings": siblings,
-            "events": [{"at": e.created_at, "type": e.event_type, "text": e.description, "previous": e.previous_value, "new": e.new_value} for e in events]}
+            "events": [{"at": e.created_at, "type": e.event_type, "text": e.description, "previous": e.previous_value, "new": e.new_value, "by": e.actor_name, "reason": e.reason, "detail": e.detail} for e in events]}
 
 
 class InfoIn(BaseModel):
@@ -569,6 +576,7 @@ class InfoIn(BaseModel):
     etd: date | None = None
     eta: date | None = None
     filing: dict[str, Any] | None = None
+    data: dict[str, Any] | None = None
 
 
 @router.patch("/api/cha/jobs/{job_number:path}")
@@ -586,15 +594,34 @@ def update_cha_job(job_number: str, body: InfoIn, user: User = Depends(permissio
         if bad:
             raise HTTPException(422, "Unknown filing field: " + ", ".join(sorted(bad)[:3]))
         clean = {k: str(v).strip()[:300] for k, v in form.items() if v is not None and str(v).strip()}
+        old = (job.cha_info or {}).get("filing") or {}
+        changes = [{"field": k, "from": old.get(k, ""), "to": clean.get(k, "")} for k in sorted(set(old) | set(clean)) if old.get(k, "") != clean.get(k, "")]
         job.cha_info = {**(job.cha_info or {}), "filing": clean}
+        if changes:
+            jl.log_event(db, job, user, "CHA_FILING_CHANGED", "OPERATIONS", "Filing details changed: " + ", ".join(c["field"] for c in changes[:6]) + (" ..." if len(changes) > 6 else ""), detail={"changes": changes[:60]})
+    if "data" in ch:
+        rules = cha_spec.collections()
+        incoming = ch.pop("data") or {}
+        cur = dict((job.cha_info or {}).get("data") or {})
+        for name, rows in incoming.items():
+            new = cha_spec.clean_collection(name, rows, rules)
+            if new != cur.get(name, []):
+                before = cur.get(name, [])
+                jl.log_event(db, job, user, "CHA_DATA_CHANGED", "OPERATIONS", f"{rules[name]['title']}: {len(before)} → {len(new)} record(s)" + (" (edited)" if len(before) == len(new) else ""),
+                             detail={"section": name, "before": len(before), "after": len(new), "changed": [i + 1 for i in range(min(len(before), len(new))) if before[i] != new[i]][:40]})
+            cur[name] = new
+        job.cha_info = {**(job.cha_info or {}), "data": cur}
     for k in ("etd", "eta"):
         if k in ch:
             setattr(job, k, ch.pop(k))
+    oldinfo = job.cha_info or {}
+    plain = [{"field": k, "from": str(oldinfo.get(k) or ""), "to": str(v or "")} for k, v in ch.items() if str(oldinfo.get(k) or "") != str(v or "")]
     job.cha_info = {**(job.cha_info or {}), **ch}
     if ch.get("hbl") or ch.get("mbl"):
         job.bl_awb = ch.get("hbl") or ch.get("mbl")
     fields = sorted(body.model_dump(exclude_unset=True))
-    jl.log_event(db, job, user, "CHA_DETAILS_UPDATED", "OPERATIONS", "Customs details updated", detail={"fields": fields})
+    if plain:
+        jl.log_event(db, job, user, "CHA_DETAILS_UPDATED", "OPERATIONS", "Customs details updated: " + ", ".join(c["field"] for c in plain), detail={"changes": plain})
     record_audit(db, "CHA_DETAILS_UPDATED", "OPERATIONS", user, org, "Shipment", str(job.id), {"job_number": job.job_number, "fields": fields})
     db.commit()
     return get_cha_job(job.job_number, user, db)

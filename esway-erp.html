@@ -14285,6 +14285,7 @@ if(document.readyState !== "loading") initChatWidget();
       ((S.type === "purchase_invoice" || S.type === "purchase_credit_note") ? '<div class="fr"><div class="fg"><label class="fl">Vendor invoice no.</label><input class="fc" data-bkh="vendor_inv_no" maxlength="40" value="'+esc2(h.vendor_inv_no)+'" placeholder="as printed on the vendor bill (matches GSTR-2B)"'+dis+'></div><div class="fg"><label class="fl">Vendor invoice date</label><input class="fc" type="date" data-bkh="vendor_inv_date" value="'+esc2(h.vendor_inv_date)+'"'+dis+'></div></div>' : '')+
       (pickable(S) && !d ? '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Job category</label><div style="display:flex;gap:8px;flex-wrap:wrap">'+svcChoices().map(x=>'<button type="button" class="btn btn-sm '+(svcOf(S) === x ? "btn-pri" : "btn-out")+'" data-bk-svc="'+x+'" style="min-width:110px">'+(x === "CHA" ? "CHA (Customs)" : x)+'</button>').join("")+'</div></div></div>' : '')+
       '<div class="fr"><div class="fg"><label class="fl">Job Reference'+(pickable(S) && !d ? ' <span style="font-weight:400;text-transform:none;color:var(--g5)">(jobs with unbilled entries)</span>' : '')+'</label>'+(pickable(S) && !d ? '<select class="fc" data-bkh="job_number" data-bk-jobpick="1"><option value="">'+(h.party_name.trim() ? (S.jobs.length ? "— Select a job —" : (svcOf(S) !== "All" ? "No "+svcOf(S)+" job with unbilled entries for this party (enter the job's selling charges first)" : "No job with unbilled entries for this party")) : "Choose the party first")+'</option>'+S.jobs.map(j=>'<option value="'+esc2(j.job_number)+'"'+(j.job_number === h.job_number ? " selected" : "")+'>'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+(j.empty ? " · no charges yet — enter cost &amp; selling" : " · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount)))+'</option>').join("")+(h.job_number && !S.jobs.some(j=>j.job_number === h.job_number) ? '<option value="'+esc2(h.job_number)+'" selected>'+esc2(h.job_number)+'</option>' : "")+'</select>' : '<input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'>')+'</div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
+      (pickable(S) && !d && h.job_number ? (()=>{ const used = new Set([h.job_number].concat(S.lines.map(l=>l.job_number).filter(Boolean))); const more = S.jobs.filter(j=>!used.has(j.job_number)); return '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Add another job of this party <span style="font-weight:400;text-transform:none;color:var(--g5)">(one '+(S.type === "invoice" ? "invoice" : "bill")+' for several jobs)</span></label><select class="fc" data-bk-jobadd="1"><option value="">'+(more.length ? "— Add a job —" : "No other job of this party")+'</option>'+more.map(j=>'<option value="'+esc2(j.job_number)+'">'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+(j.empty ? " · no charges yet" : " · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount)))+'</option>').join("")+'</select></div></div>'; })() : '')+
       (refSelect ? '<div class="fr">'+refSelect+'</div>' : '')+
       '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Remarks</label><textarea class="fc" rows="2" data-bkh="remarks"'+dis+'>'+esc2(h.remarks)+'</textarea></div></div></div></div>'+
       '<div class="card"><div class="ch"><div class="ct">Amount Summary</div></div><div class="cb">'+
@@ -14322,9 +14323,19 @@ if(document.readyState !== "loading") initChatWidget();
     const t = e.target; if(!BK.state || !t.dataset || !document.getElementById("s-"+BK.state.screen) || !document.getElementById("s-"+BK.state.screen).contains(t)) return;
     const S = BK.state; if(S.doc && S.doc.status !== "DRAFT") return;
     if(t.dataset.bkh === "party_name"){ readHead(); await loadParty(S, true); if(pickable(S) && !S.doc){ S.head.job_number = ""; } S.dirty = true; renderEditor(); return; }
+    if(t.dataset.bkJobadd){
+      readHead(); const jn = t.value; if(!jn) return; const job = S.jobs.find(x=>x.job_number === jn); if(!job) return;
+      try{
+        const real = S.lines.filter(l=>l.charge_name || Number(l.rate));
+        if(job.empty){ S.lines = real.concat([{...blankLine(), job_number:jn}]); say("Job "+jn+" added", "No charges on it yet: enter its lines in the table below"); }
+        else { const rows = await api("GET", "/api/documents/billing/job-lines?job_number="+encodeURIComponent(jn)+"&party="+encodeURIComponent(S.head.party_name.trim())+"&doc_type="+S.type); S.lines = real.concat(rows.filter(r=>!real.some(l=>(l.job_number || S.head.job_number) === r.job_number && l.charge_name === r.charge_name))); say("Job "+jn+" added", rows.length+" entr"+(rows.length === 1 ? "y" : "ies")+" brought onto this "+(S.type === "invoice" ? "invoice" : "purchase bill")); }
+        if(!S.lines.length) S.lines = [blankLine()]; S.dirty = true; renderEditor();
+      }catch(err){ say("Could not add the job", err.message, "error"); }
+      return;
+    }
     if(t.dataset.bkJobpick){
       readHead(); const jn = S.head.job_number; if(!jn){ renderEditor(); return; }
-      if((S.jobs.find(x=>x.job_number === jn) || {}).empty){ quickCharges(S, jn); return; }
+      if((S.jobs.find(x=>x.job_number === jn) || {}).empty){ S.dirty = true; renderEditor(); say("No charges on "+jn+" yet", "Enter the charge lines in the table below; they are billed under this job", "warn"); return; }
       try{ const rows = await api("GET", "/api/documents/billing/job-lines?job_number="+encodeURIComponent(jn)+"&party="+encodeURIComponent(S.head.party_name.trim())+"&doc_type="+S.type);
         const real = S.lines.filter(l=>l.charge_name || Number(l.rate)); const fresh = rows.filter(r=>!real.some(l=>(l.job_number || jn) === r.job_number && l.charge_name === r.charge_name));
         S.lines = real.concat(fresh); if(!S.lines.length) S.lines = [blankLine()];
@@ -15936,7 +15947,7 @@ if(document.readyState !== "loading") initChatWidget();
       const th = (label, col)=> '<th style="text-align:center;color:'+col+'">'+label+'</th>';
       const num = (n, col, attrs)=> '<td style="text-align:center"><a href="#" '+attrs+' style="font-weight:800;color:'+col+';text-decoration:'+(n ? "underline" : "none")+'">'+n+'</a></td>';
       const table = (title, icon, col, rows, attrOf)=> back+'<div class="cb" style="padding:8px 16px 14px"><div style="font-weight:700;margin:6px 0 8px;color:var(--'+col+')"><svg class="ic" data-icon="'+icon+'" style="width:16px;height:16px;vertical-align:-3px"></svg> '+title+'</div><div class="tw"><table><thead><tr><th>Category</th>'+th("Active Jobs", "var(--bl)")+th("Closed Jobs (MTD)", "var(--gr)")+th("Pending Action", "var(--am)")+'</tr></thead><tbody>'+
-        rows.map(r=>'<tr'+(/^Total/.test(r.label) ? ' style="background:var(--g0);font-weight:800"' : "")+'><td style="font-weight:600">'+esc2(r.label)+'</td>'+num(r.active, "var(--bl)", attrOf(r, "active"))+num(r.closed_mtd, "var(--gr)", attrOf(r, "closed"))+num(r.pending, "var(--am)", attrOf(r, "pending"))+'</tr>').join("")+'</tbody></table></div></div>';
+        rows.map(r=>'<tr'+(/^Total/.test(r.label) ? ' style="background:var(--put,#EEE8FB);font-weight:800;box-shadow:inset 4px 0 0 var(--pu,#6D28D9)"' : "")+'><td style="font-weight:600">'+esc2(r.label)+'</td>'+num(r.active, "var(--bl)", attrOf(r, "active"))+num(r.closed_mtd, "var(--gr)", attrOf(r, "closed"))+num(r.pending, "var(--am)", attrOf(r, "pending"))+'</tr>').join("")+'</tbody></table></div></div>';
       const slugRow = l=> slug(l);
       if(sel === "freight"){
         const rows = Object.entries(j.matrix).map(([label, r])=>({label, ...r}));
@@ -21452,10 +21463,10 @@ function makePrintFit(){
     const rows = d.cha_jobs.map(r=>{ const ex = r.shipment_type === "Export";
       return '<tr><td class="mono" style="font-weight:700"><a href="#" data-fjcha-open="'+esc2(r.cha_job_number)+'">'+esc2(r.cha_job_number)+'</a></td><td class="mono">'+c(r.booking_number)+'</td><td>'+c(r.exporter)+'</td><td>'+c(r.importer)+'</td><td>'+c(r.pol)+'</td><td>'+c(r.pod)+'</td><td>'+esc2(r.shipment_type)+'</td><td>'+esc2(r.shipment_mode)+'</td>'+
         '<td>'+(ex ? c(r.shipping_bill_no)+(r.shipping_bill_date ? '<div style="font-size:11px;color:var(--g5)">'+dmy(r.shipping_bill_date)+'</div>' : "") : '<span style="color:var(--g5)">—</span>')+'</td><td>'+(!ex ? c(r.bill_of_entry_no)+(r.bill_of_entry_date ? '<div style="font-size:11px;color:var(--g5)">'+dmy(r.bill_of_entry_date)+'</div>' : "") : '<span style="color:var(--g5)">—</span>')+'</td>'+
-        '<td><span class="b '+(TONE[r.customs_status] || "b-gy")+' dot">'+esc2(r.customs_status)+'</span></td><td>'+r.documents.map(x=>'<span class="b '+(x.available ? "b-gr" : "b-gy")+'" style="margin:1px 3px 1px 0" title="'+(x.available ? "Ready" : "Not ready yet")+'">'+esc2(x.name)+'</span>').join("")+'</td></tr>'; }).join("");
+        '<td><span class="b '+(TONE[r.customs_status] || "b-gy")+' dot">'+esc2(r.customs_status)+'</span></td><td style="white-space:nowrap;font-size:12px">'+(r.charges_cost || r.charges_sell ? "₹"+Number(r.charges_cost).toLocaleString("en-IN")+" / ₹"+Number(r.charges_sell).toLocaleString("en-IN") : '<span style="color:var(--g5)">—</span>')+'</td><td>'+r.documents.map(x=>'<span class="b '+(x.available ? "b-gr" : "b-gy")+'" style="margin:1px 3px 1px 0" title="'+(x.available ? "Ready" : "Not ready yet")+'">'+esc2(x.name)+'</span>').join("")+'</td></tr>'; }).join("");
     el("chaJobsBody").innerHTML = '<div style="font-size:12px;color:var(--g5);margin-bottom:8px">Freight job <b>'+esc2(d.freight_job_number)+'</b>'+(d.booking_number ? ' · Booking <b>'+esc2(d.booking_number)+'</b>' : "")+' — every CHA job of this booking is listed here. Each keeps its own customs bills and status.</div>'+(d.workflow ? '<div class="ib '+(d.workflow.cha_cleared || d.freight.shipment_type === "Import" ? "ib-bl" : "ib-am")+'" style="margin-bottom:8px"><b>'+esc2(d.workflow.order)+'.</b> '+esc2(d.workflow.message)+'</div>' : "")+
-      '<div class="tw"><table><thead><tr><th>CHA Job No</th><th>Booking No</th><th>Exporter</th><th>Importer</th><th>POL</th><th>POD</th><th>Shipment Type</th><th>Mode</th><th>SB No / Date</th><th>BE No / Date</th><th>Customs Status</th><th>Documents</th></tr></thead><tbody>'+
-      (rows || '<tr><td colspan="12" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">No CHA job yet. Use Add CHA job, or add the CHA service to the booking.</td></tr>')+'</tbody></table></div>';
+      '<div class="tw"><table><thead><tr><th>CHA Job No</th><th>Booking No</th><th>Exporter</th><th>Importer</th><th>POL</th><th>POD</th><th>Shipment Type</th><th>Mode</th><th>SB No / Date</th><th>BE No / Date</th><th>Customs Status</th><th>Cost / Selling</th><th>Documents</th></tr></thead><tbody>'+
+      (rows || '<tr><td colspan="13" style="text-align:center;color:var(--g5);padding:14px;font-style:italic">No CHA job yet. Use Add CHA job, or add the CHA service to the booking.</td></tr>')+'</tbody></table></div>';
   };
   function dialog(){
     const d = K.data, f = d.freight || {};
@@ -21534,7 +21545,7 @@ function makePrintFit(){
   async function load(no){
     S.no = no || S.no; if(!S.no) return;
     try{ S.job = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)); }catch(e){ say("Could not open the CHA job", e.message, "error"); return; }
-    S.dirty = false; if(window.CHA_JOBS) window.CHA_JOBS.add(S.no); (S.job.siblings || []).forEach(x=> window.CHA_JOBS && window.CHA_JOBS.add(x.cha_job_number));
+    S.dirty = false; S.data = null; S.charges = null; S.draft = {}; if(window.CHA_JOBS) window.CHA_JOBS.add(S.no); (S.job.siblings || []).forEach(x=> window.CHA_JOBS && window.CHA_JOBS.add(x.cha_job_number));
     if(!S.chas){ try{ S.chas = (await api("GET", "/api/customers?role=cha")).filter(c=>c.status !== "INACTIVE"); }catch(e){ S.chas = []; } }
     try{ S.val = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/validate"); }catch(e){ S.val = null; }
     render();
@@ -21592,12 +21603,84 @@ function makePrintFit(){
       '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">History</div></div><div class="cb" style="max-height:200px;overflow:auto;font-size:12px">'+(j.events.map(e=>'<div>'+esc2(String(e.at || "").slice(0, 16).replace("T", " "))+' · '+esc2(e.text)+'</div>').join("") || "—")+'</div></div>';
   }
 
+
+  /* ---------- Import job tabs (IGM, Invoice, Product ...): driven by the server's form definition ---------- */
+  const canEdit = ()=> { const u = window.SESSION_USER; return !u || !Array.isArray(u.permissions) || u.permissions.includes("shipment.update"); };
+  const ro = ()=> canEdit() ? "" : " disabled";
+  const fieldH = (f, attr, val)=> { const lab = '<label class="fl">'+esc2(f.l)+'</label>'; const base = attr+' class="fc"'+ro();
+    if(f.t === "select") return '<div class="fg">'+lab+'<select '+base+'><option value=""></option>'+f.o.map(o=>'<option'+(String(val) === String(o) ? " selected" : "")+'>'+esc2(o)+'</option>').join("")+'</select></div>';
+    if(f.t === "area") return '<div class="fg" style="grid-column:span 2">'+lab+'<textarea '+base+' rows="2">'+esc2(val || "")+'</textarea></div>';
+    if(f.t === "check") return '<div class="fg" style="justify-content:flex-end"><label style="display:flex;gap:6px;align-items:center;font-size:12px"><input type="checkbox" '+attr+(val === "1" ? " checked" : "")+ro()+'> '+esc2(f.l)+'</label></div>';
+    return '<div class="fg">'+lab+'<input '+base+' type="'+(f.t === "date" ? "date" : f.t === "number" ? "number" : "text")+'"'+(f.t === "number" ? ' step="any"' : "")+' value="'+esc2(val || "")+'"></div>'; };
+  const grid = h=> '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">'+h+'</div>';
+  const data = ()=> (S.data = S.data || JSON.parse(JSON.stringify(S.job.data || {})));
+  const rowsOf = k=> (data()[k] = data()[k] || []);
+  function rowsCollection(c){
+    const list = rowsOf(c.key), d = (S.draft = S.draft || {}); const cur = d[c.key] || {idx:-1, rec:{}};
+    const cols = c.fields.slice(0, 6);
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">'+esc2(c.title)+' <span class="mn-badge">'+list.length+'</span></div></div><div class="cb">'+grid(c.fields.map(f=>fieldH(f, 'data-cdr="'+c.key+'|'+f.k+'"', cur.rec[f.k])).join(""))+
+      '<div style="margin:10px 0;display:flex;gap:6px">'+(canEdit() ? '<button class="btn btn-pri btn-sm" type="button" data-cd-rowsave="'+c.key+'">'+(cur.idx >= 0 ? "Update row" : "Add row")+'</button><button class="btn btn-out btn-sm" type="button" data-cd-rowclear="'+c.key+'">Clear</button>' : "")+'</div>'+
+      '<div class="tw"><table><thead><tr><th>#</th>'+cols.map(f=>'<th>'+esc2(f.l)+'</th>').join("")+'<th></th></tr></thead><tbody>'+(list.map((r, i)=>'<tr><td>'+(i + 1)+'</td>'+cols.map(f=>'<td>'+t(r[f.k])+'</td>').join("")+'<td style="white-space:nowrap"><a href="#" data-cd-rowedit="'+c.key+'|'+i+'">Edit</a>'+(canEdit() ? ' · <a href="#" data-cd-rowdel="'+c.key+'|'+i+'" style="color:var(--rd)">Delete</a>' : "")+'</td></tr>').join("") || '<tr><td colspan="'+(cols.length + 2)+'" class="tbl-empty">No records yet</td></tr>')+'</tbody></table></div></div></div>';
+  }
+  function recordsCollection(c){
+    const list = rowsOf(c.key); const sel = (S.sel = S.sel || {}); if(sel[c.key] === undefined || sel[c.key] >= list.length) sel[c.key] = list.length ? Math.min(sel[c.key] || 0, list.length - 1) : -1;
+    const sub = (S.sub = S.sub || {}); const si = Math.min(sub[c.key] || 0, c.sections.length - 1); const rec = list[sel[c.key]];
+    const chips = list.map((r, i)=>'<button type="button" class="btn btn-sm '+(i === sel[c.key] ? "btn-pri" : "btn-out")+'" data-cd-pick="'+c.key+'|'+i+'">'+esc2(c.title)+' '+(i + 1)+(r.invoice_no ? ' · '+esc2(r.invoice_no) : r.description ? ' · '+esc2(String(r.description).slice(0, 14)) : "")+'</button>').join("");
+    let body = '<div class="ib ib-bl">No '+esc2(c.title.toLowerCase())+' yet. '+(canEdit() ? 'Use “New '+esc2(c.title.toLowerCase())+'”.' : "")+'</div>';
+    if(rec){ body = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin:8px 0">'+c.sections.map((x, i)=>'<button type="button" class="btn btn-sm '+(i === si ? "btn-pri" : "btn-out")+'" data-cd-sub="'+c.key+'|'+i+'" style="font-size:11px">'+esc2(x.title)+'</button>').join("")+'</div>'+
+      grid(c.sections[si].fields.map(f=>fieldH(f, 'data-cd="'+c.key+'|'+f.k+'"', rec[f.k])).join(""))+(canEdit() ? '<div style="margin-top:10px"><button class="btn btn-out btn-sm" type="button" data-cd-recdel="'+c.key+'" style="color:var(--rd)">Delete this '+esc2(c.title.toLowerCase())+'</button></div>' : ""); }
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">'+esc2(c.title)+'s <span class="mn-badge">'+list.length+'</span></div>'+(canEdit() ? '<button class="btn btn-out btn-sm" type="button" data-cd-new="'+c.key+'">＋ New '+esc2(c.title.toLowerCase())+'</button>' : "")+'</div><div class="cb"><div style="display:flex;gap:6px;flex-wrap:wrap">'+chips+'</div>'+body+'</div></div>';
+  }
+  const specTab = name=> { const tb = (S.job.spec || []).find(x=>x.tab === name); return tb ? tb.collections.map(c=>c.kind === "rows" ? rowsCollection(c) : recordsCollection(c)).join("") : null; };
+  /* Charges: the job's own cost and selling (the same store Accounts and the reports read) */
+  async function loadCharges(){ try{ const r = await api("GET", "/api/shipments/by-number/"+encodeURIComponent(S.no)+"/charges"); S.charges = (r.lines || []).map(l=>({charge_name:l.charge_name, qty:String(l.qty), buy_rate:String(l.buy.rate), buy_party:l.buy.party || "", buy_gst:String(l.buy.tax_pct || 0), sell_rate:String(l.sell.rate), sell_gst:String(l.sell.tax_pct || 0), sell_party:l.sell.party || ""})); }catch(e){ S.charges = []; } if(S.tab === "Charges") render(); }
+  const money = n=> "₹"+(Number(n) || 0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const sums = ()=> { const L = S.charges || []; const cost = L.reduce((a, l)=>a + (Number(l.qty) || 0) * (Number(l.buy_rate) || 0), 0), sell = L.reduce((a, l)=>a + (Number(l.qty) || 0) * (Number(l.sell_rate) || 0), 0); return {cost, sell, margin:sell - cost}; };
+  function chargesTab(){
+    if(!S.charges){ loadCharges(); return '<div class="card" style="margin-top:10px"><div class="cb" style="color:var(--g5)">Loading charges…</div></div>'; }
+    const j = S.job, party = j.shipment_type === "Import" ? j.importer : j.exporter; const m = sums();
+    const inp = (i, k, w, ph)=> '<input class="fc" data-chg="'+i+'|'+k+'" value="'+esc2(S.charges[i][k])+'" style="width:'+w+'px" placeholder="'+(ph || "")+'"'+ro()+'>';
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Cost &amp; selling charges — '+esc2(j.cha_job_number)+'</div>'+(canEdit() ? '<div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" data-chg-add type="button">＋ Add charge</button><button class="btn btn-pri btn-sm" data-chg-save type="button">Save charges</button></div>' : "")+'</div><div class="cb">'+
+      '<div class="ib ib-bl" style="margin-bottom:8px">Charges are stored on this CHA job. Accounts reads them for the invoice (Job category CHA) and the vendor bills; a CHA + Freight booking shows the same totals on the freight job without entering them twice.</div>'+
+      '<div class="tw"><table><thead><tr><th>Charge</th><th>Qty</th><th>Cost</th><th>Vendor</th><th>Cost GST %</th><th>Selling</th><th>Bill to</th><th>Sell GST %</th><th></th></tr></thead><tbody>'+
+      (S.charges.map((l, i)=>'<tr><td>'+inp(i, "charge_name", 170, "e.g. Customs Clearance")+'</td><td>'+inp(i, "qty", 60)+'</td><td>'+inp(i, "buy_rate", 90)+'</td><td>'+inp(i, "buy_party", 130, "Vendor")+'</td><td>'+inp(i, "buy_gst", 60)+'</td><td>'+inp(i, "sell_rate", 90)+'</td><td>'+inp(i, "sell_party", 150, esc2(party || ""))+'</td><td>'+inp(i, "sell_gst", 60)+'</td><td>'+(canEdit() ? '<a href="#" data-chg-del="'+i+'" style="color:var(--rd)">✕</a>' : "")+'</td></tr>').join("") || '<tr><td colspan="9" class="tbl-empty">No charges yet</td></tr>')+
+      '</tbody></table></div><div style="display:flex;gap:18px;margin-top:10px;font-weight:700"><span>Cost '+money(m.cost)+'</span><span>Selling '+money(m.sell)+'</span><span style="color:'+(m.margin >= 0 ? "var(--gr,#1E8E5A)" : "var(--rd,#C0392B)")+'">Margin '+money(m.margin)+'</span></div></div></div>';
+  }
+  function financialsTab(){
+    const m = sums(); if(!S.charges){ loadCharges(); }
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Financials — '+esc2(S.job.cha_job_number)+'</div></div><div class="cb"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">'+
+      [["Cost (expenses)", m.cost, "var(--am,#C77700)"], ["Selling (billing)", m.sell, "var(--bl)"], ["Margin", m.margin, m.margin >= 0 ? "var(--gr,#1E8E5A)" : "var(--rd,#C0392B)"]].map(x=>'<div class="kpi"><div style="font-size:11px;color:var(--g5);font-weight:700;text-transform:uppercase">'+x[0]+'</div><div style="font-size:22px;font-weight:800;color:'+x[2]+'">'+money(x[1])+'</div></div>').join("")+
+      '</div><div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" data-chj-acct="invoice-new">Raise invoice in Accounts</button><button class="btn btn-out btn-sm" type="button" data-chj-acct="purchase-invoice-new">Enter vendor bill in Accounts</button></div></div></div>';
+  }
+  function checklistTab(){
+    const j = S.job, d = data(), inv = (d.invoices || []), it = (d.items || []), f = j.filing || {}, v = S.val || {errors:[]};
+    const rows = [["Importer", j.importer || (j.filing_defaults || {}).importer_name], ["Supplier", (inv[0] || {}).supplier_name], ["Filing location (customs house)", (j.info || {}).customs_location], ["BE type", f.be_type || (j.filing_defaults || {}).be_type], ["IGM entries", (d.igm || []).length], ["Invoices", inv.length], ["Items", it.length], ["Required fields", v.passed+" of "+v.checked+" filled"]];
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Checklist</div></div><div class="cb"><div class="tw"><table><tbody>'+rows.map(r=>'<tr><td style="color:var(--g5);width:260px">'+esc2(r[0])+'</td><td style="font-weight:600">'+t(r[1])+'</td></tr>').join("")+'</tbody></table></div>'+
+      (v.errors.length ? '<div class="ib ib-am" style="margin-top:8px">To fix: '+v.errors.map(e=>esc2(e.label)).join(", ")+'</div>' : '<div class="ib ib-gr" style="margin-top:8px">All required General fields are filled.</div>')+(it.length && !inv.length ? '<div class="ib ib-am" style="margin-top:8px">Items exist but no invoice has been entered.</div>' : "")+'</div></div>';
+  }
+  function logTab(){
+    const ev = S.job.events || [];
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Job log <span class="mn-badge">'+ev.length+'</span></div></div><div class="cb"><div class="tw"><table><thead><tr><th>When</th><th>Who</th><th>What</th><th>Details</th></tr></thead><tbody>'+
+      (ev.map(e=>{ const ch = ((e.detail || {}).changes || []).slice(0, 8).map(c=>'<div style="font-size:11px">'+esc2(c.field)+': <span style="color:var(--g5)">'+esc2(c.from || "—")+'</span> → <b>'+esc2(c.to || "—")+'</b></div>').join(""); const sec = (e.detail || {}).section ? '<div style="font-size:11px">Section: '+esc2(e.detail.section)+((e.detail.changed || []).length ? " · edited record(s) "+e.detail.changed.join(", ") : "")+'</div>' : "";
+        return '<tr><td style="white-space:nowrap">'+esc2(String(e.at || "").slice(0, 16).replace("T", " "))+'</td><td>'+t(e.by)+'</td><td>'+esc2(e.text)+'</td><td>'+ch+sec+(e.reason ? '<div style="font-size:11px">Reason: '+esc2(e.reason)+'</div>' : "")+'</td></tr>'; }).join("") || '<tr><td colspan="4" class="tbl-empty">No activity yet</td></tr>')+'</tbody></table></div></div></div>';
+  }
+  function bodyFor(){
+    const n = S.tab;
+    if(n === "Job") return jobTab();
+    if(n === "General") return generalTab();
+    if(n === "Checklist") return checklistTab();
+    if(n === "Charges") return chargesTab();
+    if(n === "Financials") return financialsTab();
+    if(n === "Job Log") return logTab();
+    return specTab(n) || laterTab(n);
+  }
+
   function render(){
     const root = el("chaJobRoot"); if(!root || !S.job) return;
-    const tabs = ["Job"].concat(S.job.filing_tabs);
+    const tabs = ["Job"].concat(S.job.filing_tabs, S.job.shipment_type === "Import" ? ["Checklist"] : [], ["Charges", "Financials", "Job Log"]);
     const nGen = S.val ? S.val.errors.length : 0;
     root.innerHTML = header()+bar()+'<div class="card" style="padding:8px 10px;display:flex;gap:6px;flex-wrap:wrap">'+tabs.map((n, k)=>'<button class="btn btn-sm '+(S.tab === n ? "btn-pri" : "btn-out")+'" data-chj-tab="'+esc2(n)+'">'+(k ? k+" " : "")+esc2(n)+(n === "General" && nGen ? ' <span class="b b-rd" style="margin-left:4px">'+nGen+'</span>' : "")+'</button>').join("")+'</div>'+
-      (S.tab === "Job" ? jobTab() : S.tab === "General" ? generalTab() : laterTab(S.tab));
+      (canEdit() ? "" : '<div class="ib ib-am" style="margin-top:8px">View only: your role cannot modify this job.</div>')+bodyFor();
     if(window.renderIcons) window.renderIcons(root);
   }
 
@@ -21606,6 +21689,7 @@ function makePrintFit(){
     const body = {customs_location:(el("chjLoc") || {}).value || "", cha_license:(el("chjCha") || {}).value || ""};
     if(el("chjMbl")) body.mbl = el("chjMbl").value.trim(); if(el("chjHbl")) body.hbl = el("chjHbl").value.trim();
     if(S.tab === "General") body.filing = collect(); else if(el("chaJobRoot").querySelector("[data-ff]")) body.filing = collect();
+    if(S.data && S.job.spec && S.job.spec.length) body.data = S.data;
     try{
       S.job = await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(S.no), body);
       const no = el("chjBillNo") && el("chjBillNo").value.trim();
@@ -21616,9 +21700,35 @@ function makePrintFit(){
     }catch(e){ say("Could not save the CHA job", e.message, "error"); return false; }
   }
 
+  /* typing in an Import tab keeps the record in memory; Save sends it (and the job log records what changed) */
+  document.addEventListener("input", e=>{
+    const t0 = e.target; if(!t0 || !t0.dataset || !el("s-cha-job") || !el("s-cha-job").classList.contains("on")) return;
+    const v = t0.type === "checkbox" ? (t0.checked ? "1" : "") : t0.value;
+    if(t0.dataset.cd){ const [k, f] = t0.dataset.cd.split("|"); const rec = rowsOf(k)[(S.sel || {})[k]]; if(rec){ if(v === "") delete rec[f]; else rec[f] = v; S.dirty = true; } }
+    else if(t0.dataset.cdr){ const [k, f] = t0.dataset.cdr.split("|"); const d = (S.draft = S.draft || {}); d[k] = d[k] || {idx:-1, rec:{}}; d[k].rec[f] = v; }
+    else if(t0.dataset.chg){ const [i, f] = t0.dataset.chg.split("|"); S.charges[Number(i)][f] = v; S.dirty = true; }
+  });
+  document.addEventListener("change", e=>{ const t0 = e.target; if(t0 && t0.dataset && (t0.dataset.cd || t0.dataset.chg) && t0.type === "checkbox"){ t0.dispatchEvent(new Event("input", {bubbles:true})); } });
   document.addEventListener("click", async e=>{
     const T = e.target; if(!T.closest || !el("s-cha-job") || !el("s-cha-job").classList.contains("on")) return;
     let b;
+    if((b = T.closest("[data-cd-pick]"))){ const [k, i] = b.dataset.cdPick.split("|"); (S.sel = S.sel || {})[k] = Number(i); render(); return; }
+    if((b = T.closest("[data-cd-sub]"))){ const [k, i] = b.dataset.cdSub.split("|"); (S.sub = S.sub || {})[k] = Number(i); render(); return; }
+    if((b = T.closest("[data-cd-new]"))){ const k = b.dataset.cdNew; const list = rowsOf(k); const rec = k === "items" ? {invoice_sr:String(((S.sel || {}).invoices || 0) + 1)} : {}; list.push(rec); (S.sel = S.sel || {})[k] = list.length - 1; (S.sub = S.sub || {})[k] = 0; S.dirty = true; render(); return; }
+    if((b = T.closest("[data-cd-recdel]"))){ const k = b.dataset.cdRecdel; if(!window.confirm("Delete this record?")) return; const list = rowsOf(k); list.splice((S.sel || {})[k], 1); S.dirty = true; render(); return; }
+    if((b = T.closest("[data-cd-rowsave]"))){ const k = b.dataset.cdRowsave; const d = (S.draft = S.draft || {}); const cur = d[k] || {idx:-1, rec:{}}; const rec = {}; Object.entries(cur.rec).forEach(([f, v])=>{ if(v !== "") rec[f] = v; }); if(!Object.keys(rec).length){ say("Nothing to add", "Fill at least one field", "warn"); return; }
+      const list = rowsOf(k); if(cur.idx >= 0) list[cur.idx] = rec; else list.push(rec); d[k] = {idx:-1, rec:{}}; S.dirty = true; render(); return; }
+    if((b = T.closest("[data-cd-rowclear]"))){ (S.draft = S.draft || {})[b.dataset.cdRowclear] = {idx:-1, rec:{}}; render(); return; }
+    if((b = T.closest("[data-cd-rowedit]"))){ e.preventDefault(); const [k, i] = b.dataset.cdRowedit.split("|"); (S.draft = S.draft || {})[k] = {idx:Number(i), rec:{...rowsOf(k)[Number(i)]}}; render(); return; }
+    if((b = T.closest("[data-cd-rowdel]"))){ e.preventDefault(); const [k, i] = b.dataset.cdRowdel.split("|"); if(!window.confirm("Delete this row?")) return; rowsOf(k).splice(Number(i), 1); S.dirty = true; render(); return; }
+    if(T.closest("[data-chg-add]")){ S.charges.push({charge_name:"", qty:"1", buy_rate:"", buy_party:"", buy_gst:"0", sell_rate:"", sell_gst:"18", sell_party:S.job.shipment_type === "Import" ? (S.job.importer || "") : (S.job.exporter || "")}); render(); return; }
+    if((b = T.closest("[data-chg-del]"))){ e.preventDefault(); S.charges.splice(Number(b.dataset.chgDel), 1); S.dirty = true; render(); return; }
+    if(T.closest("[data-chg-save]")){
+      const side = (rate, gst, who)=> ({ccy:"INR", exch:"1", rate:String(Number(rate) || 0), tax_type:Number(gst) > 0 ? "Taxable" : "Non-Taxable", tax_pct:String(Number(gst) || 0), party:who || ""});
+      const lines = S.charges.filter(l=>l.charge_name.trim()).map(l=>({charge_name:l.charge_name.trim(), uom:"Per Shipment", qty:l.qty || "1", buy:side(l.buy_rate, l.buy_gst, l.buy_party), sell:side(l.sell_rate, l.sell_gst, l.sell_party)}));
+      try{ await api("PUT", "/api/shipments/by-number/"+encodeURIComponent(S.no)+"/charges", {lines}); S.dirty = false; say("Charges saved", S.no+" — "+lines.length+" line(s)"); await load(S.no); S.tab = "Charges"; render(); }catch(err){ say("Could not save the charges", err.message, "error"); }
+      return; }
+    if((b = T.closest("[data-chj-acct]"))){ go(b.dataset.chjAcct); return; }
     if((b = T.closest("[data-chj-tab]"))){ if(S.tab === "General") S.job.filing = {...(S.job.filing || {}), ...collect()}; S.tab = b.dataset.chjTab; render(); return; }
     if(T.closest("#chjSave")){ await save(); return; }
     if(T.closest("#chjValidate")){ if(await save(true)){ const v = S.val; say(v.ready ? "Ready to file" : v.errors.length+" field(s) to fix", v.passed+" of "+v.checked+" required fields passed", v.ready ? "success" : "warn"); if(!v.ready){ S.tab = "General"; render(); } } return; }

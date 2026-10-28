@@ -584,6 +584,18 @@ def job_lines(job_number: str = Query(max_length=40), party: str = Query(max_len
     return _unbilled(db, org_id, job, party, doc_type)
 
 
+def _job_party_matches(db: Session, org_id: int, job: Shipment, party: str) -> bool:
+    """A job with no charges is offered for a bill-to party only when that party is the job's own exporter / importer (CHA jobs) or its customer."""
+    from .cha_api import parties_of
+
+    want = " ".join((party or "").upper().split())
+    names = list(parties_of(db, job))
+    cust = db.get(Customer, job.customer_id) if job.customer_id else None
+    if cust:
+        names.append(cust.name)
+    return bool(want) and any(" ".join((n or "").upper().split()) == want for n in names)
+
+
 @router.get("/billing/billable-jobs")
 def billable_jobs(party: str = Query(max_length=200), doc_type: str = Query(default="invoice", pattern=DOC_TYPE_PATTERN), service: str = Query(default="", pattern="^(|Freight|CHA|Transport|Warehouse)$"), include_empty: bool = False, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
     """Jobs that still have unbilled entries for this party: the sell charges of the customer (sales documents) or the buy charges of the vendor (purchase documents)."""
@@ -594,7 +606,7 @@ def billable_jobs(party: str = Query(max_length=200), doc_type: str = Query(defa
     cond = [Shipment.organization_id == org_id] + ([Shipment.job_type.in_(kinds)] if kinds else [])
     for job in db.scalars(select(Shipment).where(*cond).order_by(Shipment.id.desc()).limit(500)):
         open_lines = _unbilled(db, org_id, job, party, doc_type)
-        if not open_lines and include_empty and not db.scalar(select(JobCharge.id).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id).limit(1)):
+        if not open_lines and include_empty and not db.scalar(select(JobCharge.id).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org_id).limit(1)) and _job_party_matches(db, org_id, job, party):
             # a job with no charges at all (e.g. a CHA job that goes straight to Accounts): offered so its cost and selling can be entered there
             out.append({"job_number": job.job_number, "job_type": job.job_type, "mode": job.mode, "direction": job.direction, "pol": job.pol, "pod": job.pod, "lines": 0, "amount": "0", "empty": True})
             continue
