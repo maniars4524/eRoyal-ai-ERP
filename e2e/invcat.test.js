@@ -39,6 +39,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("Freight lists only the freight job", jobs().join() === fj, jobs().join());
   d.querySelector('#s-invoice-new [data-bk-svc="Transport"]').click(); await sleep(1800);
   check("Transport lists no job (none exist)", jobs().length === 0);
+  // a slow earlier request (the party field losing focus as the category is clicked) must not bring back the other category's jobs
+  { const p = d.querySelector('#s-invoice-new [data-bkh="party_name"]'); p.dispatchEvent(new w.Event("change", { bubbles: true })); d.querySelector('#s-invoice-new [data-bk-svc="CHA"]').click(); await sleep(2500);
+    check("clicking CHA right after the party field changed still lists only the CHA job", jobs().join() === cj && !jobs().includes(fj), jobs().join()); }
   d.querySelector('.hdr-menu-item[data-role="CHA"]').click(); await sleep(500);
   await open();
   check("a CHA user sees only the CHA category, with the CHA job", cats().join() === "CHA" && jobs().join() === cj, cats().join() + " / " + jobs().join());

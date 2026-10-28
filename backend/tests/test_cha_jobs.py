@@ -243,3 +243,10 @@ def test_invoice_job_picker_can_be_limited_to_freight_cha_or_transport(h):
     assert fj in allj and cj in allj and allj[cj]["job_type"] == "Customs"
     assert fj in fr and cj not in fr and cj in ch and fj not in ch and not tr
     assert client.get("/api/documents/billing/billable-jobs", params={"party": party, "service": "Bogus"}, headers=h).status_code == 422
+
+
+def test_cha_job_documents_become_ready_when_the_bl_number_is_entered_on_the_cha_job(h):
+    j = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "Doc Exports", "importer": "Doc Buyer", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
+    assert [d["available"] for d in j["documents"]] == [False]
+    ok = client.patch(f"/api/cha/jobs/{j['cha_job_number']}", json={"hbl": "HBL12345"}, headers=h).json()
+    assert ok["documents"][0]["available"] is True and ok["documents"][0]["number"] == "HBL12345"

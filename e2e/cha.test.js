@@ -89,6 +89,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   Array.from(jobScr().querySelectorAll("button")).find(x => x.textContent.trim() === "Validate").click(); await sleep(2500);
   check("after filling the required fields the bar says Ready to file", /Ready to file/.test(jobScr().textContent), jobScr().textContent.slice(0, 200));
   check("Flat File / JSON / Sign buttons are shown but off until customs filing is connected", Array.from(jobScr().querySelectorAll("button[disabled]")).map(x => x.textContent.trim()).includes("Flat File"));
+  // documents: entering the BL number on the CHA job makes the document ready
+  jobScr().querySelector('[data-chj-tab="Job"]').click(); await sleep(400);
+  check("Documents card says the BL is not ready", /Bill of Lading \(BL\) — not ready/.test(jobScr().textContent));
+  jobScr().querySelector("#chjHbl").value = "HBL7788"; Array.from(jobScr().querySelectorAll("button")).find(x => x.textContent.trim() === "Save").click(); await sleep(2500);
+  check("after saving the HBL number the document is ready", !/not ready/.test(jobScr().textContent) && /Bill of Lading/.test(jobScr().textContent), jobScr().textContent.slice(0, 200));
   Array.from(jobScr().querySelectorAll("button")).find(x => x.textContent.trim() === "Back to Job").click(); await sleep(1500);
   check("Back to Job returns to the CHA list", d.getElementById("s-svc-cha").classList.contains("on"));
   root.querySelector("#chaFClear").click(); await sleep(800);

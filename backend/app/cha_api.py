@@ -77,7 +77,8 @@ def documents_for(db: Session, freight: Shipment | None, cha: Shipment) -> list[
     row = db.scalar(select(JobDetail).where(JobDetail.shipment_id == src.id))
     bl = (row.bl if row else None) or {}
     saved = (row.saved_sections if row else None) or {}
-    ref = bl.get("hblNo") or bl.get("directNo") or bl.get("mblNo") or ""
+    cinfo = cha.cha_info or {}
+    ref = bl.get("hblNo") or bl.get("directNo") or bl.get("mblNo") or cinfo.get("hbl") or cinfo.get("mbl") or cha.bl_awb or ""        # the freight job's BL / AWB, else the number entered on the CHA job itself (export: CHA comes first)
     out: list[dict] = []
     if cha.direction == "Export" and cha.mode == "Air":
         out = [{"key": "awb", "name": "Air Waybill (AWB)", "number": ref, "available": bool(ref)}, {"key": "manifest", "name": "Air Manifest Declaration", "number": ref, "available": bool(ref)}]
