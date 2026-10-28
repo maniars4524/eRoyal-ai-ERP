@@ -2620,7 +2620,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="g2">
 <div>
 <div class="card"><div class="ch"><div class="ct">Job Type &amp; Mode</div></div><div class="cb">
-<div class="fr"><div class="fg"><label class="fl">Job Type <span class="r">*</span></label><select class="fc" id="nj_type"><option>Forwarding (FOR)</option><option>Customs (CUS)</option><option>Transport (TRP)</option><option>Warehouse (WHS)</option></select></div><div class="fg"><label class="fl">Transport Mode <span class="r">*</span></label><select class="fc" id="nj_mode"><option>Sea</option><option>Air</option><option>Road</option><option>Rail</option></select></div></div>
+<div class="fr"><div class="fg"><label class="fl">Job Type <span class="r">*</span></label><select class="fc" id="nj_type"><option>Forwarding (FOR)</option><option>Transport (TRP)</option><option>Warehouse (WHS)</option></select></div><div class="fg"><label class="fl">Transport Mode <span class="r">*</span></label><select class="fc" id="nj_mode"><option>Sea</option><option>Air</option><option>Road</option><option>Rail</option></select></div></div>
 <div class="fr"><div class="fg"><label class="fl">Direction <span class="r">*</span></label><select class="fc" id="nj_dir"><option>Export</option><option>Import</option><option>Domestic</option><option>Cross-Trade</option></select></div><div class="fg"><label class="fl">Container Mode</label><select class="fc" id="nj_contmode"><option>FCL</option><option>LCL</option><option>Bulk</option><option>Air</option></select></div></div>
 <div class="fr"><div class="fg"><label class="fl">Department <span class="r">*</span></label><select class="fc" id="nj_dept"><option>SEX - Sea Export</option><option>SIM - Sea Import</option><option>AEX - Air Export</option><option>AIM - Air Import</option><option>CUS - Customs</option><option>TRP - Transport</option></select></div><div class="fg"><label class="fl">Incoterm</label><select class="fc"><option>FOB</option><option>CIF</option><option>EXW</option><option>DDP</option></select></div></div>
 <div class="fr"><div class="fg"><label class="fl">Branch</label><select class="fc" id="nj_branch"><option value="">— Select —</option></select></div><div class="fg"><label class="fl">Sales Person</label><select class="fc" id="nj_sales"><option value="">— Select —</option></select></div></div>
@@ -6054,10 +6054,10 @@ const SCREEN_META = {
   "crm-enquiry":{title:"Enquiries", crumb:"eSway ERP 2.0 / CRM / <strong>Enquiries</strong>", menu:"crm-enquiry"},
   "crm-opportunity":{title:"Opportunities", crumb:"eSway ERP 2.0 / CRM / <strong>Opportunities</strong>", menu:"crm-opportunity"},
   "crm-engagement":{title:"Engagement", crumb:"eSway ERP 2.0 / CRM / <strong>Engagement</strong>", menu:"crm-engagement"},
-  "svc-console":{title:"Shipment Console", crumb:"eSway ERP 2.0 / Service Ops / <strong>Shipment Console</strong>", menu:"svc-console"},
-  "svc-cha":{title:"CHA", crumb:"eSway ERP 2.0 / Service Ops / <strong>CHA</strong>", menu:"svc-cha"},
-  "svc-transport":{title:"Transport", crumb:"eSway ERP 2.0 / Service Ops / <strong>Transport</strong>", menu:"svc-transport"},
-  "svc-warehouse":{title:"Warehouse", crumb:"eSway ERP 2.0 / Service Ops / <strong>Warehouse</strong>", menu:"svc-warehouse"},
+  "svc-console":{title:"Shipment Console", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Shipment Console</strong>", menu:"svc-console"},
+  "svc-cha":{title:"CHA", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>CHA</strong>", menu:"svc-cha"},
+  "svc-transport":{title:"Transport", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Transport</strong>", menu:"svc-transport"},
+  "svc-warehouse":{title:"Warehouse", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Warehouse</strong>", menu:"svc-warehouse"},
   "sequence-setting":{title:"Sequence Setting", crumb:"eSway ERP 2.0 / Settings / <strong>Sequence Setting</strong>", menu:"sequence-setting"},
   "quot-templates":{title:"Quotation Templates", crumb:"eSway ERP 2.0 / Settings / <strong>Quotation Templates</strong>", menu:"quot-templates"},
   "quotation-new":{title:"Quotation Preparation", crumb:"eSway ERP 2.0 / CRM / Quotation / <strong>Quotation Preparation</strong>", menu:"quotation"},
@@ -6305,20 +6305,19 @@ const TOPNAV_MENU = [
     {label:"Engagement", icon:"message-circle", go:"crm-engagement"},
     {label:"Quotation", icon:"file-text", go:"quotation"},
   ]},
-  {id:"svcops", label:"Service Ops", icon:"truck", roles:["Admin","Operations","CHA","Transport"], children:[
-    {label:"Shipment Console", icon:"globe", go:"svc-console", roles:["Admin","Operations"]},
+  {id:"svcops", label:"Logistics & Customs", icon:"truck", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
+    {label:"Booking", icon:"calendar-check", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
+      {label:"Create Booking", icon:"plus", go:"booking-new"},
+      {label:"Booking Status", icon:"calendar-check", go:"booking"},
+      {label:"Carrier Booking", icon:"ship", go:"booking"},
+    ]},
     {label:"CHA", icon:"license", go:"svc-cha", badge:"badgeSvcCha", roles:["Admin","Operations","CHA"]},
     {label:"Transport", icon:"truck", go:"svc-transport", badge:"badgeSvcTrans", roles:["Admin","Operations","Transport"]},
     {label:"Warehouse", icon:"warehouse", go:"svc-warehouse", roles:["Admin","Operations"]},
   ]},
   {id:"ops", label:"Operations", icon:"clipboard", badge:"badgeJobs", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
-    {label:"All Job List", icon:"package", roles:["Admin","Operations","Sales"], children:[
+    {label:"All Jobs", icon:"package", roles:["Admin","Operations","Sales"], children:[
       {label:"View All Jobs", icon:"package", go:"job-list"},
-    ]},
-    {label:"Booking", icon:"calendar-check", children:[
-      {label:"Create Booking", icon:"plus", go:"booking-new"},
-      {label:"Booking Status", icon:"calendar-check", go:"booking"},
-      {label:"Carrier Booking", icon:"ship", go:"booking"},
     ]},
     {label:"Job / Shipment", icon:"package", roles:["Admin","Operations","Sales"], children:[
       {label:"Create Shipment", icon:"plus", go:"job-new"},
@@ -6339,6 +6338,7 @@ const TOPNAV_MENU = [
         {label:"Road Freight", icon:"truck", go:"job-list", jobmode:"Road", jobdir:"Export"},
         {label:"Multimodal", icon:"shuffle", go:"job-list", jobmode:"", jobdir:"Export"},
       ]},
+      {label:"Shipment Console", icon:"globe", go:"svc-console", roles:["Admin","Operations"]},
     ]},
   ]},
   {id:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts","CHA","Transport"], children:[
@@ -7121,7 +7121,8 @@ function renderJobRows(){
   Promise.all([
     fetch("/api/shipments", {headers:{Authorization:"Bearer "+token}}).then(r=> r.ok ? r.json() : Promise.reject(new Error("failed"))),
     fetch("/api/customers", {headers:{Authorization:"Bearer "+token}}).then(r=> r.ok ? r.json() : [])
-  ]).then(([jobs, customers])=>{
+  ]).then(([allJobs, customers])=>{
+    const jobs = allJobs.filter(j=>j.job_type !== "Customs");          // CHA jobs are listed only on the CHA screen and its dashboard
     const customerName = {};
     customers.forEach(c=> customerName[c.id] = c.name);
     document.querySelectorAll("#jobTableBody tr[data-job-row]").forEach(tr=>tr.remove());
@@ -20138,7 +20139,7 @@ function makePrintFit(){
   }
   const table = (cols, rows, empty, n)=> '<div class="card"><div class="ch"><div class="ct">'+esc2(n)+' <span class="mn-badge">'+rows.length+'</span></div></div><div class="tw"><table><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+(rows.join("") || '<tr><td colspan="'+cols.length+'" class="tbl-empty">'+esc2(empty)+'</td></tr>')+'</tbody></table></div></div>';
   window.renderSvcConsole = ()=> paint("svcConsoleRoot", "globe", "Shipment Console", "One record per shipment: its job number, booking and every linked service job. Open a job to work on it; nothing is entered twice.", "No shipments yet. Create a booking and confirm it, or create a job directly.", (jobs, name, empty)=>{
-    const main = jobs.filter(j=>j.job_type === "Forwarding" || j.job_type === "Consol" || !j.booking_id);
+    const main = jobs.filter(j=>j.job_type !== "Customs" && (j.job_type === "Forwarding" || j.job_type === "Consol" || !j.booking_id));
     const rows = main.map(j=>{ const svc = jobs.filter(x=>x.booking_id && x.booking_id === j.booking_id && x.id !== j.id);
       return '<tr><td class="mono" style="font-weight:700">'+esc2(j.job_number)+'</td><td><strong>'+esc2(name[j.customer_id] || j.consignee || "—")+'</strong></td><td><span class="b b-bl">'+esc2(j.direction)+'</span> <span class="b b-gy">'+esc2(j.mode)+'</span></td><td>'+route(j)+'</td>'+
         '<td style="white-space:nowrap">'+(svc.map(x=>'<span class="b b-bl" style="margin-right:3px" title="'+esc2(x.job_number)+'">'+esc2(TYPE[x.job_type] || x.job_type)+'</span>').join("") || '<span style="color:var(--g5)">Freight only</span>')+'</td>'+
@@ -21170,7 +21171,7 @@ function makePrintFit(){
 })();
 
 /* ============================================================
-   CHA KIT: Service Ops > CHA. A dashboard (Draft, Pending, Filed, Delayed, Completed ...), Create Job for Export / Import x Sea / Air, a register of every CHA job with its freight job and customs references, and a job window
+   CHA KIT: Logistics & Customs > CHA. A dashboard (Draft, Pending, Filed, Delayed, Completed ...), Create Job for Export / Import x Sea / Air, a register of every CHA job with its freight job and customs references, and a job window
    with the customs stages. A CHA job is a Customs job: one booking has one freight job and any number of CHA jobs, each with its own Shipping Bill / Bill of Entry and stage.
    ============================================================ */
 (function(){
@@ -21444,7 +21445,7 @@ function makePrintFit(){
   const anchor = document.getElementById("s-bank-master"); if(!anchor) return;
   const sec = document.createElement("div"); sec.id = "s-cha-job"; sec.className = "scr"; sec.innerHTML = '<div id="chaJobRoot"></div>';
   anchor.parentNode.insertBefore(sec, anchor);
-  if(window.SCREEN_META) window.SCREEN_META["cha-job"] = {title:"CHA Job", crumb:"eSway ERP 2.0 / Service Ops / CHA / <strong>Job</strong>", menu:"svc-cha"};
+  if(window.SCREEN_META) window.SCREEN_META["cha-job"] = {title:"CHA Job", crumb:"eSway ERP 2.0 / Logistics & Customs / CHA / <strong>Job</strong>", menu:"svc-cha"};
 
   const val = k=> { const f = S.job.filing || {}; return f[k] !== undefined && f[k] !== "" ? f[k] : ((S.job.filing_defaults || {})[k] || ""); };
   const errKeys = ()=> new Set(((S.val && S.val.errors) || []).map(e=>e.key));
@@ -21504,7 +21505,7 @@ function makePrintFit(){
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">'+row("Freight job", j.freight_job_number ? '<a href="#" data-svc-job="'+esc2(j.freight_job_number)+'">'+esc2(j.freight_job_number)+'</a>' : t(null))+row("Booking", j.booking_number && j.booking_id ? '<a href="#" data-chj-booking="'+j.booking_id+'">'+esc2(j.booking_number)+'</a>' : t(j.booking_number))+row("Exporter", t(j.exporter))+row("Importer", t(j.importer))+row("Port of loading", t(j.pol))+row("Port of discharge", t(j.pod))+
       row("ETD", t(dmy(j.etd)))+row("ETA", t(dmy(j.eta)))+row("MBL / HBL / AWB", t(info.hbl || info.mbl))+row("File ref", t(info.file_ref))+row("Exporter IEC / AD / unit", t(pd((j.party_details || {}).exporter)))+row("Importer IEC / unit", t(pd((j.party_details || {}).importer)))+
       row("Source (booking)", si.booking_number ? '<a href="#" data-chj-booking="'+si.booking_id+'"><b>'+esc2(si.booking_number)+'</b></a> · '+esc2(si.booking_source || "") : t(null))+row("Services booked", t((si.services || []).join(" + ")))+row("Order of work", t(si.order))+'</div></div></div>'+
-      '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">'+(j.shipment_type === "Export" ? "Shipping Bills" : "Bills of Entry")+'</div></div><div class="cb">'+(j.bills.length ? '<table><thead><tr><th>No</th><th>Date</th><th>Status</th><th>OOC / LEO</th></tr></thead><tbody>'+j.bills.map(b=>'<tr><td class="mono">'+esc2(b.bill_no)+'</td><td>'+t(dmy(b.bill_date))+'</td><td>'+esc2(b.status)+'</td><td>'+t(dmy(b.ooc_date))+'</td></tr>').join("")+'</tbody></table>' : '<div style="color:var(--g5);font-size:12px">None recorded yet. Enter the number in the header and Save, or add more on the job\'s Customs tab.</div>')+'</div></div>'+
+      '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">'+(j.shipment_type === "Export" ? "Shipping Bills" : "Bills of Entry")+'</div><button class="btn btn-out btn-sm" type="button" data-chj-customs>＋ Add / manage bills (Customs tab)</button></div><div class="cb">'+(j.bills.length ? '<table><thead><tr><th>No</th><th>Date</th><th>Status</th><th>OOC / LEO</th></tr></thead><tbody>'+j.bills.map(b=>'<tr><td class="mono">'+esc2(b.bill_no)+'</td><td>'+t(dmy(b.bill_date))+'</td><td>'+esc2(b.status)+'</td><td>'+t(dmy(b.ooc_date))+'</td></tr>').join("")+'</tbody></table>' : '<div style="color:var(--g5);font-size:12px">None recorded yet. Enter the number in the header and Save, or add more on the job\'s Customs tab.</div>')+'</div></div>'+
       '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Documents</div></div><div class="cb">'+j.documents.map(d=>'<span class="b '+(d.available ? "b-gr" : "b-gy")+'" style="margin-right:6px">'+esc2(d.name)+(d.available ? "" : " — not ready")+'</span>').join("")+'</div></div>'+
       (j.siblings.length ? '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Other CHA jobs of this booking</div></div><div class="cb">'+j.siblings.map(s=>'<div><a href="#" data-cha-open="'+esc2(s.cha_job_number)+'">'+esc2(s.cha_job_number)+'</a> · '+esc2(s.exporter || "—")+' → '+esc2(s.importer || "—")+' · <span class="b '+(TONE[s.customs_status] || "b-gy")+'">'+esc2(s.customs_status)+'</span></div>').join("")+'</div></div>' : "")+
       '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">History</div></div><div class="cb" style="max-height:200px;overflow:auto;font-size:12px">'+(j.events.map(e=>'<div>'+esc2(String(e.at || "").slice(0, 16).replace("T", " "))+' · '+esc2(e.text)+'</div>').join("") || "—")+'</div></div>';
@@ -21546,6 +21547,7 @@ function makePrintFit(){
           .map(r=>'<tr><td>'+esc2(r[0])+'</td><td>'+(r[1] ? '<span class="b b-gr">OK</span>' : '<span class="b b-am">Pending</span>')+'</td></tr>').join("")+'</tbody></table></div>'+(v.errors.length ? '<div class="ib ib-am" style="margin-top:8px">To fix: '+v.errors.map(x=>esc2(x.label)).join(", ")+'</div>' : ""), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
       return; }
     if((b = T.closest("[data-chj-booking]"))){ e.preventDefault(); if(window.BKG && BKG.view) BKG.view(Number(b.dataset.chjBooking)); return; }
+    if(T.closest("[data-chj-customs]")){ go("job-detail", {jobNo:S.no, raw:true}); setTimeout(()=>{ const tb = document.querySelector('.tbb[data-tab="jt4"]'); if(tb) tb.click(); }, 1800); return; }
     if(T.closest("#chjBack")){ if(window.navBack) navBack("svc-cha"); else go("svc-cha"); return; }
     if(T.closest("#chjDup")){
       const j = S.job, si = j.source_info || {}; if(!window.confirm("Create another CHA job with these details?")) return;
@@ -21561,7 +21563,7 @@ function makePrintFit(){
   /* Any link to a CHA job number (booking page, search, reports, other CHA jobs) opens the CHA job screen, not the freight job page */
   window.CHA_JOBS = window.CHA_JOBS || new Set();
   const isCha = no=> !!no && (window.CHA_JOBS.has(no) || /^[A-Z]{2}\/CC\//.test(no));
-  if(!window.__goChaWrapped){ window.__goChaWrapped = true; const baseGo = window.go; window.go = function(screen, opts){ if(screen === "job-detail" && opts && isCha(opts.jobNo)) screen = "cha-job"; return baseGo.call(this, screen, opts); }; }
+  if(!window.__goChaWrapped){ window.__goChaWrapped = true; const baseGo = window.go; window.go = function(screen, opts){ if(screen === "job-detail" && opts && !opts.raw && isCha(opts.jobNo)) screen = "cha-job"; return baseGo.call(this, screen, opts); }; }
   /* unsaved filing-form changes are guarded like every other form */
   window.NAV_GUARDS = window.NAV_GUARDS || []; window.NAV_GUARDS.push(()=> S.dirty && !!el("s-cha-job") && el("s-cha-job").classList.contains("on"));
   document.addEventListener("input", e=>{ if(e.target && e.target.closest && e.target.closest("#chaJobRoot") && e.target.dataset && e.target.dataset.ff) S.dirty = true; });

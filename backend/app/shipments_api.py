@@ -56,6 +56,8 @@ def list_shipments_full(user: User = Depends(permission_required("shipment.read"
 def create_shipment(payload: ShipmentCreate, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
     data = payload.model_dump()
+    if data.get("job_type") == "Customs":
+        raise HTTPException(status_code=422, detail="CHA (customs) jobs are created in the CHA module (Logistics & Customs > CHA > Create Job), from a booking number")
     if data.get("party_branch_id") is not None and not (data.get("customer_id") and db.scalar(select(OrgBranch.id).where(OrgBranch.id == data["party_branch_id"], OrgBranch.customer_id == data["customer_id"], OrgBranch.organization_id == organization_id))):
         raise HTTPException(status_code=422, detail="The branch does not belong to the selected organization")
     credit_enforce(db, organization_id, data.get("customer_id"), "create shipment job", user.id, data.get("party_branch_id"), Decimal(str(data.get("revenue") or 0)))

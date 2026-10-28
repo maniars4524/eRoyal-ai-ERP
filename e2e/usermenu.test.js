@@ -29,9 +29,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   for (const [role, own, other] of [["CHA", "CHA", "Transport"], ["Transport", "Transport", "CHA"]]) {
     d.querySelector(`.hdr-menu-item[data-role="${role}"]`).click(); await sleep(500);
     const t = tops();
-    check(`View as ${role}: CRM, Operations (booking), Service Ops, Accounts and Dashboard show; Masters and Settings do not`, ["Dashboard", "CRM", "Operations", "Service Ops", "Accounts"].every(x => t.includes(x)) && !t.includes("Masters") && !t.includes("Settings"), t.join());
+    check(`View as ${role}: CRM, Logistics & Customs (with Booking), Accounts and Dashboard show; Masters and Settings do not`, ["Dashboard", "CRM", "Logistics & Customs", "Accounts"].every(x => t.includes(x)) && !t.includes("Masters") && !t.includes("Settings"), t.join());
     const s = subs();
-    check(`View as ${role}: Service Ops has only ${own}, Operations only Booking`, s.includes(own) && !s.includes(other) && !s.includes("Shipment Console") && !s.includes("Warehouse") && s.includes("Booking") && !s.includes("Job / Shipment") && !s.includes("All Job List"), s.join("|"));
+    check(`View as ${role}: Logistics & Customs has Booking and only ${own}`, s.includes(own) && !s.includes(other) && !s.includes("Shipment Console") && !s.includes("Warehouse") && s.includes("Booking") && !s.includes("Job / Shipment") && !s.includes("All Job List"), s.join("|"));
   }
   d.querySelector('.hdr-menu-item[data-role="Admin"]').click(); await sleep(400);
   check("View as Admin brings everything back", tops().includes("Masters") && tops().includes("Settings"));

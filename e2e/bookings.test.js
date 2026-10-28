@@ -95,9 +95,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   d.getElementById("bk_finishBtn").click(); await sleep(2500);
   const all = (await j("GET", "/api/bookings", null, token)).body;
-  const relFull = (await j("GET", `/api/bookings/${all[0].id}`, null, token)).body;
-  check("releasing the booking issues the number, creates the Freight job automatically and opens the Booking page", all[0].status === "CONFIRMED" && /^BKG/.test(all[0].number || "") && relFull.jobs.length === 1 && relFull.jobs[0].job_type === "Forwarding" && d.querySelector(".scr.on").id === "s-booking-view" && new RegExp(relFull.jobs[0].job_number).test(text("#bkvRoot")), JSON.stringify(relFull.jobs));
-  all[0].job_number = relFull.jobs[0].job_number; const bookingNo = all[0].number;
+  let relFull = (await j("GET", `/api/bookings/${all[0].id}`, null, token)).body;
+  check("releasing the booking issues the number, creates no job and opens the Booking page", all[0].status === "CONFIRMED" && /^BKG/.test(all[0].number || "") && relFull.jobs.length === 0 && d.querySelector(".scr.on").id === "s-booking-view", JSON.stringify(relFull).slice(0, 200));
+  const madeJob = (await j("POST", `/api/bookings/${all[0].id}/jobs`, { service: "Freight" }, token)).body.created_job;      // the Freight job is made from the booking number
+  relFull = (await j("GET", `/api/bookings/${all[0].id}`, null, token)).body;
+  all[0].job_number = madeJob; const bookingNo = all[0].number;
   const quote = (await j("GET", `/api/quotations/${q.id}`, null, token)).body;
   check("the quotation is now Converted to that job", quote.status === "CONVERTED" && quote.job_number === all[0].job_number, quote.status);
   const jobRec = (await j("GET", "/api/shipments", null, token)).body.find(x => x.job_number === all[0].job_number);

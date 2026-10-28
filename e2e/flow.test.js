@@ -39,8 +39,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the Costing step starts from the quotation's buy cost", true);
   d.getElementById("bk_finishBtn").click(); await sleep(2500);
   let bk = (await j("GET", "/api/bookings", null, token)).body[0];
-  bk = (await j("GET", `/api/bookings/${bk.id}`, null, token)).body; bk.job_number = (bk.jobs[0] || {}).job_number;
-  check("releasing the booking issues its number, creates the freight job automatically and opens the Booking page", bk && bk.status === "CONFIRMED" && /^BKG/.test(bk.number) && !!bk.job_number && bk.jobs.length === 1 && bk.jobs[0].job_type === "Forwarding" && d.querySelector(".scr.on").id === "s-booking-view", JSON.stringify(bk || {}).slice(0, 200));
+  bk = (await j("GET", `/api/bookings/${bk.id}`, null, token)).body;
+  check("releasing the booking only issues its number (no job) and opens the Booking page", bk && bk.status === "CONFIRMED" && /^BKG/.test(bk.number) && bk.jobs.length === 0 && d.querySelector(".scr.on").id === "s-booking-view", JSON.stringify(bk || {}).slice(0, 200));
+  const made = (await j("POST", `/api/bookings/${bk.id}/jobs`, { service: "Freight" }, token)).body;     // the freight job is made from the booking number
+  bk = (await j("GET", `/api/bookings/${bk.id}`, null, token)).body; bk.job_number = made.created_job;
+  check("the freight job is created from the booking number", bk.jobs.length === 1 && bk.jobs[0].job_type === "Forwarding" && !!bk.job_number);
 
   // the job
   const jobNo = bk.job_number;
@@ -106,9 +109,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   w.BKG.addCharge({ type: "AR", description: "Customs Clearance", qty: "1", rate: "4500", currency: "INR", exch: "1", tax_pct: "18", service: "CHA" });
   d.getElementById("bk_finishBtn").click(); await sleep(2500);
   const multi = (await j("GET", "/api/bookings", null, token)).body.find(x => x.quotation_id === fc.id);
-  check("a Freight + CHA booking opens the Booking page with both jobs already created", d.querySelector(".scr.on").id === "s-booking-view" && !d.querySelector('[data-bkv-create="Freight"]') && !d.querySelector('[data-bkv-create="CHA"]') && /Customs/.test(text("#bkvRoot")));
+  check("a Freight + CHA booking opens the Booking page offering to create both jobs (none made yet)", d.querySelector(".scr.on").id === "s-booking-view" && !!d.querySelector('[data-bkv-create="Freight"]') && !!d.querySelector('[data-bkv-create="CHA"]'));
+  await j("POST", `/api/bookings/${multi.id}/jobs`, { service: "CHA" }, token); await j("POST", `/api/bookings/${multi.id}/jobs`, { service: "Freight" }, token);
   const mb = (await j("GET", `/api/bookings/${multi.id}`, null, token)).body;
-  check("both jobs sit under the one booking number", mb.jobs.length === 2 && new Set(mb.jobs.map(x => x.job_type)).size === 2 && /BKG/.test(mb.number), JSON.stringify(mb.jobs));
+  check("both jobs sit under the one booking number once created from it", mb.jobs.length === 2 && new Set(mb.jobs.map(x => x.job_type)).size === 2 && /BKG/.test(mb.number), JSON.stringify(mb.jobs));
   const chaJob = mb.jobs.find(x => x.job_type === "Customs").job_number;
   const chaCh = (await j("GET", `/api/shipments/by-number/${chaJob}/charges`, null, token)).body.lines;
   check("the CHA job carries only the CHA charge, with its GST", chaCh.length === 1 && chaCh[0].charge_name === "Customs Clearance" && Number(chaCh[0].sell.tax_pct) === 18, JSON.stringify(chaCh).slice(0, 200));
@@ -118,7 +122,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // customs clearance: bills entered in the CHA job appear in the freight job of the same booking
   const jobs2 = (await j("GET", `/api/bookings/${multi.id}`, null, token)).body.jobs;
   const fj2 = jobs2.find(x => x.job_type === "Forwarding").job_number, cj2 = jobs2.find(x => x.job_type === "Customs").job_number;
-  w.go("job-detail", { jobNo: cj2 }); await sleep(2800);
+  w.go("job-detail", { jobNo: cj2, raw: true }); await sleep(2800);
   d.querySelector('.tbb[data-tab="jt4"]').click(); await sleep(1200);
   check("the CHA job has a Customs section with an Add Shipping Bill button", !!d.getElementById("cusAddBtn") && /Add Shipping Bill/.test(d.getElementById("cusAddBtn").textContent) && /No Shipping Bill recorded yet/.test(text("#cusBody")), text("#cusBody").slice(0, 160));
   for (const [no, dt] of [["SB5001", "2026-10-10"], ["SB5002", "2026-10-11"]]) {

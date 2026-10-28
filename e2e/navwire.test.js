@@ -78,6 +78,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   d.querySelector('.dash-dot[title="CHA (Customs)"]').click(); await sleep(1500);
   d.querySelector('.dash-slide.active [data-go="svc-cha"]').click(); await sleep(1500);
   check("CHA slide tile opens the CHA screen", on("s-svc-cha"));
+  // CHA jobs are listed only in the CHA module, not in the shipment / job list
+  w.go("job-list"); await sleep(2500);
+  const listText = d.getElementById("jobTableBody").textContent;
+  check("the All Jobs list shows the freight job but no CHA job", listText.includes(fjob) && !listText.includes(cjob), listText.slice(0, 160));
+  w.go("job-new"); await sleep(1500);
+  check("New Shipment Job no longer offers the Customs job type", !Array.from(d.getElementById("nj_type").options).some(o => /Customs/.test(o.textContent)));
   // freight module: New job from booking list no longer offers a booking that has its freight job
   w.go("job-new"); await sleep(1800);
   check("New Shipment Job lists only bookings still waiting for a freight job", !Array.from(d.querySelectorAll("#jfbSel option")).some(o => o.textContent.includes(done.number)));

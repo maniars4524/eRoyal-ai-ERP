@@ -223,3 +223,8 @@ def test_filing_form_defaults_validation_and_saving(h):
     exp = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "Madras Exports", "importer": "Buyer", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
     assert exp["filing_label"] == "Shipping Bill Filing" and exp["filing_tabs"][:3] == ["General", "Invoice", "Item"] and "Annexure-C1 (EOU)" in exp["filing_tabs"]
     assert {"gstn_type", "gstn_id", "exporter_class", "consignee"} <= {f["k"] for sec in exp["filing_form"] for f in sec["fields"]} and exp["filing_defaults"]["port_loading"] == "INMAA"
+
+
+def test_cha_jobs_are_not_created_through_the_shipment_job_form(h):
+    r = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "job_type": "Customs"}, headers=h)
+    assert r.status_code == 422 and "CHA module" in r.json()["detail"]
