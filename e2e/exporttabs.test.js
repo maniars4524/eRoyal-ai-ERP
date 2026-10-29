@@ -1,0 +1,63 @@
+// CHA Export job: Invoice / Item / Annexure C1 tabs, e-Way Bill, Job History, Bill to party + Charges, Financials, Job log.
+// CHA screen: Back + Create Job (Export / Import x Sea / Air), dashboard cards (Draft, Pending, Filed, Delayed, Completed ...), register, job window with stages.
+const { JSDOM } = require("jsdom");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => {
+  const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  return { status: r.status, body: r.status === 204 ? null : await r.json().catch(() => null) };
+};
+let failures = 0;
+const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  -> " + (extra || ""))); if (!ok) failures++; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36);
+  const org = await j("POST", "/api/organizations", { code: "XT" + tag.slice(-6).toUpperCase(), name: "ExpTab " + tag, admin_email: `xt${tag}@t.test`, admin_username: "xt" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Ava" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "xt" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
+    beforeParse(w) { w.fetch = async (u, o) => { for (let i = 0; ; i++) { try { return await fetch(new URL(u, BASE).href, o); } catch (e) { if (i >= 2) throw e; await sleep(200); } } }; w.sessionStorage.setItem("esway_access_token", token); w.localStorage.setItem("esway_persistent_token", token); w.confirm = () => true; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.print = () => {}; w.prompt = () => "wrong HS code"; } });
+  const w = dom.window, d = w.document;
+  await sleep(6500);
+  const no = (await j("POST", "/api/cha/jobs", { job_type: "Export", mode: "Sea", exporter: "SWITCH INTERNATIONAL", importer: "ARMIN RUB", pol: "INMAA", pod: "HKHKG" }, token)).body.cha_job_number;
+  w.go("cha-job", { jobNo: no }); await sleep(3500);
+  const R = () => d.getElementById("chaJobRoot");
+  const tab = async n => { R().querySelector('[data-chj-tab="' + n + '"]').click(); await sleep(500); };
+  const set = (sel, v) => { const e = R().querySelector(sel); e.value = v; e.dispatchEvent(new w.Event("input", { bubbles: true })); };
+  const tabsText = Array.from(R().querySelectorAll("[data-chj-tab]")).map(x => x.dataset.chjTab);
+  check("an Export job has Job, General, Invoice, Item, Annexure C1, Checklist, e-Way Bill, Submission, ETP, Job History, Entity, Charges, Financials, Job Log", ["Job", "General", "Invoice", "Item", "Annexure C1", "Checklist", "e-Way Bill", "Submission", "ETP", "Job History", "Entity", "Charges", "Financials", "Job Log"].every(x => tabsText.includes(x)) && !tabsText.includes("IGM"), tabsText.join("|"));
+  await tab("General");
+  check("General has the bank, drawback, IFSC, NFEI and final destination fields of the Shipping Bill screen", ["bank_account", "drawback_account", "ifsc_code", "nfei", "port_final_destination", "country_final_destination"].every(k => !!R().querySelector('[data-ff="' + k + '"]')));
+  set('[data-ff="bank_account"]', "2656574774");
+  await tab("Invoice");
+  R().querySelector('[data-cd-new="invoices"]').click(); await sleep(400);
+  set('[data-cd="invoices|invoice_no"]', "4363365"); set('[data-cd="invoices|currency"]', "USD"); set('[data-cd="invoices|invoice_value"]', "436534.34"); set('[data-cd="invoices|exchange_rate"]', "94.2");
+  check("the invoice has Main details, Freight & insurance and Third party (SW)", Array.from(R().querySelectorAll("[data-cd-sub]")).map(x => x.textContent.trim()).join("|") === "Invoice main details|Freight & insurance|Third party (SW)");
+  R().querySelector('[data-cd-sub="invoices|1"]').click(); await sleep(300);
+  set('[data-cd="invoices|freight_amt"]', "45.6"); set('[data-cd="invoices|insurance_amt"]', "65.5");
+  set('[data-cdr="ar4|ar4_no"]', "AR4-1"); set('[data-cdr="ar4|commissionerate"]', "Chennai");
+  R().querySelector('[data-cd-rowsave="ar4"]').click(); await sleep(400);
+  check("an AR4 row is added under the invoice", /AR4-1/.test(R().textContent));
+  await tab("Item");
+  R().querySelector('[data-cd-new="items"]').click(); await sleep(400);
+  set('[data-cd="items|description"]', "RUBBER PARTS"); set('[data-cd="items|qty"]', "100");
+  check("the item has its five sections (main, other, SW manufacturer, single window, supporting documents)", R().querySelectorAll("[data-cd-sub]").length === 5);
+  await tab("Annexure C1");
+  set('[data-cd="annexure_c1|exporter_name"]', "SWITCH INTERNATIONAL"); set('[data-cd="annexure_c1|seal_no"]', "S123");
+  await tab("Charges");
+  check("Charges starts with the Bill to party form", !!R().querySelector('[data-cd="billto|party_name"]'));
+  set('[data-cd="billto|party_name"]', "SHAHI EXPORT PVT LTD"); set('[data-cd="billto|gstn"]', "29AAJCS115L1ZU");
+  await tab("Job History");
+  set('[data-cdr="notes|note_text"]', "Documents received"); R().querySelector('[data-cd-rowsave="notes"]').click(); await sleep(300);
+  Array.from(R().querySelectorAll("button")).find(x => x.textContent.trim() === "Save").click(); await sleep(2800);
+  const saved = (await j("GET", "/api/cha/jobs/" + encodeURIComponent(no), null, token)).body;
+  check("Save stores invoice, AR4, item, Annexure C1, bill-to party and notes", saved.data.invoices[0].freight_amt === "45.6" && saved.data.ar4[0].ar4_no === "AR4-1" && saved.data.items[0].description === "RUBBER PARTS" && saved.data.annexure_c1[0].seal_no === "S123" && saved.data.billto[0].party_name === "SHAHI EXPORT PVT LTD" && saved.data.notes[0].note_text === "Documents received" && saved.filing.bank_account === "2656574774", JSON.stringify(saved.data).slice(0, 300));
+  await tab("Checklist");
+  check("the Export Checklist shows the exporter, consignee, invoices and items", /Exporter/.test(R().textContent) && /Consignee/.test(R().textContent) && /Invoices\s*1/.test(R().textContent) && /Items\s*1/.test(R().textContent) && /Annexure C1\s*Entered/.test(R().textContent), R().textContent.slice(0, 300));
+  await tab("Submission");
+  check("Submission names the exporter and consignee", /Exporter/.test(R().textContent) && /ARMIN RUB/.test(R().textContent));
+  await tab("Job Log");
+  check("the Job log records the section changes", /Invoice/.test(R().textContent) && /Item/.test(R().textContent) && /Bill to party/.test(R().textContent), R().textContent.slice(0, 300));
+  console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

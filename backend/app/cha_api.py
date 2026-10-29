@@ -478,17 +478,19 @@ EXPORT_FORM = [
         {"k": "gstn_type", "l": "GSTN Type", "req": 1, "t": "select", "o": _o("GSN - GSTIN of Normal Persons", "GSG - GSTIN of Govt. Entities", "GSD - GSTIN of Diplomats", "PAN - PAN No", "TAN - TAN No", "PSP - Passport No (9 chars)", "ADH - Aadhar No (12 chars)")},
         {"k": "gstn_id", "l": "GSTN ID", "req": 1}, {"k": "exporter_type", "l": "Type of Exporter", "t": "select", "o": _o("R - Merchant Exporter", "F - Manufacturing Exporter", "C - Merchant Exporter Courier", "D - Manufacturer Exporter Courier")},
         {"k": "exporter_class", "l": "Exporter Class", "req": 1, "t": "select", "o": _o("P - Private", "G - Government", "W - Warehouse Shipping Bill", "O - Others")},
-        {"k": "ad_code", "l": "Authorized Dealer (Bank) Code", "req": 1}, {"k": "epz_code", "l": "EPZ Code"}]},
+        {"k": "ad_code", "l": "Authorized Dealer (Bank) Code", "req": 1}, {"k": "bank_account", "l": "Bank Account"}, {"k": "drawback_account", "l": "Drawback Account"}, {"k": "ifsc_code", "l": "IFSC Code"}, {"k": "epz_code", "l": "EPZ Code"}]},
     {"title": "Shipment", "fields": [
         {"k": "port_origin", "l": "Port of Origin", "ph": "e.g. INMAA"}, {"k": "country_destination", "l": "Country of Destination", "ph": "e.g. BE - BELGIUM"}, {"k": "country_discharge", "l": "Country of Discharge", "ph": "e.g. BE - BELGIUM"},
-        {"k": "port_discharge", "l": "Port of Discharge", "ph": "e.g. BEANR"}, {"k": "state_of_origin", "l": "State of Origin"}, {"k": "port_loading", "l": "Port of Loading"}, {"k": "marks", "l": "Marks & Numbers", "span": 2}]},
+        {"k": "port_discharge", "l": "Port of Discharge", "ph": "e.g. BEANR"}, {"k": "port_final_destination", "l": "Port of Final Destination"}, {"k": "country_final_destination", "l": "Country of Final Destination"}, {"k": "state_of_origin", "l": "State of Export"},
+        {"k": "port_loading", "l": "Port of Loading"}, {"k": "sb_type", "l": "SB Type", "t": "select", "o": _o("Free Duty - Free Duty", "Dutiable - Dutiable", "Drawback - Drawback")}, {"k": "nfei", "l": "NFEI (Y / N)", "t": "select", "o": _o("No - No", "Yes - Yes")}, {"k": "nfei_type", "l": "NFEI Type"},
+        {"k": "marks", "l": "Marks & Numbers", "span": 2}]},
     {"title": "Consignee", "fields": [
         {"k": "consignee", "l": "Consignee", "span": 2}, {"k": "cons_addr1", "l": "Consignee Address 1", "req": 1}, {"k": "cons_addr2", "l": "Consignee Address 2"}, {"k": "cons_addr3", "l": "Consignee Address 3"}, {"k": "cons_addr4", "l": "Consignee Address 4"},
         {"k": "cons_country", "l": "Consignee Country"}, {"k": "cons_category", "l": "Consignee Category"}]},
     {"title": "RBI waiver and amendment", "fields": [
         {"k": "rbi_waiver_no", "l": "RBI Waiver Number"}, {"k": "rbi_waiver_date", "l": "RBI Waiver Date", "t": "date"}, {"k": "amendment_type", "l": "General Amendment Type", "t": "select", "o": _o("AMENDMENT - AMENDMENT")}]},
 ]
-FILING_TABS = {"Import": ["General", "IGM", "Invoice", "Product"], "Export": ["General", "Invoice", "Item", "Annexure-C", "Annexure-C1 (EOU)", "AR4 Details", "ETP"]}
+FILING_TABS = {"Import": ["General", "IGM", "Invoice", "Product"], "Export": ["General", "Invoice", "Item", "Annexure C1"]}
 
 
 def filing_form(direction: str) -> list[dict]:
@@ -561,7 +563,7 @@ def get_cha_job(job_number: str, user: User = Depends(permission_required("shipm
     events = list(db.scalars(select(JobEvent).where(JobEvent.shipment_id == job.id).order_by(JobEvent.id.desc()).limit(200)))
     info = job.cha_info or {}
     return {**row, "info": {"file_ref": info.get("file_ref"), "customs_location": info.get("customs_location"), "cha_license": info.get("cha_license"), "mbl": info.get("mbl"), "hbl": info.get("hbl") or job.bl_awb,
-                            "containers": info.get("containers"), "source": ("Freight job " + freight.job_number) if freight else "CHA screen"}, "source_info": source_info(db, job, freight, booking), "filing": (info.get("filing") or {}), "data": (info.get("data") or {}), "spec": cha_spec.IMPORT_SPEC if job.direction == "Import" else [], "filing_form": filing_form(job.direction), "filing_tabs": FILING_TABS[job.direction],
+                            "containers": info.get("containers"), "source": ("Freight job " + freight.job_number) if freight else "CHA screen"}, "source_info": source_info(db, job, freight, booking), "filing": (info.get("filing") or {}), "data": (info.get("data") or {}), "spec": cha_spec.spec_for(job.direction), "filing_form": filing_form(job.direction), "filing_tabs": FILING_TABS[job.direction],
             "filing_defaults": filing_defaults(db, job, row, {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}), "filing_label": "Shipping Bill Filing" if job.direction == "Export" else "Bill of Entry Filing", "party_details": {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}, "stages": CHA_STATUSES, "delayed": is_delayed(job), "siblings": siblings,
             "events": [{"at": e.created_at, "type": e.event_type, "text": e.description, "previous": e.previous_value, "new": e.new_value, "by": e.actor_name, "reason": e.reason, "detail": e.detail} for e in events]}
 
@@ -600,7 +602,7 @@ def update_cha_job(job_number: str, body: InfoIn, user: User = Depends(permissio
         if changes:
             jl.log_event(db, job, user, "CHA_FILING_CHANGED", "OPERATIONS", "Filing details changed: " + ", ".join(c["field"] for c in changes[:6]) + (" ..." if len(changes) > 6 else ""), detail={"changes": changes[:60]})
     if "data" in ch:
-        rules = cha_spec.collections()
+        rules = cha_spec.collections(cha_spec.spec_for(job.direction))
         incoming = ch.pop("data") or {}
         cur = dict((job.cha_info or {}).get("data") or {})
         for name, rows in incoming.items():

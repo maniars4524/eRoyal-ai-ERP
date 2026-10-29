@@ -26,7 +26,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const tab = async n => { R().querySelector(`[data-chj-tab="${n}"]`).click(); await sleep(500); };
   const set = (sel, v) => { const e = R().querySelector(sel); e.value = v; e.dispatchEvent(new w.Event("input", { bubbles: true })); };
   const tabsText = Array.from(R().querySelectorAll("[data-chj-tab]")).map(x => x.textContent.replace(/\d+/g, "").trim());
-  check("an Import job has the tabs Job, General, IGM, Invoice, Product, Checklist, Charges, Financials, Job Log", ["Job", "General", "IGM", "Invoice", "Product", "Checklist", "e-Way Bill", "Submission", "Entity", "Charges", "Financials", "Job Log"].every(x => tabsText.some(y => y.startsWith(x))), tabsText.join("|"));
+  check("an Import job has the tabs Job, General, IGM, Invoice, Product, Checklist, Charges, Financials, Job Log", ["Job", "General", "IGM", "Invoice", "Product", "Checklist", "e-Way Bill", "Submission", "Job History", "Entity", "Charges", "Financials", "Job Log"].every(x => tabsText.some(y => y.startsWith(x))), tabsText.join("|"));
   await tab("IGM");
   set('[data-cdr="igm|igm_no"]', "9854321"); set('[data-cdr="igm|mawb_no"]', "110897654321"); set('[data-cdr="igm|packages"]', "1");
   R().querySelector('[data-cd-rowsave="igm"]').click(); await sleep(400);

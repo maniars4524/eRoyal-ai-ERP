@@ -221,7 +221,7 @@ def test_filing_form_defaults_validation_and_saving(h):
     assert v2["ready"] is True and v2["errors"] == [] and v2["passed"] == v2["checked"], v2
     assert client.patch(f"/api/cha/jobs/{no}", json={"filing": {"nonsense": "x"}}, headers=h).status_code == 422
     exp = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "Madras Exports", "importer": "Buyer", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
-    assert exp["filing_label"] == "Shipping Bill Filing" and exp["filing_tabs"][:3] == ["General", "Invoice", "Item"] and "Annexure-C1 (EOU)" in exp["filing_tabs"]
+    assert exp["filing_label"] == "Shipping Bill Filing" and exp["filing_tabs"] == ["General", "Invoice", "Item", "Annexure C1"]
     assert {"gstn_type", "gstn_id", "exporter_class", "consignee"} <= {f["k"] for sec in exp["filing_form"] for f in sec["fields"]} and exp["filing_defaults"]["port_loading"] == "INMAA"
 
 
@@ -296,11 +296,11 @@ def test_import_job_tabs_are_saved_validated_and_logged(h):
     imp = client.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Air", "exporter": "Sup Co", "importer": "Imp Co", "pol": "SGSIN", "pod": "INMAA"}, headers=h).json()
     no = imp["cha_job_number"]
     tabs = {t["tab"] for t in imp["spec"]}
-    assert tabs == {"IGM", "Invoice", "e-Way Bill", "Product"} and imp["data"] == {}
+    assert {"IGM", "Invoice", "Product", "e-Way Bill", "Job History"} <= tabs and "Annexure C1" not in tabs and imp["data"] == {}
     sections = {s["title"] for t in imp["spec"] if t["tab"] == "Product" for c in t["collections"] for s in c["sections"]}
     assert {"ADD", "Licence", "S/W"} <= sections
     exp = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "E", "importer": "I", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
-    assert exp["spec"] == []
+    assert {"Invoice", "Item", "Annexure C1", "e-Way Bill"} <= {t["tab"] for t in exp["spec"]} and "IGM" not in {t["tab"] for t in exp["spec"]}
     data = {"igm": [{"igm_no": "9854321", "igm_date": "2026-05-13", "mawb_no": "110897654321", "packages": "1", "gross_weight": "2.000"}],
             "invoices": [{"invoice_no": "7534451158", "invoice_date": "2025-07-10", "terms": "FOB", "currency": "USD", "invoice_value": "886526.03", "exchange_rate": "97.05", "supplier_name": "SUPPLIER"}],
             "items": [{"invoice_sr": "1", "description": "TEST", "qty": "24", "qty_unit": "KGS", "unit_price": "8865.26", "cth_no": "29199090", "levy_pct": "5.00"}]}
@@ -321,3 +321,20 @@ def test_import_job_tabs_are_saved_validated_and_logged(h):
     assert put.status_code == 200
     row = client.get(f"/api/cha/jobs/{no}", headers=h).json()
     assert row["charges_cost"] == 3000 and row["charges_sell"] == 4500.0
+
+
+def test_export_job_tabs_follow_the_shipping_bill_screens(h):
+    exp = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "Switch Intl", "importer": "Armin Rub", "pol": "INMAA", "pod": "HKHKG"}, headers=h).json()
+    no = exp["cha_job_number"]
+    sections = {c["key"]: [s["title"] for s in c.get("sections", [])] for t in exp["spec"] for c in t["collections"]}
+    assert sections["invoices"] == ["Invoice main details", "Freight & insurance", "Third party (SW)"] and sections["items"] == ["Item main details", "Other details", "SW - manufacturer", "Single window", "Supporting documents"]
+    assert {"ar4", "annexure_c1", "eway", "notes", "billto"} <= set(sections)
+    data = {"invoices": [{"invoice_no": "4363365", "invoice_date": "2026-10-19", "invoice_value": "436534.34", "currency": "USD", "exchange_rate": "94.2", "terms": "CIF", "freight_amt": "45.6", "insurance_amt": "65.5"}],
+            "items": [{"invoice_sr": "1", "description": "RUBBER PARTS", "qty": "100", "scheme": "00-FREE SHIPPING BILL", "rodtep": "Yes", "mfr_country": "INDIA"}], "ar4": [{"ar4_no": "AR4-1", "commissionerate": "Chennai"}],
+            "annexure_c1": [{"exporter_name": "Switch Intl", "iec_no": "0494028467", "seal_no": "S123"}], "billto": [{"party_name": "Shahi Export Pvt Ltd", "gstn": "29AAJCS115L1ZU", "state_name": "29--KARNATAKA"}], "notes": [{"note_text": "Docs received"}]}
+    ok = client.patch(f"/api/cha/jobs/{no}", json={"data": data, "filing": {"bank_account": "2656574774", "ifsc_code": "SBIN0000001", "nfei": "No"}}, headers=h)
+    assert ok.status_code == 200, ok.text
+    body = ok.json()
+    assert body["data"]["invoices"][0]["freight_amt"] == "45.6" and body["data"]["billto"][0]["party_name"] == "Shahi Export Pvt Ltd" and body["filing"]["bank_account"] == "2656574774"
+    # an Import-only section is refused on an Export job
+    assert client.patch(f"/api/cha/jobs/{no}", json={"data": {"igm": [{"igm_no": "1"}]}}, headers=h).status_code == 422

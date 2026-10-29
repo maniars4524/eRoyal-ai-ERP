@@ -54,14 +54,6 @@ IMPORT_SPEC = [
                                               F("buyer_seller_related", "Buyer and seller related", "select", YES_NO)]},
         ]},
     ]},
-    {"tab": "e-Way Bill", "collections": [
-        {"key": "eway", "kind": "form", "title": "e-Way Bill", "sections": [
-            {"title": "Bill from", "fields": [F("from_name", "Name"), F("from_gstn", "GSTN ID"), F("from_state", "State"), F("from_address1", "Address 1"), F("from_address2", "Address 2"), F("from_place", "Place"), F("from_pin", "Pin"), F("from_actual_state", "Actual state"), F("from_subsup_desc", "Sub-supply description")]},
-            {"title": "Bill to", "fields": [F("to_name", "Name"), F("to_gstn", "GSTN ID"), F("to_state", "State"), F("to_address1", "Address 1"), F("to_address2", "Address 2"), F("to_place", "Place"), F("to_pin", "Pin"), F("to_actual_state", "Actual state"), F("cess_non_advol", "Cess non-advol amount", "number"), F("to_other", "Other")]},
-            {"title": "Transport", "fields": [F("transport_name", "Transport name"), F("transport_id", "Transport ID"), F("distance_km", "Approx. distance (km)", "number"), F("transport_mode", "Mode", "select", ["Road", "Rail", "Air", "Ship"]), F("transport_doc_no", "Transport document no"), F("vehicle_no", "Vehicle no"),
-                                         F("vehicle_type", "Vehicle type", "select", ["Regular", "Over Dim. Cargo"]), F("transport_date", "Transport date", "date"), F("user_gstn", "User GSTN ID"), F("eway_no", "e-Way bill no"), F("eway_date", "e-Way bill date", "date")]},
-        ]},
-    ]},
     {"tab": "Product", "collections": [
         {"key": "items", "kind": "records", "title": "Item", "link": "invoices", "sections": [
             {"title": "Item main", "fields": [F("invoice_sr", "Invoice sr no", "number"), F("description", "Item description", "area"), F("qty", "Item quantity", "number"), F("qty_unit", "Unit (UQC)"), F("unit_price", "Unit price", "number"), F("price_ccy", "Price currency"),
@@ -91,9 +83,94 @@ IMPORT_SPEC = [
 ]
 
 
+# parts shared by Import and Export jobs
+COMMON_SPEC = [
+    {"tab": "e-Way Bill", "collections": [
+        {"key": "eway", "kind": "form", "title": "e-Way Bill", "sections": [
+            {"title": "Bill from", "fields": [F("from_name", "Name"), F("from_gstn", "GSTN ID"), F("from_state", "State"), F("from_address1", "Address 1"), F("from_address2", "Address 2"), F("from_place", "Place"), F("from_pin", "Pin"), F("from_actual_state", "Actual state"), F("from_subsup_desc", "Sub-supply description")]},
+            {"title": "Bill to", "fields": [F("to_name", "Name"), F("to_gstn", "GSTN ID"), F("to_state", "State"), F("to_address1", "Address 1"), F("to_address2", "Address 2"), F("to_place", "Place"), F("to_pin", "Pin"), F("to_actual_state", "Actual state"), F("cess_non_advol", "Cess non-advol amount", "number"), F("to_other", "Other")]},
+            {"title": "Transport", "fields": [F("transport_name", "Transport name"), F("transport_id", "Transport ID"), F("distance_km", "Approx. distance (km)", "number"), F("transport_mode", "Mode", "select", ["Road", "Rail", "Air", "Ship"]), F("transport_doc_no", "Transport document no"), F("vehicle_no", "Vehicle no"),
+                                         F("vehicle_type", "Vehicle type", "select", ["Regular", "Over Dim. Cargo"]), F("transport_date", "Transport date", "date"), F("user_gstn", "User GSTN ID"), F("eway_no", "e-Way bill no"), F("eway_date", "e-Way bill date", "date")]},
+        ]},
+    ]},
+    {"tab": "Job History", "collections": [
+        {"key": "notes", "kind": "rows", "title": "Job notes", "fields": [F("note_date", "Date", "date"), F("note_by", "By"), F("note_text", "Note", "area")]},
+    ]},
+    {"tab": "Bill to party", "collections": [
+        {"key": "billto", "kind": "form", "title": "Bill to party", "sections": [
+            {"title": "Party", "fields": [F("party_name", "Party name"), F("branch_sl_no", "Branch sl no"), F("address1", "Address 1"), F("address2", "Address 2"), F("address3", "Address 3"), F("pincode", "Pincode"), F("state_name", "State"), F("gstn", "GSTN number")]},
+        ]},
+    ]},
+]
+
+YN = ["Yes", "No"]
+TERMS_X = ["CIF", "FOB", "CFR", "C&I", "CNF", "EXW", "FCA", "CPT", "CIP", "DAP", "DDP"]
+
+
+def _money(label, key):
+    return [F(key + "_pct", label + " rate %", "number"), F(key + "_amt", label + " amount", "number"), F(key + "_ccy", label + " currency")]
+
+
+EXPORT_SPEC = [
+    {"tab": "Invoice", "collections": [
+        {"key": "invoices", "kind": "records", "title": "Invoice", "sections": [
+            {"title": "Invoice main details", "fields": [
+                F("invoice_no", "GST invoice no"), F("invoice_date", "Date", "date"), F("payment_method", "Payment method", "select", ["NA", "AP - Advance payment", "LC - Letter of credit", "DP - Documents against payment", "OA - Open account"]),
+                F("invoice_value", "Invoice value", "number"), F("currency", "Invoice currency"), F("exchange_rate", "Exchange rate", "number"), F("terms", "Terms", "select", TERMS_X), F("consignee_buyer_same", "Whether consignee and buyer same", "select", YN),
+                F("period_of_payment", "Period of payment"), F("buyer_name", "Buyer name"), F("buyer_address1", "Buyer address 1"), F("buyer_address2", "Buyer address 2"), F("contract_no", "Contract no"), F("contract_date", "Contract date", "date")]},
+            {"title": "Freight & insurance", "fields": _money("Commission", "commission") + _money("FOB discount", "fob_disc") + _money("Pack & misc", "pack_misc") + _money("Other deductions", "other_ded") + _money("Freight", "freight") + _money("Insurance", "insurance")
+                + [F("unit_price_includes", "Whether the unit price includes", "select", ["N", "Y"])]},
+            {"title": "Third party (SW)", "fields": [
+                F("third_party_name", "Third party name"), F("third_party_address1", "Address 1"), F("third_party_address2", "Address 2"), F("third_party_city", "City"), F("country_sub_division", "Country sub division"), F("third_party_country", "Country code"),
+                F("third_party_pin", "Pin"), F("terms_place", "Terms place"), F("aeo_code", "Authorized Economic Operator code"), F("aeo_country", "AEO country"), F("aeo_role", "AEO role"), F("notify_name", "Notify name"),
+                F("notify_address1", "Notify address 1"), F("notify_address2", "Notify address 2"), F("notify_address3", "Notify address 3"), F("notify_country", "Notify country")]},
+        ]},
+        {"key": "ar4", "kind": "rows", "title": "AR4 details", "fields": [F("ar4_no", "AR4 no"), F("ar4_date", "AR4 date", "date"), F("commissionerate", "Commissionerate"), F("division", "Division"), F("range", "Range"), F("ar4_item_no", "Item no"), F("remarks", "Remarks", "area")]},
+    ]},
+    {"tab": "Item", "collections": [
+        {"key": "items", "kind": "records", "title": "Item", "link": "invoices", "sections": [
+            {"title": "Item main details", "fields": [
+                F("invoice_sr", "Invoice sr no", "number"), F("description", "Description", "area"), F("ritc_no", "RITC no"), F("qty", "Item quantity", "number"), F("qty_unit", "Unit"), F("unit_price", "Item unit price", "number"), F("per", "Per", "number"),
+                F("amount", "Item amount", "number"), F("scheme", "Scheme", "select", ["00-FREE SHIPPING BILL", "01-ADVANCE LICENCE", "02-EPCG", "03-DEEC", "04-DFIA", "05-EOU", "06-DRAWBACK"]), F("str", "STR Y/N", "select", ["No", "Yes"]),
+                F("reward", "Reward Y/N", "select", ["Yes", "No"]), F("cess", "Cess", "select", ["No", "Yes"]), F("rodtep", "RODTEP (Y/N)", "select", ["Yes", "No"])]},
+            {"title": "Other details", "fields": [
+                F("accessory_desc", "Accessory description", "area"), F("end_use", "End use of item"), F("igst_payment_status", "IGST payment status", "select", ["NA", "P - Paid", "LUT - Without payment"]), F("taxable_value", "Taxable value", "number"),
+                F("igst_rate", "IGST rate", "number"), F("igst_amount", "IGST amount", "number"), F("info_msr", "Info MSR", "number"), F("info_uqc", "Info UQC"), F("under_rta_fta", "Under RTA / FTA"), F("state_of_origin", "State of origin"),
+                F("district", "District"), F("gst_cess_amt", "GST cess amount", "number"), F("tp_exporter_name", "Third party exporter name"), F("tp_iec", "Third party IEC code"), F("tp_branch_sl", "Third party branch sl no"),
+                F("tp_address1", "Third party address 1"), F("tp_address2", "Third party address 2"), F("tp_address3", "Third party address 3"), F("tp_gstn_type", "GSTN type"), F("tp_gstn_id", "GSTN ID")]},
+            {"title": "SW - manufacturer", "fields": [
+                F("mfr_code_type", "Item manufacturer / producer code type"), F("mfr_grower_code", "Item manufacturer / producer / grower code"), F("mfr_address1", "Address 1"), F("mfr_address2", "Address 2"), F("mfr_city", "City"),
+                F("mfr_country_subdivision", "Country subdivision"), F("mfr_pincode", "Pincode"), F("mfr_country", "Manufacturer country"), F("source_state", "Source state"), F("transit_country", "Transit country"),
+                F("accessory_status", "Accessory status (0 / 1 / 2)", "select", ["0 - No accessories", "1 - Accessories along with this item", "2 - Accessories as separate item"]), F("hawb_no", "HAWB no"), F("part_no", "Part no"), F("total_package", "Total package", "number")]},
+            {"title": "Single window", "fields": [
+                F("sw_dept", "Available department"), F("sw_ritc", "RITC no"), F("sw_info_type", "Info type"), F("sw_info_qualifier", "Info qualifier"), F("sw_info_code", "Info code"), F("sw_info_text", "Info text"), F("sw_info_msr", "Info MSR", "number"),
+                F("sw_info_uqc", "Info UQC"), F("sw_sr_no", "Sr no")]},
+            {"title": "Supporting documents", "fields": [
+                F("doc_level", "Level", "select", ["Job Level", "Invoice Level", "Item Level"]), F("irn_no", "IRN no"), F("doc_type_code", "Document type code"), F("iss_party_code", "Issuing party code"), F("iss_party_name", "Issuing party name"),
+                F("iss_party_add", "Issuing party address"), F("iss_party_add2", "Address 2"), F("iss_party_city", "City"), F("iss_party_pin", "Pin"), F("doc_no", "Document no"), F("place_of_issue", "Place of issue"), F("issue_date", "Issue date", "date"),
+                F("expiry_date", "Expiry date", "date"), F("ben_party_code", "Beneficiary party code"), F("ben_party_name", "Beneficiary party name"), F("ben_party_add", "Beneficiary address"), F("ben_party_add2", "Address 2"),
+                F("ben_party_city", "City"), F("ben_party_pin", "Pin"), F("file_type", "File type"), F("icegate_id", "ICEGATE ID"), F("icegate_filename", "ICEGATE file name")]},
+        ]},
+    ]},
+    {"tab": "Annexure C1", "collections": [
+        {"key": "annexure_c1", "kind": "form", "title": "Annexure C1 details", "sections": [
+            {"title": "Details", "fields": [
+                F("exporter_name", "Exporter name"), F("address1", "Address"), F("address2", "Address 2"), F("address3", "Address 3"), F("iec_no", "IEC no"), F("branch_sl_no", "Branch sl no"), F("examination_date", "Examination date", "date"),
+                F("examination_officer", "Examination officer"), F("examination_designation", "Designation"), F("supervising_officer", "Supervising officer"), F("supervising_designation", "Designation"), F("commissionerate", "Commissionerate"),
+                F("division", "Division"), F("range", "Range"), F("verified_by_officer", "Verified by examination officer", "check"), F("sample_drawn", "Sample drawn", "check"), F("seal_no", "Seal no")]},
+        ]},
+    ]},
+]
+
+
+def spec_for(direction: str) -> list[dict]:
+    """The tabs of a job beyond General: the Import (Bill of Entry) or Export (Shipping Bill) set, plus the parts both share."""
+    return (EXPORT_SPEC if direction == "Export" else IMPORT_SPEC) + COMMON_SPEC
+
+
 def collections(spec=None) -> dict[str, dict]:
     out = {}
-    for tab in spec or IMPORT_SPEC:
+    for tab in spec or (IMPORT_SPEC + EXPORT_SPEC + COMMON_SPEC):
         for c in tab["collections"]:
             flat = c["fields"] if c["kind"] == "rows" else [f for s in c["sections"] for f in s["fields"]]
             keys = [f["k"] for f in flat]

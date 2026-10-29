@@ -21564,7 +21564,7 @@ function makePrintFit(){
   async function load(no){
     S.no = no || S.no; if(!S.no) return;
     try{ S.job = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)); }catch(e){ say("Could not open the CHA job", e.message, "error"); return; }
-    S.dirty = false; S.data = null; S.charges = null; S.draft = {}; if(window.CHA_JOBS) window.CHA_JOBS.add(S.no); (S.job.siblings || []).forEach(x=> window.CHA_JOBS && window.CHA_JOBS.add(x.cha_job_number));
+    S.dirty = false; S.filingTouched = false; S.data = null; S.charges = null; S.draft = {}; if(window.CHA_JOBS) window.CHA_JOBS.add(S.no); (S.job.siblings || []).forEach(x=> window.CHA_JOBS && window.CHA_JOBS.add(x.cha_job_number));
     if(!S.chas){ try{ S.chas = (await api("GET", "/api/customers?role=cha")).filter(c=>c.status !== "INACTIVE"); }catch(e){ S.chas = []; } }
     try{ S.val = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/validate"); }catch(e){ S.val = null; }
     render();
@@ -21659,15 +21659,16 @@ function makePrintFit(){
   }
   const specTab = name=> { const tb = (S.job.spec || []).find(x=>x.tab === name); return tb ? tb.collections.map(c=>c.kind === "rows" ? rowsCollection(c) : c.kind === "form" ? formCollection(c) : recordsCollection(c)).join("") : null; };
   function entityTab(){
-    const j = S.job, pd = (j.party_details || {}).importer || {}, sup = (S.data && S.data.invoices && S.data.invoices[0]) || ((j.data || {}).invoices || [])[0] || {};
+    const exp = S.job.shipment_type === "Export";
+    const j = S.job, pd = (j.party_details || {})[exp ? "exporter" : "importer"] || {}, sup = (S.data && S.data.invoices && S.data.invoices[0]) || ((j.data || {}).invoices || [])[0] || {};
     const card = (title, rows)=> '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">'+title+'</div></div><div class="cb"><div class="tw"><table><tbody>'+rows.map(r=>'<tr><td style="color:var(--g5);width:240px">'+esc2(r[0])+'</td><td style="font-weight:600">'+t(r[1])+'</td></tr>').join("")+'</tbody></table></div></div></div>';
     return '<div class="ib ib-bl" style="margin-top:10px">The parties of this job as the Organization master holds them. Change them in Masters > Organization; the filing form (General tab) is filled from here.</div>'+
-      card("Importer", [["Name", j.importer], ["IEC", pd.iec], ["AD code", pd.ad_code], ["GSTIN", pd.gstin], ["PAN", pd.pan], ["Unit kind", pd.unit_kind], ["Approval no", pd.approval_no]])+card("Supplier (first invoice)", [["Name", sup.supplier_name || j.exporter], ["Address", [sup.supp_address1, sup.supp_address2].filter(Boolean).join(", ")], ["Country", sup.supp_country], ["Pin", sup.supp_pin]]);
+      card(exp ? "Exporter" : "Importer", [["Name", exp ? j.exporter : j.importer], ["IEC", pd.iec], ["AD code", pd.ad_code], ["GSTIN", pd.gstin], ["PAN", pd.pan], ["Unit kind", pd.unit_kind], ["Approval no", pd.approval_no]])+(exp ? card("Consignee / buyer", [["Consignee", j.importer], ["Buyer (first invoice)", sup.buyer_name], ["Notify", sup.notify_name]]) : card("Supplier (first invoice)", [["Name", sup.supplier_name || j.exporter], ["Address", [sup.supp_address1, sup.supp_address2].filter(Boolean).join(", ")], ["Country", sup.supp_country], ["Pin", sup.supp_pin]]));
   }
   function submissionTab(){
     const j = S.job, v = S.val || {errors:[], ready:false}, d = data();
     return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Submission</div></div><div class="cb"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px">'+
-      [["ICEGATE ID / CHA", (j.info || {}).cha_license || "Automatic"], ["Importer", j.importer], ["Supplier", ((d.invoices || [])[0] || {}).supplier_name], ["Invoices", (d.invoices || []).length], ["Items", (d.items || []).length], ["Validated", v.ready ? "Yes — ready to file" : "No — "+v.errors.length+" to fix"]].map(x=>'<div><div style="font-size:11px;color:var(--g5)">'+esc2(x[0])+'</div><div style="font-weight:600">'+t(x[1])+'</div></div>').join("")+'</div>'+
+      [["ICEGATE ID / CHA", (j.info || {}).cha_license || "Automatic"], [j.shipment_type === "Export" ? "Exporter" : "Importer", j.shipment_type === "Export" ? j.exporter : j.importer], [j.shipment_type === "Export" ? "Consignee" : "Supplier", j.shipment_type === "Export" ? j.importer : ((d.invoices || [])[0] || {}).supplier_name], ["Invoices", (d.invoices || []).length], ["Items", (d.items || []).length], ["Validated", v.ready ? "Yes — ready to file" : "No — "+v.errors.length+" to fix"]].map(x=>'<div><div style="font-size:11px;color:var(--g5)">'+esc2(x[0])+'</div><div style="font-weight:600">'+t(x[1])+'</div></div>').join("")+'</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" data-chj-json>Download job data (JSON)</button><button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">Generate ICEGATE JSON</button><button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">Upload JSON</button><button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">Sign &amp; upload (DSC)</button></div>'+
       '<div class="ib ib-am" style="margin-top:10px">Signing with a digital certificate and filing at ICEGATE need the ICEGATE agent and your certificate, which are not connected to this ERP yet. “Download job data” saves everything entered on this job as a JSON file (it is not an ICEGATE file).</div></div></div>';
   }
@@ -21678,8 +21679,9 @@ function makePrintFit(){
   function chargesTab(){
     if(!S.charges){ loadCharges(); return '<div class="card" style="margin-top:10px"><div class="cb" style="color:var(--g5)">Loading charges…</div></div>'; }
     const j = S.job, party = j.shipment_type === "Import" ? j.importer : j.exporter; const m = sums();
+    const bill = specTab("Bill to party") || "";
     const inp = (i, k, w, ph)=> '<input class="fc" data-chg="'+i+'|'+k+'" value="'+esc2(S.charges[i][k])+'" style="width:'+w+'px" placeholder="'+(ph || "")+'"'+ro()+'>';
-    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Cost &amp; selling charges — '+esc2(j.cha_job_number)+'</div>'+(canEdit() ? '<div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" data-chg-add type="button">＋ Add charge</button><button class="btn btn-pri btn-sm" data-chg-save type="button">Save charges</button></div>' : "")+'</div><div class="cb">'+
+    return bill+'<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Cost &amp; selling charges — '+esc2(j.cha_job_number)+'</div>'+(canEdit() ? '<div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" data-chg-add type="button">＋ Add charge</button><button class="btn btn-pri btn-sm" data-chg-save type="button">Save charges</button></div>' : "")+'</div><div class="cb">'+
       '<div class="ib ib-bl" style="margin-bottom:8px">Charges are stored on this CHA job. Accounts reads them for the invoice (Job category CHA) and the vendor bills; a CHA + Freight booking shows the same totals on the freight job without entering them twice.</div>'+
       '<div class="tw"><table><thead><tr><th>Charge</th><th>Qty</th><th>Cost</th><th>Vendor</th><th>Cost GST %</th><th>Selling</th><th>Bill to</th><th>Sell GST %</th><th></th></tr></thead><tbody>'+
       (S.charges.map((l, i)=>'<tr><td>'+inp(i, "charge_name", 170, "e.g. Customs Clearance")+'</td><td>'+inp(i, "qty", 60)+'</td><td>'+inp(i, "buy_rate", 90)+'</td><td>'+inp(i, "buy_party", 130, "Vendor")+'</td><td>'+inp(i, "buy_gst", 60)+'</td><td>'+inp(i, "sell_rate", 90)+'</td><td>'+inp(i, "sell_party", 150, esc2(party || ""))+'</td><td>'+inp(i, "sell_gst", 60)+'</td><td>'+(canEdit() ? '<a href="#" data-chg-del="'+i+'" style="color:var(--rd)">✕</a>' : "")+'</td></tr>').join("") || '<tr><td colspan="9" class="tbl-empty">No charges yet</td></tr>')+
@@ -21693,7 +21695,9 @@ function makePrintFit(){
   }
   function checklistTab(){
     const j = S.job, d = data(), inv = (d.invoices || []), it = (d.items || []), f = j.filing || {}, v = S.val || {errors:[]};
-    const rows = [["Importer", j.importer || (j.filing_defaults || {}).importer_name], ["Supplier", (inv[0] || {}).supplier_name], ["Filing location (customs house)", (j.info || {}).customs_location], ["BE type", f.be_type || (j.filing_defaults || {}).be_type], ["IGM entries", (d.igm || []).length], ["Invoices", inv.length], ["Items", it.length], ["Required fields", v.passed+" of "+v.checked+" filled"]];
+    const exp = j.shipment_type === "Export";
+    const rows = exp ? [["Exporter", j.exporter || (j.filing_defaults || {}).exporter_name], ["Consignee", j.importer || (j.filing_defaults || {}).consignee], ["Filing location (customs house)", (j.info || {}).customs_location], ["SB type", f.sb_type], ["Invoices", inv.length], ["Items", it.length], ["Annexure C1", ((d.annexure_c1 || [])[0] ? "Entered" : "Not entered")], ["Required fields", v.passed+" of "+v.checked+" filled"]]
+      : [["Importer", j.importer || (j.filing_defaults || {}).importer_name], ["Supplier", (inv[0] || {}).supplier_name], ["Filing location (customs house)", (j.info || {}).customs_location], ["BE type", f.be_type || (j.filing_defaults || {}).be_type], ["IGM entries", (d.igm || []).length], ["Invoices", inv.length], ["Items", it.length], ["Required fields", v.passed+" of "+v.checked+" filled"]];
     return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Checklist</div></div><div class="cb"><div class="tw"><table><tbody>'+rows.map(r=>'<tr><td style="color:var(--g5);width:260px">'+esc2(r[0])+'</td><td style="font-weight:600">'+t(r[1])+'</td></tr>').join("")+'</tbody></table></div>'+
       (v.errors.length ? '<div class="ib ib-am" style="margin-top:8px">To fix: '+v.errors.map(e=>esc2(e.label)).join(", ")+'</div>' : '<div class="ib ib-gr" style="margin-top:8px">All required General fields are filled.</div>')+(it.length && !inv.length ? '<div class="ib ib-am" style="margin-top:8px">Items exist but no invoice has been entered.</div>' : "")+'</div></div>';
   }
@@ -21733,7 +21737,7 @@ function makePrintFit(){
   }
   function render(){
     const root = el("chaJobRoot"); if(!root || !S.job) return;
-    const tabs = ["Job"].concat(S.job.filing_tabs, S.job.shipment_type === "Import" ? ["Checklist", "e-Way Bill", "Submission", "Entity"] : [], ["Charges", "Financials", "Job Log"]);
+    const tabs = ["Job"].concat(S.job.filing_tabs, S.job.shipment_type === "Import" ? ["Checklist", "e-Way Bill", "Submission", "Job History", "Entity"] : ["Checklist", "e-Way Bill", "Submission", "ETP", "Job History", "Entity"], ["Charges", "Financials", "Job Log"]);
     const nGen = S.val ? S.val.errors.length : 0;
     root.innerHTML = header()+bar()+'<div class="card" style="padding:8px 10px;display:flex;gap:6px;flex-wrap:wrap">'+tabs.map((n, k)=>'<button class="btn btn-sm '+(S.tab === n ? "btn-pri" : "btn-out")+'" data-chj-tab="'+esc2(n)+'">'+(k ? k+" " : "")+esc2(n)+(n === "General" && nGen ? ' <span class="b b-rd" style="margin-left:4px">'+nGen+'</span>' : "")+'</button>').join("")+'</div>'+
       (canEdit() ? "" : '<div class="ib ib-am" style="margin-top:8px">View only: your role cannot modify this job.</div>')+bodyFor();
@@ -21744,7 +21748,7 @@ function makePrintFit(){
   async function save(quiet){
     const body = {customs_location:(el("chjLoc") || {}).value || "", cha_license:(el("chjCha") || {}).value || ""};
     if(el("chjMbl")) body.mbl = el("chjMbl").value.trim(); if(el("chjHbl")) body.hbl = el("chjHbl").value.trim();
-    if(S.tab === "General") body.filing = collect(); else if(el("chaJobRoot").querySelector("[data-ff]")) body.filing = collect();
+    if(S.tab === "General") body.filing = {...(S.job.filing || {}), ...collect()}; else if(el("chaJobRoot").querySelector("[data-ff]")) body.filing = {...(S.job.filing || {}), ...collect()}; else if(S.filingTouched) body.filing = {...(S.job.filing || {})};
     if(S.data && S.job.spec && S.job.spec.length) body.data = S.data;
     try{
       S.job = await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(S.no), body);
@@ -21786,7 +21790,7 @@ function makePrintFit(){
       return; }
     if((b = T.closest("[data-chj-acct]"))){ go(b.dataset.chjAcct); return; }
     if(T.closest("[data-chj-json]")){ const blob = new Blob([JSON.stringify({job:S.job.cha_job_number, type:S.job.shipment_type, mode:S.job.shipment_mode, booking:S.job.booking_number, general:{...(S.job.filing_defaults || {}), ...(S.job.filing || {})}, ...data()}, null, 2)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = S.job.cha_job_number.replace(/\//g, "-")+"-job-data.json"; document.body.appendChild(a); a.click(); a.remove(); say("Job data downloaded", a.download); return; }
-    if((b = T.closest("[data-chj-tab]"))){ if(S.tab === "General") S.job.filing = {...(S.job.filing || {}), ...collect()}; S.tab = b.dataset.chjTab; render(); return; }
+    if((b = T.closest("[data-chj-tab]"))){ if(S.tab === "General"){ S.job.filing = {...(S.job.filing || {}), ...collect()}; S.filingTouched = true; } S.tab = b.dataset.chjTab; render(); return; }
     if(T.closest("#chjSave")){ await save(); return; }
     if(T.closest("#chjValidate")){ if(await save(true)){ const v = S.val; say(v.ready ? "Ready to file" : v.errors.length+" field(s) to fix", v.passed+" of "+v.checked+" required fields passed", v.ready ? "success" : "warn"); if(!v.ready){ S.tab = "General"; render(); } } return; }
     if(T.closest("#chjChecklist")){
@@ -21796,7 +21800,7 @@ function makePrintFit(){
           .map(r=>'<tr><td>'+esc2(r[0])+'</td><td>'+(r[1] ? '<span class="b b-gr">OK</span>' : '<span class="b b-am">Pending</span>')+'</td></tr>').join("")+'</tbody></table></div>'+(v.errors.length ? '<div class="ib ib-am" style="margin-top:8px">To fix: '+v.errors.map(x=>esc2(x.label)).join(", ")+'</div>' : ""), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
       return; }
     if((b = T.closest("[data-chj-booking]"))){ e.preventDefault(); if(window.BKG && BKG.view) BKG.view(Number(b.dataset.chjBooking)); return; }
-    if(T.closest("#chjCharges")){ if(S.tab === "General") S.job.filing = {...(S.job.filing || {}), ...collect()}; S.tab = "Charges"; render(); return; }
+    if(T.closest("#chjCharges")){ if(S.tab === "General"){ S.job.filing = {...(S.job.filing || {}), ...collect()}; S.filingTouched = true; } S.tab = "Charges"; render(); return; }
     if((b = T.closest("[data-chj-billadd], [data-chj-billedit]"))){ e.preventDefault(); billDialog(b.dataset.chjBilledit ? S.job.bills.find(x=>String(x.id) === b.dataset.chjBilledit) : null); return; }
     if(T.closest("#chjBack")){ if(window.navBack) navBack("svc-cha"); else go("svc-cha"); return; }
     if(T.closest("#chjDup")){
