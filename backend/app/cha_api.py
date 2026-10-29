@@ -112,7 +112,7 @@ def cha_row(db: Session, cha: Shipment, freight: Shipment | None = None, booking
             "exporter": exporter, "importer": importer, "pol": cha.pol, "pod": cha.pod, "shipment_type": cha.direction, "shipment_mode": cha.mode,
             "shipping_bill_no": first.bill_no if (first and export) else None, "shipping_bill_date": first.bill_date if (first and export) else None,
             "bill_of_entry_no": first.bill_no if (first and not export) else None, "bill_of_entry_date": first.bill_date if (first and not export) else None,
-            "bills": [{"id": b.id, "bill_type": b.bill_type, "bill_no": b.bill_no, "bill_date": b.bill_date, "status": b.status, "ooc_date": b.ooc_date, "examination": b.examination} for b in bills],
+            "bills": [{"id": b.id, "bill_type": b.bill_type, "bill_no": b.bill_no, "bill_date": b.bill_date, "status": b.status, "ooc_date": b.ooc_date, "examination": b.examination, "reference": b.reference, "port_code": b.port_code, "assessable_value": b.assessable_value, "duty_amount": b.duty_amount} for b in bills],
             "customs_status": cha.customs_status or "CREATED", "job_stage": cha.job_stage, "etd": cha.etd, "eta": cha.eta, "created_at": cha.created_at,
             "charges_cost": round(cost, 2), "charges_sell": round(sell, 2), "documents": documents_for(db, freight, cha), "linked_by": "parent" if cha.parent_job_id else "booking"}
 

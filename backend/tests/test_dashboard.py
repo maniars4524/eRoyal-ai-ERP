@@ -87,3 +87,19 @@ def test_active_jobs_split_into_freight_cha_and_transport_without_double_countin
     assert sum(r["active"] for l, r in rows.items() if l != "Total CHA jobs") == rows["Total CHA jobs"]["active"]          # the stage rows add up to the total: no job is counted twice
     assert s1["cha_split"]["Import"] + s1["cha_split"]["Export"] == c1["cha"]["active"]
     assert {"Export transportation", "Import delivery", "In transit"} <= {r["label"] for r in s1["transport_breakdown"]}
+
+
+def test_a_finished_cha_job_leaves_active_jobs_and_waits_for_billing(world, admin):
+    from tests.test_cha_jobs import client as cl, hdr as hd
+    hh = hd(admin["username"], admin["license"])
+    before = cl.get("/api/dashboard/summary", headers=hh).json()["jobs"]
+    job = cl.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "Fin Co", "importer": "Fin Buyer", "pol": "INMAA", "pod": "BEANR"}, headers=hh).json()["cha_job_number"]
+    mid = cl.get("/api/dashboard/summary", headers=hh).json()["jobs"]
+    assert mid["active"] == before["active"] + 1 and mid["stage_split"]["CHA in progress"] == before["stage_split"].get("CHA in progress", 0) + 1
+    for st in ("VALIDATED", "CUSTOMS FILED", "OOC / LEO CLEARED", "DELIVERED"):
+        assert cl.patch(f"/api/cha/jobs/{job}/status", json={"status": st}, headers=hh).status_code == 200
+    after = cl.get("/api/dashboard/summary", headers=hh).json()["jobs"]
+    assert after["active"] == before["active"]                                           # delivered: no longer in progress
+    assert after["categories"]["cha"]["billing_pending"] == before["categories"]["cha"]["billing_pending"] + 1 and after["billing_pending"] == before["billing_pending"] + 1
+    rows = {r["label"]: r for r in after["cha_breakdown"]}
+    assert rows["Delivered / closed"]["active"] == 0 and rows["Delivered / closed"]["billing_pending"] >= 1

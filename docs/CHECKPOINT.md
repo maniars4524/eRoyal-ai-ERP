@@ -245,3 +245,10 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - FORM READABILITY global CSS + kit (placeholders #9CA3AF, values #334155, labels #475569, auto "Enter X (e.g., ...)" placeholders, grey empty drop-downs).
 - ORGANIZATION: IEC Code appears in the Exporter / Importer block when GST is not applicable.
 - OPEN: mobile PWA, AMS/ACI/ISF (need provider + fields), CHA Export tabs, reports integration, Submission/ICEGATE actions, hard order-of-work block (needs decision).
+
+## 2026-10-29 - reports integration, remaining Import tabs, CHA never on freight pages (live)
+- REPORTS: CHA Job Register and Customs Documents (SB / BE) reports (Reports menu + Report Center); Jobs Summary / Sea / Air Export reports list freight jobs only, with Booking No and CHA Job(s); Invoice, Purchase Invoice and Vendor Bill registers carry Job type + Booking as references.
+- IMPORT TABS added: item sections ADD, Licence, S/W (field lists follow the standard BE structure - confirm against the user's screens if they differ), e-Way Bill (Bill from / Bill to / Transport), Submission (job summary, JSON download of the job data, ICEGATE / DSC buttons off), Entity (importer + supplier summary).
+- A CHA job NEVER opens on a freight job page: the Customs tab and Charges tab links were replaced by Add / Edit Shipping Bill / Bill of Entry dialogs and the Charges tab inside the CHA job screen.
+- DASHBOARD: Active Jobs excludes CHA jobs already DELIVERED / CLOSED (no longer in progress); the card shows the split (Draft / Confirmed / On Transit / CHA in progress) and a "billing pending" count (finished jobs not on a posted invoice); CHA / Transport breakups have a Billing Pending column.
+- OPEN: Export job screens (waiting for the user's screenshots), mobile PWA, AMS/ACI/ISF (need provider + fields), hard order-of-work block (needs decision), Submission/ICEGATE actions.

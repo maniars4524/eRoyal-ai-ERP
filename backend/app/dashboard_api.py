@@ -69,7 +69,8 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     jobs = list(db.scalars(select(Shipment).where(Shipment.organization_id == org_id))) if can_jobs else []
     names = {c.id: c.name for c in db.scalars(select(Customer).where(Customer.organization_id == org_id))} if can_jobs else {}
     live = [j for j in jobs if j.status != "Cancelled"]
-    active = [j for j in live if not is_closed(j)]
+    done_cha = lambda j: j.job_type == "Customs" and (j.customs_status or "") in ("DELIVERED", "CLOSED")          # customs finished: no longer "in progress"
+    active = [j for j in live if not is_closed(j) and not done_cha(j)]
 
     freight_jobs = [j for j in live if j.job_type not in ("Customs", "Transport", "Warehouse")]          # a job is counted in one category only: Freight, CHA or Transport
     matrix = {label: {"active": 0, "closed_mtd": 0, "pending": 0} for label in TYPE_ORDER}
@@ -84,8 +85,20 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     mix = Counter(_bucket(j) for j in freight_jobs)
     lanes = Counter(f"{j.pol or '—'} → {j.pod or '—'}" for j in live if j.pol or j.pod)
 
+    # jobs that already appear on a posted invoice (header job or any line); a finished job not on one is "billing pending"
+    billed = set()
+    if can_bill:
+        for (jn,) in db.execute(select(Document.job_number).where(Document.organization_id == org_id, Document.doc_type == "invoice", Document.status == "POSTED", Document.job_number.is_not(None))):
+            billed.add(jn)
+        from .models import DocumentLine
+
+        for (jn,) in db.execute(select(DocumentLine.job_number).join(Document, Document.id == DocumentLine.document_id).where(Document.organization_id == org_id, Document.doc_type == "invoice", Document.status == "POSTED", DocumentLine.job_number.is_not(None))):
+            billed.add(jn)
+    finished = lambda j: is_closed(j) or done_cha(j)
+
     def counts(rows):
-        return {"active": sum(1 for j in rows if not is_closed(j)), "closed_mtd": sum(1 for j in rows if closed_this_month(j, month_start)), "pending": sum(1 for j in rows if is_pending(j))}
+        return {"active": sum(1 for j in rows if not finished(j)), "closed_mtd": sum(1 for j in rows if (closed_this_month(j, month_start) or (done_cha(j) and (j.last_activity_at or j.updated_at) and (j.last_activity_at or j.updated_at).date() >= month_start))),
+                "pending": sum(1 for j in rows if is_pending(j) and not finished(j)), "billing_pending": sum(1 for j in rows if finished(j) and j.job_number not in billed)}
     cha_jobs = [j for j in live if j.job_type == "Customs"]
     trp_jobs = [j for j in live if j.job_type == "Transport"]
     st = lambda j: j.customs_status or "CREATED"
@@ -98,6 +111,8 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     trp_rows = [("Transport jobs (all)", {}, trp_jobs), ("Export transportation", {"direction": "Export"}, [j for j in trp_jobs if j.direction == "Export"]), ("Import delivery", {"direction": "Import"}, [j for j in trp_jobs if j.direction == "Import"]),
                 ("Local / domestic transport", {"direction": "Domestic"}, [j for j in trp_jobs if j.direction not in ("Export", "Import")]), ("In transit", {"stage": "On Transit"}, [j for j in trp_jobs if j.job_stage == "On Transit"])]
     categories = {"freight": counts(freight_jobs), "cha": counts(cha_jobs), "transport": counts(trp_jobs)}
+    stage_split = Counter((j.job_stage or "Draft") for j in active if j.job_type != "Customs")
+    stage_split["CHA in progress"] = sum(1 for j in active if j.job_type == "Customs")
     cha_breakdown = [{"label": l, "filter": f, **counts(r)} for l, f, r in cha_rows]
     trp_breakdown = [{"label": l, "filter": f, **counts(r)} for l, f, r in trp_rows]
 
@@ -143,7 +158,7 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     s = str
     return {
         "generated_for": today.isoformat(), "fiscal_year": fiscal_label(today),
-        "jobs": {"active": len(active), "total": len(live), "categories": categories, "cha_breakdown": cha_breakdown, "cha_split": {"Import": sum(1 for j in cha_jobs if j.direction == "Import" and not is_closed(j)), "Export": sum(1 for j in cha_jobs if j.direction == "Export" and not is_closed(j))}, "transport_breakdown": trp_breakdown, "by_status": dict(Counter(j.status for j in active)), "matrix": matrix, "mix": [{"label": k, "count": v} for k, v in mix.most_common()], "top_lanes": [{"lane": k, "count": v} for k, v in lanes.most_common(5)],
+        "jobs": {"active": len(active), "total": len(live), "categories": categories, "stage_split": dict(stage_split), "billing_pending": sum(c["billing_pending"] for c in categories.values()), "cha_breakdown": cha_breakdown, "cha_split": {"Import": sum(1 for j in cha_jobs if j.direction == "Import" and not is_closed(j)), "Export": sum(1 for j in cha_jobs if j.direction == "Export" and not is_closed(j))}, "transport_breakdown": trp_breakdown, "by_status": dict(Counter(j.status for j in active)), "matrix": matrix, "mix": [{"label": k, "count": v} for k, v in mix.most_common()], "top_lanes": [{"lane": k, "count": v} for k, v in lanes.most_common(5)],
                  "customs_pending": sum(1 for j in active if j.job_type == "Customs"), "recent": [{"job_number": j.job_number, "customer": names.get(j.customer_id) or j.consignee or "—", "mode": j.mode, "direction": j.direction, "status": j.status, "route": " → ".join(x for x in (j.pol, j.pod) if x) or "—"} for j in recent]},
         "monthly": [{"month": k, "label": date(int(k[:4]), int(k[5:]), 1).strftime("%b"), "jobs": jobs_by_month.get(k, 0), "revenue": s(revenue_by_month.get(k, Decimal(0)))} for k in months],
         "money": {"revenue_mtd": s(revenue_mtd), "cost_mtd": s(cost_mtd), "gp_mtd": s(gp_mtd), "gp_pct": s(round(gp_mtd / revenue_mtd * 100, 1)) if revenue_mtd else "0", "revenue_by_mode": {k: s(v) for k, v in rev_mode.items()}, "gp_by_mode": {k: s(rev_mode.get(k, Decimal(0)) - cost_mode.get(k, Decimal(0))) for k in set(rev_mode) | set(cost_mode)},

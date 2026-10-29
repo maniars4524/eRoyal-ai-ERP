@@ -122,17 +122,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // customs clearance: bills entered in the CHA job appear in the freight job of the same booking
   const jobs2 = (await j("GET", `/api/bookings/${multi.id}`, null, token)).body.jobs;
   const fj2 = jobs2.find(x => x.job_type === "Forwarding").job_number, cj2 = jobs2.find(x => x.job_type === "Customs").job_number;
-  w.go("job-detail", { jobNo: cj2, raw: true }); await sleep(2800);
-  d.querySelector('.tbb[data-tab="jt4"]').click(); await sleep(1200);
-  check("the CHA job has a Customs section with an Add Shipping Bill button", !!d.getElementById("cusAddBtn") && /Add Shipping Bill/.test(d.getElementById("cusAddBtn").textContent) && /No Shipping Bill recorded yet/.test(text("#cusBody")), text("#cusBody").slice(0, 160));
+  w.go("job-detail", { jobNo: cj2 }); await sleep(3000);
+  check("a CHA job never opens on the freight job page: it opens the CHA job screen", d.getElementById("s-cha-job").classList.contains("on") && !d.getElementById("s-job-detail").classList.contains("on"));
+  check("the CHA job screen has an Add Shipping Bill button", !!d.querySelector("[data-chj-billadd]") && /Add Shipping Bill/.test(d.querySelector("[data-chj-billadd]").textContent));
   for (const [no, dt] of [["SB5001", "2026-10-10"], ["SB5002", "2026-10-11"]]) {
-    d.getElementById("cusAddBtn").click(); await sleep(500);
-    const sv = (id, v) => { const e = d.getElementById(id); e.value = v; e.dispatchEvent(new w.Event("input", { bubbles: true })); };
-    sv("cusNo", no); sv("cusDate", dt); sv("cusRef", "CHA-" + no); sv("cusAv", "250000");
-    d.querySelectorAll("#toastStack .toast").forEach(t => t.remove());
-    d.getElementById("cusSave").click(); await sleep(1500);
+    d.querySelector("[data-chj-billadd]").click(); await sleep(500);
+    const sv = (id, v) => { const e = d.getElementById(id); e.value = v; };
+    sv("cbNo", no); sv("cbDate", dt); sv("cbRef", "CHA-" + no); sv("cbAv", "250000");
+    d.getElementById("cbSave").click(); await sleep(2200);
   }
-  check("both shipping bills are listed, with the count and a green success toast", /SB5001/.test(text("#cusBody")) && /SB5002/.test(text("#cusBody")) && /bills processed\s*2/i.test(text("#cusBody")) && Array.from(d.querySelectorAll("#toastStack .toast")).some(t => t.classList.contains("success") && /Added Successfully/.test(t.textContent)), text("#cusBody").slice(0, 300));
+  check("both shipping bills are listed on the CHA job screen", /SB5001/.test(d.getElementById("chaJobRoot").textContent) && /SB5002/.test(d.getElementById("chaJobRoot").textContent), d.getElementById("chaJobRoot").textContent.slice(0, 200));
   w.go("job-detail", { jobNo: fj2 }); await sleep(2800);
   d.querySelector('.tbb[data-tab="jt4"]').click(); await sleep(1200);
   check("the freight job shows the same bills, the first SB number and date, and the total count", /SB5001/.test(text("#cusBody")) && /SB5002/.test(text("#cusBody")) && /Shipping Bill no\s*SB5001/.test(text("#cusBody")) && /10-10-2026/.test(text("#cusBody")) && /processed\s*2/i.test(text("#cusBody")) && new RegExp(cj2).test(text("#cusBody")), text("#cusBody").slice(0, 400));

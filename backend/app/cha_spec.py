@@ -54,6 +54,14 @@ IMPORT_SPEC = [
                                               F("buyer_seller_related", "Buyer and seller related", "select", YES_NO)]},
         ]},
     ]},
+    {"tab": "e-Way Bill", "collections": [
+        {"key": "eway", "kind": "form", "title": "e-Way Bill", "sections": [
+            {"title": "Bill from", "fields": [F("from_name", "Name"), F("from_gstn", "GSTN ID"), F("from_state", "State"), F("from_address1", "Address 1"), F("from_address2", "Address 2"), F("from_place", "Place"), F("from_pin", "Pin"), F("from_actual_state", "Actual state"), F("from_subsup_desc", "Sub-supply description")]},
+            {"title": "Bill to", "fields": [F("to_name", "Name"), F("to_gstn", "GSTN ID"), F("to_state", "State"), F("to_address1", "Address 1"), F("to_address2", "Address 2"), F("to_place", "Place"), F("to_pin", "Pin"), F("to_actual_state", "Actual state"), F("cess_non_advol", "Cess non-advol amount", "number"), F("to_other", "Other")]},
+            {"title": "Transport", "fields": [F("transport_name", "Transport name"), F("transport_id", "Transport ID"), F("distance_km", "Approx. distance (km)", "number"), F("transport_mode", "Mode", "select", ["Road", "Rail", "Air", "Ship"]), F("transport_doc_no", "Transport document no"), F("vehicle_no", "Vehicle no"),
+                                         F("vehicle_type", "Vehicle type", "select", ["Regular", "Over Dim. Cargo"]), F("transport_date", "Transport date", "date"), F("user_gstn", "User GSTN ID"), F("eway_no", "e-Way bill no"), F("eway_date", "e-Way bill date", "date")]},
+        ]},
+    ]},
     {"tab": "Product", "collections": [
         {"key": "items", "kind": "records", "title": "Item", "link": "invoices", "sections": [
             {"title": "Item main", "fields": [F("invoice_sr", "Invoice sr no", "number"), F("description", "Item description", "area"), F("qty", "Item quantity", "number"), F("qty_unit", "Unit (UQC)"), F("unit_price", "Unit price", "number"), F("price_ccy", "Price currency"),
@@ -72,6 +80,9 @@ IMPORT_SPEC = [
             {"title": "Item SVB", "fields": [F("svb_relation", "SVB relation", "check"), F("svb_ref_no", "SVB ref no"), F("svb_date", "SVB date", "date"), F("svb_custom_house", "SVB custom house"), F("loading_on", "Loading on"), F("assessable_rate", "Assessable rate", "number"), F("duty_rate", "Duty rate", "number")]},
             {"title": "Re-import", "fields": [F("sb_no", "SB no"), F("sb_date", "SB date", "date"), F("sb_invoice_sl", "SB invoice sl no"), F("sb_invoice_item_no", "SB invoice item no"), F("port_export", "Port of export"), F("reimp_notn_no", "Notification no"), F("reimp_notn_sl", "Notification sl no"),
                                            F("export_freight", "Export freight", "number"), F("export_insurance", "Export insurance", "number"), F("customs_duty", "Customs duty", "number"), F("excise_duty", "Excise duty", "number")]},
+            {"title": "ADD", "fields": [F("add_notn_no", "Anti-dumping notification no"), F("add_notn_sl", "Notification sl no"), F("add_pct", "ADD %", "number"), F("add_amount", "ADD amount", "number"), F("add_cvd_notn_no", "CVD / safeguard notification no"), F("add_cvd_pct", "CVD / safeguard %", "number")]},
+            {"title": "Licence", "fields": [F("licence_type", "Licence type"), F("licence_no", "Licence no"), F("licence_date", "Licence date", "date"), F("licence_port", "Licence port"), F("licence_sl_no", "Licence item sl no"), F("licence_debit_qty", "Debit quantity", "number"), F("licence_debit_unit", "Debit unit"), F("licence_debit_value", "Debit value", "number")]},
+            {"title": "S/W", "fields": [F("sw_info_type", "Single-window info type"), F("sw_info_code", "Info code"), F("sw_info_qualifier", "Info qualifier"), F("sw_info_text", "Info text", "area"), F("sw_info_measure", "Info measure", "number"), F("sw_info_uqc", "Info UQC")]},
             {"title": "Declaration", "fields": [F("stmt_type", "Statement type"), F("stmt_code", "Statement code"), F("stmt_text", "Statement text", "area")]},
             {"title": "Supporting document", "fields": [F("doc_level", "Level", "select", ["Job Level", "Invoice Level", "Item Level"]), F("image_ref_no", "Image ref no"), F("doc_type_code", "Document type code"), F("iss_party_name", "Issuing party name"),
                                                       F("place_of_issue", "Place of issue"), F("issue_date", "Issue date", "date"), F("expiry_date", "Expiry date", "date"), F("doc_no", "Document no"), F("file_type", "File type"), F("icegate_id", "ICEGATE ID")]},
@@ -84,8 +95,9 @@ def collections(spec=None) -> dict[str, dict]:
     out = {}
     for tab in spec or IMPORT_SPEC:
         for c in tab["collections"]:
-            keys = [f["k"] for f in c["fields"]] if c["kind"] == "rows" else [f["k"] for s in c["sections"] for f in s["fields"]]
-            out[c["key"]] = {"keys": set(keys), "kind": c["kind"], "title": c["title"], "labels": {f["k"]: f["l"] for f in (c["fields"] if c["kind"] == "rows" else [f for s in c["sections"] for f in s["fields"]])}}
+            flat = c["fields"] if c["kind"] == "rows" else [f for s in c["sections"] for f in s["fields"]]
+            keys = [f["k"] for f in flat]
+            out[c["key"]] = {"keys": set(keys), "kind": c["kind"], "title": c["title"], "labels": {f["k"]: f["l"] for f in flat}}
     return out
 
 

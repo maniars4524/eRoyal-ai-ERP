@@ -1,0 +1,40 @@
+// Reports integration: CHA Job Register, Customs Documents (SB / BE), Jobs Summary with booking + CHA jobs, invoice registers with job type + booking (references only).
+const { JSDOM } = require("jsdom");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); return { status: r.status, body: r.status === 204 ? null : await r.json().catch(() => null) }; };
+let failures = 0;
+const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  -> " + (extra || ""))); if (!ok) failures++; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36);
+  const org = await j("POST", "/api/organizations", { code: "RP" + tag.slice(-6).toUpperCase(), name: "ChaRep " + tag, admin_email: `rp${tag}@t.test`, admin_username: "rp" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Ava" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "rp" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
+    beforeParse(w) { w.fetch = async (u, o) => { for (let i = 0; ; i++) { try { return await fetch(new URL(u, BASE).href, o); } catch (e) { if (i >= 2) throw e; await sleep(200); } } }; w.sessionStorage.setItem("esway_access_token", token); w.localStorage.setItem("esway_persistent_token", token); w.confirm = () => true; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.print = () => {}; } });
+  const w = dom.window, d = w.document; await sleep(6500);
+  const party = "Report Customer Ltd";
+  await j("POST", "/api/customers", { code: "RPC1", name: party, roles: ["customer", "shipper"], country: "India" }, token);
+  const bk = (await j("POST", "/api/bookings", { mode: "Sea", direction: "Export", shipment_type: "FCL", booking_type: "Direct", party_name: party, carrier: "MSC", pol: "INMAA", pod: "BEANR", data: { services: "Freight, CHA", pcs: "10", consignee: "Buyer" } }, token)).body;
+  await j("POST", `/api/bookings/${bk.id}/confirm`, null, token);
+  const cj = (await j("POST", `/api/bookings/${bk.id}/jobs`, { service: "CHA" }, token)).body.created_job;
+  const fj = (await j("POST", `/api/bookings/${bk.id}/jobs`, { service: "Freight" }, token)).body.created_job;
+  await j("POST", `/api/customs/by-job/${cj}`, { bill_no: "SB88001", bill_date: "2026-10-12" }, token);
+  await j("PUT", `/api/shipments/by-number/${cj}/charges`, { lines: [{ charge_name: "Customs Clearance", uom: "Per Shipment", qty: "1", buy: { ccy: "INR", exch: "1", rate: "3000", tax_type: "Non-Taxable", tax_pct: "0", party: "Broker" }, sell: { ccy: "INR", exch: "1", rate: "4500", tax_type: "Taxable", tax_pct: "18", party } }] }, token);
+  const inv = (await j("POST", "/api/documents", { doc_type: "invoice", party_name: party, job_number: cj, place_of_supply: "33-Tamil Nadu", supply_type: "intra", lines: [{ job_number: cj, charge_name: "Customs Clearance", qty: "1", rate: "4500", tax_type: "Taxable", tax_pct: "18" }] }, token)).body;
+  const out = () => Array.from(d.querySelectorAll("#reportOutputBody tr")).map(r => r.textContent.replace(/\s+/g, " ").trim());
+  const run = async key => { w.go("reports"); await sleep(400); w.ReportKit.render(key); await sleep(2000); return out(); };
+  let r = await run("cha-jobs");
+  check("CHA Job Register lists the CHA job with booking, freight job, SB no, cost, selling and margin", r.some(x => x.includes(cj) && x.includes(bk.number || "BKG") && x.includes(fj) && x.includes("SB88001") && x.includes("3,000") && x.includes("4,500") && x.includes("1,500")), r.join("|"));
+  r = await run("customs-documents");
+  check("Customs Documents report shows the SB number and date and the document readiness", r.some(x => x.includes(cj) && x.includes("SB88001") && x.includes("12-10-2026") && /Bill of Lading/.test(x)), r.join("|"));
+  r = await run("jobs-summary");
+  check("Jobs Summary lists the freight job with its booking and CHA job, and not the CHA job as a row of its own", r.some(x => x.includes(fj) && x.includes(cj)) && !r.some(x => x.startsWith(cj)), r.join("|"));
+  r = await run("ar-register");
+  check("the Invoice Register carries the job type (CHA) and the booking number as references", inv && r.some(x => x.includes(cj) && x.includes("CHA") && /BKG\//.test(x)), r.join("|") + " " + JSON.stringify(inv).slice(0, 120));
+  const labels = Array.from(d.querySelectorAll(".tn-row .tn-label")).map(x => x.textContent.trim());
+  check("the Reports menu offers CHA Job Register and Customs Documents", labels.includes("CHA Job Register") && labels.includes("Customs Documents (SB / BE)"), labels.slice(-30).join("|"));
+  console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

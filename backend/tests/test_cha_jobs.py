@@ -296,7 +296,9 @@ def test_import_job_tabs_are_saved_validated_and_logged(h):
     imp = client.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Air", "exporter": "Sup Co", "importer": "Imp Co", "pol": "SGSIN", "pod": "INMAA"}, headers=h).json()
     no = imp["cha_job_number"]
     tabs = {t["tab"] for t in imp["spec"]}
-    assert tabs == {"IGM", "Invoice", "Product"} and imp["data"] == {}
+    assert tabs == {"IGM", "Invoice", "e-Way Bill", "Product"} and imp["data"] == {}
+    sections = {s["title"] for t in imp["spec"] if t["tab"] == "Product" for c in t["collections"] for s in c["sections"]}
+    assert {"ADD", "Licence", "S/W"} <= sections
     exp = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "E", "importer": "I", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
     assert exp["spec"] == []
     data = {"igm": [{"igm_no": "9854321", "igm_date": "2026-05-13", "mawb_no": "110897654321", "packages": "1", "gross_weight": "2.000"}],
