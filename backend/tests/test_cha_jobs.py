@@ -410,3 +410,87 @@ def test_order_of_work_is_enforced_export_cha_first_import_freight_first(h):
     icj2 = next(j["job_number"] for j in imp2["jobs"] if j["job_type"] == "Customs")
     assert client.post(f"/api/jobs/{ifj2}/stage", json={"stage": "On Transit", "reason": "vessel sailed"}, headers=h).status_code == 200
     assert client.patch(f"/api/cha/jobs/{icj2}/status", json={"status": "CUSTOMS FILED"}, headers=h).status_code == 200
+
+
+
+def test_icegate_json_for_export_follows_the_sb_sample(h):
+    j = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "SWITCH INTERNATIONAL", "importer": "ARMIN RUB", "pol": "INMAA1", "pod": "HKSTN", "customs_location": "INMAA1"}, headers=h).json()
+    no = j["cha_job_number"]
+    data = {"invoices": [{"invoice_no": "4363365", "invoice_date": "2026-10-19", "currency": "USD", "exchange_rate": "94.2", "terms": "CIF", "freight_amt": "45.6", "insurance_amt": "65.5", "contract_no": "46457572348", "payment_method": "NA",
+                          "third_party_name": "Global Fluidtech Systems", "third_party_city": "Ahmedabad", "third_party_pin": "380013", "buyer_name": "SAME AS CONSIGNEE"}],
+            "items": [{"invoice_sr": "1", "description": "TEST", "qty": "10", "qty_unit": "KGS", "unit_price": "100", "per": "1", "ritc_no": "87141090", "scheme": "00-FREE SHIPPING BILL", "reward": "No", "end_use": "GNX100", "igst_payment_status": "LUT",
+                      "amount": "1000", "sw_info_type": "DTY", "sw_info_qualifier": "RDT", "sw_info_code": "RODTEPN", "sw_info_text": "NOT CLAIMED", "sw_info_msr": "10", "sw_info_uqc": "KGS"}]}
+    filing = {"iec": "0494028467", "branch_sr_no": "1", "exporter_name": "SWITCH INTERNATIONAL (A DIVN. OF ELBRASI", "addr1": "AUTOMOTIVE PRODUCTS", "addr2": "NEHRU NAGAR", "addr3": "KOTTIVAKKAM,CHENNAI", "state": "TAMIL NADU", "state_of_origin": "33",
+              "exporter_type": "R - Merchant Exporter", "exporter_class": "P - Private", "ad_code": "3445533", "consignee": "ARMIN RUB", "cons_addr1": "LINDENWIESE 25", "cons_country": "DE", "port_loading": "INMAA1", "port_discharge": "HKSTN",
+              "port_final_destination": "HKSTN", "country_final_destination": "HK", "country_discharge": "HK", "marks": "TEST", "gstn_type": "GSN - GSTIN of Normal Persons", "gstn_id": "4536667896"}
+    assert client.patch(f"/api/cha/jobs/{no}", json={"data": data, "filing": filing, "customs_location": "INMAA1"}, headers=h).status_code == 200
+    r = client.get(f"/api/cha/jobs/{no}/icegate-json", headers=h)
+    assert r.status_code == 200, r.text
+    out = r.json()
+    msg = out["message"]
+    assert out["filename"].startswith("SB") and out["filename"].endswith(".json")
+    assert set(msg["headerField"]) == {"senderID", "receiverID", "indicator", "messageID", "sequenceOrControlNumber", "jobNumber", "jobDate", "messageType"}
+    assert msg["headerField"]["receiverID"] == "INMAA1" and msg["headerField"]["messageID"] == "CACHE01" and msg["headerField"]["messageType"] == "F"
+    assert {"exchangeModel", "invoiceModel", "itemModel", "sbModel", "infoType"} <= set(msg["master"])
+    assert msg["master"]["exchangeModel"] == [{"invoiceCurrencyCode": "USD", "unitInRs": "1", "rate": "94.2", "whetherStandardCurrency": "Y"}]
+    inv = msg["master"]["invoiceModel"][0]
+    assert inv["actualInvoiceNo"] == "4363365" and inv["invoiceDate"] == "20261019" and inv["natureOfContract"] == "CIF" and inv["freightAmount"] == "45.6" and inv["insuranceAmount"] == "65.5" and inv["thirdPartyName"] == "Global Fluidtech Systems"
+    sb = msg["master"]["sbModel"][0]
+    assert sb["importerExporterCode"] == "0494028467" and sb["typeOfExporter"] == "R" and sb["exporterClass"] == "P" and sb["stateOfOriginExporter"] == "33" and sb["gstnType"] == "GSN" and sb["portOfLoading"] == "INMAA1" and sb["countryOfFinalDestination"] == "HK"
+    it = msg["master"]["itemModel"][0]
+    assert it["ritcCode"] == "87141090" and it["quantity"] == "10.000" and it["unitPrice"] == "100.00000" and it["schemeCode"] == "00" and it["rewardItem"] == "N" and it["igstPaymentStatus"] == "LUT"
+    assert msg["master"]["infoType"][0]["infoType"] == "DTY" and msg["master"]["infoType"][0]["infoCode"] == "RODTEPN"
+    assert any("ICEGATE ID" in w for w in out["warnings"])          # nothing names the sender yet
+
+
+def test_icegate_json_for_import_follows_the_be_sample(h):
+    j = client.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Air", "exporter": "SUPPLIER", "importer": "TESTING", "pol": "SIN", "pod": "INMAA4", "customs_location": "INMAA4"}, headers=h).json()
+    no = j["cha_job_number"]
+    data = {"invoices": [{"invoice_no": "7534451158", "invoice_date": "2025-07-10", "currency": "USD", "exchange_rate": "97.05", "terms": "FOB", "invoice_value": "886526.03", "supplier_name": "SUPPLIER", "supp_address1": "CHENNAI", "supp_address2": "asdfvcb",
+                          "supp_country": "INDIA", "supp_pin": "600032", "freight_charge": "177305.21", "freight_ccy": "INR", "insurance_charge": "15222", "insurance_ccy": "INR", "misc_charge": "7000", "misc_ccy": "INR"}],
+            "items": [{"invoice_sr": "1", "description": "TEST", "qty": "24", "qty_unit": "KGS", "unit_price": "8865.2603", "ritc_no": "29199090", "cth_no": "29199090", "country_origin": "SG", "end_use": "GNX100", "scheme_code": "03", "scheme_notn": "018/2015", "scheme_notn_sl": "1",
+                      "basic_duty_notn": "045/2025", "levy_notn_no": "009/2025", "levy_notn_sl": "I230", "levy_pct": "5", "levy_cp_cess_notn_no": "001/2017", "aid_cess_notn": "011/2021", "info_msr": "100", "info_uqc": "KGS"}]}
+    filing = {"be_type": "X - Ex-bond", "iec": "TESTINGTES", "importer_name": "TESTING", "addr1": "ADD1", "addr2": "ADD2", "addr3": "TESTING", "state": "TAMIL NADU", "mode_of_transport": "A - Air", "port_origin": "SIN", "port_shipment": "SIN", "country_origin": "SG",
+              "country_consignment": "SG", "ad_code": "TESTING", "payment_method": "T - Transactional", "commercial_tax_type": "G - GST-IN", "commercial_tax_reg_no": "TESTINGTES123TE", "high_sea_sale": "No - No"}
+    assert client.patch(f"/api/cha/jobs/{no}", json={"data": data, "filing": filing, "customs_location": "INMAA4"}, headers=h).status_code == 200
+    out = client.get(f"/api/cha/jobs/{no}/icegate-json", headers=h).json()
+    msg = out["message"]
+    assert out["filename"].startswith("BE") and msg["headerField"]["messageID"] == "CACHI01" and msg["headerField"]["receiverID"] == "INMAA4"
+    assert {"beModel", "exchangeModel", "invoiceModel", "itemsModel", "depbModel", "sbedutyModel", "ctxModel", "infoTypeModel", "statementModel"} <= set(msg["master"])
+    be = msg["master"]["beModel"][0]
+    assert be["beType"] == "X" and be["iecCode"] == "TESTINGTES" and be["nameOfImporter"] == "TESTING" and be["modeOfTransport"] == "A" and be["portOfOrigin"] == "SIN" and be["countryOfOrigin"] == "SG" and be["paymentMethodCode"] == "T" and be["highSeaSaleFlag"] == "N"
+    assert [x["currencyCode"] for x in msg["master"]["exchangeModel"]] == ["USD", "INR"]
+    inv = msg["master"]["invoiceModel"][0]
+    assert inv["actualInvoiceNumber"] == "7534451158" and inv["invoiceValue"] == "886526.03" and inv["freightValue"] == "177305.21" and inv["insuranceValue"] == "15222" and inv["miscCharges"] == "7000" and inv["natureOfTransaction"] == "S"
+    it = msg["master"]["itemsModel"][0]
+    assert it["quantity"] == "24.000000" and it["unitPriceInvoiced"] == "8865.260300" and it["cth"] == "29199090" and it["ceth"] == "NOEXCISE" and it["bcdNotification"] == "045/2025"
+    assert msg["master"]["depbModel"][0]["bcdNotification"] == "018/2015"
+    assert {(d["addlDutyFlag"], d["notificationNo"]) for d in msg["master"]["sbedutyModel"]} >= {("I", "009/2025"), ("P", "001/2017"), ("A", "011/2021")}
+    assert msg["master"]["ctxModel"][0] == {"stateCode": "33", "commercialTaxType": "G", "commercialTaxRegistrationNo": "TESTINGTES123TE"}
+    assert [s["statementCode"] for s in msg["master"]["statementModel"]] == ["CUG00", "CUG01", "CUV01", "CUV02", "CUV03"]
+
+
+def _filled_import(h):
+    j = client.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Sea", "exporter": "SUPPLIER", "importer": "TESTING", "pol": "SIN", "pod": "INMAA1", "customs_location": "INMAA1"}, headers=h).json()
+    no = j["cha_job_number"]
+    data = {"invoices": [{"invoice_no": "INV1", "invoice_date": "2026-10-10", "currency": "USD", "exchange_rate": "90", "terms": "FOB", "invoice_value": "1000", "supplier_name": "SUPPLIER", "freight_charge": "100", "freight_ccy": "USD"}],
+            "items": [{"invoice_sr": "1", "description": "TEST", "qty": "10", "qty_unit": "KGS", "unit_price": "100", "ritc_no": "29199090", "cth_no": "29199090", "country_origin": "SG"}]}
+    assert client.patch(f"/api/cha/jobs/{no}", json={"data": data, "filing": {"be_type": "H - Home Consumption", "importer_name": "TESTING", "mode_of_transport": "S - Sea"}}, headers=h).status_code == 200
+    return no
+
+
+def test_checklist_import_and_export_and_annexure(h):
+    no = _filled_import(h)
+    r = client.get(f"/api/cha/jobs/{no}/checklist", headers=h)
+    assert r.status_code == 200, r.text
+    c = r.json()
+    assert c["direction"] == "Import" and c["job_no"] and len(c["items"]) == 1
+    assert c["totals"]["av"] > 0 and c["duty_words"]
+    e = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Air", "exporter": "SWITCH", "importer": "ARMIN", "pol": "INMAA4", "pod": "HKHKG", "customs_location": "INMAA4"}, headers=h).json()["cha_job_number"]
+    assert client.patch(f"/api/cha/jobs/{e}", json={"data": {"invoices": [{"invoice_no": "A1", "invoice_date": "2026-10-19", "currency": "USD", "exchange_rate": "94", "terms": "FOB"}], "items": [{"invoice_sr": "1", "description": "T", "qty": "10", "qty_unit": "KGS", "unit_price": "100", "per": "1", "ritc_no": "87141090", "amount": "1000"}]}}, headers=h).status_code == 200
+    c = client.get(f"/api/cha/jobs/{e}/checklist", headers=h)
+    assert c.status_code == 200, c.text
+    assert c.json()["direction"] == "Export" and c.json()["totals"]["fob"] > 0
+    a = client.get(f"/api/cha/jobs/{e}/annexure-c", headers=h)
+    assert a.status_code == 200, a.text
+    assert a.json()["mode"] == "Air" and a.json()["job_no"]

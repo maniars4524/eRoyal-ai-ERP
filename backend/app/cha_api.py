@@ -669,6 +669,81 @@ def reopen_from_accounts(job_number: str, body: MoveIn, user: User = Depends(per
     return get_cha_job(job.job_number, user, db)
 
 
+@router.get("/api/cha/jobs/{job_number:path}/icegate-json")
+def icegate_json(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """The ICEGATE Shipping Bill message (JSON) of an Export job, built from what is entered on it (format of the supplied SB sample files). Import (Bill of Entry) has no format yet."""
+    from . import cha_icegate
+
+    org = _tenant(user)
+    job = _job(db, org, job_number)
+    if job.job_type != "Customs":
+        raise HTTPException(422, "Not a CHA job")
+    row = cha_row(db, job, freight_of(db, job))
+    pd = {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}
+    defaults = filing_defaults(db, job, row, pd)
+    info = dict(job.cha_info or {})
+    cha_org = db.scalar(select(Customer).where(Customer.organization_id == org, func.upper(Customer.name) == _norm(info.get("cha_license")))) if info.get("cha_license") else None
+    cd = (cha_org.data if cha_org else None) or {}
+    info["icegate_id"] = cd.get("cha_icegate_id") or info.get("icegate_id") or ""
+    builder = cha_icegate.build_sb if job.direction == "Export" else cha_icegate.build_be
+    msg, warnings = builder(job, info, info.get("filing") or {}, info.get("data") or {}, defaults, pd.get("exporter") or {}, str(cd.get("cha_license_no") or ""), date.today())
+    seq = msg["headerField"]["jobNumber"]
+    jl.log_event(db, job, user, "CHA_ICEGATE_JSON", "OPERATIONS", "ICEGATE Shipping Bill JSON generated", detail={"warnings": warnings[:20]})
+    db.commit()
+    return {"filename": f"{'SB' if job.direction == 'Export' else 'BE'}{seq}{date.today().year}.json", "message": msg, "warnings": warnings, "ready": not warnings}
+
+
+def _document_inputs(db: Session, user: User, job_number: str):
+    """What a printed document of a CHA job needs: the job, its row, the parties, the filing defaults and the CHA organization."""
+    org = _tenant(user)
+    job = _job(db, org, job_number)
+    if job.job_type != "Customs":
+        raise HTTPException(422, "Not a CHA job")
+    row = cha_row(db, job, freight_of(db, job))
+    pd = {"exporter": party_details(db, org, row["exporter"]), "importer": party_details(db, org, row["importer"])}
+    defaults = filing_defaults(db, job, row, pd)
+    info = dict(job.cha_info or {})
+    cha_org = db.scalar(select(Customer).where(Customer.organization_id == org, func.upper(Customer.name) == _norm(info.get("cha_license")))) if info.get("cha_license") else None
+    cd = (cha_org.data if cha_org else None) or {}
+    creator = db.get(User, job.created_by) if job.created_by else None
+    return org, job, row, pd, defaults, info, cha_org, cd, (jl.display_name(creator) if creator else "")
+
+
+@router.get("/api/cha/jobs/{job_number:path}/checklist")
+def checklist(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """The CHECK LIST of the job: Bill of Entry (Import) or Shipping Bill (Export), calculated from what is entered (valuation, duties, FOB, IGST) and laid out like the CHA team's printed checklists."""
+    from . import cha_checklist as ck
+
+    org, job, row, pd, defaults, info, cha_org, cd, by = _document_inputs(db, user, job_number)
+    build = ck.build_export if job.direction == "Export" else ck.build_import
+    out = build(job, row, info, info.get("filing") or {}, defaults, info.get("data") or {}, (cha_org.name if cha_org else info.get("cha_license") or ""), str(cd.get("cha_license_no") or ""), by, "", pd.get("exporter" if job.direction == "Export" else "importer") or {})
+    jl.log_event(db, job, user, "CHA_CHECKLIST_GENERATED", "OPERATIONS", "Checklist generated")
+    db.commit()
+    return out
+
+
+@router.get("/api/cha/jobs/{job_number:path}/annexure-c")
+def annexure_c(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """ANNEX-C (for export of goods by Air or Sea): the CHA's declaration with the airway bill particulars, the shipment details, AR4 details and the seal."""
+    org, job, row, pd, defaults, info, cha_org, cd, by = _document_inputs(db, user, job_number)
+    if job.direction != "Export":
+        raise HTTPException(422, "Annexure C is an export document")
+    data = info.get("data") or {}
+    c1 = (data.get("annexure_c1") or [{}])[0]
+    invs = data.get("invoices") or []
+    def charge(k):
+        tot = sum(float(str(i.get(k + "_amt") or 0).replace(",", "") or 0) for i in invs)
+        ccy = next((i.get(k + "_ccy") or i.get("currency") for i in invs if i.get(k + "_amt")), "")
+        return {"amount": round(tot, 2) if tot else "", "currency": ccy}
+    air = job.mode == "Air"
+    console = bool(info.get("mbl")) and not info.get("hbl")
+    return {"title": "ANNEX-C", "subtitle": f"(FOR EXPORT OF GOODS BY {'AIR' if air else 'SEA'})", "mode": job.mode, "cha_name": (cha_org.name if cha_org else info.get("cha_license") or ""), "cha_card": str(cd.get("cha_license_no") or ""),
+            "sb_no": (row.get("shipping_bill_no") or ""), "sb_date": str(row.get("shipping_bill_date") or ""), "console": {"mawb": info.get("mbl") or "", "packages": c1.get("awb_packages") or "", "hawb": info.get("hbl") or ""} if console else {},
+            "other": {"awb": c1.get("awb_no") or info.get("hbl") or info.get("mbl") or "", "packages": c1.get("awb_packages") or c1.get("total_packages") or ""} if not console else {},
+            "total_packages": c1.get("total_packages") or "", "package_type": c1.get("package_type") or "", "packages_marked": c1.get("packages_marked") or "", "gross_weight": c1.get("gross_weight") or "", "net_weight": c1.get("net_weight") or "",
+            "freight": charge("freight"), "insurance": charge("insurance"), "rotation": " ".join(x for x in (c1.get("rotation_no"), c1.get("rotation_date")) if x), "ar4": data.get("ar4") or [], "seal": " ".join(x for x in (c1.get("seal_no"), c1.get("seal_agency")) if x), "job_no": job.job_number}
+
+
 @router.get("/api/cha/jobs/{job_number:path}/validate")
 def validate_job(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Checks the filing form: how many required fields were checked, how many passed and what is missing; `ready` when nothing is missing."""

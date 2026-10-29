@@ -131,7 +131,7 @@ EXPORT_SPEC = [
         {"key": "items", "kind": "records", "title": "Item", "link": "invoices", "sections": [
             {"title": "Item main details", "fields": [
                 F("invoice_sr", "Invoice sr no", "number"), F("description", "Description", "area"), F("ritc_no", "RITC no"), F("qty", "Item quantity", "number"), F("qty_unit", "Unit"), F("unit_price", "Item unit price", "number"), F("per", "Per", "number"),
-                F("amount", "Item amount", "number"), F("scheme", "Scheme", "select", ["00-FREE SHIPPING BILL", "01-ADVANCE LICENCE", "02-EPCG", "03-DEEC", "04-DFIA", "05-EOU", "06-DRAWBACK"]), F("str", "STR Y/N", "select", ["No", "Yes"]),
+                F("amount", "Item amount", "number"), F("pmv", "Present market value (per unit)", "number"), F("scheme", "Scheme", "select", ["00-FREE SHIPPING BILL", "01-ADVANCE LICENCE", "02-EPCG", "03-DEEC", "04-DFIA", "05-EOU", "06-DRAWBACK"]), F("str", "STR Y/N", "select", ["No", "Yes"]),
                 F("reward", "Reward Y/N", "select", ["Yes", "No"]), F("cess", "Cess", "select", ["No", "Yes"]), F("rodtep", "RODTEP (Y/N)", "select", ["Yes", "No"])]},
             {"title": "Other details", "fields": [
                 F("accessory_desc", "Accessory description", "area"), F("end_use", "End use of item"), F("igst_payment_status", "IGST payment status", "select", ["NA", "P - Paid", "LUT - Without payment"]), F("taxable_value", "Taxable value", "number"),
@@ -161,7 +161,9 @@ EXPORT_SPEC = [
             {"title": "Details", "fields": [
                 F("exporter_name", "Exporter name"), F("address1", "Address"), F("address2", "Address 2"), F("address3", "Address 3"), F("iec_no", "IEC no"), F("branch_sl_no", "Branch sl no"), F("examination_date", "Examination date", "date"),
                 F("examination_officer", "Examination officer"), F("examination_designation", "Designation"), F("supervising_officer", "Supervising officer"), F("supervising_designation", "Designation"), F("commissionerate", "Commissionerate"),
-                F("division", "Division"), F("range", "Range"), F("verified_by_officer", "Verified by examination officer", "check"), F("sample_drawn", "Sample drawn", "check"), F("seal_no", "Seal no")]},
+                F("division", "Division"), F("range", "Range"), F("verified_by_officer", "Verified by examination officer", "check"), F("sample_drawn", "Sample drawn", "check"), F("seal_no", "Seal no"),
+                F("seal_agency", "Name of the sealing agency"), F("total_packages", "Total no. of packages", "number"), F("package_type", "Type of packages (boxes / cartons / bags)"), F("packages_marked", "Numbers marked on the packages (1-25 etc.)"),
+                F("gross_weight", "Gross weight", "number"), F("net_weight", "Net weight", "number"), F("rotation_no", "Rotation number"), F("rotation_date", "Rotation date", "date"), F("awb_no", "Airway bill no"), F("awb_packages", "No. of packages against the airway bill", "number")]},
         ]},
     ]},
 ]

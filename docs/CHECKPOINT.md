@@ -263,3 +263,12 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - CHARGES tab: "Accounts & job status" - Move to Accounts (needs charges + bill-to party; locks the charges PUT and the bill-to party), Take back from Accounts (reason; refused when an invoice exists), Close / Reopen job (uses the existing job close / reopen with its checklist).
 - EXPORT item: SW constituent / production / control / statement sections added (field lists assumed from the ICEGATE single-window concept - confirm against screens).
 - STILL OPEN: ETP tab (no screenshot), Import item Licence / ADD / S/W fields (assumed), ICEGATE actions, mobile PWA, AMS/ACI/ISF, hard order-of-work block.
+
+## 2026-10-29 (night 2) - order of work, installable app, ICEGATE JSON, checklist, Annexure C
+- ORDER OF WORK: Export freight job cannot go On Transit until its CHA jobs are cleared (OOC / LEO); Import CHA job cannot be filed until the freight job is On Transit. Override needs permission cha.exception + a reason (logged).
+- INSTALLABLE APP: /manifest.webmanifest, /sw.js, /pwa/* icons. "Install eSway app" in the user menu and "Download eSway App" on the login card (only where the browser can install / iPhone). Service worker needs HTTPS or localhost - Tailscale HTTPS still to set up. Phone layout with hamburger drawer (<=760px).
+- CHA MENU: Sea / Air Export / Import entries; customs stages sit under the CHA job number.
+- ICEGATE JSON: GET /api/cha/jobs/{job}/icegate-json (cha_icegate.py build_sb / build_be, from the SB / BE sample files). Buttons: toolbar JSON and Submission tab "Generate ICEGATE JSON", Export and Import. Sender ID = org CHA role field "ICEGATE ID" (cha_icegate_id). Warnings list missing points. Flat File / Sign / Submit stay disabled (need ICEGATE agent + certificate).
+- CHECKLIST + ANNEXURE C: GET .../checklist (cha_checklist.py: duty working, duty in words, SW info, statements) and .../annexure-c. Checklist tab: "Generate checklist" (+ "Annexure C" on Export) opens a printable page: Print / Save as PDF and Download Word (.doc). Annexure C1 form extended (seal agency, packages, weights, rotation, AWB).
+- TESTS: pytest 274 passed; e2e chadocs, cha, importtabs, exporttabs, appinstall, menuops, usermenu, fjcha, chareports pass.
+- STILL OPEN: Tailscale HTTPS, ETP tab (needs screenshot), Import Licence / ADD / S/W fields (assumed), true .docx output (current Word file is HTML .doc), checklist layout not yet compared against the sample PDFs line by line, AMS/ACI/ISF skipped.

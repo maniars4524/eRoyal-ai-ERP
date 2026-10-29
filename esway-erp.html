@@ -19574,13 +19574,13 @@ function makePrintFit(){
   const host = ()=> document.getElementById("netRoleBlocks");
   const on = r=> !!document.querySelector('#orgRoleFlags .fi[data-role="'+r+'"].on');
   const st = {rec:null, airline:false, sea:false, links:{}};
-  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to","iec_code"];
+  const KEYS = ["carrier_airline","carrier_sea_line","airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","cha_icegate_id","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to","iec_code"];
   const val = id=> { const e = document.getElementById(id); return e ? e.value.trim() : ""; };
   const fld = (id, label, ph, cur, req, extra)=> '<div class="fg"><label class="fl">'+label+(req?' <span class="r">*</span>':'')+'</label><input class="fc" id="'+id+'" value="'+esc2(cur||"")+'" placeholder="'+esc2(ph||"")+'" autocomplete="off"'+(extra||"")+'></div>';
   const d = ()=> (st.rec && st.rec.data) || {};
   const linkNote = k=> st.links[k] ? '<div style="font-size:11px;color:var(--g6);margin:2px 0 8px">Linked master record: <strong>'+esc2(st.links[k].code)+'</strong> — '+esc2(st.links[k].name)+' ('+esc2(st.links[k].status)+')</div>' : '';
   function read(){ // keep what was typed while the blocks are redrawn
-    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to","iec_code"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
+    ["airline_code","iata_numeric_code","icao_code","sea_line_code","scac_code","iata_agent_code","cass_code","cfs_code","cfs_port_code","exp_ad_code","exp_ad_bank","exp_default_pol","exp_rodtep","exp_default_cha","imp_default_pod","imp_customs_location","imp_default_cha","cha_license_no","cha_license_valid_to","cha_customs_stations","cha_filing_mode","cha_icegate_id","trade_unit_kind","trade_approval_no","exp_lut_no","exp_lut_valid_to","iec_code"].forEach(k=>{ const e = document.getElementById("net_"+k); if(e) st[k] = e.value; });
   }
   const cur = k=> st[k] !== undefined ? st[k] : (d()[k] || "");
   /* CHA organizations of the company, for the "default CHA" pick-lists of an exporter / importer */
@@ -19600,7 +19600,7 @@ function makePrintFit(){
       fld("net_imp_default_pod","Default Port of Discharge","e.g. INMAA",cur("imp_default_pod"),false,' maxlength="5" style="text-transform:uppercase"')+fld("net_imp_customs_location","Customs Location / ICD","e.g. INMAA4",cur("imp_customs_location"))+chaPick("net_imp_default_cha", cur("imp_default_cha"))+'</div>';
     if(on("cha")) out += '<div class="fsec" style="margin-top:12px">CHA / Customs Broker details</div><div class="ib ib-bl" style="margin-bottom:6px">Organizations with this role appear in the CHA pick-lists of exporters and importers.</div><div class="fr">'+
       fld("net_cha_license_no","CHA Licence No","Customs broker licence",cur("cha_license_no"),false,' maxlength="30" style="text-transform:uppercase"')+fld("net_cha_license_valid_to","Licence valid until","",cur("cha_license_valid_to"),false,' type="date"')+
-      fld("net_cha_customs_stations","Customs stations","e.g. Chennai Sea, Chennai Air",cur("cha_customs_stations"))+sel("net_cha_filing_mode","Files",["Export","Import","Export and Import"],cur("cha_filing_mode"))+'</div>';
+      fld("net_cha_customs_stations","Customs stations","e.g. Chennai Sea, Chennai Air",cur("cha_customs_stations"))+sel("net_cha_filing_mode","Files",["Export","Import","Export and Import"],cur("cha_filing_mode"))+fld("net_cha_icegate_id","ICEGATE ID","Sender ID in the filing message",cur("cha_icegate_id"),false,' maxlength="30" style="text-transform:uppercase"')+'</div>';
     return out;
   }
   async function loadChas(){ if(st.chas) return; try{ st.chas = (await api("GET","/api/customers?role=cha")).filter(c=>c.status !== "INACTIVE"); }catch(e){ st.chas = []; } }
@@ -19651,7 +19651,7 @@ function makePrintFit(){
       if(on("shipper") || on("consignee")){ keep("trade_unit_kind"); keep("trade_approval_no", 1); }
       if(on("shipper")){ keep("exp_lut_no", 1); keep("exp_lut_valid_to"); keep("exp_ad_code", 1); keep("exp_ad_bank"); keep("exp_default_pol", 1); keep("exp_rodtep"); keep("exp_default_cha"); }
       if(on("consignee")){ keep("imp_default_pod", 1); keep("imp_customs_location"); keep("imp_default_cha"); }
-      if(on("cha")){ keep("cha_license_no", 1); keep("cha_license_valid_to"); keep("cha_customs_stations"); keep("cha_filing_mode"); }
+      if(on("cha")){ keep("cha_license_no", 1); keep("cha_license_valid_to"); keep("cha_customs_stations"); keep("cha_filing_mode"); keep("cha_icegate_id", 1); }
       return o;
     };
     return true;
@@ -21641,7 +21641,7 @@ function makePrintFit(){
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'+pill("Status", '<span class="b '+(TONE[j.customs_status] || "b-gy")+' dot">'+esc2(j.customs_status)+'</span>'+(j.delayed ? ' <span class="b b-rd">Delayed</span>' : ""))+
       pill("Customs House", '<input id="chjLoc" class="fi" style="width:110px" value="'+esc2(info.customs_location || "")+'" placeholder="e.g. INMAA1">')+pill("ICEGATE ID &amp; CHA", '<select id="chjCha" class="fi">'+chaOpts+'</select>')+
       pill(exp ? "SB No." : "BE No.", (bill ? '<b class="mono">'+esc2(bill.bill_no)+'</b>'+(bill.bill_date ? ' <span style="color:var(--g5)">'+dmy(bill.bill_date)+'</span>' : "") : '<input id="chjBillNo" class="fi" style="width:130px" placeholder="Not yet allotted"><input id="chjBillDate" class="fi" type="date">'))+'</div>'+
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+btn("chjSave", "Save")+btn("chjValidate", "Validate")+btn("chjChecklist", "Checklist")+btn("chjCharges", "Charges (expenses &amp; selling)")+off("Flat File")+off("JSON")+off("Sign Flat File")+off("Sign &amp; Submit JSON")+off("Sign PDF")+off("Job Excel")+off("Query Reply")+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+btn("chjSave", "Save")+btn("chjValidate", "Validate")+btn("chjChecklist", "Checklist")+btn("chjCharges", "Charges (expenses &amp; selling)")+off("Flat File")+btn("chjJson", "JSON")+off("Sign Flat File")+off("Sign &amp; Submit JSON")+off("Sign PDF")+off("Job Excel")+off("Query Reply")+
       '<span style="margin-left:auto;display:flex;gap:6px">'+btn("chjBack", "Back to Job")+btn("chjDup", "Duplicate Job")+'</span></div></div>';
   }
 
@@ -21723,8 +21723,8 @@ function makePrintFit(){
     const j = S.job, v = S.val || {errors:[], ready:false}, d = data();
     return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Submission</div></div><div class="cb"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px">'+
       [["ICEGATE ID / CHA", (j.info || {}).cha_license || "Automatic"], [j.shipment_type === "Export" ? "Exporter" : "Importer", j.shipment_type === "Export" ? j.exporter : j.importer], [j.shipment_type === "Export" ? "Consignee" : "Supplier", j.shipment_type === "Export" ? j.importer : ((d.invoices || [])[0] || {}).supplier_name], ["Invoices", (d.invoices || []).length], ["Items", (d.items || []).length], ["Validated", v.ready ? "Yes — ready to file" : "No — "+v.errors.length+" to fix"]].map(x=>'<div><div style="font-size:11px;color:var(--g5)">'+esc2(x[0])+'</div><div style="font-weight:600">'+t(x[1])+'</div></div>').join("")+'</div>'+
-      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" data-chj-json>Download job data (JSON)</button><button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">Generate ICEGATE JSON</button><button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">Upload JSON</button><button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">Sign &amp; upload (DSC)</button></div>'+
-      '<div class="ib ib-am" style="margin-top:10px">Signing with a digital certificate and filing at ICEGATE need the ICEGATE agent and your certificate, which are not connected to this ERP yet. “Download job data” saves everything entered on this job as a JSON file (it is not an ICEGATE file).</div></div></div>';
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" data-chj-json>Download job data (JSON)</button>'+'<button class="btn btn-pri btn-sm" type="button" id="chjJson2">Generate ICEGATE JSON</button>'+'<button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">Upload JSON</button><button class="btn btn-out btn-sm" type="button" disabled title="'+NOT_CONNECTED+'" style="opacity:.55">Sign &amp; upload (DSC)</button></div>'+
+      '<div class="ib ib-am" style="margin-top:10px">'+(j.shipment_type === "Export" ? "“Generate ICEGATE JSON” builds the Shipping Bill message from what is entered on this job (same layout as your SB sample files) and downloads it. " : "")+'Signing with a digital certificate and filing at ICEGATE need the ICEGATE agent and your certificate, which are not connected to this ERP yet. “Download job data” saves everything entered on this job as a JSON file (it is not an ICEGATE file).</div></div></div>';
   }
   /* Charges: the job's own cost and selling (the same store Accounts and the reports read) */
   async function loadCharges(){ try{ const r = await api("GET", "/api/shipments/by-number/"+encodeURIComponent(S.no)+"/charges"); S.charges = (r.lines || []).map(l=>({charge_name:l.charge_name, qty:String(l.qty), buy_rate:String(l.buy.rate), buy_party:l.buy.party || "", buy_gst:String(l.buy.tax_pct || 0), sell_rate:String(l.sell.rate), sell_gst:String(l.sell.tax_pct || 0), sell_party:l.sell.party || ""})); }catch(e){ S.charges = []; } if(S.tab === "Charges") render(); }
@@ -21752,7 +21752,7 @@ function makePrintFit(){
     const exp = j.shipment_type === "Export";
     const rows = exp ? [["Exporter", j.exporter || (j.filing_defaults || {}).exporter_name], ["Consignee", j.importer || (j.filing_defaults || {}).consignee], ["Filing location (customs house)", (j.info || {}).customs_location], ["SB type", f.sb_type], ["Invoices", inv.length], ["Items", it.length], ["Annexure C1", ((d.annexure_c1 || [])[0] ? "Entered" : "Not entered")], ["Required fields", v.passed+" of "+v.checked+" filled"]]
       : [["Importer", j.importer || (j.filing_defaults || {}).importer_name], ["Supplier", (inv[0] || {}).supplier_name], ["Filing location (customs house)", (j.info || {}).customs_location], ["BE type", f.be_type || (j.filing_defaults || {}).be_type], ["IGM entries", (d.igm || []).length], ["Invoices", inv.length], ["Items", it.length], ["Required fields", v.passed+" of "+v.checked+" filled"]];
-    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Checklist</div></div><div class="cb"><div class="tw"><table><tbody>'+rows.map(r=>'<tr><td style="color:var(--g5);width:260px">'+esc2(r[0])+'</td><td style="font-weight:600">'+t(r[1])+'</td></tr>').join("")+'</tbody></table></div>'+
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Checklist</div><div style="display:flex;gap:6px"><button class="btn btn-pri btn-sm" type="button" id="chjCkl">Generate checklist</button>'+(exp ? '<button class="btn btn-out btn-sm" type="button" id="chjAnnex">Annexure C</button>' : "")+'</div></div><div class="cb"><div class="tw"><table><tbody>'+rows.map(r=>'<tr><td style="color:var(--g5);width:260px">'+esc2(r[0])+'</td><td style="font-weight:600">'+t(r[1])+'</td></tr>').join("")+'</tbody></table></div>'+
       (v.errors.length ? '<div class="ib ib-am" style="margin-top:8px">To fix: '+v.errors.map(e=>esc2(e.label)).join(", ")+'</div>' : '<div class="ib ib-gr" style="margin-top:8px">All required General fields are filled.</div>')+(it.length && !inv.length ? '<div class="ib ib-am" style="margin-top:8px">Items exist but no invoice has been entered.</div>' : "")+'</div></div>';
   }
   function logTab(){
@@ -21781,6 +21781,77 @@ function makePrintFit(){
       (canEdit() ? '<div style="display:flex;gap:6px;margin-left:auto">'+(mv ? '<button class="btn btn-out btn-sm" type="button" data-chj-unmove>Take back from Accounts</button>' : '<button class="btn btn-pri btn-sm" type="button" data-chj-move>Move to Accounts</button>')+(closed ? '<button class="btn btn-out btn-sm" type="button" data-chj-reopen>Reopen job</button>' : '<button class="btn btn-out btn-sm" type="button" data-chj-close>Close job</button>')+'</div>' : "")+'</div>'+
       '<div class="ib ib-am" style="margin-top:8px">'+(mv ? "The charges and the bill-to party are with Accounts and cannot be changed here." : "Once moved to Accounts (or invoiced) the charges and the bill-to party cannot be modified. Enter the bill-to party and the cost and selling first.")+'</div></div></div>';
   }
+
+  /* ---------- printed documents: Checklist (Bill of Entry / Shipping Bill) and Annexure C ---------- */
+  const E = v=> esc2(v === null || v === undefined ? "" : v);
+  const kv = (k, v)=> '<tr><td class="k">'+E(k)+'</td><td>: '+E(v)+'</td></tr>';
+  const lines = a=> (a || []).filter(Boolean).map(x=>E(x)).join("<br>");
+  const docCss = '<style>body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#000;margin:18px}h1,h2{text-align:center;margin:2px 0}h1{font-size:15px}h2{font-size:12px}hr{border:0;border-top:1px dashed #000;margin:8px 0}table{border-collapse:collapse;width:100%}td,th{padding:2px 6px;vertical-align:top;text-align:left}'+
+    'td.k{font-weight:700;white-space:nowrap;width:150px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}.sec{text-align:center;font-weight:700;margin:8px 0 2px;letter-spacing:.04em}.r{text-align:right}th{border-top:1px dashed #000;border-bottom:1px dashed #000}.item td{border-bottom:0}.sig{margin-top:26px;display:flex;justify-content:space-between}</style>';
+  const shell = (title, body)=> '<!doctype html><html><head><meta charset="utf-8"><title>'+E(title)+'</title>'+docCss+'</head><body>'+body+'</body></html>';
+  function checklistImport(c){
+    const im = c.importer || {}, t = c.totals || {};
+    const igm = (c.igm || []).map(x=>'<div><b>IGM NO</b> : '+E(x.igm_no)+' /'+E(String(x.igm_date || "").slice(-4))+' /'+E(x.igm_date)+' /'+E(x.inward)+'</div><div class="grid"><table>'+kv("Port Origin", c.port_origin)+kv("Country Origin", c.country_origin)+kv("MBL/MAWB", x.mbl)+kv("Date", x.mbl_date)+kv("No. of Pkgs", [x.packages, x.package_unit].filter(Boolean).join(" "))+kv("Marks & Nos", x.marks)+
+      '</table><table>'+kv("Port Shipment", c.port_shipment)+kv("Country Consnmnt", c.country_consignment)+kv("HBL/HAWB", x.hbl)+kv("Date", x.hbl_date)+kv("Gross Weight", [x.weight, x.weight_unit].filter(Boolean).join(" "))+'</table></div><hr>').join("");
+    const inv = (c.invoices || []).map(i=>'<div class="grid"><table>'+kv("Inv.SlNo", i.sl)+kv("Inv.No", i.no)+kv("Inv.Date", i.date)+kv("Inv.Value", i.value+" "+i.currency)+kv("Inv.Terms", i.terms)+kv("Freight", (i.freight || "")+" "+(i.freight ? i.freight_ccy+" "+i.freight_rate : ""))+kv("Insurance", i.insurance)+kv("Misc Charges", (i.misc || "")+" "+(i.misc_ccy || ""))+kv("Exchange Rate", "1.00 "+i.currency+"="+i.exchange_rate+" INR")+'</table>'+
+      '<table><tr><td class="k">SUPPLIER DETAILS</td><td></td></tr><tr><td colspan="2">'+lines(i.supplier)+'</td></tr>'+kv("Under SVB Y/N", i.svb)+kv("Nature of Trans&Paymnt", i.nature)+kv("Total SC Misc(INR)", i.misc_inr)+'</table></div><hr>').join("");
+    const items = (c.items || []).map(it=>'<tr class="item"><td>'+it.sl+'</td><td>'+E(it.ritc)+'</td><td colspan="3">'+E(it.description)+'</td><td class="r">'+E(it.scheme)+'</td></tr><tr><td></td><td>'+E(it.qty)+'<br>'+E(it.unit)+'</td><td>'+E(it.unit_price)+'<br>'+it.av.toFixed(2)+'</td><td>'+E(it.coo)+'<br>'+E(it.end_use)+'</td><td>'+E(it.cth)+'<br>'+E(it.ceth)+'</td><td class="r">'+E(it.bcd_notn)+'<br>'+it.bcd_pct.toFixed(2)+'% '+it.bcd.toFixed(2)+'</td></tr>'+
+      '<tr><td></td><td colspan="2">'+(it.scheme_notn ? "SCHEME NOTN: "+E(it.scheme_notn) : "")+'</td><td>Social Welfare</td><td></td><td class="r">'+it.sws_pct.toFixed(2)+'% '+it.sws.toFixed(2)+'</td></tr><tr><td></td><td colspan="2"></td><td>Cus AIDC '+E(it.aidc_notn)+'</td><td></td><td class="r">'+it.aidc_pct.toFixed(2)+'% '+it.aidc.toFixed(2)+'</td></tr>'+
+      (it.add > 0 || it.add_notn ? '<tr><td></td><td colspan="2"></td><td>ADD '+E(it.add_notn)+'</td><td></td><td class="r">'+it.add_pct.toFixed(2)+'% '+it.add.toFixed(2)+'</td></tr>' : "")+'<tr><td></td><td colspan="2"></td><td>IGST '+E(it.igst_notn)+'</td><td></td><td class="r">'+it.igst_pct.toFixed(2)+'% '+it.igst.toFixed(2)+'</td></tr><tr><td></td><td colspan="2"></td><td>Compensation Cess '+E(it.cess_notn)+'</td><td></td><td class="r">'+it.cess_pct.toFixed(2)+'% '+it.cess.toFixed(2)+'</td></tr>').join("");
+    const sw = (c.sw_info || []).map(x=>'<tr><td>'+x.inv+'</td><td>'+x.item+'</td><td>'+E(x.type)+' - '+E(x.qualifier)+'</td><td>'+E(x.code)+'</td><td>'+E(x.text)+'</td><td class="r">'+E(x.msr)+'</td><td>'+E(x.uqc)+'</td></tr>').join("");
+    const stm = (c.statements || []).map(x=>'<tr><td>'+x.inv+'</td><td>'+x.item+'</td><td>'+E(x.type)+'</td><td>'+E(x.code)+'</td><td>'+E(x.text)+'</td></tr>').join("");
+    return '<h1>'+E(c.cha_name)+'</h1><h2>'+E(c.title)+'</h2><hr><div class="grid"><table>'+kv("B.E No,Date", "")+kv("Job No & Date", c.job_no+" & "+c.job_date)+kv("Port Of Filing", c.customs_house)+kv("Transport Mode", c.transport_mode)+kv("BE Type", c.be_type)+kv("Govt/Private", c.govt_private)+
+      '<tr><td class="k">CHA Details</td><td>'+E(c.cha_licence)+'<br>'+E(c.cha_name)+'</td></tr>'+kv("UCR Number", "")+kv("Total Assbl Value", t.av.toFixed(2))+'</table><table>'+kv("Printed On", c.printed_on)+kv("Created By", c.created_by)+kv("File No", c.file_ref)+kv("Prior BE", c.prior_be)+kv("Section46 / Green Channel / First Check", c.section46+" / "+c.green_channel+" / "+c.first_check)+
+      '<tr><td class="k">Importer Details</td><td>: '+E(im.name)+'<br>Br.Slno :'+E(im.branch)+' PAN: '+E(im.pan)+'<br>'+lines(im.address)+'</td></tr>'+kv("AD Code / GSTIN", (im.ad_code || "")+" / "+(im.gstin || ""))+kv("Payment Method Code", c.payment_method)+kv("Total Duty Value", t.duty_total.toFixed(2))+'</table></div><hr>'+igm+
+      '<div class="sec">INVOICE DETAILS &nbsp; Number Of Invoices : '+(c.invoices || []).length+'</div><hr>'+inv+'<div class="sec">ITEM DETAILS</div><table><tr><th>Slno</th><th>RITC<br>QTY / Unit</th><th>Unit Price / Ass Value</th><th>COO / End Use</th><th>CTH / CETH</th><th class="r">Cus.Notn Dty.Rt Amt</th></tr>'+items+'</table><hr>'+
+      '<table><tr><td class="r">Total Customs Duty : '+t.customs_duty.toFixed(2)+'</td></tr><tr><td class="r">Total IGST Duty : '+t.igst.toFixed(2)+'</td></tr><tr><td class="r"><b>Net Amt.Rs. '+t.net_amount.toFixed(2)+' &nbsp; '+t.duty_payable.toFixed(2)+'</b></td></tr><tr><td><b>DUTY PAYABLE</b> : '+E(c.duty_words)+'</td></tr></table><hr>'+
+      ((c.bonds || []).length ? '<div class="sec">BOND DETAILS</div><table><tr><th>BOND NO.</th><th>BOND TYPE</th><th>BOND LOCATION</th></tr>'+c.bonds.map(b=>'<tr><td>'+E(b.no)+'</td><td>'+E(b.type)+'</td><td>'+E(b.location)+'</td></tr>').join("")+'</table>' : "")+
+      ((c.certificates || []).length ? '<div class="sec">CERTIFICATE DETAILS</div><table><tr><th>CERTIFICATE NO.</th><th>CERT.DATE</th><th>CERT.TYPE</th></tr>'+c.certificates.map(b=>'<tr><td>'+E(b.no)+'</td><td>'+E(b.date)+'</td><td>'+E(b.type)+'</td></tr>').join("")+'</table>' : "")+
+      (c.containers ? '<div class="sec">CONTAINER DETAILS</div><div>'+E(c.containers)+'</div>' : "")+
+      ((c.gstin_rows || []).length ? '<div class="sec">GSTIN Details</div><table><tr><th>STATE</th><th>COMMERCIAL TYPE</th><th>REGISTRATION NO</th><th>IGST Ass.</th><th>IGST Amt</th><th>GSTCess Amt</th></tr>'+c.gstin_rows.map(g=>'<tr><td>'+E(g.state)+'</td><td>'+E(g.type)+'</td><td>'+E(g.reg)+'</td><td>'+g.igst_ass+'</td><td>'+g.igst_amt+'</td><td>'+g.cess+'</td></tr>').join("")+'</table>' : "")+
+      (sw ? '<div class="sec">SINGLE WINDOW - INFO DETAILS</div><table><tr><th>InvSlNo</th><th>ItemSlNo</th><th>InfoType-InfoQualifr</th><th>Info Code</th><th>Info Text</th><th class="r">MSR</th><th>UQC</th></tr>'+sw+'</table>' : "")+
+      (stm ? '<div class="sec">SINGLE WINDOW - STATEMENT DETAILS</div><table><tr><th>InvSlNo</th><th>ItemSlNo</th><th>Stmt Type</th><th>Stmt Code</th><th>Stmt Text</th></tr>'+stm+'</table>' : "")+
+      '<p>Declaration<br>I, We Certify that the above entries are correct<br>I, We further declare that wherever the RSP is applicable same has been truthfully declared</p><div class="sig"><div>CHA<br>'+E(c.cha_name)+'<br>Signature</div><div>Importer<br>'+E(c.signatory)+'<br>Signature</div></div>';
+  }
+  function checklistExport(c){
+    const ex = c.exporter || {}, cn = c.consignee || {}, t = c.totals || {};
+    const inv = (c.invoices || []).map(i=>'<div class="grid"><table>'+kv("Inv.SlNo", i.sl)+kv("GST Invoice No", i.no)+kv("Nature Of Contract", i.terms)+kv("Nature Of Payment", i.payment)+kv("Period Of Agreement", i.period)+kv("Contract No/Date", i.contract)+kv("Currency Code", i.currency)+kv("Exchange Rate", i.rate)+kv("Invoice Value(FC)", i.value_fc.toFixed(2))+kv("Invoice Value(INR)", i.value_inr)+
+      '</table><table>'+kv("Whether Unit Price", i.unit_price_includes)+kv("Invoice Date", i.date)+'<tr><td class="k">Buyer Details</td><td>'+E(i.buyer)+'</td></tr>'+kv("FOB (FC)", i.fob_fc.toFixed(2))+'</table></div>'+
+      '<table><tr><th></th><th>Rate</th><th>Currency</th><th>Amt</th></tr>'+i.charges.map(x=>'<tr><td><b>'+E(x[0])+'</b></td><td>'+E(x[1])+'</td><td>'+E(x[2])+'</td><td>'+E(x[3])+'</td></tr>').join("")+'</table>'+(i.third_party.length ? '<table>'+kv("Third Party Name", i.third_party[0])+kv("Third Party Add1", i.third_party[1])+kv("Third Party Add2", i.third_party[2])+kv("City & Sub Division", i.third_party[3])+'</table>' : "")+
+      '<div class="sec">ITEMS OF EXPORT</div><table><tr><th>SLNo</th><th>RITC</th><th>Description</th><th>Quantity Units</th><th>Item Rate Per</th><th class="r">Value (FC)</th><th class="r">FOB (INR)</th><th>Sch Cd</th><th>Reward</th></tr>'+i.items.map(x=>'<tr><td>'+x.sl+'</td><td>'+E(x.ritc)+'</td><td>'+E(x.description)+'</td><td>'+E(x.qty)+' '+E(x.unit)+'</td><td>'+E(x.rate)+' '+E(x.per)+'</td><td class="r">'+x.value_fc.toFixed(2)+'</td><td class="r">'+x.fob_inr+'</td><td>'+E(x.sch_cd)+'</td><td>'+E(x.reward)+'</td></tr><tr><td></td><td colspan="2">'+E(x.scheme)+' &nbsp; '+E(x.end_use)+'</td><td>PMV '+x.pmv+'</td><td>Total PMV '+x.total_pmv.toFixed(2)+'</td><td colspan="2">IGST '+E(x.igst_status)+' Val '+x.igst_val.toFixed(2)+' Amt '+x.igst_amt.toFixed(2)+'</td><td colspan="2"></td></tr>').join("")+'</table><hr>').join("");
+    const other = (c.invoices || []).flatMap(i=>i.items.map(x=>'<tr><td>'+i.sl+'</td><td>'+x.sl+'</td><td>'+E(x.sqc_qty)+'</td><td>'+E(x.sqc_unit)+'</td><td>'+E(x.state_origin)+'</td><td>'+E(x.district)+'</td><td>'+E(x.cess)+'</td><td>'+E(x.pta)+'</td></tr>')).join("");
+    const sw = (c.sw_info || []).map(x=>'<tr><td>'+x.inv+'</td><td>'+x.item+'</td><td>'+E(x.type)+'</td><td>'+E(x.qualifier)+'</td><td>'+E(x.code)+'</td><td>'+E(x.text)+'</td><td>'+E(x.msr)+'</td><td>'+E(x.uqc)+'</td></tr>').join("");
+    return '<h1>'+E(c.cha_name)+'</h1><h2>'+E(c.title)+'</h2><hr><table>'+kv("S.B No & Date", "")+kv("Job No & Date", c.job_no+" - "+c.job_date)+kv("CHA", c.cha_licence+"   Name : "+c.cha_name)+kv("Custom House", c.customs_house+"   State Of Origin : "+(c.state_of_origin || ""))+kv("File Ref. No", c.file_ref)+kv("Printed On", c.printed_on)+'</table><hr>'+
+      '<div class="grid"><div><b>Exporter Details :</b><br>'+E(ex.iec)+'<br>'+E(ex.name)+'<br>Branch Sr.No: '+E(ex.branch)+'<br>'+lines(ex.address)+'<table>'+kv("GSTN Type / ID", ex.gstn)+kv("Type Of Exporter", ex.type)+kv("Port Discharge", c.port_discharge)+kv("Country Discharge", c.country_discharge)+kv("Port Final Dest", c.port_final)+kv("Country Final Dest", c.country_final)+kv("Marks & Nos", c.marks)+kv("Mawb No & Date", c.mbl)+kv("Hawb No & Date", c.hbl)+kv("Bank A/C No", ex.bank_account)+kv("Dbk Bank A/C No", ex.dbk_account)+kv("IFSC Code", ex.ifsc)+'</table></div>'+
+      '<div><b>Consignee Details :</b><br>'+lines([cn.name].concat(cn.address || []))+'<br>'+E(cn.country)+'<table>'+kv("AD Code", ex.ad_code)+kv("NFEI Type", c.nfei_type || c.nfei)+kv("RBI Waiver No", c.rbi_waiver)+kv("RBI Waiver Date", c.rbi_waiver_date)+kv("Total Drawback Amt(INR)", "0.00")+kv("Total RODTEP Amt (INR)", "0.00")+kv("Total ROSCTL Amt (INR)", "0.00")+kv("FOB Value", t.fob.toFixed(2))+kv("IGST Value", t.igst_val.toFixed(2))+kv("IGST Amount", t.igst_amt.toFixed(2))+'</table></div></div><hr>'+
+      '<div class="sec">INVOICE DETAILS &nbsp; No Of Invoices : '+(c.invoices || []).length+'</div><hr>'+inv+'<table><tr><td>Total QTY : '+t.qty.toFixed(2)+'</td><td class="r">Total FOB : '+t.fob.toFixed(2)+' &nbsp; Total PMV : '+t.pmv.toFixed(2)+'</td><td class="r">Total IGST Val : '+t.igst_val.toFixed(2)+' &nbsp; Total IGST Amt : '+t.igst_amt.toFixed(2)+'</td></tr></table>'+
+      (other ? '<div class="sec">ITEM - OTHER DETAILS</div><table><tr><th>Inv SlNo</th><th>Item SlNo</th><th>SQC Qty</th><th>SQC Unit</th><th>State of Origin</th><th>District of Origin</th><th>Comp.Cess Amt(INR)</th><th>PTA/FTA</th></tr>'+other+'</table>' : "")+
+      (sw ? '<div class="sec">SINGLE WINDOW - INFO DETAILS</div><table><tr><th>Inv SlNo</th><th>Item SlNo</th><th>Info Type</th><th>Info Qualifier</th><th>Info Code</th><th>Info Text</th><th>MSR</th><th>UQC</th></tr>'+sw+'</table>' : "")+
+      '<div class="sec">DECLARATIONS</div><table><tr><th>Inv SlNo</th><th>Item SlNo</th><th>Stmt Type</th><th>Stmt Code</th><th>Stmt Text</th></tr>'+(c.declarations || []).map(x=>'<tr><td>'+x.inv+'</td><td>'+x.item+'</td><td>'+E(x.type)+'</td><td>'+E(x.code)+'</td><td>'+E(x.text)+'</td></tr>').join("")+'</table><p>'+E(c.declaration_text)+'</p><div class="sig"><div></div><div>Exporter<br>'+E(c.signatory)+'<br><br>Signature</div></div>';
+  }
+  function annexureHtml(a){
+    const row = (k, v, extra)=> '<tr><td style="width:330px"><b>'+E(k)+'</b></td><td>: '+E(v)+'</td>'+(extra || "")+'</tr>';
+    const money = m=> (m && m.amount !== "" ? E(m.amount) : "")+(m && m.currency ? " &nbsp; Currency : "+E(m.currency) : "");
+    return '<h1>'+E(a.cha_name)+'</h1><h2>'+E(a.title)+'</h2><h2>'+E(a.subtitle)+'</h2><p><b>Shipping Bill No. &amp; Date :</b> '+E(a.sb_no)+' '+E(a.sb_date)+'</p><p><b>'+(a.mode === "Air" ? "AIRWAY BILL" : "BILL OF LADING")+' PARTICULARS</b></p><div class="grid"><div><b>1.A. For Console Cargo</b><table>'+row("(i) Master "+(a.mode === "Air" ? "Airway" : "Bill of Lading")+" No", (a.console || {}).mawb)+row("(ii) Total No of Pkgs against the MAWB", (a.console || {}).packages)+row("(iii) House Bill No", (a.console || {}).hawb)+'</table></div>'+
+      '<div><b>1.B. For Other Cargo</b><table>'+row("(i) Bill No", (a.other || {}).awb)+row("(ii) No of Pkgs against the bill", (a.other || {}).packages)+'</table></div></div><p><b>SHIPPING BILL DETAILS</b></p><table>'+row("2 Total No. of Packages", a.total_packages)+row("3 Type of pkgs (Boxes/Cartons/Bags etc)", a.package_type)+row("4 Number marked on the pkgs (1-25 etc.)", a.packages_marked)+row("5 Gross weight", a.gross_weight)+row("6 Net Weight", a.net_weight)+
+      '<tr><td><b>7 Freight Charges</b></td><td>: '+money(a.freight)+'</td></tr><tr><td><b>8 Insurance Charges</b></td><td>: '+money(a.insurance)+'</td></tr>'+row("9 Rotation Number and Date", a.rotation)+'</table><p><b>10 Details of AR4 if any</b></p><table><tr><th>Sl.</th><th>AR4 No.</th><th>Date</th><th>Commissionerate</th><th>Division</th><th>Range</th></tr>'+(a.ar4 || []).map((r, i)=>'<tr><td>'+(i + 1)+'</td><td>'+E(r.ar4_no)+'</td><td>'+E(r.ar4_date)+'</td><td>'+E(r.commissionerate)+'</td><td>'+E(r.division)+'</td><td>'+E(r.range)+'</td></tr>').join("")+'</table>'+
+      '<p><b>11 Seal No. and name of the sealing agency</b> : '+E(a.seal)+'</p><p>I/We declare that the particulars given above are true and correct.</p><div class="sig"><div>Date :</div><div style="text-align:right">Signature of the CHA<br><b>'+E(a.cha_name)+'</b><br>Card No. <b>'+E(a.cha_card)+'</b></div></div><p style="margin-top:22px">Goods arrived. Verified the number of packages and marks and numbers there on and found to be as declared.</p><div class="sig"><div>Date :</div><div><b>Name and Signature of PO/ED</b></div></div>';
+  }
+  function showDocument(title, body, fileBase){
+    const html = shell(title, body);
+    openModal({title:E(title), size:"full", bodyHTML:'<div style="background:#fff;border:1px solid var(--g2);padding:8px;max-height:70vh;overflow:auto" id="chjDocView">'+body+'</div>'+docCss.replace("body{", "#chjDocView{"), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button><button class="btn btn-out" id="chjDocWord" type="button">Download Word</button><button class="btn btn-pri" id="chjDocPrint" type="button">Print / Save as PDF</button>'});
+    el("chjDocPrint").addEventListener("click", ()=>{ const w = window.open("", "_blank"); if(w){ w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 400); } else { say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); } });
+    el("chjDocWord").addEventListener("click", ()=>{ const blob = new Blob(["\ufeff", html], {type:"application/msword"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = fileBase+".doc"; document.body.appendChild(a); a.click(); a.remove(); });
+  }
+  async function openChecklist(){
+    try{ const c = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/checklist"); showDocument(c.title+" — "+c.job_no, c.direction === "Export" ? checklistExport(c) : checklistImport(c), (c.direction === "Export" ? "Checklist-SB-" : "Checklist-BE-")+String(c.job_no).replace(/[^A-Za-z0-9]+/g, "-")); }
+    catch(err){ say("Could not generate the checklist", err.message, "error"); }
+  }
+  async function openAnnexure(){
+    try{ const a = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/annexure-c"); showDocument("ANNEX-C — "+a.job_no, annexureHtml(a), "Annexure-C-"+String(a.job_no).replace(/[^A-Za-z0-9]+/g, "-")); }
+    catch(err){ say("Could not generate Annexure C", err.message, "error"); }
+  }
+  window.ChaDocs = {checklistImport, checklistExport, annexureHtml, shell};
   function bodyFor(){
     const n = S.tab;
     if(n === "Job") return jobTab();
@@ -21875,6 +21946,16 @@ function makePrintFit(){
     if(T.closest("[data-chj-unmove]")){ const why = window.prompt("Reason for taking the charges back from Accounts:") || ""; if(!why.trim()) return; try{ await api("POST", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/reopen-from-accounts", {reason:why}); say("Taken back from Accounts", S.no); await load(S.no); S.tab = "Charges"; render(); }catch(err){ say("Could not take it back", err.message, "error"); } return; }
     if(T.closest("[data-chj-close]")){ try{ await api("POST", "/api/jobs/"+encodeURIComponent(S.no)+"/close", {}); say("Job closed", S.no); await load(S.no); S.tab = "Charges"; render(); }catch(err){ const d = err.detail; say("The job cannot be closed yet", d && d.pending ? d.pending.map(p=>p.label).join(", ") : err.message, "warn"); } return; }
     if(T.closest("[data-chj-reopen]")){ const why = window.prompt("Reason for reopening the job:") || ""; if(!why.trim()) return; try{ await api("POST", "/api/jobs/"+encodeURIComponent(S.no)+"/reopen", {reason:why}); say("Job reopened", S.no); await load(S.no); S.tab = "Charges"; render(); }catch(err){ say("Could not reopen", err.message, "error"); } return; }
+    if(T.closest("#chjCkl")){ if(S.dirty && !(await save(true))) return; await openChecklist(); return; }
+    if(T.closest("#chjAnnex")){ if(S.dirty && !(await save(true))) return; await openAnnexure(); return; }
+    if(T.closest("#chjJson, #chjJson2")){
+      if(S.dirty && !(await save(true))) return;
+      try{ const r = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/icegate-json");
+        const blob = new Blob([JSON.stringify(r.message, null, 2)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = r.filename; document.body.appendChild(a); a.click(); a.remove();
+        if(r.warnings.length) openModal({title:"ICEGATE JSON downloaded — check before filing", bodyHTML:'<div class="ib ib-am" style="margin-bottom:8px">The file <b>'+esc2(r.filename)+'</b> was created, but these points are missing or incomplete:</div><ul style="margin:0 0 0 18px">'+r.warnings.map(x=>'<li>'+esc2(x)+'</li>').join("")+'</ul>', footHTML:'<button class="btn btn-pri" onclick="closeModal()">OK</button>'});
+        else say("ICEGATE JSON ready", r.filename); }
+      catch(err){ say("Could not generate the ICEGATE JSON", err.message, "error"); }
+      return; }
     if(T.closest("[data-chj-json]")){ const blob = new Blob([JSON.stringify({job:S.job.cha_job_number, type:S.job.shipment_type, mode:S.job.shipment_mode, booking:S.job.booking_number, general:{...(S.job.filing_defaults || {}), ...(S.job.filing || {})}, ...data()}, null, 2)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = S.job.cha_job_number.replace(/\//g, "-")+"-job-data.json"; document.body.appendChild(a); a.click(); a.remove(); say("Job data downloaded", a.download); return; }
     if((b = T.closest("[data-chj-tab]"))){ if(S.tab === "General"){ S.job.filing = {...(S.job.filing || {}), ...collect()}; S.filingTouched = true; } S.tab = b.dataset.chjTab; if(S.tab === "Job History") S.files = null; render(); return; }
     if(T.closest("#chjSave")){ await save(); return; }
@@ -21978,10 +22059,29 @@ function makePrintFit(){
     });
     pop.insertBefore(item, pop.firstChild); if(window.renderIcons) renderIcons(item);
   }
-  window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferred = e; paint(); });
-  window.addEventListener("appinstalled", ()=>{ deferred = null; const i = document.getElementById("installAppItem"); if(i) i.remove(); if(window.toast) toast("App installed", "Open eSway from your home screen or desktop"); });
-  setTimeout(paint, 3000);
-  window.AppInstall = {paint, standalone};
+  /* the sign-in card offers "Download eSway App" whenever the app can be installed on this device (Android, Windows, iPhone / iPad); nothing is shown where installing is not possible */
+  async function doInstall(){
+    if(deferred){ deferred.prompt(); try{ await deferred.userChoice; }catch(e){} deferred = null; paintLogin(); return; }
+    if(window.toast) toast("Install on iPhone / iPad", "Tap Share, then Add to Home Screen", "info");
+  }
+  function paintLogin(){
+    const old = document.getElementById("loginInstall");
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    const can = !standalone() && (!!deferred || ios);
+    if(!can){ if(old) old.remove(); return; }
+    if(old) return;
+    const anchor = document.getElementById("loginBtn"); if(!anchor) return;
+    const host = anchor.closest(".login-actions") || anchor.parentNode;
+    const a = document.createElement("a"); a.id = "loginInstall"; a.href = "#"; a.setAttribute("role", "button");
+    a.style.cssText = "display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;font-size:13px;font-weight:600;color:#0C447C;text-decoration:none";
+    a.innerHTML = '<img src="/pwa/icon-192.png" alt="" style="width:22px;height:22px;border-radius:6px">Download eSway App — '+(ios ? "iPhone / iPad" : "Android / Windows");
+    a.addEventListener("click", e=>{ e.preventDefault(); doInstall(); });
+    host.parentNode.insertBefore(a, host.nextSibling);
+  }
+  window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferred = e; paint(); paintLogin(); });
+  window.addEventListener("appinstalled", ()=>{ deferred = null; paintLogin(); const i = document.getElementById("installAppItem"); if(i) i.remove(); if(window.toast) toast("App installed", "Open eSway from your home screen or desktop"); });
+  setTimeout(paint, 3000); setTimeout(paintLogin, 1500);
+  window.AppInstall = {paint, paintLogin, standalone};
 })();
 
 /* ============================================================
