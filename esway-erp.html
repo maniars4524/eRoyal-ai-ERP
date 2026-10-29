@@ -1284,6 +1284,12 @@ tbody tr:hover{background:var(--g0)}
     };
     setInterval(function(){ var t = sessionStorage.getItem("esway_access_token"); if(t && !ended) window.fetch("/api/auth/me", {headers:{Authorization:"Bearer " + t}}).catch(function(){}); }, 20000);
   }catch(e){ /* fetch wrapper unavailable */ }
+  /* A tab opened from inside the app with "Open in New Tab" gets the session once, for 20 seconds, through the browser's own storage (never in the address). */
+  try{
+    var ho = JSON.parse(localStorage.getItem("esway_tab_handoff") || "null");
+    localStorage.removeItem("esway_tab_handoff");
+    if(ho && ho.t && ho.exp > Date.now()) sessionStorage.setItem("esway_handoff_token", ho.t);
+  }catch(e){ /* storage unavailable */ }
   /* Security: typing the address (or following a link) must always show the login screen. Only a reload / back-forward in the same tab keeps the session. */
   try{
     var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")[0]) || null;
@@ -1293,7 +1299,7 @@ tbody tr:hover{background:var(--g0)}
     }
   }catch(e){ /* storage / timing API unavailable: fall through to the normal check */ }
   try{
-    if(localStorage.getItem("esway_persistent_token")){
+    if(localStorage.getItem("esway_persistent_token") || sessionStorage.getItem("esway_handoff_token") || (sessionStorage.getItem("esway_tab_session") && sessionStorage.getItem("esway_access_token"))){
       document.write('<style id="loginOverlayPreHide">#loginOverlay{display:none!important}</style>');
       document.write('<style>' +
         '@keyframes sessionSpin{to{transform:rotate(360deg);}}' +
@@ -6200,7 +6206,7 @@ window.go = go; // exposed for inline calls if ever needed
     remember();
     NAV.stack.length = NAV.idx + 1;                                      // a new page after going back drops the forward pages, like a browser
     NAV.stack.push({screen, opts:o, scroll:0, tab:""}); NAV.idx = NAV.stack.length - 1;
-    hist(NAV.idx === 0 ? "replaceState" : "pushState", {navIdx:NAV.idx}, screen);
+    hist(NAV.idx === 0 ? "replaceState" : "pushState", {navIdx:NAV.idx}, screen + (Object.keys(o).length ? "~" + encodeURIComponent(JSON.stringify({o})) : ""));
     save();
   };
   const overlays = ()=> [
@@ -6261,7 +6267,13 @@ window.go = go; // exposed for inline calls if ever needed
   window.navReset = function(){ NAV.stack = []; NAV.idx = -1; try{ sessionStorage.removeItem(KEY); }catch(e){} };
   /* a page opened by its address (#screen) with no history: only screens that need no record are opened, anything else falls back to the dashboard */
   window.navFromHash = function(){
-    const h = START_HASH; if(!h || !fresh() || RECORD_SCREENS.indexOf(h) > -1 || !document.getElementById("s-"+h)) return;
+    const raw = START_HASH; if(!raw || !fresh()) return;
+    const i = raw.indexOf("~"), h = i < 0 ? raw : raw.slice(0, i); let ctx = null;
+    if(i >= 0){ try{ ctx = JSON.parse(decodeURIComponent(raw.slice(i + 1))); }catch(e){ ctx = null; } }
+    if(!h || !document.getElementById("s-"+h)) return;
+    if(ctx && ctx.d && window.NewTab){ window.NewTab.replay(h, ctx.d); return; }          // a menu item or row opened in a new tab: the same click is replayed
+    if(ctx && ctx.o){ window.go(h, ctx.o); return; }                                       // a record page (job, organisation ...) opened or refreshed by its address
+    if(RECORD_SCREENS.indexOf(h) > -1) return;
     window.go(h);
   };
   // the unsaved quotation editor asks before it is left
@@ -13514,6 +13526,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* Applies a successful session (fresh login or restored) to the app chrome and hides the overlay */
   function applySession(user, opts){
     const silent = opts && opts.silent;
+    try{ sessionStorage.setItem("esway_tab_session", "1"); }catch(e){ /* storage blocked */ }        // a refresh of this tab keeps the sign-in until the tab is closed or the user signs out
     const av    = document.querySelector(".hdr-avatar");
     const uname = document.querySelector(".hdr-uname");
     const urole = document.getElementById("userRoleLbl");
@@ -13560,7 +13573,12 @@ if(document.readyState !== "loading") initChatWidget();
 
   (function restorePersistedSession(){
     let persisted;
-    try{ persisted = localStorage.getItem(PERSIST_TOKEN_KEY); }catch(e){ return; }
+    try{
+      const handed = sessionStorage.getItem("esway_handoff_token");
+      persisted = localStorage.getItem(PERSIST_TOKEN_KEY) || handed || (sessionStorage.getItem("esway_tab_session") ? sessionStorage.getItem("esway_access_token") : null);
+      sessionStorage.removeItem("esway_handoff_token");
+      if(handed) sessionStorage.setItem("esway_tab_session", "1");        // a tab opened with "Open in New Tab" keeps its sign-in through refreshes, until it is closed or signed out
+    }catch(e){ return; }
     if(!persisted) return;
     /* Safety net: never leave the loader stuck if the network hangs */
     setTimeout(()=>{
@@ -22377,6 +22395,216 @@ function makePrintFit(){
   /* charts read the variables when they draw: redraw them after a switch */
   window.addEventListener("esway-theme", ()=>{ setTimeout(()=>{ try{ if(typeof window.dashRenderActive === "function") window.dashRenderActive(); if(typeof window.renderDashChart === "function" && document.getElementById("s-dashboard")) window.renderDashChart("volume"); }catch(e){} }, 30); });
   paint();
+})();
+</script>
+<style id="jobLockStyle">
+body.job-readonly #jlBanner{display:flex}
+#jlBanner{display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:9px 12px;border-radius:8px;background:var(--amt,#FFF4DC);border:0.5px solid var(--am,#C98A00);color:var(--g8);font-size:12.3px}
+#jlBanner b{font-weight:600}
+#jlBanner .jl-sp{flex:1}
+#ntMenu{position:fixed;z-index:100000;background:var(--wh);border:0.5px solid var(--g2);border-radius:8px;box-shadow:0 12px 32px rgba(11,31,58,.22);padding:4px;min-width:170px}
+#ntMenu div{padding:8px 12px;font-size:12.3px;color:var(--g8);border-radius:6px;cursor:pointer}
+#ntMenu div:hover{background:var(--g0);color:var(--bl)}
+.jl-tbl td{padding:4px 10px 4px 0;font-size:12.5px}.jl-tbl td:first-child{color:var(--g5);white-space:nowrap}
+</style>
+<script>
+/* ============================================================
+   JOB LOCK (one editor per job) + OPEN IN NEW TAB
+   - Opening a job screen takes the editing lock; a second user gets the "Job Already Being Processed" pop-up with Read-only / Request access / Cancel.
+   - The server refuses writes from anyone else (HTTP 423), so another tab or a direct call cannot bypass it; this screen only explains it.
+   - Ctrl / Cmd / middle click, or right-click > Open in New Tab, opens the exact menu item or job in a new browser tab (no token in the address).
+   ============================================================ */
+(function(){
+  "use strict";
+  const TAB = "t" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  const tok = ()=>{ try{ return sessionStorage.getItem("esway_access_token") || ""; }catch(e){ return ""; } };
+  const esc = s=> String(s == null ? "" : s).replace(/[&<>"]/g, c=>({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[c]));
+  const say = (t, m, k)=>{ if(window.toast) window.toast(t, m, k || "info"); };
+  const L = {job:null, readonly:false, hold:null, timer:null, poll:null, canOverride:false, hbMs:25000, shown:{}, fail:0, lastModal:0};
+  const path = (job, tail)=> "/api/job-locks/" + encodeURIComponent(job) + (tail || "");
+  async function call(method, url, body, keepalive){
+    const r = await window.fetch(url, {method, keepalive:!!keepalive, headers:{"Content-Type":"application/json", Authorization:"Bearer " + tok()}, body:body ? JSON.stringify(body) : undefined});
+    let data = null; try{ data = await r.json(); }catch(e){ /* empty body */ }
+    return {ok:r.ok, status:r.status, data};
+  }
+  const when = t=> t ? new Date(t).toLocaleString("en-GB", {day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}) : "";
+  const stopBeat = ()=>{ if(L.timer){ clearInterval(L.timer); L.timer = null; } };
+  const stopPoll = ()=>{ if(L.poll){ clearInterval(L.poll); L.poll = null; } };
+  const startBeat = ()=>{ stopBeat(); L.timer = setInterval(tick, L.hbMs); };
+
+  /* ---- read-only mode ---- */
+  const KEEP = "[data-chj-tab],.tbb,[data-tab],[data-ro-ok],#navBurger,[title='Go back'],#chjCkl,#chjAnnex,#chjJson,#chjJson2,#chjChecklist,[data-chj-dl],[data-chj-json],[data-chj-booking]";
+  const WRITE_BTN = /^\W*(save|add|new|delete|remove|upload|move|take back|close job|reopen|validate|submit|post|confirm|create|issue|release|cancel)/i;
+  let obs = null;
+  function lockFields(){
+    if(!L.readonly) return;
+    const root = document.querySelector(".scr.on"); if(!root) return;
+    root.querySelectorAll("input,select,textarea,button").forEach(el=>{
+      if(el.closest("[data-ro-ok]") || el.matches(KEEP)) return;
+      const isBtn = el.tagName === "BUTTON";
+      if(isBtn && !(WRITE_BTN.test((el.textContent || "").trim()) || el.matches("[data-cd-rowsave],[data-cd-new],[data-chj-move],[data-chj-unmove],[data-chj-close],[data-chj-reopen],[data-chj-fdel]"))) return;
+      if(!el.disabled){ el.disabled = true; el.setAttribute("data-jl-dis", "1"); }
+    });
+  }
+  function paintBanner(){
+    if(!L.readonly) return;
+    let b = document.getElementById("jlBanner");
+    const root = document.querySelector(".scr.on"); if(!root) return;
+    if(!b){ b = document.createElement("div"); b.id = "jlBanner"; b.setAttribute("data-ro-ok", ""); root.insertBefore(b, root.firstChild); }
+    else if(b.parentNode !== root){ root.insertBefore(b, root.firstChild); }
+    const h = L.hold || {};
+    b.innerHTML = '<span><b>Read-only.</b> ' + esc(h.job_number || L.job) + ' is being processed by <b>' + esc(h.user_name || "another user") + '</b>' + (h.started_at ? ' since ' + esc(when(h.started_at)) : '') + '. You can view it but not change it.</span><span class="jl-sp"></span>' +
+      '<button class="btn btn-pri btn-sm" type="button" id="jlReq2" data-ro-ok>Request editing access</button>' + (L.canOverride ? '<button class="btn btn-out btn-sm" type="button" id="jlTake2" data-ro-ok>Take over editing</button>' : "");
+  }
+  function setReadOnly(holder){
+    L.readonly = true; L.hold = holder || L.hold; stopBeat();
+    document.body.classList.add("job-readonly"); paintBanner(); lockFields();
+    if(!obs){ let t = null; obs = new MutationObserver(()=>{ clearTimeout(t); t = setTimeout(()=>{ paintBanner(); lockFields(); }, 120); }); obs.observe(document.body, {childList:true, subtree:true}); }
+  }
+  function clearReadOnly(){
+    L.readonly = false; L.hold = null; stopPoll();
+    document.body.classList.remove("job-readonly");
+    if(obs){ obs.disconnect(); obs = null; }
+    const b = document.getElementById("jlBanner"); if(b) b.remove();
+    document.querySelectorAll("[data-jl-dis]").forEach(el=>{ el.disabled = false; el.removeAttribute("data-jl-dis"); });
+  }
+
+  /* ---- taking, keeping and giving back the lock ---- */
+  async function enter(job){
+    if(!tok() || !job) return;
+    if(L.job === job && !L.readonly && L.timer) return;
+    await leave();
+    L.job = job; L.fail = 0;
+    let r; try{ r = await call("POST", path(job, "/acquire"), {tab_id:TAB}); }catch(e){ return; }          // locking never blocks the screen when the server cannot be reached
+    if(L.job !== job || !r.ok || !r.data) return;
+    L.canOverride = !!r.data.can_override; L.hbMs = window.__jlHb || (r.data.heartbeat_seconds || 25) * 1000;
+    if(r.data.acquired){ startBeat(); }
+    else { setReadOnly(r.data.holder); conflict(r.data.holder); }
+  }
+  async function leave(){
+    stopBeat(); stopPoll();
+    const j = L.job, mine = !L.readonly;
+    L.job = null; clearReadOnly();
+    if(j && mine){ try{ await call("POST", path(j, "/release"), {tab_id:TAB}, true); }catch(e){ /* the lease expires by itself */ } }
+  }
+  async function tick(){
+    if(!L.job || L.readonly) return;
+    let r; try{ r = await call("POST", path(L.job, "/heartbeat"), {tab_id:TAB}); }catch(e){ if(++L.fail === 2) say("Connection lost", "Your unsaved changes are still on this screen. The job stays reserved for about 90 seconds.", "warn"); return; }
+    L.fail = 0;
+    if(!r.ok || !r.data) return;
+    (r.data.notices || []).forEach(n=>say(n.event === "EXPIRED" ? "Editing lock expired" : n.event === "DENIED" ? "Access request declined" : "Editing access changed", n.detail, "warn"));
+    if(!r.data.valid){ await lost(); return; }
+    (r.data.requests || []).forEach(q=>{ if(!L.shown[q.id]){ L.shown[q.id] = 1; askHolder(q); } });
+  }
+  async function lost(){
+    const j = L.job; stopBeat();
+    const r = await call("POST", path(j, "/acquire"), {tab_id:TAB});
+    if(r.ok && r.data && r.data.acquired){ startBeat(); say("Editing lock renewed", "Your lock had lapsed and was taken again.", "info"); return; }
+    setReadOnly(r.data && r.data.holder);
+    say("You can no longer edit this job", (r.data && r.data.holder ? r.data.holder.user_name + " is now editing it. " : "") + "Copy any unsaved text before leaving; the screen is now read-only.", "warn");
+  }
+
+  /* ---- pop-ups ---- */
+  function conflict(h){
+    h = h || L.hold || {}; L.canOverride = L.canOverride || false;
+    if(Date.now() - L.lastModal < 1500) return; L.lastModal = Date.now();
+    window.openModal({title:"Job Already Being Processed", bodyHTML:'<div class="ib ib-am" style="margin-bottom:10px">This job is currently being processed by <b>' + esc(h.user_name) + '</b>.</div>' +
+      '<table class="jl-tbl"><tr><td>Job Number</td><td><b>' + esc(h.job_number || L.job) + '</b></td></tr><tr><td>Job Type</td><td>' + esc(h.job_type || "") + '</td></tr><tr><td>Started At</td><td>' + esc(when(h.started_at)) + '</td></tr></table>' +
+      '<p style="margin-top:10px;font-size:12.3px;color:var(--g6)">Please contact the current user or request access before making changes.</p>',
+      footHTML:'<button class="btn btn-out" id="jlCancel" type="button">Cancel</button><button class="btn btn-out" id="jlRO" type="button">Open in Read-Only Mode</button>' + (L.canOverride ? '<button class="btn btn-out" id="jlTake" type="button">Take over editing</button>' : "") + '<button class="btn btn-pri" id="jlReq" type="button">Request Editing Access</button>'});
+  }
+  function askHolder(q){
+    const dirty = (window.NAV_GUARDS || []).some(g=>{ try{ return g(); }catch(e){ return false; } });
+    window.openModal({title:"Editing access requested", bodyHTML:'<p><b>' + esc(q.requester) + '</b> is asking to edit <b>' + esc(L.job) + '</b>, which you are editing now.</p>' + (dirty ? '<div class="ib ib-am">You have unsaved changes: save them first, otherwise they will not be kept when access is handed over.</div>' : '<p style="font-size:12.3px;color:var(--g6)">Handing over makes your screen read-only.</p>'),
+      footHTML:'<button class="btn btn-out" type="button" data-jl-answer="0" data-jl-id="' + q.id + '">Decline</button><button class="btn btn-pri" type="button" data-jl-answer="1" data-jl-id="' + q.id + '">Hand over editing</button>'});
+  }
+  async function requestAccess(){
+    const job = L.job; if(!job) return;
+    const r = await call("POST", path(job, "/request"));
+    if(r.ok && r.data && r.data.status === "FREE"){ reopen(); return; }
+    if(!r.ok){ say("Could not send the request", (r.data && r.data.detail) || "Try again", "error"); return; }
+    say("Request sent", "The current editor has been asked. This screen switches to editing as soon as access is given.", "success");
+    stopPoll(); let n = 0;
+    L.poll = setInterval(async ()=>{
+      if(L.job !== job || ++n > 90){ stopPoll(); return; }
+      const s = await call("GET", path(job, "/status")); if(!s.ok || !s.data) return;
+      if(s.data.mine || !s.data.locked || s.data.my_request === "APPROVED"){ stopPoll(); say("Editing access granted", job, "success"); reopen(); }
+      else if(s.data.my_request === "DENIED"){ stopPoll(); say("Request declined", "The current editor kept editing access.", "warn"); }
+    }, window.__jlPoll || 4000);
+  }
+  function reopen(){ const job = L.job, scr = document.body.dataset.screen; if(!job) return; L.readonly = true; stopPoll(); clearReadOnly(); L.job = null; window.go(scr === "cha-job" ? "cha-job" : scr, {jobNo:job}); }
+  async function takeOver(){
+    const reason = window.prompt("Reason for taking over editing of " + L.job + " (the current editor is told):") || ""; if(reason.trim().length < 3) return;
+    const job = L.job, r = await call("POST", path(job, "/takeover"), {reason:reason.trim(), tab_id:TAB});
+    if(r.ok && r.data && r.data.acquired){ say("You are now the editor", job, "success"); reopen(); } else say("Could not take over", (r.data && r.data.detail) || "Not allowed", "error");
+  }
+  /* a refused write (HTTP 423) from any screen explains itself and turns the screen read-only */
+  const prevFetch = window.fetch;
+  window.fetch = function(){
+    return prevFetch.apply(this, arguments).then(r=>{
+      if(r.status === 423){ r.clone().json().then(d=>{ const x = d && d.detail; if(x && x.code === "JOB_LOCKED"){ if(!L.job) L.job = x.job_number; L.hold = x; if(!L.readonly) setReadOnly(x); conflict(x); } }).catch(()=>{}); }
+      return r;
+    });
+  };
+  document.addEventListener("click", e=>{
+    const t = e.target.closest && e.target.closest("#jlCancel,#jlRO,#jlReq,#jlReq2,#jlTake,#jlTake2,[data-jl-answer]"); if(!t) return;
+    if(t.id === "jlCancel"){ window.closeModal(); if(L.readonly && window.navBack) window.navBack("dashboard"); }
+    else if(t.id === "jlRO"){ window.closeModal(); }
+    else if(t.id === "jlReq" || t.id === "jlReq2"){ window.closeModal(); requestAccess(); }
+    else if(t.id === "jlTake" || t.id === "jlTake2"){ window.closeModal(); takeOver(); }
+    else if(t.dataset.jlAnswer !== undefined){
+      window.closeModal();
+      call("POST", "/api/job-locks/requests/" + t.dataset.jlId + "/respond", {approve:t.dataset.jlAnswer === "1"}).then(()=>{ if(t.dataset.jlAnswer === "1") tick(); });
+    }
+  });
+  /* leaving the browser tab gives the lock back (another open tab of the same user keeps it alive) */
+  window.addEventListener("pagehide", ()=>{ if(L.job && !L.readonly) call("POST", path(L.job, "/release"), {tab_id:TAB}, true).catch(()=>{}); });
+  /* unsaved changes: the browser asks before the tab is closed or reloaded */
+  window.addEventListener("beforeunload", e=>{ if((window.NAV_GUARDS || []).some(g=>{ try{ return g(); }catch(x){ return false; } })){ e.preventDefault(); e.returnValue = ""; } });
+  if(window.NAV_GUARDS && window.ChaJobScreen) window.NAV_GUARDS.push(()=>{ const s = window.ChaJobScreen.state; return !!(s && s.dirty && !L.readonly && document.getElementById("s-cha-job") && document.getElementById("s-cha-job").classList.contains("on")); });
+  const baseGo = window.go;
+  window.go = function(screen, opts){
+    const r = baseGo.apply(this, arguments);
+    const job = (screen === "job-detail" || screen === "cha-job") && opts && opts.jobNo;
+    if(job) enter(job); else if(L.job) leave();
+    return r;
+  };
+  window.JobLock = {state:L, tab:TAB, enter, leave, tick, requestAccess};
+
+  /* ---- open in a new tab ---- */
+  const CTX_SKIP = {go:1};
+  function ctxOf(el){ const d = {}; Object.keys(el.dataset || {}).forEach(k=>{ if(!CTX_SKIP[k] && el.dataset[k] !== "") d[k] = el.dataset[k]; }); return d; }
+  function urlFor(el){ const d = ctxOf(el); return "/" + (window.ESWAY_PORTAL || "erp") + "#" + el.dataset.go + (Object.keys(d).length ? "~" + encodeURIComponent(JSON.stringify({d})) : ""); }
+  function openTab(el){
+    try{ const t = tok(); if(t) localStorage.setItem("esway_tab_handoff", JSON.stringify({t, exp:Date.now() + 20000})); }catch(e){ /* storage blocked: the new tab asks for sign-in */ }
+    window.open(urlFor(el), "_blank", "noopener");
+  }
+  document.addEventListener("click", e=>{
+    const t = e.target.closest && e.target.closest("[data-go]");
+    if(t && (e.ctrlKey || e.metaKey) && t.dataset.go !== "back"){ e.preventDefault(); e.stopPropagation(); openTab(t); }
+  }, true);
+  document.addEventListener("auxclick", e=>{
+    const t = e.button === 1 && e.target.closest && e.target.closest("[data-go]");
+    if(t && t.dataset.go !== "back"){ e.preventDefault(); e.stopPropagation(); openTab(t); }
+  }, true);
+  const closeMenu = ()=>{ const m = document.getElementById("ntMenu"); if(m) m.remove(); };
+  document.addEventListener("contextmenu", e=>{
+    const t = e.target.closest && e.target.closest("[data-go]");
+    if(!t || t.dataset.go === "back" || !document.querySelector("#s-dashboard, .scr.on")) return;
+    e.preventDefault(); closeMenu();
+    const m = document.createElement("div"); m.id = "ntMenu"; m.innerHTML = '<div data-nt="open">Open in New Tab</div>';
+    m.style.left = Math.min(e.clientX, window.innerWidth - 190) + "px"; m.style.top = Math.min(e.clientY, window.innerHeight - 50) + "px";
+    m.firstChild.addEventListener("click", ev=>{ ev.stopPropagation(); closeMenu(); openTab(t); });
+    document.body.appendChild(m);
+  });
+  document.addEventListener("click", closeMenu); document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeMenu(); }); window.addEventListener("scroll", closeMenu, true);
+  /* the destination of a link opened in a new tab: replay exactly the click that was made, so filters and record ids come along */
+  window.NewTab = {urlFor, replay:function(screen, d){
+    const probe = document.createElement("div"); probe.style.display = "none"; probe.dataset.go = screen;
+    Object.keys(d || {}).forEach(k=>{ probe.dataset[k] = d[k]; });
+    document.body.appendChild(probe); probe.click();
+    setTimeout(()=>{ probe.click(); probe.remove(); }, 1400);          // the list screens load their data after the first click: the same click again applies the filter to the loaded list
+  }};
 })();
 </script>
 </body>

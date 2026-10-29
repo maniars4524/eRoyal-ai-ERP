@@ -49,6 +49,7 @@ PERMISSIONS = [
     ("job.close", "Close a job (manual closure)", "job", "close"),
     ("job.reopen", "Reopen a closed job", "job", "reopen"),
     ("bl.release_override", "Release an Original BL before full payment is confirmed (logged with a reason)", "bl", "release_override"),
+    ("job.lock_override", "Take editing of a job from another user (logged with a reason; the previous editor is notified)", "job", "lock_override"),
     ("cha.exception", "Link a CHA job whose exporter, importer or ports differ from its freight job (with a reason)", "cha", "exception"),
     ("hbl.clause.custom", "Add a one-time clause to a House BL", "bl", "clause_custom"),
     ("hbl.clause.override", "Remove a mandatory HBL clause (logged with a reason)", "bl", "clause_override"),

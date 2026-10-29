@@ -1227,3 +1227,51 @@ class HblClause(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class JobLock(Base):
+    """The one user editing a job right now (a lease renewed by heartbeats; abandoned locks expire)."""
+    __tablename__ = "job_locks"
+    __table_args__ = (UniqueConstraint("organization_id", "job_number", name="uq_job_locks_job"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    job_number: Mapped[str] = mapped_column(String(60))
+    job_type: Mapped[str] = mapped_column(String(30), default="Other")
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    user_name: Mapped[str] = mapped_column(String(160))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_activity: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
+    tabs: Mapped[dict] = mapped_column(JSON, default=dict)        # browser tab id -> last heartbeat (ISO time): one tab closing does not free the lock while another tab of the same user is open
+
+
+class JobLockRequest(Base):
+    __tablename__ = "job_lock_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    job_number: Mapped[str] = mapped_column(String(60), index=True)
+    requester_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    requester_name: Mapped[str] = mapped_column(String(160))
+    holder_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class JobLockEvent(Base):
+    """Audit trail of lock acquisition, release, expiry, access requests and takeovers; notify_user_id rows are shown once to that user."""
+    __tablename__ = "job_lock_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    job_number: Mapped[str] = mapped_column(String(60), index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    user_name: Mapped[str] = mapped_column(String(160), default="")
+    event: Mapped[str] = mapped_column(String(30))
+    detail: Mapped[str] = mapped_column(Text, default="")
+    notify_user_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    seen: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
