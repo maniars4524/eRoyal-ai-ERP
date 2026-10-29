@@ -28,5 +28,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("Create Shipment is kept (it is where a freight job is made from a booking)", jsKids.includes("Create Shipment"), jsKids.join("|"));
   const bk = Array.from(svc.querySelectorAll(".tn-item")).find(x => x.querySelector(".tn-row .tn-label").textContent.trim() === "Booking");
   check("Booking under Logistics & Customs keeps Create Booking, Booking Status and Carrier Booking", ["Create Booking", "Booking Status", "Carrier Booking"].every(l => kids(bk).includes(l)), kids(bk).join("|"));
+  // Logistics & Customs > CHA > Sea Export / Sea Import / Air Export / Air Import
+  const chaNode = Array.from(svc.querySelectorAll(".tn-item")).find(x => x.querySelector(".tn-row .tn-label").textContent.trim() === "CHA");
+  const chaKids = kids(chaNode);
+  check("CHA has Sea Export, Sea Import, Air Export and Air Import (and the CHA Dashboard)", ["CHA Dashboard", "Sea Export", "Sea Import", "Air Export", "Air Import"].every(l => chaKids.includes(l)), chaKids.join("|"));
+  const choose = async label => { const row = Array.from(chaNode.querySelectorAll(".tn-panel .tn-row")).find(r => r.textContent.trim() === label); row.click(); await sleep(2500); return w.ChaKit.state; };
+  let st = await choose("Sea Export");
+  check("Sea Export opens the CHA register for Export + Sea", st.direction === "Export" && st.mode === "Sea" && d.getElementById("s-svc-cha").classList.contains("on") && /Export/.test(d.getElementById("chaFDir").value), JSON.stringify(st));
+  st = await choose("Air Import");
+  check("Air Import opens the CHA register for Import + Air", st.direction === "Import" && st.mode === "Air" && d.getElementById("chaFDir").value === "Import" && d.getElementById("chaFMode").value === "Air", JSON.stringify(st));
+  st = await choose("CHA Dashboard");
+  check("CHA Dashboard clears the filter", st.direction === "" && st.mode === "" && d.getElementById("chaFDir").value === "");
   console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

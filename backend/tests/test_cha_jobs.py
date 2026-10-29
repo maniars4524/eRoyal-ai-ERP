@@ -374,3 +374,39 @@ def test_job_documents_move_to_accounts_and_job_status(h):
     assert {"SW constituent", "SW production", "SW control", "SW statement"} <= sw
     fid = lst[0]["id"]
     assert client.delete(f"/api/cha/file/{fid}", headers=h).status_code == 204 and client.get(f"/api/cha/files/{no}", headers=h).json()["items"] == []
+
+
+def test_order_of_work_is_enforced_export_cha_first_import_freight_first(h):
+    # EXPORT: the freight job cannot go On Transit until its CHA jobs are cleared
+    done = booking(h, "Freight, CHA")
+    fj = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Forwarding")
+    cj = next(j["job_number"] for j in done["jobs"] if j["job_type"] == "Customs")
+    blocked = client.post(f"/api/jobs/{fj}/stage", json={"stage": "On Transit", "reason": "cargo sailed"}, headers=h)
+    assert blocked.status_code == 409, blocked.text
+    d = blocked.json()["detail"]
+    assert d["code"] == "ORDER_OF_WORK" and cj in d["message"] and "CHA job comes first" in d["message"] and d["can_override"] is True
+    for st in ("VALIDATED", "CUSTOMS FILED", "OOC / LEO CLEARED"):
+        assert client.patch(f"/api/cha/jobs/{cj}/status", json={"status": st}, headers=h).status_code == 200
+    assert client.post(f"/api/jobs/{fj}/stage", json={"stage": "On Transit", "reason": "cargo sailed"}, headers=h).status_code == 200
+    # an authorised override with a reason is allowed and logged
+    done2 = booking(h, "Freight, CHA")
+    fj2 = next(j["job_number"] for j in done2["jobs"] if j["job_type"] == "Forwarding")
+    ok = client.post(f"/api/jobs/{fj2}/stage", json={"stage": "On Transit", "reason": "Customer instruction", "confirm_conflict": True}, headers=h)
+    assert ok.status_code == 200, ok.text
+    # IMPORT: the CHA job cannot be filed until its freight job is On Transit
+    imp = booking(h, "Freight, CHA", direction="Import", mode="Sea")
+    ifj = next(j["job_number"] for j in imp["jobs"] if j["job_type"] == "Forwarding")
+    icj = next(j["job_number"] for j in imp["jobs"] if j["job_type"] == "Customs")
+    assert client.patch(f"/api/cha/jobs/{icj}/status", json={"status": "DOCUMENTATION"}, headers=h).status_code == 200          # preparing is fine
+    nope = client.patch(f"/api/cha/jobs/{icj}/status", json={"status": "CUSTOMS FILED"}, headers=h)
+    assert nope.status_code == 409 and nope.json()["detail"]["code"] == "ORDER_OF_WORK" and ifj in nope.json()["detail"]["message"]
+    assert client.patch(f"/api/cha/jobs/{icj}/status", json={"status": "CUSTOMS FILED", "override": True}, headers=h).status_code == 422       # a reason is needed
+    ovr = client.patch(f"/api/cha/jobs/{icj}/status", json={"status": "CUSTOMS FILED", "override": True, "remarks": "Urgent clearance"}, headers=h)
+    assert ovr.status_code == 200
+    assert any("out of order" in e["text"] for e in client.get(f"/api/cha/jobs/{icj}", headers=h).json()["events"])
+    # once the freight job is On Transit the order is satisfied
+    imp2 = booking(h, "Freight, CHA", direction="Import", mode="Sea")
+    ifj2 = next(j["job_number"] for j in imp2["jobs"] if j["job_type"] == "Forwarding")
+    icj2 = next(j["job_number"] for j in imp2["jobs"] if j["job_type"] == "Customs")
+    assert client.post(f"/api/jobs/{ifj2}/stage", json={"stage": "On Transit", "reason": "vessel sailed"}, headers=h).status_code == 200
+    assert client.patch(f"/api/cha/jobs/{icj2}/status", json={"status": "CUSTOMS FILED"}, headers=h).status_code == 200

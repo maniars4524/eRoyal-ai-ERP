@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import HTTPException, FastAPI
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -182,6 +183,44 @@ def brand_file(name: str) -> FileResponse:
     if name not in BRAND_FILES or not (BRAND_DIR / name).is_file():
         raise HTTPException(404, "Not found")
     return FileResponse(BRAND_DIR / name, media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
+
+
+# ---- installable app (PWA): manifest, service worker and icons. Data is never cached by the service worker; it only keeps the icons and an offline page.
+PWA_DIR = Path(__file__).resolve().parents[2] / "frontend" / "pwa"
+PWA_FILES = {"icon-192.png": "image/png", "icon-512.png": "image/png", "icon-maskable-512.png": "image/png", "apple-touch-icon.png": "image/png", "offline.html": "text/html"}
+PWA_MANIFEST = {"name": "eSway ERP 2.0", "short_name": "eSway", "description": "Freight forwarding, customs (CHA), transport and accounts", "start_url": "/erp", "scope": "/", "display": "standalone", "orientation": "any",
+                "background_color": "#0B1F3A", "theme_color": "#0B1F3A", "lang": "en",
+                "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}, {"src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+                          {"src": "/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}],
+                "shortcuts": [{"name": "CHA jobs", "url": "/erp#svc-cha"}, {"name": "Dashboard", "url": "/erp"}]}
+PWA_SW = """const V = "esway-pwa-v1";
+const SHELL = ["/pwa/offline.html", "/pwa/icon-192.png", "/pwa/icon-512.png"];
+self.addEventListener("install", e => e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
+self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())));
+self.addEventListener("fetch", e => {
+  const r = e.request; if (r.method !== "GET") return;
+  const u = new URL(r.url); if (u.origin !== location.origin || u.pathname.startsWith("/api/")) return;
+  if (r.mode === "navigate") { e.respondWith(fetch(r).catch(() => caches.match("/pwa/offline.html"))); return; }
+  if (u.pathname.startsWith("/pwa/")) e.respondWith(caches.match(r).then(m => m || fetch(r)));
+});
+"""
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def pwa_manifest():
+    return JSONResponse(PWA_MANIFEST, media_type="application/manifest+json", headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/sw.js", include_in_schema=False)
+def pwa_service_worker():
+    return Response(PWA_SW, media_type="application/javascript", headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
+
+
+@app.get("/pwa/{name}", include_in_schema=False)
+def pwa_file(name: str) -> FileResponse:
+    if name not in PWA_FILES or not (PWA_DIR / name).is_file():
+        raise HTTPException(404, "Not found")
+    return FileResponse(PWA_DIR / name, media_type=PWA_FILES[name], headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/", include_in_schema=False)

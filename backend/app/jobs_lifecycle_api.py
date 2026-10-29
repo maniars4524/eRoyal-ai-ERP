@@ -282,6 +282,11 @@ def change_stage(job_number: str, body: StageIn, user: User = Depends(get_curren
         raise HTTPException(409, "A reopened job stays Reopened until it is closed again")
     if body.stage == job.job_stage:
         raise HTTPException(409, "The job is already at this stage")
+    from .cha_api import order_of_work
+
+    ov = order_of_work(db, job, user, body.stage, body.confirm_conflict)        # export: CHA first, then freight
+    if ov:
+        jl.log_event(db, job, user, "ORDER_OF_WORK_OVERRIDE", "OPERATIONS", "Freight job moved on before customs clearance (authorised)", reason=body.reason.strip(), detail=ov)
     jl.set_stage(db, job, body.stage, "MANUAL", user, trigger="MANUAL_CHANGE", reason=body.reason.strip(), approval_ref=body.approval_ref)
     db.commit()
     return lifecycle_out(db, job, user)

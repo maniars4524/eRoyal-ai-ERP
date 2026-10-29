@@ -217,9 +217,36 @@ def add_cha_job(job_number: str, body: ChaIn, user: User = Depends(permission_re
     return out
 
 
+CLEARED = ("OOC / LEO CLEARED", "DELIVERED", "CLOSED")
+AFTER_FILING = ("CUSTOMS FILED", "CUSTOMS RESPONSE", "EXAMINATION", "OOC / LEO CLEARED", "DELIVERED", "CLOSED")
+
+
+def order_of_work(db: Session, job: Shipment, user: User, target: str, override: bool) -> dict | None:
+    """The order of work between a booking's freight job and its CHA jobs.
+    Export: the CHA job comes first, so the freight job cannot go On Transit until every CHA job is cleared (OOC / LEO).
+    Import: the freight job comes first, so a CHA job cannot be filed (or go further) until its freight job is On Transit or later.
+    A user with the CHA exception permission can override with a reason; the override is returned so the caller can write it to the job log."""
+    block = None
+    if job.job_type == "Customs" and job.direction == "Import" and target in AFTER_FILING:
+        freight = freight_of(db, job)
+        if freight is not None and (freight.job_stage or "Draft") in ("Draft", "Confirmed"):
+            block = f"Import: the freight job {freight.job_number} comes first. Its cargo must be On Transit (or arrived) before the CHA job moves to {target}."
+    elif job.job_type in ("Forwarding", "Consol") and job.direction == "Export" and target == "On Transit":
+        pending = [j.job_number for j in cha_jobs_of(db, job) if (j.status != "Cancelled" and (j.customs_status or "CREATED") not in CLEARED)]
+        if pending:
+            block = "Export: the CHA job comes first. Clear customs (OOC / LEO) on " + ", ".join(pending) + " before this freight job goes On Transit."
+    if not block:
+        return None
+    can = has_permission(user, "cha.exception")
+    if not (override and can):
+        raise HTTPException(409, {"code": "ORDER_OF_WORK", "message": block, "can_override": can})
+    return {"overridden": block}
+
+
 class StatusIn(BaseModel):
     status: str
     remarks: str = Field(default="", max_length=300)
+    override: bool = False
 
 
 @router.patch("/api/cha/jobs/{job_number:path}/status")
@@ -240,9 +267,12 @@ def set_status(job_number: str, body: StatusIn, user: User = Depends(permission_
     if new == "CLOSED" and old not in ("DELIVERED", "OOC / LEO CLEARED"):
         raise HTTPException(409, "A CHA job is closed after it is cleared and delivered")
     jl.assert_job_editable(job, "the customs stage")
+    ov = order_of_work(db, job, user, new, body.override)
+    if ov and len(body.remarks.strip()) < 5:
+        raise HTTPException(422, "Give a reason (at least 5 characters) for going ahead out of order")
     job.customs_status = new
     job.last_activity_at = datetime.now(timezone.utc)
-    jl.log_event(db, job, user, "CHA_STAGE_CHANGED", "OPERATIONS", f"Customs stage {old} to {new}", previous=old, new=new, reason=body.remarks.strip() or None)
+    jl.log_event(db, job, user, "CHA_STAGE_CHANGED", "OPERATIONS", f"Customs stage {old} to {new}" + (" (out of order, authorised)" if ov else ""), previous=old, new=new, reason=body.remarks.strip() or None, detail=ov or {})
     record_audit(db, "CHA_STAGE_CHANGED", "OPERATIONS", user, org, "Shipment", str(job.id), {"job_number": job.job_number, "from": old, "to": new})
     db.commit()
     return {"job_number": job.job_number, "customs_status": new, "stages": CHA_STATUSES}
