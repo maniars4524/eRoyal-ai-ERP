@@ -327,7 +327,7 @@ def test_export_job_tabs_follow_the_shipping_bill_screens(h):
     exp = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "Switch Intl", "importer": "Armin Rub", "pol": "INMAA", "pod": "HKHKG"}, headers=h).json()
     no = exp["cha_job_number"]
     sections = {c["key"]: [s["title"] for s in c.get("sections", [])] for t in exp["spec"] for c in t["collections"]}
-    assert sections["invoices"] == ["Invoice main details", "Freight & insurance", "Third party (SW)"] and sections["items"] == ["Item main details", "Other details", "SW - manufacturer", "Single window", "Supporting documents"]
+    assert sections["invoices"] == ["Invoice main details", "Freight & insurance", "Third party (SW)"] and sections["items"] == ["Item main details", "Other details", "SW - manufacturer", "Single window", "SW constituent", "SW production", "SW control", "SW statement", "Supporting documents"]
     assert {"ar4", "annexure_c1", "eway", "notes", "billto"} <= set(sections)
     data = {"invoices": [{"invoice_no": "4363365", "invoice_date": "2026-10-19", "invoice_value": "436534.34", "currency": "USD", "exchange_rate": "94.2", "terms": "CIF", "freight_amt": "45.6", "insurance_amt": "65.5"}],
             "items": [{"invoice_sr": "1", "description": "RUBBER PARTS", "qty": "100", "scheme": "00-FREE SHIPPING BILL", "rodtep": "Yes", "mfr_country": "INDIA"}], "ar4": [{"ar4_no": "AR4-1", "commissionerate": "Chennai"}],
@@ -338,3 +338,39 @@ def test_export_job_tabs_follow_the_shipping_bill_screens(h):
     assert body["data"]["invoices"][0]["freight_amt"] == "45.6" and body["data"]["billto"][0]["party_name"] == "Shahi Export Pvt Ltd" and body["filing"]["bank_account"] == "2656574774"
     # an Import-only section is refused on an Export job
     assert client.patch(f"/api/cha/jobs/{no}", json={"data": {"igm": [{"igm_no": "1"}]}}, headers=h).status_code == 422
+
+
+def test_job_documents_move_to_accounts_and_job_status(h):
+    import base64
+
+    j = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": "Doc Co", "importer": "Doc Buyer", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
+    no = j["cha_job_number"]
+    raw = b"%PDF-1.4 test document"
+    up = client.post(f"/api/cha/files/{no}", json={"name": "BL copy.pdf", "content_type": "application/pdf", "data_base64": base64.b64encode(raw).decode()}, headers=h)
+    assert up.status_code == 201 and up.json()["size"] == len(raw)
+    lst = client.get(f"/api/cha/files/{no}", headers=h).json()["items"]
+    assert [f["name"] for f in lst] == ["BL copy.pdf"]
+    dl = client.get(f"/api/cha/file/{lst[0]['id']}", headers=h)
+    assert dl.status_code == 200 and dl.content == raw and dl.headers["content-type"].startswith("application/pdf")
+    assert client.post(f"/api/cha/files/{no}", json={"name": "x", "data_base64": "!!!"}, headers=h).status_code == 422
+    assert any(e["type"] == "CHA_FILE_ADDED" for e in client.get(f"/api/cha/jobs/{no}", headers=h).json()["events"])
+    # move to Accounts needs charges and a bill-to party; afterwards both are locked
+    assert client.post(f"/api/cha/jobs/{no}/move-to-accounts", headers=h).status_code == 422
+    line = {"charge_name": "Customs Clearance", "uom": "Per Shipment", "qty": "1", "buy": {"ccy": "INR", "exch": "1", "rate": "3000", "tax_type": "Non-Taxable", "tax_pct": "0", "party": "Broker"}, "sell": {"ccy": "INR", "exch": "1", "rate": "4500", "tax_type": "Taxable", "tax_pct": "18", "party": "Doc Co"}}
+    assert client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": [line]}, headers=h).status_code == 200
+    assert client.post(f"/api/cha/jobs/{no}/move-to-accounts", headers=h).status_code == 422          # still no bill-to party
+    client.patch(f"/api/cha/jobs/{no}", json={"data": {"billto": [{"party_name": "Doc Co", "gstn": "29AAJCS115L1ZU"}]}}, headers=h)
+    moved = client.post(f"/api/cha/jobs/{no}/move-to-accounts", headers=h)
+    assert moved.status_code == 200 and moved.json()["accounts_moved"]["by"]
+    assert client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": [line, line]}, headers=h).status_code == 409
+    assert client.patch(f"/api/cha/jobs/{no}", json={"data": {"billto": [{"party_name": "Someone Else"}]}}, headers=h).status_code == 409
+    assert client.post(f"/api/cha/jobs/{no}/move-to-accounts", headers=h).status_code == 409
+    assert client.post(f"/api/cha/jobs/{no}/reopen-from-accounts", json={"reason": "no"}, headers=h).status_code == 422
+    back = client.post(f"/api/cha/jobs/{no}/reopen-from-accounts", json={"reason": "Rates revised"}, headers=h)
+    assert back.status_code == 200 and not back.json()["accounts_moved"]
+    assert client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": [line, line]}, headers=h).status_code == 200
+    assert back.json()["closure_status"] == "OPEN"
+    sw = {s["title"] for t in j["spec"] for c in t["collections"] for s in c.get("sections", [])}
+    assert {"SW constituent", "SW production", "SW control", "SW statement"} <= sw
+    fid = lst[0]["id"]
+    assert client.delete(f"/api/cha/file/{fid}", headers=h).status_code == 204 and client.get(f"/api/cha/files/{no}", headers=h).json()["items"] == []

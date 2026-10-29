@@ -17,7 +17,7 @@ from .auth_api import record_audit
 from .db import get_db
 from .job_details_api import _row, location_code
 from . import cha_spec
-from .models import Booking, CustomsBill, Customer, JobCharge, JobDetail, Shipment, User
+from .models import Booking, ChaFile, CustomsBill, Customer, JobCharge, JobDetail, Shipment, User
 
 router = APIRouter(tags=["cha jobs"])
 
@@ -114,7 +114,7 @@ def cha_row(db: Session, cha: Shipment, freight: Shipment | None = None, booking
             "bill_of_entry_no": first.bill_no if (first and not export) else None, "bill_of_entry_date": first.bill_date if (first and not export) else None,
             "bills": [{"id": b.id, "bill_type": b.bill_type, "bill_no": b.bill_no, "bill_date": b.bill_date, "status": b.status, "ooc_date": b.ooc_date, "examination": b.examination, "reference": b.reference, "port_code": b.port_code, "assessable_value": b.assessable_value, "duty_amount": b.duty_amount} for b in bills],
             "customs_status": cha.customs_status or "CREATED", "job_stage": cha.job_stage, "etd": cha.etd, "eta": cha.eta, "created_at": cha.created_at,
-            "charges_cost": round(cost, 2), "charges_sell": round(sell, 2), "documents": documents_for(db, freight, cha), "linked_by": "parent" if cha.parent_job_id else "booking"}
+            "charges_cost": round(cost, 2), "charges_sell": round(sell, 2), "closure_status": cha.closure_status or "OPEN", "accounts_moved": (cha.cha_info or {}).get("accounts_moved"), "documents": documents_for(db, freight, cha), "linked_by": "parent" if cha.parent_job_id else "booking"}
 
 
 def freight_of(db: Session, job: Shipment) -> Shipment | None:
@@ -527,6 +527,118 @@ def validate_filing(job: Shipment, defaults: dict) -> dict:
     return {"checked": checked, "passed": checked - len(errors), "errors": errors, "ready": not errors}
 
 
+import base64
+from fastapi import Response
+
+
+class FileIn(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    content_type: str = Field(default="application/octet-stream", max_length=100)
+    data_base64: str
+
+
+def _file_row(f: ChaFile) -> dict:
+    return {"id": f.id, "name": f.name, "content_type": f.content_type, "size": f.size, "uploaded_at": f.created_at}
+
+
+@router.get("/api/cha/files/{job_number:path}")
+def list_files(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    org = _tenant(user)
+    job = _job(db, org, job_number)
+    return {"items": [_file_row(f) for f in db.scalars(select(ChaFile).where(ChaFile.shipment_id == job.id, ChaFile.organization_id == org).order_by(ChaFile.id.desc()))]}
+
+
+@router.post("/api/cha/files/{job_number:path}", status_code=201)
+def upload_file(job_number: str, body: FileIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+    """A document on the job (BL copy, invoice, packing list, licence ...), up to 5 MB each; the upload goes into the job log."""
+    org = _tenant(user)
+    job = _job(db, org, job_number)
+    jl.assert_job_editable(job, "its documents")
+    try:
+        raw = base64.b64decode(body.data_base64, validate=True)
+    except Exception:
+        raise HTTPException(422, "The file could not be read")
+    if not raw or len(raw) > 5 * 1024 * 1024:
+        raise HTTPException(422, "A document must be between 1 byte and 5 MB")
+    name = re.sub(r"[\\/:*?\"<>|]+", "_", body.name.strip())[:200]
+    f = ChaFile(organization_id=org, shipment_id=job.id, name=name, content_type=body.content_type or "application/octet-stream", size=len(raw), data=raw, uploaded_by=user.id)
+    db.add(f)
+    db.flush()
+    jl.log_event(db, job, user, "CHA_FILE_ADDED", "OPERATIONS", f"Document uploaded: {name} ({len(raw) // 1024 or 1} KB)", detail={"file": name, "size": len(raw)})
+    db.commit()
+    return _file_row(f)
+
+
+@router.get("/api/cha/file/{file_id}")
+def download_file(file_id: int, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    org = _tenant(user)
+    f = db.scalar(select(ChaFile).where(ChaFile.id == file_id, ChaFile.organization_id == org))
+    if not f:
+        raise HTTPException(404, "Document not found")
+    return Response(content=f.data, media_type=f.content_type, headers={"Content-Disposition": 'attachment; filename="' + f.name.replace('"', "") + '"'})
+
+
+@router.delete("/api/cha/file/{file_id}", status_code=204)
+def delete_file(file_id: int, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+    org = _tenant(user)
+    f = db.scalar(select(ChaFile).where(ChaFile.id == file_id, ChaFile.organization_id == org))
+    if not f:
+        raise HTTPException(404, "Document not found")
+    job = db.get(Shipment, f.shipment_id)
+    jl.assert_job_editable(job, "its documents")
+    jl.log_event(db, job, user, "CHA_FILE_REMOVED", "OPERATIONS", f"Document removed: {f.name}", detail={"file": f.name})
+    db.delete(f)
+    db.commit()
+
+
+class MoveIn(BaseModel):
+    reason: str = Field(default="", max_length=200)
+
+
+@router.post("/api/cha/jobs/{job_number:path}/move-to-accounts")
+def move_to_accounts(job_number: str, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+    """Hands the job's charges and its bill-to party to Accounts. Afterwards the charges and the bill-to party cannot be changed here (Accounts bills them); a reopen needs a reason."""
+    org = _tenant(user)
+    job = _job(db, org, job_number)
+    if job.job_type != "Customs":
+        raise HTTPException(422, "Not a CHA job")
+    info = job.cha_info or {}
+    if info.get("accounts_moved"):
+        raise HTTPException(409, "This job is already with Accounts")
+    if not db.scalar(select(JobCharge.id).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == org).limit(1)):
+        raise HTTPException(422, "Enter the job's cost and selling charges first")
+    bt = ((info.get("data") or {}).get("billto") or [{}])[0]
+    if not (bt.get("party_name") or "").strip():
+        raise HTTPException(422, "Enter the bill-to party first (Charges tab)")
+    stamp = {"at": datetime.now(timezone.utc).isoformat(), "by": jl.display_name(user)}
+    job.cha_info = {**info, "accounts_moved": stamp}
+    jl.log_event(db, job, user, "CHA_MOVED_TO_ACCOUNTS", "OPERATIONS", "Charges moved to Accounts", detail={"bill_to": bt.get("party_name")})
+    record_audit(db, "CHA_MOVED_TO_ACCOUNTS", "OPERATIONS", user, org, "Shipment", str(job.id), {"job_number": job.job_number})
+    db.commit()
+    return get_cha_job(job.job_number, user, db)
+
+
+@router.post("/api/cha/jobs/{job_number:path}/reopen-from-accounts")
+def reopen_from_accounts(job_number: str, body: MoveIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+    org = _tenant(user)
+    job = _job(db, org, job_number)
+    info = dict(job.cha_info or {})
+    if not info.get("accounts_moved"):
+        raise HTTPException(409, "This job has not been moved to Accounts")
+    if len(body.reason.strip()) < 5:
+        raise HTTPException(422, "Give a reason (at least 5 characters)")
+    from .models import Document, DocumentLine
+
+    billed = db.scalar(select(DocumentLine.id).join(Document, Document.id == DocumentLine.document_id).where(Document.organization_id == org, Document.status != "CANCELLED", DocumentLine.job_number == job.job_number).limit(1))
+    if billed:
+        raise HTTPException(409, "An invoice already exists for this job; cancel it in Accounts first")
+    info.pop("accounts_moved")
+    job.cha_info = info
+    jl.log_event(db, job, user, "CHA_REOPENED_FROM_ACCOUNTS", "OPERATIONS", "Charges taken back from Accounts", reason=body.reason.strip())
+    db.commit()
+    return get_cha_job(job.job_number, user, db)
+
+
 @router.get("/api/cha/jobs/{job_number:path}/validate")
 def validate_job(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Checks the filing form: how many required fields were checked, how many passed and what is missing; `ready` when nothing is missing."""
@@ -604,6 +716,8 @@ def update_cha_job(job_number: str, body: InfoIn, user: User = Depends(permissio
     if "data" in ch:
         rules = cha_spec.collections(cha_spec.spec_for(job.direction))
         incoming = ch.pop("data") or {}
+        if (job.cha_info or {}).get("accounts_moved") and "billto" in incoming and cha_spec.clean_collection("billto", incoming["billto"], rules) != ((job.cha_info or {}).get("data") or {}).get("billto", []):
+            raise HTTPException(409, "The job is with Accounts: the bill-to party cannot be changed (take the charges back from Accounts first)")
         cur = dict((job.cha_info or {}).get("data") or {})
         for name, rows in incoming.items():
             new = cha_spec.clean_collection(name, rows, rules)

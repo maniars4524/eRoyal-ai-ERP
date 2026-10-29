@@ -138,6 +138,8 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
     """Replace all charge lines of a job atomically; the server recalculates every amount."""
     job = _job(db, user, job_number)
     jl.assert_job_editable(job, "its charges")
+    if (job.cha_info or {}).get("accounts_moved"):
+        raise HTTPException(status_code=409, detail="The charges of this job are with Accounts and cannot be changed here; take them back from Accounts first")
     before = jl.money_totals(db, job)
     charge_rules.check_sides(db, job.organization_id, [(l.charge_name, "SELL", l.sell.rate > 0) for l in payload.lines] + [(l.charge_name, "BUY", l.buy.rate > 0) for l in payload.lines])
     for line in payload.lines:

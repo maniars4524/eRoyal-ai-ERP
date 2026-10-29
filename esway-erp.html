@@ -21564,7 +21564,7 @@ function makePrintFit(){
   async function load(no){
     S.no = no || S.no; if(!S.no) return;
     try{ S.job = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)); }catch(e){ say("Could not open the CHA job", e.message, "error"); return; }
-    S.dirty = false; S.filingTouched = false; S.data = null; S.charges = null; S.draft = {}; if(window.CHA_JOBS) window.CHA_JOBS.add(S.no); (S.job.siblings || []).forEach(x=> window.CHA_JOBS && window.CHA_JOBS.add(x.cha_job_number));
+    S.dirty = false; S.filingTouched = false; S.data = null; S.charges = null; S.files = null; S.draft = {}; if(window.CHA_JOBS) window.CHA_JOBS.add(S.no); (S.job.siblings || []).forEach(x=> window.CHA_JOBS && window.CHA_JOBS.add(x.cha_job_number));
     if(!S.chas){ try{ S.chas = (await api("GET", "/api/customers?role=cha")).filter(c=>c.status !== "INACTIVE"); }catch(e){ S.chas = []; } }
     try{ S.val = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/validate"); }catch(e){ S.val = null; }
     render();
@@ -21625,7 +21625,7 @@ function makePrintFit(){
 
   /* ---------- Import job tabs (IGM, Invoice, Product ...): driven by the server's form definition ---------- */
   const canEdit = ()=> { const u = window.SESSION_USER; return !u || !Array.isArray(u.permissions) || u.permissions.includes("shipment.update"); };
-  const ro = ()=> canEdit() ? "" : " disabled";
+  const ro = ()=> canEdit() && !(S.job && S.job.accounts_moved && S.tab === "Charges") ? "" : " disabled";
   const fieldH = (f, attr, val)=> { const lab = '<label class="fl">'+esc2(f.l)+'</label>'; const base = attr+' class="fc"'+ro();
     if(f.t === "select") return '<div class="fg">'+lab+'<select '+base+'><option value=""></option>'+f.o.map(o=>'<option'+(String(val) === String(o) ? " selected" : "")+'>'+esc2(o)+'</option>').join("")+'</select></div>';
     if(f.t === "area") return '<div class="fg" style="grid-column:span 2">'+lab+'<textarea '+base+' rows="2">'+esc2(val || "")+'</textarea></div>';
@@ -21681,7 +21681,7 @@ function makePrintFit(){
     const j = S.job, party = j.shipment_type === "Import" ? j.importer : j.exporter; const m = sums();
     const bill = specTab("Bill to party") || "";
     const inp = (i, k, w, ph)=> '<input class="fc" data-chg="'+i+'|'+k+'" value="'+esc2(S.charges[i][k])+'" style="width:'+w+'px" placeholder="'+(ph || "")+'"'+ro()+'>';
-    return bill+'<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Cost &amp; selling charges — '+esc2(j.cha_job_number)+'</div>'+(canEdit() ? '<div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" data-chg-add type="button">＋ Add charge</button><button class="btn btn-pri btn-sm" data-chg-save type="button">Save charges</button></div>' : "")+'</div><div class="cb">'+
+    return accountsPanel()+bill+'<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Cost &amp; selling charges — '+esc2(j.cha_job_number)+'</div>'+(canEdit() ? '<div style="display:flex;gap:6px"><button class="btn btn-out btn-sm" data-chg-add type="button">＋ Add charge</button><button class="btn btn-pri btn-sm" data-chg-save type="button">Save charges</button></div>' : "")+'</div><div class="cb">'+
       '<div class="ib ib-bl" style="margin-bottom:8px">Charges are stored on this CHA job. Accounts reads them for the invoice (Job category CHA) and the vendor bills; a CHA + Freight booking shows the same totals on the freight job without entering them twice.</div>'+
       '<div class="tw"><table><thead><tr><th>Charge</th><th>Qty</th><th>Cost</th><th>Vendor</th><th>Cost GST %</th><th>Selling</th><th>Bill to</th><th>Sell GST %</th><th></th></tr></thead><tbody>'+
       (S.charges.map((l, i)=>'<tr><td>'+inp(i, "charge_name", 170, "e.g. Customs Clearance")+'</td><td>'+inp(i, "qty", 60)+'</td><td>'+inp(i, "buy_rate", 90)+'</td><td>'+inp(i, "buy_party", 130, "Vendor")+'</td><td>'+inp(i, "buy_gst", 60)+'</td><td>'+inp(i, "sell_rate", 90)+'</td><td>'+inp(i, "sell_party", 150, esc2(party || ""))+'</td><td>'+inp(i, "sell_gst", 60)+'</td><td>'+(canEdit() ? '<a href="#" data-chg-del="'+i+'" style="color:var(--rd)">✕</a>' : "")+'</td></tr>').join("") || '<tr><td colspan="9" class="tbl-empty">No charges yet</td></tr>')+
@@ -21707,6 +21707,26 @@ function makePrintFit(){
       (ev.map(e=>{ const ch = ((e.detail || {}).changes || []).slice(0, 8).map(c=>'<div style="font-size:11px">'+esc2(c.field)+': <span style="color:var(--g5)">'+esc2(c.from || "—")+'</span> → <b>'+esc2(c.to || "—")+'</b></div>').join(""); const sec = (e.detail || {}).section ? '<div style="font-size:11px">Section: '+esc2(e.detail.section)+((e.detail.changed || []).length ? " · edited record(s) "+e.detail.changed.join(", ") : "")+'</div>' : "";
         return '<tr><td style="white-space:nowrap">'+esc2(String(e.at || "").slice(0, 16).replace("T", " "))+'</td><td>'+t(e.by)+'</td><td>'+esc2(e.text)+'</td><td>'+ch+sec+(e.reason ? '<div style="font-size:11px">Reason: '+esc2(e.reason)+'</div>' : "")+'</td></tr>'; }).join("") || '<tr><td colspan="4" class="tbl-empty">No activity yet</td></tr>')+'</tbody></table></div></div></div>';
   }
+  /* Job History > Job documents: files kept on the job (up to 5 MB each) */
+  async function loadFiles(){ try{ S.files = (await api("GET", "/api/cha/files/"+encodeURIComponent(S.no))).items; }catch(e){ S.files = []; } if(S.tab === "Job History") render(); }
+  const kb = n=> n >= 1048576 ? (n / 1048576).toFixed(1)+" MB" : Math.max(1, Math.round(n / 1024))+" KB";
+  function historyTab(){
+    if(!S.files){ loadFiles(); }
+    const files = S.files || [];
+    const docs = '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Job documents <span class="mn-badge">'+files.length+'</span></div></div><div class="cb">'+
+      (canEdit() ? '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><input type="file" id="chjFile" multiple><button class="btn btn-pri btn-sm" type="button" data-chj-upload>Upload</button><span style="font-size:11px;color:var(--g5)">Up to 5 MB per file. Every upload is written to the job log.</span></div>' : "")+
+      '<div class="tw"><table><thead><tr><th>File</th><th>Size</th><th>Uploaded</th><th></th></tr></thead><tbody>'+(files.map(f=>'<tr><td>'+esc2(f.name)+'</td><td>'+kb(f.size)+'</td><td>'+esc2(String(f.uploaded_at || "").slice(0, 16).replace("T", " "))+'</td><td style="white-space:nowrap"><a href="#" data-chj-dl="'+f.id+'" data-name="'+esc2(f.name)+'">Download</a>'+(canEdit() ? ' · <a href="#" data-chj-fdel="'+f.id+'" style="color:var(--rd)">Delete</a>' : "")+'</td></tr>').join("") || '<tr><td colspan="4" class="tbl-empty">No documents yet</td></tr>')+'</tbody></table></div></div></div>';
+    return docs+(specTab("Job History") || "");
+  }
+  /* Charges: hand the job to Accounts, and the job's Open / Closed status */
+  function accountsPanel(){
+    const j = S.job, mv = j.accounts_moved, closed = j.closure_status === "CLOSED";
+    return '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Accounts &amp; job status</div></div><div class="cb"><div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">'+
+      '<div><div style="font-size:11px;color:var(--g5)">Accounts</div><div style="font-weight:700">'+(mv ? '<span class="b b-gr">Moved to Accounts</span> <span style="font-size:11px;color:var(--g5)">'+esc2(mv.by || "")+' · '+esc2(String(mv.at || "").slice(0, 16).replace("T", " "))+'</span>' : '<span class="b b-gy">With the CHA team</span>')+'</div></div>'+
+      '<div><div style="font-size:11px;color:var(--g5)">Job status</div><div style="font-weight:700"><span class="b '+(closed ? "b-gr" : "b-bl")+'">'+(closed ? "Closed" : "Open")+'</span></div></div>'+
+      (canEdit() ? '<div style="display:flex;gap:6px;margin-left:auto">'+(mv ? '<button class="btn btn-out btn-sm" type="button" data-chj-unmove>Take back from Accounts</button>' : '<button class="btn btn-pri btn-sm" type="button" data-chj-move>Move to Accounts</button>')+(closed ? '<button class="btn btn-out btn-sm" type="button" data-chj-reopen>Reopen job</button>' : '<button class="btn btn-out btn-sm" type="button" data-chj-close>Close job</button>')+'</div>' : "")+'</div>'+
+      '<div class="ib ib-am" style="margin-top:8px">'+(mv ? "The charges and the bill-to party are with Accounts and cannot be changed here." : "Once moved to Accounts (or invoiced) the charges and the bill-to party cannot be modified. Enter the bill-to party and the cost and selling first.")+'</div></div></div>';
+  }
   function bodyFor(){
     const n = S.tab;
     if(n === "Job") return jobTab();
@@ -21716,6 +21736,7 @@ function makePrintFit(){
     if(n === "Financials") return financialsTab();
     if(n === "Job Log") return logTab();
     if(n === "Entity") return entityTab();
+    if(n === "Job History") return historyTab();
     if(n === "Submission") return submissionTab();
     return specTab(n) || laterTab(n);
   }
@@ -21789,8 +21810,19 @@ function makePrintFit(){
       try{ await api("PUT", "/api/shipments/by-number/"+encodeURIComponent(S.no)+"/charges", {lines}); S.dirty = false; say("Charges saved", S.no+" — "+lines.length+" line(s)"); await load(S.no); S.tab = "Charges"; render(); }catch(err){ say("Could not save the charges", err.message, "error"); }
       return; }
     if((b = T.closest("[data-chj-acct]"))){ go(b.dataset.chjAcct); return; }
+    if(T.closest("[data-chj-upload]")){ const inp = el("chjFile"); if(!inp || !inp.files.length){ say("Choose a file", "Pick one or more files first", "warn"); return; }
+      for(const f of Array.from(inp.files)){ if(f.size > 5242880){ say("Too large", f.name+" is over 5 MB", "warn"); continue; }
+        const b64 = await new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=>res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(f); });
+        try{ await api("POST", "/api/cha/files/"+encodeURIComponent(S.no), {name:f.name, content_type:f.type || "application/octet-stream", data_base64:b64}); say("Document uploaded", f.name); }catch(err){ say("Could not upload "+f.name, err.message, "error"); } }
+      S.files = null; await load(S.no); S.tab = "Job History"; render(); return; }
+    if((b = T.closest("[data-chj-dl]"))){ e.preventDefault(); try{ const r = await fetch("/api/cha/file/"+b.dataset.chjDl, {headers:{Authorization:"Bearer "+(sessionStorage.getItem("esway_access_token") || "")}}); if(!r.ok) throw new Error("not found"); const blob = await r.blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = b.dataset.name || "document"; document.body.appendChild(a); a.click(); a.remove(); }catch(err){ say("Could not download", err.message, "error"); } return; }
+    if((b = T.closest("[data-chj-fdel]"))){ e.preventDefault(); if(!window.confirm("Delete this document?")) return; try{ await api("DELETE", "/api/cha/file/"+b.dataset.chjFdel); S.files = null; await load(S.no); S.tab = "Job History"; render(); }catch(err){ say("Could not delete", err.message, "error"); } return; }
+    if(T.closest("[data-chj-move]")){ if(S.dirty && !(await save(true))) return; if(!window.confirm("Move the charges to Accounts? They cannot be changed afterwards unless you take them back.")) return; try{ await api("POST", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/move-to-accounts", {}); say("Moved to Accounts", S.no); await load(S.no); S.tab = "Charges"; render(); }catch(err){ say("Could not move to Accounts", err.message, "error"); } return; }
+    if(T.closest("[data-chj-unmove]")){ const why = window.prompt("Reason for taking the charges back from Accounts:") || ""; if(!why.trim()) return; try{ await api("POST", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/reopen-from-accounts", {reason:why}); say("Taken back from Accounts", S.no); await load(S.no); S.tab = "Charges"; render(); }catch(err){ say("Could not take it back", err.message, "error"); } return; }
+    if(T.closest("[data-chj-close]")){ try{ await api("POST", "/api/jobs/"+encodeURIComponent(S.no)+"/close", {}); say("Job closed", S.no); await load(S.no); S.tab = "Charges"; render(); }catch(err){ const d = err.detail; say("The job cannot be closed yet", d && d.pending ? d.pending.map(p=>p.label).join(", ") : err.message, "warn"); } return; }
+    if(T.closest("[data-chj-reopen]")){ const why = window.prompt("Reason for reopening the job:") || ""; if(!why.trim()) return; try{ await api("POST", "/api/jobs/"+encodeURIComponent(S.no)+"/reopen", {reason:why}); say("Job reopened", S.no); await load(S.no); S.tab = "Charges"; render(); }catch(err){ say("Could not reopen", err.message, "error"); } return; }
     if(T.closest("[data-chj-json]")){ const blob = new Blob([JSON.stringify({job:S.job.cha_job_number, type:S.job.shipment_type, mode:S.job.shipment_mode, booking:S.job.booking_number, general:{...(S.job.filing_defaults || {}), ...(S.job.filing || {})}, ...data()}, null, 2)], {type:"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = S.job.cha_job_number.replace(/\//g, "-")+"-job-data.json"; document.body.appendChild(a); a.click(); a.remove(); say("Job data downloaded", a.download); return; }
-    if((b = T.closest("[data-chj-tab]"))){ if(S.tab === "General"){ S.job.filing = {...(S.job.filing || {}), ...collect()}; S.filingTouched = true; } S.tab = b.dataset.chjTab; render(); return; }
+    if((b = T.closest("[data-chj-tab]"))){ if(S.tab === "General"){ S.job.filing = {...(S.job.filing || {}), ...collect()}; S.filingTouched = true; } S.tab = b.dataset.chjTab; if(S.tab === "Job History") S.files = null; render(); return; }
     if(T.closest("#chjSave")){ await save(); return; }
     if(T.closest("#chjValidate")){ if(await save(true)){ const v = S.val; say(v.ready ? "Ready to file" : v.errors.length+" field(s) to fix", v.passed+" of "+v.checked+" required fields passed", v.ready ? "success" : "warn"); if(!v.ready){ S.tab = "General"; render(); } } return; }
     if(T.closest("#chjChecklist")){

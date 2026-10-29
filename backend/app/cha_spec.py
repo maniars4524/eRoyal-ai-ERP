@@ -145,6 +145,10 @@ EXPORT_SPEC = [
             {"title": "Single window", "fields": [
                 F("sw_dept", "Available department"), F("sw_ritc", "RITC no"), F("sw_info_type", "Info type"), F("sw_info_qualifier", "Info qualifier"), F("sw_info_code", "Info code"), F("sw_info_text", "Info text"), F("sw_info_msr", "Info MSR", "number"),
                 F("sw_info_uqc", "Info UQC"), F("sw_sr_no", "Sr no")]},
+            {"title": "SW constituent", "fields": [F("constituent_name", "Constituent name"), F("constituent_code", "Constituent code"), F("constituent_percent", "Percentage", "number"), F("constituent_qty", "Quantity", "number"), F("constituent_uqc", "UQC")]},
+            {"title": "SW production", "fields": [F("production_date", "Production date", "date"), F("batch_no", "Batch no"), F("production_unit", "Production unit"), F("production_remarks", "Remarks", "area")]},
+            {"title": "SW control", "fields": [F("control_type", "Control type"), F("control_no", "Control no"), F("control_date", "Control date", "date"), F("control_authority", "Authority")]},
+            {"title": "SW statement", "fields": [F("sw_stmt_type", "Statement type"), F("sw_stmt_code", "Statement code"), F("sw_stmt_text", "Statement text", "area")]},
             {"title": "Supporting documents", "fields": [
                 F("doc_level", "Level", "select", ["Job Level", "Invoice Level", "Item Level"]), F("irn_no", "IRN no"), F("doc_type_code", "Document type code"), F("iss_party_code", "Issuing party code"), F("iss_party_name", "Issuing party name"),
                 F("iss_party_add", "Issuing party address"), F("iss_party_add2", "Address 2"), F("iss_party_city", "City"), F("iss_party_pin", "Pin"), F("doc_no", "Document no"), F("place_of_issue", "Place of issue"), F("issue_date", "Issue date", "date"),
