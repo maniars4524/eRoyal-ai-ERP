@@ -4256,7 +4256,7 @@ tbody tr:hover{background:var(--g0)}
 
 <!-- ====== BRANCH MASTER DETAIL ====== -->
 <div id="s-branch-detail" class="scr">
-<div class="ph"><div><div class="pt"><svg class="ic" data-icon="building" style="color:var(--bl)"></svg>Branch Detail — Chennai HQ</div><div class="ps">Branch Code: CHN-001 · eSway ERP 2.0 · Freight Forwarding, CHA, Warehouse, Transport</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="branch-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="printer"></svg> Print</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save Branch</button></div></div>
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="building" style="color:var(--bl)"></svg>Branch Detail</div><div class="ps">Branch Code · Company · Freight Forwarding, CHA, Warehouse, Transport</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="branch-master"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm"><svg class="ic" data-icon="printer"></svg> Print</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save Branch</button></div></div>
 
 <!-- Branch tabs -->
 <div class="tabs" data-tabgroup="branch">
@@ -8211,7 +8211,7 @@ function printZone(zoneId, title){
   const html = `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<title>${title}</title>
+<title>${window.DocName ? window.DocName.fromTitle(title) : title}</title>
 <style>${CSS}</style>
 </head><body>
 ${z.innerHTML}
@@ -9556,6 +9556,7 @@ function crmRenderEnquiryForm(prefill){
         <div class="fg"><label class="fl">Volume (CBM)</label><input class="fc" id="crmEq_cbm" type="number" placeholder="0"></div>
         <div class="fg"><label class="fl">Container Type</label><select class="fc" id="crmEq_conttype"><option>—</option><option>20' GP</option><option>40' GP</option><option>40' HC</option><option>Reefer</option><option>Open Top</option><option>Flat Rack</option></select></div>
         <div class="fg"><label class="fl">Container Qty</label><input class="fc" id="crmEq_contqty" type="number" placeholder="0"></div>
+        <div class="fg" id="crmEq_contwrap" style="grid-column:1/-1"><div id="crmEq_contextra"></div><button class="btn btn-out btn-sm" type="button" id="crmEq_contadd">\uFF0B Add another container type</button></div>
         <div class="fg"><label class="fl">Hazardous Cargo</label><select class="fc" id="crmEq_hazmat"><option>No</option><option>Yes</option></select></div>
         <div class="fg"><label class="fl">Temperature Controlled</label><select class="fc" id="crmEq_temp"><option>No</option><option>Yes</option></select></div>
         <div class="fg"><label class="fl">Insurance Required</label><select class="fc" id="crmEq_ins"><option>No</option><option>Yes</option></select></div>
@@ -9621,6 +9622,7 @@ function crmRenderEnquiryForm(prefill){
       commodity:$("#crmEq_commodity").value.trim(), cargoDesc:$("#crmEq_cargodesc").value.trim(),
       packages:$("#crmEq_pkgs").value, grossWeight:$("#crmEq_gw").value, volumeCBM:$("#crmEq_cbm").value,
       containerType:["Sea","Multimodal"].includes($("#crmEq_mode").value) ? $("#crmEq_conttype").value : "", containerQty:["Sea","Multimodal"].includes($("#crmEq_mode").value) ? $("#crmEq_contqty").value : "",
+      containers:["Sea","Multimodal"].includes($("#crmEq_mode").value) ? enqContainerRows() : [],
       hazardous:$("#crmEq_hazmat").value, tempControlled:$("#crmEq_temp").value, insurance:$("#crmEq_ins").value,
       customsClearance:$("#crmEq_customs").value, packing:$("#crmEq_packing").value, pickup:$("#crmEq_pickup").value, delivery:$("#crmEq_delivery").value,
       origin:$("#crmEq_origin").value.trim(), pol:$("#crmEq_pol").value.trim(), pod:$("#crmEq_pod").value.trim(),
@@ -12441,7 +12443,7 @@ function exportDashSlideAsPdf(title){
   const finish = (dataUrl)=>{
     const win = window.open("", "_blank");
     if(!win){ toast("Pop-up blocked","Please allow pop-ups to export PDF","error"); return; }
-    win.document.write(`<!DOCTYPE html><html><head><title>${title} — eSway ERP 2.0</title>
+    win.document.write(`<!DOCTYPE html><html><head><title>${window.DocName ? window.DocName.report(title) : title}</title>
       <style>body{font-family:sans-serif;padding:24px;text-align:center}h2{color:#1E293B;margin-bottom:4px}
       p{color:#64748B;font-size:12px;margin-top:0}img{max-width:100%;border:1px solid #E2E8F0;border-radius:8px;margin-top:16px}</style>
       </head><body><h2>${title}</h2><p>eSway ERP 2.0 — RG Cargo Services Pvt Ltd · Chennai · FY 2025–26</p>
@@ -12969,6 +12971,22 @@ function quotEnqCompact(on){
   const ch = $("#quotEnqChange"); if(ch) ch.addEventListener("click", e=>{ e.preventDefault(); quotWiz.fromEnq = false; quotWiz.qtype = null; quotWiz.carrierMode = null; quotEnqCompact(false); $("#quotWizDirWrap").style.display = "block"; $("#quotWizTypeWrap").style.display = "block"; quotWizRefresh(); });
 }
 window.quotEnqCompact = quotEnqCompact;
+/* an enquiry can name several container types: the first pair is the original Container Type / Qty, the others are the added rows */
+function enqContainerRows(){
+  const rows = []; const t0 = $("#crmEq_conttype") ? $("#crmEq_conttype").value : "", q0 = $("#crmEq_contqty") ? $("#crmEq_contqty").value : "";
+  if(t0 && t0 !== "\u2014" && Number(q0) > 0) rows.push({type:t0, qty:String(Number(q0))});
+  document.querySelectorAll("#crmEq_contextra [data-eqx-row]").forEach(r=>{ const t = r.querySelector("select").value, q = r.querySelector("input").value; if(t && Number(q) > 0){ const x = rows.find(y=>y.type === t); if(x) x.qty = String(Number(x.qty) + Number(q)); else rows.push({type:t, qty:String(Number(q))}); } });
+  return rows;
+}
+document.addEventListener("click", e=>{
+  if(e.target.closest && e.target.closest("#crmEq_contadd")){
+    const src = $("#crmEq_conttype"); const opts = src ? src.innerHTML : "<option>\u2014</option>";
+    const row = document.createElement("div"); row.setAttribute("data-eqx-row", ""); row.style.cssText = "display:flex;gap:6px;margin-bottom:5px";
+    row.innerHTML = '<select class="fc" style="max-width:240px">'+opts+'</select><input class="fc" type="number" min="0" placeholder="Qty" style="width:90px"><button class="btn btn-out btn-sm" type="button" data-eqx-del>Remove</button>';
+    $("#crmEq_contextra").appendChild(row); return;
+  }
+  const del = e.target.closest && e.target.closest("[data-eqx-del]"); if(del) del.closest("[data-eqx-row]").remove();
+});
 function applyEnquiryToQuotWiz(enq){
   let mode = enq.modeOfTransport || "Sea";
   if(!WIZ_MODES.find(m=>m.id===mode)) mode = "Sea";
@@ -13899,6 +13917,28 @@ if(document.readyState !== "loading") initChatWidget();
     const btns = Array.from(scr.querySelectorAll("button"));
     return btns.find(b=> /^\s*save/i.test(b.textContent) && !b.closest(".tp:not(.on)") ) || scr.querySelector(".pa .btn-suc");
   }
+  /* the Organisation of a branch / department / user form is the signed-in company, never a fixed sample name */
+  const companyFill = root=>{
+    const name = (window.SESSION_USER && (window.SESSION_USER.organization_name || "")) || ""; if(!name) return;
+    (root || document).querySelectorAll("select").forEach(sel=>{
+      const lab = sel.closest(".fg") && sel.closest(".fg").querySelector("label"); if(!lab || !/^organi[sz]ation\b/i.test(lab.textContent.trim())) return;
+      if(sel.options.length === 1 && sel.options[0].textContent === name) return;
+      sel.innerHTML = '<option>'+esc2(name)+'</option>'; sel.value = name;
+    });
+  };
+  window.companyFill = companyFill;
+  const whenText = t=> { try{ return new Date(t).toLocaleString("en-GB", {day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}); }catch(e){ return String(t || ""); } };
+  /* the Audit Log tab of a master record: who created / changed it and which field changed from what to what */
+  async function paintAudit(scr, cfg, id){
+    const tables = Array.from(scr.querySelectorAll("table")).filter(t=>/^\s*timestamp/i.test((t.querySelector("th") || {}).textContent || ""));
+    if(!tables.length) return;
+    let rows = []; try{ rows = await api("GET", "/api/masters/"+cfg.type+"/"+id+"/audit"); }catch(e){ rows = []; }
+    tables.forEach(t=>{
+      const tb = t.querySelector("tbody"); if(!tb) return;
+      tb.innerHTML = rows.length ? rows.map(r=>'<tr><td>'+esc2(whenText(r.when))+'</td><td>'+esc2(r.user)+'</td><td>'+esc2(r.action)+'</td><td>'+esc2(r.field || "—")+'</td><td>'+esc2(r.from || "—")+'</td><td>'+esc2(r.to || "—")+'</td><td>'+esc2(r.ip || "—")+'</td></tr>').join("")
+        : '<tr><td colspan="7" style="text-align:center;color:var(--g5);padding:14px">No changes recorded for this record yet</td></tr>';
+    });
+  }
   MK.openDetail = function(cfg){
     const scr = document.getElementById("s-"+cfg.detail); if(!scr) return;
     const fields = fieldNodes(scr); const pend = MK.pending && MK.pending.type === cfg.type ? MK.pending : null;
@@ -13919,6 +13959,9 @@ if(document.readyState !== "loading") initChatWidget();
       const title = pend ? cfg.label+" — "+pend.rec.name : "New "+cfg.label;
       if(pt){ const last = Array.from(pt.childNodes).reverse().find(n=>n.nodeType===3); if(last) last.textContent = title; else pt.append(title); }
       if(ps) ps.textContent = pend ? "Code: "+pend.rec.code : "Fill in the details and click Save";
+      companyFill(scr);
+      if(pend) paintAudit(scr, cfg, pend.id || pend.rec.id);
+      else scr.querySelectorAll("table").forEach(t=>{ if(/^\s*timestamp/i.test((t.querySelector("th") || {}).textContent || "")){ const tb = t.querySelector("tbody"); if(tb) tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--g5);padding:14px">The history starts when the record is saved</td></tr>'; } });
     };
     const jobs = (cfg.selects || []).map(sp=> api("GET", "/api/masters/"+sp.from).then(rows=>{
       const f = fields.find(x=>x.key === slug(sp.label)); if(!f || !f.ctl) return;
@@ -16424,12 +16467,34 @@ if(document.readyState !== "loading") initChatWidget();
       f("Incoterm", '<select class="fc" data-qh="incoterm"'+d+'><option value="">—</option>'+INCOTERMS.map(s=>opt(s, s, s===h.incoterm)).join("")+'</select>')+
       f("Commodity", inp("commodity","text","e.g. Cotton garments"))+f("Payment Terms", inp("payment_terms","text","e.g. 30 days from invoice"))+f("Transit Time (days)", inp("transit_days","number","","min=\"0\""))+
       f("Packages", inp("packages","number","","min=\"0\""))+f("Gross Weight (kg)", inp("gross_weight","number","","min=\"0\" step=\"0.001\""))+f("Volume (CBM)", inp("volume","number","","min=\"0\" step=\"0.001\""))+
+      (["Air","Courier"].indexOf((wiz() || {}).mode) < 0 ? f("Containers in this shipment", '<div id="qkConts">'+contHTML()+'</div>', "span4") : "")+
       f("Origin (Place of Receipt)", inp("origin","text","City / place of cargo pick-up",' list="qkPorts"'), "span2")+f("Final Destination", inp("final_destination","text","Place of final delivery",' list="qkPorts"'), "span2")+
       f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+f("Dimensions (L x W x H cm)", inp("dimensions","text","e.g. 80 x 60 x 45"))+
       f("Billing Branch", '<select class="fc" data-qh="billing_branch_id"'+d+'><option value="">— Registered address —</option>'+(Q.m.custBranches||[]).filter(b=>b.status==="ACTIVE" && b.billing_enabled).map(b=>opt(String(b.id), b.code+" — "+b.name, String(b.id)===String(h.billing_branch_id))).join("")+'</select>', "span2")+
       f("Contact Person", '<select class="fc" data-qh="contact_id"'+d+'><option value="">— Select contact —</option>'+contactChoices().map(c=>opt(String(c.id), c.name+(c.designation?" · "+c.designation:"")+(c.branch_code?" ("+c.branch_code+")":""), String(c.id)===String(h.contact_id))).join("")+'</select>', "span2")+
       '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2((p.unlocode||p.code)+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+carrierNames().map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
   }
+  /* the containers of the shipment (type + quantity), entered once here, fetched from the enquiry, and offered by the container-wise rates and by the job: only the rate is typed later */
+  function contHTML(){
+    const h = Q.head, d = Q.rec && !Q.rec.editable ? " disabled" : "", rows = h.containers || [], types = (Q.m.containers || []).map(c=>c.code);
+    return rows.map((c, i)=>'<div style="display:flex;gap:6px;margin-bottom:5px"><select class="fc" data-qc="'+i+':type" style="max-width:240px"'+d+'><option value="">— Container type —</option>'+types.concat(c.type && types.indexOf(c.type) < 0 ? [c.type] : []).map(t=>opt(t, t, t === c.type)).join("")+'</select>'+
+      '<input class="fc" type="number" min="0" step="1" data-qc="'+i+':qty" value="'+esc2(c.qty)+'" style="width:90px" placeholder="Qty"'+d+'>'+(d ? "" : '<button class="btn btn-out btn-sm" type="button" data-qc-del="'+i+'">Remove</button>')+'</div>').join("")+
+      (d ? "" : '<button class="btn btn-out btn-sm" type="button" data-qc-add>\uFF0B Add container type</button>')+'<div style="font-size:11px;color:var(--g5);margin-top:4px">Container-wise rates and the job pick these up, so only the rate has to be entered.</div>';
+  }
+  document.addEventListener("input", e=>{
+    const t = e.target; if(!t.dataset || !t.dataset.qc || !document.getElementById("s-quotation-new")) return;
+    const [i, f] = t.dataset.qc.split(":"); const row = (Q.head.containers || [])[Number(i)]; if(row){ row[f] = t.value; Q.dirty = true; }
+  });
+  document.addEventListener("change", e=>{
+    const t = e.target; if(!t.dataset || !t.dataset.qc) return;
+    const [i, f] = t.dataset.qc.split(":"); const row = (Q.head.containers || [])[Number(i)]; if(row){ row[f] = t.value; Q.dirty = true; }
+  });
+  document.addEventListener("click", e=>{
+    const a = e.target.closest && e.target.closest("[data-qc-add],[data-qc-del]"); if(!a || !Q.head) return;
+    Q.head.containers = Q.head.containers || [];
+    if(a.hasAttribute("data-qc-add")) Q.head.containers.push({type:"", qty:"1"}); else Q.head.containers.splice(Number(a.dataset.qcDel), 1);
+    Q.dirty = true; const box = document.getElementById("qkConts"); if(box) box.innerHTML = contHTML();
+  });
   async function reloadCharges(){
     try{ const rows = await api("GET","/api/masters/charge"); Q.m.charges = rows.filter(c=>c.status === "ACTIVE"); return true; }catch(e){ return false; }
   }
@@ -16605,6 +16670,11 @@ if(document.readyState !== "loading") initChatWidget();
       if(Q.afterOpen){ const f = Q.afterOpen; Q.afterOpen = null; f(); }
     }
   }
+  const enqContainers = enq=>{
+    const raw = Array.isArray(enq.containers) && enq.containers.length ? enq.containers : (enq.containerType && enq.containerType !== "\u2014" && Number(enq.containerQty) > 0 ? [{type:enq.containerType, qty:enq.containerQty}] : []);
+    const code = t=>{ const v = String(t || "").trim().toLowerCase(); const m = (Q.m.containers || []).find(c=>String(c.code).toLowerCase() === v || String(c.name || "").toLowerCase() === v); return m ? m.code : String(t || "").trim(); };
+    return raw.map(c=>({type:code(c.type), qty:String(Number(c.qty) || 0)})).filter(c=>c.type && Number(c.qty) > 0);
+  };
   Q.prefillFromEnquiry = function(enq){
     const h = Q.head, cust = enq.customerId ? Q.m.customers.find(c=>String(c.id) === String(enq.customerId)) : Q.m.customers.find(c=>c.name.toLowerCase() === String(enq.company||"").toLowerCase());
     if(cust){ h.customer_id = String(cust.id); h.party_name = cust.name; h.cust_source = "master"; }
@@ -16613,7 +16683,8 @@ if(document.readyState !== "loading") initChatWidget();
       Object.assign(h, {cust_source:ld ? "lead" : "direct", lead_ref:ld ? ld.id : "", party_name:enq.company, contact_person:(ld && ld.contact) || enq.contact || "", contact_email:(ld && ld.email) || enq.email || "", contact_mobile:(ld && ld.mobile) || enq.mobile || ""});
     }
     const port = v=> { const t = String(v||"").trim(); const m = Q.m.ports.find(p=>t && (p.code === t.toUpperCase() || p.name.toLowerCase() === t.toLowerCase())); return m ? m.code+" - "+m.name : t; };
-    Object.assign(h, {pol:port(enq.pol || enq.origin), pod:port(enq.pod || enq.destination), commodity:enq.commodity||"", packages:enq.packages||"", gross_weight:enq.grossWeight||"", volume:enq.volumeCBM||"", incoterm:INCOTERMS.includes(enq.incoterm) ? enq.incoterm : "", payment_terms:enq.paymentTerms||"", reference_no:enq.id||"", currency:ccyList().includes(enq.currency) ? enq.currency : h.currency});
+    Object.assign(h, {pol:port(enq.pol || enq.origin), pod:port(enq.pod || enq.destination), origin:port(enq.origin), final_destination:port(enq.finalDelivery || enq.destination), containers:enqContainers(enq), commodity:enq.commodity||"", packages:enq.packages||"", gross_weight:enq.grossWeight||"", volume:enq.volumeCBM||"", incoterm:INCOTERMS.includes(enq.incoterm) ? enq.incoterm : "", payment_terms:enq.paymentTerms||"", reference_no:enq.id||"", currency:ccyList().includes(enq.currency) ? enq.currency : h.currency});
+    const box = document.getElementById("qkConts"); if(box) box.innerHTML = contHTML();
   };
   Q.onWizardDone = function(){
     const w = wiz(); Q.head.currency = Q.head.currency || "USD";
@@ -16638,7 +16709,7 @@ if(document.readyState !== "loading") initChatWidget();
     };
     return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
       pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,
-      header:Object.fromEntries(Object.entries({...h, ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref"].includes(k) && v!=="" && v!==undefined && v!==null)),
+      header:Object.fromEntries(Object.entries({...h, containers:(h.containers || []).filter(c=>c.type && Number(c.qty) > 0).map(c=>({type:c.type, qty:String(Number(c.qty))})), ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","containers"].includes(k) && v!=="" && v!==undefined && v!==null)),
       lines:keepLines().map(toLine)};
   }
   function validate(forSubmit){
@@ -16693,6 +16764,9 @@ if(document.readyState !== "loading") initChatWidget();
     const sideKey = k.split(":")[0];
     const working = isNew ? {side:sideKey.toUpperCase(), basis:"Container", container_breakup:[], ccy:Q.head.currency||"USD", exch:rateFor(Q.head.currency||"USD", null)||"1", rate:"", qty:"1", taxable:false, tax_pct:"0", charge_name:"", carrier:"", remarks:"", container_type:""} : lineByKey(k).list[Number(lineByKey(k).idx)];
     const rows = (working.container_breakup||[]).map(b=>({...b}));
+    const shipment = ()=> (Q.head.containers || []).filter(c=>c.type && Number(c.qty) > 0);
+    const fetchShipment = all=> shipment().forEach(c=>{ const x = rows.find(r=>r.type === c.type); if(x){ if(all) x.qty = String(Number(c.qty)); } else rows.push({type:c.type, qty:String(Number(c.qty)), rate:""}); });
+    if(!rows.length) fetchShipment(false);
     const draw = ()=>{
       const used = new Set(rows.map(r=>r.type)); const free = Q.m.containers.filter(c=>!used.has(c.code));
       const tu = rows.reduce((a,r)=>a+(Number(r.qty)||0),0), ta = rows.reduce((a,r)=>a+r2((Number(r.qty)||0)*(Number(r.rate)||0)),0);
@@ -16701,7 +16775,7 @@ if(document.readyState !== "loading") initChatWidget();
         '<table class="qk-t" style="min-width:0"><thead><tr><th>Container type</th><th>Qty</th><th>Rate ('+esc2(working.ccy)+')</th><th class="r">Amount</th><th></th></tr></thead><tbody>'+
         (rows.length ? rows.map((r,i)=>'<tr><td>'+esc2(r.type)+'</td><td><input class="fc" type="number" min="0" step="1" data-cq="'+i+':qty" value="'+esc2(r.qty)+'" style="width:70px"></td><td><input class="fc" type="number" min="0" step="0.0001" data-cq="'+i+':rate" value="'+esc2(r.rate)+'" style="width:100px"></td><td class="r">'+num(r2((Number(r.qty)||0)*(Number(r.rate)||0)),2)+'</td><td><button class="qk-icon del" data-cq-del="'+i+'">✕</button></td></tr>').join("") : '<tr><td colspan="5" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">Add the container types in this shipment.</td></tr>')+
         '</tbody><tfoot><tr><td>Total</td><td>'+num(tu,3)+'</td><td></td><td class="r">'+num(ta,2)+' '+esc2(working.ccy)+'</td><td></td></tr></tfoot></table>'+
-        '<div style="margin-top:8px;display:flex;gap:6px;align-items:center"><select class="fc" id="qkcAdd" style="max-width:220px"><option value="">＋ Add container type…</option>'+free.map(c=>opt(c.code,c.code)).join("")+'</select></div>';
+        '<div style="margin-top:8px;display:flex;gap:6px;align-items:center"><select class="fc" id="qkcAdd" style="max-width:220px"><option value="">＋ Add container type…</option>'+free.map(c=>opt(c.code,c.code)).join("")+'</select>'+(shipment().length ? '<button class="btn btn-out btn-sm" type="button" id="qkcFetch">Fetch shipment containers</button>' : "")+'</div>';
     };
     openModal({title:"Container-wise Rates", size:"lg", bodyHTML:'<div id="qkCont"></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button>'+(rows.length ? '<button class="btn btn-out" id="qkcClear">Remove breakup</button>' : '')+'<button class="btn btn-pri" id="qkcSave">Apply</button>'});
     draw();
@@ -16713,7 +16787,7 @@ if(document.readyState !== "loading") initChatWidget();
       if(t.id === "qkcAdd" && t.value){ rows.push({type:t.value, qty:"1", rate:""}); draw(); }
       if(t.id === "qkcCcy"){ working.ccy = t.value; working.exch = rateFor(t.value, working) || "1"; draw(); }
       if(t.id === "qkcCharge"){ working.charge_name = t.value; } };
-    body.onclick = e=>{ const d = e.target.closest("[data-cq-del]"); if(d){ rows.splice(Number(d.dataset.cqDel), 1); draw(); } };
+    body.onclick = e=>{ const d = e.target.closest("[data-cq-del]"); if(d){ rows.splice(Number(d.dataset.cqDel), 1); draw(); return; } if(e.target.closest("#qkcFetch")){ fetchShipment(true); draw(); } };
     document.getElementById("qkcClear") && document.getElementById("qkcClear").addEventListener("click", ()=>{ working.container_breakup = []; closeModal(); renderAll(true); refreshComputed(); Q.dirty = true; });
     document.getElementById("qkcSave").addEventListener("click", ()=>{
       const valid = rows.filter(r=>Number(r.qty)>0);
@@ -18074,7 +18148,7 @@ function makePrintFit(){
   };
   BD.print = async function(){
     try{ const b = await BD.build(jobNo()); const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
-      w.document.write('<!doctype html><title>'+esc2(b.title)+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.bl-sheet{margin:0!important;box-shadow:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'+b.sheets+
+      w.document.write('<!doctype html><title>'+esc2(window.DocName ? window.DocName.fromTitle(b.title) : b.title)+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.bl-sheet{margin:0!important;box-shadow:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'+b.sheets+
         '<script>var fitSheet='+BD.fitSheet.toString()+';window.onload=function(){document.querySelectorAll(".bl-sheet").forEach(function(s){fitSheet(s,'+IN_W+','+IN_H+');});setTimeout(function(){window.focus();window.print();},400);};<\/script>'); w.document.close();
     }catch(e){ say("Could not prepare the document", e.message, "error"); }
   };
@@ -18090,7 +18164,7 @@ function makePrintFit(){
         const canvas = await window.html2canvas(sheets[i], {scale:3.6, backgroundColor:"#fff", useCORS:true, width:SHEET_W, height:SHEET_H, windowWidth:SHEET_W});
         if(i) pdf.addPage("a4"); pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST");
       }
-      return {pdf, filename:"BL-"+b.title+".pdf", title:b.title};
+      return {pdf, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf", title:b.title};
     } finally { host.remove(); }
   };
   BD.download = async function(){ try{ const r = await BD.pdf(); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); }catch(e){ say("Could not make the PDF", e.message+" You can use Print and choose Save as PDF", "error"); } };
@@ -18561,13 +18635,13 @@ function makePrintFit(){
   };
   function loadScript(src){ return new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(s); }); }
   DK.print = function(b){ const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
-    w.document.write('<!doctype html><title>'+esc2(b.title)+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.pg{margin:0!important;box-shadow:none!important}</style>'+b.html); w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 700); };
+    w.document.write('<!doctype html><title>'+esc2(window.DocName ? window.DocName.fromTitle(b.title) : b.title)+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.pg{margin:0!important;box-shadow:none!important}</style>'+b.html); w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 700); };
   DK.pdf = async function(b){
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff"; host.innerHTML = b.html; document.body.appendChild(host);
     try{ const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4"}); const pages = host.querySelectorAll(".pg");
       for(let i = 0; i < pages.length; i++){ const c = await window.html2canvas(pages[i], {scale:2, backgroundColor:"#fff", useCORS:true}); if(i) pdf.addPage("a4"); pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297); }
-      return {pdf, filename:b.title.replace(/[^A-Za-z0-9._ -]/g, "_")+".pdf"};
+      return {pdf, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf"};
     } finally { host.remove(); }
   };
   DK.mail = async function(b){
@@ -21025,11 +21099,20 @@ function makePrintFit(){
 (function(){
   "use strict";
   const esc4 = v=>String(v == null ? "" : v).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-  let types = null, editing = null, draft = [];
+  let types = null, editing = null, draft = [], codeName = {};
   async function loadTypes(){
     if(types) return types;
-    try{ const rows = await JCX.api("GET", "/api/masters/container_type"); types = rows.filter(r=>r.status === "ACTIVE").map(r=>r.name); }catch(e){ types = []; }
+    try{ const rows = await JCX.api("GET", "/api/masters/container_type"); const act = rows.filter(r=>r.status === "ACTIVE"); types = act.map(r=>r.name); act.forEach(r=>{ codeName[String(r.code).toLowerCase()] = r.name; codeName[String(r.name).toLowerCase()] = r.name; }); }catch(e){ types = []; }
     return types;
+  }
+  /* the containers already known for the job (those on its Containers tab, else the booking / quotation plan): type and quantity come in, only the rates are typed */
+  async function jobContainers(){
+    try{
+      const dd = await JCX.api("GET", "/api/jobs/"+encodeURIComponent(JCX.cur())+"/details"); const have = {};
+      (dd.containers || []).forEach(c=>{ const t = String(c.type || c.container_type || c.size_type || "").trim(); if(t) have[t] = (have[t] || 0) + 1; });
+      const list = Object.keys(have).length ? Object.keys(have).map(t=>({type:t, qty:have[t]})) : (dd.suggested_containers || []).map(x=>({type:x.type, qty:x.qty}));
+      return list.map(x=>({type:codeName[String(x.type).toLowerCase()] || x.type, qty:x.qty, sell:0, buy:0}));
+    }catch(e){ return []; }
   }
   const num = v=> Number(v) || 0, fmt = v=> (Math.round(v * 100) / 100).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
   function body(){
@@ -21045,7 +21128,8 @@ function makePrintFit(){
   async function open(id){
     const st = JCX.state(JCX.cur()); const r = st.rows.find(x=>String(x.id) === String(id)); if(!r) return;
     await loadTypes(); editing = r;
-    draft = (r.breakup || []).length ? r.breakup.map(b=>({...b})) : [{type:"", qty:r.qty > 0 ? r.qty : 1, sell:r.sell.rate || 0, buy:r.buy.rate || 0}];
+    draft = (r.breakup || []).length ? r.breakup.map(b=>({...b})) : await jobContainers();
+    if(!draft.length) draft = [{type:"", qty:r.qty > 0 ? r.qty : 1, sell:r.sell.rate || 0, buy:r.buy.rate || 0}];
     window.openModal({title:"Container break-up — "+esc4(r.chargeName || "charge"), bodyHTML:body(), size:"lg",
       footHTML:'<button class="btn btn-out" id="buClear">Remove break-up</button><button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="buApply">Apply</button>'});
   }
@@ -21893,10 +21977,10 @@ function makePrintFit(){
       '<p><b>11 Seal No. and name of the sealing agency</b> : '+E(a.seal)+'</p><p>I/We declare that the particulars given above are true and correct.</p><div class="sig"><div>Date :</div><div style="text-align:right">Signature of the CHA<br><b>'+E(a.cha_name)+'</b><br>Card No. <b>'+E(a.cha_card)+'</b></div></div><p style="margin-top:22px">Goods arrived. Verified the number of packages and marks and numbers there on and found to be as declared.</p><div class="sig"><div>Date :</div><div><b>Name and Signature of PO/ED</b></div></div>';
   }
   function showDocument(title, body, fileBase){
-    const html = shell(title, body);
+    const html = shell(String(fileBase).replace(/[^A-Za-z0-9]/g, ""), body);
     openModal({title:E(title), size:"full", bodyHTML:'<div style="background:#fff;border:1px solid var(--g2);padding:8px;max-height:70vh;overflow:auto" id="chjDocView">'+body+'</div>'+docCss.replace("body{", "#chjDocView{"), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button><button class="btn btn-out" id="chjDocWord" type="button">Download Word</button><button class="btn btn-pri" id="chjDocPrint" type="button">Print / Save as PDF</button>'});
     el("chjDocPrint").addEventListener("click", ()=>{ const w = window.open("", "_blank"); if(w){ w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 400); } else { say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); } });
-    el("chjDocWord").addEventListener("click", ()=>{ const blob = new Blob(["\ufeff", html], {type:"application/msword"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = fileBase+".doc"; document.body.appendChild(a); a.click(); a.remove(); });
+    el("chjDocWord").addEventListener("click", ()=>{ const blob = new Blob(["\ufeff", html], {type:"application/msword"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = String(fileBase).replace(/[^A-Za-z0-9]/g, "")+".doc"; document.body.appendChild(a); a.click(); a.remove(); });
   }
   async function openChecklist(){
     try{ const c = await api("GET", "/api/cha/jobs/"+encodeURIComponent(S.no)+"/checklist"); showDocument(c.title+" — "+c.job_no, c.direction === "Export" ? checklistExport(c) : checklistImport(c), (c.direction === "Export" ? "Checklist-SB-" : "Checklist-BE-")+String(c.job_no).replace(/[^A-Za-z0-9]+/g, "-")); }
@@ -22437,6 +22521,43 @@ function makePrintFit(){
   paint();
 })();
 </script>
+<script>
+/* ============================================================
+   DOCUMENT FILE NAMES: a printed / saved PDF is named after the document (QT/26-27/00001 -> QT262700001). Only letters and digits of a number are kept,
+   so Windows never refuses the name; reports keep their words (letters, digits, spaces) plus the date.
+   ============================================================ */
+(function(){
+  "use strict";
+  const num = v=> String(v == null ? "" : v).replace(/[^A-Za-z0-9]/g, "");
+  const words = v=> String(v == null ? "" : v).replace(/[^A-Za-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const stamp = ()=>{ const d = new Date(); return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0"); };
+  /* "House BL — SEAEXP-26-000010" -> SEAEXP26000010; a title with no number keeps its words */
+  const fromTitle = t=>{
+    const parts = String(t || "").split(/\s+[\u2014\u2013\-\u00b7|]\s+|\s{2,}/).map(x=>x.trim()).filter(Boolean);
+    const withNo = parts.slice().reverse().find(x=>/\d/.test(x) && /^[A-Za-z0-9][A-Za-z0-9\/\-.]*$/.test(x));
+    return withNo ? num(withNo) : (words(parts[0] || t) || "Document") + " " + stamp();
+  };
+  function onScreen(){
+    const scr = document.body.dataset.screen || "", Q = window.QK, B = window.BK;
+    if(/^quotation/.test(scr) && Q){ const r = Q.viewRec || Q.rec; if(r && r.number) return num(r.number); }
+    if(B && B.state && B.state.doc && /(invoice|debit-note|credit-note)/.test(scr)){ const d = B.state.doc; const n = d.doc_number || (d.header || {}).proforma_no; if(n) return num(n); }
+    if(scr === "job-detail" && window.__lastJobNo) return num(window.__lastJobNo);
+    if(scr === "cha-job" && window.ChaJobScreen && window.ChaJobScreen.state && window.ChaJobScreen.state.no) return num(window.ChaJobScreen.state.no);
+    const root = document.querySelector(".scr.on"), txt = root ? root.innerText.slice(0, 8000) : "";
+    const m = txt.match(/(?:Invoice|Quotation|Quote|Debit Note|Credit Note|Proforma|Bill of Lading|Job|Booking|Voucher|Receipt|Payment)\s*(?:No\.?|Number|#)\s*[:\-]?\s*([A-Z]{1,8}[A-Z0-9\/\-]*\d[A-Z0-9\/\-]*)/i);
+    if(m) return num(m[1]);
+    return fromTitle(String(document.title).replace(/^eSway ERP 2\.0\s*[\u2014\-]\s*/, "")) ;
+  }
+  const nativePrint = window.print.bind(window);
+  window.print = function(){
+    let name = ""; try{ name = onScreen(); }catch(e){ name = ""; }
+    if(!name) return nativePrint();
+    const old = document.title; document.title = name;
+    try{ return nativePrint(); } finally{ setTimeout(()=>{ document.title = old; }, 0); }
+  };
+  window.DocName = {num, words, fromTitle, stamp, onScreen, report:t=> words(t) + " " + stamp()};
+})();
+</script>
 <style id="portPickStyle">
 #ppBox{position:fixed;z-index:100000;max-height:264px;overflow:auto;background:var(--wh);border:0.5px solid var(--g3);border-radius:10px;box-shadow:0 14px 36px rgba(11,31,58,.22);padding:4px}
 #ppBox .pp-item{display:flex;flex-direction:column;gap:1px;padding:8px 12px;border-radius:7px;cursor:pointer}
@@ -22636,6 +22757,7 @@ body.job-readonly #jlBanner{display:flex}
   const baseGo = window.go;
   window.go = function(screen, opts){
     const r = baseGo.apply(this, arguments);
+    if(window.companyFill){ setTimeout(()=>window.companyFill(document.querySelector(".scr.on")), 60); setTimeout(()=>window.companyFill(document.querySelector(".scr.on")), 900); }
     const job = (screen === "job-detail" || screen === "cha-job") && opts && opts.jobNo;
     if(job) enter(job); else if(L.job && !(isInv(L.job) && INV_SCREENS.indexOf("s-" + screen) > -1)) leave();
     return r;

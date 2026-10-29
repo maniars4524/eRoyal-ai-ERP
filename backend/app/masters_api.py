@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from .auth import permission_required
 from .auth_api import record_audit
 from .db import get_db
-from .models import MasterRecord, User
+from .models import AuditLog, MasterRecord, User
 
 router = APIRouter(prefix="/api/masters", tags=["masters"])
 
@@ -522,7 +522,7 @@ def _sync_ledger(db: Session, record: MasterRecord, user: User) -> None:
 
 
 @router.post("/{master_type}", status_code=201)
-def create_record(master_type: str, payload: MasterPayload, user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+def create_record(master_type: str, payload: MasterPayload, request: Request, user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     org_id, master_type = _tenant(user), _type(master_type)
     _check_charge_activation(master_type, payload.status, payload.data)
     values = payload.model_dump()
@@ -533,7 +533,7 @@ def create_record(master_type: str, payload: MasterPayload, user: User = Depends
     try:
         db.flush()
         _sync_ledger(db, record, user)
-        record_audit(db, "MASTER_CREATED", "MASTER", user, org_id, master_type, str(record.id), {"code": record.code, "name": record.name})
+        record_audit(db, "MASTER_CREATED", "MASTER", user, org_id, master_type, str(record.id), {"code": record.code, "name": record.name, "ip": _ip(request)})
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -542,13 +542,44 @@ def create_record(master_type: str, payload: MasterPayload, user: User = Depends
     return _out(record)
 
 
+def _ip(request: Request) -> str | None:
+    return request.client.host if request.client else None
+
+
+def _flat(record: MasterRecord) -> dict:
+    """The fields of a master record as plain text, so a change shows as 'field: old -> new' in its audit log."""
+    out = {"code": record.code, "name": record.name, "status": record.status}
+    for k, v in (record.data or {}).items():
+        out[k] = ", ".join(str(x) for x in v) if isinstance(v, list) else str(v if v is not None else "")
+    return {k: (v if len(v) <= 160 else v[:157] + "...") for k, v in out.items()}
+
+
+@router.get("/{master_type}/{record_id}/audit")
+def record_audit_log(master_type: str, record_id: int, user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+    """Who created or changed this master record, and which fields changed from what to what (Audit Log tab of a master)."""
+    org_id, master_type = _tenant(user), _type(master_type)
+    _get(db, org_id, master_type, record_id)
+    rows = db.scalars(select(AuditLog).where(AuditLog.organization_id == org_id, AuditLog.entity_type == master_type, AuditLog.entity_id == str(record_id), AuditLog.module == "MASTER").order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).limit(200)).all()
+    names = {u.id: ((u.first_name or "") + " " + (u.last_name or "")).strip() or u.username for u in db.scalars(select(User).where(User.id.in_({r.user_id for r in rows if r.user_id})))}
+    out = []
+    for r in rows:
+        meta = r.new_value or {}
+        who, ip, at = names.get(r.user_id) or "-", meta.get("ip") or "", r.created_at
+        if r.action == "MASTER_UPDATED" and meta.get("changes"):
+            for c in meta["changes"]:
+                out.append({"when": at, "user": who, "action": "Updated", "field": str(c["field"]).replace("_", " ").title(), "from": c["from"], "to": c["to"], "ip": ip})
+        else:
+            out.append({"when": at, "user": who, "action": {"MASTER_CREATED": "Created", "MASTER_UPDATED": "Updated", "MASTER_DELETED": "Deleted"}.get(r.action, r.action.replace("_", " ").title()), "field": "", "from": "", "to": meta.get("name") or "", "ip": ip})
+    return out
+
+
 @router.get("/{master_type}/{record_id}")
 def get_record(master_type: str, record_id: int, user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
     return _out(_get(db, _tenant(user), _type(master_type), record_id))
 
 
 @router.patch("/{master_type}/{record_id}")
-def update_record(master_type: str, record_id: int, payload: MasterPatch, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
+def update_record(master_type: str, record_id: int, payload: MasterPatch, request: Request, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
     org_id, master_type = _tenant(user), _type(master_type)
     record = _get(db, org_id, master_type, record_id)
     changes = payload.model_dump(exclude_unset=True)
@@ -563,6 +594,7 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, user: 
         if changes.get("data") is not None:
             changes["data"] = {**changes["data"], sm.SYSTEM_KEY: "yes", "source": (record.data or {}).get("source", "standard")}
     was_active = record.status == "ACTIVE"
+    before = _flat(record)
     _check_charge_activation(master_type, changes.get("status") or record.status, changes.get("data") if changes.get("data") is not None else record.data)
     for key, value in changes.items():
         if value is not None:
@@ -572,7 +604,9 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, user: 
             record_audit(db, "CHARGE_TAX_ACTIVATED", "MASTER", user, org_id, master_type, str(record.id), {"code": record.code, "gst_percent": (record.data or {}).get("gst_percent"), "hsn_code": (record.data or {}).get("hsn_code"),
                                                                                                            "notification_ref": (record.data or {}).get("notification_ref"), "effective_date": (record.data or {}).get("effective_date")})
         _sync_ledger(db, record, user)
-        record_audit(db, "MASTER_UPDATED", "MASTER", user, org_id, master_type, str(record.id), {k: v for k, v in changes.items() if k != "data"})
+        after = _flat(record)
+        diff = [{"field": k, "from": before.get(k, ""), "to": after.get(k, "")} for k in sorted(set(before) | set(after)) if before.get(k, "") != after.get(k, "")]
+        record_audit(db, "MASTER_UPDATED", "MASTER", user, org_id, master_type, str(record.id), {**{k: v for k, v in changes.items() if k != "data"}, "changes": diff[:80], "ip": _ip(request)})
         db.commit()
     except IntegrityError:
         db.rollback()

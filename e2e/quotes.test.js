@@ -34,7 +34,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     beforeParse(w) {
       w.fetch = (u, o) => fetch(new URL(u, BASE).href, o); w.addEventListener("error", e => { if (process.env.DBG) console.log("JSERR", e.message); });
       w.sessionStorage.setItem("esway_access_token", token);
-      w.confirm = () => true; w.prompt = (m, dflt) => dflt; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = (...a) => { if (process.env.DBG) console.log("JSERR", ...a); }; w.print = () => {};
+      w.confirm = () => true; w.prompt = (m, dflt) => dflt; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = (...a) => { if (process.env.DBG) console.log("JSERR", ...a); }; w.print = () => { (w.__printed = w.__printed || []).push(w.document.title); };
     },
   });
   const w = dom.window, d = w.document;
@@ -105,6 +105,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("the quotation number is issued when it is first saved and stays the same when submitted", /^QT\/\d\d-\d\d\/00001$/.test(rec.number) && sub.number === rec.number, JSON.stringify([rec.number, sub.number]));
   await w.QK.openView(rec.id, false, "NOTAX"); await sleep(900);
   check("the preview of a submitted quotation says it is not approved yet and has a single Back button and an Edit/Revise path", /Not yet approved/.test(text("#quotPrintZone")) && Array.from(d.querySelectorAll("#s-quotation-print .pa button")).filter(b => b.style.display !== "none" && /^\s*back\s*$/i.test(b.textContent)).length === 1, text("#quotPrintZone").slice(0, 160));
+  w.__printed = []; w.print(); await sleep(100);
+  check("printing / saving the quotation as PDF names the file after the quotation number with the special characters removed", w.__printed[0] === rec.number.replace(/[^A-Za-z0-9]/g, "") && w.__printed[0] === "QT262700001".replace(/^QT\d{4}00001$/, w.__printed[0]) && !/[\/:*?"<>|\- ]/.test(w.__printed[0]) && /^QT\d+$/.test(w.__printed[0]), JSON.stringify([w.__printed, rec.number]));
+  check("the tab title is restored after printing", /eSway ERP 2\.0/.test(w.document.title), w.document.title);
   w.QK.viewMode = null; w.go("quotation"); await sleep(800);
   const rj = await j("POST", `/api/quotations/${rec.id}/approval/reject`, { remarks: "Please revisit the buy rate" }, apr);
   check("another approver can reject with a reason", rj.status === 200 && rj.body.approval_status === "REJECTED" && rj.body.editable === true, JSON.stringify(rj.body).slice(0, 150));

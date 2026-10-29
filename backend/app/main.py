@@ -243,6 +243,7 @@ def landing() -> HTMLResponse:
 
 for _p in _allowed:
     app.add_api_route(f"/{_p}", _ui_response, methods=["GET"], include_in_schema=False)
+    app.add_api_route(f"/{_p}/", _ui_response, methods=["GET"], include_in_schema=False)          # the address with a trailing slash opens the page too
     app.add_api_route(f"/{_p}/login", _ui_response, methods=["GET"], include_in_schema=False)
 if not PUBLIC_PORTALS:
     app.add_api_route("/prototype", _ui_response, methods=["GET"], include_in_schema=False)

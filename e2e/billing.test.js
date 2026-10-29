@@ -27,7 +27,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     beforeParse(w) {
       w.fetch = (u, o) => fetch(new URL(u, BASE).href, o);
       w.sessionStorage.setItem("esway_access_token", token);
-      w.confirm = () => true; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {}; w.print = () => {};
+      w.confirm = () => true; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {}; w.print = () => { (w.__printed = w.__printed || []).push(w.document.title); };
     },
   });
   const w = dom.window, d = w.document;
@@ -78,6 +78,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("invoice became PARTIAL with the right balance", afterPay.payment_status === "PARTIAL" && afterPay.outstanding === "132841.00", JSON.stringify(afterPay));
   check("the receipt voucher opens after recording", /RECEIPT VOUCHER/.test(text("#docViewZone")), text("#docViewZone").slice(0, 80));
   w.BK.openDoc(inv.id); await sleep(2500);
+  w.__printed = []; w.print(); await sleep(100);
+  check("saving the invoice as PDF names the file after the invoice number with the special characters removed", w.__printed[0] === inv.doc_number.replace(/[^A-Za-z0-9]/g, "") && /^INV\d+$/.test(w.__printed[0]), JSON.stringify([w.__printed, inv.doc_number]));
   check("editor shows paid and outstanding", /1,32,841\.00/.test(text(editor)) && /50,000\.00/.test(text(editor)));
   w.go("payment"); await sleep(1200);
   check("payments screen lists the receipt and KPI", text("#s-payment tbody").includes(pays[0].pay_number) && /50,000\.00/.test(text("#s-payment .kpi-row")), text("#s-payment tbody") + text("#s-payment .kpi-row"));

@@ -243,3 +243,14 @@ def test_five_accounts_users_on_the_same_and_different_invoices(h, h2, ops, worl
     first_id = next(iter(mine))
     intruder = next(u for u in users if u is not mine[first_id])
     assert client.patch(f"/api/documents/{first_id}", json={"remarks": "x"}, headers=intruder).status_code == 423
+
+
+def test_master_record_audit_log_lists_field_changes(h):
+    r = client.post("/api/masters/branch", json={"code": "AUD1", "name": "Audit Branch", "data": {"city": "Chennai", "branch_type": "Head Office"}}, headers=h)
+    assert r.status_code == 201, r.text
+    bid = r.json()["id"]
+    assert client.patch(f"/api/masters/branch/{bid}", json={"name": "Audit Branch 2", "data": {"city": "Mumbai", "branch_type": "Head Office"}}, headers=h).status_code == 200
+    log = client.get(f"/api/masters/branch/{bid}/audit", headers=h).json()
+    fields = {(x["field"], x["from"], x["to"]) for x in log if x["action"] == "Updated"}
+    assert ("Name", "Audit Branch", "Audit Branch 2") in fields and ("City", "Chennai", "Mumbai") in fields, log
+    assert any(x["action"] == "Created" for x in log) and all(x["user"] and x["when"] for x in log)

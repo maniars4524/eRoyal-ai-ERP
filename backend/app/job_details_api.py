@@ -131,6 +131,14 @@ def suggested_containers(db: Session, job: Shipment) -> list[dict]:
     quotes += [q for q in db.scalars(select(Quotation).where(Quotation.organization_id == job.organization_id, Quotation.job_number == job.job_number)) if q not in quotes]
     for q in quotes:
         per: dict[str, int] = {}
+        for hc in ((q.header or {}).get("containers") or []):          # the shipment's containers entered on the quotation header
+            ht = str(hc.get("type") or "").strip()
+            try:
+                hn = int(float(str(hc.get("qty") or 0)))
+            except ValueError:
+                hn = 0
+            if ht and hn > 0:
+                per[ht] = max(per.get(ht, 0), hn)
         for ln in q.lines:
             for bu in (ln.container_breakup or []):
                 t = str(bu.get("type") or "").strip()
