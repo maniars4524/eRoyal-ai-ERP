@@ -8,11 +8,12 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .auth import get_current_user, has_permission
 from .db import SessionLocal, get_db
-from .models import JobLock, JobLockEvent, JobLockRequest, Shipment, User
+from .models import Document, JobLock, JobLockEvent, JobLockRequest, Shipment, User
 from .security import decode_token
 
 LEASE_SECONDS = 90          # a tab not heard from for this long no longer holds the lock
@@ -59,8 +60,21 @@ def current(db: Session, org: int, job: str) -> JobLock | None:
     return lock
 
 
-def holder_info(lock: JobLock) -> dict:
-    return {"user_id": lock.user_id, "user_name": lock.user_name, "job_number": lock.job_number, "job_type": lock.job_type,
+INVOICE_PREFIX = "INV:"          # an invoice / proforma / note is locked under INV:<document id>, like a job under its job number
+
+
+def label_of(db: Session | None, org: int, key: str) -> str:
+    """What the person sees: the job number, or the invoice number (or 'Draft invoice') for an invoice lock."""
+    if not key.startswith(INVOICE_PREFIX):
+        return key
+    d = db.get(Document, int(key[len(INVOICE_PREFIX):])) if db is not None and key[len(INVOICE_PREFIX):].isdigit() else None
+    if d is None or d.organization_id != org:
+        return "Invoice " + key[len(INVOICE_PREFIX):]
+    return d.doc_number or ("Draft " + {"invoice": "invoice", "purchase_invoice": "purchase invoice", "debit_note": "debit note", "credit_note": "credit note"}.get(d.doc_type, "document") + (f" of {d.party_name}" if d.party_name else ""))
+
+
+def holder_info(lock: JobLock, db: Session | None = None) -> dict:
+    return {"user_id": lock.user_id, "user_name": lock.user_name, "job_number": lock.job_number, "label": label_of(db, lock.organization_id, lock.job_number), "job_type": lock.job_type,
             "started_at": lock.started_at.isoformat() if lock.started_at else None, "last_activity": lock.last_activity.isoformat() if lock.last_activity else None}
 
 
@@ -74,6 +88,8 @@ def renew(lock: JobLock, tab: str) -> None:
 
 
 def job_type_of(db: Session, org: int, job: str, hint: str = "") -> str:
+    if job.startswith(INVOICE_PREFIX):
+        return "Invoice"
     s = db.scalar(select(Shipment).where(Shipment.organization_id == org, Shipment.job_number == job))
     if s is None:
         return hint or "Other"
@@ -105,10 +121,20 @@ def acquire_lock(db: Session, user: User, job: str, tab: str, hint: str = "") ->
         return False, lock
     if not lock:
         at = now()
-        lock = JobLock(organization_id=org, job_number=job, job_type=job_type_of(db, org, job, hint), user_id=user.id, user_name=display_name(user),
-                       started_at=at, last_activity=at, expires_at=at + timedelta(seconds=LEASE_SECONDS), tabs={})
-        db.add(lock)
-        log(db, org, job, user, "ACQUIRED", f"{display_name(user)} started editing")
+        fresh = JobLock(organization_id=org, job_number=job, job_type=job_type_of(db, org, job, hint), user_id=user.id, user_name=display_name(user),
+                        started_at=at, last_activity=at, expires_at=at + timedelta(seconds=LEASE_SECONDS), tabs={})
+        try:
+            with db.begin_nested():            # several people opening the same free job in the same instant: the database lets exactly one row in
+                db.add(fresh)
+                db.flush()
+            lock = fresh
+            log(db, org, job, user, "ACQUIRED", f"{display_name(user)} started editing")
+        except IntegrityError:
+            lock = current(db, org, job)
+            if lock is None:
+                raise
+            if lock.user_id != user.id:
+                return False, lock
     renew(lock, tab)
     return True, lock
 
@@ -148,7 +174,7 @@ def respond(request_id: int, body: RespondIn, db: Session = Depends(get_db), use
 @router.post("/{job_number:path}/acquire")
 def acquire(job_number: str, body: TabIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     ok, lock = acquire_lock(db, user, job_number, body.tab_id, body.job_type)
-    out = {"acquired": ok, "holder": holder_info(lock), "heartbeat_seconds": HEARTBEAT_SECONDS, "lease_seconds": LEASE_SECONDS, "can_override": has_permission(user, "job.lock_override")}
+    out = {"acquired": ok, "holder": holder_info(lock, db), "heartbeat_seconds": HEARTBEAT_SECONDS, "lease_seconds": LEASE_SECONDS, "can_override": has_permission(user, "job.lock_override")}
     db.commit()
     return out
 
@@ -159,7 +185,7 @@ def heartbeat(job_number: str, body: TabIn, db: Session = Depends(get_db), user:
     lock = current(db, org, job_number)
     notes = _notices(db, org, user, job_number)
     if not lock or lock.user_id != user.id:
-        out = {"valid": False, "holder": holder_info(lock) if lock else None, "notices": notes, "requests": []}
+        out = {"valid": False, "holder": holder_info(lock, db) if lock else None, "notices": notes, "requests": []}
         db.commit()
         return out
     renew(lock, body.tab_id)
@@ -218,7 +244,7 @@ def status_of(job_number: str, db: Session = Depends(get_db), user: User = Depen
     org = user.organization_id
     lock = current(db, org, job_number)
     mine = db.scalar(select(JobLockRequest).where(JobLockRequest.organization_id == org, JobLockRequest.job_number == job_number, JobLockRequest.requester_id == user.id).order_by(JobLockRequest.id.desc()).limit(1))
-    out = {"locked": bool(lock), "mine": bool(lock and lock.user_id == user.id), "holder": holder_info(lock) if lock else None, "my_request": mine.status if mine else None, "can_override": has_permission(user, "job.lock_override")}
+    out = {"locked": bool(lock), "mine": bool(lock and lock.user_id == user.id), "holder": holder_info(lock, db) if lock else None, "my_request": mine.status if mine else None, "can_override": has_permission(user, "job.lock_override")}
     db.commit()
     return out
 
@@ -235,7 +261,7 @@ def takeover(job_number: str, body: TakeoverIn, db: Session = Depends(get_db), u
         lock.started_at = lock.last_activity = now()
         lock.tabs = {}
     ok, lock = acquire_lock(db, user, job_number, body.tab_id)
-    out = {"acquired": ok, "holder": holder_info(lock)}
+    out = {"acquired": ok, "holder": holder_info(lock, db)}
     db.commit()
     return out
 
@@ -248,12 +274,30 @@ _PATTERNS = [
     re.compile(r"^/api/jobs/by-number/(?P<job>.+?)/charges$"),
     re.compile(r"^/api/jobs/(?P<job>.+?)" + _SUFFIX + r"$"),
 ]
+_DOC = re.compile(r"^/api/documents/(?P<id>\d+)(?:/(?:post|confirm|reopen-proforma|e-invoice|add-job|cancel))?$")
 _WRITES = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+def assert_fresh(expected: str | None, actual: datetime | None, what: str) -> None:
+    """The screen's copy must be the stored one: refuses a save made from a copy that someone else has changed since (HTTP 409 STALE)."""
+    if not expected or actual is None:
+        return
+    try:
+        seen = datetime.fromisoformat(expected.replace("Z", "+00:00"))
+    except ValueError:
+        return
+    if seen.tzinfo is None:
+        seen = seen.replace(tzinfo=timezone.utc)
+    if abs((actual - seen).total_seconds()) > 0.01:
+        raise HTTPException(409, detail=f"This {what} was changed by someone else after you opened it. Reload it to see the latest version before saving.")
 
 
 def job_of_path(method: str, path: str) -> str | None:
     if method not in _WRITES:
         return None
+    d = _DOC.match(path)
+    if d:
+        return INVOICE_PREFIX + d.group("id")
     for p in _PATTERNS:
         m = p.match(path)
         if m:
@@ -281,7 +325,8 @@ def check_write(method: str, path: str, auth: str | None) -> dict | None:
         lock = current(db, u.organization_id, job)
         db.commit()
         if lock and lock.user_id != uid:
-            return {"detail": {"code": "JOB_LOCKED", "message": f"This job is currently being processed by {lock.user_name}.", **holder_info(lock)}}
+            what = "invoice" if job.startswith(INVOICE_PREFIX) else "job"
+            return {"detail": {"code": "JOB_LOCKED", "message": f"This {what} is currently being processed by {lock.user_name}.", **holder_info(lock, db)}}
         return None
     finally:
         db.close()

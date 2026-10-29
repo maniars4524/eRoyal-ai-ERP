@@ -14444,6 +14444,7 @@ if(document.readyState !== "loading") initChatWidget();
   }
   async function save(){
     const S = BK.state; const body = payload();
+    if(S.doc && S.doc.updated_at) body.expected_updated_at = S.doc.updated_at;          // refused when someone changed the invoice after this screen loaded it
     const doc = S.doc ? await api("PATCH","/api/documents/"+S.doc.id, body) : await api("POST","/api/documents", {...body, doc_type:S.type, job_number:S.head.job_number.trim() || null});
     S.doc = doc; S.dirty = false; S.head.job_number = doc.job_number || S.head.job_number;
     S.lines = doc.lines.map(l=>({job_number:l.job_number, charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct}));
@@ -15925,21 +15926,59 @@ if(document.readyState !== "loading") initChatWidget();
     const r = await fetch("/api/ports?"+q.toString(), {headers:{Authorization:"Bearer "+token()}});
     return r.ok ? r.json() : [];
   }
-  function listFor(el){
-    const id = "pp-"+(el.id || el.dataset.qh || "x"); let dl = document.getElementById(id);
-    if(!dl){ dl = document.createElement("datalist"); dl.id = id; document.body.appendChild(dl); }
-    el.setAttribute("list", id); el.setAttribute("autocomplete", "off"); return dl;
+  /* The suggestions are our own drop-down (the browser's datalist was rebuilt on every key and swallowed mouse clicks): click, touch, arrow keys, Enter and Tab all choose a port. */
+  const results = new WeakMap(); let box = null, active = null, hi = -1;
+  const esc3 = v=> String(v == null ? "" : v).replace(/[&<>"]/g, c=>({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[c]));
+  const sub = p=> p.port_type + " \u00b7 " + (p.city && p.port_type !== "Sea Port" ? p.city + " \u00b7 " : "") + p.country;
+  function closeBox(){ if(box){ box.remove(); box = null; } active = null; hi = -1; }
+  function place(){
+    if(!box || !active) return;
+    const r = active.getBoundingClientRect(), below = window.innerHeight - r.bottom, up = below < 200 && r.top > below;
+    box.style.left = Math.max(4, Math.min(r.left, window.innerWidth - Math.min(r.width, 420) - 4)) + "px"; box.style.width = Math.max(r.width, 240) + "px";
+    if(up){ box.style.top = ""; box.style.bottom = (window.innerHeight - r.top + 2) + "px"; } else { box.style.bottom = ""; box.style.top = (r.bottom + 2) + "px"; }
   }
-  document.addEventListener("focusin", e=>{ if(e.target.tagName === "INPUT" && modeFor(e.target) !== null){ const dl = listFor(e.target); if(!dl.children.length) fill(e.target, e.target.value); } });
+  function paint(el){
+    const rows = results.get(el) || [];
+    if(!rows.length){ closeBox(); return; }
+    if(!box){ box = document.createElement("div"); box.id = "ppBox"; box.setAttribute("role", "listbox"); document.body.appendChild(box); }
+    active = el; if(hi >= rows.length) hi = -1;
+    box.innerHTML = rows.map((p, i)=>'<div class="pp-item'+(i === hi ? " on" : "")+'" role="option" data-i="'+i+'"><b>'+esc3(canon(p))+'</b><span>'+esc3(sub(p))+'</span></div>').join("");
+    place();
+  }
+  function choose(el, p){
+    el.value = canon(p); el.title = sub(p); closeBox();
+    el.__pp = true; try{ el.dispatchEvent(new Event("input", {bubbles:true})); el.dispatchEvent(new Event("change", {bubbles:true})); }finally{ el.__pp = false; }
+  }
   async function fill(el, text){
-    const dl = listFor(el); const t = String(text||"").split("(")[0].trim();
+    const t = String(text || "").split("(")[0].trim();
     const rows = await search(el, t, 15).catch(()=>[]);
-    dl.innerHTML = rows.map(p=>'<option value="'+esc2(canon(p))+'" label="'+esc2(p.port_type+" · "+(p.city && p.port_type==="Sea Port" ? "" : (p.city||"")+" · ")+p.country)+'"></option>').join("");
+    results.set(el, rows);
+    if(document.activeElement === el) paint(el);
   }
+  const prep = el=>{ el.removeAttribute("list"); el.setAttribute("autocomplete", "off"); };
+  document.addEventListener("focusin", e=>{ if(e.target.tagName === "INPUT" && modeFor(e.target) !== null){ prep(e.target); hi = -1; fill(e.target, e.target.value); } });
+  document.addEventListener("focusout", e=>{ if(e.target === active) setTimeout(()=>{ if(document.activeElement !== active) closeBox(); }, 120); });
   document.addEventListener("input", e=>{
-    const el = e.target; if(el.tagName !== "INPUT" || modeFor(el) === null) return;
-    clearTimeout(timers.get(el)); timers.set(el, setTimeout(()=> fill(el, el.value), 220));
+    const el = e.target; if(el.tagName !== "INPUT" || modeFor(el) === null || el.__pp) return;
+    prep(el); hi = -1;
+    clearTimeout(timers.get(el)); timers.set(el, setTimeout(()=> fill(el, el.value), 180));
   });
+  document.addEventListener("keydown", e=>{
+    const el = e.target; if(!box || el !== active) return;
+    const rows = results.get(el) || [];
+    if(e.key === "ArrowDown"){ e.preventDefault(); hi = Math.min(rows.length - 1, hi + 1); paint(el); box.querySelector(".on") && box.querySelector(".on").scrollIntoView({block:"nearest"}); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); hi = Math.max(0, hi - 1); paint(el); box.querySelector(".on") && box.querySelector(".on").scrollIntoView({block:"nearest"}); }
+    else if((e.key === "Enter" || e.key === "Tab") && hi >= 0 && rows[hi]){ if(e.key === "Enter") e.preventDefault(); choose(el, rows[hi]); }
+    else if(e.key === "Escape"){ closeBox(); }
+  });
+  /* pointerdown (not click): it fires before the field loses focus, so the choice is never lost to the blur; works for mouse, pen and touch */
+  document.addEventListener("pointerdown", e=>{
+    const it = e.target.closest && e.target.closest("#ppBox .pp-item");
+    if(it && active){ e.preventDefault(); const p = (results.get(active) || [])[Number(it.dataset.i)]; if(p) choose(active, p); return; }
+    if(box && !(e.target.closest && e.target.closest("#ppBox")) && e.target !== active) closeBox();
+  }, true);
+  document.addEventListener("mouseover", e=>{ const it = e.target.closest && e.target.closest("#ppBox .pp-item"); if(it && box){ box.querySelectorAll(".pp-item").forEach(x=>x.classList.toggle("on", x === it)); hi = Number(it.dataset.i); } });
+  window.addEventListener("scroll", place, true); window.addEventListener("resize", place);
   // leaving the field: a typed code or name becomes the canonical CODE(NAME) when it identifies one port
   document.addEventListener("change", async e=>{
     const el = e.target; if(el.tagName !== "INPUT" || modeFor(el) === null) return;
@@ -21913,6 +21952,7 @@ function makePrintFit(){
     if(S.tab === "General") body.filing = {...(S.job.filing || {}), ...collect()}; else if(el("chaJobRoot").querySelector("[data-ff]")) body.filing = {...(S.job.filing || {}), ...collect()}; else if(S.filingTouched) body.filing = {...(S.job.filing || {})};
     if(S.data && S.job.spec && S.job.spec.length) body.data = S.data;
     try{
+      if(S.job && S.job.updated_at) body.expected_updated_at = S.job.updated_at;
       S.job = await api("PATCH", "/api/cha/jobs/"+encodeURIComponent(S.no), body);
       const no = el("chjBillNo") && el("chjBillNo").value.trim();
       if(no){ try{ await api("POST", "/api/customs/by-job/"+encodeURIComponent(S.no), {bill_no:no, bill_date:(el("chjBillDate") || {}).value || null}); }catch(e){ say("The "+(S.job.shipment_type === "Export" ? "SB" : "BE")+" number was not saved", e.message, "warn"); } }
@@ -22397,6 +22437,13 @@ function makePrintFit(){
   paint();
 })();
 </script>
+<style id="portPickStyle">
+#ppBox{position:fixed;z-index:100000;max-height:264px;overflow:auto;background:var(--wh);border:0.5px solid var(--g3);border-radius:10px;box-shadow:0 14px 36px rgba(11,31,58,.22);padding:4px}
+#ppBox .pp-item{display:flex;flex-direction:column;gap:1px;padding:8px 12px;border-radius:7px;cursor:pointer}
+#ppBox .pp-item b{font-size:13px;font-weight:600;color:var(--g8)}
+#ppBox .pp-item span{font-size:11.5px;color:var(--g5)}
+#ppBox .pp-item.on{background:var(--blt);}
+</style>
 <style id="jobLockStyle">
 body.job-readonly #jlBanner{display:flex}
 #jlBanner{display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:9px 12px;border-radius:8px;background:var(--amt,#FFF4DC);border:0.5px solid var(--am,#C98A00);color:var(--g8);font-size:12.3px}
@@ -22442,7 +22489,7 @@ body.job-readonly #jlBanner{display:flex}
     root.querySelectorAll("input,select,textarea,button").forEach(el=>{
       if(el.closest("[data-ro-ok]") || el.matches(KEEP)) return;
       const isBtn = el.tagName === "BUTTON";
-      if(isBtn && !(WRITE_BTN.test((el.textContent || "").trim()) || el.matches("[data-cd-rowsave],[data-cd-new],[data-chj-move],[data-chj-unmove],[data-chj-close],[data-chj-reopen],[data-chj-fdel]"))) return;
+      if(isBtn && !(WRITE_BTN.test((el.textContent || "").trim()) || el.matches("[data-cd-rowsave],[data-cd-new],[data-chj-move],[data-chj-unmove],[data-chj-close],[data-chj-reopen],[data-chj-fdel]") || (el.hasAttribute("data-bk") && ["back","preview","print"].indexOf(el.getAttribute("data-bk")) < 0))) return;
       if(!el.disabled){ el.disabled = true; el.setAttribute("data-jl-dis", "1"); }
     });
   }
@@ -22453,7 +22500,7 @@ body.job-readonly #jlBanner{display:flex}
     if(!b){ b = document.createElement("div"); b.id = "jlBanner"; b.setAttribute("data-ro-ok", ""); root.insertBefore(b, root.firstChild); }
     else if(b.parentNode !== root){ root.insertBefore(b, root.firstChild); }
     const h = L.hold || {};
-    b.innerHTML = '<span><b>Read-only.</b> ' + esc(h.job_number || L.job) + ' is being processed by <b>' + esc(h.user_name || "another user") + '</b>' + (h.started_at ? ' since ' + esc(when(h.started_at)) : '') + '. You can view it but not change it.</span><span class="jl-sp"></span>' +
+    b.innerHTML = '<span><b>Read-only.</b> ' + esc(h.label || h.job_number || L.job) + ' is being processed by <b>' + esc(h.user_name || "another user") + '</b>' + (h.started_at ? ' since ' + esc(when(h.started_at)) : '') + '. You can view it but not change it.</span><span class="jl-sp"></span>' +
       '<button class="btn btn-pri btn-sm" type="button" id="jlReq2" data-ro-ok>Request editing access</button>' + (L.canOverride ? '<button class="btn btn-out btn-sm" type="button" id="jlTake2" data-ro-ok>Take over editing</button>' : "");
   }
   function setReadOnly(holder){
@@ -22505,17 +22552,19 @@ body.job-readonly #jlBanner{display:flex}
   }
 
   /* ---- pop-ups ---- */
+  const isInv = k=> String(k || "").indexOf("INV:") === 0;
   function conflict(h){
     h = h || L.hold || {}; L.canOverride = L.canOverride || false;
     if(Date.now() - L.lastModal < 1500) return; L.lastModal = Date.now();
-    window.openModal({title:"Job Already Being Processed", bodyHTML:'<div class="ib ib-am" style="margin-bottom:10px">This job is currently being processed by <b>' + esc(h.user_name) + '</b>.</div>' +
-      '<table class="jl-tbl"><tr><td>Job Number</td><td><b>' + esc(h.job_number || L.job) + '</b></td></tr><tr><td>Job Type</td><td>' + esc(h.job_type || "") + '</td></tr><tr><td>Started At</td><td>' + esc(when(h.started_at)) + '</td></tr></table>' +
+    const inv = isInv(h.job_number || L.job), noun = inv ? "invoice" : "job";
+    window.openModal({title:(inv ? "Invoice" : "Job") + " Already Being Processed", bodyHTML:'<div class="ib ib-am" style="margin-bottom:10px">This ' + noun + ' is currently being processed by <b>' + esc(h.user_name) + '</b>.</div>' +
+      '<table class="jl-tbl"><tr><td>' + (inv ? "Invoice" : "Job Number") + '</td><td><b>' + esc(h.label || h.job_number || L.job) + '</b></td></tr><tr><td>Job Type</td><td>' + esc(h.job_type || "") + '</td></tr><tr><td>Started At</td><td>' + esc(when(h.started_at)) + '</td></tr></table>' +
       '<p style="margin-top:10px;font-size:12.3px;color:var(--g6)">Please contact the current user or request access before making changes.</p>',
       footHTML:'<button class="btn btn-out" id="jlCancel" type="button">Cancel</button><button class="btn btn-out" id="jlRO" type="button">Open in Read-Only Mode</button>' + (L.canOverride ? '<button class="btn btn-out" id="jlTake" type="button">Take over editing</button>' : "") + '<button class="btn btn-pri" id="jlReq" type="button">Request Editing Access</button>'});
   }
   function askHolder(q){
     const dirty = (window.NAV_GUARDS || []).some(g=>{ try{ return g(); }catch(e){ return false; } });
-    window.openModal({title:"Editing access requested", bodyHTML:'<p><b>' + esc(q.requester) + '</b> is asking to edit <b>' + esc(L.job) + '</b>, which you are editing now.</p>' + (dirty ? '<div class="ib ib-am">You have unsaved changes: save them first, otherwise they will not be kept when access is handed over.</div>' : '<p style="font-size:12.3px;color:var(--g6)">Handing over makes your screen read-only.</p>'),
+    window.openModal({title:"Editing access requested", bodyHTML:'<p><b>' + esc(q.requester) + '</b> is asking to edit <b>' + esc((L.hold && L.hold.label) || L.job) + '</b>, which you are editing now.</p>' + (dirty ? '<div class="ib ib-am">You have unsaved changes: save them first, otherwise they will not be kept when access is handed over.</div>' : '<p style="font-size:12.3px;color:var(--g6)">Handing over makes your screen read-only.</p>'),
       footHTML:'<button class="btn btn-out" type="button" data-jl-answer="0" data-jl-id="' + q.id + '">Decline</button><button class="btn btn-pri" type="button" data-jl-answer="1" data-jl-id="' + q.id + '">Hand over editing</button>'});
   }
   async function requestAccess(){
@@ -22532,22 +22581,44 @@ body.job-readonly #jlBanner{display:flex}
       else if(s.data.my_request === "DENIED"){ stopPoll(); say("Request declined", "The current editor kept editing access.", "warn"); }
     }, window.__jlPoll || 4000);
   }
-  function reopen(){ const job = L.job, scr = document.body.dataset.screen; if(!job) return; L.readonly = true; stopPoll(); clearReadOnly(); L.job = null; window.go(scr === "cha-job" ? "cha-job" : scr, {jobNo:job}); }
+  function reopen(){
+    const job = L.job, scr = document.body.dataset.screen; if(!job) return; L.readonly = true; stopPoll(); clearReadOnly(); L.job = null;
+    if(isInv(job) && window.BK && BK.openDoc) BK.openDoc(Number(job.slice(4))); else window.go(scr, {jobNo:job});
+  }
   async function takeOver(){
     const reason = window.prompt("Reason for taking over editing of " + L.job + " (the current editor is told):") || ""; if(reason.trim().length < 3) return;
     const job = L.job, r = await call("POST", path(job, "/takeover"), {reason:reason.trim(), tab_id:TAB});
     if(r.ok && r.data && r.data.acquired){ say("You are now the editor", job, "success"); reopen(); } else say("Could not take over", (r.data && r.data.detail) || "Not allowed", "error");
   }
+  /* invoices: the draft shown on an invoice / debit note / purchase invoice screen is locked like a job. Found by looking, so the invoice screens themselves stay untouched. */
+  const INV_SCREENS = ["s-invoice-new", "s-debit-note-new", "s-purchase-invoice-new"];
+  function syncInvoice(){
+    const on = INV_SCREENS.some(id=>{ const e = document.getElementById(id); return e && e.classList.contains("on"); });
+    const d = on && window.BK && BK.state && BK.state.doc;
+    const key = d && d.status === "DRAFT" && d.id ? "INV:" + d.id : null;
+    if(key && L.job !== key){ if(!L.job || isInv(L.job)) enter(key); }
+    else if(!key && isInv(L.job)) leave();
+  }
+  setInterval(syncInvoice, 1500);
   /* a refused write (HTTP 423) from any screen explains itself and turns the screen read-only */
   const prevFetch = window.fetch;
   window.fetch = function(){
     return prevFetch.apply(this, arguments).then(r=>{
+      if(r.status === 409){ r.clone().json().then(d=>{ if(d && typeof d.detail === "string" && /changed by someone else after you opened it/.test(d.detail)) staleBox(d.detail); }).catch(()=>{}); }
       if(r.status === 423){ r.clone().json().then(d=>{ const x = d && d.detail; if(x && x.code === "JOB_LOCKED"){ if(!L.job) L.job = x.job_number; L.hold = x; if(!L.readonly) setReadOnly(x); conflict(x); } }).catch(()=>{}); }
       return r;
     });
   };
+  function staleBox(msg){
+    if(Date.now() - L.lastModal < 1500) return; L.lastModal = Date.now();
+    window.openModal({title:"Changed by someone else", bodyHTML:'<div class="ib ib-am">' + esc(msg) + '</div><p style="margin-top:10px;font-size:12.3px;color:var(--g6)">Nothing was overwritten. Reloading shows the latest version; anything you typed since opening it is not kept, so copy it first if you need it.</p>',
+      footHTML:'<button class="btn btn-out" type="button" id="jlStayBtn">Keep this screen</button><button class="btn btn-pri" type="button" id="jlReload">Reload latest</button>'});
+  }
   document.addEventListener("click", e=>{
-    const t = e.target.closest && e.target.closest("#jlCancel,#jlRO,#jlReq,#jlReq2,#jlTake,#jlTake2,[data-jl-answer]"); if(!t) return;
+    const t = e.target.closest && e.target.closest("#jlCancel,#jlRO,#jlReq,#jlReq2,#jlTake,#jlTake2,[data-jl-answer],#jlStayBtn,#jlReload"); if(!t) return;
+    if(t.id === "jlStayBtn"){ window.closeModal(); return; }
+    if(t.id === "jlReload"){ window.closeModal(); const job = L.job; if(!job) return;
+      if(isInv(job) && window.BK && BK.openDoc){ const id = Number(job.slice(4)); L.job = null; BK.openDoc(id); } else { L.job = null; window.go(document.body.dataset.screen, {jobNo:job}); } return; }
     if(t.id === "jlCancel"){ window.closeModal(); if(L.readonly && window.navBack) window.navBack("dashboard"); }
     else if(t.id === "jlRO"){ window.closeModal(); }
     else if(t.id === "jlReq" || t.id === "jlReq2"){ window.closeModal(); requestAccess(); }
@@ -22566,7 +22637,7 @@ body.job-readonly #jlBanner{display:flex}
   window.go = function(screen, opts){
     const r = baseGo.apply(this, arguments);
     const job = (screen === "job-detail" || screen === "cha-job") && opts && opts.jobNo;
-    if(job) enter(job); else if(L.job) leave();
+    if(job) enter(job); else if(L.job && !(isInv(L.job) && INV_SCREENS.indexOf("s-" + screen) > -1)) leave();
     return r;
   };
   window.JobLock = {state:L, tab:TAB, enter, leave, tick, requestAccess};

@@ -53,7 +53,31 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const ev = (await j("GET", "/api/job-locks/" + encodeURIComponent(no) + "/events", null, tokenA)).body.map(e => e.event);
   check("lock events are kept (acquired, requested, transferred)", ["ACQUIRED", "REQUESTED", "TRANSFERRED"].every(e => ev.includes(e)), ev.join());
   // leaving the job releases it
-  B.window.go("dashboard"); await sleep(1500);
+  B.window.go("dashboard"); await sleep(3500);
   { const sx = await st(tokenA); check("leaving the job screen releases the lock", sx.locked === false, JSON.stringify(sx) + " B.job=" + JSON.stringify(B.window.JobLock.state.job) + " ev=" + (await j("GET", "/api/job-locks/" + encodeURIComponent(no) + "/events", null, tokenA)).body.map(e => e.event).join()); }
+  // ---- invoices: the same lock, and a save from an old copy is refused ----
+  const inv = (await j("POST", "/api/documents", { doc_type: "invoice", party_name: "Lock Party", lines: [{ charge_name: "x", rate: "100", tax_pct: "18" }] }, tokenA)).body;
+  A.window.BK.openDoc(inv.id); await sleep(4000);
+  const ist = async tok => (await j("GET", "/api/job-locks/" + encodeURIComponent("INV:" + inv.id) + "/status", null, tok)).body;
+  let is = await ist(tokenA);
+  check("opening a draft invoice takes the editing lock for the first accounts user", is.locked && is.mine, JSON.stringify(is));
+  B.window.BK.openDoc(inv.id); await sleep(4500);
+  const bm = (bd.getElementById("modalBox") || bd.querySelector(".modal-box") || { textContent: "" }).textContent.replace(/\s+/g, " ");
+  check("the second accounts user sees Invoice Already Being Processed with the editor and the invoice", /Invoice Already Being Processed/.test(bm) && /Anna/.test(bm) && /Draft invoice/.test(bm), bm.slice(0, 260));
+  bd.getElementById("jlRO").click(); await sleep(900);
+  check("the invoice opens read-only for the second user (Post / Save disabled)", bd.body.classList.contains("job-readonly") && !!bd.getElementById("jlBanner") && [...bd.querySelectorAll('[data-bk="post"],[data-bk="save"]')].every(b => b.disabled), [...bd.querySelectorAll('[data-bk]')].map(b => b.dataset.bk + ":" + b.disabled + ":" + b.textContent.trim().slice(0, 14)).join("|"));
+  const blocked = await j("PATCH", "/api/documents/" + inv.id, { remarks: "x" }, tokenB);
+  check("a direct invoice write by the second user is refused by the server (423)", blocked.status === 423 && blocked.body.detail.code === "JOB_LOCKED" && /invoice/.test(blocked.body.detail.message), JSON.stringify(blocked));
+  check("posting the invoice by the second user is refused as well", (await j("POST", "/api/documents/" + inv.id + "/post", null, tokenB)).status === 423);
+  // the editor's copy goes stale when the invoice is changed by another path: the save is refused, nothing is overwritten
+  await j("PATCH", "/api/documents/" + inv.id, { remarks: "changed behind the screen" }, tokenA);
+  const saveBtn = ad.querySelector('[data-bk="save"]'); saveBtn && saveBtn.click(); await sleep(2500);
+  const stale = (ad.getElementById("modalBox") || ad.querySelector(".modal-box") || { textContent: "" }).textContent.replace(/\s+/g, " ");
+  check("saving from an old copy shows Changed by someone else and keeps the newer data", /Changed by someone else/.test(stale) && (await j("GET", "/api/documents/" + inv.id, null, tokenA)).body.remarks === "changed behind the screen", stale.slice(0, 200));
+  const rel = ad.getElementById("jlReload"); rel && rel.click(); await sleep(3500);
+  is = await ist(tokenA);
+  check("Reload latest brings the current invoice back and the editor keeps the lock", is.mine, JSON.stringify(is));
+  A.window.go("dashboard"); await sleep(2500);
+  check("leaving the invoice screen releases its lock", (await ist(tokenB)).locked === false);
   console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

@@ -108,7 +108,7 @@ def cha_row(db: Session, cha: Shipment, freight: Shipment | None = None, booking
         sell += float(compute_side(c.qty, c.sell_ccy, c.sell_exch, c.sell_rate, c.sell_tax_type, c.sell_tax_pct)["inr"])
     export = cha.direction == "Export"
     first = live[0] if live else None
-    return {"id": cha.id, "cha_job_number": cha.job_number, "booking_number": booking.number if booking else None, "booking_id": cha.booking_id, "freight_job_number": freight.job_number if freight else None,
+    return {"id": cha.id, "updated_at": cha.updated_at.isoformat() if cha.updated_at else None, "cha_job_number": cha.job_number, "booking_number": booking.number if booking else None, "booking_id": cha.booking_id, "freight_job_number": freight.job_number if freight else None,
             "exporter": exporter, "importer": importer, "pol": cha.pol, "pod": cha.pod, "shipment_type": cha.direction, "shipment_mode": cha.mode,
             "shipping_bill_no": first.bill_no if (first and export) else None, "shipping_bill_date": first.bill_date if (first and export) else None,
             "bill_of_entry_no": first.bill_no if (first and not export) else None, "bill_of_entry_date": first.bill_date if (first and not export) else None,
@@ -796,6 +796,7 @@ class InfoIn(BaseModel):
     eta: date | None = None
     filing: dict[str, Any] | None = None
     data: dict[str, Any] | None = None
+    expected_updated_at: str | None = None        # the version the screen was opened from
 
 
 @router.patch("/api/cha/jobs/{job_number:path}")
@@ -806,6 +807,8 @@ def update_cha_job(job_number: str, body: InfoIn, user: User = Depends(permissio
         raise HTTPException(422, "Not a CHA job")
     jl.assert_job_editable(job, "the customs details")
     ch = body.model_dump(exclude_unset=True)
+    from .job_locks import assert_fresh
+    assert_fresh(ch.pop("expected_updated_at", None), job.updated_at, "job")
     if "filing" in ch:
         form = ch.pop("filing") or {}
         allowed = {f["k"] for sec in filing_form(job.direction) for f in sec["fields"]}

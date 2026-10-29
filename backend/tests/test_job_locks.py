@@ -163,3 +163,83 @@ def test_five_users_edit_five_different_jobs_at_once(h, h2, ops, world, admin):
         assert client.patch(f"/api/cha/jobs/{j}", json={"customs_location": "INMAA1"}, headers=u).status_code == 200
     # everyone else is refused on each job
     assert client.patch(f"/api/cha/jobs/{jobs[0]}", json={"customs_location": "INMAA1"}, headers=ops).status_code == 423
+
+
+def draft_invoice(h, party="Lock Co"):
+    return client.post("/api/documents", json={"doc_type": "invoice", "party_name": party, "lines": [{"charge_name": "x", "rate": "100", "tax_pct": "18"}]}, headers=h).json()
+
+
+def test_an_invoice_is_locked_like_a_job(h, h2, ops):
+    d = draft_invoice(h)
+    key = f"INV:{d['id']}"
+    t1 = tab()
+    a = acquire(h, key, t1)
+    assert a["acquired"] and a["holder"]["job_type"] == "Invoice" and a["holder"]["label"].startswith("Draft invoice")
+    c = acquire(h2, key, tab())
+    assert not c["acquired"] and c["holder"]["user_name"] == a["holder"]["user_name"]
+    for method, url, body in [("patch", f"/api/documents/{d['id']}", {"remarks": "x"}), ("post", f"/api/documents/{d['id']}/post", None), ("post", f"/api/documents/{d['id']}/cancel", None)]:
+        r = getattr(client, method)(url, headers=h2, **({"json": body} if body is not None else {}))
+        assert r.status_code == 423 and r.json()["detail"]["code"] == "JOB_LOCKED" and "invoice" in r.json()["detail"]["message"], (url, r.text)
+    assert client.get(f"/api/documents/{d['id']}", headers=h2).status_code == 200                 # viewing is open
+    assert client.patch(f"/api/documents/{d['id']}", json={"remarks": "by the editor"}, headers=h).status_code == 200
+    other = draft_invoice(h2)
+    assert client.patch(f"/api/documents/{other['id']}", json={"remarks": "mine"}, headers=h2).status_code == 200      # another invoice stays editable at the same time
+    client.post(f"/api/job-locks/{key}/release", json=t1, headers=h)
+    assert client.patch(f"/api/documents/{d['id']}", json={"remarks": "now free"}, headers=h2).status_code == 200
+
+
+def test_a_save_from_an_old_copy_is_refused(h, h2):
+    d = draft_invoice(h)
+    assert d["updated_at"]
+    assert client.patch(f"/api/documents/{d['id']}", json={"remarks": "first", "expected_updated_at": d["updated_at"]}, headers=h).status_code == 200
+    r = client.patch(f"/api/documents/{d['id']}", json={"remarks": "second", "expected_updated_at": d["updated_at"]}, headers=h2)        # still holding the first copy
+    assert r.status_code == 409 and "changed by someone else" in r.json()["detail"], r.text
+    fresh = client.get(f"/api/documents/{d['id']}", headers=h2).json()
+    assert client.patch(f"/api/documents/{d['id']}", json={"remarks": "third", "expected_updated_at": fresh["updated_at"]}, headers=h2).status_code == 200
+    assert client.patch(f"/api/documents/{d['id']}", json={"remarks": "no stamp is still accepted"}, headers=h2).status_code == 200
+
+
+def test_cha_job_stale_copy_is_refused(h, h2):
+    b, done, fjob, cjob = released(h)
+    job = client.get(f"/api/cha/jobs/{cjob}", headers=h).json()
+    assert job["updated_at"]
+    assert client.patch(f"/api/cha/jobs/{cjob}", json={"customs_location": "INMAA1", "expected_updated_at": job["updated_at"]}, headers=h).status_code == 200
+    r = client.patch(f"/api/cha/jobs/{cjob}", json={"customs_location": "INMAA4", "expected_updated_at": job["updated_at"]}, headers=h)
+    assert r.status_code == 409 and "changed by someone else" in r.json()["detail"]
+
+
+def test_five_accounts_users_on_the_same_and_different_invoices(h, h2, ops, world):
+    from tests.conftest import PASSWORD  # noqa: F401
+    db = SessionLocal()
+    org = db.get(Organization, world["erp_org"])
+    extra = []
+    for i in range(2):
+        tag = uuid.uuid4().hex[:6]
+        u = User(email=f"acc{i}-{tag}@users.test", username=f"acc{i}{tag}", password_hash=hash_password("Portal-Test-Passw0rd!"), first_name=f"Acc{i}", organization_id=org.id, status="ACTIVE")
+        u.roles.append(ensure_role(db, org.id, "ERP_ADMIN"))
+        db.add(u)
+        db.commit()
+        extra.append((u.username, org.license_number))
+    db.close()
+    users = [h, h2] + [hdr(u, lic) for u, lic in extra] + [ops]
+    inv = [draft_invoice(h, f"Five {i}") for i in range(5)]
+    # all five open the SAME invoice: exactly one becomes the editor, four are told who it is
+    results = [acquire(u, f"INV:{inv[0]['id']}", tab()) for u in users]
+    winners = [r for r in results if r["acquired"]]
+    assert len(winners) == 1
+    assert all(r["holder"]["user_name"] == winners[0]["holder"]["user_name"] for r in results)
+    # five users each take a different invoice at the same time
+    for u, d in zip(users[:5], inv):
+        if d is inv[0]:
+            continue
+    mine = {}
+    for u, d in zip(users, inv[1:] + [draft_invoice(h, "Six")]):
+        r = acquire(u, f"INV:{d['id']}", tab())
+        assert r["acquired"], r
+        mine[d["id"]] = u
+    for d_id, u in mine.items():
+        assert client.patch(f"/api/documents/{d_id}", json={"remarks": "parallel"}, headers=u).status_code == 200
+    # nobody else can write another person's invoice
+    first_id = next(iter(mine))
+    intruder = next(u for u in users if u is not mine[first_id])
+    assert client.patch(f"/api/documents/{first_id}", json={"remarks": "x"}, headers=intruder).status_code == 423

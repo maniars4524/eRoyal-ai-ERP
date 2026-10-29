@@ -63,6 +63,7 @@ class DocumentPatch(BaseModel):
     remarks: str | None = Field(default=None, max_length=2000)
     header: dict[str, Any] | None = None
     lines: list[LineIn] | None = Field(default=None, max_length=200)
+    expected_updated_at: str | None = None        # the version the screen was opened from; refused when someone changed the document since
 
 
 class FromJob(BaseModel):
@@ -94,7 +95,7 @@ def _out(doc: Document, with_lines: bool = False, required: bool | None = None) 
         "party_gstin": doc.party_gstin, "place_of_supply": doc.place_of_supply, "supply_type": doc.supply_type, "ref_document_id": doc.ref_document_id,
         "remarks": doc.remarks, "header": doc.header or {}, "subtotal": _money(doc.subtotal), "tax_total": _money(doc.tax_total), "grand_total": _money(doc.grand_total),
         "paid_amount": _money(doc.paid_amount), "credited_amount": _money(doc.credited_amount), "outstanding": _money(outstanding(doc)),
-        "posted_at": doc.posted_at, "created_at": doc.created_at, "proforma_required": bool(required) if doc.doc_type == "invoice" else False,
+        "posted_at": doc.posted_at, "created_at": doc.created_at, "updated_at": doc.updated_at.isoformat() if doc.updated_at else None, "proforma_required": bool(required) if doc.doc_type == "invoice" else False,
         "invoice_kind": invoice_kind([l.tax_type for l in doc.lines]) if doc.lines else "TAX",
     }
     if doc.supply_type == "intra":
@@ -363,6 +364,8 @@ def update_document(doc_id: int, payload: DocumentPatch, user: User = Depends(pe
     if doc.status != "DRAFT":
         raise HTTPException(status_code=409, detail="Only draft documents can be edited; posted documents are corrected with a credit/debit note")
     changes = payload.model_dump(exclude_unset=True)
+    from .job_locks import assert_fresh
+    assert_fresh(changes.pop("expected_updated_at", None), doc.updated_at, "invoice")
     if changes.get("customer_id") and not db.scalar(select(Customer.id).where(Customer.id == changes["customer_id"], Customer.organization_id == org_id)):
         raise HTTPException(status_code=404, detail="Customer not found")
     if "ref_document_id" in changes:
