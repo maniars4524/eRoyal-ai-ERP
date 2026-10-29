@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from .auth import get_current_user, has_permission
 from .db import SessionLocal, get_db
-from .models import Document, JobLock, JobLockEvent, JobLockRequest, Shipment, User
+from .models import Document, JobLock, JobLockEvent, JobLockRequest, Quotation, Shipment, User
 from .security import decode_token
 
 LEASE_SECONDS = 90          # a tab not heard from for this long no longer holds the lock
@@ -61,10 +61,16 @@ def current(db: Session, org: int, job: str) -> JobLock | None:
 
 
 INVOICE_PREFIX = "INV:"          # an invoice / proforma / note is locked under INV:<document id>, like a job under its job number
+QUOTE_PREFIX = "QT:"             # a quotation under QT:<quotation id>
 
 
 def label_of(db: Session | None, org: int, key: str) -> str:
     """What the person sees: the job number, or the invoice number (or 'Draft invoice') for an invoice lock."""
+    if key.startswith(QUOTE_PREFIX):
+        q = db.get(Quotation, int(key[len(QUOTE_PREFIX):])) if db is not None and key[len(QUOTE_PREFIX):].isdigit() else None
+        if q is None or q.organization_id != org:
+            return "Quotation " + key[len(QUOTE_PREFIX):]
+        return q.number or ("Draft quotation" + (f" of {q.party_name}" if q.party_name else ""))
     if not key.startswith(INVOICE_PREFIX):
         return key
     d = db.get(Document, int(key[len(INVOICE_PREFIX):])) if db is not None and key[len(INVOICE_PREFIX):].isdigit() else None
@@ -90,6 +96,8 @@ def renew(lock: JobLock, tab: str) -> None:
 def job_type_of(db: Session, org: int, job: str, hint: str = "") -> str:
     if job.startswith(INVOICE_PREFIX):
         return "Invoice"
+    if job.startswith(QUOTE_PREFIX):
+        return "Quotation"
     s = db.scalar(select(Shipment).where(Shipment.organization_id == org, Shipment.job_number == job))
     if s is None:
         return hint or "Other"
@@ -266,15 +274,25 @@ def takeover(job_number: str, body: TakeoverIn, db: Session = Depends(get_db), u
     return out
 
 
+def release_user_locks(db: Session, user: User) -> int:
+    """Signing out gives back every lock the user holds."""
+    rows = list(db.scalars(select(JobLock).where(JobLock.user_id == user.id)))
+    for lock in rows:
+        log(db, lock.organization_id, lock.job_number, user, "RELEASED", f"{display_name(user)} signed out")
+        db.delete(lock)
+    return len(rows)
+
+
 # ---------------- server-side enforcement ----------------
 _SUFFIX = r"(?:/(?:status|move-to-accounts|reopen-from-accounts|details/[^/]+|hbl|bl/stage|send-document|do-issue|milestones/[^/]+|stage|closure/validate|close|reopen|charges))?"
 _PATTERNS = [
     re.compile(r"^/api/cha/jobs/(?P<job>.+?)" + _SUFFIX + r"$"),
     re.compile(r"^/api/cha/files/(?P<job>.+)$"),
-    re.compile(r"^/api/jobs/by-number/(?P<job>.+?)/charges$"),
+    re.compile(r"^/api/(?:jobs|shipments)/by-number/(?P<job>.+?)/charges$"),
     re.compile(r"^/api/jobs/(?P<job>.+?)" + _SUFFIX + r"$"),
 ]
 _DOC = re.compile(r"^/api/documents/(?P<id>\d+)(?:/(?:post|confirm|reopen-proforma|e-invoice|add-job|cancel))?$")
+_QUOTE = re.compile(r"^/api/quotations/(?P<id>\d+)(?:/(?:approval/submit|cancel|revise))?$")          # editing, submitting, cancelling, revising; an approver approving is not editing
 _WRITES = {"POST", "PUT", "PATCH", "DELETE"}
 
 
@@ -298,6 +316,9 @@ def job_of_path(method: str, path: str) -> str | None:
     d = _DOC.match(path)
     if d:
         return INVOICE_PREFIX + d.group("id")
+    qm = _QUOTE.match(path)
+    if qm:
+        return QUOTE_PREFIX + qm.group("id")
     for p in _PATTERNS:
         m = p.match(path)
         if m:
@@ -325,7 +346,7 @@ def check_write(method: str, path: str, auth: str | None) -> dict | None:
         lock = current(db, u.organization_id, job)
         db.commit()
         if lock and lock.user_id != uid:
-            what = "invoice" if job.startswith(INVOICE_PREFIX) else "job"
+            what = "invoice" if job.startswith(INVOICE_PREFIX) else "quotation" if job.startswith(QUOTE_PREFIX) else "job"
             return {"detail": {"code": "JOB_LOCKED", "message": f"This {what} is currently being processed by {lock.user_name}.", **holder_info(lock, db)}}
         return None
     finally:

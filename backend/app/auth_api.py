@@ -181,6 +181,8 @@ def me(user: User = Depends(get_current_user)):
 @router.post("/logout")
 def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user.session_id = user.session_ip = user.session_started_at = user.session_seen_at = None
+    from .job_locks import release_user_locks
+    release_user_locks(db, user)                          # a signed-out user no longer holds any job / invoice / quotation lock
     record_audit(db, "LOGOUT", "AUTHENTICATION", user, user.organization_id, "User", str(user.id))
     db.commit()
     return {"status": "ok"}

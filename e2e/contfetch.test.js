@@ -80,5 +80,23 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // a manual edit of the shipment containers
   q("[data-qc-add]").click(); await sleep(100);
   check("another container type can be added in the header", d.querySelectorAll("#qkConts [data-qc$=':type']").length === 3 && H().containers.length === 3);
+  // ---------- Basis: quantity and percentage amounts from the backend calculation service ----------
+  const bases = Array.from(ql("sell", 0, "basis").options).map(o => o.value);
+  check("the Basis list keeps its existing values and adds the ten Basis options", ["Container", "Shipment"].every(x => bases.includes(x)) && ["Per Shipment", "Per Package", "By Gross Wt", "By Chg Wt", "By Volume", "% of Freight", "% of Other Charges", "Per Vehicle", "By Gross Wt/Volume", "By Net Wt"].every(x => bases.includes(x)), bases.join());
+  setf(q('[data-qh="packages"]'), "10"); setf(q('[data-qh="gross_weight"]'), "2000"); setf(q('[data-qh="net_weight"]'), "1900"); setf(q('[data-qh="volume"]'), "3"); setf(q('[data-qh="vehicles"]'), "2"); await sleep(100);
+  const pickBasis = async (side, i, v) => { setf(ql(side, i, "basis"), v); await sleep(1100); };
+  const qtyOf = (side, i) => ql(side, i, "qty").value;
+  await pickBasis("sell", 0, "Per Package"); setf(ql("sell", 0, "rate"), "150"); await sleep(900);
+  check("Per Package takes the number of packages and multiplies by the rate", qtyOf("sell", 0) === "10" && /1,500\.00/.test(q('tr[data-key="pair:0"] [data-c="amount"][data-s="sell"]').textContent), qtyOf("sell", 0) + " " + q('tr[data-key="pair:0"] [data-c="amount"][data-s="sell"]').textContent);
+  await pickBasis("sell", 0, "By Gross Wt"); check("By Gross Wt takes the gross weight", qtyOf("sell", 0) === "2000", qtyOf("sell", 0));
+  await pickBasis("sell", 0, "By Net Wt"); check("By Net Wt takes the net weight", qtyOf("sell", 0) === "1900", qtyOf("sell", 0));
+  await pickBasis("sell", 0, "By Volume"); check("By Volume takes the CBM", qtyOf("sell", 0) === "3", qtyOf("sell", 0));
+  await pickBasis("sell", 0, "Per Vehicle"); check("Per Vehicle takes the number of vehicles", qtyOf("sell", 0) === "2", qtyOf("sell", 0));
+  await pickBasis("sell", 0, "Per Shipment"); check("Per Shipment is one", qtyOf("sell", 0) === "1", qtyOf("sell", 0));
+  await pickBasis("sell", 0, "By Gross Wt/Volume"); check("By Gross Wt/Volume on a sea FCL shipment is refused with the reason, not priced", /Air and to Sea LCL/.test(ql("sell", 0, "qty").title), ql("sell", 0, "qty").title);
+  await pickBasis("sell", 0, "By Chg Wt"); check("By Chg Wt on a sea shipment takes the greater of gross kg and CBM x 1000", qtyOf("sell", 0) === "3000" || qtyOf("sell", 0) === "2000", qtyOf("sell", 0));
+  setf(ql("sell", 0, "qty"), "7"); await sleep(900); setf(ql("sell", 0, "rate"), "11"); await sleep(900);
+  check("a typed quantity is kept (not overwritten) and shown as typed", qtyOf("sell", 0) === "7" && /typed by you/.test(ql("sell", 0, "qty").title), qtyOf("sell", 0));
+  await pickBasis("sell", 0, "Per Package"); check("choosing the Basis again recalculates the quantity", qtyOf("sell", 0) === "10", qtyOf("sell", 0));
   console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

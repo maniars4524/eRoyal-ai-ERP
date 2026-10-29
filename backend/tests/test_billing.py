@@ -396,3 +396,55 @@ def test_invoice_round_off_one_invoice_for_two_jobs_and_a_receipt_round_off(h):
     assert r.status_code == 201, r.text
     assert r.json()["details"]["settlement"] == "FULL" and r.json()["round_off"] == "0.50"
     assert client.get(f"/api/documents/{one['id']}", headers=h).json()["payment_status"] == "PAID"
+
+
+def _vouchers(doc_id):
+    from app.db import SessionLocal
+    from app.models import AccVoucher
+
+    db = SessionLocal()
+    try:
+        return db.query(AccVoucher).filter(AccVoucher.source_type == "document", AccVoucher.source_id == doc_id).count()
+    finally:
+        db.close()
+
+
+def test_proforma_number_on_save_no_ledger_until_posted_and_cancel_empties_the_proforma(h):
+    d = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Proforma Co", "lines": [{"charge_name": "Freight", "rate": "1000", "tax_pct": "18"}]}, headers=h).json()
+    assert d["status"] == "DRAFT" and d["doc_number"] is None and d["header"]["proforma_no"].startswith("PF/")            # saving gives the proforma number, never a tax-invoice number
+    assert d["grand_total"] == "1180.00" and _vouchers(d["id"]) == 0                                                     # a draft proforma is in no ledger
+    assert client.post(f"/api/documents/{d['id']}/confirm", headers=h).status_code == 200
+    assert _vouchers(d["id"]) == 0                                                                                       # nor is a confirmed proforma
+    posted = client.post(f"/api/documents/{d['id']}/post", headers=h).json()
+    assert posted["doc_number"] and posted["status"] == "POSTED" and _vouchers(d["id"]) == 1                              # the tax invoice reaches the books only now
+    cancelled = client.post(f"/api/documents/{d['id']}/cancel", headers=h).json()
+    assert cancelled["status"] == "CANCELLED" and _vouchers(d["id"]) == 0 and cancelled["outstanding"] == "0.00"          # a cancelled invoice leaves the ledger
+
+    p = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Cancel Co", "lines": [{"charge_name": "Freight", "rate": "5000", "tax_pct": "18"}, {"charge_name": "Docs", "rate": "500", "tax_pct": "0"}]}, headers=h).json()
+    pf = p["header"]["proforma_no"]
+    gone = client.post(f"/api/documents/{p['id']}/cancel", headers=h).json()
+    assert gone["status"] == "CANCELLED" and gone["lines"] == [] and gone["grand_total"] == "0.00" and gone["subtotal"] == "0.00" and gone["tax_total"] == "0.00" and gone["outstanding"] == "0.00"
+    assert gone["header"]["proforma_no"] == pf and gone["doc_number"] is None and _vouchers(p["id"]) == 0                 # entries deleted, the proforma number stays for the record
+    listed = {x["id"]: x for x in client.get("/api/documents?doc_type=invoice", headers=h).json()}
+    assert listed[p["id"]]["grand_total"] == "0.00" and listed[p["id"]]["outstanding"] == "0.00"
+
+
+def test_a_billed_charge_cannot_be_billed_again_and_the_list_shows_every_job(h):
+    jobs = []
+    for _ in range(2):
+        made = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "container_mode": "FCL", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
+        jobs.append(made["job_number"])
+    line = lambda j, n="Freight": {"charge_name": n, "rate": "100", "tax_pct": "0", "job_number": j, "qty": "1"}      # noqa: E731
+    one = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Twice Co", "lines": [line(jobs[0]), line(jobs[1])]}, headers=h)
+    assert one.status_code == 201, one.text
+    assert one.json()["job_numbers"] == sorted(jobs)                                                                    # one invoice for two jobs: both numbers
+    dup = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Twice Co", "lines": [line(jobs[0])]}, headers=h)
+    assert dup.status_code == 409 and "already billed" in dup.json()["detail"]                                         # the same entry cannot go on a second invoice
+    other = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Twice Co", "lines": [line(jobs[0], "Documentation")]}, headers=h)
+    assert other.status_code == 201                                                                                      # a different charge of the job is still free
+    # cancelling the first invoice frees its entries again
+    assert client.post(f"/api/documents/{one.json()['id']}/cancel", headers=h).status_code == 200
+    again = client.post("/api/documents", json={"doc_type": "invoice", "party_name": "Twice Co", "lines": [line(jobs[0])]}, headers=h)
+    assert again.status_code == 201
+    listed = client.get("/api/documents?doc_type=invoice&q=" + jobs[1], headers=h).json()
+    assert all("job_numbers" in d for d in listed)

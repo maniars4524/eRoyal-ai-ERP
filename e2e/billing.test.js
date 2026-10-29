@@ -48,7 +48,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("party was taken from the sell-side client", q(editor + ' [data-bkh="party_name"]').value === "Acme Ltd");
   q(editor + ' [data-bkh="place_of_supply"]').value = "Tamil Nadu"; q(editor + ' [data-bkh="place_of_supply"]').dispatchEvent(new w.Event("input", { bubbles: true }));
   clearToasts(); click(editor + ' [data-bk="save"]'); await sleep(1200);
-  check("Save Draft persists", toastsNow().some(t => /draft saved/i.test(t)), toastsNow().join(" ; "));
+  check("Save Draft persists", toastsNow().some(t => /draft saved|proforma invoice saved/i.test(t)), toastsNow().join(" ; "));
   clearToasts(); click(editor + ' [data-bk="post"]'); await sleep(1500);
   const invList = (await j("GET", "/api/documents?doc_type=invoice", null, token)).body;
   check("Post assigns a legal number and locks the document", invList.length === 1 && /^INV\/\d\d-\d\d\/00001$/.test(invList[0].doc_number) && invList[0].status === "POSTED" && invList[0].place_of_supply === "Tamil Nadu", JSON.stringify(invList[0]));

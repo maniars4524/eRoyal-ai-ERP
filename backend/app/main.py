@@ -14,6 +14,7 @@ from .customers_api import router as customers_router
 from .search_api import router as search_router
 from .cha_api import router as cha_router
 from .job_locks import router as job_locks_router, check_write as job_lock_check
+from .basis_api import router as basis_router
 from .hbl_clauses import router as hbl_clause_router, job_router as hbl_clause_job_router
 from .dashboard_api import router as dashboard_router
 from .bookings_api import router as bookings_router
@@ -83,6 +84,7 @@ app.include_router(customers_router)
 app.include_router(search_router)
 app.include_router(cha_router)
 app.include_router(job_locks_router)
+app.include_router(basis_router)
 app.include_router(hbl_clause_router)
 app.include_router(hbl_clause_job_router)
 app.include_router(ports_router)

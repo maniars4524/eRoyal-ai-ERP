@@ -67,7 +67,7 @@ def test_the_server_refuses_writes_from_anyone_but_the_editor(h, h2):
     d = r.json()["detail"]
     assert d["code"] == "JOB_LOCKED" and d["job_number"] == cjob and d["user_name"]
     assert client.patch(f"/api/cha/jobs/{cjob}/status", json={"status": "DOCUMENTATION"}, headers=h2).status_code == 423
-    assert client.put(f"/api/jobs/by-number/{cjob}/charges", json={"lines": []}, headers=h2).status_code == 423
+    assert client.put(f"/api/shipments/by-number/{cjob}/charges", json={"lines": []}, headers=h2).status_code == 423
     assert client.post(f"/api/cha/files/{cjob}", json={"name": "a.pdf", "content_type": "application/pdf", "data_base64": "JVBERg=="}, headers=h2).status_code == 423
     assert client.get(f"/api/cha/jobs/{cjob}", headers=h2).status_code == 200                       # viewing stays open (read-only mode)
     assert client.patch(f"/api/cha/jobs/{cjob}", json={"customs_location": "INMAA1"}, headers=h).status_code == 200
@@ -254,3 +254,26 @@ def test_master_record_audit_log_lists_field_changes(h):
     fields = {(x["field"], x["from"], x["to"]) for x in log if x["action"] == "Updated"}
     assert ("Name", "Audit Branch", "Audit Branch 2") in fields and ("City", "Chennai", "Mumbai") in fields, log
     assert any(x["action"] == "Created" for x in log) and all(x["user"] and x["when"] for x in log)
+
+
+def test_a_quotation_is_locked_like_a_job_and_logout_releases_every_lock(h, h2, world, admin):
+    q = client.post("/api/quotations", json={"party_name": "Lock Party", "mode": "Sea", "direction": "Export", "pol": "INMAA", "pod": "BEANR", "lines": [{"side": "SELL", "charge_name": "Docs", "ccy": "INR", "exch": "1", "rate": "100", "qty": "1", "basis": "Shipment"}]}, headers=h)
+    assert q.status_code == 201, q.text
+    qid = q.json()["id"]
+    key = f"QT:{qid}"
+    a = acquire(h, key, tab())
+    assert a["acquired"] and a["holder"]["job_type"] == "Quotation" and a["holder"]["label"]
+    assert not acquire(h2, key, tab())["acquired"]
+    r = client.patch(f"/api/quotations/{qid}", json={"remarks": "x"}, headers=h2)
+    assert r.status_code == 423 and "quotation" in r.json()["detail"]["message"]
+    assert client.get(f"/api/quotations/{qid}", headers=h2).status_code == 200                       # viewing the saved details is open
+    assert client.patch(f"/api/quotations/{qid}", json={"remarks": "by the editor"}, headers=h).status_code == 200
+    # an approver acting on it is not editing: the approval routes are not blocked by the lock
+    assert client.post(f"/api/quotations/{qid}/approval/approve", headers=h2).status_code != 423
+    # signing out releases the editor's locks at once
+    mine = hdr(admin["username"], admin["license"])
+    k2 = f"INV:{draft_invoice(mine)['id']}"
+    acquire(mine, k2, tab())
+    assert client.get(f"/api/job-locks/{k2}/status", headers=h2).json()["locked"]
+    assert client.post("/api/auth/logout", headers=mine).status_code == 200
+    assert not client.get(f"/api/job-locks/{k2}/status", headers=h2).json()["locked"]

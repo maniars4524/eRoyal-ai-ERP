@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import String, cast, delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, object_session, selectinload
 
@@ -94,7 +94,7 @@ def _out(doc: Document, with_lines: bool = False, required: bool | None = None) 
         "doc_date": doc.doc_date, "due_date": doc.due_date, "job_number": doc.job_number, "customer_id": doc.customer_id, "party_name": doc.party_name,
         "party_gstin": doc.party_gstin, "place_of_supply": doc.place_of_supply, "supply_type": doc.supply_type, "ref_document_id": doc.ref_document_id,
         "remarks": doc.remarks, "header": doc.header or {}, "subtotal": _money(doc.subtotal), "tax_total": _money(doc.tax_total), "grand_total": _money(doc.grand_total),
-        "paid_amount": _money(doc.paid_amount), "credited_amount": _money(doc.credited_amount), "outstanding": _money(outstanding(doc)),
+        "paid_amount": _money(doc.paid_amount), "credited_amount": _money(doc.credited_amount), "outstanding": _money(outstanding(doc) if doc.status == "POSTED" else Decimal("0.00")), "job_numbers": sorted({l.job_number for l in doc.lines if l.job_number} | ({doc.job_number} if doc.job_number else set())),
         "posted_at": doc.posted_at, "created_at": doc.created_at, "updated_at": doc.updated_at.isoformat() if doc.updated_at else None, "proforma_required": bool(required) if doc.doc_type == "invoice" else False,
         "invoice_kind": invoice_kind([l.tax_type for l in doc.lines]) if doc.lines else "TAX",
     }
@@ -109,10 +109,25 @@ def _out(doc: Document, with_lines: bool = False, required: bool | None = None) 
     return data
 
 
+def _assert_not_double_billed(doc: Document, lines: list[LineIn], session: Session | None = None) -> None:
+    """A charge of a job that a live (not cancelled) invoice of the same party already carries cannot be put on another document: no double billing, whichever screen the lines come from."""
+    session = session or object_session(doc)
+    wanted = {(l.job_number, l.charge_name.strip().lower()) for l in lines if l.job_number and l.charge_name.strip()}
+    if session is None or not wanted or doc.doc_type not in ("invoice", "purchase_invoice"):
+        return
+    rows = session.execute(select(Document.id, Document.doc_number, Document.header, DocumentLine.job_number, DocumentLine.charge_name).join(DocumentLine, DocumentLine.document_id == Document.id).where(
+        Document.organization_id == doc.organization_id, Document.doc_type == doc.doc_type, Document.status != "CANCELLED", Document.party_name == doc.party_name, Document.id != (doc.id or 0),
+        DocumentLine.job_number.in_({k[0] for k in wanted}))).all()
+    for did, number, header, job, charge in rows:
+        if (job, (charge or "").strip().lower()) in wanted:
+            raise HTTPException(status_code=409, detail=f"{charge} of job {job} is already billed on {number or (header or {}).get('proforma_no') or 'draft #' + str(did)}. A charge is billed once: cancel that document first, or remove the line here.")
+
+
 def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
     for line in lines:
         if line.ccy != "INR" and line.exch <= 0:
             raise HTTPException(status_code=422, detail="Exchange rate must be greater than zero for non-INR lines")
+    _assert_not_double_billed(doc, lines)
     doc.lines.clear()
     session = object_session(doc)
     if session is not None:
@@ -218,6 +233,7 @@ def _new_document(db: Session, user: User, org_id: int, payload: DocumentIn) -> 
     doc = Document(organization_id=org_id, doc_type=payload.doc_type, status="DRAFT", doc_date=doc_date, due_date=payload.due_date, shipment_id=job.id if job else None, job_number=job.job_number if job else None,
                    customer_id=customer_id, party_name=payload.party_name.strip(), party_gstin=gstin, place_of_supply=pos, supply_type=supply,
                    ref_document_id=payload.ref_document_id, remarks=payload.remarks, header=payload.header, created_by=user.id)
+    _assert_not_double_billed(doc, payload.lines, db)           # the new document is not in the session yet
     _apply_lines(doc, payload.lines)
     db.add(doc)
     db.flush()
@@ -248,8 +264,9 @@ def list_documents(
         query = query.where(or_(Document.job_number == job_number, Document.id.in_(line_docs)))
     if q:
         like = f"%{q.strip()}%"
-        query = query.where(or_(Document.doc_number.ilike(like), Document.party_name.ilike(like), Document.job_number.ilike(like)))
-    return [_out(d) for d in db.scalars(query.order_by(Document.doc_date.desc(), Document.id.desc()).limit(limit).offset(offset))]
+        by_line_job = select(DocumentLine.document_id).where(DocumentLine.job_number.ilike(like))
+        query = query.where(or_(Document.doc_number.ilike(like), Document.party_name.ilike(like), Document.job_number.ilike(like), Document.id.in_(by_line_job), cast(Document.header, String).ilike(like)))
+    return [_out(d) for d in db.scalars(query.options(selectinload(Document.lines)).order_by(Document.doc_date.desc(), Document.id.desc()).limit(limit).offset(offset))]
 
 
 @router.get("/summary")
@@ -650,6 +667,16 @@ def cancel_document(doc_id: int, user: User = Depends(permission_required("billi
     if doc.status == "CANCELLED":
         raise HTTPException(status_code=409, detail="Document is already cancelled")
     jl.guard_document_job(db, doc.shipment_id)
+    removed = None
+    if doc.status == "DRAFT":
+        # a proforma that is cancelled is emptied first: every entry is deleted and the amounts are zero, so nothing of it is billed, reported or posted anywhere
+        if doc.doc_type == "invoice":
+            assign_proforma_no(db, org_id, doc)
+        removed = {"lines": len(doc.lines), "total": str(doc.grand_total), "subtotal": str(doc.subtotal), "tax": str(doc.tax_total)}
+        db.execute(delete(DocumentLine).where(DocumentLine.document_id == doc.id))
+        db.expire(doc, ["lines"])
+        doc.subtotal = doc.tax_total = doc.grand_total = doc.round_off = Decimal(0)
+        doc.paid_amount = doc.credited_amount = Decimal(0)
     if doc.status == "POSTED":
         if doc.paid_amount > 0 or doc.credited_amount > 0:
             raise HTTPException(status_code=409, detail="This document has payments or credits against it; cancel those first or issue a credit note")
@@ -663,6 +690,6 @@ def cancel_document(doc_id: int, user: User = Depends(permission_required("billi
     doc.cancelled_at = datetime.now(timezone.utc)
     jl.doc_hook(db, doc, user, "CANCELLED")
     gl.sync_document(db, doc, user.id)
-    record_audit(db, "DOCUMENT_CANCELLED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number})
+    record_audit(db, "DOCUMENT_CANCELLED", "BILLING", user, org_id, doc.doc_type, str(doc.id), {"number": doc.doc_number, "proforma_no": (doc.header or {}).get("proforma_no"), **({"emptied": removed} if removed else {})})
     db.commit()
     return _out(_load(db, org_id, doc_id), True, proforma_required(db, org_id))

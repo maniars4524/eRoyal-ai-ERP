@@ -49,3 +49,6 @@ JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 CORS_ORIGINS = [origin.strip() for origin in os.getenv(
     "CORS_ORIGINS", "http://127.0.0.1:5173,http://localhost:5173"
 ).split(",") if origin.strip()]
+
+# Basis calculation: air volumetric divisor (L x W x H cm x packages / divisor = kg). Airlines and tariffs differ: set AIR_VOLUMETRIC_DIVISOR (e.g. 5000) to change it.
+AIR_VOLUMETRIC_DIVISOR = int(os.getenv("AIR_VOLUMETRIC_DIVISOR", "6000") or 6000)

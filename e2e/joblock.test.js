@@ -33,6 +33,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const modal = () => (bd.getElementById("modalBox") || bd.querySelector(".modal-box") || { textContent: "" }).textContent.replace(/\s+/g, " ");
   check("the second user sees Job Already Being Processed with the editor, job number, type and start time", /Job Already Being Processed/.test(modal()) && /Anna/.test(modal()) && modal().includes(no) && /CHA/.test(modal()) && /Started At/.test(modal()), modal().slice(0, 300));
   check("the pop-up offers Read-Only, Request Editing Access and Cancel", ["jlRO", "jlReq", "jlCancel"].every(id => !!bd.getElementById(id)));
+  check("an authorised user is offered Kill / Force Unlock in the notification", /Kill \/ Force Unlock/.test(bd.getElementById("jlTake") ? bd.getElementById("jlTake").textContent : ""), bd.getElementById("jlTake") && bd.getElementById("jlTake").textContent);
   bd.getElementById("jlRO").click(); await sleep(900);
   check("Open in Read-Only Mode shows the banner and locks the form", !!bd.getElementById("jlBanner") && bd.body.classList.contains("job-readonly") && /Anna/.test(bd.getElementById("jlBanner").textContent));
   const saveB = bd.getElementById("chjSave");

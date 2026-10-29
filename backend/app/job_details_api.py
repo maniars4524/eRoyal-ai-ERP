@@ -123,6 +123,14 @@ def suggested_containers(db: Session, job: Shipment) -> list[dict]:
             except ValueError:
                 qty = 1
             found[t] = {"type": t, "qty": max(qty, 1), "sources": ["Booking " + (b.number or "draft")]}
+        for c in (d.get("containers") or []):                  # several container types carried from the enquiry
+            ct = str(c.get("type") or "").strip()
+            try:
+                cn = int(float(str(c.get("qty") or 0)))
+            except ValueError:
+                cn = 0
+            if ct and cn > 0 and ct not in found:
+                found[ct] = {"type": ct, "qty": cn, "sources": ["Booking " + (b.number or "draft")]}
     quotes = []
     if b and b.quotation_id:
         q = db.get(Quotation, b.quotation_id)

@@ -591,6 +591,9 @@ class JobCharge(Base):
     client: Mapped[str] = mapped_column(String(160), default="")
     use_client: Mapped[bool] = mapped_column(default=False)
     breakup: Mapped[list | None] = mapped_column(JSON)       # container-wise break-up: [{type, qty, sell, buy}] (the line then carries qty 1 and the totals as its rates)
+    buy_pct = mapped_column(Numeric(8, 3), nullable=True)    # a "% of Freight" / "% of Other Charges" line: the percentage entered (the rates then hold the calculated amounts, quantity 1)
+    sell_pct = mapped_column(Numeric(8, 3), nullable=True)
+    qty_manual: Mapped[bool] = mapped_column(default=False, server_default="false")      # the quantity was typed by the user and is not recalculated from the Basis
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

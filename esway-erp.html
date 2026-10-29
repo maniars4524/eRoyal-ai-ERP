@@ -3975,7 +3975,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="kpi"><div class="kpi-lbl">Avg Days Outstanding</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div>
 </div>
 <div class="card"><div class="ch"><div class="ct">All Invoices</div><input class="fc" id="invoiceSearch" placeholder="Search invoice / customer…" style="width:200px"></div>
-<div class="tw"><table id="invoiceTable"><thead><tr><th>Invoice No</th><th>Date</th><th>Customer</th><th>Job</th><th>Type</th><th>Total</th><th>Due Date</th><th>Balance</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div></div>
+<div class="tw"><table id="invoiceTable"><thead><tr><th>Invoice No</th><th>Date</th><th>Proforma No</th><th>Customer</th><th>Job(s)</th><th>Type</th><th>Total</th><th>Due Date</th><th>Balance</th><th>Status</th><th class="no-print"></th></tr></thead><tbody></tbody></table></div></div></div>
 
 <!-- ====== INVOICE DETAIL ====== -->
 <div id="s-invoice-new" class="scr"><div class="bk-host"></div></div>
@@ -7311,7 +7311,8 @@ function populateJobDetail(jobNo){
    ============================================================ */
 const JC_CHARGE_MASTER = [];  /* filled from Charge Master (/api/masters/charge) */
 const JC_CCY = ["INR","USD","EUR","GBP","AED","SGD","JPY"];
-const JC_UOM = ["Per Shipment","Per Container","Per Chargeable KG","Per KG","Per CBM","Per Document","Per Job","Per Hour","Per Unit","Per BL"];
+const JC_BASIS = ["Per Shipment","Per Package","By Gross Wt","By Chg Wt","By Volume","% of Freight","% of Other Charges","Per Vehicle","By Gross Wt/Volume","By Net Wt"];
+const JC_UOM = ["Per Shipment","Per Container","Per Chargeable KG","Per KG","Per CBM","Per Document","Per Job","Per Hour","Per Unit","Per BL"].concat(JC_BASIS.filter(b=>b !== "Per Shipment"));
 const JOB_CHARGES_DB = {};
 let jcCurrentJob = null;
 let jcRowSeq = 1;
@@ -7367,15 +7368,23 @@ function jcSetSaveState(text, kind){
   el.textContent = text; el.style.color = kind==="ok" ? "var(--gr)" : kind==="err" ? "var(--rd)" : "var(--g5)";
 }
 function jcFromServer(l){
+  return jcPercentFromServer(jcFromServerRaw(l), l);
+}
+function jcFromServerRaw(l){
   return {id: jcRowSeq++, selected:false, chargeName:l.charge_name, desc:l.description, uom:l.uom, qty:Number(l.qty), hsn:l.hsn || ((JC_CHARGE_MASTER.find(c=>c.name===l.charge_name) || {}).code || ""),
     buy:{ccy:l.buy.ccy, exch:Number(l.buy.exch), rate:Number(l.buy.rate), taxType:l.buy.tax_type, taxPct:Number(l.buy.tax_pct), vendor:l.buy.party},
     sell:{ccy:l.sell.ccy, exch:Number(l.sell.exch), rate:Number(l.sell.rate), taxType:l.sell.tax_type, taxPct:Number(l.sell.tax_pct), client:l.sell.party},
-    useVendor:l.buy.use_party, useClient:l.sell.use_party,
+    useVendor:l.buy.use_party, useClient:l.sell.use_party, qtyManual:!!l.qty_manual,
     breakup:(l.breakup || []).map(b=>({type:b.type, qty:Number(b.qty), sell:Number(b.sell), buy:Number(b.buy)}))};
+}
+/* a percentage line comes back as one unit at the calculated amount, the percentage kept beside it: the grid shows the percentage and remembers the amount */
+function jcPercentFromServer(r, l){
+  ["buy", "sell"].forEach(k=>{ if(l[k].pct !== null && l[k].pct !== undefined){ r[k].pctAmt = Number(l[k].rate); r[k].rate = Number(l[k].pct); } });
+  return r;
 }
 function jcToServer(r){
   const n = v=> String(Number(v)||0);
-  return {charge_name:r.chargeName||"", description:r.desc||"", uom:r.uom||"Per Shipment", qty:n(r.qty), hsn:r.hsn||"",
+  return {charge_name:r.chargeName||"", description:r.desc||"", uom:r.uom||"Per Shipment", qty:n(r.qty), qty_manual:!!r.qtyManual && JC_BASIS.indexOf(r.uom) > -1, hsn:r.hsn||"",
     buy:{ccy:r.buy.ccy, exch:n(r.buy.exch), rate:n(r.buy.rate), tax_type:r.buy.taxType, tax_pct:n(r.buy.taxPct), party:r.buy.vendor||"", use_party:!!r.useVendor},
     sell:{ccy:r.sell.ccy, exch:n(r.sell.exch), rate:n(r.sell.rate), tax_type:r.sell.taxType, tax_pct:n(r.sell.taxPct), party:r.sell.client||"", use_party:!!r.useClient},
     breakup:(r.breakup || []).filter(b=>Number(b.qty) > 0).map(b=>({type:b.type||"", qty:n(b.qty), sell:n(b.sell), buy:n(b.buy)}))};
@@ -7475,10 +7484,11 @@ function jcGetState(jobNo){
   return JOB_CHARGES_DB[key];
 }
 function jcRowCalc(r){
-  const buyAmt = (Number(r.buy.rate)||0) * (Number(r.qty)||0);
+  const pctB = JC_BASIS.indexOf(r.uom) > 4 && JC_BASIS.indexOf(r.uom) < 7;          // % of Freight / % of Other Charges: the amount comes from the calculation service
+  const buyAmt = pctB && r.buy.pctAmt !== undefined ? Number(r.buy.pctAmt)||0 : (Number(r.buy.rate)||0) * (Number(r.qty)||0);
   const buyINR = r.buy.ccy==="INR" ? buyAmt : buyAmt * (Number(r.buy.exch)||0);
   const buyTax = r.buy.taxType==="Taxable" ? buyINR * (Number(r.buy.taxPct)||0)/100 : 0;
-  const sellAmt = (Number(r.sell.rate)||0) * (Number(r.qty)||0);
+  const sellAmt = pctB && r.sell.pctAmt !== undefined ? Number(r.sell.pctAmt)||0 : (Number(r.sell.rate)||0) * (Number(r.qty)||0);
   const sellINR = r.sell.ccy==="INR" ? sellAmt : sellAmt * (Number(r.sell.exch)||0);
   const sellTax = r.sell.taxType==="Taxable" ? sellINR * (Number(r.sell.taxPct)||0)/100 : 0;
   return {buyAmt, buyINR, buyTax, sellAmt, sellINR, sellTax, gp: sellINR-buyINR};
@@ -7506,6 +7516,38 @@ function jcSetField(id, path, value){
       const sd = jcSides(value); if(!sd.sell){ r.sell.rate = 0; r.sell.client = ""; } if(!sd.buy){ r.buy.rate = 0; r.buy.vendor = ""; }
     }
   }
+  jcBasisAfterEdit(r, path);
+}
+
+/* ---- Basis on the job cost: the quantity and the percentage amounts come from the backend service (POST .../basis-calc) using the job's own measurements ---- */
+let jcBasisTimer = null, jcBasisSeq = 0; const jcBasisShown = new Set();
+function jcBasisAfterEdit(r, path){
+  if(path === "qty" && JC_BASIS.indexOf(r.uom) > -1){ r.qtyManual = true; }
+  if(path === "uom"){ r.qtyManual = false; if(JC_BASIS.indexOf(r.uom) < 5 || JC_BASIS.indexOf(r.uom) > 6){ delete r.buy.pctAmt; delete r.sell.pctAmt; } }
+  if(path === "uom" || path === "chargeName" || /\.(rate|ccy|exch)$/.test(path)) { clearTimeout(jcBasisTimer); jcBasisTimer = setTimeout(()=>jcBasisPreview(path === "uom"), 300); }
+}
+async function jcBasisPreview(explain){
+  if(!jcCurrentJob || !jcTok()) return;
+  const st = jcGetState(jcCurrentJob); const rows = st.rows; if(!rows.some(r=>JC_BASIS.indexOf(r.uom) > -1)) return;
+  const my = ++jcBasisSeq, lines = [];
+  rows.forEach(r=>["BUY", "SELL"].forEach(side=>{ const k = side === "BUY" ? r.buy : r.sell; lines.push({id:r.id+":"+side, side, basis:(r.breakup || []).length ? "" : r.uom, rate:Number(k.rate) || 0, qty:(r.uom === "Per Shipment" && !r.qtyManual) ? 0 : (Number(r.qty) || 0), name:r.chargeName || "", ccy:k.ccy, exch:Number(k.exch) || 1}); }));
+  let res; try{ res = await jcApi("POST", "/api/shipments/by-number/"+encodeURIComponent(jcCurrentJob)+"/basis-calc", {lines}); }catch(e){ if(explain && window.toast) toast("Basis not calculated", e.message, "warn"); return; }
+  if(my !== jcBasisSeq) return;
+  const by = {}; res.lines.forEach(x=>{ by[x.id] = x; });
+  rows.forEach(r=>{
+    if(JC_BASIS.indexOf(r.uom) < 0 || (r.breakup || []).length) return;
+    const pct = JC_BASIS.indexOf(r.uom) > 4 && JC_BASIS.indexOf(r.uom) < 7;
+    ["BUY", "SELL"].forEach(side=>{
+      const x = by[r.id+":"+side], k = side === "BUY" ? r.buy : r.sell; if(!x) return;
+      if(x.error){ const priced = Number(k.rate) > 0; if(priced && explain && !jcBasisShown.has(x.error) && window.toast){ jcBasisShown.add(x.error); toast((r.chargeName || "Charge")+" — "+r.uom, x.error, "warn"); } if(pct) k.pctAmt = 0; return; }
+      if(pct){ k.pctAmt = Number(x.amount); }
+      else if(side === "SELL" && !r.qtyManual){ r.qty = Number(x.quantity); }
+    });
+    if(!pct && !r.qtyManual){ const b = by[r.id+":BUY"]; if(b && !b.error && !Number(r.qty)) r.qty = Number(b.quantity); }
+  });
+  const ae = document.activeElement;                       // while a rate is being typed the grid is updated in place (a full redraw would take the cursor away)
+  if(ae && ae.dataset && ae.dataset.jcF){ rows.forEach(r=>{ const q = document.querySelector('[data-jc-f="qty"][data-jc-id="'+r.id+'"]'); if(q && q !== ae) q.value = r.qty; try{ jcUpdateRowComputedCells(r.id); }catch(e){ /* cells redraw on the next render */ } }); }
+  else jcRenderRows();
 }
 
 /* quantity of a chargeable-weight charge = the chargeable weight calculated from the job's package dimensions (the server applies the same figure when the charges are saved) */
@@ -9812,6 +9854,7 @@ async function crmMakeBooking(oppId){
     const real = await MK.util.api("POST", "/api/bookings", {mode, direction:/Import/i.test(sType) ? "Import" : "Export", shipment_type:/LCL/i.test(sType) ? "LCL" : /FCL/i.test(sType) ? "FCL" : null, booking_type:"Direct",
       customer_id:master ? master.id : null, party_name:opp.company, pol:enq.pol || enq.origin || null, pod:enq.pod || enq.destination || null,
       data:{services:svcNames.join(", ") || "Freight", commodity:enq.commodity || "", marks:enq.commodity || "", pcs:String(enq.packages || ""), gwt:String(enq.grossWeight || ""), volume:String(enq.volumeCBM || ""), incoterm:enq.incoterm || "",
+        container_type:((enq.containers || [])[0] || {}).type || (enq.containerType && enq.containerType !== "—" ? enq.containerType : ""), container_qty:String(((enq.containers || [])[0] || {}).qty || enq.containerQty || ""), containers:(enq.containers || []).map(c=>({type:c.type, qty:String(c.qty)})),
         notes:"From CRM "+opp.id+" / enquiry "+opp.enquiryId}});
     const booking = {id:crmNextId("BKG"), opportunityId:opp.id, enquiryId:opp.enquiryId, customerId:master ? master.id : null, company:opp.company, shipmentType:sType, origin:enq.origin || "", destination:enq.destination || "",
       department:enq.department || "", services:{...opp.services}, value:opp.value, currency:opp.currency, createdAt:crmFmt(crmNow()), timeline:[], realBookingId:real.id, realBookingNo:real.number || "", shipmentRef:"Booking #"+real.id};
@@ -14498,7 +14541,7 @@ if(document.readyState !== "loading") initChatWidget();
     try{
       if(name === "back"){ go(T.list); return; }
       if(name === "addline"){ readHead(); S.lines.push(blankLine()); renderEditor(); return; }
-      if(name === "save"){ const d = await save(); say(T.label+" draft saved", "Draft #"+d.id+" saved"); return; }
+      if(name === "save"){ const d = await save(); const pf = (d.header || {}).proforma_no; say(pf ? "Proforma Invoice saved" : T.label+" draft saved", pf ? pf : "Draft #"+d.id+" saved"); return; }
       if(name === "post"){
         readHead(); if(!window.confirm("Post this "+T.label.toLowerCase()+"? A number will be assigned and it can no longer be edited.")) return;
         const d = S.doc && S.doc.status !== "DRAFT" ? S.doc : await save(); const posted = await api("POST","/api/documents/"+d.id+"/post"); S.doc = posted; renderEditor(); say(T.label+" posted", posted.doc_number); return;
@@ -14551,11 +14594,14 @@ if(document.readyState !== "loading") initChatWidget();
   });
 
   /* ---------- lists ---------- */
+  /* the number shown for a document: its legal number, else its Proforma number (given the moment the draft is saved), else the draft id */
+  const jobsOf = d=> (d.job_numbers && d.job_numbers.length) ? d.job_numbers.join(", ") : (d.job_number || "—");          // an invoice for several jobs lists every job number
+  const docNo = d=> d.doc_number || ((d.header || {}).proforma_no ? d.header.proforma_no : "Draft #"+d.id);
   const LISTS = {
-    "invoice-list":{types:["invoice"], head:5, cols:d=>[d.doc_number||("Draft #"+d.id), dmy(d.doc_date), d.party_name, d.job_number||"—", TYPES[d.doc_type].label, inr(d.grand_total), dmy(d.due_date), inr(d.outstanding), badge(d)]},
-    "debit-note-list":{types:["debit_note","credit_note"], cols:d=>[d.doc_number||("Draft #"+d.id), dmy(d.doc_date), d.party_name, d.job_number||"—", TYPES[d.doc_type].label, "—", "INR", inr(d.grand_total), badge(d)]},
-    "purchase-invoice-list":{types:["purchase_invoice","purchase_credit_note"], cols:d=>[d.doc_number||("Draft #"+d.id), dmy(d.doc_date), d.party_name, (d.header||{}).vendor_bill_no||"—", d.job_number||"—", TYPES[d.doc_type].label, inr(d.subtotal), inr(d.tax_total), inr(d.grand_total), dmy(d.due_date), badge(d)]},
-    "vendor-bill":{types:["purchase_invoice"], cols:d=>[d.doc_number||("Draft #"+d.id), (d.header||{}).vendor_bill_no||"—", d.party_name, TYPES[d.doc_type].label, d.job_number||"—", inr(d.grand_total), dmy(d.due_date), badge(d)]},
+    "invoice-list":{types:["invoice"], head:5, cols:d=>[d.doc_number || "—", dmy(d.doc_date), (d.header || {}).proforma_no || "—", d.party_name, jobsOf(d), (d.status === "DRAFT" || d.status === "CANCELLED" && !d.doc_number) ? "Proforma Invoice" : TYPES[d.doc_type].label, inr(d.grand_total), dmy(d.due_date), inr(d.outstanding), badge(d)]},
+    "debit-note-list":{types:["debit_note","credit_note"], cols:d=>[docNo(d), dmy(d.doc_date), d.party_name, jobsOf(d), TYPES[d.doc_type].label, "—", "INR", inr(d.grand_total), badge(d)]},
+    "purchase-invoice-list":{types:["purchase_invoice","purchase_credit_note"], cols:d=>[docNo(d), dmy(d.doc_date), d.party_name, (d.header||{}).vendor_bill_no||"—", d.job_number||"—", TYPES[d.doc_type].label, inr(d.subtotal), inr(d.tax_total), inr(d.grand_total), dmy(d.due_date), badge(d)]},
+    "vendor-bill":{types:["purchase_invoice"], cols:d=>[docNo(d), (d.header||{}).vendor_bill_no||"—", d.party_name, TYPES[d.doc_type].label, d.job_number||"—", inr(d.grand_total), dmy(d.due_date), badge(d)]},
   };
   const NEW_BUTTON = {"invoice-list":"invoice", "debit-note-list":"debit_note", "purchase-invoice-list":"purchase_invoice", "vendor-bill":"purchase_invoice"};
   async function loadList(screen){
@@ -16239,6 +16285,7 @@ if(document.readyState !== "loading") initChatWidget();
   const today = ()=> new Date().toISOString().slice(0,10);
   const r2 = x=> Math.round((x + Number.EPSILON)*100)/100;
 
+  const BASIS_LIST = ["Per Shipment","Per Package","By Gross Wt","By Chg Wt","By Volume","% of Freight","% of Other Charges","Per Vehicle","By Gross Wt/Volume","By Net Wt"];
   const AIR_UOM = ["KG","Chargeable KG","Gross Weight","CBM","Shipment","AWB","HAWB","MAWB","Package","Piece","Minimum Charge"];
   const SEA_UOM = ["Container","TEU","FEU","CBM","Revenue Ton (RT)","Weight Ton","Shipment","BL","HBL","MBL","Package","Per Day","Per Container / Day"];
   const ROAD_UOM = ["Truck","Trip","KM","Ton","CBM","Shipment","Package","Per Day"];
@@ -16328,7 +16375,7 @@ if(document.readyState !== "loading") initChatWidget();
   function uomList(){
     const mode = wiz().mode || (Q.rec && Q.rec.mode) || "Sea";
     const base = mode === "Air" ? AIR_UOM : mode === "Sea" ? SEA_UOM : (mode === "Road" || mode === "Rail") ? ROAD_UOM : mode === "Courier" ? COURIER_UOM : mode === "Multimodal" ? Array.from(new Set(SEA_UOM.concat(AIR_UOM, ROAD_UOM))) : GENERIC_UOM;
-    return Array.from(new Set(base.concat(Q.m.units.map(u=>u.name))));
+    return Array.from(new Set(base.concat(Q.m.units.map(u=>u.name), BASIS_LIST)));
   }
   const blank = side=> ({side, charge_name:"", carrier:"", basis:uomList()[0], container_type:"", container_breakup:[], ccy:"INR", exch:"1", rate:"", qty:"1", taxable:false, tax_pct:"0", remarks:""});
   const rateFor = (ccy, line)=>{
@@ -16466,7 +16513,7 @@ if(document.readyState !== "loading") initChatWidget();
       f("From (Port / Place of Loading)", inp("pol","text","Search port…",' list="qkPorts"'), "span2", true)+f("To (Port / Place of Discharge)", inp("pod","text","Search port…",' list="qkPorts"'), "span2", true)+
       f("Incoterm", '<select class="fc" data-qh="incoterm"'+d+'><option value="">—</option>'+INCOTERMS.map(s=>opt(s, s, s===h.incoterm)).join("")+'</select>')+
       f("Commodity", inp("commodity","text","e.g. Cotton garments"))+f("Payment Terms", inp("payment_terms","text","e.g. 30 days from invoice"))+f("Transit Time (days)", inp("transit_days","number","","min=\"0\""))+
-      f("Packages", inp("packages","number","","min=\"0\""))+f("Gross Weight (kg)", inp("gross_weight","number","","min=\"0\" step=\"0.001\""))+f("Volume (CBM)", inp("volume","number","","min=\"0\" step=\"0.001\""))+
+      f("Packages", inp("packages","number","","min=\"0\""))+f("Gross Weight (kg)", inp("gross_weight","number","","min=\"0\" step=\"0.001\""))+f("Net Weight (kg)", inp("net_weight","number","","min=\"0\" step=\"0.001\""))+f("Volume (CBM)", inp("volume","number","","min=\"0\" step=\"0.001\""))+f("Vehicles", inp("vehicles","number","","min=\"0\" step=\"1\""))+
       (["Air","Courier"].indexOf((wiz() || {}).mode) < 0 ? f("Containers in this shipment", '<div id="qkConts">'+contHTML()+'</div>', "span4") : "")+
       f("Origin (Place of Receipt)", inp("origin","text","City / place of cargo pick-up",' list="qkPorts"'), "span2")+f("Final Destination", inp("final_destination","text","Place of final delivery",' list="qkPorts"'), "span2")+
       f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+f("Dimensions (L x W x H cm)", inp("dimensions","text","e.g. 80 x 60 x 45"))+
@@ -16495,6 +16542,43 @@ if(document.readyState !== "loading") initChatWidget();
     if(a.hasAttribute("data-qc-add")) Q.head.containers.push({type:"", qty:"1"}); else Q.head.containers.splice(Number(a.dataset.qcDel), 1);
     Q.dirty = true; const box = document.getElementById("qkConts"); if(box) box.innerHTML = contHTML();
   });
+  /* ---------- Basis: quantities and percentage amounts come from the backend calculation service (POST /api/basis/calc), never from a formula of its own ---------- */
+  const PCT_BASIS = b=> b === "% of Freight" || b === "% of Other Charges";
+  const BASIS_UNIT = {"Per Shipment":"shipment","Per Package":"packages","By Gross Wt":"kg gross","By Chg Wt":"kg chargeable","By Volume":"CBM","% of Freight":"of the freight (the rate is the %)","% of Other Charges":"of the other charges (the rate is the %)","Per Vehicle":"vehicles","By Gross Wt/Volume":"kg or W/M","By Net Wt":"kg net"};
+  const chargeCategory = name=>{ const c = (Q.m.charges || []).find(x=>x.name === name); return c ? String((c.data || {}).category || "") : ""; };
+  const lineIndexKey = l=>{ const side = l.side === "BUY" ? "buy" : "sell"; return side+":"+(l.side === "BUY" ? Q.buy : Q.sell).indexOf(l); };
+  const shownErrors = new Set(); let basisTimer = null, basisSeq = 0;
+  async function recalcBasis(explain){
+    const all = Q.sell.concat(Q.buy); if(!all.some(l=>BASIS_LIST.indexOf(l.basis) > -1)) return;
+    const h = Q.head, w = wiz(); const my = ++basisSeq;
+    let res; try{ res = await api("POST", "/api/basis/calc", {measures:{mode:w.mode || "Sea", shipment_type:w.type || "", packages:h.packages, gross_kg:h.gross_weight, net_kg:h.net_weight, volume_cbm:h.volume, chargeable_kg:w.mode === "Air" ? h.chargeable_weight : "", vehicles:h.vehicles},
+      lines:all.map((l, i)=>({id:i, side:l.side, basis:l.basis, rate:l.rate || 0, qty:(l.basis === "Per Shipment" && !l.qty_manual) ? "" : l.qty, name:l.charge_name, category:chargeCategory(l.charge_name), ccy:l.ccy, exch:l.exch}))}); }catch(e){ if(explain) say("Basis not calculated", e.message, "warn"); return; }
+    if(my !== basisSeq) return;
+    res.lines.forEach((x, i)=>{
+      const l = all[i]; if(BASIS_LIST.indexOf(l.basis) < 0) return;
+      const inp = document.querySelector('[data-ql="'+lineIndexKey(l)+':qty"]');
+      l.basis_err = x.error || "";
+      if(x.error){ if(inp){ inp.style.outline = "2px solid var(--rd)"; inp.title = x.error; } if(explain && !shownErrors.has(x.error)){ shownErrors.add(x.error); say((l.charge_name || "Charge")+" — "+l.basis, x.error, "warn"); } return; }
+      if(!l.qty_manual){ l.qty = String(Number(x.quantity)); if(inp) inp.value = l.qty; }
+      if(inp){ inp.style.outline = ""; inp.style.background = l.qty_manual ? "#FFF7E0" : "#EEF6FF"; inp.title = l.qty_manual ? "Quantity typed by you; choose the Basis again to recalculate it" : "Calculated from the Basis: "+l.basis+" ("+(BASIS_UNIT[l.basis] || x.unit)+")"; }
+    });
+    refreshComputed();
+  }
+  const queueBasis = explain=>{ clearTimeout(basisTimer); basisTimer = setTimeout(()=>recalcBasis(explain), 280); };
+  const basisEvent = e=>{
+    const t = e.target; if(!t.dataset || !document.getElementById("s-quotation-new") || !document.getElementById("s-quotation-new").contains(t)) return;
+    const ql = t.dataset.ql || "", m = ql.match(/^(sell|buy):(\d+):(\w+)$/);
+    if(m){
+      const l = (m[1] === "sell" ? Q.sell : Q.buy)[Number(m[2])]; if(!l) return;
+      if(m[3] === "qty"){ if(e.type === "input"){ l.qty_manual = true; t.style.background = "#FFF7E0"; t.title = "Quantity typed by you; choose the Basis again to recalculate it"; } return; }
+      if(m[3] === "basis"){ l.qty_manual = false; queueBasis(true); return; }
+      if(["rate", "exch", "ccy"].indexOf(m[3]) > -1) queueBasis(false);
+      return;
+    }
+    if(["packages", "gross_weight", "net_weight", "volume", "vehicles", "chargeable_weight"].indexOf(t.dataset.qh) > -1) queueBasis(false);
+  };
+  document.addEventListener("input", basisEvent); document.addEventListener("change", basisEvent);
+  Q.recalcBasis = recalcBasis;
   async function reloadCharges(){
     try{ const rows = await api("GET","/api/masters/charge"); Q.m.charges = rows.filter(c=>c.status === "ACTIVE"); return true; }catch(e){ return false; }
   }
@@ -16644,7 +16728,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* ---------- open / load ---------- */
   function fillFromRec(r){
     Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", cust_source:(r.header||{}).cust_source || (r.customer_id ? "master" : "direct"), lead_ref:(r.header||{}).lead_ref||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
-      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref"].map(k=>[k, (r.header||{})[k]||""]))};
+      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","net_weight","vehicles"].map(k=>[k, (r.header||{})[k]||""])), containers:Array.isArray((r.header||{}).containers) ? r.header.containers.map(c=>({type:c.type, qty:String(c.qty)})) : []};
     const mk = l=>({side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
     Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk); pairLines();
   }
@@ -16709,7 +16793,7 @@ if(document.readyState !== "loading") initChatWidget();
     };
     return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
       pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,
-      header:Object.fromEntries(Object.entries({...h, containers:(h.containers || []).filter(c=>c.type && Number(c.qty) > 0).map(c=>({type:c.type, qty:String(Number(c.qty))})), ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","containers"].includes(k) && v!=="" && v!==undefined && v!==null)),
+      header:Object.fromEntries(Object.entries({...h, containers:(h.containers || []).filter(c=>c.type && Number(c.qty) > 0).map(c=>({type:c.type, qty:String(Number(c.qty))})), ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","containers","net_weight","vehicles"].includes(k) && v!=="" && v!==undefined && v!==null)),
       lines:keepLines().map(toLine)};
   }
   function validate(forSubmit){
@@ -16819,6 +16903,14 @@ if(document.readyState !== "loading") initChatWidget();
   const wmKey = mode=> ({Courier:"Air", Multimodal:"Sea"})[mode] || (WM_PATH[mode] ? mode : "Sea");
   const watermark = mode=> '<div class="qp-wm" aria-hidden="true"><svg viewBox="0 0 24 24" width="62%" height="62%" fill="#0B3A7A" style="opacity:.055"><path d="'+WM_PATH[wmKey(mode)]+'"/></svg></div>';
   const logoBlock = (org, logo)=> logo ? '<img class="qp-logo" alt="'+esc2(org.organization_name||"")+'" src="'+esc2(logo)+'" style="max-height:56px;max-width:190px;object-fit:contain">' : '<div style="width:46px;height:46px;border-radius:50%;background:#0B3A7A;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px">'+esc2(String(org.organization_name||"FF").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase())+'</div>';
+  /* the company's address, contact and GSTIN under its name (from the company document profile) */
+  const qpAddress = ()=>{
+    const pr = Q.prof || {}, e = esc2; const addr = String(pr.address || "").split(/\r?\n/).map(x=>x.trim()).filter(Boolean).join(", ");
+    const contact = [pr.phone ? "Tel: "+pr.phone : "", pr.email ? "Email: "+pr.email : "", pr.web || ""].filter(Boolean).join("  \u00b7  "), ids = [pr.gstin ? "GSTIN: "+pr.gstin : "", pr.pan ? "PAN: "+pr.pan : ""].filter(Boolean).join("  \u00b7  ");
+    return (addr || contact || ids) ? '<div class="qp-addr" style="font-size:10px;color:#475569;line-height:1.4;margin:1px 0 2px;max-width:420px">'+(addr ? e(addr)+"<br>" : "")+(contact ? e(contact)+"<br>" : "")+(ids ? e(ids) : "")+'</div>' : "";
+  };
+  const printedStamp = ()=>{ const d = new Date(); return d.toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"})+", "+d.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); };
+  window.addEventListener("beforeprint", ()=>{ document.querySelectorAll(".qp-printed").forEach(x=>{ x.textContent = "Printed on "+printedStamp(); }); });
   function quotationHtml(q, mode, org, cust){
     const withTax = mode === "TAX"; const hd = q.header || {}; const sell = q.lines.filter(l=>l.side==="SELL");
     const e = esc2; const num2 = v=> (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -16842,7 +16934,7 @@ if(document.readyState !== "loading") initChatWidget();
     const check = '<span style="color:#16A34A;font-weight:800">✓</span> ';
     const colspanTotal = withTax ? 8 : 5;   // the Total row must have exactly as many cells as the table has columns
     return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:var(--wh);max-width:980px;margin:0 auto;position:relative;padding:4px">'+watermark(q.mode)+'<div style="position:relative;z-index:1">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;gap:12px;align-items:center">'+logoBlock(org, Q.logo)+'<div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div><div style="font-size:10.5px;color:#475569">Freight Forwarding Quotation · '+e(q.mode)+'</div></div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;gap:12px;align-items:center">'+logoBlock(org, Q.logo)+'<div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div>'+qpAddress()+'<div style="font-size:10.5px;color:#475569">Freight Forwarding Quotation · '+e(q.mode)+'</div></div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
       '<table class="qp-card" style="width:100%;border-collapse:collapse;border-top:2px solid #111;border-bottom:1px solid #111"><tr><td style="padding:7px 8px;font-size:18px;font-weight:800;width:150px">Quotation No</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;'+(q.number ? "" : "color:#92400E")+'">'+e(number)+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:70px">Date</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.quote_date))+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:120px">Valid upto</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.valid_until))+'</td></tr></table>'+
       '<div class="qp-card" style="display:grid;grid-template-columns:1fr auto;gap:16px;padding:8px 8px 10px;border-bottom:1px solid #111"><div><div style="font-weight:800;font-size:13px">To,</div><div style="font-size:13px;font-weight:600">'+e(q.party_name)+'</div><div style="font-size:12px;white-space:pre-line">'+e(hd.billing_address || "")+'</div>'+
         ((hd.contact_person || hd.contact_mobile || hd.contact_email) ? '<div style="font-size:11px;color:#334155;margin-top:4px">Attn: '+e([hd.contact_person, hd.contact_mobile, hd.contact_email].filter(Boolean).join(" · "))+'</div>' : '')+(hd.customer_gstin ? '<div style="font-size:11px;color:#334155">GSTIN: '+e(hd.customer_gstin)+'</div>' : '')+'</div>'+
@@ -16863,15 +16955,16 @@ if(document.readyState !== "loading") initChatWidget();
           (docCcy !== "INR" && docRate ? '<div style="display:flex;justify-content:space-between;padding:5px 2px;font-size:11px;color:#334155"><span>Equivalent in '+e(docCcy)+' @ '+num2(docRate)+'</span><b>'+e(docCcy)+' '+num2(rounded/docRate)+'</b></div>' : '')+'</div></div>'+
       '<div class="qp-card" style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;border-top:1px solid #111;padding:10px 4px"><div><div style="font-weight:800;font-size:13px;margin-bottom:6px">Terms &amp; Conditions (Summary)</div><div style="font-size:11.5px;line-height:1.7">'+check+'<b>Rate Validity:</b> Until '+e(dmy(q.valid_until))+(hd.payment_terms ? '<br>'+check+'<b>Payment Terms:</b> '+e(hd.payment_terms) : '')+termLines.map(t=>'<br>'+check+e(t)).join("")+'</div></div>'+
         '<div style="border-left:1px solid #CBD5E1;padding-left:14px"><div style="font-weight:800;font-size:12px;margin-bottom:4px">Notes:</div><ul style="font-size:10.5px;color:#475569;margin:0;padding-left:16px;line-height:1.6"><li>Space &amp; rates are subject to availability at the time of booking.</li><li>Additional charges may apply for customs clearance, destination delivery and special handling.</li>'+(withTax ? '<li>GST is shown as applicable on the taxable charges; final tax follows the invoice.</li>' : '<li>This is a non-taxable quotation: applicable taxes, if any, will be charged extra as per law.</li>')+(foreign.length ? '<li>Foreign-currency charges are converted to INR at the rates shown; the invoice uses the rate on the date of billing.</li>' : '')+'<li>This is a system generated quotation.</li></ul></div></div>'+
-      '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#475569"><div>Prepared by: <b>'+e(q.prepared_by_name||"—")+'</b></div><div>'+(q.approved_by_name ? 'Approved by: <b>'+e(q.approved_by_name)+'</b>'+(q.approved_at ? " · "+e(dmy(q.approved_at)) : "") : '<b>Not yet approved.</b>')+'</div></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#475569"><div>Prepared by: <b>'+e(q.prepared_by_name||"—")+'</b></div><div>'+(q.approved_by_name ? 'Approved by: <b>'+e(q.approved_by_name)+'</b>'+(q.approved_at ? " · "+e(dmy(q.approved_at)) : "") : '<b>Not yet approved.</b>')+'</div></div><div class="qp-printed" style="margin-top:6px;font-size:10px;color:#64748B;text-align:right">Printed on '+printedStamp()+'</div>'+
       (q.job_number ? '<div style="margin-top:10px;font-size:11px;color:#14532D">Converted to job <b>'+e(q.job_number)+'</b></div>' : '')+'</div></div>';
   }
-  (function printCss(){ const st = document.createElement("style"); st.textContent = ".qp-wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden}.qp-wm svg{max-height:100%}@media print{ body *{visibility:hidden!important} #quotPrintZone, #quotPrintZone *{visibility:visible!important} #quotPrintZone{position:absolute!important;left:0;top:0;width:100%!important;max-width:none!important;box-shadow:none!important;border:0!important;margin:0!important} .qp-card{break-inside:avoid} .qp-doc *{-webkit-print-color-adjust:exact;print-color-adjust:exact} @page{size:A4;margin:10mm} }"; document.head.appendChild(st); })();
+  (function printCss(){ const st = document.createElement("style"); st.textContent = ".qp-wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden}.qp-wm svg{max-height:100%}@media print{ body *{visibility:hidden!important} #quotPrintZone, #quotPrintZone *{visibility:visible!important} #quotPrintZone{position:absolute!important;left:0;top:0;width:100%!important;max-width:none!important;box-shadow:none!important;border:0!important;margin:0!important} .qp-card{break-inside:avoid} .qp-doc *{-webkit-print-color-adjust:exact;print-color-adjust:exact} @page{size:A4;margin:0} #quotPrintZone{padding:10mm!important;box-sizing:border-box!important} }"; document.head.appendChild(st); })();
   async function openView(id, print, mode){
     let q; try{ q = await api("GET","/api/quotations/"+id); }catch(e){ say("Could not open quotation", e.message); return; }
     if(!Q.m.customers.length) await loadMasters().catch(()=>{});
     const me = Q.me || await api("GET","/api/auth/me").catch(()=>({organization_name:""}));
     if(Q.logo === undefined) Q.logo = (await api("GET","/api/company/logo").catch(()=>({logo:null}))).logo || null;
+    if(Q.prof === undefined) Q.prof = (await api("GET","/api/company/doc-profile").catch(()=>({}))).print_profile || {};
     const scr = document.getElementById("s-quotation-print"); const zone = document.getElementById("quotPrintZone"); if(!scr || !zone) return;
     scr.dataset.qid = q.id; Q.viewRec = q;
     const taxed = hasTaxedLines(q);
@@ -22610,7 +22703,7 @@ body.job-readonly #jlBanner{display:flex}
     root.querySelectorAll("input,select,textarea,button").forEach(el=>{
       if(el.closest("[data-ro-ok]") || el.matches(KEEP)) return;
       const isBtn = el.tagName === "BUTTON";
-      if(isBtn && !(WRITE_BTN.test((el.textContent || "").trim()) || el.matches("[data-cd-rowsave],[data-cd-new],[data-chj-move],[data-chj-unmove],[data-chj-close],[data-chj-reopen],[data-chj-fdel]") || (el.hasAttribute("data-bk") && ["back","preview","print"].indexOf(el.getAttribute("data-bk")) < 0))) return;
+      if(isBtn && !(WRITE_BTN.test((el.textContent || "").trim()) || el.matches("[data-cd-rowsave],[data-cd-new],[data-chj-move],[data-chj-unmove],[data-chj-close],[data-chj-reopen],[data-chj-fdel]") || (el.hasAttribute("data-bk") && ["back","preview","print"].indexOf(el.getAttribute("data-bk")) < 0) || (el.hasAttribute("data-qa") && ["history","audit","toggle","more"].indexOf(el.getAttribute("data-qa")) < 0))) return;
       if(!el.disabled){ el.disabled = true; el.setAttribute("data-jl-dis", "1"); }
     });
   }
@@ -22622,7 +22715,7 @@ body.job-readonly #jlBanner{display:flex}
     else if(b.parentNode !== root){ root.insertBefore(b, root.firstChild); }
     const h = L.hold || {};
     b.innerHTML = '<span><b>Read-only.</b> ' + esc(h.label || h.job_number || L.job) + ' is being processed by <b>' + esc(h.user_name || "another user") + '</b>' + (h.started_at ? ' since ' + esc(when(h.started_at)) : '') + '. You can view it but not change it.</span><span class="jl-sp"></span>' +
-      '<button class="btn btn-pri btn-sm" type="button" id="jlReq2" data-ro-ok>Request editing access</button>' + (L.canOverride ? '<button class="btn btn-out btn-sm" type="button" id="jlTake2" data-ro-ok>Take over editing</button>' : "");
+      '<button class="btn btn-pri btn-sm" type="button" id="jlReq2" data-ro-ok>Request editing access</button>' + (L.canOverride ? '<button class="btn btn-out btn-sm" type="button" id="jlTake2" data-ro-ok style="color:var(--rd)">Kill / Force Unlock</button>' : "");
   }
   function setReadOnly(holder){
     L.readonly = true; L.hold = holder || L.hold; stopBeat();
@@ -22674,14 +22767,16 @@ body.job-readonly #jlBanner{display:flex}
 
   /* ---- pop-ups ---- */
   const isInv = k=> String(k || "").indexOf("INV:") === 0;
+  const isQt = k=> String(k || "").indexOf("QT:") === 0;
+  const isTx = k=> isInv(k) || isQt(k);
   function conflict(h){
     h = h || L.hold || {}; L.canOverride = L.canOverride || false;
     if(Date.now() - L.lastModal < 1500) return; L.lastModal = Date.now();
-    const inv = isInv(h.job_number || L.job), noun = inv ? "invoice" : "job";
-    window.openModal({title:(inv ? "Invoice" : "Job") + " Already Being Processed", bodyHTML:'<div class="ib ib-am" style="margin-bottom:10px">This ' + noun + ' is currently being processed by <b>' + esc(h.user_name) + '</b>.</div>' +
-      '<table class="jl-tbl"><tr><td>' + (inv ? "Invoice" : "Job Number") + '</td><td><b>' + esc(h.label || h.job_number || L.job) + '</b></td></tr><tr><td>Job Type</td><td>' + esc(h.job_type || "") + '</td></tr><tr><td>Started At</td><td>' + esc(when(h.started_at)) + '</td></tr></table>' +
+    const key = h.job_number || L.job, inv = isInv(key), qt = isQt(key), noun = inv ? "invoice" : qt ? "quotation" : "job";
+    window.openModal({title:(inv ? "Invoice" : qt ? "Quotation" : "Job") + " Already Being Processed", bodyHTML:'<div class="ib ib-am" style="margin-bottom:10px">This ' + noun + ' is currently being processed by <b>' + esc(h.user_name) + '</b>.</div>' +
+      '<table class="jl-tbl"><tr><td>' + (inv ? "Invoice" : qt ? "Quotation" : "Job Number") + '</td><td><b>' + esc(h.label || h.job_number || L.job) + '</b></td></tr><tr><td>Job Type</td><td>' + esc(h.job_type || "") + '</td></tr><tr><td>Started At</td><td>' + esc(when(h.started_at)) + '</td></tr></table>' +
       '<p style="margin-top:10px;font-size:12.3px;color:var(--g6)">Please contact the current user or request access before making changes.</p>',
-      footHTML:'<button class="btn btn-out" id="jlCancel" type="button">Cancel</button><button class="btn btn-out" id="jlRO" type="button">Open in Read-Only Mode</button>' + (L.canOverride ? '<button class="btn btn-out" id="jlTake" type="button">Take over editing</button>' : "") + '<button class="btn btn-pri" id="jlReq" type="button">Request Editing Access</button>'});
+      footHTML:'<button class="btn btn-out" id="jlCancel" type="button">Cancel</button><button class="btn btn-out" id="jlRO" type="button">Open in Read-Only Mode</button>' + (L.canOverride ? '<button class="btn btn-out" id="jlTake" type="button" style="color:var(--rd)">Kill / Force Unlock</button>' : "") + '<button class="btn btn-pri" id="jlReq" type="button">Request Editing Access</button>'});
   }
   function askHolder(q){
     const dirty = (window.NAV_GUARDS || []).some(g=>{ try{ return g(); }catch(e){ return false; } });
@@ -22704,21 +22799,26 @@ body.job-readonly #jlBanner{display:flex}
   }
   function reopen(){
     const job = L.job, scr = document.body.dataset.screen; if(!job) return; L.readonly = true; stopPoll(); clearReadOnly(); L.job = null;
-    if(isInv(job) && window.BK && BK.openDoc) BK.openDoc(Number(job.slice(4))); else window.go(scr, {jobNo:job});
+    if(isInv(job) && window.BK && BK.openDoc) BK.openDoc(Number(job.slice(4)));
+    else if(isQt(job) && window.QK){ call("GET", "/api/quotations/" + job.slice(3)).then(r=>{ if(r.ok){ window.QK.pendingOpen = r.data; window.go("quotation-new"); } }); }
+    else window.go(scr, {jobNo:job});
   }
   async function takeOver(){
-    const reason = window.prompt("Reason for taking over editing of " + L.job + " (the current editor is told):") || ""; if(reason.trim().length < 3) return;
+    const who = (L.hold && L.hold.user_name) || "the current editor", what = (L.hold && L.hold.label) || L.job;
+    if(!window.confirm("Kill / Force Unlock " + what + "?\n\n" + who + "'s editing session will be ended and any changes " + who + " has not saved will be lost. " + who + " is told that the session was interrupted.\n\nContinue?")) return;
+    const reason = window.prompt("Reason for the force unlock of " + what + " (kept in the audit trail):") || ""; if(reason.trim().length < 3) return;
     const job = L.job, r = await call("POST", path(job, "/takeover"), {reason:reason.trim(), tab_id:TAB});
     if(r.ok && r.data && r.data.acquired){ say("You are now the editor", job, "success"); reopen(); } else say("Could not take over", (r.data && r.data.detail) || "Not allowed", "error");
   }
   /* invoices: the draft shown on an invoice / debit note / purchase invoice screen is locked like a job. Found by looking, so the invoice screens themselves stay untouched. */
-  const INV_SCREENS = ["s-invoice-new", "s-debit-note-new", "s-purchase-invoice-new"];
+  const INV_SCREENS = ["s-invoice-new", "s-debit-note-new", "s-purchase-invoice-new"], TX_SCREENS = INV_SCREENS.concat(["s-quotation-new"]);
   function syncInvoice(){
-    const on = INV_SCREENS.some(id=>{ const e = document.getElementById(id); return e && e.classList.contains("on"); });
-    const d = on && window.BK && BK.state && BK.state.doc;
-    const key = d && d.status === "DRAFT" && d.id ? "INV:" + d.id : null;
-    if(key && L.job !== key){ if(!L.job || isInv(L.job)) enter(key); }
-    else if(!key && isInv(L.job)) leave();
+    const shown = id=>{ const e = document.getElementById(id); return e && e.classList.contains("on"); };
+    const d = INV_SCREENS.some(shown) && window.BK && BK.state && BK.state.doc;
+    const qr = shown("s-quotation-new") && window.QK && QK.rec;
+    const key = d && d.status === "DRAFT" && d.id ? "INV:" + d.id : (qr && qr.id && qr.editable ? "QT:" + qr.id : null);
+    if(key && L.job !== key){ if(!L.job || isTx(L.job)) enter(key); }
+    else if(!key && isTx(L.job)) leave();
   }
   setInterval(syncInvoice, 1500);
   /* a refused write (HTTP 423) from any screen explains itself and turns the screen read-only */
@@ -22739,7 +22839,9 @@ body.job-readonly #jlBanner{display:flex}
     const t = e.target.closest && e.target.closest("#jlCancel,#jlRO,#jlReq,#jlReq2,#jlTake,#jlTake2,[data-jl-answer],#jlStayBtn,#jlReload"); if(!t) return;
     if(t.id === "jlStayBtn"){ window.closeModal(); return; }
     if(t.id === "jlReload"){ window.closeModal(); const job = L.job; if(!job) return;
-      if(isInv(job) && window.BK && BK.openDoc){ const id = Number(job.slice(4)); L.job = null; BK.openDoc(id); } else { L.job = null; window.go(document.body.dataset.screen, {jobNo:job}); } return; }
+      if(isInv(job) && window.BK && BK.openDoc){ const id = Number(job.slice(4)); L.job = null; BK.openDoc(id); }
+      else if(isQt(job) && window.QK){ L.job = null; call("GET", "/api/quotations/" + job.slice(3)).then(r=>{ if(r.ok){ window.QK.pendingOpen = r.data; window.go("quotation-new"); } }); }
+      else { L.job = null; window.go(document.body.dataset.screen, {jobNo:job}); } return; }
     if(t.id === "jlCancel"){ window.closeModal(); if(L.readonly && window.navBack) window.navBack("dashboard"); }
     else if(t.id === "jlRO"){ window.closeModal(); }
     else if(t.id === "jlReq" || t.id === "jlReq2"){ window.closeModal(); requestAccess(); }
@@ -22749,6 +22851,8 @@ body.job-readonly #jlBanner{display:flex}
       call("POST", "/api/job-locks/requests/" + t.dataset.jlId + "/respond", {approve:t.dataset.jlAnswer === "1"}).then(()=>{ if(t.dataset.jlAnswer === "1") tick(); });
     }
   });
+  /* signing out gives every lock back first, while the session is still valid (the server also releases them on logout) */
+  document.addEventListener("click", e=>{ const it = e.target.closest && e.target.closest(".hdr-menu-item"); if(it && /sign out/i.test(it.textContent || "") && L.job && !L.readonly){ call("POST", path(L.job, "/release"), {tab_id:TAB}, true).catch(()=>{}); } }, true);
   /* leaving the browser tab gives the lock back (another open tab of the same user keeps it alive) */
   window.addEventListener("pagehide", ()=>{ if(L.job && !L.readonly) call("POST", path(L.job, "/release"), {tab_id:TAB}, true).catch(()=>{}); });
   /* unsaved changes: the browser asks before the tab is closed or reloaded */
@@ -22759,7 +22863,7 @@ body.job-readonly #jlBanner{display:flex}
     const r = baseGo.apply(this, arguments);
     if(window.companyFill){ setTimeout(()=>window.companyFill(document.querySelector(".scr.on")), 60); setTimeout(()=>window.companyFill(document.querySelector(".scr.on")), 900); }
     const job = (screen === "job-detail" || screen === "cha-job") && opts && opts.jobNo;
-    if(job) enter(job); else if(L.job && !(isInv(L.job) && INV_SCREENS.indexOf("s-" + screen) > -1)) leave();
+    if(job) enter(job); else if(L.job && !(isTx(L.job) && TX_SCREENS.indexOf("s-" + screen) > -1)) leave();
     return r;
   };
   window.JobLock = {state:L, tab:TAB, enter, leave, tick, requestAccess};
