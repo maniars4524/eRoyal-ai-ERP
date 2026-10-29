@@ -272,3 +272,10 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - CHECKLIST + ANNEXURE C: GET .../checklist (cha_checklist.py: duty working, duty in words, SW info, statements) and .../annexure-c. Checklist tab: "Generate checklist" (+ "Annexure C" on Export) opens a printable page: Print / Save as PDF and Download Word (.doc). Annexure C1 form extended (seal agency, packages, weights, rotation, AWB).
 - TESTS: pytest 274 passed; e2e chadocs, cha, importtabs, exporttabs, appinstall, menuops, usermenu, fjcha, chareports pass.
 - STILL OPEN: Tailscale HTTPS, ETP tab (needs screenshot), Import Licence / ADD / S/W fields (assumed), true .docx output (current Word file is HTML .doc), checklist layout not yet compared against the sample PDFs line by line, AMS/ACI/ISF skipped.
+
+## 2026-10-29 (night 3) - permanent public HTTPS link (Tailscale Funnel)
+- PUBLIC LINK (no install needed by users): https://desktop-touf7i0.tailf957ab.ts.net/erp/login - Tailscale Funnel proxies to http://127.0.0.1:8000 on this PC. Works from any network; the PC and the ERP on :8000 must be running. Funnel setting persists across restarts.
+- It is HTTPS, so the "Download eSway App" / Install button now works on Android and Windows browsers (not yet tried on a device).
+- Set up: tailnet ACL got a nodeAttrs entry (target autogroup:member, attr funnel); Funnel enabled via the Tailscale link; started with `tailscale funnel --bg 8000`. Status: `tailscale funnel status`. Stop public access: `tailscale funnel --https=443 off`.
+- Tailscale-only address (needs Tailscale installed): http://desktop-touf7i0:8000. The old Cloudflare quick-tunnel link in PUBLIC_URL.txt is dead.
+- Others get access with an ERP user (license number + username + password) created under Settings > Users, never the owner's Tailscale or admin login.
