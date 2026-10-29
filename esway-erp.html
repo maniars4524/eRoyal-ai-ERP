@@ -1217,6 +1217,10 @@ tbody tr:hover{background:var(--g0)}
   .login-card{width:calc(100vw - 24px) !important;max-width:420px;margin:12px auto}
   .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .g2,.g3,.g4,.fr{grid-template-columns:1fr !important}
+  .dash-r1,.dash-body-grid{grid-template-columns:minmax(0,1fr) !important}
+  .dash-r2{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .dash-carousel{min-width:0}
+  #kpiDetailPanel .cb{overflow-x:auto}
   .ph{flex-wrap:wrap}.pa{flex-wrap:wrap;gap:6px}
   #modalBox,.modal-box{width:calc(100vw - 16px) !important;max-width:none !important;margin:8px auto}
   .drawer,.lic-drawer,.jl-drawer{width:100vw !important;max-width:100vw !important}
@@ -1757,7 +1761,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="dash-main-col" style="min-width:0">
 
 <!-- ── TOP KPI ROW ── -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+<div class="dash-r2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
 
   <div class="card kpi-clickable kpi-flip" data-kpi-select="jobs" style="border-left:4px solid var(--bl);margin:0;background:linear-gradient(150deg,#fff 45%,var(--blt) 165%)" title="Show Active Jobs breakdown below">
     <button class="kpi-flip-btn" type="button" data-flip title="Flip for breakdown"><svg class="ic" data-icon="refresh-cw"></svg></button>
@@ -1923,7 +1927,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- ── EXECUTIVE DASHBOARD CAROUSEL: FILTERS ── -->
 <!-- decorative dashboard filters removed: they did not filter anything; they return with the reports module -->
 
-<div style="display:grid;grid-template-columns:1fr 340px;gap:12px;margin-bottom:14px">
+<div class="dash-r1" style="display:grid;grid-template-columns:1fr 340px;gap:12px;margin-bottom:14px">
 
   <!-- Left: Executive Dashboard Carousel -->
   <div class="card dash-carousel" id="dashCarousel" style="margin:0">
@@ -1970,7 +1974,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <!-- ── BOTTOM 3-COLUMN SECTION ── -->
-<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px;margin-bottom:14px">
+<div class="dash-r1" style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px;margin-bottom:14px">
 
   <!-- Recent Jobs -->
   <div class="card" style="margin:0">
@@ -2019,7 +2023,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <!-- ── BOTTOM ROW: P&L + Pending Tasks ── -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div class="dash-r1" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
 
   <div class="card" style="margin:0">
     <div class="ch">
@@ -2068,11 +2072,6 @@ tbody tr:hover{background:var(--g0)}
   <div class="card" style="margin:0">
     <div class="ch"><div class="ct"><svg class="ic" data-icon="calendar-check" style="color:var(--tl)"></svg>Calendar</div><span class="ta" style="font-size:10.5px" data-go="meetings">View All</span></div>
     <div style="padding:8px 14px 0;font-size:10.3px;color:var(--g5)">Today · <span id="dashCalToday"></span></div><div style="padding:20px 14px;text-align:center;color:var(--g5);font-size:11.5px">No meetings scheduled</div>
-  </div>
-
-  <div class="card" style="margin:0">
-    <div class="ch"><div class="ct"><svg class="ic" data-icon="clock" style="color:var(--g6)"></svg>Recent Activity</div><span class="ta" style="font-size:10.5px" data-go="activity">View All</span></div>
-    <div style="padding:20px 14px;text-align:center;color:var(--g5);font-size:11.5px">No recent activity yet</div>
   </div>
 
 </div><!-- /dash-side-col -->
@@ -16048,7 +16047,6 @@ if(document.readyState !== "loading") initChatWidget();
     set("Today's Tasks", side.tasks.length ? side.tasks.map((t, i)=>row('<b>'+esc2(t.title)+'</b><div style="font-size:11px;color:'+(t.overdue ? "var(--rd)" : "var(--g5)")+'">'+(t.overdue ? "Overdue · " : "Due today · ")+esc2(t.due)+(t.notes ? " · "+esc2(t.notes) : "")+'</div>', i, "tasks")).join("") : empty("No tasks for today"));
     set("Pending Approvals", side.approvals.length ? side.approvals.map((a, i)=>row('<b>'+esc2(a.type)+' · '+esc2(a.ref)+'</b><div style="font-size:11px;color:var(--g5)">'+esc2(a.party)+' · from '+esc2(a.by)+(a.at ? ' · '+ago(a.at) : "")+'</div>', i, "approvals")).join("") : empty("Nothing pending your approval"));
     set("Notifications", side.notifications.length ? side.notifications.map((n, i)=>row('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:'+(n.kind === "ok" ? "var(--gr)" : "var(--rd)")+'"></span>'+esc2(n.text)+'<div style="font-size:11px;color:var(--g5)">'+ago(n.at)+'</div>', i, "notifications")).join("") : empty("No notifications"));
-    set("Recent Activity", side.activity.length ? side.activity.map((a, i)=>row(esc2(a.text)+'<div style="font-size:11px;color:var(--g5)">'+esc2(a.by)+' · '+ago(a.at)+'</div>', i, "activity")).join("") : empty("No recent activity yet"));
     const badge = document.getElementById("alertBadge");
   }
   document.addEventListener("click", e=>{

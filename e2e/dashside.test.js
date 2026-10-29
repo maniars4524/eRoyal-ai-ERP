@@ -46,10 +46,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // the side lists
   const viewAll = t => card(t).querySelector("[data-go]").dataset.go;
-  check("each side widget's View All opens its own page, none opens the shipment list", [viewAll("Today's Tasks"), viewAll("Pending Approvals"), viewAll("Notifications"), viewAll("Calendar"), viewAll("Recent Activity")].join(",") === "crm-engagement,approvals,notifications,meetings,activity");
+  check("each side widget's View All opens its own page, none opens the shipment list", [viewAll("Today's Tasks"), viewAll("Pending Approvals"), viewAll("Notifications"), viewAll("Calendar")].join(",") === "crm-engagement,approvals,notifications,meetings");
   check("Pending Approvals lists the quotation waiting for the user, with its party and who submitted it", /Quotation/.test(text2(card("Pending Approvals"))) && /Acme Exports/.test(text2(card("Pending Approvals"))), text2(card("Pending Approvals")));
   check("Today's Tasks lists the follow-up due today", /Call/.test(text2(card("Today's Tasks"))) && /Due today/.test(text2(card("Today's Tasks"))), text2(card("Today's Tasks")));
-  check("Recent Activity lists what happened", /Quotation submitted/i.test(text2(card("Recent Activity"))), text2(card("Recent Activity")));
+  check("the dashboard no longer shows a Recent Activity card (password changes and the like stay off it)", !card("Recent Activity"));
   function text2(c) { return c ? c.textContent.replace(/\s+/g, " ") : ""; }
 
   // the pages behind View All

@@ -188,7 +188,7 @@ def brand_file(name: str) -> FileResponse:
 # ---- installable app (PWA): manifest, service worker and icons. Data is never cached by the service worker; it only keeps the icons and an offline page.
 PWA_DIR = Path(__file__).resolve().parents[2] / "frontend" / "pwa"
 PWA_FILES = {"icon-192.png": "image/png", "icon-512.png": "image/png", "icon-maskable-512.png": "image/png", "apple-touch-icon.png": "image/png", "offline.html": "text/html"}
-PWA_MANIFEST = {"name": "eSway ERP 2.0", "short_name": "eSway", "description": "Freight forwarding, customs (CHA), transport and accounts", "start_url": "/erp", "scope": "/", "display": "standalone", "orientation": "any",
+PWA_MANIFEST = {"name": "eSway ERP 2.0", "short_name": "eSway", "description": "Freight forwarding, customs (CHA), transport and accounts", "id": "/erp", "start_url": "/erp/login", "scope": "/", "display": "standalone", "orientation": "any",
                 "background_color": "#0B1F3A", "theme_color": "#0B1F3A", "lang": "en",
                 "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}, {"src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
                           {"src": "/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}],

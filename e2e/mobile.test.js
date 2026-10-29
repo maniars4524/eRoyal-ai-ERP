@@ -11,7 +11,7 @@ const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name
 (async () => {
   // PWA pieces
   const man = await (await fetch(BASE + "/manifest.webmanifest")).json();
-  check("the web app manifest is served (standalone, start /erp, 192 + 512 + maskable icons)", man.display === "standalone" && man.start_url === "/erp" && man.icons.some(i => i.sizes === "192x192") && man.icons.some(i => i.sizes === "512x512") && man.icons.some(i => i.purpose === "maskable"), JSON.stringify(man).slice(0, 120));
+  check("the web app manifest is served (standalone, start /erp, 192 + 512 + maskable icons)", man.display === "standalone" && man.start_url === "/erp/login" && man.icons.some(i => i.sizes === "192x192") && man.icons.some(i => i.sizes === "512x512") && man.icons.some(i => i.purpose === "maskable"), JSON.stringify(man).slice(0, 120));
   const sw = await fetch(BASE + "/sw.js");
   check("the service worker is served with scope /", sw.status === 200 && sw.headers.get("service-worker-allowed") === "/" && /\/api\//.test(await sw.text()));
   check("the icons and the offline page are served", (await Promise.all(["icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png", "offline.html"].map(n => fetch(BASE + "/pwa/" + n)))).every(r => r.status === 200));
@@ -42,6 +42,7 @@ const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name
       await page.evaluate((n, a) => window.go(n, a ? { jobNo: a } : undefined), name, arg); await sleep(2200);
       const o = await overflow(page);
       check(`${w}x${h} ${name} fits the screen (no horizontal scroll)`, o.sw <= o.cw + 1, JSON.stringify(o));
+      if (phone && name === "dashboard") { const cw = await page.evaluate(() => { const c = document.getElementById("dashCarousel"); return c ? [Math.round(c.getBoundingClientRect().width), document.documentElement.clientWidth] : null; }); check(`${w}x${h} the dashboard slide uses the full screen width (not squeezed beside Shipment Mix)`, !!cw && cw[0] >= cw[1] * 0.8, JSON.stringify(cw)); }
     }
     if (phone) {
       await page.evaluate(() => window.go("dashboard")); await sleep(800);
