@@ -88,6 +88,10 @@ def breakup_text(breakup, side: str) -> str:
 def side_description(row, sell: bool) -> str:
     """Description of a job charge on a document: its own remarks plus the container-wise break-up for that side."""
     base = (row.description or "").strip()
+    pct = getattr(row, "sell_pct" if sell else "buy_pct", None)
+    if pct is not None and row.uom in ("% of Freight", "% of Other Charges"):         # a percentage charge says what it is a percentage of
+        what = f"{Decimal(pct).normalize():f}% of {'freight' if row.uom == '% of Freight' else 'other charges'}"
+        return (f"{base} ({what})" if base else f"{row.charge_name} — {what}")[:240]
     text = breakup_text(row.breakup, "sell" if sell else "buy")
     if not text:
         return base

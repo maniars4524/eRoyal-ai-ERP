@@ -9321,7 +9321,7 @@ function crmNotify(title, sub, icon, color){
 
 /* ---- in-memory data model (small seed so the workflow is visible immediately) ---- */
 const CRM_LEADS = [];
-const CRM_ENQUIRIES = [];
+const CRM_ENQUIRIES = []; window.CRM_ENQUIRIES = CRM_ENQUIRIES;
 const CRM_OPPORTUNITIES = [];
 const CRM_BOOKINGS = [];   // lightweight CRM-side booking record — does not touch the core Booking module
 const CRM_CUSTOMERS = [];  // auto-created customers, tracked here only so we never duplicate one
@@ -9525,6 +9525,7 @@ function renderCrmEnquiry(){
         </select>
       </td>
       <td class="no-print" style="white-space:nowrap">
+        <button class="btn btn-out btn-sm" data-crm-enq-open="${esc(e.id)}">View / Edit</button>
         ${e.leadId ? `<button class="btn btn-out btn-sm" data-crm-view-lead="${esc(e.leadId)}">Lead</button>` : ""}
         ${e.opportunityId
           ? `<button class="btn btn-out btn-sm" data-crm-view-opp="${esc(e.opportunityId)}">Opportunity</button>`
@@ -9689,6 +9690,54 @@ function crmRenderEnquiryForm(prefill){
     if(typeof renderCrmLead==="function") renderCrmLead();
   });
 }
+
+/* View / edit an enquiry after it was created: places, cargo and every container type with its quantity */
+function crmEnquiryContainers(enq){
+  return Array.isArray(enq.containers) && enq.containers.length ? enq.containers.map(c=>({type:c.type, qty:String(c.qty)})) : (enq.containerType && enq.containerType !== "\u2014" && Number(enq.containerQty) > 0 ? [{type:enq.containerType, qty:String(enq.containerQty)}] : []);
+}
+function crmEqvRow(opts, type, qty){
+  const sel = document.createElement("select"); sel.className = "fc"; sel.style.maxWidth = "240px"; sel.innerHTML = opts;
+  Array.from(sel.options).forEach(o=>o.removeAttribute("selected"));
+  if(type){
+    let o = Array.from(sel.options).find(x=>x.value === type || x.text === type);
+    if(!o){ o = document.createElement("option"); o.textContent = type; sel.appendChild(o); }
+    o.setAttribute("selected", "");
+  }
+  return '<div data-eqv-row style="display:flex;gap:6px;margin-bottom:5px">'+sel.outerHTML+'<input class="fc" type="number" min="0" placeholder="Qty" style="width:90px" value="'+esc(qty || "")+'"><button class="btn btn-out btn-sm" type="button" data-eqv-del>Remove</button></div>';
+}
+async function crmEnquiryModal(id){
+  const enq = CRM_ENQUIRIES.find(e=>e.id === id); if(!enq) return;
+  let codes = [];                                                            // the container types of the Container Type master (the form's own list exists only while the form is open)
+  try{ const r = await fetch("/api/masters/container_type", {headers:{Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}}); if(r.ok) codes = (await r.json()).filter(x=>x.status === "ACTIVE").map(x=>x.code); }catch(e){ codes = []; }
+  if(!codes.length) codes = ["20' GP", "40' GP", "40' HC", "Reefer", "Open Top", "Flat Rack"];
+  const opts = '<option value="">\u2014</option>' + codes.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join("");
+  const f = (k, label, type)=> '<div class="fg"><label class="fl">'+label+'</label><input class="fc" data-eqv="'+k+'"'+(type ? ' type="'+type+'"' : "")+' value="'+esc(enq[k] || "")+'"></div>';
+  const sea = ["Sea", "Multimodal"].includes(enq.modeOfTransport);
+  openModal({title:"Enquiry "+esc(enq.id)+" \u2014 "+esc(enq.company), size:"lg", bodyHTML:
+    '<div style="font-size:12px;color:var(--g6);margin-bottom:8px">'+esc(enq.shipmentType)+" \u00b7 "+esc(enq.modeOfTransport || "")+" \u00b7 "+esc(enq.incoterm || "")+'</div>'+
+    '<div class="fr">'+f("origin", "Place of Receipt")+f("pol", "Port of Loading")+f("pod", "Port of Discharge")+f("destination", "Place of Delivery")+f("finalDelivery", "Final Delivery Location")+'</div>'+
+    '<div class="fr">'+f("commodity", "Commodity")+f("packages", "Packages", "number")+f("grossWeight", "Gross Weight (kg)", "number")+f("volumeCBM", "Volume (CBM)", "number")+'</div>'+
+    (sea ? '<div class="fsec">Containers</div><div id="eqvConts">'+crmEnquiryContainers(enq).map(c=>crmEqvRow(opts, c.type, c.qty)).join("")+'</div><button class="btn btn-out btn-sm" type="button" id="eqvAdd">\uFF0B Add container type</button>' : ""),
+    footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button><button class="btn btn-pri" id="crmEqvSave" data-eqv-id="'+esc(enq.id)+'">Save changes</button>'});
+  window.__eqvOpts = opts;
+}
+document.addEventListener("click", e=>{
+  const o = e.target.closest && e.target.closest("[data-crm-enq-open]"); if(o){ crmEnquiryModal(o.dataset.crmEnqOpen); return; }
+  if(e.target.closest && e.target.closest("#eqvAdd")){ const box = document.getElementById("eqvConts"); if(box) box.insertAdjacentHTML("beforeend", crmEqvRow(window.__eqvOpts || "<option>\u2014</option>", "", "")); return; }
+  const d = e.target.closest && e.target.closest("[data-eqv-del]"); if(d){ d.closest("[data-eqv-row]").remove(); return; }
+  const sv = e.target.closest && e.target.closest("#crmEqvSave"); if(sv){
+    const enq = CRM_ENQUIRIES.find(x=>x.id === sv.dataset.eqvId); if(!enq) return;
+    const before = JSON.stringify([enq.origin, enq.pol, enq.pod, enq.destination, enq.finalDelivery, enq.commodity, enq.packages, enq.grossWeight, enq.volumeCBM, crmEnquiryContainers(enq)]);
+    document.querySelectorAll("[data-eqv]").forEach(i=>{ enq[i.dataset.eqv] = i.value.trim(); });
+    if(document.getElementById("eqvConts")){
+      const rows = []; document.querySelectorAll("#eqvConts [data-eqv-row]").forEach(r=>{ const t = r.querySelector("select").value, q = String(Number(r.querySelector("input").value) || 0); if(t && t !== "\u2014" && Number(q) > 0){ const x = rows.find(y=>y.type === t); if(x) x.qty = String(Number(x.qty) + Number(q)); else rows.push({type:t, qty:q}); } });
+      enq.containers = rows; enq.containerType = rows.length ? rows[0].type : "\u2014"; enq.containerQty = rows.length ? rows[0].qty : "";
+    }
+    const after = JSON.stringify([enq.origin, enq.pol, enq.pod, enq.destination, enq.finalDelivery, enq.commodity, enq.packages, enq.grossWeight, enq.volumeCBM, crmEnquiryContainers(enq)]);
+    if(before !== after) crmLog(enq, "Enquiry details edited (places / cargo / containers)");
+    closeModal(); renderCrmEnquiry(); toast("Enquiry saved", enq.id+" updated");
+  }
+});
 
 function crmMakeOpportunity(enquiryId){
   const enq = CRM_ENQUIRIES.find(e=>e.id===enquiryId);
@@ -16421,7 +16470,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(!Q.me){ Q.me = await api("GET","/api/auth/me").catch(()=>null); }
     const hd = scr.querySelector("thead tr"); if(hd && !hd.dataset.qk){ hd.dataset.qk = "1"; const cells = hd.children; if(cells[7]) cells[7].textContent = "Status / Approval"; }
     const act = q=>{
-      const b = ['<button class="ta" data-qk-open="'+q.id+'">'+(q.editable?"Edit":"View")+' →</button>'];
+      const b = ['<button class="ta" data-qk-open="'+q.id+'">'+"Open"+' →</button>'];
       if(q.effective_status === "SENT"){ b.push('<button class="ta" data-qk-do="accept:'+q.id+'" style="color:var(--gr)">Accept</button>'); b.push('<button class="ta" data-qk-do="reject:'+q.id+'" style="color:var(--rd)">Reject</button>'); }
       if(["SENT","ACCEPTED","REJECTED"].includes(q.status)) b.push('<button class="ta" data-qk-do="lost:'+q.id+'" style="color:var(--rd)">Lost</button>');
       if(["DRAFT","SENT","ACCEPTED","REJECTED"].includes(q.status)) b.push('<button class="ta" data-qk-do="cancel:'+q.id+'" style="color:var(--g6)">Cancel</button>');
@@ -16729,7 +16778,7 @@ if(document.readyState !== "loading") initChatWidget();
   function fillFromRec(r){
     Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", cust_source:(r.header||{}).cust_source || (r.customer_id ? "master" : "direct"), lead_ref:(r.header||{}).lead_ref||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
       ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","net_weight","vehicles"].map(k=>[k, (r.header||{})[k]||""])), containers:Array.isArray((r.header||{}).containers) ? r.header.containers.map(c=>({type:c.type, qty:String(c.qty)})) : []};
-    const mk = l=>({side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
+    const mk = l=>({qty_manual:!!l.qty_manual, side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
     Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk); pairLines();
   }
   async function openForm(rec){
@@ -16789,7 +16838,7 @@ if(document.readyState !== "loading") initChatWidget();
     const cust = Q.m.customers.find(c=>String(c.id) === String(h.customer_id));
     const toLine = l=>{
       const bu = (l.container_breakup||[]).filter(b=>Number(b.qty)>0 && b.type).map(b=>({type:b.type, qty:String(Number(b.qty)), rate:String(Number(b.rate)||0)}));
-      return {side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||null, container_breakup:bu.length ? bu : null, ccy:l.ccy, exch:String(Number(l.exch)||0), rate:String(Number(l.rate)||0), qty:String(Number(l.qty)||0), taxable:!!l.taxable, tax_pct:l.taxable ? String(Number(l.tax_pct)||0) : "0", remarks:l.remarks||""};
+      return {side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||null, container_breakup:bu.length ? bu : null, qty_manual:!!l.qty_manual, ccy:l.ccy, exch:String(Number(l.exch)||0), rate:String(Number(l.rate)||0), qty:String(Number(l.qty)||0), taxable:!!l.taxable, tax_pct:l.taxable ? String(Number(l.tax_pct)||0) : "0", remarks:l.remarks||""};
     };
     return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
       pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,
@@ -16906,7 +16955,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* the company's address, contact and GSTIN under its name (from the company document profile) */
   const qpAddress = ()=>{
     const pr = Q.prof || {}, e = esc2; const addr = String(pr.address || "").split(/\r?\n/).map(x=>x.trim()).filter(Boolean).join(", ");
-    const contact = [pr.phone ? "Tel: "+pr.phone : "", pr.email ? "Email: "+pr.email : "", pr.web || ""].filter(Boolean).join("  \u00b7  "), ids = [pr.gstin ? "GSTIN: "+pr.gstin : "", pr.pan ? "PAN: "+pr.pan : ""].filter(Boolean).join("  \u00b7  ");
+    const contact = [pr.phone ? "Tel: "+pr.phone : ""].filter(Boolean).join("  \u00b7  "), ids = [pr.gstin ? "GSTIN: "+pr.gstin : "", pr.pan ? "PAN: "+pr.pan : ""].filter(Boolean).join("  \u00b7  ");
     return (addr || contact || ids) ? '<div class="qp-addr" style="font-size:10px;color:#475569;line-height:1.4;margin:1px 0 2px;max-width:420px">'+(addr ? e(addr)+"<br>" : "")+(contact ? e(contact)+"<br>" : "")+(ids ? e(ids) : "")+'</div>' : "";
   };
   const printedStamp = ()=>{ const d = new Date(); return d.toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"})+", "+d.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); };
@@ -16934,7 +16983,7 @@ if(document.readyState !== "loading") initChatWidget();
     const check = '<span style="color:#16A34A;font-weight:800">✓</span> ';
     const colspanTotal = withTax ? 8 : 5;   // the Total row must have exactly as many cells as the table has columns
     return '<div class="qp-doc" style="font-family:inherit;color:#0F172A;background:var(--wh);max-width:980px;margin:0 auto;position:relative;padding:4px">'+watermark(q.mode)+'<div style="position:relative;z-index:1">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;gap:12px;align-items:center">'+logoBlock(org, Q.logo)+'<div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div>'+qpAddress()+'<div style="font-size:10.5px;color:#475569">Freight Forwarding Quotation · '+e(q.mode)+'</div></div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="display:flex;gap:12px;align-items:center">'+logoBlock(org, Q.logo)+'<div><div style="font-size:15px;font-weight:800;color:#0B1F3A">'+e(org.organization_name || "Freight Forwarding")+'</div>'+qpAddress()+'</div></div><div style="text-align:right"><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.5px;'+(withTax ? "background:#DBEAFE;color:#1D4ED8" : "background:#FEF3C7;color:#92400E")+'">'+(withTax ? "TAXABLE QUOTATION" : "NON-TAXABLE QUOTATION")+'</span> <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:800;background:#E2E8F0;color:#0F172A">'+e(statusText)+'</span></div></div>'+
       '<table class="qp-card" style="width:100%;border-collapse:collapse;border-top:2px solid #111;border-bottom:1px solid #111"><tr><td style="padding:7px 8px;font-size:18px;font-weight:800;width:150px">Quotation No</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;'+(q.number ? "" : "color:#92400E")+'">'+e(number)+(q.revision_no && !q.number ? " (Rev "+q.revision_no+")" : "")+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:70px">Date</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.quote_date))+'</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:16px;font-weight:800;width:120px">Valid upto</td><td style="padding:7px 8px;border-left:1px solid #111;font-size:13px;font-weight:700;width:110px">'+e(dmy(q.valid_until))+'</td></tr></table>'+
       '<div class="qp-card" style="display:grid;grid-template-columns:1fr auto;gap:16px;padding:8px 8px 10px;border-bottom:1px solid #111"><div><div style="font-weight:800;font-size:13px">To,</div><div style="font-size:13px;font-weight:600">'+e(q.party_name)+'</div><div style="font-size:12px;white-space:pre-line">'+e(hd.billing_address || "")+'</div>'+
         ((hd.contact_person || hd.contact_mobile || hd.contact_email) ? '<div style="font-size:11px;color:#334155;margin-top:4px">Attn: '+e([hd.contact_person, hd.contact_mobile, hd.contact_email].filter(Boolean).join(" · "))+'</div>' : '')+(hd.customer_gstin ? '<div style="font-size:11px;color:#334155">GSTIN: '+e(hd.customer_gstin)+'</div>' : '')+'</div>'+
@@ -17039,8 +17088,8 @@ if(document.readyState !== "loading") initChatWidget();
       if(kind === "revise"){ const r = await api("POST","/api/quotations/"+id+"/revise"); say("Revision created", "Revision "+r.revision_no+" is a new draft"); Q.pendingOpen = r; go("quotation-new"); return; }
       if(kind === "edit"){
         const q = await api("GET","/api/quotations/"+id);
-        if(!q.editable){ say("This quotation is locked", "Use Revise Quote to make a new version. Nothing was changed.", "warn"); return; }
-        Q.pendingOpen = q; go("quotation-new"); return;
+        if(!q.editable) say("Opened for viewing", "This quotation can no longer be edited here. Use Preview / Print, or Create revision under More to change it.", "info");
+        Q.pendingOpen = q; go("quotation-new"); return;           // always the Quotation Preparation screen first: from there the user edits, confirms or previews
       }
       if(kind === "issue"){ if(!window.confirm("Issue this approved quotation to the client? It gets its number and is locked.")) return; const s = await api("POST","/api/quotations/"+id+"/send"); say("Quotation issued", s.number); return refresh(s.id); }
       if(kind === "accept" || kind === "reject"){ if(!window.confirm(kind==="accept" ? "Record this quotation as ACCEPTED by the client?" : "Record this quotation as REJECTED by the client?")) return; const q = await api("POST","/api/quotations/"+id+"/"+kind); say("Quotation "+(kind==="accept"?"accepted":"rejected"), q.number); return refresh(q.id); }
@@ -17061,7 +17110,7 @@ if(document.readyState !== "loading") initChatWidget();
 
   /* ---------- events ---------- */
   document.addEventListener("click", async e=>{
-    const o = e.target.closest("[data-qk-open]"); if(o){ e.stopPropagation(); const id = Number(o.dataset.qkOpen); closeModalSafe(); const q = Q.list.find(x=>x.id===id); if(q && q.editable && q.status === "DRAFT" && ["DRAFT","REJECTED"].includes(q.approval_status)) listAct("edit", id); else openView(id); return; }
+    const o = e.target.closest("[data-qk-open]"); if(o){ e.stopPropagation(); const id = Number(o.dataset.qkOpen); closeModalSafe(); listAct("edit", id); return; }
     const d = e.target.closest("[data-qk-do]"); if(d){ e.stopPropagation(); const [k, id] = d.dataset.qkDo.split(":"); listAct(k, Number(id)); return; }
     const fl = e.target.closest("[data-qk-flip]"); if(fl){ e.stopPropagation(); let sf = true; try{ sf = localStorage.getItem("esway_qk_sell_first") !== "0"; }catch(err){} try{ localStorage.setItem("esway_qk_sell_first", sf ? "0" : "1"); }catch(err){} renderAll(true); return; }
     const a = e.target.closest("[data-qa]");
@@ -18673,12 +18722,12 @@ function makePrintFit(){
     const th = (x, a)=> '<th style="padding:4px 6px;font-size:8.5px;text-align:'+(a || "right")+';background:#cfe0f5;border:1px solid '+LINE+'">'+x+'</th>';
     const td = (x, a, b, c)=> '<td style="padding:3px 6px;font-size:8.8px;border:1px solid '+LINE+';text-align:'+(a || "right")+';'+(b ? "font-weight:800;" : "")+(c ? "color:#b32525;" : "")+'">'+x+'</td>';
     const gpc = v=> num(v) < 0;
-    const chargeRow = r=> '<tr>'+td(esc2(r.charge), "left")+td(fmt(r.p_sale))+td(fmt(r.p_cost))+td(fmt(r.p_gp), "right", 0, gpc(r.p_gp))+td(num(r.a_sale) ? fmt(r.a_sale) : "")+td(num(r.a_cost) ? fmt(r.a_cost) : "")+td(fmt(r.a_gp), "right", 0, gpc(r.a_gp))+'</tr>';
-    const summary_ = '<tr style="background:#eef3fa">'+td("Total", "center", 1)+td(fmt(t.p_sale), "right", 1)+td(fmt(t.p_cost), "right", 1)+td(fmt(t.p_gp), "right", 1, gpc(t.p_gp))+td(fmt(t.a_sale), "right", 1)+td(fmt(t.a_cost), "right", 1)+td(fmt(t.a_gp), "right", 1, gpc(t.a_gp))+'</tr>'+
-      '<tr><td colspan="2" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">PROVISIONAL</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">'+fmt(t.p_gp)+' ('+pl.provisional_pct+'%)</td><td style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">ACTUAL</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">'+fmt(t.a_gp)+' ('+pl.actual_pct+'%)</td></tr>'+
-      '<tr><td colspan="2" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">TAX</td><td colspan="2" style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Sale: '+fmt(pl.tax.sale)+'</td><td colspan="2" style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Cost: '+fmt(pl.tax.cost)+'</td><td style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Net: '+fmt(pl.tax.net)+'</td></tr>'+
-      '<tr><td colspan="2" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">CASH POSITION</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">Invoiced: '+fmt(pl.invoiced)+'</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">Received: '+fmt(pl.cash.received)+'</td><td style="padding:5px;text-align:center;border:1px solid '+LINE+'">Paid: '+fmt(pl.cash.paid)+'</td></tr>';
-    const chargeTable = (rows, last)=> '<div style="font-weight:800;margin:8px 0 2px;font-size:9px">CHARGE DETAIL</div><table style="width:100%;border-collapse:collapse"><thead><tr>'+th("CHARGE", "left")+th("P SALE")+th("P COST")+th("P GP")+th("A SALE")+th("A COST")+th("A GP")+'</tr></thead><tbody>'+rows.map(chargeRow).join("")+(last ? summary_ : "")+'</tbody></table>';
+    const chargeRow = r=> '<tr>'+td(esc2(r.charge), "left")+td(esc2(r.basis || ""), "left")+td(esc2(r.qty || ""))+td(fmt(r.p_sale))+td(fmt(r.p_cost))+td(fmt(r.p_gp), "right", 0, gpc(r.p_gp))+td(num(r.a_sale) ? fmt(r.a_sale) : "")+td(num(r.a_cost) ? fmt(r.a_cost) : "")+td(fmt(r.a_gp), "right", 0, gpc(r.a_gp))+'</tr>';
+    const summary_ = '<tr style="background:#eef3fa">'+td("Total", "center", 1)+td("", "center", 1)+td("", "center", 1)+td(fmt(t.p_sale), "right", 1)+td(fmt(t.p_cost), "right", 1)+td(fmt(t.p_gp), "right", 1, gpc(t.p_gp))+td(fmt(t.a_sale), "right", 1)+td(fmt(t.a_cost), "right", 1)+td(fmt(t.a_gp), "right", 1, gpc(t.a_gp))+'</tr>'+
+      '<tr><td colspan="4" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">PROVISIONAL</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">'+fmt(t.p_gp)+' ('+pl.provisional_pct+'%)</td><td style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">ACTUAL</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">'+fmt(t.a_gp)+' ('+pl.actual_pct+'%)</td></tr>'+
+      '<tr><td colspan="4" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">TAX</td><td colspan="2" style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Sale: '+fmt(pl.tax.sale)+'</td><td colspan="2" style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Cost: '+fmt(pl.tax.cost)+'</td><td style="padding:5px;text-align:center;font-weight:700;border:1px solid '+LINE+'">Net: '+fmt(pl.tax.net)+'</td></tr>'+
+      '<tr><td colspan="4" style="padding:5px;text-align:center;font-weight:800;border:1px solid '+LINE+'">CASH POSITION</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">Invoiced: '+fmt(pl.invoiced)+'</td><td colspan="2" style="padding:5px;text-align:center;border:1px solid '+LINE+'">Received: '+fmt(pl.cash.received)+'</td><td style="padding:5px;text-align:center;border:1px solid '+LINE+'">Paid: '+fmt(pl.cash.paid)+'</td></tr>';
+    const chargeTable = (rows, last)=> '<div style="font-weight:800;margin:8px 0 2px;font-size:9px">CHARGE DETAIL</div><table style="width:100%;border-collapse:collapse"><thead><tr>'+th("CHARGE", "left")+th("BASIS", "left")+th("QTY")+th("P SALE")+th("P COST")+th("P GP")+th("A SALE")+th("A COST")+th("A GP")+'</tr></thead><tbody>'+rows.map(chargeRow).join("")+(last ? summary_ : "")+'</tbody></table>';
     const revExp = '<div style="display:flex;gap:0;margin-top:8px"><div style="width:34%"><div style="background:#cfe0f5;text-align:center;font-weight:800;padding:4px;border:1px solid '+LINE+'">REVENUE</div><table style="width:100%;border-collapse:collapse"><thead><tr>'+th("BILL TO", "left")+th("P SALE")+'</tr></thead><tbody>'+pl.revenue.map(r=>'<tr>'+td(esc2(r.bill_to), "left")+td(fmt(r.p_sale))+'</tr>').join("")+'</tbody></table></div>'+
       '<div style="flex:1"><div style="background:#cfe0f5;text-align:center;font-weight:800;padding:4px;border:1px solid '+LINE+';border-left:0">EXPENSE</div><table style="width:100%;border-collapse:collapse"><thead><tr>'+th("VENDOR", "left")+th("CHARGE", "left")+th("P COST")+'</tr></thead><tbody>'+pl.expense.map(r=>'<tr>'+td(esc2(r.vendor), "left")+td(esc2(r.charge), "left")+td(fmt(r.p_cost))+'</tr>').join("")+'</tbody></table></div></div>';
     const per = 22, chunks = []; for(let i = 0; i < pl.lines.length; i += per) chunks.push(pl.lines.slice(i, i + per)); if(!chunks.length) chunks.push([]);
@@ -22902,6 +22951,190 @@ body.job-readonly #jlBanner{display:flex}
     document.body.appendChild(probe); probe.click();
     setTimeout(()=>{ probe.click(); probe.remove(); }, 1400);          // the list screens load their data after the first click: the same click again applies the filter to the loaded list
   }};
+})();
+</script>
+<style id="listKitStyle">
+.lk-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:10px 14px;border-bottom:0.5px solid var(--g2);background:var(--g0)}
+.lk-bar .lk-f{display:flex;flex-direction:column;gap:2px}
+.lk-bar label{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--g5)}
+.lk-bar select,.lk-bar input{padding:5px 8px;border:0.5px solid var(--g3);border-radius:6px;font-size:12px;background:var(--wh);color:var(--g8);min-width:112px}
+.lk-bar .lk-sp{flex:1}
+.lk-count{font-size:11.5px;color:var(--g5);align-self:center}
+.lk-cols{width:100%}
+.lk-cols .lk-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:0.5px solid var(--g1)}
+.lk-cols .lk-row:hover{background:var(--g0)}
+.lk-cols .lk-row label{flex:1;font-size:13px;color:var(--g8);cursor:pointer}
+.lk-cols .lk-mv{display:flex;gap:4px}
+.lk-cols .lk-mv button{width:28px;height:26px;border:0.5px solid var(--g3);background:var(--wh);border-radius:6px;cursor:pointer;color:var(--g6)}
+.lk-cols .lk-mv button:hover{color:var(--bl);border-color:var(--bl)}
+.lk-cols .lk-mv button:disabled{opacity:.35;cursor:default}
+.lk-cols .lk-off label{color:var(--g4);text-decoration:line-through}
+@media (max-width:760px){.lk-bar .lk-f{flex:1 1 140px}.lk-bar select,.lk-bar input{width:100%}}
+</style>
+<script>
+/* ============================================================
+   LIST KIT: every list (Quotations, Invoices, Jobs) can be put in number order, filtered by date / month / company / status, and the user chooses which columns show and in what order
+   (Columns > tick to show / hide, up / down, Apply). It works on the rendered table, so each list keeps its own renderer; the choice is kept per user and per list.
+   ============================================================ */
+(function(){
+  "use strict";
+  const esc = s=> String(s == null ? "" : s).replace(/[&<>"]/g, c=>({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;"}[c]));
+  const CFG = [
+    {key:"quotation", screen:"s-quotation", title:"Quotations", num:/^quote no/i, date:/^date$/i, company:[/^client$/i, /^customer$/i], status:/status/i},
+    {key:"invoice", screen:"s-invoice-list", title:"Invoices", num:/^invoice no/i, date:/^date$/i, company:[/^customer$/i], status:/^status$/i},
+    {key:"job", screen:"s-job-list", title:"Jobs", num:/^job no/i, date:/etd/i, company:[/^shipper$/i, /^consignee$/i], status:/^status$/i}
+  ];
+  const MONTHS = {jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11};
+  function parseDate(t){
+    t = String(t || "");
+    let m = t.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/); if(m && MONTHS[m[2].toLowerCase()] !== undefined) return new Date(+m[3], MONTHS[m[2].toLowerCase()], +m[1]).getTime();
+    m = t.match(/(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+    m = t.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m) return new Date(+m[3], +m[2] - 1, +m[1]).getTime();
+    return 0;
+  }
+  const user = ()=> (window.SESSION_USER && (window.SESSION_USER.id || window.SESSION_USER.username)) || "u";
+  const store = (cfg, val)=>{ const k = "esway_lk_" + user() + "_" + cfg.key; try{ if(val === undefined) return JSON.parse(localStorage.getItem(k) || "null"); if(val === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(val)); }catch(e){ return null; } };
+  const state = {};          // per list: sort, filters
+
+  function listTable(cfg){
+    const scr = document.getElementById(cfg.screen); if(!scr) return null;
+    return Array.from(scr.querySelectorAll("table")).find(t=>t.tHead && t.tHead.rows[0] && t.tHead.rows[0].cells.length >= 4) || null;
+  }
+  function originalHeads(table){
+    const row = table.tHead.rows[0];
+    Array.from(row.cells).forEach((th, i)=>{ if(th.dataset.lkI === undefined){ th.dataset.lkI = String(i); th.dataset.lkName = (th.textContent || "").trim(); } });
+    return Array.from(row.cells).sort((a, b)=> Number(a.dataset.lkI) - Number(b.dataset.lkI)).map(th=>({i:Number(th.dataset.lkI), name:th.dataset.lkName}));
+  }
+  const idxOf = (heads, re)=> { const h = heads.find(x=>x.name && re.test(x.name)); return h ? h.i : -1; };
+
+  function plan(cfg, heads){
+    const saved = store(cfg) || {}; const names = heads.filter(h=>h.name).map(h=>h.name);
+    const order = (saved.order || []).filter(n=>names.indexOf(n) > -1).concat(names.filter(n=>(saved.order || []).indexOf(n) < 0));
+    const hidden = (saved.hidden || []).filter(n=>names.indexOf(n) > -1);
+    return {order, hidden};
+  }
+
+  function apply(cfg){
+    const table = listTable(cfg); if(!table) return; const st = state[cfg.key]; if(!st) return;
+    st.applying = true;
+    try{
+      const heads = originalHeads(table), p = plan(cfg, heads);
+      const pos = {}; p.order.forEach((n, k)=>{ pos[heads.find(h=>h.name === n).i] = k; });
+      const last = heads.length + 5;                               // the unnamed action column stays last
+      const rank = i=> pos[i] !== undefined ? pos[i] : last;
+      const hide = i=> { const h = heads.find(x=>x.i === i); return !!(h && h.name && p.hidden.indexOf(h.name) > -1); };
+      const fix = (tr)=>{
+        const cells = Array.from(tr.children);
+        if(cells.length < heads.length || (cells.length === 1 && cells[0].colSpan > 1)) return false;
+        cells.forEach((c, k)=>{ if(c.dataset.lkI === undefined) c.dataset.lkI = String(k); });
+        cells.sort((a, b)=> rank(Number(a.dataset.lkI)) - rank(Number(b.dataset.lkI)) || Number(a.dataset.lkI) - Number(b.dataset.lkI)).forEach(c=>{ tr.appendChild(c); c.style.display = hide(Number(c.dataset.lkI)) ? "none" : ""; });
+        return true;
+      };
+      fix(table.tHead.rows[0]);
+      const body = table.tBodies[0]; const rows = Array.from(body.rows).filter(tr=>fix(tr));
+      const cell = (tr, i)=> { const c = Array.from(tr.children).find(x=>Number(x.dataset.lkI) === i); return c ? (c.textContent || "").replace(/\s+/g, " ").trim() : ""; };
+      const iNum = idxOf(heads, cfg.num), iDate = idxOf(heads, cfg.date), iSt = idxOf(heads, cfg.status), iCo = cfg.company.map(re=>idxOf(heads, re)).filter(i=>i > -1);
+      // company / status choices come from what the list holds
+      const fill = (id, vals)=>{ const sel = document.getElementById(id); if(!sel) return; const cur = sel.value; const list = Array.from(new Set(vals.filter(Boolean))).sort((a, b)=>a.localeCompare(b)); sel.innerHTML = '<option value="">All</option>' + list.map(v=>'<option>'+esc(v)+'</option>').join(""); sel.value = list.indexOf(cur) > -1 ? cur : ""; };
+      fill("lk-co-"+cfg.key, [].concat(...rows.map(tr=>iCo.map(i=>cell(tr, i)))));
+      fill("lk-st-"+cfg.key, rows.map(tr=>iSt > -1 ? cell(tr, iSt) : ""));
+      const f = st.f, from = f.from ? new Date(f.from).getTime() : 0, to = f.to ? new Date(f.to).getTime() : 0;
+      const mm = f.month ? f.month.split("-") : null;
+      let shown = 0;
+      rows.forEach(tr=>{
+        let ok = true;
+        const d = iDate > -1 ? parseDate(cell(tr, iDate)) : 0;
+        if(from && d < from) ok = false;
+        if(to && (!d || d > to)) ok = false;
+        if(mm){ const dd = new Date(d); if(!d || dd.getFullYear() !== +mm[0] || dd.getMonth() !== +mm[1] - 1) ok = false; }
+        if(f.company && !iCo.some(i=>cell(tr, i) === f.company)) ok = false;
+        if(f.status && (iSt < 0 || cell(tr, iSt) !== f.status)) ok = false;
+        if(f.q && (tr.textContent || "").toLowerCase().indexOf(f.q.toLowerCase()) < 0) ok = false;
+        tr.style.display = ok ? "" : "none"; if(ok) shown++;
+      });
+      const key = st.sortBy === "date" ? (tr=> iDate > -1 ? parseDate(cell(tr, iDate)) : 0) : (tr=> iNum > -1 ? cell(tr, iNum) : "");
+      const dir = st.dir === "asc" ? 1 : -1;
+      const sorted = rows.slice().sort((a, b)=>{ const x = key(a), y = key(b); return dir * (typeof x === "number" ? x - y : String(x).localeCompare(String(y), undefined, {numeric:true})); });
+      sorted.forEach(tr=>body.appendChild(tr));
+      const cnt = document.getElementById("lk-count-"+cfg.key); if(cnt) cnt.textContent = "Showing " + shown + " of " + rows.length;
+    }finally{ setTimeout(()=>{ st.applying = false; }, 60); }
+  }
+
+  function bar(cfg, table){
+    const scr = document.getElementById(cfg.screen); let host = table; while(host.parentNode && host.parentNode !== scr) host = host.parentNode;      // the bar sits above the whole list block, outside what the list redraws
+    if(scr.querySelector('.lk-bar[data-lk="'+cfg.key+'"]')) return;
+    const el = document.createElement("div"); el.className = "lk-bar"; el.dataset.lk = cfg.key;
+    el.innerHTML =
+      '<div class="lk-f"><label>Order by</label><select data-lk="sortBy"><option value="number">Number</option><option value="date">Date</option></select></div>'+
+      '<div class="lk-f"><label>Direction</label><select data-lk="dir"><option value="desc">Latest / highest first</option><option value="asc">Oldest / lowest first</option></select></div>'+
+      '<div class="lk-f"><label>From date</label><input type="date" data-lk="from"></div><div class="lk-f"><label>To date</label><input type="date" data-lk="to"></div>'+
+      '<div class="lk-f"><label>Month</label><input type="month" data-lk="month"></div>'+
+      '<div class="lk-f"><label>Company</label><select id="lk-co-'+cfg.key+'" data-lk="company"><option value="">All</option></select></div>'+
+      '<div class="lk-f"><label>Status</label><select id="lk-st-'+cfg.key+'" data-lk="status"><option value="">All</option></select></div>'+
+      '<div class="lk-f"><label>Search</label><input type="search" data-lk="q" placeholder="any text"></div>'+
+      '<button class="btn btn-out btn-sm" type="button" data-lk-clear>Clear</button><span class="lk-sp"></span><span class="lk-count" id="lk-count-'+cfg.key+'"></span>'+
+      '<button class="btn btn-pri btn-sm" type="button" data-lk-cols>⚙ Columns</button>';
+    host.parentNode.insertBefore(el, host);
+  }
+
+  function columnsPanel(cfg){
+    const table = listTable(cfg); if(!table) return; const heads = originalHeads(table).filter(h=>h.name); const p = plan(cfg, heads.concat([]));
+    let order = p.order.slice(), hidden = p.hidden.slice();
+    const draw = ()=>{
+      document.getElementById("lkColsBody").innerHTML = '<div style="font-size:12px;color:var(--g6);margin-bottom:8px">Tick the columns to show, and use the arrows to put them in the order you want (the first one is the first column on the screen). Then press Apply.</div><div class="lk-cols">'+
+        order.map((n, i)=>'<div class="lk-row'+(hidden.indexOf(n) > -1 ? " lk-off" : "")+'"><input type="checkbox" id="lkc'+i+'" data-lkc="'+i+'"'+(hidden.indexOf(n) > -1 ? "" : " checked")+'><label for="lkc'+i+'">'+esc(n)+'</label><span class="lk-mv"><button type="button" data-lk-up="'+i+'"'+(i === 0 ? " disabled" : "")+' title="Move up">▲</button><button type="button" data-lk-down="'+i+'"'+(i === order.length - 1 ? " disabled" : "")+' title="Move down">▼</button></span></div>').join("")+'</div>';
+    };
+    window.openModal({title:"Choose columns — " + cfg.title, bodyHTML:'<div id="lkColsBody"></div>', footHTML:'<button class="btn btn-out" type="button" id="lkReset">Reset to default</button><button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="lkApply">Apply</button>'});
+    draw();
+    const body = document.getElementById("lkColsBody");
+    body.addEventListener("click", e=>{
+      const up = e.target.closest("[data-lk-up]"), dn = e.target.closest("[data-lk-down]");
+      if(up){ const i = +up.dataset.lkUp; [order[i - 1], order[i]] = [order[i], order[i - 1]]; draw(); }
+      if(dn){ const i = +dn.dataset.lkDown; [order[i + 1], order[i]] = [order[i], order[i + 1]]; draw(); }
+    });
+    body.addEventListener("change", e=>{ const c = e.target.closest("[data-lkc]"); if(!c) return; const n = order[+c.dataset.lkc]; const k = hidden.indexOf(n); if(c.checked && k > -1) hidden.splice(k, 1); if(!c.checked && k < 0) hidden.push(n); draw(); });
+    document.getElementById("lkApply").addEventListener("click", ()=>{
+      if(order.every(n=>hidden.indexOf(n) > -1)){ if(window.toast) toast("Keep at least one column", "Tick at least one column to show.", "warn"); return; }
+      store(cfg, {order, hidden}); closeModal(); apply(cfg); if(window.toast) toast("Columns applied", cfg.title + " list updated");
+    });
+    document.getElementById("lkReset").addEventListener("click", ()=>{ store(cfg, null); closeModal(); apply(cfg); if(window.toast) toast("Columns reset", "The standard columns are back"); });
+  }
+
+  function install(cfg){
+    const table = listTable(cfg); if(!table || !table.tBodies[0]) return;
+    if(!state[cfg.key]) state[cfg.key] = {sortBy:"number", dir:"desc", f:{from:"", to:"", month:"", company:"", status:"", q:""}, applying:false};
+    bar(cfg, table);
+    if(!table.dataset.lkObs){
+      table.dataset.lkObs = "1";
+      let timer = null;
+      new MutationObserver(()=>{ const st = state[cfg.key]; if(st.applying) return; clearTimeout(timer); timer = setTimeout(()=>apply(cfg), 40); }).observe(document.getElementById(cfg.screen), {childList:true, subtree:true});          // the list is drawn again by its own code: put it in order again          // the list is drawn again whenever its data changes: the order, filter and columns are applied again each time
+    }
+    apply(cfg);
+  }
+  document.addEventListener("input", e=>{ const t = e.target; if(!t.dataset || !t.dataset.lk) return; const bar = t.closest(".lk-bar"); if(!bar) return; const cfg = CFG.find(c=>c.key === bar.dataset.lk); const st = state[cfg.key];
+    const k = t.dataset.lk; if(k === "sortBy" || k === "dir") st[k === "sortBy" ? "sortBy" : "dir"] = t.value; else st.f[k] = t.value; apply(cfg); });
+  document.addEventListener("click", e=>{
+    const b = e.target.closest && e.target.closest("[data-lk-cols],[data-lk-clear]"); if(!b) return; const bar = b.closest(".lk-bar"); const cfg = CFG.find(c=>c.key === bar.dataset.lk);
+    if(b.hasAttribute("data-lk-cols")) columnsPanel(cfg);
+    else { state[cfg.key].f = {from:"", to:"", month:"", company:"", status:"", q:""}; bar.querySelectorAll("[data-lk]").forEach(x=>{ if(["sortBy", "dir"].indexOf(x.dataset.lk) < 0) x.value = ""; }); apply(cfg); }
+  });
+  const baseGo = window.go;
+  window.go = function(screen, opts){
+    const r = baseGo.apply(this, arguments);
+    CFG.forEach(c=>{ if("s-" + screen === c.screen || (c.key === "quotation" && screen === "quotation")){ [120, 700, 1800].forEach(ms=>setTimeout(()=>install(c), ms)); } });
+    return r;
+  };
+  /* a list is drawn again by its own code whenever its data changes: rows that arrive without our marks are put in order / filtered / arranged again */
+  setInterval(()=>{
+    CFG.forEach(cfg=>{
+      const scr = document.getElementById(cfg.screen); if(!scr || !scr.classList.contains("on") || !state[cfg.key]) return;
+      const table = listTable(cfg); if(!table || !table.tBodies[0] || state[cfg.key].applying) return;
+      if(!table.dataset.lkObs || !document.contains(table)){ install(cfg); return; }
+      const rows = Array.from(table.tBodies[0].rows).filter(tr=>tr.children.length > 1);
+      if(rows.some(tr=>tr.children[0].dataset.lkI === undefined)) apply(cfg);
+    });
+  }, 500);
+  window.ListKit = {install, apply, CFG, parseDate, state};
 })();
 </script>
 </body>

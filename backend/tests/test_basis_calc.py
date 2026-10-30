@@ -172,3 +172,79 @@ def test_job_cost_air_chargeable_weight_from_dimensions(world, admin):
     assert r.status_code == 200, r.text
     ln = r.json()["lines"][0]
     assert ln["qty"] == "180.000" and ln["sell"]["amount"] == "9000.00" and ln["buy"]["amount"] == "7200.00"      # greater of 120 kg gross and 180 kg volumetric
+
+
+# ---------------- quotation: the server recalculates every Basis line ----------------
+def _quote(h, lines, **head):
+    body = {"party_name": "Basis Co", "mode": head.pop("mode", "Sea"), "direction": "Export", "shipment_type": head.pop("shipment_type", "FCL"), "pol": "INMAA", "pod": "BEANR", "header": head, "lines": lines}
+    return client.post("/api/quotations", json=body, headers=h)
+
+
+def _ql(name, basis, rate, side="SELL", qty="1", **extra):
+    return {"side": side, "charge_name": name, "basis": basis, "rate": str(rate), "qty": qty, "ccy": "INR", "exch": "1", "taxable": False, **extra}
+
+
+def test_quotation_server_recalculates_basis_quantities(world, admin):
+    h = hdr(admin["username"], admin["license"])
+    r = _quote(h, [_ql("Handling", "Per Package", 150), _ql("Handling", "Per Package", 100, side="BUY"), _ql("Ocean Freight", "Per Shipment", 1400), _ql("Ocean Freight", "Per Shipment", 1000, side="BUY"),
+                   _ql("BAF", "% of Freight", 10), _ql("BAF", "% of Freight", 10, side="BUY")], packages="10", gross_weight="2000", volume="3")
+    assert r.status_code == 201, r.text
+    by = {(x["charge_name"], x["side"]): x for x in r.json()["lines"]}
+    assert by[("Handling", "SELL")]["qty"] == "10.000" and by[("Handling", "SELL")]["amount"] == "1500.00" and by[("Handling", "BUY")]["amount"] == "1000.00"       # the screen sent qty 1
+    assert by[("BAF", "SELL")]["amount"] == "140.00" and by[("BAF", "BUY")]["amount"] == "100.00"                                                             # cost % on cost freight, sell % on sell freight
+    assert by[("Handling", "SELL")]["qty_manual"] is False
+    again = client.get(f"/api/quotations/{r.json()['id']}", headers=h).json()
+    assert {(x["charge_name"], x["side"]): x["amount"] for x in again["lines"]}[("BAF", "SELL")] == "140.00"                                                  # reopening keeps it
+
+
+def test_quotation_typed_quantity_is_kept_and_bad_input_is_refused(world, admin):
+    h = hdr(admin["username"], admin["license"])
+    ok = _quote(h, [_ql("Handling", "Per Package", 10, qty="7", qty_manual=True)], packages="10")
+    assert ok.status_code == 201 and ok.json()["lines"][0]["qty"] == "7.000" and ok.json()["lines"][0]["qty_manual"] is True
+    miss = _quote(h, [_ql("Handling", "Per Package", 10)])                                                                       # priced but no packages entered
+    assert miss.status_code == 422 and "packages" in miss.text
+    unpriced = _quote(h, [_ql("Handling", "Per Package", 0)])
+    assert unpriced.status_code == 201
+    lone = _quote(h, [_ql("BAF", "% of Freight", 10)])
+    assert lone.status_code == 422 and "no freight" in lone.text
+    lcl = _quote(h, [_ql("Ocean", "By Gross Wt/Volume", 3500)], shipment_type="LCL", gross_weight="2000", volume="3")
+    assert lcl.status_code == 201 and lcl.json()["lines"][0]["qty"] == "3.000" and lcl.json()["lines"][0]["amount"] == "10500.00"
+    fcl = _quote(h, [_ql("Ocean", "By Gross Wt/Volume", 3500)], gross_weight="2000", volume="3")
+    assert fcl.status_code == 422 and "Air and to Sea LCL" in fcl.text
+    old = _quote(h, [_ql("THC", "Container", 100, qty="2")])
+    assert old.status_code == 201 and old.json()["lines"][0]["amount"] == "200.00"                                                # the older bases are untouched
+    air = _quote(h, [_ql("Air freight", "By Chg Wt", 50)], mode="Air", shipment_type="", gross_weight="120", chargeable_weight="180")
+    assert air.status_code == 201 and air.json()["lines"][0]["qty"] == "180.000" and air.json()["lines"][0]["amount"] == "9000.00"
+
+
+def test_percentage_charge_end_to_end_job_invoice_and_reports(world, admin):
+    h = hdr(admin["username"], admin["license"])
+    cust = client.post("/api/customers", json={"code": "PCT" + uuid4_short(), "name": "Pct Customer " + uuid4_short(), "category": "Business", "country": "India", "roles": ["client"]}, headers=h)
+    name = cust.json()["name"] if cust.status_code == 201 else "Pct Customer"
+    no = _job(h, container_mode="FCL", cargo={"pkgs": "5", "gwt": "1000"})
+    sell = lambda rate: {"rate": str(rate), "ccy": "INR", "exch": "1", "tax_type": "Non-Taxable", "party": name, "use_party": True}      # noqa: E731
+    lines = [{"charge_name": "Ocean Freight", "uom": "Per Shipment", "qty": "1", "buy": {"rate": "1000", "ccy": "INR", "exch": "1", "tax_type": "Non-Taxable"}, "sell": sell(1400)},
+             {"charge_name": "BAF", "uom": "% of Freight", "qty": "1", "buy": {"rate": "10", "ccy": "INR", "exch": "1", "tax_type": "Non-Taxable"}, "sell": sell(10)},
+             {"charge_name": "Handling", "uom": "Per Package", "qty": "1", "buy": {"rate": "100", "ccy": "INR", "exch": "1", "tax_type": "Non-Taxable"}, "sell": sell(150)}]
+    saved = client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": lines}, headers=h)
+    assert saved.status_code == 200, saved.text
+    # job profitability: the saved charge amounts, with the Basis and quantity of each charge
+    pl = client.get(f"/api/accounts/job/{no}/profit-loss", headers=h).json()
+    by = {r["charge"]: r for r in pl["lines"]}
+    assert by["BAF"]["p_sale"] == "140.00" and by["BAF"]["p_cost"] == "100.00" and by["BAF"]["basis"] == "% of Freight" and by["BAF"]["qty"] == "10%"
+    assert by["Handling"]["p_sale"] == "750.00" and by["Handling"]["basis"] == "Per Package" and by["Handling"]["qty"] == "5"
+    assert pl["totals"]["p_sale"] == "2290.00" and pl["totals"]["p_cost"] == "1600.00"
+    # the invoice made from the job carries the same amounts, and says what the percentage is of
+    inv = client.post("/api/documents/from-job", json={"job_number": no, "doc_type": "invoice", "party": name}, headers=h)
+    assert inv.status_code == 201, inv.text
+    if True:
+        d = inv.json()
+        amounts = {l["charge_name"]: l["amount"] for l in d["lines"]}
+        assert amounts["BAF"] == "140.00" and amounts["Handling"] == "750.00" and amounts["Ocean Freight"] == "1400.00"
+        assert "10% of freight" in next(l["description"] for l in d["lines"] if l["charge_name"] == "BAF")
+        assert d["subtotal"] == "2290.00"
+
+
+def uuid4_short():
+    import uuid
+    return uuid.uuid4().hex[:6].upper()

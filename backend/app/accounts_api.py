@@ -124,7 +124,7 @@ def job_profit_loss(job_number: str, user: User = Depends(permission_required("s
     rows: dict[str, dict] = {}
 
     def row(name: str) -> dict:
-        return rows.setdefault(name, {"charge": name, "p_sale": Decimal(0), "p_cost": Decimal(0), "a_sale": Decimal(0), "a_cost": Decimal(0)})
+        return rows.setdefault(name, {"charge": name, "basis": "", "qty": "", "p_sale": Decimal(0), "p_cost": Decimal(0), "a_sale": Decimal(0), "a_cost": Decimal(0)})
 
     sale_tax = cost_tax = Decimal(0)
     revenue: dict[str, Decimal] = defaultdict(Decimal)
@@ -132,6 +132,9 @@ def job_profit_loss(job_number: str, user: User = Depends(permission_required("s
     for c in charges:
         r = row(c.charge_name)
         qty = Decimal(c.qty or 0)
+        pct = c.sell_pct if c.sell_pct is not None else c.buy_pct
+        r["basis"] = r["basis"] or c.uom                                                       # the Basis and quantity the charge was entered on (a percentage line shows its percentage)
+        r["qty"] = (f"{Decimal(pct).normalize():f}%" if pct is not None else str((Decimal(r["qty"] or 0) + qty).normalize()))
         sell = qty * Decimal(c.sell_rate or 0) * (1 if c.sell_ccy == "INR" else Decimal(c.sell_exch or 1))
         buy = qty * Decimal(c.buy_rate or 0) * (1 if c.buy_ccy == "INR" else Decimal(c.buy_exch or 1))
         r["p_sale"] += sell
@@ -162,7 +165,7 @@ def job_profit_loss(job_number: str, user: User = Depends(permission_required("s
     for r in rows.values():
         for k in tot:
             tot[k] += r[k]
-        lines.append({"charge": r["charge"], "p_sale": _s(r["p_sale"]), "p_cost": _s(r["p_cost"]), "p_gp": _s(r["p_sale"] - r["p_cost"]), "a_sale": _s(r["a_sale"]), "a_cost": _s(r["a_cost"]), "a_gp": _s(r["a_sale"] - r["a_cost"])})
+        lines.append({"charge": r["charge"], "basis": r.get("basis", ""), "qty": r.get("qty", ""), "p_sale": _s(r["p_sale"]), "p_cost": _s(r["p_cost"]), "p_gp": _s(r["p_sale"] - r["p_cost"]), "a_sale": _s(r["a_sale"]), "a_cost": _s(r["a_cost"]), "a_gp": _s(r["a_sale"] - r["a_cost"])})
     p_gp, a_gp = tot["p_sale"] - tot["p_cost"], tot["a_sale"] - tot["a_cost"]
     return {"job_number": job.job_number, "lines": lines, "totals": {"p_sale": _s(tot["p_sale"]), "p_cost": _s(tot["p_cost"]), "p_gp": _s(p_gp), "a_sale": _s(tot["a_sale"]), "a_cost": _s(tot["a_cost"]), "a_gp": _s(a_gp)},
             "provisional_pct": _s(p_gp * 100 / tot["p_sale"]) if tot["p_sale"] else "0.00", "actual_pct": _s(a_gp * 100 / tot["a_sale"]) if tot["a_sale"] else "0.00",

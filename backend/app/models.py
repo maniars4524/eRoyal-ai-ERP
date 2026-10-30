@@ -774,6 +774,7 @@ class QuotationLine(Base):
     taxable: Mapped[bool] = mapped_column(default=False)
     container_type: Mapped[str | None] = mapped_column(String(40))
     container_breakup: Mapped[list | None] = mapped_column(JSON)
+    qty_manual: Mapped[bool] = mapped_column(default=False, server_default="false")      # the quantity was typed by the user: a calculated Basis does not overwrite it
     remarks: Mapped[str] = mapped_column(String(500), default="")
     amount_fcy = mapped_column(Numeric(16, 2), default=0)  # in the line's own currency
     gst_amount = mapped_column(Numeric(16, 2), default=0)  # base currency

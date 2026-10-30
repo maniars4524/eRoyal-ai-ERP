@@ -13,6 +13,7 @@ from .auth_api import record_audit
 from .billing import next_number
 from .db import get_db
 from .schemas_auth import _clean_party_data
+from . import basis_calc as bc
 from . import charge_rules
 from .models import Customer, JobCharge, MasterRecord, Organization, Quotation, QuotationEvent, QuotationLine, Shipment, User
 from .quote_calc import calc_line, charge_margin_pct, cost_sheet, q2
@@ -49,6 +50,7 @@ class QLine(BaseModel):
     exch: Decimal = Field(default=Decimal("1"), ge=0, max_digits=14, decimal_places=6)
     rate: Decimal = Field(default=Decimal("0"), ge=0, max_digits=16, decimal_places=4)
     qty: Decimal = Field(default=Decimal("1"), ge=0, max_digits=14, decimal_places=3)
+    qty_manual: bool = False
     taxable: bool | None = None
     tax_pct: Decimal = Field(default=Decimal("0"), ge=0, le=100, max_digits=6, decimal_places=2)
     remarks: str = Field(default="", max_length=500)
@@ -125,7 +127,7 @@ def _names(db: Session, ids: set[int | None]) -> dict[int, str]:
 
 def _line_out(l: QuotationLine, margins: dict[str, Decimal | None]) -> dict:
     m = margins.get((l.charge_name or "").strip().lower())
-    return {"line_no": l.line_no, "side": l.side, "charge_name": l.charge_name, "carrier": l.carrier, "basis": l.basis, "container_type": l.container_type, "container_breakup": l.container_breakup or [],
+    return {"line_no": l.line_no, "qty_manual": bool(l.qty_manual), "side": l.side, "charge_name": l.charge_name, "carrier": l.carrier, "basis": l.basis, "container_type": l.container_type, "container_breakup": l.container_breakup or [],
             "ccy": l.ccy, "exch": str(l.exch), "rate": str(l.rate), "qty": str(l.qty), "taxable": bool(l.taxable), "tax_pct": str(l.tax_pct), "remarks": l.remarks or "",
             "amount_fcy": str(l.amount_fcy), "amount": str(l.amount), "gst_amount": str(l.gst_amount), "total_inr": str(l.total_inr), "margin_rate": None if m is None else str(m)}
 
@@ -171,7 +173,34 @@ def _currency_rates(db: Session, org_id: int) -> dict[str, Decimal]:
     return rates
 
 
+def _basis_quantities(db: Session, q: Quotation, lines: list[QLine], org_id: int) -> None:
+    """The quantity of every line on a calculated Basis comes from the one calculation service, whatever the screen sent (a quantity typed by the user is kept). A missing measurement or a
+    percentage with nothing to take it from is refused with the reason when the line is priced."""
+    if not any(l.basis in bc.BASES and not l.container_breakup for l in lines):
+        return
+    h = q.header or {}
+    air = (q.mode or "").lower() == "air"
+    try:
+        m = bc.Measures(mode=q.mode or "Sea", shipment_type=q.shipment_type or "", packages=h.get("packages"), gross_kg=h.get("gross_weight"), net_kg=h.get("net_weight"), volume_cbm=h.get("volume"),
+                        chargeable_kg=h.get("chargeable_weight") if air else None, vehicles=h.get("vehicles"))
+    except bc.BasisError as e:
+        raise HTTPException(422, f"Shipment measurements: {e}")
+    cats = {r.name.strip().lower(): str((r.data or {}).get("category") or "") for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "charge"))}
+    res = bc.calc_lines([{"id": i, "side": l.side, "basis": "" if l.container_breakup else l.basis, "rate": str(l.rate), "qty": str(l.qty), "name": l.charge_name, "category": cats.get(l.charge_name.strip().lower(), ""),
+                          "ccy": l.ccy, "exch": str(l.exch if l.ccy != "INR" else 1)} for i, l in enumerate(lines)], m)
+    for x, l in zip(res["lines"], lines):
+        if l.basis not in bc.BASES or l.container_breakup:
+            continue
+        if x["error"]:
+            if l.rate > 0 and (l.basis in bc.PERCENT_BASES or not l.qty_manual):
+                raise HTTPException(422, f"{l.charge_name or 'Charge'} ({l.basis}): {x['error']}")
+            continue
+        if l.basis in bc.PERCENT_BASES or not l.qty_manual:
+            l.qty = Decimal(x["quantity"])
+
+
 def _apply_lines(db: Session, q: Quotation, lines: list[QLine], user: User, org_id: int) -> None:
+    _basis_quantities(db, q, lines, org_id)
     rates = _currency_rates(db, org_id)
     can_override = has_permission(user, "quote.rate_override")
     previous = {(l.ccy, l.exch) for l in q.lines}
@@ -192,7 +221,7 @@ def _apply_lines(db: Session, q: Quotation, lines: list[QLine], user: User, org_
         taxable = line.taxable if line.taxable is not None else line.tax_pct > 0
         breakup = [{"type": b.type, "qty": str(b.qty), "rate": str(b.rate)} for b in line.container_breakup] if line.container_breakup else None
         c = calc_line(line.qty, line.rate, line.ccy, line.exch, taxable, line.tax_pct, breakup)
-        q.lines.append(QuotationLine(line_no=i, side=line.side, charge_name=line.charge_name.strip(), carrier=line.carrier.strip(), basis=line.basis, container_type=line.container_type, container_breakup=breakup,
+        q.lines.append(QuotationLine(line_no=i, side=line.side, charge_name=line.charge_name.strip(), carrier=line.carrier.strip(), basis=line.basis, container_type=line.container_type, container_breakup=breakup, qty_manual=bool(line.qty_manual and line.basis in bc.BASES),
                                      ccy=line.ccy, exch=c["exch"], rate=c["unit_rate"], qty=c["units"], taxable=taxable, tax_pct=c["tax_pct"], remarks=line.remarks.strip(), amount_fcy=c["amount_fcy"],
                                      amount=c["amount_inr"], gst_amount=c["gst"], total_inr=c["total_inr"]))
 
@@ -389,7 +418,7 @@ def revise(quote_id: int, user: User = Depends(permission_required("quote.create
                      mode=src.mode, direction=src.direction, shipment_type=src.shipment_type, quote_type=src.quote_type, carrier_mode=src.carrier_mode, pol=src.pol, pod=src.pod, terms=src.terms, remarks=src.remarks,
                      header=dict(src.header or {}), created_by=user.id, prepared_by=user.id, prepared_at=datetime.now(timezone.utc), root_id=root, revision_no=latest + 1)
     for l in src.lines:
-        copy.lines.append(QuotationLine(line_no=l.line_no, side=l.side, charge_name=l.charge_name, carrier=l.carrier, basis=l.basis, container_type=l.container_type, container_breakup=l.container_breakup, ccy=l.ccy, exch=l.exch,
+        copy.lines.append(QuotationLine(line_no=l.line_no, side=l.side, charge_name=l.charge_name, carrier=l.carrier, basis=l.basis, container_type=l.container_type, container_breakup=l.container_breakup, qty_manual=l.qty_manual, ccy=l.ccy, exch=l.exch,
                                         rate=l.rate, qty=l.qty, taxable=l.taxable, tax_pct=l.tax_pct, remarks=l.remarks, amount_fcy=l.amount_fcy, amount=l.amount, gst_amount=l.gst_amount, total_inr=l.total_inr))
     db.add(copy)
     db.flush()
@@ -414,7 +443,7 @@ def duplicate(quote_id: int, user: User = Depends(permission_required("quote.cre
                      direction=src.direction, shipment_type=src.shipment_type, quote_type=src.quote_type, carrier_mode=src.carrier_mode, pol=src.pol, pod=src.pod, terms=src.terms, remarks=src.remarks,
                      header=dict(src.header or {}), created_by=user.id, prepared_by=user.id, prepared_at=datetime.now(timezone.utc))
     for l in src.lines:
-        copy.lines.append(QuotationLine(line_no=l.line_no, side=l.side, charge_name=l.charge_name, carrier=l.carrier, basis=l.basis, container_type=l.container_type, container_breakup=l.container_breakup, ccy=l.ccy, exch=l.exch,
+        copy.lines.append(QuotationLine(line_no=l.line_no, side=l.side, charge_name=l.charge_name, carrier=l.carrier, basis=l.basis, container_type=l.container_type, container_breakup=l.container_breakup, qty_manual=l.qty_manual, ccy=l.ccy, exch=l.exch,
                                         rate=l.rate, qty=l.qty, taxable=l.taxable, tax_pct=l.tax_pct, remarks=l.remarks, amount_fcy=l.amount_fcy, amount=l.amount, gst_amount=l.gst_amount, total_inr=l.total_inr))
     db.add(copy)
     db.flush()

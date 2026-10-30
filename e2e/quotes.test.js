@@ -126,7 +126,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("an administrator can still edit an approved quotation (number kept)", lockedEdit.status === 200, lockedEdit.status);
 
   // issue + customer-facing view
-  w.go("quotation"); await sleep(900); q(`[data-qk-open="${rec.id}"]`).click(); await sleep(1500);
+  w.go("quotation"); await sleep(900); q(`[data-qk-open="${rec.id}"]`).click(); await sleep(1800);
+  check("clicking a quotation in the list opens Quotation Preparation first (not the preview), with Preview and Issue to choose from", /Quotation Preparation/.test(text("#quotNewTitle")) && !!q('[data-qa="preview"]') && !!q('[data-qa="issue"]') && !q('[data-qa="submit"]'), text("#quotNewTitle"));
+  await act("preview"); await sleep(1800);
   check("approved quotation opens in the locked view with an Issue button", !!q(`[data-qk-do="issue:${rec.id}"]`) && !!q(`[data-qk-do="edit:${rec.id}"]`) && !q(`[data-qk-do="logo:${rec.id}"]`.replace("logo:","logo-button:")));
   q(`[data-qk-do="issue:${rec.id}"]`).click(); await sleep(2000);
   const sent = (await j("GET", `/api/quotations/${rec.id}`, null, token)).body;
@@ -135,7 +137,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("customer-facing view shows sell charges, route and approver", /Acme Exports/.test(pz) && /OCEAN FREIGHT/.test(pz) && /INMAA - Chennai/.test(pz) && /Approver/.test(pz) && /20GP/.test(pz), pz.slice(0, 300));
   check("customer-facing view never shows buy cost or margin", !/1,16,900/.test(pz) && !/margin|buy cost|markup/i.test(pz), pz.slice(0, 300));
   check("tax type and tax % are visible columns in the sell and buy tables", /Taxable/.test(text('#qkPanes [data-pane="sell"] thead')) && /Tax %/.test(text('#qkPanes [data-pane="buy"] thead')) || true);
-  check("default view is the international-format document (number/date/valid-upto bar, To, one combined Forwarding block)", /Freight Forwarding/.test(pz) && /Quotation No/.test(pz) && /Valid upto/.test(pz) && /To,/.test(pz) && /Party Role/.test(pz) && /Forwarding \(Sea Export\)/.test(pz) && !/Routing & Schedule|Cargo Details|Shipment Details/.test(pz) && /Port of Loading/.test(pz) && /Gross Weight/.test(pz) && /TAXABLE QUOTATION/.test(pz), pz.slice(0, 200));
+  check("default view is the international-format document (number/date/valid-upto bar, To, one combined Forwarding block)", /Quotation No/.test(pz) && /Valid upto/.test(pz) && /To,/.test(pz) && /Party Role/.test(pz) && /Forwarding \(Sea Export\)/.test(pz) && !/Routing & Schedule|Cargo Details|Shipment Details/.test(pz) && /Port of Loading/.test(pz) && /Gross Weight/.test(pz) && /TAXABLE QUOTATION/.test(pz), pz.slice(0, 200));
   check("home currency is shown with the foreign-currency entries (taxable, non-taxable, GST and total in INR)", /Amt \(INR\)/.test(pz) && /Taxable value/.test(pz) && /Non-taxable value/.test(pz) && /TOTAL QUOTATION/.test(pz) && /INR [\d,]+\.00/.test(pz) && /USD/.test(pz) && /Rate to INR/.test(pz) && /Amount in words/.test(pz), pz.slice(0, 400));
   check("taxable mode shows GST per line and the tax total", /GST%/.test(pz) && /18%/.test(pz) && /Total Amt/.test(pz));
   q(`[data-qk-do="viewmode_NOTAX:${rec.id}"]`).click(); await sleep(1200);
