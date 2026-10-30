@@ -123,13 +123,19 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("approver approves", ap.status === 200 && ap.body.approval_status === "APPROVED" && ap.body.approved_by_name === "Approver", JSON.stringify(ap.body).slice(0, 150));
   check("approval keeps the number issued at first save", ap.body.number === rec.number && ap.body.status === "DRAFT", String(ap.body.number));
   const lockedEdit = await j("PATCH", `/api/quotations/${rec.id}`, { remarks: "sneaky" }, token);
-  check("an administrator can still edit an approved quotation (number kept)", lockedEdit.status === 200, lockedEdit.status);
+  check("an approved quotation cannot be changed, even by an administrator (the approval has to be revoked first)", lockedEdit.status === 409, lockedEdit.status);
 
   // issue + customer-facing view
   w.go("quotation"); await sleep(900); q(`[data-qk-open="${rec.id}"]`).click(); await sleep(1800);
   check("clicking a quotation in the list opens Quotation Preparation first (not the preview), with Preview and Issue to choose from", /Quotation Preparation/.test(text("#quotNewTitle")) && !!q('[data-qa="preview"]') && !!q('[data-qa="issue"]') && !q('[data-qa="submit"]'), text("#quotNewTitle"));
+  check("an approved quotation is read-only in Quotation Preparation, with Revoke approval offered and its breakup still viewable", !!q('[data-qa="revoke"]') && q('[data-qh="remarks"]').disabled === true && !q('[data-qa="add"][data-side="sell"]:not([disabled])') && !q('[data-qa="submit"]'), "");
+  w.prompt = () => "Carrier changed the rate"; await act("revoke"); await sleep(1800);
+  check("Revoke approval (with a reason) makes the quotation editable again", !q('[data-qa="revoke"]') && !!q('[data-qa="submit"]') && q('[data-qh="remarks"]').disabled === false, "");
+  await j("POST", `/api/quotations/${rec.id}/approval/submit`, null, token); const re = await j("POST", `/api/quotations/${rec.id}/approval/approve`, { remarks: "approved again" }, apr);
+  check("after revoking it has to be submitted and approved again", re.status === 200 && re.body.approval_status === "APPROVED", re.status);
+  w.go("quotation"); await sleep(900); q(`[data-qk-open="${rec.id}"]`).click(); await sleep(1800);
   await act("preview"); await sleep(1800);
-  check("approved quotation opens in the locked view with an Issue button", !!q(`[data-qk-do="issue:${rec.id}"]`) && !!q(`[data-qk-do="edit:${rec.id}"]`) && !q(`[data-qk-do="logo:${rec.id}"]`.replace("logo:","logo-button:")));
+  check("approved quotation opens in the locked view with an Issue button", !!q(`[data-qk-do="issue:${rec.id}"]`) && !q(`[data-qk-do="edit:${rec.id}"]`) && !q(`[data-qk-do="logo:${rec.id}"]`.replace("logo:","logo-button:")));
   q(`[data-qk-do="issue:${rec.id}"]`).click(); await sleep(2000);
   const sent = (await j("GET", `/api/quotations/${rec.id}`, null, token)).body;
   check("Issue gives a gap-free number", sent.status === "SENT" && /^QT\/\d\d-\d\d\/00001$/.test(sent.number), JSON.stringify(sent).slice(0, 200));

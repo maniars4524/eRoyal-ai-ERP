@@ -16496,6 +16496,7 @@ if(document.readyState !== "loading") initChatWidget();
       else if(editable) h += btn("save","Save Draft","btn-pri") + btn("submit","Submit for Approval","btn-suc");
       if(r && r.approval_status === "SUBMITTED" && can("quote.approve")) h += btn("approve","Approve","btn-suc") + btn("reject","Reject","btn-out",'style="color:var(--rd)"');
       if(r && r.approval_status === "APPROVED" && r.status === "DRAFT" && can("quote.send")) h += btn("issue","Issue to Client","btn-pri");
+      if(r && r.approval_status === "APPROVED" && r.status === "DRAFT" && can("quote.approve")) h += btn("revoke","Revoke approval","btn-out",'style="color:var(--rd)" title="An approved quotation cannot be changed. Revoke the approval to edit it; it then has to be submitted and approved again."');
       h += btn("preview","Preview","btn-out") + btn("print","Print / PDF","btn-out");
       if(r) h += btn("dup","Duplicate","btn-out");
       h += '<span class="qk-menu" id="qkMore"><button class="btn btn-sm btn-out" data-qa="more">More ▾</button><div class="qk-menu-pop">'+
@@ -16644,7 +16645,7 @@ if(document.readyState !== "loading") initChatWidget();
     const m = lineMargin(l);
     const rateEditable = canEditRate(l) && !ro && !na;
     const unitsCell = l.basis === "Container"
-      ? '<button class="btn btn-out btn-sm" style="padding:2px 7px;font-size:11px" data-qa="containers" data-k="'+key+'" '+d+'>📦 '+num(c.units,3)+'</button>'
+      ? '<button class="btn btn-out btn-sm" style="padding:2px 7px;font-size:11px" data-qa="containers" data-k="'+key+'" title="'+(ro ? "View the container-wise breakup" : "Container-wise rates")+'">📦 '+num(c.units,3)+'</button>'
       : '<input class="fc" type="number" min="0" step="0.001" data-ql="'+key+':qty" value="'+esc2(l.qty)+'" style="width:64px"'+d+'>';
     const rateCell = hasBreak ? '<span class="r" title="Average of the container-wise rates">≈ '+num(c.rate,2)+'</span>' : '<input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':rate" value="'+esc2(l.rate)+'" style="width:84px"'+d+'>';
     let cells = '<td><select class="fc" data-ql="'+key+':basis" style="min-width:96px"'+d+'>'+uomList().concat(uomList().includes(l.basis)?[]:[l.basis]).map(u=>opt(u, u, u===l.basis)).join("")+'</select></td><td>'+unitsCell+'</td>'+
@@ -16867,6 +16868,11 @@ if(document.readyState !== "loading") initChatWidget();
       if(name === "save"){ const wasLocked = !!(Q.rec && !(Q.rec.status === "DRAFT" && ["DRAFT","REJECTED"].includes(Q.rec.approval_status))); const r = await save(); if(r) say("Quotation Updated Successfully!", wasLocked ? (r.number || "")+" keeps its number; the change is recorded in the audit trail" : "The quotation number is generated when it is approved"); return; }
       if(name === "lost" || name === "cancelq"){ const kind = name === "lost" ? "lost" : "cancel"; const reason = window.prompt(kind === "lost" ? "Why was this quotation lost? (e.g. customer chose another forwarder, price too high)" : "Why is this quotation being cancelled?", ""); if(reason === null) return; if(reason.trim().length < 3){ say("Reason required", "Please type at least 3 characters", "warn"); return; } const c = await api("POST","/api/quotations/"+Q.rec.id+"/"+kind, {reason:reason.trim()}); say(kind === "lost" ? "Marked as lost" : "Quotation cancelled", (c.number || "Draft #"+c.id)+" — "+reason.trim()); go("quotation"); return; }
       if(name === "submit"){ if(!validate(true)) return; const r = await save(); if(!r) return; const s = await api("POST","/api/quotations/"+r.id+"/approval/submit"); Q.rec = s; renderAll(true); say("Submitted for approval", "An approver can now review it"); return; }
+      if(name === "revoke"){
+        const why = window.prompt("Revoke the approval of "+(Q.rec.number || "this quotation")+"?"+String.fromCharCode(10)+String.fromCharCode(10)+"It becomes editable again and has to be submitted and approved again. Reason:") || "";
+        if(why.trim().length < 3){ if(why !== "") say("Reason required", "Write why the approval is being revoked", "warn"); return; }
+        const s = await api("POST","/api/quotations/"+Q.rec.id+"/approval/revoke", {remarks:why.trim()}); Q.rec = s; renderAll(true); say("Approval revoked", (s.number || "")+" can be edited now; submit it for approval again when done"); return;
+      }
       if(name === "approve" || name === "reject"){
         const remarks = (document.getElementById("qkApprovalRemarks")||{}).value || "";
         if(name === "reject" && remarks.trim().length < 3){ say("Reason required", "Write the reason for rejecting in Approval Remarks", "warn"); const t = document.getElementById("qkApprovalRemarks"); if(t) t.focus(); return; }
@@ -16900,17 +16906,18 @@ if(document.readyState !== "loading") initChatWidget();
     const shipment = ()=> (Q.head.containers || []).filter(c=>c.type && Number(c.qty) > 0);
     const fetchShipment = all=> shipment().forEach(c=>{ const x = rows.find(r=>r.type === c.type); if(x){ if(all) x.qty = String(Number(c.qty)); } else rows.push({type:c.type, qty:String(Number(c.qty)), rate:""}); });
     if(!rows.length) fetchShipment(false);
+    const view = !!(Q.rec && !Q.rec.editable);                            // a locked (approved / issued) quotation: the breakup can be looked at, never changed
     const draw = ()=>{
       const used = new Set(rows.map(r=>r.type)); const free = Q.m.containers.filter(c=>!used.has(c.code));
       const tu = rows.reduce((a,r)=>a+(Number(r.qty)||0),0), ta = rows.reduce((a,r)=>a+r2((Number(r.qty)||0)*(Number(r.rate)||0)),0);
       document.getElementById("qkCont").innerHTML = (Q.m.containers.length ? '' : '<div class="ib ib-am">No container types exist yet. Add them in Masters → Container Type.</div>')+
         '<div class="fr" style="margin-bottom:8px">'+(isNew ? '<div class="fg"><label class="fl">Charge</label><select class="fc" id="qkcCharge">'+chargeOptions(working)+'</select></div>' : '')+'<div class="fg"><label class="fl">Currency</label><select class="fc" id="qkcCcy">'+ccyList().map(c=>opt(c,c,c===working.ccy)).join("")+'</select></div><div class="fg"><label class="fl">Ex. Rate (INR per 1)</label><input class="fc" type="number" step="0.0001" min="0" id="qkcExch" value="'+esc2(working.exch)+'"'+(canEditRate(working)?"":" disabled")+'></div></div>'+
         '<table class="qk-t" style="min-width:0"><thead><tr><th>Container type</th><th>Qty</th><th>Rate ('+esc2(working.ccy)+')</th><th class="r">Amount</th><th></th></tr></thead><tbody>'+
-        (rows.length ? rows.map((r,i)=>'<tr><td>'+esc2(r.type)+'</td><td><input class="fc" type="number" min="0" step="1" data-cq="'+i+':qty" value="'+esc2(r.qty)+'" style="width:70px"></td><td><input class="fc" type="number" min="0" step="0.0001" data-cq="'+i+':rate" value="'+esc2(r.rate)+'" style="width:100px"></td><td class="r">'+num(r2((Number(r.qty)||0)*(Number(r.rate)||0)),2)+'</td><td><button class="qk-icon del" data-cq-del="'+i+'">✕</button></td></tr>').join("") : '<tr><td colspan="5" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">Add the container types in this shipment.</td></tr>')+
+        (rows.length ? rows.map((r,i)=>'<tr><td>'+esc2(r.type)+'</td><td><input class="fc" type="number" min="0" step="1" data-cq="'+i+':qty" value="'+esc2(r.qty)+'" style="width:70px"'+(view ? " disabled" : "")+'></td><td><input class="fc" type="number" min="0" step="0.0001" data-cq="'+i+':rate" value="'+esc2(r.rate)+'" style="width:100px"'+(view ? " disabled" : "")+'></td><td class="r">'+num(r2((Number(r.qty)||0)*(Number(r.rate)||0)),2)+'</td><td>'+(view ? "" : '<button class="qk-icon del" data-cq-del="'+i+'">✕</button>')+'</td></tr>').join("") : '<tr><td colspan="5" style="text-align:center;color:var(--g4);padding:12px;font-style:italic">Add the container types in this shipment.</td></tr>')+
         '</tbody><tfoot><tr><td>Total</td><td>'+num(tu,3)+'</td><td></td><td class="r">'+num(ta,2)+' '+esc2(working.ccy)+'</td><td></td></tr></tfoot></table>'+
-        '<div style="margin-top:8px;display:flex;gap:6px;align-items:center"><select class="fc" id="qkcAdd" style="max-width:220px"><option value="">＋ Add container type…</option>'+free.map(c=>opt(c.code,c.code)).join("")+'</select>'+(shipment().length ? '<button class="btn btn-out btn-sm" type="button" id="qkcFetch">Fetch shipment containers</button>' : "")+'</div>';
+        '<div style="margin-top:8px;display:'+(view ? "none" : "flex")+';gap:6px;align-items:center"><select class="fc" id="qkcAdd" style="max-width:220px"><option value="">＋ Add container type…</option>'+free.map(c=>opt(c.code,c.code)).join("")+'</select>'+(shipment().length ? '<button class="btn btn-out btn-sm" type="button" id="qkcFetch">Fetch shipment containers</button>' : "")+'</div>';
     };
-    openModal({title:"Container-wise Rates", size:"lg", bodyHTML:'<div id="qkCont"></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button>'+(rows.length ? '<button class="btn btn-out" id="qkcClear">Remove breakup</button>' : '')+'<button class="btn btn-pri" id="qkcSave">Apply</button>'});
+    openModal({title:"Container-wise Rates", size:"lg", bodyHTML:'<div id="qkCont"></div>', footHTML:(view ? '<span style="flex:1;font-size:11.5px;color:var(--g5);align-self:center">This quotation is locked. Revoke the approval to change it.</span><button class="btn btn-pri" onclick="closeModal()">Close</button>' : '<button class="btn btn-out" onclick="closeModal()">Cancel</button>'+(rows.length ? '<button class="btn btn-out" id="qkcClear">Remove breakup</button>' : '')+'<button class="btn btn-pri" id="qkcSave">Apply</button>')});
     draw();
     const body = document.getElementById("modalBody");
     body.oninput = e=>{ const t = e.target; if(t.dataset.cq){ const [i,f] = t.dataset.cq.split(":"); rows[Number(i)][f] = t.value; const tr = t.closest("tr"); tr.querySelector(".r").textContent = num(r2((Number(rows[Number(i)].qty)||0)*(Number(rows[Number(i)].rate)||0)),2);

@@ -373,14 +373,21 @@ def test_a_company_with_no_other_approver_can_approve_its_own_quotation(h, admin
         db.close()
 
 
-def test_an_administrator_can_edit_an_approved_quotation_and_the_number_stays(h, h2):
+def test_an_approved_quotation_is_locked_for_everyone_until_the_approval_is_revoked(h, h2):
     q = approved(h, h2)
-    assert q["editable"] is True and q["number"]
-    r = client.patch(f"/api/quotations/{q['id']}", json={"remarks": "Corrected after approval"}, headers=h)
-    assert r.status_code == 200, r.text
-    assert r.json()["remarks"] == "Corrected after approval" and r.json()["number"] == q["number"] and r.json()["approval_status"] == "APPROVED"
-    events = client.get(f"/api/quotations/{q['id']}/events", headers=h).json() if client.get(f"/api/quotations/{q['id']}/events", headers=h).status_code == 200 else []
-    assert not events or any(e["action"] == "ADMIN_EDITED" for e in events)
+    assert q["editable"] is False and q["number"]                                                            # even an administrator cannot change it
+    for body in ({"remarks": "Corrected after approval"}, {"lines": q["lines"][:1]} if q.get("lines") else {"remarks": "x"}):
+        r = client.patch(f"/api/quotations/{q['id']}", json=body, headers=h)
+        assert r.status_code == 409, r.text
+    assert client.get(f"/api/quotations/{q['id']}", headers=h).json()["lines"] == q["lines"]                  # the saved details are still there to see
+    assert client.post(f"/api/quotations/{q['id']}/approval/revoke", json={"remarks": ""}, headers=h2).status_code == 422                 # a reason is needed
+    back = client.post(f"/api/quotations/{q['id']}/approval/revoke", json={"remarks": "Rate changed by carrier"}, headers=h2)
+    assert back.status_code == 200 and back.json()["approval_status"] == "DRAFT" and back.json()["editable"] is True and back.json()["number"] == q["number"]
+    again = client.patch(f"/api/quotations/{q['id']}", json={"remarks": "Corrected after revoking"}, headers=h)
+    assert again.status_code == 200 and again.json()["remarks"] == "Corrected after revoking"
+    events = [e["action"] for e in client.get(f"/api/quotations/{q['id']}/events", headers=h).json()]
+    assert "APPROVAL_REVOKED" in events
+    assert client.post(f"/api/quotations/{q['id']}/approval/revoke", json={"remarks": "again"}, headers=h2).status_code == 409                # only an approved quotation can be revoked
 
 
 def test_converted_cancelled_and_lost_quotations_are_final(h, h2):

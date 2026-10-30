@@ -30,6 +30,8 @@ ADMIN_EDITABLE_STATUSES = ("DRAFT", "SENT", "ACCEPTED", "REJECTED")  # an admini
 def _can_edit(user: User, q: Quotation) -> bool:
     if q.status == "DRAFT" and q.approval_status in EDITABLE_APPROVALS:
         return True
+    if q.status == "DRAFT" and q.approval_status == "APPROVED":       # an approved quotation is locked for everyone: its approval has to be revoked first
+        return False
     return q.status in ADMIN_EDITABLE_STATUSES and has_permission(user, "quote.edit_locked")
 
 
@@ -376,6 +378,25 @@ def approve(quote_id: int, payload: Decision | None = None, user: User = Depends
     _assign_number(db, org_id, quote, user)  # the official number comes from the active sequence the moment the quotation is approved
     _event(db, quote, "APPROVED", "SUBMITTED", "APPROVED", user, f"{quote.number}" + (f" · {quote.approval_remarks}" if quote.approval_remarks else ""))
     record_audit(db, "QUOTATION_APPROVED", "SALES", user, org_id, "Quotation", str(quote.id), {})
+    db.commit()
+    return _out(db, _load(db, org_id, quote_id), user, True)
+
+
+@router.post("/{quote_id}/approval/revoke")
+def revoke_approval(quote_id: int, payload: Decision, user: User = Depends(permission_required("quote.approve")), db: Session = Depends(get_db)):
+    """APPROVED -> DRAFT (reason required, kept in the quotation's history). Only a quotation that has not been issued yet can be revoked; it keeps its number, is editable again and has to be
+    submitted and approved again. Until it is revoked nothing on an approved quotation (charges, containers, rates, header) can be changed, but it can always be viewed."""
+    org_id = _tenant(user)
+    quote = _load(db, org_id, quote_id, lock=True)
+    if quote.status != "DRAFT" or quote.approval_status != "APPROVED":
+        raise HTTPException(status_code=409, detail="Only an approved quotation that has not been issued yet can be revoked")
+    if not payload.remarks or len(payload.remarks.strip()) < 3:
+        raise HTTPException(status_code=422, detail="A reason is required to revoke an approval")
+    quote.approval_status = "DRAFT"
+    quote.approved_by, quote.approved_at = None, None
+    quote.approval_remarks = "Approval revoked: " + payload.remarks.strip()
+    _event(db, quote, "APPROVAL_REVOKED", "APPROVED", "DRAFT", user, payload.remarks.strip())
+    record_audit(db, "QUOTATION_APPROVAL_REVOKED", "SALES", user, org_id, "Quotation", str(quote.id), {"reason": payload.remarks.strip(), "number": quote.number})
     db.commit()
     return _out(db, _load(db, org_id, quote_id), user, True)
 
