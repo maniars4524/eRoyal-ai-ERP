@@ -14,7 +14,7 @@ from .billing import CREDIT_TARGET, DOC_TYPES, calc_line, doc_side, fiscal_year,
 from .db import get_db
 from . import gl
 from . import job_lifecycle as jl
-from .charge_utils import side_description
+from .charge_utils import merge_rows_for_document, side_description
 from .models import Customer, Document, DocumentLine, JobCharge, Shipment, User, OrgBranch
 
 router = APIRouter(prefix="/api/documents", tags=["billing-documents"])
@@ -22,6 +22,7 @@ DOC_TYPE_PATTERN = "^(invoice|debit_note|credit_note|purchase_invoice|purchase_c
 
 
 class LineIn(BaseModel):
+    breakup: list[dict] | None = Field(default=None, max_length=30)
     charge_name: str = Field(default="", max_length=160)
     description: str = Field(default="", max_length=240)
     hsn: str = Field(default="", max_length=20)
@@ -105,8 +106,18 @@ def _out(doc: Document, with_lines: bool = False, required: bool | None = None) 
         data["tax_breakup"] = {"cgst": "0.00", "sgst": "0.00", "igst": _money(doc.tax_total)}
     if with_lines:
         data["round_off"] = str((doc.header or {}).get("round_off", "0.00"))
-        data["lines"] = [{"line_no": l.line_no, "job_number": l.job_number, "charge_name": l.charge_name, "description": l.description, "hsn": l.hsn, "uom": l.uom, "qty": str(l.qty), "ccy": l.ccy, "exch": str(l.exch), "rate": str(l.rate), "tax_type": l.tax_type, "tax_pct": str(l.tax_pct), "amount": _money(l.amount), "tax_amount": _money(l.tax_amount), "line_total": _money(l.line_total)} for l in doc.lines]
+        data["lines"] = [{"line_no": l.line_no, "job_number": l.job_number, "charge_name": l.charge_name, "description": l.description, "hsn": l.hsn, "uom": l.uom, "qty": str(l.qty), "ccy": l.ccy, "exch": str(l.exch), "rate": str(l.rate), "tax_type": l.tax_type, "tax_pct": str(l.tax_pct), "breakup": l.breakup or [], "amount": _money(l.amount), "tax_amount": _money(l.tax_amount), "line_total": _money(l.line_total)} for l in doc.lines]
     return data
+
+
+def _clean_breakup(parts) -> list | None:
+    out = []
+    for p in (parts or [])[:30]:
+        try:
+            out.append({"type": str(p.get("type") or "")[:40], "qty": format(Decimal(str(p.get("qty") or 0)).normalize(), "f"), "rate": format(Decimal(str(p.get("rate") or 0)).normalize(), "f")})
+        except Exception:
+            continue
+    return out or None
 
 
 def _assert_not_double_billed(doc: Document, lines: list[LineIn], session: Session | None = None) -> None:
@@ -137,7 +148,8 @@ def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
     subtotal = tax = Decimal(0)
     for index, line in enumerate(lines, start=1):
         c = calc_line(line.qty, line.ccy, Decimal(1) if line.ccy == "INR" else line.exch, line.rate, line.tax_type, line.tax_pct if line.tax_type == "Taxable" else Decimal(0))
-        doc.lines.append(DocumentLine(line_no=index, job_number=(line.job_number or None), charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=line.tax_pct if line.tax_type in ("Taxable", "RCM") else Decimal(0), **c))
+        doc.lines.append(DocumentLine(line_no=index, job_number=(line.job_number or None), charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=line.tax_pct if line.tax_type in ("Taxable", "RCM") else Decimal(0),
+                                   breakup=_clean_breakup(line.breakup), **c))
         subtotal += c["amount"]
         tax += c["tax_amount"]
     total = subtotal + tax
@@ -340,9 +352,10 @@ def from_job(payload: FromJob, user: User = Depends(permission_required("billing
         return LineIn(charge_name=c.charge_name, description=side_description(c, sell), hsn=c.hsn, uom=c.uom, qty=c.qty, ccy=(c.sell_ccy if sell else c.buy_ccy), exch=(c.sell_exch if sell else c.buy_exch), rate=(c.sell_rate if sell else c.buy_rate),
                       tax_type=(c.sell_tax_type if sell else c.buy_tax_type), tax_pct=(c.sell_tax_pct if sell else c.buy_tax_pct))
 
-    groups: dict[str, list] = {}
+    rows_by_group: dict[str, list] = {}
     for c in usable:
-        groups.setdefault(line_group(c.sell_tax_type if sell else c.buy_tax_type), []).append(make_line(c))
+        rows_by_group.setdefault(line_group(c.sell_tax_type if sell else c.buy_tax_type), []).append(c)
+    groups: dict[str, list] = {g: [LineIn(**{**m, "qty": m["qty"], "job_number": job.job_number}) for m in merge_rows_for_document(rs, sell)] for g, rs in rows_by_group.items()}      # one line per charge, its container-wise parts kept
     today = date.today()
     made, skipped = [], []
     existing = list(db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.shipment_id == job.id, Document.doc_type == payload.doc_type, Document.status != "CANCELLED", Document.party_name == party)))
@@ -586,11 +599,10 @@ def _unbilled(db: Session, org_id: int, job: Shipment, party: str, doc_type: str
     kinds = ("invoice",) if sale else ("purchase_invoice",)
     billed = {(l.job_number or d.job_number, l.charge_name) for d in db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.doc_type.in_(kinds), Document.status != "CANCELLED", Document.party_name == party, Document.id != (skip_doc or 0))) for l in d.lines}
     out = []
-    for c in mine:
-        if (job.job_number, c.charge_name) in billed:
-            continue
-        side = (c.sell_ccy, c.sell_exch, c.sell_rate, c.sell_tax_type, c.sell_tax_pct) if sale else (c.buy_ccy, c.buy_exch, c.buy_rate, c.buy_tax_type, c.buy_tax_pct)
-        out.append({"job_number": job.job_number, "charge_name": c.charge_name, "description": side_description(c, sale), "hsn": c.hsn, "uom": c.uom, "qty": str(c.qty), "ccy": side[0], "exch": str(side[1]), "rate": str(side[2]), "tax_type": side[3], "tax_pct": str(side[4])})
+    todo = [c for c in mine if (job.job_number, c.charge_name) not in billed]
+    for m in merge_rows_for_document(todo, sale):                      # the same charge entered once per container type comes as ONE line with its breakup
+        out.append({"job_number": job.job_number, "charge_name": m["charge_name"], "description": m["description"], "hsn": m["hsn"], "uom": m["uom"], "qty": str(m["qty"]), "ccy": m["ccy"], "exch": str(m["exch"]),
+                    "rate": str(m["rate"]), "tax_type": m["tax_type"], "tax_pct": str(m["tax_pct"]), "breakup": m["breakup"] or []})
     return out
 
 

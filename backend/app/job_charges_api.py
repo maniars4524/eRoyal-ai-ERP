@@ -57,6 +57,7 @@ class ChargeLine(BaseModel):
     sell: Side = Field(default_factory=Side)
     breakup: list[Breakup] | None = Field(default=None, max_length=30)
     qty_manual: bool = False            # the user typed the quantity: a calculated Basis does not overwrite it
+    pct_base: list[str] | None = Field(default=None, max_length=60)      # "% of Other Charges": the charges the percentage is taken from
 
 
 class ChargesPayload(BaseModel):
@@ -74,7 +75,7 @@ def line_out(row: JobCharge) -> dict:
     buy = compute_side(row.qty, row.buy_ccy, row.buy_exch, row.buy_rate, row.buy_tax_type, row.buy_tax_pct)
     sell = compute_side(row.qty, row.sell_ccy, row.sell_exch, row.sell_rate, row.sell_tax_type, row.sell_tax_pct)
     return {
-        "id": row.id, "line_no": row.line_no, "breakup": row.breakup or [], "charge_name": row.charge_name, "description": row.description, "uom": row.uom, "qty": str(row.qty), "hsn": row.hsn, "qty_manual": bool(row.qty_manual),
+        "id": row.id, "line_no": row.line_no, "breakup": row.breakup or [], "charge_name": row.charge_name, "description": row.description, "uom": row.uom, "qty": str(row.qty), "hsn": row.hsn, "qty_manual": bool(row.qty_manual), "pct_base": row.pct_base,
         "buy": {"pct": None if row.buy_pct is None else str(row.buy_pct), "ccy": row.buy_ccy, "exch": str(row.buy_exch), "rate": str(row.buy_rate), "tax_type": row.buy_tax_type, "tax_pct": str(row.buy_tax_pct), "party": row.vendor, "use_party": row.use_vendor, **{k: str(v) for k, v in buy.items()}},
         "sell": {"pct": None if row.sell_pct is None else str(row.sell_pct), "ccy": row.sell_ccy, "exch": str(row.sell_exch), "rate": str(row.sell_rate), "tax_type": row.sell_tax_type, "tax_pct": str(row.sell_tax_pct), "party": row.client, "use_party": row.use_client, **{k: str(v) for k, v in sell.items()}},
         "_buy": buy, "_sell": sell,
@@ -164,7 +165,7 @@ def basis_amounts(db: Session, job: Shipment, det: JobDetail | None, lines: list
     for i, l in enumerate(lines):
         cat = cats.get(l.charge_name.strip().lower(), "")
         for side, key in ((l.buy, "BUY"), (l.sell, "SELL")):
-            calc_in.append({"id": f"{i}:{key}", "side": key, "basis": l.uom if not (l.breakup or []) else "", "rate": str(side.rate), "qty": str(l.qty), "name": l.charge_name, "category": cat, "ccy": side.ccy, "exch": str(side.exch if side.ccy != "INR" else 1)})
+            calc_in.append({"id": f"{i}:{key}", "side": key, "basis": l.uom if not (l.breakup or []) else "", "rate": str(side.rate), "qty": str(l.qty), "name": l.charge_name, "category": cat, "ccy": side.ccy, "exch": str(side.exch if side.ccy != "INR" else 1), "include": l.pct_base if l.uom == bc.PCT_OTHER else None})
     res = bc.calc_lines(calc_in, m)
     byid = {x["id"]: x for x in res["lines"]}
     for i, l in wanted:
@@ -197,6 +198,7 @@ class PreviewLine(BaseModel):
     name: str = ""
     ccy: str = "INR"
     exch: Decimal = Decimal(1)
+    include: list[str] | None = None
 
 
 class PreviewPayload(BaseModel):
@@ -213,7 +215,7 @@ def basis_preview(job_number: str, payload: PreviewPayload, user: User = Depends
     except bc.BasisError as e:
         raise HTTPException(422, f"Shipment measurements: {e}")
     cats = {r.name.strip().lower(): str((r.data or {}).get("category") or "") for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == job.organization_id, MasterRecord.master_type == "charge"))}
-    lines = [{"id": str(l.id), "side": l.side, "basis": l.basis, "rate": str(l.rate), "qty": str(l.qty), "name": l.name, "category": cats.get(l.name.strip().lower(), ""), "ccy": l.ccy, "exch": str(l.exch if l.ccy != "INR" else 1)} for l in payload.lines]
+    lines = [{"id": str(l.id), "side": l.side, "basis": l.basis, "rate": str(l.rate), "qty": str(l.qty), "name": l.name, "category": cats.get(l.name.strip().lower(), ""), "ccy": l.ccy, "exch": str(l.exch if l.ccy != "INR" else 1), "include": l.include if l.basis == bc.PCT_OTHER else None} for l in payload.lines]
     return bc.calc_lines(lines, m)
 
 
@@ -264,6 +266,7 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
         )
         row.breakup = bu or None
         row.qty_manual = bool(line.qty_manual and line.uom in bc.BASES)
+        row.pct_base = [str(n)[:160] for n in line.pct_base] if line.uom == bc.PCT_OTHER and line.pct_base is not None else None
         if cl.get("pct"):
             row.buy_pct = cl["pct"]["BUY"]["pct"] if "BUY" in cl["pct"] else None
             row.sell_pct = cl["pct"]["SELL"]["pct"] if "SELL" in cl["pct"] else None

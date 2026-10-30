@@ -14433,7 +14433,7 @@ if(document.readyState !== "loading") initChatWidget();
     const host = editorHost(screen); if(!host) return;
     const doc = p && p.doc;
     const pre = (p && p.prefill) || {};
-    BK.state = {type, screen, doc, dirty:false, lines: doc ? doc.lines.map(l=>({job_number:l.job_number, charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct})) : (pre.lines || [blankLine()]),
+    BK.state = {type, screen, doc, dirty:false, lines: doc ? doc.lines.map(l=>({job_number:l.job_number, charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct, breakup:l.breakup || []})) : (pre.lines || [blankLine()]),
       head: doc ? {doc_date:doc.doc_date, due_date:doc.due_date||"", party_name:doc.party_name, party_gstin:doc.party_gstin||"", place_of_supply:doc.place_of_supply||"", supply_type:doc.supply_type, job_number:doc.job_number||"", ref_document_id:doc.ref_document_id||"", remarks:doc.remarks||"", no_round_off:!!((doc.header || {}).no_round_off), vendor_inv_no:(doc.header || {}).vendor_inv_no || "", vendor_inv_date:(doc.header || {}).vendor_inv_date || ""}
         : {doc_date:today(), due_date:"", party_name:pre.party_name||"", party_gstin:"", place_of_supply:"", supply_type:"inter", job_number:pre.job_number||"", ref_document_id:pre.ref_document_id||"", remarks:"", vendor_inv_no:"", vendor_inv_date:""}};
     host.innerHTML = '<div style="padding:30px;text-align:center;color:var(--g5)">Loading…</div>';
@@ -14455,7 +14455,7 @@ if(document.readyState !== "loading") initChatWidget();
     const lineRows = S.lines.map((l,i)=>{
       const c = calc(l);
       const inp = (f,w,ty)=> '<input class="fc" data-bkl="'+i+'" data-f="'+f+'" '+(ty?'type="'+ty+'" ':'')+'style="'+(w?'width:'+w+'px':'min-width:90px')+'" value="'+esc2(l[f])+'"'+dis+'>';
-      return '<tr><td>'+(i+1)+'</td><td><input class="fc" list="bkCharges_'+S.screen+'" data-bkl="'+i+'" data-f="charge_name" style="min-width:140px" value="'+esc2(l.charge_name)+'"'+dis+'>'+(l.job_number && l.job_number !== S.head.job_number ? '<div style="font-size:10px;color:var(--bl);font-weight:700">Job '+esc2(l.job_number)+'</div>' : "")+'</td><td>'+inp("description")+'</td><td>'+inp("hsn",74)+'</td><td>'+inp("qty",58,"number")+'</td><td>'+inp("uom",92)+'</td>'+
+      return '<tr><td>'+(i+1)+'</td><td><input class="fc" list="bkCharges_'+S.screen+'" data-bkl="'+i+'" data-f="charge_name" style="min-width:140px" value="'+esc2(l.charge_name)+'"'+dis+'>'+(l.job_number && l.job_number !== S.head.job_number ? '<div style="font-size:10px;color:var(--bl);font-weight:700">Job '+esc2(l.job_number)+'</div>' : "")+((l.breakup || []).length ? '<button class="btn btn-out btn-sm" type="button" data-bk-bu="'+i+'" style="margin-top:3px;padding:1px 7px;font-size:10.5px" title="Container-wise breakup of this charge">📦 '+(l.breakup || []).length+' types</button>' : "")+'</td><td>'+inp("description")+'</td><td>'+inp("hsn",74)+'</td><td>'+inp("qty",58,"number")+'</td><td>'+inp("uom",92)+'</td>'+
         '<td><select class="fc" data-bkl="'+i+'" data-f="ccy" style="width:66px"'+dis+'>'+["INR","USD","EUR","GBP","AED","SGD","JPY"].map(x=>opt(x,x,x===l.ccy)).join("")+'</select></td><td>'+inp("exch",70,"number")+'</td><td>'+inp("rate",84,"number")+'</td>'+
         '<td><select class="fc" data-bkl="'+i+'" data-f="tax_type" style="width:96px"'+dis+'>'+["Taxable","Non-Taxable","Pure Agent","RCM"].map(x=>opt(x,x,x===l.tax_type)).join("")+'</select></td><td>'+inp("tax_pct",52,"number")+'</td>'+
         '<td class="mono" style="text-align:right">'+inr(c.amount)+'</td><td class="mono" style="text-align:right">'+inr(c.tax)+'</td><td class="mono" style="text-align:right;font-weight:600">'+inr(c.total)+'</td><td>'+(editable?'<button class="ta" data-bkdel="'+i+'">✕</button>':'')+'</td></tr>';
@@ -14582,9 +14582,19 @@ if(document.readyState !== "loading") initChatWidget();
     if(S.doc && S.doc.updated_at) body.expected_updated_at = S.doc.updated_at;          // refused when someone changed the invoice after this screen loaded it
     const doc = S.doc ? await api("PATCH","/api/documents/"+S.doc.id, body) : await api("POST","/api/documents", {...body, doc_type:S.type, job_number:S.head.job_number.trim() || null});
     S.doc = doc; S.dirty = false; S.head.job_number = doc.job_number || S.head.job_number;
-    S.lines = doc.lines.map(l=>({job_number:l.job_number, charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct}));
+    S.lines = doc.lines.map(l=>({job_number:l.job_number, charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct, breakup:l.breakup || []}));
     renderEditor(); return doc;
   }
+  /* one charge billed as ONE line: the container-wise parts it is made of (type x quantity @ rate = amount), with the total */
+  document.addEventListener("click", e=>{
+    const b = e.target.closest && e.target.closest("[data-bk-bu]"); if(!b || !BK.state) return;
+    const l = BK.state.lines[Number(b.dataset.bkBu)]; if(!l || !(l.breakup || []).length) return;
+    const n = v=> Number(v) || 0, f2 = v=> v.toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+    const total = l.breakup.reduce((a, p)=>a + n(p.qty) * n(p.rate), 0);
+    openModal({title:"Breakup — "+esc2(l.charge_name), bodyHTML:'<div class="tw"><table><thead><tr><th>Container type</th><th class="r">Qty</th><th class="r">Rate ('+esc2(l.ccy)+')</th><th class="r">Amount ('+esc2(l.ccy)+')</th></tr></thead><tbody>'+
+      l.breakup.map(p=>'<tr><td>'+esc2(p.type || "—")+'</td><td class="r">'+esc2(String(n(p.qty)))+'</td><td class="r">'+f2(n(p.rate))+'</td><td class="r">'+f2(n(p.qty) * n(p.rate))+'</td></tr>').join("")+
+      '</tbody><tfoot><tr><td colspan="3"><b>Total</b></td><td class="r"><b>'+f2(total)+' '+esc2(l.ccy)+'</b></td></tr></tfoot></table></div><div style="margin-top:8px;font-size:12px;color:var(--g6)">The invoice shows this charge once, for the total; this breakup is also printed in its description.</div>', footHTML:'<button class="btn btn-pri" onclick="closeModal()">Close</button>'});
+  });
   async function action(name){
     const S = BK.state; const T = TYPES[S.type];
     try{
@@ -16598,18 +16608,37 @@ if(document.readyState !== "loading") initChatWidget();
   const chargeCategory = name=>{ const c = (Q.m.charges || []).find(x=>x.name === name); return c ? String((c.data || {}).category || "") : ""; };
   const lineIndexKey = l=>{ const side = l.side === "BUY" ? "buy" : "sell"; return side+":"+(l.side === "BUY" ? Q.buy : Q.sell).indexOf(l); };
   const shownErrors = new Set(); let basisTimer = null, basisSeq = 0;
+  /* "% of Other Charges": the user ticks which of the charges entered on the same side the percentage is taken from */
+  function chooseBase(key){
+    const [side, idx] = key.split(":"); const list = side === "sell" ? Q.sell : Q.buy, l = list[Number(idx)]; if(!l) return;
+    const others = list.filter((x, i)=>i !== Number(idx) && x.charge_name && !PCT_BASIS(x.basis));
+    const have = l.pct_base || [];
+    if(!others.length){ say("No other charges yet", "Enter the charges first, then choose which of them the percentage is taken from", "warn"); return; }
+    openModal({title:"Which charges is the "+esc2(l.charge_name || "")+" percentage taken from?", bodyHTML:'<div style="font-size:12px;color:var(--g6);margin-bottom:8px">Tick the charges already entered on the '+(side === "sell" ? "sell" : "cost")+' side. The percentage is calculated on the total of the ticked charges.</div>'+
+      others.map((x, i)=>'<label style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:0.5px solid var(--g1)"><input type="checkbox" data-pb="'+i+'"'+(have.indexOf(x.charge_name) > -1 ? " checked" : "")+'> <span style="flex:1">'+esc2(x.charge_name)+'</span><span style="color:var(--g5);font-size:11.5px">'+esc2(x.ccy)+' '+num(calc(x).amount / (Number(x.exch) || 1), 2)+'</span></label>').join(""),
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="pbApply">Apply</button>'});
+    document.getElementById("pbApply").addEventListener("click", ()=>{
+      const names = Array.from(document.querySelectorAll("[data-pb]")).filter(c=>c.checked).map(c=>others[Number(c.dataset.pb)].charge_name);
+      if(!names.length){ say("Choose at least one charge", "Tick the charges the percentage is taken from", "warn"); return; }
+      l.pct_base = Array.from(new Set(names)); Q.dirty = true; closeModal(); renderAll(true); queueBasis(true);
+    });
+  }
+  Q.chooseBase = chooseBase;
+  document.addEventListener("click", e=>{ const b = e.target.closest && e.target.closest('[data-qa="pctbase"]'); if(b && document.getElementById("s-quotation-new") && document.getElementById("s-quotation-new").contains(b)){ e.stopPropagation(); chooseBase(b.dataset.k); } }, true);
   async function recalcBasis(explain){
     const all = Q.sell.concat(Q.buy); if(!all.some(l=>BASIS_LIST.indexOf(l.basis) > -1)) return;
     const h = Q.head, w = wiz(); const my = ++basisSeq;
     let res; try{ res = await api("POST", "/api/basis/calc", {measures:{mode:w.mode || "Sea", shipment_type:w.type || "", packages:h.packages, gross_kg:h.gross_weight, net_kg:h.net_weight, volume_cbm:h.volume, chargeable_kg:w.mode === "Air" ? h.chargeable_weight : "", vehicles:h.vehicles},
-      lines:all.map((l, i)=>({id:i, side:l.side, basis:l.basis, rate:l.rate || 0, qty:(l.basis === "Per Shipment" && !l.qty_manual) ? "" : l.qty, name:l.charge_name, category:chargeCategory(l.charge_name), ccy:l.ccy, exch:l.exch}))}); }catch(e){ if(explain) say("Basis not calculated", e.message, "warn"); return; }
+      lines:all.map((l, i)=>({id:i, side:l.side, basis:l.basis, include:l.basis === "% of Other Charges" ? (l.pct_base || null) : null, rate:l.rate || 0, qty:(l.basis === "Per Shipment" && !l.qty_manual) ? "" : l.qty, name:l.charge_name, category:chargeCategory(l.charge_name), ccy:l.ccy, exch:l.exch}))}); }catch(e){ if(explain) say("Basis not calculated", e.message, "warn"); return; }
     if(my !== basisSeq) return;
     res.lines.forEach((x, i)=>{
       const l = all[i]; if(BASIS_LIST.indexOf(l.basis) < 0) return;
       const inp = document.querySelector('[data-ql="'+lineIndexKey(l)+':qty"]');
       l.basis_err = x.error || "";
+      { const pa0 = document.querySelector('[data-pa="'+lineIndexKey(l)+'"]'); if(pa0 && x.error){ pa0.textContent = "\u2014"; pa0.title = x.error; pa0.style.color = "var(--rd)"; } else if(pa0){ pa0.style.color = ""; } }
       if(x.error){ if(inp){ inp.style.outline = "2px solid var(--rd)"; inp.title = x.error; } if(explain && !shownErrors.has(x.error)){ shownErrors.add(x.error); say((l.charge_name || "Charge")+" — "+l.basis, x.error, "warn"); } return; }
       if(!l.qty_manual){ l.qty = String(Number(x.quantity)); if(inp) inp.value = l.qty; }
+      const pa = document.querySelector('[data-pa="'+lineIndexKey(l)+'"]'); if(pa) pa.textContent = num(Number(x.amount), 2);
       if(inp){ inp.style.outline = ""; inp.style.background = l.qty_manual ? "#FFF7E0" : "#EEF6FF"; inp.title = l.qty_manual ? "Quantity typed by you; choose the Basis again to recalculate it" : "Calculated from the Basis: "+l.basis+" ("+(BASIS_UNIT[l.basis] || x.unit)+")"; }
     });
     refreshComputed();
@@ -16621,7 +16650,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(m){
       const l = (m[1] === "sell" ? Q.sell : Q.buy)[Number(m[2])]; if(!l) return;
       if(m[3] === "qty"){ if(e.type === "input"){ l.qty_manual = true; t.style.background = "#FFF7E0"; t.title = "Quantity typed by you; choose the Basis again to recalculate it"; } return; }
-      if(m[3] === "basis"){ l.qty_manual = false; queueBasis(true); return; }
+      if(m[3] === "basis"){ l.qty_manual = false; setTimeout(()=>{ if(l.basis !== "% of Other Charges") l.pct_base = null; else if(!(l.pct_base || []).length){ chooseBase(m[1]+":"+m[2]); return; } queueBasis(true); }, 80); return; }          // after the screen's own handler has stored the new Basis
       if(["rate", "exch", "ccy"].indexOf(m[3]) > -1) queueBasis(false);
       return;
     }
@@ -16644,10 +16673,13 @@ if(document.readyState !== "loading") initChatWidget();
     const carriers = Array.from(new Set(chosenCarriers().concat(l.carrier ? [l.carrier] : [])));
     const m = lineMargin(l);
     const rateEditable = canEditRate(l) && !ro && !na;
-    const unitsCell = l.basis === "Container"
+    const isPct = l.basis === "% of Freight" || l.basis === "% of Other Charges";
+    const unitsCell = isPct
+      ? '<div style="display:flex;align-items:center;gap:3px"><input class="fc" type="number" min="0" max="1000" step="0.01" data-ql="'+key+':rate" value="'+esc2(l.rate)+'" style="width:64px" title="Percentage of '+(l.basis === "% of Freight" ? "the freight charges" : "the chosen other charges")+'"'+d+'><b>%</b>'+(l.basis === "% of Other Charges" ? '<button class="btn btn-out btn-sm" style="padding:2px 6px;font-size:10.5px" data-qa="pctbase" data-k="'+key+'" title="Choose the charges this percentage is taken from"'+d+'>'+((l.pct_base || []).length ? (l.pct_base || []).length+" charges" : "Choose…")+'</button>' : "")+'</div>'
+      : l.basis === "Container"
       ? '<button class="btn btn-out btn-sm" style="padding:2px 7px;font-size:11px" data-qa="containers" data-k="'+key+'" title="'+(ro ? "View the container-wise breakup" : "Container-wise rates")+'">📦 '+num(c.units,3)+'</button>'
       : '<input class="fc" type="number" min="0" step="0.001" data-ql="'+key+':qty" value="'+esc2(l.qty)+'" style="width:64px"'+d+'>';
-    const rateCell = hasBreak ? '<span class="r" title="Average of the container-wise rates">≈ '+num(c.rate,2)+'</span>' : '<input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':rate" value="'+esc2(l.rate)+'" style="width:84px"'+d+'>';
+    const rateCell = isPct ? '<span class="r" data-pa="'+key+'" title="Calculated from the percentage: '+(l.basis === "% of Freight" ? "freight" : "chosen other charges")+' x % / 100" style="font-weight:700">'+num(c.amount / (Number(l.exch) || 1), 2)+'</span>' : hasBreak ? '<span class="r" title="Average of the container-wise rates">≈ '+num(c.rate,2)+'</span>' : '<input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':rate" value="'+esc2(l.rate)+'" style="width:84px"'+d+'>';
     let cells = '<td><select class="fc" data-ql="'+key+':basis" style="min-width:96px"'+d+'>'+uomList().concat(uomList().includes(l.basis)?[]:[l.basis]).map(u=>opt(u, u, u===l.basis)).join("")+'</select></td><td>'+unitsCell+'</td>'+
       '<td><select class="fc" data-ql="'+key+':ccy" style="width:66px"'+d+'>'+ccyList().concat(ccyList().includes(l.ccy)?[]:[l.ccy]).map(x=>opt(x, x, x===l.ccy)).join("")+'</select></td>'+
       '<td><input class="fc" type="number" min="0" step="0.0001" data-ql="'+key+':exch" value="'+esc2(l.exch)+'" style="width:66px"'+(rateEditable?"":" disabled")+' title="'+(l.ccy==="INR"?"Base currency":"INR per 1 "+esc2(l.ccy)+(Q.m.rates[l.ccy]?" (Currency Master)":""))+'"></td>'+
@@ -16779,7 +16811,7 @@ if(document.readyState !== "loading") initChatWidget();
   function fillFromRec(r){
     Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", cust_source:(r.header||{}).cust_source || (r.customer_id ? "master" : "direct"), lead_ref:(r.header||{}).lead_ref||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
       ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","net_weight","vehicles"].map(k=>[k, (r.header||{})[k]||""])), containers:Array.isArray((r.header||{}).containers) ? r.header.containers.map(c=>({type:c.type, qty:String(c.qty)})) : []};
-    const mk = l=>({qty_manual:!!l.qty_manual, side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
+    const mk = l=>({qty_manual:!!l.qty_manual, pct_base:l.pct_base || null, side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
     Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk); pairLines();
   }
   async function openForm(rec){
@@ -16839,7 +16871,7 @@ if(document.readyState !== "loading") initChatWidget();
     const cust = Q.m.customers.find(c=>String(c.id) === String(h.customer_id));
     const toLine = l=>{
       const bu = (l.container_breakup||[]).filter(b=>Number(b.qty)>0 && b.type).map(b=>({type:b.type, qty:String(Number(b.qty)), rate:String(Number(b.rate)||0)}));
-      return {side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||null, container_breakup:bu.length ? bu : null, qty_manual:!!l.qty_manual, ccy:l.ccy, exch:String(Number(l.exch)||0), rate:String(Number(l.rate)||0), qty:String(Number(l.qty)||0), taxable:!!l.taxable, tax_pct:l.taxable ? String(Number(l.tax_pct)||0) : "0", remarks:l.remarks||""};
+      return {side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||null, container_breakup:bu.length ? bu : null, qty_manual:!!l.qty_manual, pct_base:l.basis === "% of Other Charges" ? (l.pct_base || null) : null, ccy:l.ccy, exch:String(Number(l.exch)||0), rate:String(Number(l.rate)||0), qty:String(Number(l.qty)||0), taxable:!!l.taxable, tax_pct:l.taxable ? String(Number(l.tax_pct)||0) : "0", remarks:l.remarks||""};
     };
     return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
       pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,

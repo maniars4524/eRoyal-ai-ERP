@@ -36,6 +36,7 @@ class LineIn(BaseModel):
     category: str = ""
     ccy: str = "INR"
     exch: Any = 1
+    include: list[str] | None = None        # "% of Other Charges": the charges the percentage is taken from
 
 
 class CalcIn(BaseModel):

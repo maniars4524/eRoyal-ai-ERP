@@ -185,7 +185,7 @@ def calc_lines(lines: list[dict], m: Measures) -> dict:
         key = str(ln.get("id", i))
         exch = dec(ln.get("exch") or 1, "Exchange rate") or ONE
         base = {"id": key, "side": (ln.get("side") or "SELL").upper(), "basis": ln.get("basis") or "", "rate": str(dec(ln.get("rate"), "Rate")), "ccy": ln.get("ccy") or "INR", "exch": str(exch),
-                "freight": is_freight(ln.get("name"), ln.get("category")), "error": None}
+                "freight": is_freight(ln.get("name"), ln.get("category")), "name": (ln.get("name") or "").strip().lower(), "error": None}
         out[key] = base
         b = base["basis"]
         try:
@@ -213,6 +213,13 @@ def calc_lines(lines: list[dict], m: Measures) -> dict:
             pool, what = [x for x in mine if x["freight"]], "freight"
         else:
             pool, what = [x for x in mine if not x["freight"]], "other charges"
+            chosen = ln.get("include")
+            if chosen is not None:                                       # the user ticked which charges the percentage is taken from
+                names = {str(n).strip().lower() for n in chosen}
+                if not names:
+                    base.update({"error": "Choose the charges this percentage is taken from", "quantity": "0", "unit": UNITS[base["basis"]], "amount": "0.00", "amount_inr": "0.00"})
+                    continue
+                pool, what = [x for x in mine if x["name"] in names], "chosen charges"
         total_inr = sum((Decimal(x["amount_inr"]) for x in pool), ZERO)
         if not pool or total_inr <= 0:
             base.update({"error": f"There is no {what} on the {'cost' if side == 'BUY' else 'sell'} side to take a percentage of yet", "quantity": "0", "unit": UNITS[base["basis"]], "amount": "0.00", "amount_inr": "0.00"})

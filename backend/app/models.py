@@ -594,6 +594,7 @@ class JobCharge(Base):
     buy_pct = mapped_column(Numeric(8, 3), nullable=True)    # a "% of Freight" / "% of Other Charges" line: the percentage entered (the rates then hold the calculated amounts, quantity 1)
     sell_pct = mapped_column(Numeric(8, 3), nullable=True)
     qty_manual: Mapped[bool] = mapped_column(default=False, server_default="false")      # the quantity was typed by the user and is not recalculated from the Basis
+    pct_base: Mapped[list | None] = mapped_column(JSON)         # "% of Other Charges": the names of the charges the percentage is taken from
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -670,6 +671,7 @@ class DocumentLine(Base):
     amount = mapped_column(Numeric(16, 2), default=0)
     tax_amount = mapped_column(Numeric(16, 2), default=0)
     line_total = mapped_column(Numeric(16, 2), default=0)
+    breakup: Mapped[list | None] = mapped_column(JSON)          # container-wise breakup of a charge billed as one line: [{type, qty, rate}]
     document: Mapped[Document] = relationship(back_populates="lines")
 
 
@@ -775,6 +777,7 @@ class QuotationLine(Base):
     container_type: Mapped[str | None] = mapped_column(String(40))
     container_breakup: Mapped[list | None] = mapped_column(JSON)
     qty_manual: Mapped[bool] = mapped_column(default=False, server_default="false")      # the quantity was typed by the user: a calculated Basis does not overwrite it
+    pct_base: Mapped[list | None] = mapped_column(JSON)         # "% of Other Charges": the names of the charges the percentage is taken from
     remarks: Mapped[str] = mapped_column(String(500), default="")
     amount_fcy = mapped_column(Numeric(16, 2), default=0)  # in the line's own currency
     gst_amount = mapped_column(Numeric(16, 2), default=0)  # base currency

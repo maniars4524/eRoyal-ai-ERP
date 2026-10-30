@@ -85,6 +85,43 @@ def breakup_text(breakup, side: str) -> str:
     return "; ".join(parts)
 
 
+def merge_rows_for_document(rows, sell: bool) -> list[dict]:
+    """The job charges of one side as document lines. Rows of the SAME charge (same name, currency, rate of exchange and tax) become ONE line for the total, with the container-wise
+    parts kept (type x quantity @ rate) in a breakup and in the description, so an invoice shows Ocean Freight once, not once per container type."""
+    groups: dict[tuple, list] = {}
+    for c in rows:
+        ccy, exch = (c.sell_ccy, c.sell_exch) if sell else (c.buy_ccy, c.buy_exch)
+        ttype, tpct = (c.sell_tax_type, c.sell_tax_pct) if sell else (c.buy_tax_type, c.buy_tax_pct)
+        groups.setdefault(((c.charge_name or "").strip().lower(), ccy, str(exch), ttype, str(tpct), c.hsn or ""), []).append(c)
+    out = []
+    for rs in groups.values():
+        first = rs[0]
+        ccy, exch, rate = (first.sell_ccy, first.sell_exch, first.sell_rate) if sell else (first.buy_ccy, first.buy_exch, first.buy_rate)
+        ttype, tpct = (first.sell_tax_type, first.sell_tax_pct) if sell else (first.buy_tax_type, first.buy_tax_pct)
+        parts = []
+        for c in rs:
+            r = c.sell_rate if sell else c.buy_rate
+            if c.breakup:
+                for b in c.breakup:
+                    br, bq = Decimal(str(b.get("sell" if sell else "buy") or 0)), Decimal(str(b.get("qty") or 0))
+                    if br > 0 and bq > 0:
+                        parts.append({"type": (b.get("type") or "").strip(), "qty": bq, "rate": br})
+            else:
+                suffix = (c.description or "").split(" \u2014 ", 1)
+                parts.append({"type": suffix[1].strip() if len(suffix) > 1 else "", "qty": Decimal(c.qty or 1), "rate": Decimal(r or 0)})
+        line = {"charge_name": first.charge_name, "hsn": first.hsn, "ccy": ccy, "exch": exch, "tax_type": ttype, "tax_pct": tpct}
+        if len(rs) == 1:
+            line.update({"description": side_description(first, sell), "uom": first.uom, "qty": first.qty, "rate": rate, "breakup": [{"type": p["type"], "qty": format(p["qty"].normalize(), "f"), "rate": format(p["rate"].normalize(), "f")} for p in parts] if first.breakup else None})
+        else:
+            total = sum((p["qty"] * p["rate"] for p in parts), Decimal(0))
+            base = (first.description or first.charge_name or "").split(" \u2014 ", 1)[0].strip() or first.charge_name
+            text = "; ".join(f"{(p['type'] or 'Entry').strip()} x{p['qty'].normalize():f} @ {p['rate'].normalize():f}" for p in parts)
+            line.update({"description": f"{base} ({text})"[:240], "uom": "Per Container" if any(p["type"] for p in parts) else first.uom, "qty": Decimal(1), "rate": total,
+                         "breakup": [{"type": p["type"], "qty": format(p["qty"].normalize(), "f"), "rate": format(p["rate"].normalize(), "f")} for p in parts]})
+        out.append(line)
+    return out
+
+
 def side_description(row, sell: bool) -> str:
     """Description of a job charge on a document: its own remarks plus the container-wise break-up for that side."""
     base = (row.description or "").strip()

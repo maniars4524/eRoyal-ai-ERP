@@ -248,3 +248,30 @@ def test_percentage_charge_end_to_end_job_invoice_and_reports(world, admin):
 def uuid4_short():
     import uuid
     return uuid.uuid4().hex[:6].upper()
+
+
+def test_percentage_of_other_charges_only_from_the_chosen_charges(world, admin):
+    h = hdr(admin["username"], admin["license"])
+    lines = [_ql("THC", "Per Shipment", 300), _ql("BL fee", "Per Shipment", 500), _ql("Seal", "Per Shipment", 200),
+             _ql("Handling %", "% of Other Charges", 10, pct_base=["THC", "Seal"])]
+    r = _quote(h, lines)
+    assert r.status_code == 201, r.text
+    by = {x["charge_name"]: x for x in r.json()["lines"]}
+    assert by["Handling %"]["amount"] == "50.00" and by["Handling %"]["pct_base"] == ["THC", "Seal"]                        # 10% of THC 300 + Seal 200, not of the BL fee
+    default = _quote(h, [_ql("THC", "Per Shipment", 300), _ql("BL fee", "Per Shipment", 500), _ql("Handling %", "% of Other Charges", 10)])
+    assert default.status_code == 201 and {x["charge_name"]: x for x in default.json()["lines"]}["Handling %"]["amount"] == "80.00"        # no choice made: all other charges
+    none = _quote(h, [_ql("THC", "Per Shipment", 300), _ql("Handling %", "% of Other Charges", 10, pct_base=[])])
+    assert none.status_code == 422 and "Choose the charges" in none.text
+    again = client.get(f"/api/quotations/{r.json()['id']}", headers=h).json()
+    assert {x["charge_name"]: x["pct_base"] for x in again["lines"]}["Handling %"] == ["THC", "Seal"]
+    # job cost: the same choice
+    no = _job(h, container_mode="FCL", cargo={"pkgs": "5", "gwt": "1000"})
+    jl = [_jl("THC", "Per Shipment", 100, 300), _jl("BL fee", "Per Shipment", 100, 500), _jl("Handling %", "% of Other Charges", 10, 10, pct_base=["THC"])]
+    saved = client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": jl}, headers=h)
+    assert saved.status_code == 200, saved.text
+    pct = {x["charge_name"]: x for x in saved.json()["lines"]}["Handling %"]
+    assert pct["sell"]["amount"] == "30.00" and pct["buy"]["amount"] == "10.00" and pct["pct_base"] == ["THC"]
+
+
+def _jl(name, uom, buy, sell, qty="1", **extra):
+    return {"charge_name": name, "uom": uom, "qty": qty, "buy": {"rate": str(buy), "ccy": "INR", "exch": "1", "tax_type": "Non-Taxable"}, "sell": {"rate": str(sell), "ccy": "INR", "exch": "1", "tax_type": "Non-Taxable"}, **extra}

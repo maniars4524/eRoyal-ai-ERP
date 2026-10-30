@@ -448,3 +448,29 @@ def test_a_billed_charge_cannot_be_billed_again_and_the_list_shows_every_job(h):
     assert again.status_code == 201
     listed = client.get("/api/documents?doc_type=invoice&q=" + jobs[1], headers=h).json()
     assert all("job_numbers" in d for d in listed)
+
+
+def test_one_charge_entered_per_container_type_is_one_invoice_line_with_its_breakup(h):
+    made = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "container_mode": "FCL", "pol": "INMAA", "pod": "BEANR"}, headers=h).json()
+    no = made["job_number"]
+    side = lambda rate: {"rate": str(rate), "ccy": "USD", "exch": "88.98", "tax_type": "Taxable", "tax_pct": "5", "party": "Group Co", "use_party": True}      # noqa: E731
+    cost = {"rate": "0", "ccy": "INR", "exch": "1", "tax_type": "Non-Taxable"}
+    lines = [{"charge_name": "OCEAN FEIGHT CHARGES", "description": "OCEAN FEIGHT CHARGES — 40HC", "uom": "Container", "qty": "1", "buy": cost, "sell": side(2500)},
+             {"charge_name": "OCEAN FEIGHT CHARGES", "description": "OCEAN FEIGHT CHARGES — 20GP", "uom": "Container", "qty": "2", "buy": cost, "sell": side(1600)},
+             {"charge_name": "BL Charges", "uom": "BL", "qty": "1", "buy": cost, "sell": {"rate": "4500", "ccy": "INR", "exch": "1", "tax_type": "Taxable", "tax_pct": "18", "party": "Group Co", "use_party": True}}]
+    assert client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": lines}, headers=h).status_code == 200
+    got = client.get(f"/api/documents/billing/job-lines?job_number={no}&party=Group Co&doc_type=invoice", headers=h).json()
+    freight = [l for l in got if l["charge_name"] == "OCEAN FEIGHT CHARGES"]
+    assert len(freight) == 1                                                                                    # once, not once per container type
+    f = freight[0]
+    assert f["qty"] == "1" and Decimal(f["rate"]) == Decimal("5700") and f["uom"] == "Per Container"
+    assert [(b["type"], b["qty"], b["rate"]) for b in f["breakup"]] == [("40HC", "1", "2500"), ("20GP", "2", "1600")]
+    assert "40HC x1 @ 2500" in f["description"] and "20GP x2 @ 1600" in f["description"]                       # the whole breakup is in the description
+    inv = client.post("/api/documents/from-job", json={"job_number": no, "doc_type": "invoice", "party": "Group Co"}, headers=h)
+    assert inv.status_code == 201, inv.text
+    names = [l["charge_name"] for d in [inv.json()] + [client.get(f"/api/documents/{x['id']}", headers=h).json() for x in inv.json().get("also_created", [])] for l in d["lines"]]
+    assert names.count("OCEAN FEIGHT CHARGES") == 1
+    line = next(l for l in inv.json()["lines"] if l["charge_name"] == "OCEAN FEIGHT CHARGES")
+    assert line["amount"] == str((Decimal("5700") * Decimal("88.98")).quantize(Decimal("0.01"))) and len(line["breakup"]) == 2
+    again = client.get(f"/api/documents/{inv.json()['id']}", headers=h).json()
+    assert len(next(l for l in again["lines"] if l["charge_name"] == "OCEAN FEIGHT CHARGES")["breakup"]) == 2          # the breakup is kept with the saved invoice

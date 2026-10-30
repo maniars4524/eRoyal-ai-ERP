@@ -98,5 +98,27 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   setf(ql("sell", 0, "qty"), "7"); await sleep(900); setf(ql("sell", 0, "rate"), "11"); await sleep(900);
   check("a typed quantity is kept (not overwritten) and shown as typed", qtyOf("sell", 0) === "7" && /typed by you/.test(ql("sell", 0, "qty").title), qtyOf("sell", 0));
   await pickBasis("sell", 0, "Per Package"); check("choosing the Basis again recalculates the quantity", qtyOf("sell", 0) === "10", qtyOf("sell", 0));
+  // ---------- % of Freight / % of Other Charges: the percentage in the units cell, the calculated amount in the rate cell ----------
+  const names = Array.from(ql("sell", 0, "charge_name").options).map(o => o.value).filter(Boolean);
+  const freightName = names.find(n => /freight/i.test(n)) || names[0], otherName = names.find(n => n !== freightName && !/freight/i.test(n)), thirdName = names.find(n => n !== freightName && n !== otherName && !/freight/i.test(n));
+  for (let k = 0; k < 3; k++) { q('[data-qa="add"][data-side="BOTH"]').click(); await sleep(300); }
+  setf(ql("sell", 1, "charge_name"), freightName); await sleep(400); setf(ql("sell", 1, "basis"), "Per Shipment"); await sleep(900); setf(ql("sell", 1, "rate"), "1000"); await sleep(700);
+  setf(ql("sell", 2, "charge_name"), otherName); await sleep(400); setf(ql("sell", 2, "basis"), "Per Shipment"); await sleep(900); setf(ql("sell", 2, "rate"), "300"); await sleep(700);
+  setf(ql("sell", 3, "charge_name"), freightName); await sleep(400); setf(ql("sell", 3, "basis"), "% of Freight"); await sleep(1200);
+  check("on a % of Freight line the percentage is typed in the units cell (no separate rate box)", !!q('[data-ql="sell:3:rate"]') && !q('[data-ql="sell:3:qty"]') && !!q('[data-pa="sell:3"]'), "");
+  setf(ql("sell", 3, "rate"), "10"); await sleep(1300);
+  const freightBase = w.QK.sell.filter(l => !/^%/.test(l.basis) && /freight/i.test(l.charge_name) && l.basis !== "Container").reduce((a, l) => a + Number(l.rate) * Number(l.qty) * (Number(l.exch) || 1), 0);
+  check("the rate cell shows the calculated amount: 10% of the freight charges (" + freightBase + ")", Math.abs(Number(q('[data-pa="sell:3"]').textContent.replace(/,/g, "")) - freightBase * 0.1) < 0.01 && freightBase >= 1000, q('[data-pa="sell:3"]').textContent + " vs " + freightBase * 0.1);
+  q('[data-qa="add"][data-side="BOTH"]').click(); await sleep(300);
+  setf(ql("sell", 4, "charge_name"), freightName); await sleep(300);
+  setf(ql("sell", 4, "basis"), "% of Other Charges"); await sleep(1200);
+  const picker = (d.getElementById("modalBox") || d.querySelector(".modal-box") || { textContent: "" }).textContent.replace(/\s+/g, " ");
+  check("choosing % of Other Charges asks which of the entered charges to take the percentage from", /Which charges is the/.test(picker) && d.querySelectorAll("[data-pb]").length >= 2, picker.slice(0, 160));
+  const boxes = Array.from(d.querySelectorAll("[data-pb]")); const label = b => b.closest("label").textContent;
+  boxes.forEach(b => { b.checked = label(b).includes(otherName); });
+  d.getElementById("pbApply").click(); await sleep(800);
+  setf(ql("sell", 4, "rate"), "10"); await sleep(1500);
+  const otherBase = w.QK.sell.filter(l => !/^%/.test(l.basis) && l.charge_name === otherName && l.basis !== "Container").reduce((a, l) => a + Number(l.rate) * Number(l.qty) * (Number(l.exch) || 1), 0);
+  check("after Apply the rate cell shows 10% of only the ticked charge (" + otherBase + ")", otherBase >= 300 && Math.abs(Number(q('[data-pa="sell:4"]').textContent.replace(/,/g, "")) - otherBase * 0.1) < 0.01 && /1 charges/.test(q('[data-qa="pctbase"][data-k="sell:4"]').textContent), q('[data-pa="sell:4"]').textContent + " | " + q('[data-qa="pctbase"][data-k="sell:4"]').textContent);
   console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

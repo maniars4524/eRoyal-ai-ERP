@@ -53,6 +53,7 @@ class QLine(BaseModel):
     rate: Decimal = Field(default=Decimal("0"), ge=0, max_digits=16, decimal_places=4)
     qty: Decimal = Field(default=Decimal("1"), ge=0, max_digits=14, decimal_places=3)
     qty_manual: bool = False
+    pct_base: list[str] | None = Field(default=None, max_length=60)      # "% of Other Charges": the charges the percentage is taken from
     taxable: bool | None = None
     tax_pct: Decimal = Field(default=Decimal("0"), ge=0, le=100, max_digits=6, decimal_places=2)
     remarks: str = Field(default="", max_length=500)
@@ -129,7 +130,7 @@ def _names(db: Session, ids: set[int | None]) -> dict[int, str]:
 
 def _line_out(l: QuotationLine, margins: dict[str, Decimal | None]) -> dict:
     m = margins.get((l.charge_name or "").strip().lower())
-    return {"line_no": l.line_no, "qty_manual": bool(l.qty_manual), "side": l.side, "charge_name": l.charge_name, "carrier": l.carrier, "basis": l.basis, "container_type": l.container_type, "container_breakup": l.container_breakup or [],
+    return {"line_no": l.line_no, "qty_manual": bool(l.qty_manual), "pct_base": l.pct_base, "side": l.side, "charge_name": l.charge_name, "carrier": l.carrier, "basis": l.basis, "container_type": l.container_type, "container_breakup": l.container_breakup or [],
             "ccy": l.ccy, "exch": str(l.exch), "rate": str(l.rate), "qty": str(l.qty), "taxable": bool(l.taxable), "tax_pct": str(l.tax_pct), "remarks": l.remarks or "",
             "amount_fcy": str(l.amount_fcy), "amount": str(l.amount), "gst_amount": str(l.gst_amount), "total_inr": str(l.total_inr), "margin_rate": None if m is None else str(m)}
 
@@ -189,7 +190,7 @@ def _basis_quantities(db: Session, q: Quotation, lines: list[QLine], org_id: int
         raise HTTPException(422, f"Shipment measurements: {e}")
     cats = {r.name.strip().lower(): str((r.data or {}).get("category") or "") for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "charge"))}
     res = bc.calc_lines([{"id": i, "side": l.side, "basis": "" if l.container_breakup else l.basis, "rate": str(l.rate), "qty": str(l.qty), "name": l.charge_name, "category": cats.get(l.charge_name.strip().lower(), ""),
-                          "ccy": l.ccy, "exch": str(l.exch if l.ccy != "INR" else 1)} for i, l in enumerate(lines)], m)
+                          "ccy": l.ccy, "exch": str(l.exch if l.ccy != "INR" else 1), "include": l.pct_base if l.basis == bc.PCT_OTHER else None} for i, l in enumerate(lines)], m)
     for x, l in zip(res["lines"], lines):
         if l.basis not in bc.BASES or l.container_breakup:
             continue
@@ -223,7 +224,7 @@ def _apply_lines(db: Session, q: Quotation, lines: list[QLine], user: User, org_
         taxable = line.taxable if line.taxable is not None else line.tax_pct > 0
         breakup = [{"type": b.type, "qty": str(b.qty), "rate": str(b.rate)} for b in line.container_breakup] if line.container_breakup else None
         c = calc_line(line.qty, line.rate, line.ccy, line.exch, taxable, line.tax_pct, breakup)
-        q.lines.append(QuotationLine(line_no=i, side=line.side, charge_name=line.charge_name.strip(), carrier=line.carrier.strip(), basis=line.basis, container_type=line.container_type, container_breakup=breakup, qty_manual=bool(line.qty_manual and line.basis in bc.BASES),
+        q.lines.append(QuotationLine(line_no=i, side=line.side, charge_name=line.charge_name.strip(), carrier=line.carrier.strip(), basis=line.basis, container_type=line.container_type, container_breakup=breakup, qty_manual=bool(line.qty_manual and line.basis in bc.BASES), pct_base=([str(n)[:160] for n in line.pct_base] if line.basis == bc.PCT_OTHER and line.pct_base is not None else None),
                                      ccy=line.ccy, exch=c["exch"], rate=c["unit_rate"], qty=c["units"], taxable=taxable, tax_pct=c["tax_pct"], remarks=line.remarks.strip(), amount_fcy=c["amount_fcy"],
                                      amount=c["amount_inr"], gst_amount=c["gst"], total_inr=c["total_inr"]))
 
