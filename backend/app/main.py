@@ -2,10 +2,11 @@ from datetime import datetime, timezone
 
 from pathlib import Path
 
-from fastapi import HTTPException, FastAPI
+from fastapi import HTTPException, FastAPI, Request
 from fastapi import Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -78,6 +79,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1024)          # the page and the larger API answers travel compressed
 app.include_router(auth_router)
 app.include_router(platform_router)
 app.include_router(customers_router)
@@ -185,8 +187,14 @@ def _landing(allowed: list[str]) -> str:
     return LANDING_HTML.split('<div class="g">')[0] + '<div class="g">' + cards + "</div></main></body></html>"
 
 
-def _ui_response() -> FileResponse:
-    return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-store"})
+def _ui_response(request: Request):
+    """The application page (about 5 MB of HTML + script). It is compressed on the way out (GZipMiddleware) and the browser keeps a copy: it asks "is it still the same?" (ETag) on every visit and
+    gets a tiny 304 answer unless the page really changed, so a new version still reaches everyone at once."""
+    st = UI_FILE.stat()
+    etag = f'W/"{st.st_mtime_ns:x}-{st.st_size:x}"'
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={"ETag": etag, "Cache-Control": "no-cache"})
+    return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-cache", "ETag": etag})
 
 
 _allowed = [p for p in ("erp", "demo", "developer") if not PUBLIC_PORTALS or p in PUBLIC_PORTALS]
