@@ -46,7 +46,7 @@ from . import models
 
 UI_FILE = Path(__file__).resolve().parents[2] / "esway-erp.html"
 BRAND_DIR = Path(__file__).resolve().parents[2] / "frontend"
-BRAND_FILES = {"logo-sway.png", "logo-sway-white.png"}
+BRAND_FILES = {"logo-sway.png", "logo-sway-white.png", "login-bg.gif"}
 
 app = FastAPI(title="eSway ERP 2.0 API", version="2.0.0", docs_url=None if PUBLIC_PORTALS else "/docs", redoc_url=None if PUBLIC_PORTALS else "/redoc", openapi_url=None if PUBLIC_PORTALS else "/openapi.json")
 
@@ -205,7 +205,7 @@ def brand_file(name: str) -> FileResponse:
     """The SWAY logo images used by the login page and the header (a fixed list of two files; nothing else is served from here)."""
     if name not in BRAND_FILES or not (BRAND_DIR / name).is_file():
         raise HTTPException(404, "Not found")
-    return FileResponse(BRAND_DIR / name, media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
+    return FileResponse(BRAND_DIR / name, media_type="image/gif" if name.endswith(".gif") else "image/png", headers={"Cache-Control": "public, max-age=86400"})          # kept by the browser for a day: the 1.8 MB login background is no longer inside the page
 
 
 # ---- installable app (PWA): manifest, service worker and icons. Data is never cached by the service worker; it only keeps the icons and an offline page.
