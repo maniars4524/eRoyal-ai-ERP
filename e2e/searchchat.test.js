@@ -24,11 +24,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const box = d.getElementById("globalSearch");
   box.value = word; box.dispatchEvent(new w.Event("input", { bubbles: true })); await sleep(1500);
   const res = d.getElementById("gsResults");
-  check("typing a keyword lists matching records grouped by module", res.classList.contains("on") && /Organizations/.test(res.textContent) && res.textContent.includes(word + " Exports"), res.textContent.slice(0, 200));
+  check("typing a keyword lists matching records grouped by module", res.classList.contains("on") && /CRM/.test(res.textContent) && /Customer|Organization/.test(res.textContent) && res.textContent.includes(word + " Exports"), res.textContent.slice(0, 200));
   box.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); await sleep(1800);
-  check("Enter opens the first result: the Organizations list filtered to it", d.getElementById("s-org-list").classList.contains("on") && !res.classList.contains("on"), d.querySelector(".scr.on") && d.querySelector(".scr.on").id);
+  check("Enter opens the first listed result (the ledger of that customer in Accounts, or the Organizations list)", (d.getElementById("s-org-list").classList.contains("on") || d.getElementById("s-coa").classList.contains("on")) && !res.classList.contains("on"), d.querySelector(".scr.on") && d.querySelector(".scr.on").id);
   box.value = "zzzz-nothing-" + tag; box.dispatchEvent(new w.Event("input", { bubbles: true })); await sleep(1500);
-  check("a keyword with no match says so", /No result/.test(res.textContent), res.textContent.slice(0, 120));
+  check("a keyword with no match says so", /No record found/.test(res.textContent), res.textContent.slice(0, 120));
   box.value = ""; res.classList.remove("on");
   // chat
   const hb = d.getElementById("hdrChatBtn");

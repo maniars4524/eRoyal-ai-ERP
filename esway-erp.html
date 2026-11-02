@@ -22458,49 +22458,113 @@ function makePrintFit(){
     ".chat-launcher{touch-action:none;user-select:none}.chat-x{position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:var(--g8,#1e293b);color:#fff;border:2px solid #fff;font-size:11px;line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;padding:0}.chat-launcher:hover .chat-x,.chat-launcher:focus-within .chat-x{display:flex}.chat-launcher.gone{display:none!important}.chat-head{cursor:grab;touch-action:none}.chat-head:active{cursor:grabbing}";
   document.head.appendChild(st);
 
-  /* ---------- search ---------- */
+  /* ---------- universal search: Department > Division > Service > Category > record, with filters, load-more and open ---------- */
+  const ust = document.createElement("style");
+  ust.textContent = ".gs-results.uni{position:fixed;left:50%;top:60px;transform:translateX(-50%);width:min(1060px,96vw);max-height:82vh;padding:0}"+
+    ".uni .u-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:0.5px solid var(--g2);position:sticky;top:0;background:var(--wh);z-index:3}.uni .u-head b{font-size:15px;color:var(--g8)}.uni .u-head span{margin-left:auto;font-size:12px;color:var(--g5)}"+
+    ".uni .u-fil{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-bottom:0.5px solid var(--g2);background:var(--g0);position:sticky;top:46px;z-index:2}.uni .u-fil select,.uni .u-fil input{padding:5px 7px;border:0.5px solid var(--g3);border-radius:6px;font-size:11.5px;background:var(--wh);color:var(--g8);max-width:150px}"+
+    ".uni .u-dep{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--blt,#eaf2fc);font-weight:700;font-size:13px;cursor:pointer;color:var(--g8);border-top:0.5px solid var(--g2)}.uni .u-dep em{font-style:normal;font-weight:600;color:var(--g5);font-size:12px}.uni .u-dep .u-chev{margin-left:auto;transition:transform .15s}.uni .u-dep.shut .u-chev{transform:rotate(-90deg)}"+
+    ".uni .u-div{padding:6px 16px 2px 22px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--bl)}.uni .u-svc{padding:4px 16px 2px 30px;font-size:11px;font-weight:700;color:var(--g6)}"+
+    ".uni .u-row{display:grid;grid-template-columns:minmax(120px,1.1fr) minmax(90px,.8fr) minmax(110px,1fr) minmax(110px,1fr) 88px minmax(80px,.7fr) 52px;gap:8px;align-items:center;padding:6px 16px 6px 38px;cursor:pointer;font-size:12px;border-bottom:0.5px solid var(--g1)}.uni .u-row:hover,.uni .u-row.sel{background:var(--g1,#f1f5f9)}"+
+    ".uni .u-row b{color:var(--bl);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.uni .u-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--g7)}.uni .u-tag{font-size:10.5px;padding:1px 7px;border-radius:10px;background:var(--g1);color:var(--g7)}.uni .u-open{color:var(--bl);font-weight:700}"+
+    ".uni .u-more{padding:6px 16px 6px 38px}.uni .u-foot{padding:10px 16px;font-size:12px;color:var(--g5);border-top:0.5px solid var(--g2)}.uni .u-hide{display:none}"+
+    "@media (max-width:760px){.uni .u-row{grid-template-columns:1fr 1fr;padding-left:20px}.uni .u-row span:nth-child(n+4){display:none}.gs-results.uni{top:56px}}";
+  document.head.appendChild(ust);
+  const U = {items:[], sources:[], total:0, q:"", f:{department:"", division:"", mode:"", service:"", category:"", party:"", status:"", date_from:"", date_to:""}, shut:new Set(), facets:null};
   let seq = 0, flat = [], sel = -1, timer = null;
+  const FIL = [["department", "Department", "departments"], ["division", "Import / Export", "divisions"], ["mode", "Air / Sea / Road", "modes"], ["service", "Service type", "services"], ["category", "Transaction type", "categories"]];
   function close(){ box.classList.remove("on"); sel = -1; }
-  function render(d, q){
+  const qs = extra=>{ const p = new URLSearchParams({q:U.q}); Object.entries(U.f).forEach(([k, v])=>{ if(v) p.set(k, v); }); Object.entries(extra || {}).forEach(([k, v])=>p.set(k, v)); return p.toString(); };
+  function treeHtml(){
+    const by = {};
+    U.items.forEach(i=>{ ((((by[i.department] = by[i.department] || {})[i.division] = by[i.department][i.division] || {})[i.service] = by[i.department][i.division][i.service] || {})[i.category] = by[i.department][i.division][i.service][i.category] || []).push(i); });
     flat = []; let h = "";
-    (d.groups || []).forEach(g=>{ h += '<div class="gs-g">'+esc3(g.title)+'</div>'; g.items.forEach(it=>{ flat.push(it); h += '<div class="gs-i" data-gs="'+(flat.length-1)+'"><b>'+esc3(it.label)+'</b>'+(it.sub ? '<span>'+esc3(it.sub)+'</span>' : "")+'</div>'; }); });
-    box.innerHTML = h || '<div class="gs-none">No result for “'+esc3(q)+'” in jobs, organizations, invoices, quotations, bookings, CRM, payments, vouchers, masters or users.</div>';
-    box.classList.add("on"); sel = -1;
+    const DEP = ["Logistics & Customs", "Operations", "Accounts & Finance", "CRM", "Masters", "Other Modules"], DIV = ["Import", "Export", "Domestic", "International", "Common"];
+    DEP.filter(d=>by[d]).forEach(d=>{
+      const n = Object.values(by[d]).reduce((a, v)=>a + Object.values(v).reduce((b, w)=>b + Object.values(w).reduce((c, x)=>c + x.length, 0), 0), 0), shut = U.shut.has(d);
+      h += '<div class="u-dep'+(shut ? " shut" : "")+'" data-udep="'+esc3(d)+'">'+esc3(d)+' <em>('+n+')</em><span class="u-chev">\u25BE</span></div>';
+      if(shut) return;
+      DIV.filter(v=>by[d][v]).forEach(v=>{
+        const dn = Object.values(by[d][v]).reduce((a, w)=>a + Object.values(w).reduce((b, x)=>b + x.length, 0), 0);
+        h += '<div class="u-div">'+esc3(v)+' ('+dn+')</div>';
+        Object.keys(by[d][v]).sort().forEach(sv=>Object.keys(by[d][v][sv]).forEach(c=>{
+          const rows = by[d][v][sv][c];
+          h += '<div class="u-svc">'+(sv !== "Not applicable" ? esc3(sv)+' \u203A ' : "")+esc3(c)+' ('+rows.length+')</div>';
+          rows.forEach(it=>{ flat.push(it); h += '<div class="u-row" data-gs="'+(flat.length - 1)+'"><b title="'+esc3(it.ref)+'">'+esc3(it.ref)+'</b><span><i class="u-tag">'+esc3(it.type)+'</i></span><span title="'+esc3(it.party)+'">'+esc3(it.party || "\u2014")+'</span><span title="'+esc3(it.reference)+'">'+esc3(it.reference || "")+'</span><span>'+esc3(it.date || "")+'</span><span>'+esc3(it.status || "")+'</span><span class="u-open">Open \u2192</span></div>'; });
+        }));
+      });
+      U.sources.filter(m=>m.department === d && m.total > m.shown).forEach(m=>{ h += '<div class="u-more"><button class="btn btn-out btn-sm" data-umore="'+esc3(m.source)+'">Load more \u2014 '+(m.total - m.shown)+' more in '+esc3(m.source)+'</button></div>'; });
+    });
+    return h;
   }
-  async function run(){
+  function render(){
+    const fac = U.facets || {};
+    const sel_ = (k, label, fk)=>'<select data-uf="'+k+'" title="'+label+'"><option value="">'+label+': all</option>'+((fac[fk] || []).map(o=>'<option'+(U.f[k] === o ? " selected" : "")+'>'+esc3(o)+'</option>').join(""))+'</select>';
+    const anyF = Object.values(U.f).some(Boolean);
+    const body = U.items.length ? treeHtml() : '<div class="gs-none">No record found for \u201C'+esc3(U.q)+'\u201D'+(anyF ? " with these filters" : "")+' in the modules you can open.'+(anyF ? ' <a href="#" data-uclear>Clear filters</a>' : "")+'</div>';
+    const keep = box.scrollTop, ae = document.activeElement, fk = ae && ae.dataset && ae.dataset.uf && box.contains(ae) ? ae.dataset.uf : "";
+    box.className = "gs-results uni on";
+    box.innerHTML = '<div class="u-head"><b>Search results for \u201C'+esc3(U.q)+'\u201D</b><span>Showing '+U.items.length+' of '+U.total+' results</span></div>'+
+      '<div class="u-fil">'+FIL.map(x=>sel_(x[0], x[1], x[2])).join("")+'<input data-uf="party" placeholder="Customer / vendor" value="'+esc3(U.f.party)+'"><input data-uf="status" placeholder="Status" value="'+esc3(U.f.status)+'">'+
+      '<input type="date" data-uf="date_from" title="From date" value="'+esc3(U.f.date_from)+'"><input type="date" data-uf="date_to" title="To date" value="'+esc3(U.f.date_to)+'">'+(anyF ? '<button class="btn btn-out btn-sm" type="button" data-uclear>Clear filters</button>' : "")+'</div>'+
+      body+'<div class="u-foot">Searches the jobs, bookings, quotations, CRM, accounts, masters and users you are allowed to open. Numbers match with or without dashes and prefixes (JOB-0001 = JOB0001).</div>';
+    box.scrollTop = keep; sel = -1;
+    if(fk){ const n = box.querySelector('[data-uf="'+fk+'"]'); if(n){ n.focus(); try{ n.setSelectionRange(n.value.length, n.value.length); }catch(e){ /* date / select */ } } }
+  }
+  async function run(more){
     const q = input.value.trim(); if(q.length < 2){ close(); return; }
-    const me = ++seq;
+    const me = ++seq; U.q = q;
     try{
-      const r = await fetch("/api/search?q="+encodeURIComponent(q), {headers:{Authorization:"Bearer "+tok()}});
+      const r = await fetch("/api/search/universal?"+qs(more ? {source:more.source, offset:more.offset, limit:50} : {}), {headers:{Authorization:"Bearer "+tok()}});
       if(me !== seq) return;
-      if(!r.ok){ box.innerHTML = '<div class="gs-none">Search is not available right now.</div>'; box.classList.add("on"); return; }
-      render(await r.json(), q);
-    }catch(e){ if(me === seq){ box.innerHTML = '<div class="gs-none">Search is not available right now.</div>'; box.classList.add("on"); } }
+      if(!r.ok) throw new Error("search");
+      const d = await r.json(); U.facets = d.facets || U.facets;
+      if(more){ U.items = U.items.concat(d.items); const m = U.sources.find(x=>x.source === more.source); if(m) m.shown += d.items.length; }
+      else { U.items = d.items; U.sources = d.sources; U.total = d.total; }
+      render();
+    }catch(e){
+      if(me !== seq) return;
+      try{                                                                  // the older flat search stays as the fallback
+        const r = await fetch("/api/search?q="+encodeURIComponent(q), {headers:{Authorization:"Bearer "+tok()}});
+        const d = r.ok ? await r.json() : {groups:[]}; U.items = []; flat = [];
+        let h = ""; (d.groups || []).forEach(g=>{ h += '<div class="gs-g">'+esc3(g.title)+'</div>'; g.items.forEach(it=>{ flat.push(it); h += '<div class="gs-i" data-gs="'+(flat.length - 1)+'"><b>'+esc3(it.label)+'</b>'+(it.sub ? '<span>'+esc3(it.sub)+'</span>' : "")+'</div>'; }); });
+        box.className = "gs-results on"; box.innerHTML = h || '<div class="gs-none">No result for \u201C'+esc3(q)+'\u201D.</div>';
+      }catch(x){ box.className = "gs-results on"; box.innerHTML = '<div class="gs-none">Search is not available right now.</div>'; }
+    }
   }
   function open(it){
     close(); const q = input.value.trim();
     if(it.go === "job-detail" && it.job){ window.go("job-detail", {jobNo: it.job}); return; }
     if(it.booking && window.BKG && window.BKG.view){ window.BKG.view(it.booking); return; }
+    if(!it.go) return;
     window.go(it.go);
     const fill = (tries)=>{
       const scr = document.getElementById("s-"+it.go); if(!scr) return;
       const f = Array.from(scr.querySelectorAll('input[type="search"], input[type="text"], input:not([type])')).find(x=>x.offsetParent !== null && /search|find|filter/i.test((x.placeholder || "")+" "+(x.id || "")));
-      if(f){ f.value = it.q || q; f.dispatchEvent(new Event("input", {bubbles:true})); f.dispatchEvent(new Event("change", {bubbles:true})); }
+      if(f){ f.value = it.q || it.label || q; f.dispatchEvent(new Event("input", {bubbles:true})); f.dispatchEvent(new Event("change", {bubbles:true})); }
       else if(tries > 0) setTimeout(()=>fill(tries-1), 300);
     };
     setTimeout(()=>fill(5), 350);
   }
-  input.addEventListener("input", ()=>{ clearTimeout(timer); timer = setTimeout(run, 250); });
+  input.addEventListener("input", ()=>{ clearTimeout(timer); timer = setTimeout(()=>run(), 250); });
   input.addEventListener("focus", ()=>{ if(box.innerHTML && input.value.trim().length >= 2) box.classList.add("on"); });
   /* capture phase: the older job-only Enter handler is no longer reached */
   input.addEventListener("keydown", e=>{
     if(e.key === "Escape"){ close(); return; }
-    const items = Array.from(box.querySelectorAll(".gs-i"));
+    const items = Array.from(box.querySelectorAll(".u-row, .gs-i"));
     if(e.key === "ArrowDown" || e.key === "ArrowUp"){ if(!items.length) return; e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; items.forEach((x,i)=>x.classList.toggle("sel", i === sel)); items[sel].scrollIntoView({block:"nearest"}); return; }
     if(e.key === "Enter"){ e.stopImmediatePropagation(); e.preventDefault(); clearTimeout(timer); const pick = flat[sel >= 0 ? sel : 0]; if(pick && box.classList.contains("on")) open(pick); else run().then(()=>{ if(flat[0]) open(flat[0]); }); }
   }, true);
-  box.addEventListener("mousedown", e=>{ const i = e.target.closest("[data-gs]"); if(i){ e.preventDefault(); open(flat[Number(i.dataset.gs)]); } });
-  document.addEventListener("click", e=>{ if(!e.target.closest(".hdr-search")) close(); });
+  box.addEventListener("mousedown", e=>{
+    const i = e.target.closest("[data-gs]"); if(i){ e.preventDefault(); open(flat[Number(i.dataset.gs)]); return; }
+    const dep = e.target.closest("[data-udep]"); if(dep){ e.preventDefault(); const k = dep.dataset.udep; if(U.shut.has(k)) U.shut.delete(k); else U.shut.add(k); render(); return; }
+    const mo = e.target.closest("[data-umore]"); if(mo){ e.preventDefault(); const m = U.sources.find(x=>x.source === mo.dataset.umore); if(m) run({source:m.source, offset:m.shown}); return; }
+    const cl = e.target.closest("[data-uclear]"); if(cl){ e.preventDefault(); Object.keys(U.f).forEach(k=>{ U.f[k] = ""; }); run(); }
+  });
+  box.addEventListener("change", e=>{ const f = e.target.closest("[data-uf]"); if(!f) return; U.f[f.dataset.uf] = f.value; run(); });
+  box.addEventListener("input", e=>{ const f = e.target.closest("[data-uf]"); if(!f || f.tagName === "SELECT" || f.type === "date") return; U.f[f.dataset.uf] = f.value; clearTimeout(timer); timer = setTimeout(()=>run(), 350); });
+  document.addEventListener("click", e=>{ if(!e.target.closest(".hdr-search") && !e.target.closest("#gsResults")) close(); });
+  window.UniversalSearch = {state:U, run, close};
 
   /* ---------- chat: header button + dragging ---------- */
   const launcher = document.getElementById("chatLauncher"), panel = document.getElementById("chatPanel"), head = document.getElementById("chatHead");
