@@ -1,3 +1,4 @@
+import gzip
 from datetime import datetime, timezone
 
 from pathlib import Path
@@ -198,9 +199,14 @@ def _ui_response(request: Request):
     etag = f'W/"{st.st_mtime_ns:x}-{st.st_size:x}"'
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=304, headers={"ETag": etag, "Cache-Control": "no-cache"})
+    if "gzip" in request.headers.get("accept-encoding", ""):                 # the compressed copy is made once per page version, not on every visit
+        if _UI_GZ.get("etag") != etag:
+            _UI_GZ.update(etag=etag, body=gzip.compress(UI_FILE.read_bytes(), compresslevel=6))
+        return Response(_UI_GZ["body"], media_type="text/html", headers={"Cache-Control": "no-cache", "ETag": etag, "Content-Encoding": "gzip", "Vary": "Accept-Encoding"})
     return FileResponse(UI_FILE, media_type="text/html", headers={"Cache-Control": "no-cache", "ETag": etag})
 
 
+_UI_GZ: dict = {}
 _allowed = [p for p in ("erp", "demo", "developer") if not PUBLIC_PORTALS or p in PUBLIC_PORTALS]
 
 
