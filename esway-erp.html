@@ -14047,7 +14047,9 @@ if(document.readyState !== "loading") initChatWidget();
       inp.addEventListener("change", ()=>{ if(inp.files[0]) MK.importCsv(cfg, inp.files[0]).finally(()=>{ inp.value = ""; }); });
       mk("Import (Excel / CSV)", "upload", ()=> inp.click());
     }
+    const paintIo = ()=>{ if(typeof renderIcons === "function") renderIcons(bar); };
     if(!has(/export/i)){ mk("Export Excel", "download", ()=> MK.exportExcel(cfg)); mk("Export CSV", "download", ()=> MK.exportCsv(cfg)); }
+    paintIo();
   };
   MK.loadList = function(cfg){
     if(!token()) return;
