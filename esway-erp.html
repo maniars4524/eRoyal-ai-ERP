@@ -2370,7 +2370,7 @@ tbody tr:hover{background:var(--g0)}
 
 <div class="card">
 <div class="ch" style="flex-wrap:wrap;gap:10px">
-  <div class="ct">Employees (12)</div>
+  <div class="ct">Employees</div>
   <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
     <input class="fc" id="empSearch" placeholder="Search name, code, email, phone…" style="width:230px">
     <select class="fc" id="empDeptFilter" style="width:160px"><option value="">All Departments</option><option>Operations</option><option>Sales &amp; Marketing</option><option>Customs &amp; Documentation</option><option>Finance &amp; Accounts</option><option>Human Resources</option><option>Warehouse &amp; Transport</option><option>IT &amp; Systems</option></select>
@@ -2388,7 +2388,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- LIST VIEW -->
 <div class="cb" id="empListView" style="display:none;padding-top:0">
 <div class="tw"><table id="empTable"><thead><tr><th></th><th>Code</th><th>Employee Name</th><th>Department</th><th>Designation</th><th>Phone</th><th>Email</th><th>Joining Date</th><th>Loan Status</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="empTableBody"></tbody></table></div>
-<div class="cf">Showing 6 of 12 employees</div>
+<div class="cf">Showing 0 of 0 employees</div>
 </div>
 </div>
 </div>
@@ -8477,8 +8477,8 @@ function setEmpView(mode){
 $("#empViewGridBtn") && $("#empViewGridBtn").addEventListener("click", ()=>setEmpView("grid"));
 $("#empViewListBtn") && $("#empViewListBtn").addEventListener("click", ()=>setEmpView("list"));
 (function initEmpView(){
-  let saved = "list";
-  try{ saved = localStorage.getItem("esway-emp-view") || "list"; }catch(e){ /* ignore */ }
+  let saved = "grid";
+  try{ saved = localStorage.getItem("esway-emp-view") || "grid"; }catch(e){ /* ignore */ }
   setEmpView(saved);
 })();
 
@@ -23313,6 +23313,80 @@ body.job-readonly #jlBanner{display:flex}
     });
   }, 500);
   window.ListKit = {install, apply, CFG, parseDate, state};
+})();
+</script>
+<script>
+/* ============================================================
+   EMPLOYEE GRID KIT: the Employee Master grid view shows one card per real employee (from the Employee master) with a staff photo.
+   Counts are the real counts. A photo is picked from the computer, shrunk to 240 px and stored on the employee record (data.photo).
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, say, esc2} = U;
+  const css = document.createElement("style");
+  css.textContent = ".emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;padding:14px}"
+    + ".emp-gcard{border:1px solid var(--g2);border-radius:12px;background:#fff;padding:14px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}"
+    + ".emp-gphoto{width:84px;height:84px;border-radius:50%;object-fit:cover;background:var(--g1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:26px;color:var(--bl);border:2px solid var(--g2)}"
+    + ".emp-gcard .nm{font-weight:700;font-size:14px}.emp-gcard .sub{font-size:12px;color:var(--g5)}.emp-gcard .row{font-size:12px;color:var(--g6);word-break:break-all}"
+    + ".emp-gcard .acts{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;justify-content:center}.emp-gempty{padding:28px;text-align:center;color:var(--g5)}";
+  document.head.appendChild(css);
+  const el = id=> document.getElementById(id);
+  const initials = n=> String(n || "?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  const dataUrl = file => new Promise((ok, bad)=>{
+    const fr = new FileReader(); fr.onerror = ()=> bad(new Error("The picture could not be read"));
+    fr.onload = ()=>{ const img = new Image(); img.onerror = ()=> bad(new Error("This file is not a picture"));
+      img.onload = ()=>{ const s = Math.min(1, 240 / Math.max(img.width, img.height)); const c = document.createElement("canvas"); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", 0.82)); };
+      img.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+  function filtered(){
+    const rows = (MK.cache.employee || []); const q = ((el("empSearch") || {}).value || "").toLowerCase(), dept = (el("empDeptFilter") || {}).value || "", st = (el("empStatusFilter") || {}).value || "";
+    return {all: rows, shown: rows.filter(r=>{
+      const d = r.data || {}; const status = r.status === "ACTIVE" ? "Active" : "Inactive";
+      const text = [r.code, r.name, d.official_email, d.mobile, d.department, d.designation].join(" ").toLowerCase();
+      return (!q || text.includes(q)) && (!dept || d.department === dept) && (!st || status === st || (st === "Resigned" && /resign|terminat/i.test(String(d.employee_status || ""))));
+    })};
+  }
+  function paint(){
+    const grid = el("empGridView"); if(!grid) return;
+    const {all, shown} = filtered();
+    const ct = document.querySelector("#s-emp-list .ch .ct"); if(ct) ct.textContent = "Employees (" + all.length + ")" + (shown.length !== all.length ? " · " + shown.length + " shown" : "");
+    const cf = document.querySelector("#empListView .cf"); if(cf) cf.textContent = "Showing " + shown.length + " of " + all.length + " employee" + (all.length === 1 ? "" : "s");
+    if(!all.length){ grid.innerHTML = '<div class="emp-gempty">No employees yet. Use "New Employee" to add one, or Import (Excel / CSV).</div>'; return; }
+    if(!shown.length){ grid.innerHTML = '<div class="emp-gempty">No employee matches the search or filters.</div>'; return; }
+    grid.innerHTML = '<div class="emp-grid">' + shown.map(r=>{
+      const d = r.data || {};
+      const pic = d.photo ? '<img class="emp-gphoto" alt="" src="' + esc2(d.photo) + '">' : '<div class="emp-gphoto">' + esc2(initials(r.name)) + '</div>';
+      return '<div class="emp-gcard" data-eid="' + r.id + '">' + pic
+        + '<div class="nm">' + esc2(r.name) + '</div><div class="sub"><span class="chip">' + esc2(r.code) + '</span> ' + (r.status === "ACTIVE" ? '<span class="b b-gr">Active</span>' : '<span class="b b-gy">Inactive</span>') + '</div>'
+        + '<div class="sub">' + esc2([d.designation, d.department].filter(Boolean).join(" · ") || "—") + '</div>'
+        + (d.mobile ? '<div class="row">' + esc2(d.mobile) + '</div>' : '') + (d.official_email ? '<div class="row">' + esc2(d.official_email) + '</div>' : '')
+        + '<div class="acts"><button type="button" class="btn btn-out btn-sm" data-egphoto="' + r.id + '">' + (d.photo ? "Change photo" : "Upload photo") + '</button>'
+        + (d.photo ? '<button type="button" class="btn btn-out btn-sm" data-egnophoto="' + r.id + '">Remove photo</button>' : '')
+        + '<button type="button" class="btn btn-out btn-sm" data-mk-edit="' + r.id + '" data-mk-type="employee">Open</button></div></div>';
+    }).join("") + '</div>';
+  }
+  async function savePhoto(id, photo){
+    const rec = (MK.cache.employee || []).find(r=> r.id === id); if(!rec) return;
+    const data = Object.assign({}, rec.data || {}); if(photo) data.photo = photo; else delete data.photo;
+    try{
+      const res = await api("PATCH", "/api/masters/employee/" + id, {code: rec.code, name: rec.name, status: rec.status, data});
+      rec.data = (res && res.data) || data; say(photo ? "Photo saved" : "Photo removed", rec.name); paint();
+    }catch(err){ say("Could not save the photo", err.message); }
+  }
+  const picker = document.createElement("input"); picker.type = "file"; picker.accept = "image/*"; picker.style.display = "none"; document.body.appendChild(picker);
+  let pickFor = null;
+  picker.addEventListener("change", async ()=>{ const f = picker.files[0], id = pickFor; picker.value = ""; if(!f || !id) return;
+    try{ await savePhoto(id, await dataUrl(f)); }catch(err){ say("Could not use this picture", err.message); } });
+  document.addEventListener("click", e=>{
+    const up = e.target.closest("[data-egphoto]"); if(up){ pickFor = Number(up.dataset.egphoto); picker.click(); return; }
+    const rm = e.target.closest("[data-egnophoto]"); if(rm) savePhoto(Number(rm.dataset.egnophoto), null);
+  });
+  ["empSearch", "empDeptFilter", "empStatusFilter"].forEach(id=>{ const c = el(id); if(c) c.addEventListener(c.tagName === "SELECT" ? "change" : "input", paint); });
+  const origRender = MK.renderList;
+  MK.renderList = function(cfg){ const r = origRender.apply(this, arguments); if(cfg && cfg.type === "employee") paint(); return r; };
+  window.EmployeeGrid = {paint};
 })();
 </script>
 </body>

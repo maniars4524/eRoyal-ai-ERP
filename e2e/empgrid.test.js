@@ -1,0 +1,40 @@
+// Employee Master: grid cards from the real employee records, honest counts, photo upload.
+const { JSDOM } = require("jsdom");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); return { status: r.status, body: r.status === 204 ? null : await r.json().catch(() => null) }; };
+let failures = 0;
+const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  -> " + (extra || ""))); if (!ok) failures++; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36);
+  const org = await j("POST", "/api/organizations", { code: "EG" + tag.slice(-5).toUpperCase(), name: "Eg " + tag, admin_email: `eg${tag}@t.test`, admin_username: "eg" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "E" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "eg" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
+    beforeParse(w) { w.fetch = (u, o) => fetch(new URL(u, BASE).href, o); w.sessionStorage.setItem("esway_access_token", token); w.confirm = () => true; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {}; w.console.warn = () => {}; } });
+  const w = dom.window, d = w.document; const q = s => d.querySelector(s), qa = s => Array.from(d.querySelectorAll(s));
+  await sleep(3500);
+  w.go("emp-list"); await sleep(2000);
+  check("a company with no employees shows 0, not a made-up number", /Employees \(0\)/.test(q("#s-emp-list .ch .ct").textContent) && /No employees yet/.test(q("#empGridView").textContent), q("#s-emp-list .ch .ct").textContent);
+  for (const [i, n] of ["Asha Rao", "Ravi Kumar", "Meena S"].entries()) await j("POST", "/api/masters/employee", { code: "E00" + (i + 1), name: n, status: i === 2 ? "INACTIVE" : "ACTIVE", data: { department: "Sales", designation: "Executive", mobile: "9000000" + i } }, token);
+  w.go("dashboard"); await sleep(300); w.go("emp-list"); await sleep(2500);
+  check("the grid shows one card per real employee and the heading is the real count", qa("#empGridView .emp-gcard").length === 3 && /Employees \(3\)/.test(q("#s-emp-list .ch .ct").textContent), qa("#empGridView .emp-gcard").length + " | " + q("#s-emp-list .ch .ct").textContent);
+  check("the grid is the view that is open", q("#empGridView").style.display !== "none");
+  q("#empSearch").value = "ravi"; q("#empSearch").dispatchEvent(new w.Event("input", { bubbles: true })); await sleep(600);
+  check("search narrows the cards and the count line says how many are shown", qa("#empGridView .emp-gcard").length === 1 && /1 shown/.test(q("#s-emp-list .ch .ct").textContent), q("#s-emp-list .ch .ct").textContent);
+  q("#empSearch").value = ""; q("#empSearch").dispatchEvent(new w.Event("input", { bubbles: true })); await sleep(400);
+  check("every card has an Upload photo button", qa("#empGridView [data-egphoto]").length === 3);
+  const rec = (await j("GET", "/api/masters/employee", null, token)).body.find(r => r.name === "Asha Rao");
+  w.MK.cache.employee.find(r => r.id === rec.id).data.photo = "data:image/jpeg;base64,AAAA";
+  const emp = w.MK.cache.employee.find(r => r.id === rec.id);
+  await j("PATCH", "/api/masters/employee/" + rec.id, { code: rec.code, name: rec.name, status: rec.status, data: { ...rec.data, photo: "data:image/jpeg;base64,AAAA" } }, token);
+  w.EmployeeGrid.paint(); await sleep(200);
+  check("a stored photo is shown on the card, with Change / Remove", qa("#empGridView .emp-gcard img.emp-gphoto").length === 1 && /Change photo/.test(q("#empGridView").textContent) && /Remove photo/.test(q("#empGridView").textContent));
+  q("[data-egnophoto]").click(); await sleep(1500);
+  const after = (await j("GET", "/api/masters/employee/" + rec.id, null, token));
+  const list = (await j("GET", "/api/masters/employee", null, token)).body.find(r => r.id === rec.id);
+  check("Remove photo clears it on the record", !(list.data || {}).photo && qa("#empGridView img.emp-gphoto").length === 0, JSON.stringify(Object.keys(list.data || {})));
+  console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });
