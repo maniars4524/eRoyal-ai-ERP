@@ -74,3 +74,47 @@ def scope_for(db: Session, user: User) -> Scope:
             if access.salesperson_name:
                 scope.salesperson_names.add(access.salesperson_name)
     return scope
+
+
+# ---------------------------------------------------------------- record filters (None = no restriction)
+from sqlalchemy import false, func, or_  # noqa: E402
+
+from .models import Customer, CustomerAssignment, Shipment  # noqa: E402
+
+
+def _assigned(user_ids):
+    return select(CustomerAssignment.customer_id).where(CustomerAssignment.user_id.in_(user_ids))
+
+
+def customer_clause(db: Session, user: User, scope: Scope | None = None):
+    """Customers a placed user may see: salesperson / team = the customers assigned to them or created by them. Branch roles see the company's customers (branch sharing arrives with the approval workflow)."""
+    scope = scope or scope_for(db, user)
+    if scope.unrestricted or scope.user_ids is None:
+        return None
+    return or_(Customer.id.in_(_assigned(scope.user_ids)), Customer.created_by.in_(scope.user_ids))
+
+
+def shipment_clause(db: Session, user: User, scope: Scope | None = None):
+    """Jobs a placed user may see. Salesperson / team: jobs they or their team created, jobs sold under their salesperson name, jobs of customers assigned to them.
+    Branch roles: jobs handled by their branches (branch name or code on the job) or created by people placed in those branches, plus their own."""
+    scope = scope or scope_for(db, user)
+    if scope.unrestricted:
+        return None
+    conds = [Shipment.created_by == user.id]
+    if scope.user_ids is not None:
+        conds += [Shipment.created_by.in_(scope.user_ids), Shipment.customer_id.in_(_assigned(scope.user_ids))]
+        if scope.salesperson_names:
+            conds.append(func.lower(Shipment.salesperson).in_([n.lower() for n in scope.salesperson_names]))
+    else:
+        branches = list(scope.branch_ids or [])
+        if not branches:
+            return false() if not conds else or_(*conds)
+        labels = []
+        for code, name in _db_rows(db, branches):
+            labels += [code.lower(), name.lower()]
+        conds += [func.lower(Shipment.branch).in_(labels), Shipment.created_by.in_(select(UserAccess.user_id).where(UserAccess.branch_id.in_(branches)))]
+    return or_(*conds)
+
+
+def _db_rows(db: Session, branch_ids):
+    return db.execute(select(CompanyBranch.code, CompanyBranch.name).where(CompanyBranch.id.in_(branch_ids))).all()

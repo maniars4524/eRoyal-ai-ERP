@@ -14,6 +14,7 @@ from datetime import timedelta
 from sqlalchemy import DateTime, String, and_, cast, exists, func, or_, select
 from sqlalchemy.orm import Session
 
+from .access import customer_clause, scope_for, shipment_clause
 from .auth import get_current_user, has_permission
 from .db import get_db
 from .models import (AccLedger, AccVoucher, Airline, Booking, CrmRecord, CustomsBill, Customer, Document, JobDetail, MasterRecord, Payment, Port, Quotation, Shipment, ShippingLine, User)
@@ -319,6 +320,8 @@ def src_users(db, org, term, tn, f: F):
 SOURCE_CATEGORIES = {"jobs": {"Jobs"}, "customs": {"Documents"}, "bookings": {"Bookings"}, "quotations": {"Quotations"}, "crm": {"Leads", "Enquiries", "Opportunities", "Follow-ups", "Bookings"},
                      "documents": {"Invoices", "Debit Notes", "Credit Notes", "Vendor Bills"}, "payments": {"Receipts", "Payments"}, "vouchers": {"Vouchers"}, "ledgers": {"Ledgers"},
                      "parties": {"Customers", "Vendors", "Agents", "Parties"}, "masters": {"Master Records"}, "airlines": {"Master Records"}, "sealines": {"Master Records"}, "ports": {"Master Records"}, "users": {"Users"}}
+OPEN_SOURCES = {"masters", "airlines", "sealines", "ports"}        # reference data every placed user may search; the rest need a record filter first
+
 # key, department, permission(s), builder
 SOURCES = [
     ("jobs", "Logistics & Customs", ("shipment.read",), src_jobs),
@@ -383,6 +386,8 @@ def universal(q: str = Query(min_length=2, max_length=80), department: str = "",
     f = F(department, division, mode, service, category, party, status, date_from, date_to, created_by)
     items: list[dict] = []
     meta: list[dict] = []
+    scope = scope_for(db, user)
+    job_clause, cust_clause = shipment_clause(db, user, scope), customer_clause(db, user, scope)
     for key, dept, perms, build in SOURCES:
         if source and key != source:
             continue
@@ -396,6 +401,14 @@ def universal(q: str = Query(min_length=2, max_length=80), department: str = "",
         if not built:
             continue
         stmt, to_item = built
+        if not scope.unrestricted:                                                  # a placed user: only what their role may see; sources without a filter yet stay closed
+            if key in ("jobs", "customs"):
+                stmt = stmt.where(job_clause)
+            elif key == "parties":
+                if cust_clause is not None:
+                    stmt = stmt.where(cust_clause)
+            elif key not in OPEN_SOURCES:
+                continue
         total = db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
         if not total:
             continue

@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .org_ext_api import validate_accounting
+from .access import customer_clause
 from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
@@ -21,6 +22,11 @@ def _require_tenant(user: User) -> int:
     return user.organization_id
 
 
+def _cvis(db, user):
+    clause = customer_clause(db, user)
+    return [] if clause is None else [clause]
+
+
 @router.get("")
 def list_customers(
     role: str | None = Query(default=None, pattern="^(client|vendor|customer|shipper|consignee|carrier|agent|cha|transporter|ar|ap|iata|cfs|origin_agent|coloader)$", description="client = shipper/consignee/AR; vendor = AP/carrier/agent/CHA/transporter"),
@@ -29,6 +35,9 @@ def list_customers(
 ):
     organization_id = _require_tenant(user)
     query = select(Customer).where(Customer.organization_id == organization_id)
+    clause = customer_clause(db, user)
+    if clause is not None:
+        query = query.where(clause)                          # a placed salesperson / team sees only their customers
     if role:
         wanted = CLIENT_ROLES if role == "client" else VENDOR_ROLES if role == "vendor" else [role]
         query = query.where(cast(Customer.roles, JSONB).has_any(array(wanted)))
@@ -57,7 +66,7 @@ def create_customer(payload: CustomerCreate, user: User = Depends(permission_req
 @router.get("/{customer_id}")
 def get_customer(customer_id: int, user: User = Depends(permission_required("customer.read")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
-    customer = db.scalar(select(Customer).where(Customer.id == customer_id, Customer.organization_id == organization_id))
+    customer = db.scalar(select(Customer).where(Customer.id == customer_id, Customer.organization_id == organization_id, *_cvis(db, user)))
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     return customer
@@ -66,7 +75,7 @@ def get_customer(customer_id: int, user: User = Depends(permission_required("cus
 @router.patch("/{customer_id}")
 def update_customer(customer_id: int, payload: CustomerUpdate, user: User = Depends(permission_required("customer.update")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
-    customer = db.scalar(select(Customer).where(Customer.id == customer_id, Customer.organization_id == organization_id))
+    customer = db.scalar(select(Customer).where(Customer.id == customer_id, Customer.organization_id == organization_id, *_cvis(db, user)))
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     changes = payload.model_dump(exclude_unset=True)
@@ -90,7 +99,7 @@ def update_customer(customer_id: int, payload: CustomerUpdate, user: User = Depe
 @router.delete("/{customer_id}", status_code=204)
 def delete_customer(customer_id: int, user: User = Depends(permission_required("customer.delete")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
-    customer = db.scalar(select(Customer).where(Customer.id == customer_id, Customer.organization_id == organization_id))
+    customer = db.scalar(select(Customer).where(Customer.id == customer_id, Customer.organization_id == organization_id, *_cvis(db, user)))
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     blocked = org_links.blocking_links(db, customer.id)

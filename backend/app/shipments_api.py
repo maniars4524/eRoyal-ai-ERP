@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from decimal import Decimal
 from . import job_lifecycle as jl
 from .credit_control import enforce as credit_enforce
+from .access import shipment_clause
 from .auth import permission_required
 from .auth_api import record_audit
 from .db import get_db
@@ -46,10 +47,19 @@ def _next_cha_number(db: Session, organization_id: int, mode: str, direction: st
     return issue(db, organization_id, "cha_job", user=user, shipment_key=f"{mode} {direction}")
 
 
+def _visible(db, user):
+    clause = shipment_clause(db, user)
+    return [] if clause is None else [clause]
+
+
 @router.get("")
 def list_shipments_full(user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
-    return db.scalars(select(Shipment).where(Shipment.organization_id == organization_id).order_by(Shipment.created_at.desc())).all()
+    query = select(Shipment).where(Shipment.organization_id == organization_id)
+    clause = shipment_clause(db, user)
+    if clause is not None:
+        query = query.where(clause)                          # a placed user sees only the jobs their role allows
+    return db.scalars(query.order_by(Shipment.created_at.desc())).all()
 
 
 @router.post("", status_code=201)
@@ -95,7 +105,7 @@ def duplicate_shipment(shipment_id: int, user: User = Depends(permission_require
     from .models import JobCharge
 
     organization_id = _require_tenant(user)
-    src = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id))
+    src = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id, *_visible(db, user)))
     if not src:
         raise HTTPException(status_code=404, detail="Shipment not found")
     credit_enforce(db, organization_id, src.customer_id, "create shipment job", user.id, src.party_branch_id, Decimal(0))
@@ -132,7 +142,7 @@ def duplicate_shipment(shipment_id: int, user: User = Depends(permission_require
 @router.get("/{shipment_id}")
 def get_shipment(shipment_id: int, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
-    shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id))
+    shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id, *_visible(db, user)))
     if not shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
     return shipment
@@ -141,7 +151,7 @@ def get_shipment(shipment_id: int, user: User = Depends(permission_required("shi
 @router.patch("/{shipment_id}")
 def update_shipment(shipment_id: int, payload: ShipmentUpdate, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
-    shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id))
+    shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id, *_visible(db, user)))
     if not shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
     jl.assert_job_editable(shipment, "job details")
@@ -163,7 +173,7 @@ def update_shipment(shipment_id: int, payload: ShipmentUpdate, user: User = Depe
 @router.delete("/{shipment_id}", status_code=204)
 def delete_shipment(shipment_id: int, user: User = Depends(permission_required("shipment.delete")), db: Session = Depends(get_db)):
     organization_id = _require_tenant(user)
-    shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id))
+    shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id, *_visible(db, user)))
     if not shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
     if shipment.closure_cycle > 0 or shipment.closure_status != "OPEN":
