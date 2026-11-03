@@ -13989,9 +13989,70 @@ if(document.readyState !== "loading") initChatWidget();
     for(;;){ const page = await api("GET", "/api/masters/"+type+"?limit=1000&offset="+offset); all = all.concat(page); if(page.length < 1000) break; offset += 1000; }
     return all;
   };
+  /* Import / Export on every master list (CSV opens in Excel). Export = what you see; the file doubles as the import template. */
+  const csvCell = v=> { v = v == null ? "" : String(v); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const csvParse = text=>{
+    const rows = []; let row = [], cell = "", q = false;
+    for(let i = 0; i < text.length; i++){
+      const c = text[i];
+      if(q){ if(c === '"'){ if(text[i+1] === '"'){ cell += '"'; i++; } else q = false; } else cell += c; }
+      else if(c === '"') q = true;
+      else if(c === ","){ row.push(cell); cell = ""; }
+      else if(c === "\n"){ row.push(cell); rows.push(row); row = []; cell = ""; }
+      else if(c !== "\r") cell += c;
+    }
+    if(cell !== "" || row.length){ row.push(cell); rows.push(row); }
+    return rows.filter(r=> r.some(x=> String(x).trim() !== ""));
+  };
+  MK.exportExcel = async function(cfg){
+    const rows = MK.cache[cfg.type] || [];
+    const keys = Array.from(new Set(rows.flatMap(r=> Object.keys(r.data || {}))));
+    try{ await window.XlsxKit.load(); }catch(err){ say("Could not make the Excel file", err.message); return; }
+    const aoa = [["code","name","status", ...keys]].concat(rows.map(r=> [r.code, r.name, r.status === "ACTIVE" ? "Active" : "Inactive", ...keys.map(k=> (r.data || {})[k] == null ? "" : (r.data || {})[k])]));
+    const wb = window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(aoa), cfg.label.slice(0,28));
+    window.XLSX.writeFile(wb, cfg.label.replace(/[^A-Za-z0-9]+/g,"_")+"_master.xlsx");
+    say("Exported "+rows.length+" "+cfg.label+" record(s) to Excel", "The same layout can be imported back");
+  };
+  MK.exportCsv = function(cfg){
+    const rows = MK.cache[cfg.type] || [];
+    const keys = Array.from(new Set(rows.flatMap(r=> Object.keys(r.data || {}))));
+    const head = ["code","name","status", ...keys];
+    const lines = [head.map(csvCell).join(",")].concat(rows.map(r=> [r.code, r.name, r.status === "ACTIVE" ? "Active" : "Inactive", ...keys.map(k=> (r.data || {})[k])].map(csvCell).join(",")));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿"+lines.join("\r\n")], {type:"text/csv"}));
+    a.download = cfg.label.replace(/[^A-Za-z0-9]+/g,"_")+"_master.csv"; document.body.appendChild(a); a.click(); a.remove();
+    say("Exported "+rows.length+" "+cfg.label+" record(s)", "Open the file in Excel; the same layout can be imported back");
+  };
+  MK.importCsv = async function(cfg, file){
+    const rows = csvParse(await file.text()); if(rows.length < 2){ say("Nothing to import", "The file needs a header row (code, name, status, ...) and at least one record"); return; }
+    const head = rows[0].map(h=> String(h).replace(/^﻿/,"").trim());
+    const iCode = head.findIndex(h=>/^code$/i.test(h)), iName = head.findIndex(h=>/^name$/i.test(h)), iSt = head.findIndex(h=>/^status$/i.test(h));
+    if(iCode < 0 || iName < 0){ say("Cannot import", "The first row must contain the columns code and name"); return; }
+    let ok = 0; const bad = [];
+    for(const r of rows.slice(1)){
+      const data = {}; head.forEach((h,i)=>{ if(i !== iCode && i !== iName && i !== iSt && h && String(r[i] || "").trim() !== "") data[h] = String(r[i]).trim(); });
+      const body = {code: String(r[iCode] || "").trim(), name: String(r[iName] || "").trim().slice(0,200), status: iSt >= 0 && /^(inactive|no)/i.test(String(r[iSt] || "")) ? "INACTIVE" : "ACTIVE", data};
+      if(!body.code || !body.name){ bad.push((body.code || "(blank)")+": code and name are required"); continue; }
+      try{ await api("POST", "/api/masters/"+cfg.type, body); ok++; }catch(err){ bad.push(body.code+": "+err.message); }
+    }
+    say("Import finished: "+ok+" added"+(bad.length ? ", "+bad.length+" skipped" : ""), bad.slice(0,3).join(" · ") || "Every record was added");
+    MK.loadList(cfg);
+  };
+  MK.addIO = function(cfg, scr){
+    const bar = scr.querySelector(".ph .pa"); if(!bar || bar.dataset.mkIo) return; bar.dataset.mkIo = "1";
+    const has = re=> Array.from(bar.querySelectorAll("button")).some(b=> re.test(b.textContent));
+    const anchor = bar.querySelector(".btn-pri") || null;
+    const mk = (label, icon, fn)=>{ const b = document.createElement("button"); b.type = "button"; b.className = "btn btn-out btn-sm"; b.innerHTML = '<svg class="ic" data-icon="'+icon+'"></svg> '+label; b.addEventListener("click", fn); bar.insertBefore(b, anchor); return b; };
+    if(!has(/import/i)){
+      const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".csv,text/csv"; inp.style.display = "none"; bar.appendChild(inp);
+      inp.addEventListener("change", ()=>{ if(inp.files[0]) MK.importCsv(cfg, inp.files[0]).finally(()=>{ inp.value = ""; }); });
+      mk("Import (Excel / CSV)", "upload", ()=> inp.click());
+    }
+    if(!has(/export/i)){ mk("Export Excel", "download", ()=> MK.exportExcel(cfg)); mk("Export CSV", "download", ()=> MK.exportCsv(cfg)); }
+  };
   MK.loadList = function(cfg){
     if(!token()) return;
     const scr = document.getElementById("s-"+cfg.list);
+    if(scr) MK.addIO(cfg, scr);
     if(scr && !scr.dataset.mkSearch){
       scr.dataset.mkSearch = "1";
       scr.querySelectorAll('input.fc[placeholder*="earch"]').forEach(inp=> inp.addEventListener("input", ()=>{ MK.search[cfg.type] = inp.value; MK.renderList(cfg); }));
@@ -14039,7 +14100,13 @@ if(document.readyState !== "loading") initChatWidget();
     fields.forEach(clearField);
     scr.querySelectorAll("table tbody").forEach(tb=>{ tb.innerHTML = emptyRow(tb, "Not available yet"); });
     const saveBtn = findSave(scr);
-    if(saveBtn && !saveBtn.dataset.mkWired){ saveBtn.dataset.mkWired = "1"; saveBtn.addEventListener("click", ()=> MK.save(cfg)); }
+    if(saveBtn && !saveBtn.dataset.mkWired){
+      saveBtn.dataset.mkWired = "1"; saveBtn.addEventListener("click", ()=> MK.save(cfg, "stay"));
+      /* Save keeps you on the record; Save & New clears the form for the next one; Save & Close returns to the list */
+      const sn = document.createElement("button"), sc = document.createElement("button");
+      [[sn, "Save & New", "new"], [sc, "Save & Close", "close"]].forEach(([b, label, mode])=>{ b.type = "button"; b.className = "btn btn-out btn-sm"; b.dataset.mkSaveMode = mode; b.textContent = label; b.addEventListener("click", ()=> MK.save(cfg, mode)); });
+      saveBtn.after(sn, sc);
+    }
     const fill = ()=>{
       if(pend){
         const {code, name, status} = codeNameStatus(cfg, fields);
@@ -14062,7 +14129,8 @@ if(document.readyState !== "loading") initChatWidget();
     }).catch(()=>{}));
     Promise.all(jobs).then(fill);
   };
-  MK.save = async function(cfg){
+  MK.save = async function(cfg, mode){
+    mode = mode || "stay";
     const scr = document.getElementById("s-"+cfg.detail); const fields = fieldNodes(scr);
     const {code, name, status} = codeNameStatus(cfg, fields);
     const missing = fields.filter(f=> f.required && !getValue(f));
@@ -14074,13 +14142,20 @@ if(document.readyState !== "loading") initChatWidget();
     fields.forEach(f=>{ if(f !== code && f !== name && f !== status){ const v = getValue(f); if(v !== "") data[f.key] = v; } });
     const body = {code: getValue(code), name: getValue(name).slice(0,200), status: status && /^(inactive|terminated|resigned)/i.test(getValue(status)) ? "INACTIVE" : "ACTIVE", data};
     const id = scr.dataset.mkId;
-    const btn = findSave(scr); if(btn) btn.disabled = true;
+    const btns = [findSave(scr), ...scr.querySelectorAll("[data-mk-save-mode]")].filter(Boolean); btns.forEach(b=> b.disabled = true);
     try{
-      await (id ? api("PATCH", "/api/masters/"+cfg.type+"/"+id, body) : api("POST", "/api/masters/"+cfg.type, body));
+      const res = await (id ? api("PATCH", "/api/masters/"+cfg.type+"/"+id, body) : api("POST", "/api/masters/"+cfg.type, body));
       say(cfg.label+" saved", body.code+" — "+body.name);
-      go(cfg.list);
+      if(mode === "close") go(cfg.list);
+      else if(mode === "new") MK.onScreen(cfg.detail);                       /* blank form again (numbering and pick-lists refill themselves) */
+      else{                                                                    /* stay: the record is now saved, so further saves edit it */
+        const newId = id || (res && res.id); if(newId) scr.dataset.mkId = String(newId);
+        const pt = scr.querySelector(".pt"), ps = scr.querySelector(".ps");
+        if(pt){ const last = Array.from(pt.childNodes).reverse().find(n=>n.nodeType===3); if(last) last.textContent = cfg.label+" — "+body.name; }
+        if(ps) ps.textContent = "Code: "+body.code+" · saved";
+      }
     }catch(err){ say("Could not save "+cfg.label, err.message); }
-    finally{ if(btn) btn.disabled = false; }
+    finally{ btns.forEach(b=> b.disabled = false); }
   };
   MK.edit = function(type, id){
     const cfg = MK.configs[type]; const rec = (MK.cache[type]||[]).find(r=>r.id === id); if(!cfg || !rec) return;
@@ -19836,7 +19911,7 @@ function makePrintFit(){
     try{ const r = await api("GET", "/api/masters/employee/next-code"); if(!scr.dataset.mkId){ c.value = r.code; c.readOnly = true; c.title = "Generated automatically"; } }catch(e){}
   }
   const origSave = MK.save;
-  MK.save = async function(cfg){ if(cfg && cfg.type === "employee") await autoCode(true); return origSave.call(MK, cfg); };
+  MK.save = async function(cfg, mode){ if(cfg && cfg.type === "employee") await autoCode(true); return origSave.call(MK, cfg, mode); };
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "emp-new"){ setTimeout(()=>{ fill(); autoCode(false); }, 900); setTimeout(()=>{ fill(); autoCode(false); }, 2200); } };
 })();
@@ -20810,7 +20885,7 @@ function makePrintFit(){
       i.files = dt.files; i.dispatchEvent(new Event("change", {bubbles:true}));
     }catch(err){ if(window.toast) window.toast("Could not read the Excel file", err.message, "warn"); }
   }, true);
-  window.XlsxKit = {toCsv};
+  window.XlsxKit = {toCsv, load};
 })();
 
 /* ============================================================

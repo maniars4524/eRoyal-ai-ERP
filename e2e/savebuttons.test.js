@@ -1,0 +1,45 @@
+// Masters: Save / Save & New / Save & Close, and Import (Excel / CSV) + Export on the master lists.
+const { JSDOM } = require("jsdom");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); return { status: r.status, body: r.status === 204 ? null : await r.json().catch(() => null) }; };
+let failures = 0;
+const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  -> " + (extra || ""))); if (!ok) failures++; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36);
+  const org = await j("POST", "/api/organizations", { code: "SB" + tag.slice(-5).toUpperCase(), name: "Sb " + tag, admin_email: `sb${tag}@t.test`, admin_username: "sb" + tag, admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "S" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "sb" + tag, password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const dom = await JSDOM.fromURL(BASE + "/erp", { runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
+    beforeParse(w) { w.fetch = (u, o) => fetch(new URL(u, BASE).href, o); w.sessionStorage.setItem("esway_access_token", token); w.confirm = () => true; w.HTMLElement.prototype.scrollIntoView = () => {}; w.scrollTo = () => {}; w.console.error = () => {}; w.console.warn = () => {}; w.URL.createObjectURL = () => "blob:x"; } });
+  const w = dom.window, d = w.document; const q = s => d.querySelector(s), qa = s => Array.from(d.querySelectorAll(s));
+  await sleep(3500);
+  const screen = () => d.body.dataset.screen;
+  const fill = (code, name) => { const c = qa("#s-dept-new input.fc")[0], n = qa("#s-dept-new input.fc")[1]; c.value = code; n.value = name; };
+  w.go("dept-new"); await sleep(1500);
+  check("the form shows Save, Save & New and Save & Close", !!q("#s-dept-new [data-mk-save-mode=new]") && !!q("#s-dept-new [data-mk-save-mode=close]"));
+  fill("D1" + tag.slice(-3).toUpperCase(), "Sales " + tag);
+  Array.from(qa("#s-dept-new button")).find(b => /^\s*Save\s*$/.test(b.textContent)).click(); await sleep(1500);
+  check("Save keeps you on the department (it does not jump to the list)", screen() === "dept-new" && /saved/.test(q("#s-dept-new .ps").textContent), screen() + " | " + q("#s-dept-new .ps").textContent);
+  q("#s-dept-new [data-mk-save-mode=new]").click(); await sleep(1800);
+  check("Save & New on a saved record updates it and opens a blank form", screen() === "dept-new" && qa("#s-dept-new input.fc")[0].value === "" && (await j("GET", "/api/masters/department", null, token)).body.length === 1);
+  fill("D2" + tag.slice(-3).toUpperCase(), "Ops " + tag);
+  const before = 1;
+  q("#s-dept-new [data-mk-save-mode=new]").click(); await sleep(2000);
+  const after = (await j("GET", "/api/masters/department", null, token)).body.length;
+  check("Save & New saves one more and opens a blank form", after === before + 1 && screen() === "dept-new" && qa("#s-dept-new input.fc")[0].value === "" && qa("#s-dept-new input.fc")[1].value === "", `${before}->${after} code=${qa("#s-dept-new input.fc")[0].value}`);
+  fill("D3" + tag.slice(-3).toUpperCase(), "Fin " + tag);
+  q("#s-dept-new [data-mk-save-mode=close]").click(); await sleep(2000);
+  check("Save & Close saves and returns to the list", screen() === "dept-list" && (await j("GET", "/api/masters/department", null, token)).body.length === after + 1, screen());
+  const bar = q("#s-dept-list .ph .pa").textContent;
+  check("the list has Import (Excel / CSV) and Export Excel / Export CSV", /Import/.test(bar) && /Export Excel/.test(bar) && /Export CSV/.test(bar), bar.replace(/\s+/g, " "));
+  const csv = "code,name,status\nIM1" + tag.slice(-3).toUpperCase() + ",Imported One,Active\nIM2" + tag.slice(-3).toUpperCase() + ",Imported Two,Inactive\n,No code,Active\n";
+  await w.MK.importCsv(w.MK.configs.department, { text: async () => csv }); await sleep(1200);
+  const all = (await j("GET", "/api/masters/department", null, token)).body;
+  check("CSV import adds the valid rows, keeps status, and skips the row without a code", all.some(r => r.name === "Imported One" && r.status === "ACTIVE") && all.some(r => r.name === "Imported Two" && r.status === "INACTIVE") && !all.some(r => r.name === "No code"));
+  await w.MK.importCsv(w.MK.configs.department, { text: async () => csv }); await sleep(1200);
+  check("importing the same file again creates no duplicates", (await j("GET", "/api/masters/department", null, token)).body.length === all.length);
+  console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

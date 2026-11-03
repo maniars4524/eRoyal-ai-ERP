@@ -365,3 +365,10 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - record_audit now stores old_value and the acting user's branch.
 - Tests: tests/test_access.py (11). Full suite 329 passed.
 - NOT done yet (next, in order): apply scope_for filters to lists/search/reports/exports per module (switched on per module), customer approval workflow + branch sharing, role dashboards, CEO dashboard + dashboard selector, then the licence/company onboarding prompt (entitlements, departments, designations, multi-module users, branch-level modules).
+
+## 2026-11-03 (later) - MASTER FORMS: Save / Save & New / Save & Close; Import + Export on master lists
+- Every generic master form (country, currency, unit, package, incoterm, HSN, container, department, designation, branch, employee, route) now has Save (stays on the record), Save & New (blank form for the next one) and Save & Close (back to the list). Employee save wrapper passes the mode through.
+- Every master list got Import (Excel / CSV) and Export Excel / Export CSV unless it already had its own (e.g. designation import). Export layout = import layout (code, name, status, other fields). Import skips rows without code/name and rows that already exist; nothing is deleted.
+- INCIDENT: a bad edit (mangled backslash escapes) briefly broke the page script, so screens looked empty. The database was never touched: live esway_erp compared table by table with backups/esway_erp_20261103_1144_before_rbac.dump - no table lost a row (only additions). Fixed; see memory live-db-protection (syntax-check esway-erp.html after every edit).
+- Scratch DB esway_chk (restore of this morning's dump, for the comparison) still exists; harmless, drop when no longer wanted.
+- Tests: e2e/savebuttons.test.js (new), masters/more e2e adjusted (open the list after Save).

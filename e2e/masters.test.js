@@ -50,6 +50,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   d.querySelector("#s-currency-detail .pa .btn-suc").click(); await sleep(1200);
   const saved = await j("GET", "/api/masters/currency", null, token);
   check("currency persisted in PostgreSQL via UI save", saved.body.length === 1 && saved.body[0].code === "USD" && saved.body[0].data.currency_symbol === "$", JSON.stringify(saved.body) + toasts.join(";"));
+  w.go("currency-master"); await sleep(1200);   // Save now keeps the form open; open the list to see the row
   check("list shows the saved currency", rowsText("#cm1 tbody").some(t => t.includes("USD") && t.includes("US Dollar")), rowsText("#cm1 tbody").join("|"));
 
   // ---- required-field validation and duplicate handling

@@ -44,6 +44,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const depts = (await j("GET", "/api/masters/department", null, token)).body;
   check("department Save button persists to PostgreSQL", depts.length === 1 && depts[0].code === "OPS" && depts[0].data.email === "x@x" || (depts.length === 1 && depts[0].data.email === "ops@x.test"), JSON.stringify(depts) + toasts.join(";"));
   check("only one save toast (the fake stub is gone)", toasts.filter(t => /saved/i.test(t)).length === 1, toasts.join(";"));
+  w.go("dept-list"); await sleep(1200);   // Save now keeps the form open; open the list to see the row
   check("department list shows saved row", rows("#s-dept-list tbody").some(t => t.includes("OPS") && t.includes("Operations")), rows("#s-dept-list tbody").join("|"));
 
   // Designation fed by departments
@@ -63,14 +64,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   clickSave("emp-new", "empSaveBtn"); await sleep(1200);
   const emps = (await j("GET", "/api/masters/employee", null, token)).body;
   check("employee persisted with department/designation", emps.length === 1 && emps[0].name === "Asha Rao" && emps[0].data.department === "Operations" && emps[0].data.mobile === "9000000001", JSON.stringify(emps) + toasts.slice(-2).join(";"));
+  w.go("emp-list"); await sleep(1200);   // Save now keeps the form open; open the list to see the row
   check("employee list shows the saved employee", rows("#empTableBody").some(t => /EMP-0*1/.test(t) && t.includes("Asha Rao")), rows("#empTableBody").join("|"));
-  w.go("emp-new"); await sleep(300); clickSave("emp-new", "empSaveBtn"); await sleep(300);
+  w.go("emp-new"); await sleep(300); clickSave("emp-new", "empSaveBtn"); await sleep(1500);
   check("employee form blocks missing required fields", toasts.some(t => /Required fields missing/.test(t)));
 
   // Route
   w.go("route-new"); await sleep(400);
   field("route-new", "Route Code").value = "MAA-ANR"; field("route-new", "Route Name").value = "Chennai to Antwerp"; field("route-new", "Origin").value = "INMAA"; field("route-new", "Destination").value = "BEANR";
   clickSave("route-new", "routeSaveBtn"); await sleep(1000);
+  w.go("route-list"); await sleep(1200);
   check("route persisted and listed", (await j("GET", "/api/masters/route", null, token)).body.length === 1 && rows("#routeTableBody").some(t => t.includes("MAA-ANR") && t.includes("BEANR")), rows("#routeTableBody").join("|"));
 
   // Charge Master: HSN mandatory, then save
