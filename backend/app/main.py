@@ -29,6 +29,7 @@ from .network_api import router as network_router
 from .audit_api import router as audit_router
 from .license_mgmt_api import router as license_router
 from .job_details_api import company as company_doc_router, router as job_details_router
+from .access_api import router as access_router
 from .crm_api import router as crm_router
 from .org_ext_api import router as org_ext_router
 from .jobs_lifecycle_api import router as jobs_lifecycle_router
@@ -112,6 +113,7 @@ app.include_router(network_router)
 app.include_router(audit_router)
 app.include_router(license_router)
 app.include_router(crm_router)
+app.include_router(access_router)
 app.include_router(org_ext_router)
 app.include_router(jobs_lifecycle_router)
 app.include_router(sequences_router)

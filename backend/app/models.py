@@ -111,6 +111,7 @@ class AuditLog(Base):
     entity_id: Mapped[str | None] = mapped_column(String(80))
     old_value: Mapped[dict | None] = mapped_column(JSON)
     new_value: Mapped[dict | None] = mapped_column(JSON)
+    branch_id: Mapped[int | None] = mapped_column(Integer, index=True)                 # the acting user's company branch (role-based access)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
@@ -1281,4 +1282,55 @@ class JobLockEvent(Base):
     detail: Mapped[str] = mapped_column(Text, default="")
     notify_user_id: Mapped[int | None] = mapped_column(Integer, index=True)
     seen: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CompanyBranch(Base):
+    """An office of the company itself (not a customer's branch). Never deleted once used; deactivate instead."""
+    __tablename__ = "company_branches"
+    __table_args__ = (UniqueConstraint("organization_id", "code", name="uq_company_branch_code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(120))
+    region: Mapped[str | None] = mapped_column(String(60), index=True)
+    city: Mapped[str | None] = mapped_column(String(80))
+    state: Mapped[str | None] = mapped_column(String(80))
+    is_head_office: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", server_default="ACTIVE")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserAccess(Base):
+    """Where a user sits in the company: branch, region, category, reporting line. A user without a row keeps today's access unchanged."""
+    __tablename__ = "user_access"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    branch_id: Mapped[int | None] = mapped_column(ForeignKey("company_branches.id", ondelete="SET NULL"), index=True)
+    extra_branch_ids: Mapped[list | None] = mapped_column(JSON)                        # further branches this user may see (regional / national heads)
+    region: Mapped[str | None] = mapped_column(String(60))
+    user_category: Mapped[str | None] = mapped_column(String(30), index=True)          # SALESPERSON | COORDINATOR | SALES_MANAGER | BRANCH_MANAGER | NATIONAL_HEAD | OPERATIONS | ACCOUNTS | EXECUTIVE
+    designation: Mapped[str | None] = mapped_column(String(80))
+    reporting_manager_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    business_vertical: Mapped[str | None] = mapped_column(String(40))                  # BUSINESS | FREIGHT_CUSTOMS | TRANSPORT
+    job_categories: Mapped[list | None] = mapped_column(JSON)
+    salesperson_name: Mapped[str | None] = mapped_column(String(120))                  # the name written on jobs / quotations / bookings for this person
+    dashboards: Mapped[list | None] = mapped_column(JSON)                              # dashboards this user may open
+    updated_by: Mapped[int | None] = mapped_column(Integer)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CustomerAssignment(Base):
+    """A customer handled by a salesperson. A customer may have several."""
+    __tablename__ = "customer_assignments"
+    __table_args__ = (UniqueConstraint("customer_id", "user_id", name="uq_customer_assignment"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    assigned_by: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

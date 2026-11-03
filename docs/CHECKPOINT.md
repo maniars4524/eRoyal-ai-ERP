@@ -355,3 +355,13 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - SCREEN: the header box opens a wide panel (heading + "Showing x of y results", filter row, department blocks that collapse, rows with Open), keyboard arrows + Enter, Escape closes; falls back to the old flat list if the new call fails.
 - TESTS: pytest 318 passed (tests/test_universal_search.py: classification, separators, container number, filters, paging, no-result, permission-limited user); e2e universalsearch (real Chrome, screenshots scratch/search-*.png), searchchat updated for the new panel.
 - NOT DONE / IDEAS: created-by filter is API-only (no box on screen); "View all" per category could open the module list with the keyword; indexes (trigram) for very large databases need approval before any database change.
+
+## 2026-11-03 - ROLE-BASED ACCESS, PHASE 1+2 (foundation, additive)
+- Backup before starting: backups/esway_erp_20261103_1144_before_rbac.dump; git tag pre-rbac-e34481b; rollback note backups/ROLLBACK-RBAC.txt (git checkout the tag, `alembic downgrade 0054`).
+- Migration 0055_role_access (applied to live + test DBs): company_branches, user_access, customer_assignments, audit_logs.branch_id. Nothing existing renamed or removed.
+- backend/app/access.py: scope_for(db, user) -> Scope (unrestricted / branch_ids / user_ids / salesperson_names). Users with no placement row, executives and platform admins stay unrestricted = today's behaviour. Salesperson = self; coordinator / sales manager = reporting-line team; branch manager / operations / accounts = branches; national head = region + given branches. Deny by default if placed without a branch.
+- backend/app/access_api.py (/api/access): me, options, branches (create/update, deactivate only), users (list, set placement; validates branch/manager, blocks reporting loops, audited with old/new), customers/{id}/assignments.
+- Permissions: branch.manage, access.manage, dashboard.ceo (CEO_DASHBOARD_ACCESS; excluded from every template role incl. ERP_ADMIN, so only the platform super admin has it until granted one user at a time).
+- record_audit now stores old_value and the acting user's branch.
+- Tests: tests/test_access.py (11). Full suite 329 passed.
+- NOT done yet (next, in order): apply scope_for filters to lists/search/reports/exports per module (switched on per module), customer approval workflow + branch sharing, role dashboards, CEO dashboard + dashboard selector, then the licence/company onboarding prompt (entitlements, departments, designations, multi-module users, branch-level modules).

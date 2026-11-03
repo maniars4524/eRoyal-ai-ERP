@@ -12,7 +12,7 @@ from . import config, std_masters
 from .auth import get_current_user, permission_required, portal_for, portals_for, safe_user
 from .db import get_db
 from .licensing import next_license_number
-from .models import AuditLog, Organization, Permission, Role, User
+from .models import AuditLog, Organization, Permission, Role, User, UserAccess
 from .roles import ensure_role
 from .schemas_auth import LoginRequest, LoginResponse, OrganizationAdminCreate, OrganizationUpdate, SafeUser
 from .security import create_token, hash_password, verify_password
@@ -21,8 +21,9 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 platform_router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 
 
-def record_audit(db: Session, action: str, module: str, user: User | None = None, organization_id: int | None = None, entity_type: str | None = None, entity_id: str | None = None, new_value: dict | None = None):
-    db.add(AuditLog(action=action, module=module, user_id=user.id if user else None, organization_id=organization_id, entity_type=entity_type, entity_id=entity_id, new_value=new_value))
+def record_audit(db: Session, action: str, module: str, user: User | None = None, organization_id: int | None = None, entity_type: str | None = None, entity_id: str | None = None, new_value: dict | None = None, old_value: dict | None = None):
+    access = db.get(UserAccess, user.id) if user and user.id else None
+    db.add(AuditLog(action=action, module=module, user_id=user.id if user else None, organization_id=organization_id, entity_type=entity_type, entity_id=entity_id, new_value=new_value, old_value=old_value, branch_id=access.branch_id if access else None))
 
 
 
