@@ -399,3 +399,9 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - ListKit (the bar above each list) now has Rows: 5, 15, 25, 50, 100, All (100+), Previous / Next and a pager under the list; the count says "Showing a to b of N (filtered from M)". Choice remembered per user and list; default 50; filters/sort/size changes go back to page 1. Lists covered: Quotations, Invoices, Jobs, Leads, Enquiries, Opportunities, Bookings, Purchase Invoices, Debit Notes. e2e/listpaging.test.js.
 - Also fixed a flaky column-memory bug in ListKit ("Status / Approval" header captured under two names).
 - NOT yet paged (own renderers): master lists (MK), Employee/Organisation lists, accounts registers, CHA register. Add one CFG line each in ListKit.CFG (screen id + header regex) when wanted.
+
+## 2026-11-05 - access filters step 2: every module
+- `access.py`: `record_clause` (quotations, bookings, CRM leads/enquiries/opportunities, invoices/documents, payments, vouchers) and `access_guard`, a global dependency that returns 404 for a placed user opening someone else's job (all `/api/jobs/{job}/...`, CHA, charges), quotation, booking, invoice, payment, voucher or CRM record - every sub-endpoint included.
+- Lists filtered: quotations, CRM, bookings (+summary, open-for), CHA jobs/dashboard/bookings, documents, payments, day book, journal/contra vouchers, party ledger, outstanding. Transport jobs are shipments, already filtered.
+- Unplaced users, executives and super admins are unchanged. Tests: `test_access_records.py` (3) + filters (6) pass. pytest: 332 pass; 6 failures are date-dependent tests (test_org_credit x5, test_license_mgmt x1) that fail the same way without these changes.
+- Still open: reports/MIS/dashboard figures and exports, approval workflow, role dashboards, CEO dashboard, placement screens, licence programme.

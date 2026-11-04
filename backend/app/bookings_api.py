@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from .access import record_clause
 from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .billing import next_number
@@ -121,6 +122,9 @@ def list_bookings(status_filter: str | None = Query(default=None, alias="status"
                   user: User = Depends(permission_required("booking.read")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     query = select(Booking).where(Booking.organization_id == org_id)
+    vis = record_clause(db, user, Booking)
+    if vis is not None:
+        query = query.where(vis)
     if status_filter:
         query = query.where(Booking.status == status_filter)
     if q:
@@ -140,7 +144,8 @@ def summary(user: User = Depends(permission_required("booking.read")), db: Sessi
     today = date.today()
     soon = today + timedelta(days=2)
     week = today - timedelta(days=7)
-    rows = list(db.scalars(select(Booking).where(Booking.organization_id == org_id)))
+    vis = record_clause(db, user, Booking)
+    rows = list(db.scalars(select(Booking).where(Booking.organization_id == org_id, *([vis] if vis is not None else []))))
     confirmed = [b for b in rows if b.status == "CONFIRMED"]
     return {"confirmed_this_week": sum(1 for b in confirmed if b.confirmed_at and b.confirmed_at.date() >= week),
             "si_cutoff_48h": sum(1 for b in confirmed if b.si_cutoff and today <= b.si_cutoff <= soon),
@@ -173,7 +178,8 @@ def bookings_open_for(service: str, user: User = Depends(permission_required("bo
     job_type = SERVICE_JOB_TYPES[service]
     made = {bid for (bid,) in db.execute(select(Shipment.booking_id).where(Shipment.organization_id == org_id, Shipment.job_type == job_type, Shipment.booking_id.is_not(None)))}
     out = []
-    for b in db.scalars(select(Booking).where(Booking.organization_id == org_id, Booking.status == "CONFIRMED").order_by(Booking.id.desc()).limit(500)):
+    bvis = record_clause(db, user, Booking)
+    for b in db.scalars(select(Booking).where(Booking.organization_id == org_id, Booking.status == "CONFIRMED", *([bvis] if bvis is not None else [])).order_by(Booking.id.desc()).limit(500)):
         if service in _booked_services(b) and b.id not in made:
             out.append({"id": b.id, "number": b.number, "mode": b.mode, "direction": b.direction, "party_name": b.party_name, "pol": b.pol, "pod": b.pod, "etd": b.etd, "carrier": b.carrier, "services": _booked_services(b)})
     return {"items": out}

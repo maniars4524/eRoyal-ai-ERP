@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from .access import record_clause
 from .auth import permission_required
 from .billing import outstanding, q2
 from .db import get_db
@@ -37,7 +38,8 @@ def party_ledger(party: str = Query(max_length=200), date_from: date | None = No
     Vendor side: purchase invoices credit, purchase credit notes and payments debit. The closing balance is what the party owes us (positive) or what we owe (negative)."""
     org_id = _tenant(user)
     rows = []
-    docs = db.scalars(select(Document).where(Document.organization_id == org_id, Document.party_name == party, Document.status == "POSTED").order_by(Document.doc_date, Document.id))
+    dvis, pvis = record_clause(db, user, Document), record_clause(db, user, Payment)
+    docs = db.scalars(select(Document).where(Document.organization_id == org_id, Document.party_name == party, Document.status == "POSTED", *([dvis] if dvis is not None else [])).order_by(Document.doc_date, Document.id))
     for d in docs:
         ar = d.doc_type in AR_TYPES
         credit_side = d.doc_type in CREDITS
@@ -45,7 +47,7 @@ def party_ledger(party: str = Query(max_length=200), date_from: date | None = No
         debit = amt if (ar and not credit_side) or (not ar and credit_side) else Decimal(0)
         credit = amt - debit
         rows.append({"date": d.doc_date, "voucher": d.doc_number, "type": d.doc_type, "job_number": d.job_number, "narration": d.remarks or "", "debit": debit, "credit": credit, "sort": (d.doc_date, 0, d.id)})
-    for p in db.scalars(select(Payment).options(selectinload(Payment.allocations)).where(Payment.organization_id == org_id, Payment.party_name == party, Payment.status == "POSTED").order_by(Payment.pay_date, Payment.id)):
+    for p in db.scalars(select(Payment).options(selectinload(Payment.allocations)).where(Payment.organization_id == org_id, Payment.party_name == party, Payment.status == "POSTED", *([pvis] if pvis is not None else [])).order_by(Payment.pay_date, Payment.id)):
         recv = p.direction == "RECEIPT"
         jobs = sorted({(db.get(Document, a.document_id).job_number or "") for a in p.allocations if db.get(Document, a.document_id)} - {""})
         tds = sum((a.tds_amount or Decimal(0) for a in p.allocations), Decimal(0))
@@ -93,7 +95,8 @@ def outstanding_report(side: str = Query(default="AR", pattern="^(AR|AP)$"), use
     types = ("invoice", "debit_note") if side == "AR" else ("purchase_invoice",)
     today = date.today()
     parties: dict[str, dict] = defaultdict(lambda: {"total": Decimal(0), "outstanding": Decimal(0), "current": Decimal(0), "d1_30": Decimal(0), "d31_60": Decimal(0), "d61_90": Decimal(0), "d90": Decimal(0), "documents": 0})
-    for d in db.scalars(select(Document).where(Document.organization_id == org_id, Document.status == "POSTED", Document.doc_type.in_(types))):
+    dvis = record_clause(db, user, Document)
+    for d in db.scalars(select(Document).where(Document.organization_id == org_id, Document.status == "POSTED", Document.doc_type.in_(types), *([dvis] if dvis is not None else []))):
         left = outstanding(d)
         if left <= 0:
             continue

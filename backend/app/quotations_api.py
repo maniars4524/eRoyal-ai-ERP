@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, object_session, selectinload
 
+from .access import record_clause
 from . import config
 from .auth import has_permission, permission_required
 from .auth_api import record_audit
@@ -249,6 +250,9 @@ def list_quotations(status_filter: str | None = Query(default=None, alias="statu
                     limit: int = Query(default=300, ge=1, le=1000), user: User = Depends(permission_required("quote.read")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     query = select(Quotation).options(selectinload(Quotation.lines)).where(Quotation.organization_id == org_id)
+    vis = record_clause(db, user, Quotation)
+    if vis is not None:
+        query = query.where(vis)
     if q:
         like = f"%{q.strip()}%"
         query = query.where(or_(Quotation.number.ilike(like), Quotation.party_name.ilike(like), Quotation.pol.ilike(like), Quotation.pod.ilike(like)))

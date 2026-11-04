@@ -51,7 +51,10 @@ UI_FILE = Path(__file__).resolve().parents[2] / "esway-erp.html"
 BRAND_DIR = Path(__file__).resolve().parents[2] / "frontend"
 BRAND_FILES = {"logo-sway.png", "logo-sway-white.png", "login-bg.gif"}
 
-app = FastAPI(title="eSway ERP 2.0 API", version="2.0.0", docs_url=None if PUBLIC_PORTALS else "/docs", redoc_url=None if PUBLIC_PORTALS else "/redoc", openapi_url=None if PUBLIC_PORTALS else "/openapi.json")
+from fastapi import Depends  # noqa: E402
+from .access import access_guard  # noqa: E402
+
+app = FastAPI(dependencies=[Depends(access_guard)], title="eSway ERP 2.0 API", version="2.0.0", docs_url=None if PUBLIC_PORTALS else "/docs", redoc_url=None if PUBLIC_PORTALS else "/redoc", openapi_url=None if PUBLIC_PORTALS else "/openapi.json")
 
 
 @app.middleware("http")

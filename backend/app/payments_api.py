@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from .access import record_clause
 from .auth import permission_required
 from .auth_api import record_audit
 from . import gl
@@ -62,6 +63,9 @@ def _get(db: Session, org_id: int, payment_id: int) -> Payment:
 def list_payments(direction: str | None = Query(default=None, pattern="^(RECEIPT|PAYMENT)$"), limit: int = Query(default=200, ge=1, le=1000), user: User = Depends(permission_required("payment.read")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     query = select(Payment).options(selectinload(Payment.allocations)).where(Payment.organization_id == org_id)
+    vis = record_clause(db, user, Payment)
+    if vis is not None:
+        query = query.where(vis)
     if direction:
         query = query.where(Payment.direction == direction)
     return [_out(p) for p in db.scalars(query.order_by(Payment.pay_date.desc(), Payment.id.desc()).limit(limit))]

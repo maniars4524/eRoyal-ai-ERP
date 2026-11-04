@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from .access import record_clause, shipment_clause
 from . import job_lifecycle as jl
 from .auth import has_permission, permission_required
 from .auth_api import record_audit
@@ -284,6 +285,9 @@ def list_jobs(direction: str = "", mode: str = "", status: str = "", group: str 
     """The CHA job register: every customs job of the company, filtered by Export / Import, Air / Sea and stage, each with its freight job and customs references."""
     org = _tenant(user)
     cond = [Shipment.organization_id == org, Shipment.job_type == "Customs"]
+    vis = shipment_clause(db, user)
+    if vis is not None:
+        cond.append(vis)
     if direction in ("Export", "Import"):
         cond.append(Shipment.direction == direction)
     if mode in ("Air", "Sea"):
@@ -314,7 +318,7 @@ def list_jobs(direction: str = "", mode: str = "", status: str = "", group: str 
         f = freight_of(db, j)
         rows.append({**cha_row(db, j, f, db.get(Booking, j.booking_id) if j.booking_id else None), "mbl_hbl": j.bl_awb})
     by_status = {s: 0 for s in CHA_STATUSES}
-    for (st,) in db.execute(select(Shipment.customs_status).where(Shipment.organization_id == org, Shipment.job_type == "Customs")):
+    for (st,) in db.execute(select(Shipment.customs_status).where(Shipment.organization_id == org, Shipment.job_type == "Customs", *([vis] if vis is not None else []))):
         by_status[st or "CREATED"] = by_status.get(st or "CREATED", 0) + 1
     return {"items": rows, "total": total, "statuses": CHA_STATUSES, "by_status": by_status}
 
@@ -323,7 +327,8 @@ def list_jobs(direction: str = "", mode: str = "", status: str = "", group: str 
 def dashboard(user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """The CHA dashboard figures: totals, pending, delayed, completed, import / export, documents and filing pending, the stage pipeline and Sea / Air x Export / Import."""
     org = _tenant(user)
-    every = list(db.scalars(select(Shipment).where(Shipment.organization_id == org, Shipment.job_type == "Customs")))
+    vis = shipment_clause(db, user)
+    every = list(db.scalars(select(Shipment).where(Shipment.organization_id == org, Shipment.job_type == "Customs", *([vis] if vis is not None else []))))
     jobs = [j for j in every if j.status != "Cancelled"]          # cancelled jobs are counted on their own
     today = date.today()
     pending = [j for j in jobs if (j.customs_status or "CREATED") not in DONE]
@@ -370,6 +375,9 @@ def cha_bookings(direction: str = "", mode: str = "", user: User = Depends(permi
     """Confirmed bookings that include the CHA service (CHA only, CHA + Freight, CHA + Transport ...), for the Create Job screen."""
     org = _tenant(user)
     cond = [Booking.organization_id == org, Booking.status == "CONFIRMED"]
+    bvis = record_clause(db, user, Booking)
+    if bvis is not None:
+        cond.append(bvis)
     if direction in ("Export", "Import"):
         cond.append(Booking.direction == direction)
     if mode in ("Air", "Sea"):

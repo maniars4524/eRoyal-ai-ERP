@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from .access import record_clause
 from .auth import permission_required
 from .db import get_db
 from .models import CrmRecord, Customer, User
@@ -41,7 +42,11 @@ def _out(r: CrmRecord) -> dict:
 
 @router.get("/{kind}")
 def list_records(kind: str, user: User = Depends(permission_required("quote.read")), db: Session = Depends(get_db)):
-    rows = db.scalars(select(CrmRecord).where(CrmRecord.organization_id == user.organization_id, CrmRecord.kind == _kind(kind)).order_by(CrmRecord.id.desc())).all()
+    query = select(CrmRecord).where(CrmRecord.organization_id == user.organization_id, CrmRecord.kind == _kind(kind))
+    vis = record_clause(db, user, CrmRecord)
+    if vis is not None:
+        query = query.where(vis)
+    rows = db.scalars(query.order_by(CrmRecord.id.desc())).all()
     return [_out(r) for r in rows]
 
 

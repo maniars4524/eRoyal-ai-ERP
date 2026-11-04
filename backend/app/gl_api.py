@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 
+from .access import record_clause
 from . import coa, gl
 from .auth import permission_required
 from .auth_api import record_audit
@@ -192,6 +193,9 @@ def balance_sheet(as_on: date | None = None, user: User = Depends(permission_req
 def day_book(date_from: date | None = None, date_to: date | None = None, voucher_type: str | None = Query(default=None, max_length=24), user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
     org_id = _prep(db, user)
     q = select(AccVoucher).where(AccVoucher.organization_id == org_id, AccVoucher.status == "POSTED").order_by(AccVoucher.vdate, AccVoucher.id)
+    vis = record_clause(db, user, AccVoucher)
+    if vis is not None:
+        q = q.where(vis)
     if date_from:
         q = q.where(AccVoucher.vdate >= date_from)
     if date_to:
@@ -213,6 +217,9 @@ def _voucher_out(db: Session, v: AccVoucher) -> dict:
 def list_vouchers(voucher_type: str = Query(pattern="^(JOURNAL|CONTRA)$"), date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
     org_id = _prep(db, user)
     q = select(AccVoucher).where(AccVoucher.organization_id == org_id, AccVoucher.voucher_type == voucher_type).order_by(AccVoucher.vdate.desc(), AccVoucher.id.desc())
+    vis = record_clause(db, user, AccVoucher)
+    if vis is not None:
+        q = q.where(vis)
     if date_from:
         q = q.where(AccVoucher.vdate >= date_from)
     if date_to:

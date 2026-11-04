@@ -8,6 +8,7 @@ from sqlalchemy import String, cast, delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, object_session, selectinload
 
+from .access import record_clause
 from .auth import permission_required
 from .auth_api import record_audit
 from .billing import CREDIT_TARGET, DOC_TYPES, calc_line, doc_side, fiscal_year, invoice_kind, line_group, next_number, outstanding, payment_status, q2
@@ -267,6 +268,9 @@ def list_documents(
 ):
     org_id = _tenant(user)
     query = select(Document).where(Document.organization_id == org_id)
+    vis = record_clause(db, user, Document)
+    if vis is not None:
+        query = query.where(vis)
     if doc_type:
         query = query.where(Document.doc_type == doc_type)
     if status_filter:
