@@ -389,3 +389,8 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Measured: from the server PC the public link answers in ~0.05 s; the first-visit cost on a real connection is the 598 KB page plus the 1.9 MB login background GIF.
 - Phones (<=760 px), reduced-motion and slow / data-saver connections no longer download the GIF (small built-in poster shown instead); desktops load it with low priority (fetchpriority=low, async decode); GIF cached 7 days (was 1). Verified in Chrome: phone 0 GIF requests, desktop 1.
 - Compressed page cached per version (previous entry). Brotli not installed (would save ~30% more; needs a package install - ask first).
+
+## 2026-11-04 (later) - ANDROID APP UPDATE + MOBILE SIGN OUT
+- Installed Android app (PWA): service worker bumped to esway-pwa-v2, registered with updateViaCache none; it checks for a newer version whenever the app is opened or brought to the front and reloads once when one is installed. Manifest refreshed (start_url /erp/login?source=pwa, display_override, categories) so Chrome updates the installed app. On the phone: open the app once while online, close it fully and reopen (or Chrome > installed app info > update); if it still looks old, uninstall and install again from /erp/login (Download eSway App).
+- Mobile menu (phone screens and the installed app): Sign out row at the bottom of the menu drawer, right below Settings; runs the same sign-out as the header (releases locks, ends the session). Hidden on desktop. e2e/mobsignout.test.js (real Chrome).
+- Ops note: start the test server (port 8010) ONLY with ENV_FILE=.env.qa set before it starts, or it points at the live database. Use one process pair; startup takes ~60 s.

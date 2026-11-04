@@ -221,12 +221,12 @@ def brand_file(name: str) -> FileResponse:
 # ---- installable app (PWA): manifest, service worker and icons. Data is never cached by the service worker; it only keeps the icons and an offline page.
 PWA_DIR = Path(__file__).resolve().parents[2] / "frontend" / "pwa"
 PWA_FILES = {"icon-192.png": "image/png", "icon-512.png": "image/png", "icon-maskable-512.png": "image/png", "apple-touch-icon.png": "image/png", "offline.html": "text/html"}
-PWA_MANIFEST = {"name": "eSway ERP 2.0", "short_name": "eSway", "description": "Freight forwarding, customs (CHA), transport and accounts", "id": "/erp", "start_url": "/erp/login", "scope": "/", "display": "standalone", "orientation": "any",
+PWA_MANIFEST = {"name": "eSway ERP 2.0", "short_name": "eSway", "description": "Freight forwarding, customs (CHA), transport and accounts", "id": "/erp", "start_url": "/erp/login?source=pwa", "scope": "/", "display": "standalone", "display_override": ["standalone", "minimal-ui"], "orientation": "any", "categories": ["business", "productivity"], "prefer_related_applications": False,
                 "background_color": "#0B1F3A", "theme_color": "#0B1F3A", "lang": "en",
                 "icons": [{"src": "/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}, {"src": "/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
                           {"src": "/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}],
                 "shortcuts": [{"name": "CHA jobs", "url": "/erp#svc-cha"}, {"name": "Dashboard", "url": "/erp"}]}
-PWA_SW = """const V = "esway-pwa-v1";
+PWA_SW = """const V = "esway-pwa-v2";
 const SHELL = ["/pwa/offline.html", "/pwa/icon-192.png", "/pwa/icon-512.png"];
 self.addEventListener("install", e => e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())));

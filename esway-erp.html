@@ -1244,6 +1244,11 @@ tbody tr:hover{background:var(--g0)}
   .topnav-flyout > .tn-item > .tn-row{height:auto;padding:13px 12px;font-size:14px;border-bottom:0;border-radius:8px}
   .tn-panel{z-index:320}
 }
+.tn-signout{display:none}
+@media (max-width:760px){
+  .tn-signout{display:flex;align-items:center;gap:10px;margin:4px 6px calc(16px + env(safe-area-inset-bottom));padding:13px 12px;border-top:1px solid var(--g2);font-size:14px;font-weight:600;color:var(--rd);cursor:pointer;border-radius:8px}
+  .tn-signout:active{background:var(--g1)}
+}
 @media (min-width:761px){ #navBurger{display:none !important} }
 @media (display-mode:standalone){ body{overscroll-behavior-y:contain} }
 </style>
@@ -1505,6 +1510,7 @@ tbody tr:hover{background:var(--g0)}
 <!-- TOP MENU — MULTI-LEVEL FLYOUT MENU (dynamically rendered, see script) -->
 <div class="topnav-wrap">
   <nav class="topnav-flyout" id="topnavMenu" aria-label="Main navigation"></nav>
+  <div class="tn-signout" id="tnSignOut" role="button" tabindex="0" title="Sign out of eSway ERP"><svg class="ic" data-icon="logout"></svg><span>Sign out</span></div>
 </div>
 
 <!-- TOP MENU BAR — GROUPED DROPDOWNS (legacy; hidden — kept only so existing badge/role logic below keeps working) -->
@@ -6856,6 +6862,12 @@ function wireDropdown(btnId, popId, others){
 wireDropdown("notifBtn","notifPop",["userPop"]);
 wireDropdown("userBtn","userPop",["notifPop"]);
 document.addEventListener("click", ()=>{ $("#notifPop").classList.remove("on"); $("#userPop").classList.remove("on"); });
+/* mobile menu: Sign out under Settings runs the same sign-out as the header menu (releases locks, ends the session) */
+document.addEventListener("click", e=>{
+  const so = e.target.closest && e.target.closest("#tnSignOut"); if(!so) return;
+  const real = Array.from(document.querySelectorAll("#userPop .hdr-menu-item")).find(i=> /sign out/i.test(i.textContent));
+  document.body.classList.remove("nav-open"); if(real) real.click();
+});
 document.addEventListener("click", e=>{
   const item = e.target.closest(".hdr-menu-item");
   if(!item || !item.textContent.toLowerCase().includes("sign out")) return;
@@ -22445,7 +22457,16 @@ function makePrintFit(){
 (function(){
   "use strict";
   if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")){
-    window.addEventListener("load", ()=>{ navigator.serviceWorker.register("/sw.js").catch(()=>{}); });
+    window.addEventListener("load", ()=>{
+      /* the installed app checks for a newer version every time it is opened or brought back to the front, and reloads once when one is installed */
+      navigator.serviceWorker.register("/sw.js", {updateViaCache:"none"}).then(reg=>{
+        const check = ()=>{ try{ reg.update(); }catch(e){ /* offline: try again next time */ } };
+        document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "visible") check(); });
+        check();
+      }).catch(()=>{});
+      let had = !!navigator.serviceWorker.controller, reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", ()=>{ if(had && !reloaded){ reloaded = true; location.reload(); } had = true; });
+    });
   }
   let deferred = null;
   const standalone = ()=> (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
