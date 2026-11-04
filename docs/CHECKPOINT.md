@@ -384,3 +384,8 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Everything committed and pushed; live restarted (one server process pair, keep-alive watchdog running, public link OK).
 - RESUME HERE: (1) finish access filters for quotations, bookings, CRM, documents/vouchers/payments/ledgers, job sub-endpoints by job number, reports/MIS, exports (see the 'STILL TO FILTER' list above); do NOT place real salespeople until done. (2) customer approval workflow + branch sharing (existing customers auto-Approved). (3) role dashboards, CEO dashboard + selector (CEO permission: only platform super admin for now; grant one user at a time). (4) screens for branch master / user placement / customer assignment. (5) licence + company onboarding prompt (audit license_mgmt.py first). (6) older items: Job Cost % chooser, gross wt/volume message, job-number gap decision (000011 vs 000008), logo upload, Save & New on organisation/port/charge master.
 - Scratch DB esway_chk (copy of this morning's backup) still exists on the DB server; drop when no longer wanted (needs user OK).
+
+## 2026-11-04 - PUBLIC LINK / MOBILE SPEED
+- Measured: from the server PC the public link answers in ~0.05 s; the first-visit cost on a real connection is the 598 KB page plus the 1.9 MB login background GIF.
+- Phones (<=760 px), reduced-motion and slow / data-saver connections no longer download the GIF (small built-in poster shown instead); desktops load it with low priority (fetchpriority=low, async decode); GIF cached 7 days (was 1). Verified in Chrome: phone 0 GIF requests, desktop 1.
+- Compressed page cached per version (previous entry). Brotli not installed (would save ~30% more; needs a package install - ask first).

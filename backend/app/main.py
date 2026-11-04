@@ -215,7 +215,7 @@ def brand_file(name: str) -> FileResponse:
     """The SWAY logo images used by the login page and the header (a fixed list of two files; nothing else is served from here)."""
     if name not in BRAND_FILES or not (BRAND_DIR / name).is_file():
         raise HTTPException(404, "Not found")
-    return FileResponse(BRAND_DIR / name, media_type="image/gif" if name.endswith(".gif") else "image/png", headers={"Cache-Control": "public, max-age=86400"})          # kept by the browser for a day: the 1.8 MB login background is no longer inside the page
+    return FileResponse(BRAND_DIR / name, media_type="image/gif" if name.endswith(".gif") else "image/png", headers={"Cache-Control": "public, max-age=604800"})          # kept by the browser for a day: the 1.8 MB login background is no longer inside the page
 
 
 # ---- installable app (PWA): manifest, service worker and icons. Data is never cached by the service worker; it only keeps the icons and an offline page.
