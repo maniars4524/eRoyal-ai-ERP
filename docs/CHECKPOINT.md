@@ -405,3 +405,9 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Lists filtered: quotations, CRM, bookings (+summary, open-for), CHA jobs/dashboard/bookings, documents, payments, day book, journal/contra vouchers, party ledger, outstanding. Transport jobs are shipments, already filtered.
 - Unplaced users, executives and super admins are unchanged. Tests: `test_access_records.py` (3) + filters (6) pass. pytest: 332 pass; 6 failures are date-dependent tests (test_org_credit x5, test_license_mgmt x1) that fail the same way without these changes.
 - Still open: reports/MIS/dashboard figures and exports, approval workflow, role dashboards, CEO dashboard, placement screens, licence programme.
+
+## 2026-11-05 - filter bar missing when a list is opened from the menu (fixed)
+- Cause: the menu / links call the page's own `go()`, which skips the hook that installed the filter bar; the bar only appeared when something called `window.go` directly. Fix: the 500 ms watcher in ListKit now installs the bar on any open list screen.
+- Test: `e2e/listmenu.test.js` (menu click on Leads, Enquiries, Quotations, Invoices, Jobs, Bookings: bar + Rows selector + Company/Status choices). listpaging and listkit still pass.
+- Honesty audit written: `docs/HONESTY-AUDIT.md` (nothing changed yet). Top items: fake "Priya S." support agent, invented CSN/ICEGATE default values, out-of-date help-bot text.
+- Resume list unchanged (reports/exports filters, placement screens, approval workflow, role/CEO dashboards, licence programme) plus the honesty clean-up.

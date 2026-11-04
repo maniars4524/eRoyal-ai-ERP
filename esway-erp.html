@@ -23364,8 +23364,9 @@ body.job-readonly #jlBanner{display:flex}
   /* a list is drawn again by its own code whenever its data changes: rows that arrive without our marks are put in order / filtered / arranged again */
   setInterval(()=>{
     CFG.forEach(cfg=>{
-      const scr = document.getElementById(cfg.screen); if(!scr || !scr.classList.contains("on") || !state[cfg.key]) return;
-      const table = listTable(cfg); if(!table || !table.tBodies[0] || state[cfg.key].applying) return;
+      const scr = document.getElementById(cfg.screen); if(!scr || !scr.classList.contains("on")) return;
+      const table = listTable(cfg); if(!table || !table.tBodies[0] || (state[cfg.key] && state[cfg.key].applying)) return;
+      if(!state[cfg.key]){ install(cfg); return; }                 // opened from the menu or a link that does not go through window.go
       if(!table.dataset.lkObs || !document.contains(table)){ install(cfg); return; }
       const rows = Array.from(table.tBodies[0].rows).filter(tr=>tr.children.length > 1);
       if(rows.some(tr=>tr.children[0].dataset.lkI === undefined)) apply(cfg);
