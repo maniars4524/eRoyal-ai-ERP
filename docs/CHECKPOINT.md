@@ -411,3 +411,8 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Test: `e2e/listmenu.test.js` (menu click on Leads, Enquiries, Quotations, Invoices, Jobs, Bookings: bar + Rows selector + Company/Status choices). listpaging and listkit still pass.
 - Honesty audit written: `docs/HONESTY-AUDIT.md` (nothing changed yet). Top items: fake "Priya S." support agent, invented CSN/ICEGATE default values, out-of-date help-bot text.
 - Resume list unchanged (reports/exports filters, placement screens, approval workflow, role/CEO dashboards, licence programme) plus the honesty clean-up.
+
+## 2026-11-05 - Choose columns now matches the displayed columns on every list
+- Cause: a saved column choice was remembered by header NAME; a header whose words change (Jobs: "Shipper / Consignee" <-> "Consignee / Shipper") or was renamed no longer matched, so the chooser and the table disagreed. Now each choice is also saved by column POSITION and the chooser always lists the table's current header names. Old saved choices still work (name matching fallback).
+- Applies to every list that has the Columns chooser (Quotations, Invoices, Jobs, Leads, Enquiries, Opportunities, Bookings, Purchase Invoices, Debit Notes) - ListKit is the only column chooser in the ERP.
+- Test: `e2e/colmatch.test.js` (chooser = visible header = row cells, default, after Apply with a moved + hidden column, and after leaving and returning) ALL PASSED; listkit, listpaging, listmenu still pass.

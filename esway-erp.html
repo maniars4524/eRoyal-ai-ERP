@@ -23226,7 +23226,11 @@ body.job-readonly #jlBanner{display:flex}
     /* a header such as "Status / Approval" may be shown as "Status" for a moment: a saved choice still finds its column */
     const nk = n=> String(n).split(" / ")[0].trim().toLowerCase();
     const match = n=> names.find(x=>x === n) || names.find(x=>nk(x) === nk(n));
-    const savedOrder = (saved.order || []).map(match).filter(Boolean), savedHidden = (saved.hidden || []).map(match).filter(Boolean);
+    /* a column is remembered by its position as well as its name: a header whose words change (Shipper / Consignee <-> Consignee / Shipper) is still the same column */
+    const byPos = i=> { const h = heads.find(x=>x.i === i && x.name); return h ? h.name : null; };
+    const usePos = Array.isArray(saved.oi) && saved.oi.length && saved.oi.every(i=>byPos(i));
+    const savedOrder = usePos ? saved.oi.map(byPos) : (saved.order || []).map(match).filter(Boolean);
+    const savedHidden = usePos ? (saved.hi || []).map(byPos).filter(Boolean) : (saved.hidden || []).map(match).filter(Boolean);
     const order = savedOrder.filter((n, i)=>savedOrder.indexOf(n) === i).concat(names.filter(n=>savedOrder.indexOf(n) < 0));
     const hidden = savedHidden;
     return {order, hidden};
@@ -23328,7 +23332,7 @@ body.job-readonly #jlBanner{display:flex}
     body.addEventListener("change", e=>{ const c = e.target.closest("[data-lkc]"); if(!c) return; const n = order[+c.dataset.lkc]; const k = hidden.indexOf(n); if(c.checked && k > -1) hidden.splice(k, 1); if(!c.checked && k < 0) hidden.push(n); draw(); });
     document.getElementById("lkApply").addEventListener("click", ()=>{
       if(order.every(n=>hidden.indexOf(n) > -1)){ if(window.toast) toast("Keep at least one column", "Tick at least one column to show.", "warn"); return; }
-      store(cfg, {order, hidden}); closeModal(); apply(cfg); if(window.toast) toast("Columns applied", cfg.title + " list updated");
+      const pos = n=> { const h = heads.find(x=>x.name === n); return h ? h.i : -1; }; store(cfg, {order, hidden, oi:order.map(pos), hi:hidden.map(pos)}); closeModal(); apply(cfg); if(window.toast) toast("Columns applied", cfg.title + " list updated");
     });
     document.getElementById("lkReset").addEventListener("click", ()=>{ store(cfg, null); closeModal(); apply(cfg); if(window.toast) toast("Columns reset", "The standard columns are back"); });
   }
