@@ -1244,6 +1244,7 @@ tbody tr:hover{background:var(--g0)}
   .topnav-flyout > .tn-item > .tn-row{height:auto;padding:13px 12px;font-size:14px;border-bottom:0;border-radius:8px}
   .tn-panel{z-index:320}
 }
+.lk-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 2px;font-size:12px;color:var(--g6)}.lk-foot .lk-sp{flex:1}.lk-pageinfo{font-weight:600;color:var(--g7,#334155)}
 .tn-signout{display:none}
 @media (max-width:760px){
   .tn-signout{display:flex;align-items:center;gap:10px;margin:4px 6px calc(16px + env(safe-area-inset-bottom));padding:13px 12px;border-top:1px solid var(--g2);font-size:14px;font-weight:600;color:var(--rd);cursor:pointer;border-radius:8px}
@@ -23187,8 +23188,16 @@ body.job-readonly #jlBanner{display:flex}
   const CFG = [
     {key:"quotation", screen:"s-quotation", title:"Quotations", num:/^quote no/i, date:/^date$/i, company:[/^client$/i, /^customer$/i], status:/status/i},
     {key:"invoice", screen:"s-invoice-list", title:"Invoices", num:/^invoice no/i, date:/^date$/i, company:[/^customer$/i], status:/^status$/i},
-    {key:"job", screen:"s-job-list", title:"Jobs", num:/^job no/i, date:/etd/i, company:[/^shipper$/i, /^consignee$/i], status:/^status$/i}
+    {key:"job", screen:"s-job-list", title:"Jobs", num:/^job no/i, date:/etd/i, company:[/^shipper$/i, /^consignee$/i], status:/^status$/i},
+    {key:"lead", screen:"s-crm-lead", title:"Leads", num:/^lead id/i, date:/^date$/i, company:[/company/i], status:/^status$/i},
+    {key:"enquiry", screen:"s-crm-enquiry", title:"Enquiries", num:/^enquiry id/i, date:/^date$/i, company:[/^customer$/i], status:/^status$/i},
+    {key:"opportunity", screen:"s-crm-opportunity", title:"Opportunities", num:/^opportunity id/i, date:/^date$/i, company:[/customer/i], status:/^stage$/i},
+    {key:"booking", screen:"s-booking", title:"Bookings", num:/^booking no/i, date:/^etd$/i, company:[/^carrier$/i], status:/^status$/i},
+    {key:"purchaseinv", screen:"s-purchase-invoice-list", title:"Purchase Invoices", num:/^pi no/i, date:/^date$/i, company:[/^vendor$/i], status:/^status$/i},
+    {key:"debitnote", screen:"s-debit-note-list", title:"Debit Notes", num:/no$/i, date:/^date$/i, company:[/customer|vendor|party/i], status:/^status$/i}
   ];
+  const SIZES = [5, 15, 25, 50, 100, 0];                                   // 0 = every row ("100+")
+  const sizeStore = (cfg, val)=>{ const k = "esway_lk_" + user() + "_" + cfg.key + "_size"; try{ if(val === undefined){ const v = localStorage.getItem(k); return v === null ? null : Number(v); } localStorage.setItem(k, String(val)); }catch(e){ return null; } };
   const MONTHS = {jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11};
   function parseDate(t){
     t = String(t || "");
@@ -23207,15 +23216,19 @@ body.job-readonly #jlBanner{display:flex}
   }
   function originalHeads(table){
     const row = table.tHead.rows[0];
-    Array.from(row.cells).forEach((th, i)=>{ if(th.dataset.lkI === undefined){ th.dataset.lkI = String(i); th.dataset.lkName = (th.textContent || "").trim(); } });
+    Array.from(row.cells).forEach((th, i)=>{ if(th.dataset.lkI === undefined){ th.dataset.lkI = String(i); th.dataset.lkName = (th.textContent || "").trim(); } else if((th.textContent || "").trim()){ th.dataset.lkName = (th.textContent || "").trim(); } });
     return Array.from(row.cells).sort((a, b)=> Number(a.dataset.lkI) - Number(b.dataset.lkI)).map(th=>({i:Number(th.dataset.lkI), name:th.dataset.lkName}));
   }
   const idxOf = (heads, re)=> { const h = heads.find(x=>x.name && re.test(x.name)); return h ? h.i : -1; };
 
   function plan(cfg, heads){
     const saved = store(cfg) || {}; const names = heads.filter(h=>h.name).map(h=>h.name);
-    const order = (saved.order || []).filter(n=>names.indexOf(n) > -1).concat(names.filter(n=>(saved.order || []).indexOf(n) < 0));
-    const hidden = (saved.hidden || []).filter(n=>names.indexOf(n) > -1);
+    /* a header such as "Status / Approval" may be shown as "Status" for a moment: a saved choice still finds its column */
+    const nk = n=> String(n).split(" / ")[0].trim().toLowerCase();
+    const match = n=> names.find(x=>x === n) || names.find(x=>nk(x) === nk(n));
+    const savedOrder = (saved.order || []).map(match).filter(Boolean), savedHidden = (saved.hidden || []).map(match).filter(Boolean);
+    const order = savedOrder.filter((n, i)=>savedOrder.indexOf(n) === i).concat(names.filter(n=>savedOrder.indexOf(n) < 0));
+    const hidden = savedHidden;
     return {order, hidden};
   }
 
@@ -23255,13 +23268,23 @@ body.job-readonly #jlBanner{display:flex}
         if(f.company && !iCo.some(i=>cell(tr, i) === f.company)) ok = false;
         if(f.status && (iSt < 0 || cell(tr, iSt) !== f.status)) ok = false;
         if(f.q && (tr.textContent || "").toLowerCase().indexOf(f.q.toLowerCase()) < 0) ok = false;
-        tr.style.display = ok ? "" : "none"; if(ok) shown++;
+        tr.dataset.lkOk = ok ? "1" : "0"; tr.style.display = ok ? "" : "none"; if(ok) shown++;
       });
       const key = st.sortBy === "date" ? (tr=> iDate > -1 ? parseDate(cell(tr, iDate)) : 0) : (tr=> iNum > -1 ? cell(tr, iNum) : "");
       const dir = st.dir === "asc" ? 1 : -1;
       const sorted = rows.slice().sort((a, b)=>{ const x = key(a), y = key(b); return dir * (typeof x === "number" ? x - y : String(x).localeCompare(String(y), undefined, {numeric:true})); });
       sorted.forEach(tr=>body.appendChild(tr));
-      const cnt = document.getElementById("lk-count-"+cfg.key); if(cnt) cnt.textContent = "Showing " + shown + " of " + rows.length;
+      const vis = sorted.filter(tr=>tr.dataset.lkOk === "1");
+      const size = st.size || 0, pages = size ? Math.max(1, Math.ceil(vis.length / size)) : 1;
+      if(st.page > pages) st.page = pages; if(st.page < 1) st.page = 1;
+      const from0 = size ? (st.page - 1) * size : 0, to0 = size ? from0 + size : vis.length;
+      vis.forEach((tr, k)=>{ tr.style.display = (k >= from0 && k < to0) ? "" : "none"; });
+      const shownNow = Math.min(to0, vis.length) - from0;
+      const text = vis.length ? "Showing " + (from0 + 1) + " to " + (from0 + shownNow) + " of " + vis.length + (vis.length !== rows.length ? " (filtered from " + rows.length + ")" : "") : (rows.length ? "No row matches the filters (" + rows.length + " in the list)" : "");
+      document.querySelectorAll('[data-lk-count="' + cfg.key + '"]').forEach(e=>{ e.textContent = text; });
+      document.querySelectorAll('[data-lk-pageinfo="' + cfg.key + '"]').forEach(e=>{ e.textContent = size && pages > 1 ? "Page " + st.page + " of " + pages : ""; });
+      document.querySelectorAll('[data-lk-prev="' + cfg.key + '"]').forEach(e=>{ e.disabled = st.page <= 1; e.style.visibility = size && pages > 1 ? "" : "hidden"; });
+      document.querySelectorAll('[data-lk-next="' + cfg.key + '"]').forEach(e=>{ e.disabled = st.page >= pages; e.style.visibility = size && pages > 1 ? "" : "hidden"; });
     }finally{ setTimeout(()=>{ st.applying = false; }, 60); }
   }
 
@@ -23277,9 +23300,14 @@ body.job-readonly #jlBanner{display:flex}
       '<div class="lk-f"><label>Company</label><select id="lk-co-'+cfg.key+'" data-lk="company"><option value="">All</option></select></div>'+
       '<div class="lk-f"><label>Status</label><select id="lk-st-'+cfg.key+'" data-lk="status"><option value="">All</option></select></div>'+
       '<div class="lk-f"><label>Search</label><input type="search" data-lk="q" placeholder="any text"></div>'+
-      '<button class="btn btn-out btn-sm" type="button" data-lk-clear>Clear</button><span class="lk-sp"></span><span class="lk-count" id="lk-count-'+cfg.key+'"></span>'+
+      '<div class="lk-f"><label>Rows</label><select data-lk="size" title="How many rows to show on a page">' + SIZES.map(n=>'<option value="'+n+'">'+(n ? n : "All (100+)")+'</option>').join("") + '</select></div>'+
+      '<button class="btn btn-out btn-sm" type="button" data-lk-clear>Clear</button><span class="lk-sp"></span><span class="lk-count" id="lk-count-'+cfg.key+'" data-lk-count="'+cfg.key+'"></span>'+
       '<button class="btn btn-pri btn-sm" type="button" data-lk-cols>⚙ Columns</button>';
     host.parentNode.insertBefore(el, host);
+    const sel = el.querySelector('[data-lk="size"]'); if(sel) sel.value = String(state[cfg.key].size);
+    const foot = document.createElement("div"); foot.className = "lk-foot"; foot.dataset.lkFoot = cfg.key;
+    foot.innerHTML = '<span data-lk-count="' + cfg.key + '"></span><span class="lk-sp"></span><button class="btn btn-out btn-sm" type="button" data-lk-prev="' + cfg.key + '">&#8249; Previous</button><span data-lk-pageinfo="' + cfg.key + '" class="lk-pageinfo"></span><button class="btn btn-out btn-sm" type="button" data-lk-next="' + cfg.key + '">Next &#8250;</button>';
+    host.parentNode.insertBefore(foot, host.nextSibling);
   }
 
   function columnsPanel(cfg){
@@ -23307,7 +23335,7 @@ body.job-readonly #jlBanner{display:flex}
 
   function install(cfg){
     const table = listTable(cfg); if(!table || !table.tBodies[0]) return;
-    if(!state[cfg.key]) state[cfg.key] = {sortBy:"number", dir:"desc", f:{from:"", to:"", month:"", company:"", status:"", q:""}, applying:false};
+    if(!state[cfg.key]) { const saved = sizeStore(cfg); state[cfg.key] = {sortBy:"number", dir:"desc", f:{from:"", to:"", month:"", company:"", status:"", q:""}, applying:false, size: SIZES.indexOf(saved) > -1 ? saved : 50, page:1}; }
     bar(cfg, table);
     if(!table.dataset.lkObs){
       table.dataset.lkObs = "1";
@@ -23317,16 +23345,20 @@ body.job-readonly #jlBanner{display:flex}
     apply(cfg);
   }
   document.addEventListener("input", e=>{ const t = e.target; if(!t.dataset || !t.dataset.lk) return; const bar = t.closest(".lk-bar"); if(!bar) return; const cfg = CFG.find(c=>c.key === bar.dataset.lk); const st = state[cfg.key];
-    const k = t.dataset.lk; if(k === "sortBy" || k === "dir") st[k === "sortBy" ? "sortBy" : "dir"] = t.value; else st.f[k] = t.value; apply(cfg); });
+    const k = t.dataset.lk; st.page = 1;
+    if(k === "size"){ st.size = Number(t.value); sizeStore(cfg, st.size); }
+    else if(k === "sortBy" || k === "dir") st[k === "sortBy" ? "sortBy" : "dir"] = t.value; else st.f[k] = t.value; apply(cfg); });
   document.addEventListener("click", e=>{
+    const pg = e.target.closest && e.target.closest("[data-lk-prev],[data-lk-next]");
+    if(pg){ const key = pg.dataset.lkPrev || pg.dataset.lkNext, cfg = CFG.find(c=>c.key === key); if(cfg && state[cfg.key]){ state[cfg.key].page += pg.hasAttribute("data-lk-prev") ? -1 : 1; apply(cfg); const scr = document.getElementById(cfg.screen); const top = scr && scr.querySelector(".lk-bar"); if(top && top.scrollIntoView) top.scrollIntoView({block:"nearest"}); } return; }
     const b = e.target.closest && e.target.closest("[data-lk-cols],[data-lk-clear]"); if(!b) return; const bar = b.closest(".lk-bar"); const cfg = CFG.find(c=>c.key === bar.dataset.lk);
     if(b.hasAttribute("data-lk-cols")) columnsPanel(cfg);
-    else { state[cfg.key].f = {from:"", to:"", month:"", company:"", status:"", q:""}; bar.querySelectorAll("[data-lk]").forEach(x=>{ if(["sortBy", "dir"].indexOf(x.dataset.lk) < 0) x.value = ""; }); apply(cfg); }
+    else { state[cfg.key].f = {from:"", to:"", month:"", company:"", status:"", q:""}; state[cfg.key].page = 1; bar.querySelectorAll("[data-lk]").forEach(x=>{ if(["sortBy", "dir", "size"].indexOf(x.dataset.lk) < 0) x.value = ""; }); apply(cfg); }
   });
   const baseGo = window.go;
   window.go = function(screen, opts){
     const r = baseGo.apply(this, arguments);
-    CFG.forEach(c=>{ if("s-" + screen === c.screen || (c.key === "quotation" && screen === "quotation")){ [120, 700, 1800].forEach(ms=>setTimeout(()=>install(c), ms)); } });
+    CFG.forEach(c=>{ if("s-" + screen === c.screen || (c.key === "quotation" && screen === "quotation") || (c.key === "booking" && screen === "booking")){ [120, 700, 1800].forEach(ms=>setTimeout(()=>install(c), ms)); } });
     return r;
   };
   /* a list is drawn again by its own code whenever its data changes: rows that arrive without our marks are put in order / filtered / arranged again */
