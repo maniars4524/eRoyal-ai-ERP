@@ -8,9 +8,9 @@ from .models import Permission, Role
 ROLE_LABELS = {"ERP_ADMIN": "Admin", "OPERATIONS": "Operations", "ACCOUNTS": "Accounts", "VIEWER": "Viewer"}
 ROLE_PERMISSIONS = {
     "ERP_ADMIN": "ALL",
-    "OPERATIONS": ["organization.read", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update", "master.read", "billing.read", "billing.create", "quote.read", "quote.create", "quote.send", "quote.view_cost", "booking.read", "booking.create", "booking.confirm", "credit.read", "credit.request", "job.view_history", "job.change_stage", "job.close", "sequence.view", "sequence.test"],
+    "OPERATIONS": ["container.read", "container.create", "organization.read", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update", "master.read", "billing.read", "billing.create", "quote.read", "quote.create", "quote.send", "quote.view_cost", "booking.read", "booking.create", "booking.confirm", "credit.read", "credit.request", "job.view_history", "job.change_stage", "job.close", "sequence.view", "sequence.test"],
     "ACCOUNTS": ["organization.read", "customer.read", "shipment.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "billing.cancel", "payment.read", "payment.create", "payment.cancel", "quote.read", "quote.view_cost", "quote.rate_override", "booking.read", "credit.read", "credit.request", "job.view_history", "job.export_history", "job.reopen", "sequence.view", "sequence.test", "sequence.history"],
-    "VIEWER": ["organization.read", "customer.read", "shipment.read", "master.read", "user.read", "billing.read", "payment.read", "quote.read", "booking.read", "credit.read", "job.view_history", "sequence.view"],
+    "VIEWER": ["container.read", "organization.read", "customer.read", "shipment.read", "master.read", "user.read", "billing.read", "payment.read", "quote.read", "booking.read", "credit.read", "job.view_history", "sequence.view"],
 }
 PLATFORM_ONLY = {"organization.create", "organization.activate", "license.manage", "dashboard.ceo"}   # never part of a template role; dashboard.ceo is granted one user at a time
 

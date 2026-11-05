@@ -50,6 +50,7 @@ REGISTRY = {
     "followup": ("Sales & CRM", "Follow-up Reference", "FUP", False, False, True, None, 5, "FY"),
     "crm_booking": ("Sales & CRM", "Customer Booking Number", "CBK", False, False, True, None, 5, "FY"),
     "booking": ("Shipping & Documentation", "Booking Number", "BKG", False, False, True, "booking", 5, "FY"),
+    "container_movement": ("Inventory & Assets", "Container Movement Number", "CMV", False, False, True, None, 5, "FY"),
     "shipping_instruction": ("Shipping & Documentation", "Shipping Instruction Reference", "SI", False, True, False, None, 5, "FY"),
     "hbl": ("Shipping & Documentation", "House Bill of Lading Reference", "HBL", False, True, False, None, 5, "FY"),
     "hawb": ("Shipping & Documentation", "House Air Waybill Reference", "HAWB", False, True, False, None, 5, "FY"),

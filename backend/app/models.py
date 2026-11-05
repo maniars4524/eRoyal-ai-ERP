@@ -1334,3 +1334,99 @@ class CustomerAssignment(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     assigned_by: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Container(Base):
+    """One physical container. Ownership, grade, condition, availability, location and lease status are separate fields; the current depot only changes through an approved movement."""
+    __tablename__ = "containers"
+    __table_args__ = (UniqueConstraint("organization_id", "container_number", name="uq_container_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    container_number: Mapped[str] = mapped_column(String(11))
+    size: Mapped[str | None] = mapped_column(String(60), index=True)
+    container_type: Mapped[str | None] = mapped_column(String(80), index=True)
+    iso_code: Mapped[str | None] = mapped_column(String(10))
+    manufacturer: Mapped[str | None] = mapped_column(String(120))
+    manufacturing_year: Mapped[int | None] = mapped_column(Integer)
+    manufacturing_country: Mapped[str | None] = mapped_column(String(80))
+    purchase_date: Mapped[date | None] = mapped_column(Date)
+    hand: Mapped[str | None] = mapped_column(String(20))                       # First-hand / Second-hand
+    serial_number: Mapped[str | None] = mapped_column(String(60))
+    csc_plate: Mapped[str | None] = mapped_column(String(120))
+    csc_valid_until: Mapped[date | None] = mapped_column(Date)
+    description: Mapped[str | None] = mapped_column(String(2000))
+    remarks: Mapped[str | None] = mapped_column(String(2000))
+    ownership: Mapped[str | None] = mapped_column(String(80), index=True)
+    ownership_data: Mapped[dict] = mapped_column(JSON, default=dict)           # owner / lessor / agent details
+    grade: Mapped[str | None] = mapped_column(String(40), index=True)
+    condition: Mapped[str | None] = mapped_column(String(80), index=True)
+    availability: Mapped[str] = mapped_column(String(20), default="NOT_AVAILABLE", index=True)   # AVAILABLE / IN_USE / UNDER_REPAIR / NOT_AVAILABLE
+    location_status: Mapped[str] = mapped_column(String(20), default="NOT_AT_DEPOT", index=True)  # AT_DEPOT / IN_TRANSIT / WITH_PARTY / AT_REPAIR / RETURNED / DISPOSED / NOT_AT_DEPOT
+    lease_status: Mapped[str] = mapped_column(String(20), default="NONE")
+    depot: Mapped[str | None] = mapped_column(String(120), index=True)
+    depot_code: Mapped[str | None] = mapped_column(String(40))
+    yard_location: Mapped[str | None] = mapped_column(String(60))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ContainerStatusHistory(Base):
+    """Append-only: every change of grade, condition, availability, location, ownership. Nothing here is ever edited or deleted by the application."""
+    __tablename__ = "container_status_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    container_id: Mapped[int] = mapped_column(ForeignKey("containers.id", ondelete="CASCADE"), index=True)
+    field: Mapped[str] = mapped_column(String(30))
+    old_value: Mapped[str | None] = mapped_column(String(200))
+    new_value: Mapped[str | None] = mapped_column(String(200))
+    reason: Mapped[str | None] = mapped_column(String(500))
+    movement_id: Mapped[int | None] = mapped_column(Integer)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ContainerMovement(Base):
+    """A container coming IN to or going OUT of a depot. DRAFT -> APPROVED (location and status change) -> REVERSED, or DRAFT -> CANCELLED."""
+    __tablename__ = "container_movements"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_container_movement_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    container_id: Mapped[int] = mapped_column(ForeignKey("containers.id", ondelete="RESTRICT"), index=True)
+    direction: Mapped[str] = mapped_column(String(4))                          # IN / OUT
+    purpose: Mapped[str] = mapped_column(String(20))                            # RECEIPT RETURN TRANSFER REPAIR_RETURN RELEASE REPAIR RETURN_LESSOR DISPOSAL OTHER
+    movement_type: Mapped[str | None] = mapped_column(String(120))              # name from the Movement Type master
+    from_depot: Mapped[str | None] = mapped_column(String(120))
+    to_depot: Mapped[str | None] = mapped_column(String(120))
+    from_location: Mapped[str | None] = mapped_column(String(60))
+    to_location: Mapped[str | None] = mapped_column(String(60))
+    movement_date: Mapped[date] = mapped_column(Date, index=True)
+    movement_time: Mapped[str | None] = mapped_column(String(8))
+    truck_number: Mapped[str | None] = mapped_column(String(30))
+    driver_name: Mapped[str | None] = mapped_column(String(80))
+    transport_company: Mapped[str | None] = mapped_column(String(120))
+    customer: Mapped[str | None] = mapped_column(String(160))
+    agent: Mapped[str | None] = mapped_column(String(160))
+    booking_number: Mapped[str | None] = mapped_column(String(40))
+    bl_number: Mapped[str | None] = mapped_column(String(40))
+    job_reference: Mapped[str | None] = mapped_column(String(40))
+    eir_number: Mapped[str | None] = mapped_column(String(40))
+    reason: Mapped[str | None] = mapped_column(String(500))
+    condition_departure: Mapped[str | None] = mapped_column(String(80))
+    condition_arrival: Mapped[str | None] = mapped_column(String(80))
+    damage_remarks: Mapped[str | None] = mapped_column(String(1000))
+    status: Mapped[str] = mapped_column(String(12), default="DRAFT", index=True)
+    before_state: Mapped[dict] = mapped_column(JSON, default=dict)             # the container as it was before approval, so a reversal can restore it
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reversed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reversal_reason: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
