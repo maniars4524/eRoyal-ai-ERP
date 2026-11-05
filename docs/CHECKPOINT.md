@@ -488,3 +488,38 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Consolidation (interim): cargo can be listed with a house reference (HBL / HAWB) per row; the popup shows totals by reference and the master total is their sum (no double counting). The real master / house job structure is still Phase 6.
 - Tests: `test_cargo_jobs.py` 9 pass, `test_cargo_engine.py` 14 pass, 158 pass across quotation / booking / job / billing / CRM / search / contract suites; real Chrome `cargodims.test.js` ALL PASSED (quotation popup, Apply fills the form, save keeps rows, unapplied-changes confirm, Air / LCL / FCL jobs, Apply vs Save, Save & New, house references, quotation -> job); honesty / listmenu / colmatch / invaudit still pass.
 - NEXT: Phase 5 (job costing screen: show calculation basis + quantity from the engine, override audit), Phase 8 admin configuration table + screen (divisor by carrier / service / customer, rounding, W/M rule, minimums), Phase 7 invoice / accounts verification, Phase 6 consolidation master / house.
+
+## 2026-11-05 - SAVED: RESUME HERE (full pending list)
+State: everything built is committed, pushed (main) and live; live DB at migration 0059_fleet; nothing pending to deploy. Test DB for new work: `esway_erp_qa2` via git-ignored `.env.qa2` (start: ENV_FILE=.env.qa2 uvicorn app.main:app --port 8010; starts in seconds). Old `esway_erp_qa` (2,100+ companies) unused, not deleted.
+
+### Decisions needed from the user
+1. Job number gap: continue after 000011 or return to 000008.
+2. Keep or remove the ERP Demo portal (sample data, labelled).
+3. Which block next: access filters + placement screens, approval workflow, or stores (step E).
+
+### 1. Access and dashboards
+- Access filters still to apply: reports / MIS, dashboard totals, exports; search for placed users only partly. (Done so far: jobs, customers, universal search, quotations, leads / enquiries / opportunities, bookings, CHA jobs, invoices / documents, payments, vouchers, day book, party ledger, outstanding; global 404 guard for direct ids and job sub-pages.)
+- Screens for branch master, user placement, customer assignment (backend /api/access exists, no UI).
+- Customer approval workflow (Pending / Under Review / Approved / On Hold / Rejected, branch sharing, existing customers auto-Approved).
+- Role dashboards (salesperson, coordinator, sales manager, branch manager, national head); CEO Dashboard + selector (Target Achievement, Vehicle Utilization, map = "No Data Available").
+- Do not place real salespeople until the filters cover everything.
+
+### 2. Licence and company onboarding (second prompt) - not started
+Audit license_mgmt.py first; plans and entitlements, company onboarding, branch limits / modules, departments and designations, multi-module users, five branch access models, dynamic menus and dashboards, user transfers, notifications.
+
+### 3. Small carry-overs
+Job Cost "% of Other Charges" chooser + amount beside it; on-screen message when gross weight / volume missing for By Gross Wt/Volume; company logo upload at licence creation; search created-by filter + "View all" per category; Save & New on organisation / port / Charge Master; rows-per-page on master lists, Employee / Organisation lists, accounts registers, CHA register.
+
+### 4. Inventory & asset management
+- Step E Stores: stock ledger, goods receipt, issue, return, transfer, adjustment, valuation; issue parts onto vehicle work orders (parts are typed by hand today).
+- Step F: executive inventory dashboard KPIs + ~50 reports; accounting entries for lease / repair / maintenance / fuel / tyres, depreciation, disposal; asset transfer + disposal screens; approval limits by amount; fuel and lubricant stock; accident register; driver master; document reminders.
+- Gaps in B-D: container Cost History and Audit Trail tabs; depot capacity and idle-day alerts; survey-due alerts; phone testing of inspection forms (user said skip).
+
+### 5. Cargo dimensions (docs/CARGO-DIMENSION-IMPACT-ASSESSMENT.md)
+Done: Phase 2 engine, Phase 3 job popup, Phase 4 quotation popup + quotation->job. Pending: Phase 5 job costing display + override audit; Phase 7 invoice / accounts verification; Phase 8 admin configuration table + screen (divisor by carrier / service / customer, rounding, W/M rule, minimums); Phase 6 real consolidation master / house structure (today only house-reference rows inside one job).
+
+### 6. Honesty clean-up remaining
+ERP Demo portal; static-screen walk ("demo dataset" screens, KPI cards showing 0 vs "No Data Available"); CSN filing is front-end only (not stored, not sent to ICEGATE).
+
+### 7. Testing / platform
+Old simulated-browser tests (crm, dashboard, hblclauses) fail the same way on pre-existing code (canvas); six date-dependent backend tests fail on their own (test_org_credit x5, test_license_mgmt x1); full backend suite not run in one go this session; optional staging, CI, splitting the large page file, Brotli; Android installed-app update and mobile Sign out row not tested on a real phone.
