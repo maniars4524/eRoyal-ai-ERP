@@ -2167,7 +2167,7 @@ tbody tr:hover{background:var(--g0)}
     <div class="fg"><label class="fl">GSTIN <span class="r">*</span></label><input class="fc" id="org_gstin" placeholder="27AAACT2727Q1ZN" style="font-family:var(--font-mono)" maxlength="15"></div>
     <div class="fg"><label class="fl">PAN <span class="r">*</span></label><input class="fc" id="org_pan" placeholder="AAACT2727Q" style="font-family:var(--font-mono)" maxlength="10"></div>
     <div class="fg"><label class="fl">TAN</label><input class="fc" id="org_tan" placeholder="BLRG19369A" style="font-family:var(--font-mono)"></div>
-    <div class="fg"><label class="fl">IEC Code</label><input class="fc" id="org_iec" placeholder="0512098765" style="font-family:var(--font-mono)"></div>
+    <div class="fg"><label class="fl">IEC Code</label><input class="fc" id="org_iec" placeholder="10-digit IEC" style="font-family:var(--font-mono)"></div>
   </div>
   <div class="fr">
     <div class="fg"><label class="fl">State <span class="r">*</span></label><select class="fc" id="org_state">
@@ -2239,7 +2239,7 @@ tbody tr:hover{background:var(--g0)}
     <option data-code="33">Tamil Nadu</option><option data-code="36">Telangana</option><option data-code="16">Tripura</option>
     <option data-code="09">Uttar Pradesh</option><option data-code="05">Uttarakhand</option><option data-code="19">West Bengal</option>
   </select></div>
-  <div class="fg"><label class="fl">Pincode</label><input class="fc" placeholder="600001"></div><div class="fg"><label class="fl">UNLOCODE</label><input class="fc" placeholder="INMAA" style="font-family:var(--font-mono)"></div></div>
+  <div class="fg"><label class="fl">Pincode</label><input class="fc" placeholder="6-digit pincode"></div><div class="fg"><label class="fl">UNLOCODE</label><input class="fc" placeholder="INMAA" style="font-family:var(--font-mono)"></div></div>
 <div class="fr"><div class="fg"><label class="fl">Country</label><select class="fc" id="org_addr_country"><option>India (IN)</option><option>UAE (AE)</option><option>USA (US)</option><option>Germany (DE)</option><option>Belgium (BE)</option><option>Switzerland (CH)</option></select></div>
   <div class="fg"><label class="fl">Primary Address</label><select class="fc"><option>Yes</option><option>No</option></select></div>
 </div>
@@ -2277,7 +2277,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="tw"><table><thead><tr><th>Country</th><th>Type</th><th>Number</th><th>Valid Until</th><th>Status</th><th class="no-print"></th></tr></thead><tbody>
 <tr><td>🇮🇳 IN</td><td><span class="b b-bl">GST</span></td><td><input class="fc" placeholder="27AAACT2727Q1ZN" style="font-family:var(--font-mono);width:185px"></td><td><input class="fc" type="date" style="width:125px"></td><td><span class="b b-am">Pending</span></td><td class="no-print"><button class="ta">✕</button></td></tr>
 <tr><td>🇮🇳 IN</td><td><span class="b b-gy">PAN</span></td><td><input class="fc" placeholder="AAACT2727Q" style="font-family:var(--font-mono);width:185px"></td><td>—</td><td><span class="b b-gr">Verified</span></td><td class="no-print"><button class="ta">✕</button></td></tr>
-<tr><td>🇮🇳 IN</td><td><span class="b b-gy">IEC</span></td><td><input class="fc" placeholder="0512098765" style="font-family:var(--font-mono);width:185px"></td><td><input class="fc" type="date" style="width:125px"></td><td><span class="b b-gr">Verified</span></td><td class="no-print"><button class="ta">✕</button></td></tr>
+<tr><td>🇮🇳 IN</td><td><span class="b b-gy">IEC</span></td><td><input class="fc" placeholder="10-digit IEC" style="font-family:var(--font-mono);width:185px"></td><td><input class="fc" type="date" style="width:125px"></td><td><span class="b b-gr">Verified</span></td><td class="no-print"><button class="ta">✕</button></td></tr>
 </tbody></table></div></div></div>
 
 <!-- OT6: COA/AR/AP -->
@@ -2326,7 +2326,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="fsec">Department head &amp; contact</div>
 <div class="fr">
   <div class="fg"><label class="fl">Department Head</label><input class="fc" id="dept_head" placeholder="Reporting head name"></div>
-  <div class="fg"><label class="fl">Email</label><input class="fc" id="dept_email" placeholder="dept@eswayfreight.com"></div>
+  <div class="fg"><label class="fl">Email</label><input class="fc" id="dept_email" placeholder="department email"></div>
   <div class="fg"><label class="fl">Phone</label><input class="fc" id="dept_phone" placeholder="044-4552-1100"></div>
   <div class="fg"><label class="fl">Extension</label><input class="fc" id="dept_ext" placeholder="e.g. 101" style="font-family:var(--font-mono)"></div>
 </div>
@@ -2482,7 +2482,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="fg"><label class="fl">Salary Structure</label><select class="fc"><option>Standard — Staff</option><option>Standard — Officer</option><option>Management</option></select></div>
   <div class="fg"><label class="fl">Basic Salary (₹)</label><input class="fc" type="number" placeholder="35000"></div>
   <div class="fg"><label class="fl">Gross Salary (₹)</label><input class="fc" type="number" placeholder="52000"></div>
-  <div class="fg"><label class="fl">CTC (₹ p.a.)</label><input class="fc" type="number" placeholder="750000"></div>
+  <div class="fg"><label class="fl">CTC (₹ p.a.)</label><input class="fc" type="number" placeholder="Annual amount"></div>
 </div>
 <div class="fsec">Statutory</div>
 <div class="fr">
@@ -4163,6 +4163,7 @@ tbody tr:hover{background:var(--g0)}
 <div id="csnPickerWrap"></div>
 <div class="card">
   <div class="ch"><div class="ct"><svg class="ic" data-icon="clipboard"></svg>CSN Filings <span class="mn-badge" id="csnCount">0</span></div></div>
+  <div class="ib ib-am" style="margin:8px 14px">Draft tool: the fields start empty (nothing is pre-filled with sample values), details are kept in this browser session only, and nothing is sent to ICEGATE from here.</div>
   <div class="tw"><table><thead><tr><th>CSN No</th><th>Job No</th><th>MBL No</th><th>Vessel / Voyage</th><th>Status</th><th class="no-print">Action</th></tr></thead>
   <tbody id="csnListBody"></tbody></table></div>
 </div>
@@ -4361,7 +4362,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <div class="fsec">Branch Manager</div>
 <div class="fr">
-  <div class="fg"><label class="fl">Branch Manager</label><select class="fc"><option>Rajan Kumar</option><option>Suresh Nair</option><option>Priya Menon</option></select></div>
+  <div class="fg"><label class="fl">Branch Manager</label><select class="fc"><option value="">Select the branch manager…</option></select></div>
   <div class="fg"><label class="fl">Manager Mobile</label><input class="fc"></div>
   <div class="fg"><label class="fl">Manager Email</label><input class="fc"></div>
   <div class="fg"><label class="fl">Alt. Contact</label><input class="fc" placeholder="Alternate contact person"></div>
@@ -5818,8 +5819,8 @@ tbody tr:hover{background:var(--g0)}
   <div class="chat-head" id="chatHead">
     <div class="chat-head-avatar" id="chatAvatar">🤖</div>
     <div class="chat-head-info">
-      <div class="chat-head-name" id="chatAgentName">eSway AI Assistant</div>
-      <div class="chat-head-status"><span class="chat-online-dot"></span><span id="chatAgentStatus">Online · Replies instantly</span></div>
+      <div class="chat-head-name" id="chatAgentName">eSway Help</div>
+      <div class="chat-head-status"><span class="chat-online-dot"></span><span id="chatAgentStatus">Ready-made answers · not a live person</span></div>
     </div>
     <button class="chat-head-btn" id="chatMinBtn" title="Minimize">–</button>
     <button class="chat-head-btn" id="chatCloseBtn" title="Close">✕</button>
@@ -10851,46 +10852,42 @@ let csnOpenId = null;
 function ensureCsnFiling(job){
   let c = CSN_FILINGS.find(x=>x.jobNo===job.jobNo);
   if(!c){
-    const today = "2026-08-03";
+    const today = new Date().toISOString().slice(0, 10);
     c = {
       id:crmNextId("CSN"), jobNo:job.jobNo, status:"Pending", job,
-      header:{ jobDt:today, reportingEvent:"CSN", subType:"IMPORT - SCE", customHouse:"INMAA1", fileRefNo:"", submitterCode:"AAGCE4436R", submitterType:"ASA", messageType:"FRESH" },
-      vessel:{ vesselName:job.vessel||"", vesselCode:"123456", authPrsnPan:"AAHCA3717A", modeOfTransport:"1-Sea", transportMeansType:"10-IMO Vessel", transportMeansId:"090909" },
-      voyage:{ voyageNumber:job.voyage||"", conveyanceRefNo:"18759879876986", totNoOfLines:1, totNoOfEquipment:1 },
-      mc:{ lineNo:1, masterBlNo:job.blNo||"", masterBlDate:"2025-11-12", firstEntryPort:"SINGAP", destPort:"INBOM4", nextPortOfUnlading:"INMAA4",
+      header:{ jobDt:today, reportingEvent:"CSN", subType:"IMPORT - SCE", customHouse:"", fileRefNo:"", submitterCode:"", submitterType:"ASA", messageType:"FRESH" },
+      vessel:{ vesselName:job.vessel||"", vesselCode:"", authPrsnPan:"", modeOfTransport:"1-Sea", transportMeansType:"10-IMO Vessel", transportMeansId:"" },
+      voyage:{ voyageNumber:job.voyage||"", conveyanceRefNo:"", totNoOfLines:1, totNoOfEquipment:1 },
+      mc:{ lineNo:1, masterBlNo:job.blNo||"", masterBlDate:"", firstEntryPort:"", destPort:"", nextPortOfUnlading:"",
         typeOfCargo:"IM", itemType:"OT", cargoMovement:"FT-FOREIGN TI", consolidatedIndicator:"C-CONSOLIDATED BL", previousDeclaration:"N",
-        consolidatedPan:"AAC9808SE", natureOfCargo:"C-CONTAINERIZED", transhipperCode:"", transhipperBond:"",
-        prevCinType:"PCIN", prevMcin:"4213434244242424242" },
-      msr:{ noOfPkgs:job.packages||0, pkgType:"PKG", grossWgt:(job.grossWeight||"").replace(/[^\d.]/g,"")||"12000", netWeight:"11500", grossVolume:"", invoiceValue:"", marksNos:"AS PER BL" },
-      docParty:{ portAcceptCode:"SGSIN", portAcceptName:"SINGAPORE", portReceiptCode:"SGSIN", portReceiptName:"SINGAPORE",
-        shipperName:(job.shipper||"SHIPPER").toUpperCase(), shipperType:"IEC", shipperStreet:"ADDR 1", shipperCity:"ADDR 2", shipperSubName:"CHENNAI", shipperCntryCd:"33",
-        consigneeName:(job.consignee||"CONSIGNEE").toUpperCase(), consigneeType:"IEC", consigneeStreet:"ADDR 1", consigneeCity:"ADDR 2", consigneeSubName:"CHENNAI", consigneeCntryCd:"33",
-        notifyName:"NRS FREIGHT SYSTEM", notifyType:"PAN", notifyStreet:"37 Jalan Pemimpin, #04-10 MAPEX,", notifyCity:"577177", notifySubName:"NRS FREIGHT SYSTEM",
+        consolidatedPan:"", natureOfCargo:"C-CONTAINERIZED", transhipperCode:"", transhipperBond:"",
+        prevCinType:"PCIN", prevMcin:"" },
+      msr:{ noOfPkgs:job.packages||0, pkgType:"PKG", grossWgt:(job.grossWeight||"").replace(/[^\d.]/g,"")||"", netWeight:"", grossVolume:"", invoiceValue:"", marksNos:"AS PER BL" },
+      docParty:{ portAcceptCode:"", portAcceptName:"", portReceiptCode:"", portReceiptName:"",
+        shipperName:(job.shipper||"").toUpperCase(), shipperType:"IEC", shipperStreet:"", shipperCity:"", shipperSubName:"", shipperCntryCd:"",
+        consigneeName:(job.consignee||"").toUpperCase(), consigneeType:"IEC", consigneeStreet:"", consigneeCity:"", consigneeSubName:"", consigneeCntryCd:"",
+        notifyName:"", notifyType:"PAN", notifyStreet:"", notifyCity:"", notifySubName:"",
         goodsDesc:"AS PER MBL" },
-      items:[{seqNo:1, hsCode:"111111", unoCode:"ZZZZ", imdgCode:"ZZZ", noOfPkgs:job.packages||100, pkgType:"PKG", desc:"AS PER MASTER CONSIGNMENT"}],
-      equipment:[{seqNo:1, equipId:(job.containerNo||"MEDU898977").split(" ")[0], equipType:"CN-Container", equipSize:"2200", loadStatus:"FCL", sealType:"BTSL", sealNo:"22221", agentCode:"", socFlag:"N", containerWeight:"", totPkgs:job.packages||100}],
-      itinerary:[
-        {seq:-1, mode:"1-Sea", portCode:"INMAA4", portName:"ACC, Chennai", nextPortCode:"INTKD6", nextPortName:"ICD, Tughlakabad"},
-        {seq:0, mode:"1-Sea", portCode:"INPPG6", portName:"ICD, Patparganj", nextPortCode:"INBOM4", nextPortName:"ACC, Mumbai"},
-        {seq:1, mode:"2-Rail", portCode:"INTKD6", portName:"ICD, Tughlakabad", nextPortCode:"INDEL4", nextPortName:"ACC, New Delhi"},
-      ],
-      supDoc:[{tagRef:1, refSerialNo:"22222", subSerialNoRef:1, icegateUserId:"ROYALTECH898", irnNumber:"9798799999999999", docRefNumber:"BL NO", docTypeCode:"705000", beneficiaryCode:"importer"}],
+      items:[{seqNo:1, hsCode:"", unoCode:"", imdgCode:"", noOfPkgs:job.packages||0, pkgType:"PKG", desc:"AS PER MASTER CONSIGNMENT"}],
+      equipment:[{seqNo:1, equipId:(job.containerNo||"").split(" ")[0], equipType:"CN-Container", equipSize:"", loadStatus:"FCL", sealType:"", sealNo:"", agentCode:"", socFlag:"N", containerWeight:"", totPkgs:job.packages||0}],
+      itinerary:[],
+      supDoc:[{tagRef:1, refSerialNo:"", subSerialNoRef:1, icegateUserId:"", irnNumber:"", docRefNumber:"BL NO", docTypeCode:"705000", beneficiaryCode:"importer"}],
       houseBLs:[{
-        hc:{ lineNo:1, subLineNo:1, previousDeclaration:"N", houseBlNo:"HBL-"+String(Math.floor(Math.random()*90000)+10000), houseBlDate:today,
-          consolidatedPan:"AAC9808SE", consolidatedIndicator:"C-CONSOLIDATED BL", transhipperCode:"", transhipperBond:"" },
-        msr:{ firstEntryPort:"SINGAP", destPort:"INBOM4", nextPortOfUnlading:"INMAA4", typeOfCargo:"IM", itemType:"OT", cargoMovement:"FT-FOREIGN TI", natureOfCargo:"C-CONTAINERIZED",
-          noOfPkgs:job.packages||100, pkgType:"PKG", grossWgt:(job.grossWeight||"").replace(/[^\d.]/g,"")||"12000", netWeight:"11500", grossVolume:"", invoiceValue:"", marksNos:"AS PER BL",
+        hc:{ lineNo:1, subLineNo:1, previousDeclaration:"N", houseBlNo:"", houseBlDate:today,
+          consolidatedPan:"", consolidatedIndicator:"C-CONSOLIDATED BL", transhipperCode:"", transhipperBond:"" },
+        msr:{ firstEntryPort:"", destPort:"", nextPortOfUnlading:"", typeOfCargo:"IM", itemType:"OT", cargoMovement:"FT-FOREIGN TI", natureOfCargo:"C-CONTAINERIZED",
+          noOfPkgs:job.packages||0, pkgType:"PKG", grossWgt:(job.grossWeight||"").replace(/[^\d.]/g,"")||"", netWeight:"", grossVolume:"", invoiceValue:"", marksNos:"AS PER BL",
           masterPrevDecl:{cinType:"PCIN", cinNumber:"", csnSubmittedType:"", reportingType:"", csnSiteId:"", csnSubmittedBy:"", csnNumber:"", csnDate:""},
           houseSupplDecl:{cinType:"", cinNumber:"", submittedType:"", reportingType:"", siteId:"", submittedBy:"", csnNumber:"", csnDate:""} },
-        docParty:{ portAcceptCode:"SGSIN", portAcceptName:"SINGAPORE", portReceiptCode:"SGSIN", portReceiptName:"SINGAPORE", ucrType:"", ucrCode:"",
-          shipperName:(job.shipper||"SHIPPER").toUpperCase(), shipperType:"IEC", shipperStreet:"ADDR 1", shipperCity:"ADDR 2", shipperSubName:"CHENNAI", shipperCntryCd:"33",
-          consigneeName:(job.consignee||"CONSIGNEE").toUpperCase(), consigneeType:"IEC", consigneeStreet:"ADDR 1", consigneeCity:"ADDR 2", consigneeSubName:"CHENNAI", consigneeCntryCd:"33",
-          notifyName:"NRS FREIGHT SYSTEM", notifyPan:"", notifyType:"PAN", notifyStreet:"37 Jalan Pemimpin, #04-10 MAPEX,", notifyCity:"577177", notifySubName:"",
+        docParty:{ portAcceptCode:"", portAcceptName:"", portReceiptCode:"", portReceiptName:"", ucrType:"", ucrCode:"",
+          shipperName:(job.shipper||"").toUpperCase(), shipperType:"IEC", shipperStreet:"", shipperCity:"", shipperSubName:"", shipperCntryCd:"",
+          consigneeName:(job.consignee||"").toUpperCase(), consigneeType:"IEC", consigneeStreet:"", consigneeCity:"", consigneeSubName:"", consigneeCntryCd:"",
+          notifyName:"", notifyPan:"", notifyType:"PAN", notifyStreet:"", notifyCity:"", notifySubName:"",
           goodsDesc:"AS PER MBL" },
-        items:[{seqNo:1, hsCode:"111111", unoCode:"ZZZZ", imdgCode:"ZZZ", noOfPkgs:job.packages||100, pkgType:"PKG", desc:""}],
-        equipment:[{seqNo:1, equipId:(job.containerNo||"MEDU898977").split(" ")[0], equipType:"CN-Container", equipSize:"2200", loadStatus:"FCL", sealType:"BTSL", sealNo:"22221", agentCode:"", socFlag:"N", containerWeight:"", totPkgs:job.packages||100, addlEquipHold:"", otherEquipId:""}],
-        itinerary:[{seq:1, mode:"1-Sea", portCode:"INMAA4", portName:"ACC, Chennai", nextPortCode:"INTKD6", nextPortName:"ICD, Tughlakabad"}],
-        supDoc:[{tagRef:1, refSerialNo:"22222", subSerialNoRef:1, icegateUserId:"ROYALTECH898", irnNumber:"9798799999999999", docRefNumber:"BL NO", docTypeCode:"705000", beneficiaryCode:"importer"}],
+        items:[{seqNo:1, hsCode:"", unoCode:"", imdgCode:"", noOfPkgs:job.packages||0, pkgType:"PKG", desc:""}],
+        equipment:[{seqNo:1, equipId:(job.containerNo||"").split(" ")[0], equipType:"CN-Container", equipSize:"", loadStatus:"FCL", sealType:"", sealNo:"", agentCode:"", socFlag:"N", containerWeight:"", totPkgs:job.packages||0, addlEquipHold:"", otherEquipId:""}],
+        itinerary:[],
+        supDoc:[{tagRef:1, refSerialNo:"", subSerialNoRef:1, icegateUserId:"", irnNumber:"", docRefNumber:"BL NO", docTypeCode:"705000", beneficiaryCode:"importer"}],
       }],
       checklist:{"Master BL Copy":false,"House BL Copy":false,"CSN Draft":false,"Filed with Customs":false},
       submission:{icegateRef:"", filedDate:"", ackNo:"", status:"Not Filed", lastJson:null},
@@ -11329,11 +11326,14 @@ function renderCsnDetail(id){
     pre.textContent = JSON.stringify(json, null, 2);
     pre.style.display = "block";
     $("#csn_downloadJsonBtn").style.display = "inline-flex";
-    toast("JSON generated", "SACHM22 payload ready — matches ICEGATE SCE schema");
+    toast("JSON generated", "Draft built from what is filled in. Press Validate to see what is still missing; ICEGATE has the final say.");
   });
   $("#csn_downloadJsonBtn").addEventListener("click", ()=>{
     if(!c.submission.lastJson) return;
-    toast("Download started", "F_SACHM22_SCE_ICEGATEESWAY_1_"+c.jobNo.replace(/[^A-Za-z0-9]/g,"")+".json");
+    const name = "F_SACHM22_SCE_ICEGATEESWAY_1_"+c.jobNo.replace(/[^A-Za-z0-9]/g,"")+".json";
+    const blob = new Blob([JSON.stringify(c.submission.lastJson, null, 2)], {type:"application/json"}), url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    toast("File downloaded", name);
   });
   $("#csn_validateJsonBtn").addEventListener("click", ()=>{
     const json = c.submission.lastJson || csnBuildJson(c);
@@ -11342,8 +11342,8 @@ function renderCsnDetail(id){
     const box = $("#csn_validateResult");
     box.style.display = "block";
     if(result.valid){
-      box.innerHTML = `<div class="ib ib-gr"><svg class="ic" data-icon="check-circle" style="margin-right:5px"></svg><strong>Valid.</strong> The JSON matches the required SACHM22 / ICEGATE SCE structure — all mandatory fields are present.</div>`;
-      toast("JSON valid", "No corrections needed — ready to submit");
+      box.innerHTML = `<div class="ib ib-gr"><svg class="ic" data-icon="check-circle" style="margin-right:5px"></svg><strong>No missing fields found</strong> in our check of the SACHM22 / ICEGATE SCE structure. Please check the values yourself; ICEGATE has the final say.</div>`;
+      toast("Check passed", "No missing fields found in our check");
     } else {
       box.innerHTML = `<div class="ib ib-rd"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg><strong>${result.errors.length} correction${result.errors.length>1?'s':''} needed</strong> before this CSN can be submitted:</div>
         <div class="tw" style="margin-top:6px"><table><thead><tr><th>Field Path</th><th>Correction Required</th></tr></thead>
@@ -11364,7 +11364,7 @@ function renderCsnDetail(id){
     c.submission.icegateRef = $("#csn_icegate").value; c.submission.filedDate = $("#csn_filed").value; c.submission.ackNo = $("#csn_ack").value;
     c.submission.lastJson = c.submission.lastJson || csnBuildJson(c);
     c.status = c.submission.ackNo ? "Completed" : (c.submission.icegateRef ? "In Progress" : "Pending");
-    toast("CSN saved", c.mc.masterBlNo+" — "+c.status);
+    toast("Kept for this session only", (c.mc.masterBlNo || c.jobNo)+" — CSN details are not stored on the server yet and nothing is sent to ICEGATE from here");
     csnOpenId = null;
     renderCsnFiling();
   });
@@ -12316,72 +12316,9 @@ const DASH_SLIDES = [
   {title:"Monthly Revenue Trend", icon:"trending-up", type:"Line Chart", go:"pnl",
     render:(ctx,w,h)=>drawLine(ctx,w,h,CHART_DATA.months,CHART_DATA.revenue,DC.bl())},
   {title:"Monthly Job Volume", icon:"chart-bar", type:"Column Chart", go:"job-list",
-    render:(ctx,w,h)=>drawColumn(ctx,w,h,CHART_DATA.months,CHART_DATA.volume,DC.tl())},
-  {title:"Revenue vs Gross Profit", icon:"chart-bar", type:"Combo Bar + Line Chart", go:"pnl",
-    render:(ctx,w,h)=>drawCombo(ctx,w,h,CHART_DATA.months,CHART_DATA.revenue,CHART_DATA.revenue.map(v=>Math.round(v*0.202)),DC.bl(),DC.pu())},
-  {title:"Revenue by Branch", icon:"building", type:"Horizontal Bar Chart", go:"branch-master",
-    render:(ctx,w,h)=>drawHBar(ctx,w,h,["Chennai HO","Mumbai","Delhi","Bangalore","Kolkata"],[1820000,940000,760000,510000,310000],DC.bl())},
-  {title:"Revenue by Customer", icon:"user", type:"Donut Chart", go:"org-list",
-    render:(ctx,w,h)=>drawDonut(ctx,w,h,[
-      {label:"Tata Chemicals",value:620000,color:DC.bl()},{label:"TVS Motor",value:480000,color:DC.tl()},
-      {label:"Infosys BPO",value:390000,color:DC.pu()},{label:"GEA Westfalia",value:310000,color:DC.am()},
-      {label:"Others",value:520000,color:DC.g4()}])},
-  {title:"Revenue by Sales Executive", icon:"user", type:"Column Chart", go:"user-master",
-    render:(ctx,w,h)=>drawColumn(ctx,w,h,["Arun K","Priya S","Rahul M","Divya N","Karthik R"],[920000,780000,640000,510000,390000],DC.gr())},
-  {title:"Job Status Analysis", icon:"clipboard", type:"Donut Chart", go:"job-list",
-    render:(ctx,w,h)=>drawDonut(ctx,w,h,[
-      {label:"Draft",value:6,color:DC.g4()},{label:"In Progress",value:22,color:DC.bl()},
-      {label:"Pending Approval",value:8,color:DC.am()},{label:"Closed",value:11,color:DC.gr()}])},
-  {title:"Shipment Type Analysis", icon:"package", type:"Pie Chart", go:"job-list",
-    render:(ctx,w,h)=>drawDonut(ctx,w,h,[
-      {label:"Sea Export",value:23,color:DC.bl()},{label:"Sea Import",value:9,color:DC.tl()},
-      {label:"Air Freight",value:14,color:DC.pu()},{label:"Road/CHA",value:10,color:DC.am()}], true)},
-  {title:"Sea Export vs Air Export", icon:"ship", type:"Stacked Bar Chart", go:"job-list",
-    render:(ctx,w,h)=>drawStackedBar(ctx,w,h,CHART_DATA.months,[
-      {name:"Sea Export",color:DC.bl(),values:[14,16,15,18,20,23]},
-      {name:"Air Export",color:DC.pu(),values:[8,9,10,11,13,14]}])},
-  {title:"Customer Profitability", icon:"chart-pie", type:"Column Chart", go:"pnl",
-    render:(ctx,w,h)=>drawColumn(ctx,w,h,["Tata Chem","TVS Motor","Infosys","GEA West","Raghav Gr"],[142000,118000,96000,74000,58000],DC.pu())},
-  {title:"Outstanding Receivables Aging", icon:"cash", type:"Stacked Bar Chart", go:"invoice-list",
-    render:(ctx,w,h)=>drawStackedBar(ctx,w,h,["Tata Chem","TVS Motor","Infosys","GEA West","Others"],[
-      {name:"0-30d",color:DC.gr(),values:[220000,180000,140000,90000,160000]},
-      {name:"31-60d",color:DC.am(),values:[80000,60000,40000,30000,52000]},
-      {name:">60d",color:DC.rd(),values:[40000,20000,10000,60000,80000]}])},
-  {title:"Outstanding Payables Aging", icon:"bank", type:"Stacked Bar Chart", go:"purchase-invoice-list",
-    render:(ctx,w,h)=>drawStackedBar(ctx,w,h,["Shipping Line","CHA Agent","Transporter","Warehouse","Others"],[
-      {name:"0-30d",color:DC.gr(),values:[160000,120000,90000,60000,70000]},
-      {name:"31-60d",color:DC.am(),values:[50000,40000,20000,15000,25000]},
-      {name:">60d",color:DC.rd(),values:[20000,10000,8000,5000,12000]}])},
-  {title:"Cash Flow Trend", icon:"cash", type:"Waterfall Chart", go:"pnl",
-    render:(ctx,w,h)=>drawWaterfall(ctx,w,h,["Opening","Collections","Vendor Pay","Op-Ex","Tax"],[820000,640000,-410000,-180000,-95000])},
-  {title:"Invoice Collection Trend", icon:"receipt", type:"Line Chart", go:"invoice-list",
-    render:(ctx,w,h)=>drawLine(ctx,w,h,CHART_DATA.months,[2900000,3300000,3100000,3800000,4200000,4600000],DC.tl())},
-  {title:"Sales Funnel", icon:"filter", type:"Funnel Chart", go:"quotation",
-    render:(ctx,w,h)=>drawFunnel(ctx,w,h,["Leads","Qualified","Quotation Sent","Negotiation","Booking Confirmed"],[420,310,210,140,96])},
-  {title:"Quotation Conversion Ratio", icon:"chart-pie", type:"Gauge Chart", go:"quotation",
-    render:(ctx,w,h)=>drawGauge(ctx,w,h,96,210,DC.bl(),"Quotation → Booking")},
-  {title:"Branch Performance", icon:"building", type:"Column Chart", go:"branch-master",
-    render:(ctx,w,h)=>drawColumn(ctx,w,h,["Chennai","Mumbai","Delhi","Bangalore","Kolkata"],[47,31,24,18,12],DC.bl())},
-  {title:"Employee Performance", icon:"user", type:"Horizontal Bar Chart", go:"user-master",
-    render:(ctx,w,h)=>drawHBar(ctx,w,h,["Arun K","Priya S","Rahul M","Divya N","Karthik R"],[38,34,29,25,21],DC.tl())},
-  {title:"Top 10 Customers", icon:"trending-up", type:"Horizontal Bar Chart", go:"org-list",
-    render:(ctx,w,h)=>drawHBar(ctx,w,h,["Tata Chemicals","TVS Motor","Infosys BPO","GEA Westfalia","Raghav Granites","L&T","Ashok Leyland","Dr Reddy's","Britannia","Sundram Fasteners"],
-      [620000,480000,390000,310000,280000,240000,210000,185000,160000,142000],DC.pu())},
-  {title:"Container Movement", icon:"package", type:"Column Chart", go:"container-master",
-    render:(ctx,w,h)=>drawColumn(ctx,w,h,CHART_DATA.months,[62,71,68,79,85,93],DC.am())},
-  {title:"ETA vs ETD", icon:"map-pin", type:"Timeline Chart", go:"tracking",
-    render:(ctx,w,h)=>drawTimeline(ctx,w,h,[
-      {label:"Booking",sub:"10 Jun",status:"done"},{label:"Gate-In",sub:"14 Jun",status:"done"},
-      {label:"ETD",sub:"18 Jun",status:"act"},{label:"ETA",sub:"05 Jul",status:"pend"},{label:"Delivery",sub:"08 Jul",status:"pend"}])},
-  {title:"Warehouse Occupancy", icon:"warehouse", type:"Progress Ring", go:"warehouse",
-    render:(ctx,w,h)=>drawProgressRing(ctx,w,h,72,DC.am(),"Occupied Capacity")},
-  {title:"Customs Clearance Performance", icon:"license", type:"Gauge Chart", go:"customs",
-    render:(ctx,w,h)=>drawGauge(ctx,w,h,88,100,DC.gr(),"On-time Clearance %")},
-  {title:"AI Revenue Forecast", icon:"trending-up", type:"Area Chart", go:"pnl", ai:true,
-    render:(ctx,w,h)=>drawLine(ctx,w,h,[...CHART_DATA.months,"Jul*","Aug*","Sep*"],[...CHART_DATA.revenue,6600000,6950000,7300000],DC.pu(),{area:true,dashed:true})},
-  {title:"AI Shipment Forecast", icon:"package", type:"Line Chart", go:"job-list", ai:true,
-    render:(ctx,w,h)=>drawLine(ctx,w,h,[...CHART_DATA.months,"Jul*","Aug*","Sep*"],[...CHART_DATA.volume,50,53,57],DC.pu(),{dashed:true})},
+    render:(ctx,w,h)=>drawColumn(ctx,w,h,CHART_DATA.months,CHART_DATA.volume,DC.tl())}
 ];
+/* the sample-figure slides that used to follow here were removed: every dashboard figure now comes from the company's own records */
 DASH_SLIDES.length = Math.min(DASH_SLIDES.length, 3); /* slides 3+ used hardcoded demo figures; they return when real reports exist */
 /* Business-line slides (live figures): Freight, CHA (Customs) and Transport. Super Admin / Admin see all three; a CHA user sees the CHA slide, a Transport user the Transport slide. */
 (function(){
@@ -13366,15 +13303,15 @@ const CHAT_KB = [
   {kw:["booking","carrier space","vessel booking","book cargo"], a:"Bookings are under <b>Operations → Bookings → New Booking</b>. Same mode/direction/type selector as jobs, then it shows the right cutoffs — SI/VGM for sea, cargo acceptance/AWB for air."},
   {kw:["container","fcl","lcl"], a:"FCL (Full Container Load) shows container type/quantity rows so you can add as many container types as needed. LCL is charged by CBM/weight — no container assignment is needed at creation, that happens during operations/CFS booking."},
   {kw:["chargeable weight","volumetric","air freight","cbm"], a:"Air Freight has no containers — it's charged on Chargeable Weight, the greater of Gross Weight (KG) and Volumetric Weight (L×W×H ÷ 6,000, i.e. CBM × 167). Enter Gross Weight and CBM in the Shipment Configuration panel and it calculates automatically."},
-  {kw:["invoice","ar","receivable","outstanding"], a:"Invoices live under <b>Accounts → Vouchers → Tax Invoices (AR)</b>. You can also click the <b>AR Outstanding</b> KPI card on the Dashboard, or flip it (the small circular button) to see the aging breakdown by customer."},
-  {kw:["dashboard","kpi","chart","carousel"], a:"The Dashboard has a rotating chart carousel (26 slides — click 'View detail →' on any slide to jump to its report), 4 flippable KPI cards (click the small circular icon bottom-right to flip and see a breakdown), and a right sidebar with Tasks, Approvals, Notifications, Calendar and Recent Activity — every item is clickable."},
+  {kw:["invoice","ar","receivable","outstanding"], a:"Invoices live under <b>Accounts → Vouchers → Tax Invoices (AR)</b>. The outstanding report by customer is under the Accounts / Reports menu."},
+  {kw:["dashboard","kpi","chart","carousel"], a:"The Dashboard shows figures from your own records only: a chart carousel (Monthly Revenue & Job Volume plus the Freight, CHA and Transport business lines you are allowed to see), KPI cards, and a side panel. Where there is no data yet it says so instead of showing sample figures."},
   {kw:["menu","dropdown","not opening","not working"], a:"Click any top menu item (Masters, Operations, Accounts, Performance, Reports, Settings) to open its dropdown — it closes on outside click, Esc, or picking an item. If something looks stuck, try refreshing the page."},
   {kw:["report","reports"], a:"All reports are under <b>Reports</b> in the top menu — Operations, Documentation, Accounts, MIS, and GST & Tax reports are grouped in the mega-menu. You can also jump to a specific report from any dashboard chart slide."},
-  {kw:["setting","configuration","ai template","ai workflow"], a:"Advanced configuration is under <b>Settings → Enterprise System Configuration</b> — it has 8 categories including a dedicated AI Configuration section with AI Template Configuration and AI Workflow Configuration for automating masters, quotations, jobs, invoices and reports."},
-  {kw:["approval","approve"], a:"Pending approvals show on the Dashboard sidebar (Job/Invoice/Credit Note Approvals) and in the Alerts & Actions panel — click any row to go straight to the item awaiting approval."},
-  {kw:["track","tracking","eta","etd"], a:"Shipment tracking is under <b>Operations → Tracking</b>, or click any 'ETA/ETD Alert' in the dashboard's Alerts & Actions panel to jump to that job."},
+  {kw:["setting","configuration","ai template","ai workflow"], a:"Configuration is under the <b>Settings</b> menu at the top (company, users, roles, number series, themes and so on, depending on your access)."},
+  {kw:["approval","approve"], a:"Quotations waiting for approval are marked <b>Pending approval</b> in the Quotations list (the Status / Approval column). Open the quotation to approve or reject it if your role allows."},
+  {kw:["track","tracking","eta","etd"], a:"Open the job from the <b>Jobs</b> list (or the search box at the top) to see its stage and dates."},
   {kw:["master","masters"], a:"Master data (Organisations, Country, Port, Currency, Rate Master, HR, System masters, etc.) is under the <b>Masters</b> menu at the top."},
-  {kw:["hi","hello","hey"], a:"Hello! 👋 I'm the eSway AI Assistant. Ask me about creating jobs, quotations, bookings, invoices, reports, or anything else in the ERP."},
+  {kw:["hi","hello","hey"], a:"Hello! 👋 I'm the eSway help. I answer from a short list of ready-made answers about creating jobs, quotations, bookings, invoices and reports. I am not a person and I cannot look at your data."},
   {kw:["thank"], a:"You're welcome! Let me know if there's anything else I can help with."},
 ];
 const CHAT_ESCALATE_KW = ["contact support","talk to a person","talk to human","connect me with support","human agent","speak to someone","real person","speak to support","talk to someone","human support","support representative"];
@@ -13416,7 +13353,7 @@ function chatRender(){
       <div class="chat-msg-av">${chatAvatarFor(m.role)}</div>
       <div class="chat-msg-col">
         <div class="chat-msg-bubble">${m.text}</div>
-        <div class="chat-msg-time">${m.time}${m.role==="human"?" · Support Rep":m.role==="ai"?" · AI Assistant":""}</div>
+        <div class="chat-msg-time">${m.time}${m.role==="human"?" · Support Rep":m.role==="ai"?" · Help":""}</div>
       </div>
     </div>`;
   }).join("");
@@ -13445,7 +13382,7 @@ function chatRenderQuick(list){
 function chatFindAnswer(text){
   const lower = text.toLowerCase();
   for(const entry of CHAT_KB){
-    if(entry.kw.some(k=> lower.includes(k))) return entry.a;
+    if(entry.kw.some(k=> k.length <= 3 ? new RegExp('(^|[^a-z])' + k + '([^a-z]|$)').test(lower) : lower.includes(k))) return entry.a;   /* short words such as ar / hi / eta must be whole words: "ar" is inside "dashboard" */
   }
   return null;
 }
@@ -13454,25 +13391,10 @@ function chatIsEscalationRequest(text){
   return CHAT_ESCALATE_KW.some(k=> lower.includes(k));
 }
 function chatEscalate(){
-  chatMode = "human";
+  /* there is no live support agent behind this window: say so, never pretend */
   chatAwaitingEscalationConfirm = false;
   chatRenderQuick([]);
-  chatPush("sys", "Connecting you to a support representative…");
-  const head = $("#chatHead");
-  head.classList.add("human");
-  $("#chatAvatar").textContent = "🎧";
-  $("#chatAgentName").textContent = "Support — Connecting…";
-  $("#chatAgentStatus").textContent = "Transferring your conversation";
-  setTimeout(()=>{
-    $("#chatAgentName").textContent = "Priya S. — Support Representative";
-    $("#chatAgentStatus").textContent = "Online now";
-    chatPush("sys", "🟢 Priya S. (Support Representative) has joined the conversation");
-    chatShowTyping();
-    setTimeout(()=>{
-      chatHideTyping();
-      chatPush("human", "Hi, I'm Priya from the eSway support team — I can see your full conversation above, so no need to repeat yourself. How can I help?");
-    }, 1000);
-  }, 1400);
+  chatPush("ai", "Live support chat is not connected, so there is no person to hand this to. Please contact your company's eSway administrator, or write down what you were doing and the job / document number so it can be checked.");
 }
 function chatAiRespond(userText){
   if(chatIsEscalationRequest(userText)){
@@ -13495,18 +13417,13 @@ function chatAiRespond(userText){
       chatPush("ai", answer);
       chatRenderQuick(["Contact Support"]);
     } else {
-      chatAwaitingEscalationConfirm = true;
-      chatPush("ai", "I couldn't find an exact answer for that in the ERP knowledge base. Would you like me to connect you with a support representative?");
-      chatRenderQuick(["Yes, connect me","Contact Support"]);
+      chatPush("ai", "I do not have a ready-made answer for that, and live support chat is not connected. Please ask your company's eSway administrator.");
+      chatRenderQuick([]);
     }
-  }, 650 + Math.random()*400);
+  }, 400);
 }
 function chatHumanRespond(){
-  chatShowTyping();
-  setTimeout(()=>{
-    chatHideTyping();
-    chatPush("human", "Got it — I'm looking into this for you now. I'll follow up shortly with an update.");
-  }, 900 + Math.random()*500);
+  chatPush("ai", "There is no live support agent in this window. Please contact your company's eSway administrator.");
 }
 function chatUserSend(text){
   text = (text||"").trim();
@@ -13528,7 +13445,7 @@ function chatOpenPanel(){
   chatUnread = 0;
   chatUpdateBadge();
   if(chatMessages.length === 0){
-    chatPush("ai", "Hi! 👋 I'm the eSway AI Assistant. Ask me anything about creating jobs, quotations, bookings, invoices, reports, or navigating the ERP.");
+    chatPush("ai", "Hi! 👋 This is the eSway help. It gives ready-made answers about creating jobs, quotations, bookings, invoices and reports. It is not a live person and cannot look at your data.");
     chatRenderQuick(CHAT_QUICK_REPLIES);
   }
   setTimeout(()=> $("#chatInput").focus(), 100);
@@ -21560,7 +21477,7 @@ function makePrintFit(){
     const sec = document.createElement("div"); sec.id = "s-hbl-clauses"; sec.className = "scr";
     anchor.parentNode.insertBefore(sec, anchor);
     sec.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>HBL Clause Master</div><div class="ps">Wording that can be printed on a House BL. Choose clauses on the job\'s BL tab; mandatory and default clauses are set here.</div></div>'+
-      '<div class="pa"><button class="btn btn-out btn-sm" id="hbcSample">Load sample clauses</button><button class="btn btn-pri btn-sm" id="hbcNew"><svg class="ic" data-icon="plus"></svg> New Clause</button></div></div>'+
+      '<div class="pa"><button class="btn btn-pri btn-sm" id="hbcNew"><svg class="ic" data-icon="plus"></svg> New Clause</button></div></div>'+
       '<div class="kpi-row" id="hbcKpi"></div>'+
       '<div class="card" style="margin-bottom:12px"><div class="cb"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><div class="fg" style="flex:2;min-width:220px"><label class="fl">Search</label><input class="fc" id="hbcQ" placeholder="Code, title or wording"></div>'+
       '<div class="fg"><label class="fl">Category</label><select class="fc" id="hbcCat"><option value="">All</option>'+CATS.map(c=>opt(c, c)).join("")+'</select></div><div class="fg"><label class="fl">Status</label><select class="fc" id="hbcStatus"><option value="">All</option><option>ACTIVE</option><option>INACTIVE</option></select></div><button class="btn btn-out btn-sm" id="hbcReset">Reset</button></div></div></div>'+
@@ -21576,7 +21493,7 @@ function makePrintFit(){
     el("hbcBody").innerHTML = d.items.length ? d.items.map(c=>'<tr><td class="mono">'+esc2(c.code)+'</td><td style="max-width:420px"><b>'+esc2(c.title)+'</b>'+(c.text !== c.title ? '<div style="font-size:11px;color:var(--g6)">'+esc2(c.text.length > 160 ? c.text.slice(0,157)+"..." : c.text)+'</div>' : "")+'</td><td>'+esc2(c.category)+'</td><td>'+esc2(c.shipment_type)+'</td><td>'+esc2(c.movement_type)+'</td><td>'+esc2(c.freight_term)+'</td>'+
       '<td>'+(c.is_default ? '<span class="b b-bl">Default</span>' : "")+'</td><td>'+(c.is_mandatory ? '<span class="b b-am">Mandatory</span>' : "")+'</td><td>'+c.display_order+'</td><td><span class="b '+(c.status === "ACTIVE" ? "b-gr" : "b-gy")+'">'+(c.status === "ACTIVE" ? "Active" : "Inactive")+'</span></td><td style="font-size:11px">'+esc2(c.updated_by || c.created_by || "")+'<br>'+dmy(c.updated_at || c.created_at)+'</td>'+
       '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-hbc-edit="'+c.id+'">Edit</button> <button class="btn btn-out btn-sm" data-hbc-toggle="'+c.id+'">'+(c.status === "ACTIVE" ? "Deactivate" : "Activate")+'</button></td></tr>').join("") :
-      '<tr><td colspan="12" style="text-align:center;padding:18px;color:var(--g5)">No clauses yet. Use "New Clause", or "Load sample clauses" to add the standard list that you can then edit.</td></tr>';
+      '<tr><td colspan="12" style="text-align:center;padding:18px;color:var(--g5)">No clauses yet. Use "New Clause" to add your own clauses.</td></tr>';
     el("hbcPager").innerHTML = '<div>Showing '+(d.total ? (M.page-1)*M.size+1 : 0)+' to '+Math.min(d.total, M.page*M.size)+' of '+d.total+' clauses</div><div class="pgs"><button data-hbc-page="prev"'+(M.page <= 1 ? " disabled" : "")+'>‹</button><span style="padding:0 8px">Page '+M.page+' of '+pages+'</span><button data-hbc-page="next"'+(M.page >= pages ? " disabled" : "")+'>›</button></div>';
   }
   function drawerEl(){

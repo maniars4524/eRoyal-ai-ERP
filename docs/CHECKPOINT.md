@@ -421,3 +421,10 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Filter bar (Order by ... Columns) is one line on screens 1240 px and wider: Company takes the room that is left, Month/Date/Rows boxes are only as wide as needed (media block in the ListKit CSS). Narrower screens still wrap.
 - Header search: the box and the API work (tested light + dark). Real gap found: numbers are padded (LEAD/26-27/00004) and users type fewer zeros (LEAD/26-27/0004) - no match. `universal_search.matcher` now also compares with the leading zeros of every number ignored on both sides. Test added in `test_universal_search.py`.
 - Not found by search by design: records outside a placed user's access (filters), and records of modules the user has no permission for.
+
+## 2026-11-05 - honesty clean-up (see docs/HONESTY-AUDIT.md "Status after the clean-up")
+- Done: no fake support person (chat says it is ready-made answers, live support not connected); help answers corrected and short keywords match whole words only ("ar" matched inside "dashboard"); CSN draft starts empty, real JSON download, honest save/validate wording and a draft-tool banner; sample chart slides and a fake Branch Manager list deleted; generic input hints; "Load sample clauses" button removed.
+- Test: `e2e/honesty.test.js` (real Chrome) ALL PASSED; listmenu + colmatch still pass. `hblclauses.test.js` edited (button no longer exists).
+- OPEN / to look at next time: the JSDOM tests `crm.test.js`, `dashboard.test.js`, `hblclauses.test.js` currently FAIL (they also failed against the previously committed page, so not caused by this clean-up): JSDOM cannot draw the dashboard canvas ("getContext ... setTransform of null") and the CRM page then does not load customers/users. Real-Chrome tests pass. Needs a look: either stub canvas in those tests or guard the chart code when no canvas exists.
+- OPEN: ERP Demo portal (sample data, labelled) - your decision; static-screen walk (C8-C10 in the audit); CSN filing is front-end only.
+- Still on the list: filters on reports/dashboards/exports, placement screens, customer approval workflow, role + CEO dashboards, licence programme.

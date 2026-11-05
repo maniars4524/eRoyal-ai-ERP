@@ -1,0 +1,33 @@
+// Real Chrome: nothing in the ERP pretends. The support chat is honest about having no person behind it, the CSN draft starts empty, no sample names/figures remain.
+const puppeteer = require("puppeteer-core");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); return { status: r.status, body: await r.json().catch(() => null) }; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let failures = 0;
+const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "" : " -> " + (x || ""))); if (!ok) failures++; };
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36).toUpperCase().slice(-5);
+  const org = await j("POST", "/api/organizations", { code: "HN" + tag, name: "Honest " + tag, admin_email: `hn${tag}@t.test`, admin_username: "hn" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "H" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "hn" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
+  const page = await b.newPage(); const errs = []; page.on("pageerror", e => errs.push(e.message)); await page.setViewport({ width: 1400, height: 900 });
+  await page.goto(BASE + "/erp/login", { waitUntil: "networkidle2" }); await page.evaluate(t => localStorage.setItem("esway_persistent_token", t), token); await page.reload({ waitUntil: "networkidle2" }); await sleep(2500);
+  const html = await page.content();
+  check("no invented support agent name anywhere in the page", !/Priya S|Support Representative|has joined the conversation/.test(html));
+  check("no sample customers / salespeople / branch managers left in the page", !/Tata Chemicals|TVS Motor|Infosys BPO|GEA Westfalia|Raghav Granites|Rajan Kumar|Suresh Nair|Priya Menon|Arun K\b/.test(html));
+  check("no invented ICEGATE / PAN / container values left in the page", !/ROYALTECH898|AAC9808SE|AAGCE4436R|AAHCA3717A|MEDU898977|9798799999999999/.test(html));
+  await page.evaluate(() => document.getElementById("chatLauncher").click()); await sleep(600);
+  await page.type("#chatInput", "I want to talk to a human"); await page.click("#chatSendBtn"); await sleep(1800);
+  const chat = await page.evaluate(() => ({ name: document.getElementById("chatAgentName").textContent, status: document.getElementById("chatAgentStatus").textContent, text: document.getElementById("chatPanel").innerText }));
+  check("asking for a person: told plainly that live support is not connected", /not connected/i.test(chat.text) && !/Priya|joined|Online now/.test(chat.text + chat.name + chat.status), JSON.stringify(chat).slice(0, 300));
+  check("the chat says it is ready-made answers, not a person", /not a (live )?person/i.test(chat.status + chat.text), chat.status);
+  await page.type("#chatInput", "tell me about the dashboard"); await page.click("#chatSendBtn"); await sleep(1800);
+  const dash = await page.evaluate(() => document.getElementById("chatPanel").innerText);
+  check("the help text no longer claims 26 slides", !/26 slides/.test(dash) && /your own records/.test(dash));
+  check("no script errors on the page", errs.length === 0, errs.join(" | ").slice(0, 300));
+  await b.close();
+  console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

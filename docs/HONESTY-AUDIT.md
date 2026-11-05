@@ -1,6 +1,6 @@
 # Honesty audit - information in the ERP that is not real (2026-11-05)
 
-Read-only review of `esway-erp.html` and the backend. NOTHING has been changed yet; this is the list to decide from.
+Review of `esway-erp.html` and the backend. STATUS (2026-11-05, second pass): items marked DONE below are fixed and live; the rest is open.
 Line numbers are in `esway-erp.html` as of commit after the filter-bar fix.
 
 ## A. Shown to the user as if real (should go)
@@ -30,3 +30,16 @@ Line numbers are in `esway-erp.html` as of commit after the filter-bar fix.
 3. Update or remove the help-bot text (A2).
 4. Delete the dead chart data (B7) and remove "Load sample clauses" (B6) if wanted.
 5. Walk the screens for C8-C9.
+
+
+## Status after the clean-up
+- A1 DONE: the chat no longer invents a person. Header says "eSway Help - ready-made answers, not a live person"; asking for support says live support chat is not connected and to ask the company administrator.
+- A2 DONE: help answers about the dashboard, settings, approvals, tracking and outstanding corrected to what exists; "AI Assistant" renamed "eSway Help" (it is a keyword list, not AI).
+- A3 DONE: the CSN draft starts empty (no invented submitter code, PANs, ICEGATE user, IRN, vessel code, ports, weights, HS code, container, seal, addresses, random HBL no). The built-in validation now reports each blank as missing. Also fixed: "Download started" really downloads the JSON now; "CSN saved" now says plainly it is kept for this browser session only; "Valid ... ready to submit" reworded; a banner on the screen says it is a draft tool and nothing is sent to ICEGATE.
+- A4 DONE: example hints made generic (IEC, pincode, CTC, department email).
+- B6 DONE: "Load sample clauses" button removed from the HBL clause master (the backend endpoint still exists, unused).
+- B7 DONE: the dead sample-figure chart slides (Tata Chemicals, TVS Motor, sales executive names, branch revenue) deleted. A static Branch Manager drop-down with invented names (Rajan Kumar, Suresh Nair, Priya Menon) was also found and emptied.
+- B5 OPEN (your decision): the ERP Demo portal on the login page uses sample data. It is labelled, so left alone.
+- C8-C10 OPEN: screen-by-screen check of static HTML screens ("demo dataset" comments), KPI cards that show 0 instead of "No Data Available", and reference lists.
+- NEW, OPEN: the CSN filing screen is front-end only (kept in memory, lost on reload, not sent anywhere). It is now labelled so; making it real needs a backend table and the ICEGATE connection.
+- NEW, OPEN: other static forms may still contain fixed drop-down lists that look like company data (e.g. region / department / role options). These are option lists, not records, so left for the screen-by-screen pass.
