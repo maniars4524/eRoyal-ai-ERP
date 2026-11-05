@@ -466,3 +466,7 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Test database: the old QA database (2,100+ test companies, 10+ min to start) is no longer used; tests now run against a new empty `esway_erp_qa2` via `.env.qa2` (git-ignored). Nothing was deleted.
 - NOT built in D: Stores-linked spare-part issue on work orders (parts are typed by hand until step E), trip records beyond the status history, fleet accounting postings (step F), fuel cards / fuel stock, lubricant stock and oil-change history, accident register, driver master, mobile testing.
 - NEXT: the Cargo Dimension / chargeable weight enhancement (new prompt, impact assessment first), then step E (stores) and F.
+
+## 2026-11-05 - cargo dimension / chargeable weight prompt: impact assessment written (no code yet)
+- `docs/CARGO-DIMENSION-IMPACT-ASSESSMENT.md`: what exists (air_weight.py, basis_calc.py incl. W/M for LCL, job_details dims, job charges), the 9 gaps, proposed `cargo_engine`, 5 decisions needed from the user (rounding rule, row weight meaning, LCL W/M default, consolidation as a last phase, old free-text dimensions box), phases and time (8-11 sessions).
+- Waiting for the user's answers to the 5 decisions, then Phase 2 (engine + golden tests).
