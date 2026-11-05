@@ -416,3 +416,8 @@ Pending (priority order, unchanged unless marked): 1 rate sheets + Get Rate in q
 - Cause: a saved column choice was remembered by header NAME; a header whose words change (Jobs: "Shipper / Consignee" <-> "Consignee / Shipper") or was renamed no longer matched, so the chooser and the table disagreed. Now each choice is also saved by column POSITION and the chooser always lists the table's current header names. Old saved choices still work (name matching fallback).
 - Applies to every list that has the Columns chooser (Quotations, Invoices, Jobs, Leads, Enquiries, Opportunities, Bookings, Purchase Invoices, Debit Notes) - ListKit is the only column chooser in the ERP.
 - Test: `e2e/colmatch.test.js` (chooser = visible header = row cells, default, after Apply with a moved + hidden column, and after leaving and returning) ALL PASSED; listkit, listpaging, listmenu still pass.
+
+## 2026-11-05 - one-line filter bar; search finds numbers typed with a different number of zeros
+- Filter bar (Order by ... Columns) is one line on screens 1240 px and wider: Company takes the room that is left, Month/Date/Rows boxes are only as wide as needed (media block in the ListKit CSS). Narrower screens still wrap.
+- Header search: the box and the API work (tested light + dark). Real gap found: numbers are padded (LEAD/26-27/00004) and users type fewer zeros (LEAD/26-27/0004) - no match. `universal_search.matcher` now also compares with the leading zeros of every number ignored on both sides. Test added in `test_universal_search.py`.
+- Not found by search by design: records outside a placed user's access (filters), and records of modules the user has no permission for.

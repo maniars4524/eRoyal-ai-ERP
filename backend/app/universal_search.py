@@ -6,6 +6,7 @@ Read-only: nothing is written and no table is changed. Every source is read only
 References are matched as typed AND with separators / prefixes ignored (JOB-0001, JOB0001 and job 0001 find the same record). The older flat search (/api/search) is untouched."""
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query
@@ -55,14 +56,20 @@ def day(v) -> str | None:
     return v.date().isoformat() if hasattr(v, "date") else (v.isoformat() if v else None)
 
 
+_ZEROS = r"(^|[^0-9])0+([0-9])"
+
+
 def matcher(term: str, tn: str, *cols):
-    """term as typed (case-insensitive contains) OR the same reference with separators ignored."""
+    """term as typed (case-insensitive contains) OR the same reference with separators ignored OR with the leading zeros of its numbers ignored."""
     parts = []
+    zt = re.sub(r"[^a-z0-9]", "", re.sub(_ZEROS, r"\1\2", term.lower()))
     for c in cols:
         c = cast(c, String) if not isinstance(getattr(c, "type", None), String) else c
         parts.append(c.ilike(f"%{term}%"))
         if len(tn) >= 2:
             parts.append(func.regexp_replace(func.lower(c), "[^a-z0-9]", "", "g").like(f"%{tn}%"))
+        if len(zt) >= 3:       # LEAD/26-27/0004 finds LEAD/26-27/00004: leading zeros of each number are ignored on both sides
+            parts.append(func.regexp_replace(func.regexp_replace(func.lower(c), _ZEROS, "\\1\\2", "g"), "[^a-z0-9]", "", "g").like(f"%{zt}%"))
     return or_(*parts)
 
 

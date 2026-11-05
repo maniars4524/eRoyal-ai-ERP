@@ -132,3 +132,13 @@ def test_another_company_never_appears(world, admin2, data):
     h2 = hdr(admin2["username"], admin2["license"])
     res = client.get("/api/search/universal", params={"q": data["tag"]}, headers=h2).json()
     assert res["items"], "same company sees it"
+
+
+def test_a_number_with_fewer_leading_zeros_still_finds_the_record(h):
+    tag = uuid.uuid4().hex[:5].upper()
+    ref = f"LEAD/26-27/0000{tag[:1] if tag[:1].isdigit() else 7}"
+    assert client.put("/api/crm/lead", json={"ref": ref, "company": f"ZeroCo {tag}", "status": "New"}, headers=h).status_code in (200, 201)
+    digits = ref.rsplit("/", 1)[1].lstrip("0")
+    for typed in (ref, f"LEAD/26-27/00{digits}", f"lead/26-27/{digits}", f"LEAD2627{digits}"):
+        res = client.get("/api/search/universal", params={"q": typed}, headers=h).json()
+        assert ref in {i["ref"] for i in res["items"]}, typed
