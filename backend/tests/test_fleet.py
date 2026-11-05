@@ -238,3 +238,18 @@ def test_a_viewer_can_look_but_not_change_anything(h, fx):
                               ("post", "/api/tyres", {"serial_number": "ZZ99"}), ("post", "/api/fuel", {"vehicle_id": v["id"], "txn_date": "2026-11-05", "litres": "5", "kind": "LUBRICANT"})):
         assert getattr(client, method)(url, json=body, headers=vh).status_code == 403, url
     assert client.get("/api/vehicles/99999999", headers=h).status_code == 404
+
+
+def test_photos_attach_to_vehicles_tyres_and_work_orders_under_fleet_permissions(h, fx):
+    png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    v = ready_vehicle(h, fx)
+    t = client.post("/api/tyres", json={"serial_number": f"T{uuid.uuid4().hex[:7].upper()}"}, headers=h).json()
+    w = client.post("/api/vehicle-work-orders", json={"vehicle_id": v["id"], "complaint": "dent"}, headers=h).json()
+    for kind, rid in (("vehicle", v["id"]), ("tyre", t["id"]), ("vorder", w["id"])):
+        r = client.post("/api/container-attachments", json={"entity_type": kind, "entity_id": rid, "name": "p.png", "content_type": "image/png", "data_base64": png}, headers=h)
+        assert r.status_code == 201, (kind, r.text)
+        assert client.post("/api/container-attachments", json={"entity_type": kind, "entity_id": rid, "name": "p.png", "content_type": "image/png", "data_base64": png}, headers=fx["viewer"]).status_code == 403
+        assert len(client.get("/api/container-attachments", params={"entity_type": kind, "entity_id": rid}, headers=fx["viewer"]).json()) == 1
+        assert client.get(f"/api/container-attachments/{r.json()['id']}/file", headers=fx["viewer"]).status_code == 200
+        assert client.delete(f"/api/container-attachments/{r.json()['id']}", headers=fx["viewer"]).status_code == 403
+        assert client.delete(f"/api/container-attachments/{r.json()['id']}", headers=fx["boss"]).status_code == 204

@@ -7,20 +7,21 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .auth import permission_required
+from .auth import get_current_user, has_permission
 from .auth_api import record_audit
 from .containers_api import _org
 from .db import get_db
-from .models import (Container, ContainerAttachment, ContainerDamage, ContainerEIR, ContainerLease, ContainerMovement, ContainerRepairOrder, ContainerSurvey, User)
+from .models import (Container, ContainerAttachment, ContainerDamage, ContainerEIR, ContainerLease, ContainerMovement, ContainerRepairOrder, ContainerSurvey, Tyre, User, Vehicle, VehicleWorkOrder)
 
 router = APIRouter(prefix="/api/container-attachments", tags=["container attachments"])
-ENTITIES = {"container": Container, "survey": ContainerSurvey, "damage": ContainerDamage, "repair": ContainerRepairOrder, "movement": ContainerMovement, "eir": ContainerEIR, "lease": ContainerLease}
+ENTITIES = {"container": Container, "survey": ContainerSurvey, "damage": ContainerDamage, "repair": ContainerRepairOrder, "movement": ContainerMovement, "eir": ContainerEIR, "lease": ContainerLease, "vehicle": Vehicle, "tyre": Tyre, "vorder": VehicleWorkOrder}
+FLEET = {"vehicle", "tyre", "vorder"}
 MAX_BYTES, MAX_PER_ENTITY = 5 * 1024 * 1024, 40
 SIGNATURES = {"image/jpeg": (b"\xff\xd8\xff",), "image/png": (b"\x89PNG\r\n\x1a\n",), "image/gif": (b"GIF87a", b"GIF89a"), "image/webp": (b"RIFF",), "application/pdf": (b"%PDF-",)}
 
 
 class AttachmentIn(BaseModel):
-    entity_type: str = Field(pattern="^(container|survey|damage|repair|movement|eir|lease)$")
+    entity_type: str = Field(pattern="^(container|survey|damage|repair|movement|eir|lease|vehicle|tyre|vorder)$")
     entity_id: int
     name: str = Field(min_length=1, max_length=200)
     content_type: str = Field(max_length=100)
@@ -28,19 +29,28 @@ class AttachmentIn(BaseModel):
     caption: str | None = Field(default=None, max_length=300)
 
 
+def _need(user: User, entity_type: str, level: str) -> None:
+    """Container files follow the container permissions, vehicle / tyre / work-order files follow the fleet permissions."""
+    code = ("fleet." if entity_type in FLEET else "container.") + level
+    if not has_permission(user, code):
+        raise HTTPException(403, "Permission denied")
+
+
 def _row(a: ContainerAttachment) -> dict:
     return {"id": a.id, "entity_type": a.entity_type, "entity_id": a.entity_id, "category": a.category, "name": a.name, "content_type": a.content_type, "size": a.size, "caption": a.caption, "uploaded_at": a.created_at}
 
 
 @router.get("")
-def list_attachments(entity_type: str = Query(pattern="^(container|survey|damage|repair|movement|eir|lease)$"), entity_id: int = Query(), user: User = Depends(permission_required("container.read")), db: Session = Depends(get_db)):
+def list_attachments(entity_type: str = Query(pattern="^(container|survey|damage|repair|movement|eir|lease|vehicle|tyre|vorder)$"), entity_id: int = Query(), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    _need(user, entity_type, "read")
     org = _org(user)
     rows = db.scalars(select(ContainerAttachment).where(ContainerAttachment.organization_id == org, ContainerAttachment.entity_type == entity_type, ContainerAttachment.entity_id == entity_id).order_by(ContainerAttachment.id)).all()
     return [_row(a) for a in rows]
 
 
 @router.post("", status_code=201)
-def upload(body: AttachmentIn, user: User = Depends(permission_required("container.create")), db: Session = Depends(get_db)):
+def upload(body: AttachmentIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    _need(user, body.entity_type, "create")
     org = _org(user)
     model = ENTITIES[body.entity_type]
     if not db.scalar(select(model.id).where(model.id == body.entity_id, model.organization_id == org)):
@@ -71,21 +81,23 @@ def upload(body: AttachmentIn, user: User = Depends(permission_required("contain
 
 
 @router.get("/{attachment_id}/file")
-def download(attachment_id: int, user: User = Depends(permission_required("container.read")), db: Session = Depends(get_db)):
+def download(attachment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     org = _org(user)
     a = db.scalar(select(ContainerAttachment).where(ContainerAttachment.id == attachment_id, ContainerAttachment.organization_id == org))
     if not a:
         raise HTTPException(404, "File not found")
+    _need(user, a.entity_type, "read")
     return Response(content=a.data, media_type=a.content_type, headers={"Content-Disposition": 'inline; filename="' + a.name.replace('"', "") + '"', "Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff"})
 
 
 @router.delete("/{attachment_id}", status_code=204)
-def remove(attachment_id: int, user: User = Depends(permission_required("container.approve")), db: Session = Depends(get_db)):
+def remove(attachment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Only approvers remove a file, and the removal is written to the audit log."""
     org = _org(user)
     a = db.scalar(select(ContainerAttachment).where(ContainerAttachment.id == attachment_id, ContainerAttachment.organization_id == org))
     if not a:
         raise HTTPException(404, "File not found")
+    _need(user, a.entity_type, "approve")
     record_audit(db, "CONTAINER_FILE_REMOVED", "INVENTORY", user, org, a.entity_type, str(a.entity_id), {"file": a.name})
     db.delete(a)
     db.commit()

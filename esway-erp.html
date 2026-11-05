@@ -6466,6 +6466,14 @@ const TOPNAV_MENU = [
       {label:"Depot Stock Verification", icon:"check-circle", go:"inv-counts"},
       {label:"CSC & Lease Expiry", icon:"clock", go:"inv-expiry"},
     ]},
+    {label:"Vehicle Inventory", icon:"truck", children:[
+      {label:"Fleet Dashboard", icon:"dashboard", go:"inv-fleet"},
+      {label:"Transport Fleet Inventory", icon:"truck", go:"inv-vehicles"},
+      {label:"Vehicle Maintenance & Workshop", icon:"adjustments", go:"inv-workshop"},
+      {label:"Preventive Maintenance", icon:"calendar-check", go:"inv-plans"},
+      {label:"Tyre Management", icon:"tag", go:"inv-tyres"},
+      {label:"Fuel & Lubricant", icon:"gear", go:"inv-fuel"},
+    ]},
   ]},
   {id:"accounts", module:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts","CHA","Transport"], children:[
     {label:"Ledger", icon:"book", children:[
@@ -23836,7 +23844,7 @@ body.job-readonly #jlBanner{display:flex}
     const flt = (cfg.filters || []).map(f=>'<div class="fg"><label class="fl">'+esc(f.label)+'</label><select class="fc" data-ogf="'+id+':'+f.k+'">'+(typeof f.opts === "function" ? f.opts() : f.opts).map(o=>{ const a = Array.isArray(o) ? o : [o, o]; return '<option value="'+esc(a[0])+'"'+(cfg.st.f[f.k] === a[0] ? " selected" : "")+'>'+esc(a[1])+'</option>'; }).join("")+'</select></div>').join("");
     const s = section("inv-"+id, head(cfg.icon, cfg.title, cfg.sub, back+(cfg.onNew ? '<button class="btn btn-pri btn-sm" data-ognew="'+id+'"><svg class="ic" data-icon="plus"></svg> '+esc(cfg.newLabel)+'</button>' : ""))+
       '<div id="og_kpi_'+id+'" class="kpi-row"></div>'+
-      '<div class="card" style="margin-bottom:12px"><div class="cb"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><div class="fg"><label class="fl">Search</label><input class="fc" data-ogq="'+id+'" placeholder="Container / number" value="'+esc(cfg.st.q)+'"></div>'+flt+'</div></div></div>'+
+      '<div class="card" style="margin-bottom:12px"><div class="cb"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'+(cfg.search === false ? "" : '<div class="fg"><label class="fl">Search</label><input class="fc" data-ogq="'+id+'" placeholder="'+esc(cfg.searchHint || "Container / number")+'" value="'+esc(cfg.st.q)+'"></div>')+flt+'</div></div></div>'+
       '<div class="card"><div class="tw"><table><thead><tr>'+cfg.heads.map(h=>'<th>'+esc(h)+'</th>').join("")+'<th></th></tr></thead><tbody id="og_body_'+id+'"><tr><td colspan="'+(cfg.heads.length + 1)+'" class="tbl-empty">Loading…</td></tr></tbody></table></div><div id="og_pg_'+id+'"></div></div>');
     if(window.renderIcons) window.renderIcons(s);
     loadGrid(id); if(cfg.kpis) cfg.kpis().then(h=>{ const el = document.getElementById("og_kpi_"+id); if(el) el.innerHTML = h; }).catch(()=>{});
@@ -24200,7 +24208,260 @@ body.job-readonly #jlBanner{display:flex}
     if(screen === "inv-container-detail"){ setTimeout(detailTabs, 50); setTimeout(photoTab, 80); }
     return r;
   };
-  window.INVOPS = {GRIDS, eirFor};
+  window.INVOPS = {GRIDS, eirFor, grid, paintGrid, loadGrid, formModal, attachPanel, photosModal, ACT, nice, dmy, money, badge, kpi, section, head, back, loadMasters, mopts, masters, call, reason, esc, api, say};
+})();
+</script>
+
+<script>
+/* ============================================================
+   FLEET KIT: Inventory & Asset Management > Vehicle Inventory. Fleet dashboard, vehicle register and detail, workshop work orders,
+   preventive maintenance plans, tyre management by wheel position, fuel & lubricant. Every figure comes from /api/vehicles, /api/tyres, /api/fuel ...
+   ============================================================ */
+(function(){
+  "use strict";
+  if(!window.INVOPS || !window.MK) return;
+  const {grid, paintGrid, loadGrid, formModal, attachPanel, photosModal, ACT, nice, dmy, money, kpi, section, head, back, loadMasters, mopts, masters, call, reason, esc, api, say} = window.INVOPS;
+  const VB = {AVAILABLE:"b-gr", ON_TRIP:"b-bl", IDLE:"b-gy", UNDER_MAINTENANCE:"b-am", BREAKDOWN:"b-am", ACCIDENT:"b-am", SOLD:"b-gy", SCRAPPED:"b-gy", OPEN:"b-am", IN_PROGRESS:"b-bl", COMPLETED:"b-bl", CLOSED:"b-gr", CANCELLED:"b-gy",
+              IN_STOCK:"b-gr", FITTED:"b-bl", UNDER_REPAIR:"b-am", RETREADING:"b-am", CURRENT:"b-gr", SUPERSEDED:"b-gy"};
+  const badge = s=> '<span class="b '+(VB[s] || "b-gy")+'">'+esc(nice(s))+'</span>';
+  const today = ()=> new Date().toISOString().slice(0, 10);
+  const fg = (label, ctl, o)=> '<div class="fg"'+(o && o.span ? ' style="grid-column:span '+o.span+'"' : "")+'><label class="fl">'+esc(label)+(o && o.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+'</div>';
+  const inp = (id, val, extra)=> '<input class="fc" id="'+id+'" value="'+esc(val == null ? "" : val)+'"'+(extra || "")+'>';
+  const sel = (id, options, cur)=> '<select class="fc" id="'+id+'">'+options.map(o=>{ const a = Array.isArray(o) ? o : [o, o]; return '<option value="'+esc(a[0])+'"'+(String(a[0]) === String(cur == null ? "" : cur) ? " selected" : "")+'>'+esc(a[1])+'</option>'; }).join("")+'</select>';
+  const KM = n=> n == null ? "—" : Number(n).toLocaleString("en-IN");
+  async function findVehicle(text){
+    const n = String(text || "").replace(/[\s\-\.]/g, "").toUpperCase(); if(!n) return null;
+    try{ return (await api("GET", "/api/vehicles?q="+encodeURIComponent(n)+"&limit=5&include_disposed=true")).items.find(v=>v.registration_number === n) || null; }catch(e){ return null; }
+  }
+  const FLEET = window.FLEETC = {openId:null, days:60};
+  const meta = (id, title)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / Vehicle Inventory / <strong>"+esc(title)+"</strong>", menu:""}; };
+
+  /* ---------------- fleet dashboard ---------------- */
+  meta("inv-fleet", "Fleet Dashboard"); section("inv-fleet", "");
+  async function paintFleet(){
+    const s = section("inv-fleet", head("truck", "Fleet Dashboard", "Live fleet figures from the vehicle register, workshop, tyres and fuel records", back)+'<div id="flBody"><div class="card"><div class="cb">Loading…</div></div></div>');
+    try{
+      const [d, a] = await Promise.all([api("GET", "/api/vehicles/summary"), api("GET", "/api/fleet-alerts?days="+FLEET.days)]);
+      const by = d.by_status || {}, tbl = (title, obj)=> { const k = Object.keys(obj).sort(); return '<div class="card"><div class="ch"><div class="ct">'+esc(title)+'</div></div><div class="tw"><table><tbody>'+(k.length ? k.map(x=>'<tr><td>'+esc(nice(x) === "—" ? x : nice(x))+'</td><td style="text-align:right"><b>'+obj[x]+'</b></td></tr>').join("") : '<tr><td class="tbl-empty">No data yet</td></tr>')+'</tbody></table></div></div>'; };
+      const p = a.pending;
+      const items = (p.work_orders_open ? '<li><a href="#" data-go="inv-workshop"><b>'+p.work_orders_open+'</b> work order(s) waiting to start</a></li>' : "")+(p.work_orders_to_close ? '<li><a href="#" data-go="inv-workshop"><b>'+p.work_orders_to_close+'</b> completed work order(s) waiting for approval</a></li>' : "")+
+        (p.breakdown_or_accident ? '<li><a href="#" data-go="inv-vehicles"><b>'+p.breakdown_or_accident+'</b> vehicle(s) broken down or in an accident</a></li>' : "")+(p.abnormal_fuel_30_days ? '<li><a href="#" data-go="inv-fuel"><b>'+p.abnormal_fuel_30_days+'</b> abnormal fuel fill(s) in the last 30 days</a></li>' : "")+
+        a.documents.map(x=>'<li>'+esc(x.doc_type)+' of <b>'+esc(x.registration_number)+'</b> '+(x.expired ? '<b style="color:var(--rd,#b91c1c)">expired '+(-x.days_left)+' day(s) ago</b>' : 'expires in '+x.days_left+' day(s)')+' ('+dmy(x.expiry_date)+')'+(x.mandatory ? " · mandatory" : "")+'</li>').join("")+
+        a.plans.map(x=>'<li>Service <b>'+esc(x.name)+'</b> of <b>'+esc(x.registration_number)+'</b>: '+(x.overdue ? '<b style="color:var(--rd,#b91c1c)">overdue</b>' : "due soon")+' ('+(x.km_left != null ? KM(x.km_left)+" km left" : "")+(x.km_left != null && x.days_left != null ? " · " : "")+(x.days_left != null ? x.days_left+" day(s) left" : "")+')</li>').join("")+
+        a.tyres_low_tread.map(x=>'<li>Tyre '+esc(x.serial_number)+' on <b>'+esc(x.registration_number)+'</b> ('+esc(x.position)+') has only '+esc(x.tread_depth_mm)+' mm of tread</li>').join("");
+      s.querySelector("#flBody").innerHTML = '<div class="kpi-row">'+kpi("Vehicles", d.total, "active fleet")+kpi("Available", by.AVAILABLE || 0)+kpi("On trip", by.ON_TRIP || 0)+kpi("In workshop", by.UNDER_MAINTENANCE || 0)+kpi("Documents expired", d.documents_expired, d.documents_due_60_days+" due in 60 days")+kpi("Services overdue", d.maintenance_overdue)+'</div>'+
+        '<div class="kpi-row">'+kpi("Open work orders", d.open_work_orders)+kpi("Avg. downtime", d.average_downtime_days == null ? "—" : d.average_downtime_days+" days")+kpi("Maintenance cost", money(d.maintenance_cost), "closed work orders")+kpi("Fuel cost", money(d.fuel_cost), d.fuel_litres+" litres")+kpi("Tyres in stock", d.tyres_by_status.IN_STOCK || 0, (d.tyres_by_status.FITTED || 0)+" fitted")+kpi("Tyre cost", money(d.tyre_cost))+'</div>'+
+        '<div class="card"><div class="ch"><div class="ct">Needs attention</div><div class="fg" style="margin:0"><select class="fc" id="flDays" style="width:170px">'+[30, 60, 90, 180, 365].map(n=>'<option value="'+n+'"'+(n === FLEET.days ? " selected" : "")+'>Documents due in '+n+' days</option>').join("")+'</select></div></div><div class="cb">'+(items ? '<ul style="margin:0;padding-left:18px;line-height:1.9">'+items+'</ul>' : "Nothing needs attention right now.")+'</div></div>'+
+        '<div class="inv-two">'+tbl("By status", d.by_status)+tbl("By ownership", d.by_ownership)+tbl("By category", d.by_category)+'</div>';
+    }catch(e){ s.querySelector("#flBody").innerHTML = '<div class="card"><div class="cb">Could not load the figures: '+esc(e.message)+'</div></div>'; }
+    if(window.renderIcons) window.renderIcons(s);
+  }
+  document.addEventListener("change", e=>{ if(e.target.id === "flDays"){ FLEET.days = Number(e.target.value); paintFleet(); } });
+
+  /* ---------------- vehicle list ---------------- */
+  grid({id:"vehicles", searchHint:"Registration / asset ID / chassis / driver", icon:"truck", title:"Transport Fleet Inventory", sub:"Every vehicle with its category, ownership, odometer, driver and status. Allocation is refused when a mandatory document is expired or missing.", newLabel:"New Vehicle", url:"/api/vehicles",
+    masters:["inv_vehicle_category", "inv_vehicle_ownership"], empty:'No vehicles registered yet. Use "New Vehicle".',
+    filters:[{k:"status", label:"Status", opts:[["", "All"], "AVAILABLE", "ON_TRIP", "IDLE", "UNDER_MAINTENANCE", "BREAKDOWN", "ACCIDENT", "SOLD", "SCRAPPED"]}, {k:"category", label:"Category", opts:()=>mopts("inv_vehicle_category", "All")}, {k:"ownership", label:"Ownership", opts:()=>mopts("inv_vehicle_ownership", "All")}],
+    heads:["Asset ID", "Registration", "Category", "Make / model", "Ownership", "Odometer (km)", "Driver", "Status"],
+    row:v=>['<span class="mono">'+esc(v.asset_id || "—")+'</span>', '<b>'+esc(v.registration_number)+'</b>', esc(v.category || "—"), esc([v.make, v.model].filter(Boolean).join(" ") || "—"), esc(v.ownership || "—"), KM(v.odometer), esc(v.driver || "—"), badge(v.status)],
+    acts:v=>[["open", "Open"]].concat(v.status === "ON_TRIP" ? [["release", "End trip"]] : (v.status === "AVAILABLE" || v.status === "IDLE") ? [["allocate", "Allocate"]] : []),
+    onNew:()=>{ FLEET.openId = null; go("inv-vehicle-detail"); }});
+  ACT.vehicles = {
+    open:v=>{ FLEET.openId = v.id; go("inv-vehicle-detail"); },
+    allocate:v=> formModal("Allocate "+v.registration_number, [{k:"drv", label:"Driver", v:v.driver, span:2}, {k:"odo", label:"Odometer now", t:"number", v:v.odometer}, {k:"why", label:"Trip / reason", v:"Allocated to a trip", span:4}], "Allocate", async f=>{
+      await call("POST", "/api/vehicles/"+v.id+"/allocate", {driver:f.drv || null, odometer:f.odo ? Number(f.odo) : null, reason:f.why || "Allocated to a trip"}, "Vehicle allocated"); closeModal(); paintGrid("vehicles"); }),
+    release:v=> formModal("End trip of "+v.registration_number, [{k:"odo", label:"Odometer at trip end", t:"number", req:1, v:v.odometer}], "End trip", async f=>{
+      await call("POST", "/api/vehicles/"+v.id+"/release", {odometer:Number(f.odo)}, "Trip ended"); closeModal(); paintGrid("vehicles"); })};
+
+  /* ---------------- vehicle detail ---------------- */
+  meta("inv-vehicle-detail", "Vehicle"); section("inv-vehicle-detail", "");
+  const FIELDS = [["registration_number", "Registration Number", "text", 1], ["category", "Vehicle Category", "sel:inv_vehicle_category"], ["vehicle_type", "Vehicle Type"], ["make", "Make"], ["model", "Model"], ["manufacturing_year", "Manufacturing Year", "number"],
+    ["hand", "First-hand / Second-hand", "hand"], ["chassis_number", "Chassis Number"], ["engine_number", "Engine Number"], ["vin", "VIN"], ["fuel_type", "Fuel Type"], ["engine_capacity", "Engine Capacity"], ["tonnage", "Tonnage", "number"],
+    ["payload_capacity", "Payload Capacity", "number"], ["axle_config", "Axle & Wheel Configuration", "sel:inv_axle_config"], ["purchase_date", "Purchase Date", "date"], ["purchase_cost", "Purchase Cost", "number"], ["supplier", "Supplier"],
+    ["purchase_invoice", "Purchase Invoice"], ["warranty_until", "Warranty Until", "date"], ["odometer", "Odometer (km)", "number"], ["location", "Current Location"], ["driver", "Assigned Driver"], ["branch", "Assigned Branch"], ["ownership", "Ownership", "sel:inv_vehicle_ownership"]];
+  const NEWONLY = ["registration_number", "category", "chassis_number", "axle_config", "ownership", "odometer", "hand", "purchase_date", "purchase_cost", "manufacturing_year"];
+  const ctl = (f, v, isNew)=> { const [k, , t] = f, val = v ? v[k] : ""; const ro = !isNew && NEWONLY.includes(k) ? " disabled" : "";
+    if(t && t.startsWith("sel:")){ return '<select class="fc" id="vf_'+k+'"'+ro+'>'+mopts(t.slice(4)).map(o=>'<option value="'+esc(o[0])+'"'+(o[0] === val ? " selected" : "")+'>'+esc(o[1])+'</option>').join("")+'</select>'; }
+    if(t === "hand") return '<select class="fc" id="vf_'+k+'"'+ro+'>'+["", "First-hand", "Second-hand"].map(o=>'<option value="'+o+'"'+(o === val ? " selected" : "")+'>'+(o || "— Select —")+'</option>').join("")+'</select>';
+    return '<input class="fc" id="vf_'+k+'"'+(t === "number" ? ' type="number" step="any" min="0"' : t === "date" ? ' type="date"' : "")+ro+' value="'+esc(val == null ? "" : val)+'"'+(k === "registration_number" ? ' style="text-transform:uppercase"' : "")+'>'; };
+  async function paintVehicle(){
+    await loadMasters(["inv_vehicle_category", "inv_vehicle_ownership", "inv_axle_config", "inv_document_type", "inv_maintenance_category"]);
+    let v = null;
+    if(FLEET.openId){ try{ v = await api("GET", "/api/vehicles/"+FLEET.openId); }catch(e){ say("Could not open the vehicle", e.message, "warn"); go("inv-vehicles"); return; } }
+    const isNew = !v;
+    const tabs = isNew ? ["Overview"] : ["Overview", "Status & Allocation", "Documents", "Maintenance", "Tyres", "Fuel", "History", "Photos & Documents"];
+    const s = section("inv-vehicle-detail", head("truck", isNew ? "New Vehicle" : "Vehicle "+v.registration_number, isNew ? "Register a vehicle: its category, ownership and wheel configuration come from Masters > Inventory" : (v.asset_id+" · "+nice(v.status)+" · maintenance cost "+money(v.costs.maintenance)+" · fuel cost "+money(v.costs.fuel)),
+      back.replace('data-go="back"', 'data-go="inv-vehicles"')+'<button class="btn btn-suc btn-sm" id="flSave"><svg class="ic" data-icon="check"></svg> Save</button>')+
+      '<div class="inv-tabs">'+tabs.map((t, i)=>'<button data-invtab="'+i+'"'+(i === 0 ? ' class="on"' : "")+'>'+t+'</button>').join("")+'</div>'+
+      '<div data-invpanel="0"><div class="card"><div class="ch"><div class="ct">Vehicle details</div></div><div class="cb"><div class="fr">'+FIELDS.map(f=>fg(f[1], ctl(f, v, isNew), {req:f[0] === "registration_number"})).join("")+'</div>'+
+      '<div class="fr">'+fg("Remarks", '<textarea class="fc" id="vf_remarks" rows="2">'+esc(v ? v.remarks || "" : "")+'</textarea>', {span:4})+'</div>'+(isNew ? "" : '<div class="inv-hint">Registration, category, chassis, wheel configuration and ownership are fixed once registered. The odometer only moves forward, through trips, work orders, tyres and fuel entries.</div>')+'</div></div></div>');
+    if(!isNew){
+      const al = v.allocation;
+      const T = (heads, rows, empty)=> '<div class="card"><div class="tw"><table><thead><tr>'+heads.map(h=>'<th>'+h+'</th>').join("")+'</tr></thead><tbody>'+(rows.length ? rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join("")+'</tr>').join("") : '<tr><td colspan="'+heads.length+'" class="tbl-empty">'+empty+'</td></tr>')+'</tbody></table></div></div>';
+      const tyres = await api("GET", "/api/vehicles/"+v.id+"/tyres").catch(()=>({layout:[], positions_defined:false}));
+      const panels = [
+        '<div data-invpanel="1" style="display:none"><div class="inv-two"><div class="card"><div class="ch"><div class="ct">Status</div></div><div class="cb"><p>'+badge(v.status)+' · odometer <b>'+KM(v.odometer)+' km</b> · driver '+esc(v.driver || "—")+'</p>'+
+          '<p><b>Can it be allocated?</b> '+(al.allowed ? '<span class="b b-gr">Yes</span>' : '<span class="b b-am">No</span>')+'</p>'+(al.blocked_because.length ? '<ul>'+al.blocked_because.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>' : "")+(al.warnings.length ? '<ul style="color:var(--g6)">'+al.warnings.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>' : "")+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap">'+(v.status === "ON_TRIP" ? '<button class="btn btn-pri btn-sm" data-fl="release">End trip</button>' : '<button class="btn btn-pri btn-sm" data-fl="allocate">Allocate to a trip</button>')+'<button class="btn btn-out btn-sm" data-fl="odo">Record odometer</button><button class="btn btn-out btn-sm" data-fl="status">Change status</button></div></div></div>'+
+          '<div class="card"><div class="ch"><div class="ct">Ownership</div></div><div class="cb"><p><b>'+esc(v.ownership || "—")+'</b></p><p>Purchased '+dmy(v.purchase_date)+' for '+money(v.purchase_cost)+' · '+esc(v.supplier || "—")+' · invoice '+esc(v.purchase_invoice || "—")+'</p><p>Warranty until '+dmy(v.warranty_until)+'</p></div></div></div></div>',
+        '<div data-invpanel="2" style="display:none"><div style="margin-bottom:8px"><button class="btn btn-pri btn-sm" data-fl="adddoc">Add / renew a document</button></div>'+T(["Document", "Number", "Issued", "Expires", "Time left", "Status"], v.documents.map(d=>[esc(d.doc_type)+(d.mandatory ? ' <span class="b b-gy">mandatory</span>' : ""), esc(d.number || "—"), dmy(d.issue_date), dmy(d.expiry_date), d.expiry_date ? (d.expired ? '<b style="color:var(--rd,#b91c1c)">expired</b>' : d.days_left+" day(s)") : "—", badge(d.status)]), "No document on file yet")+'</div>',
+        '<div data-invpanel="3" style="display:none"><div style="margin-bottom:8px"><button class="btn btn-pri btn-sm" data-fl="newwo">New work order</button> <button class="btn btn-out btn-sm" data-fl="newplan">New maintenance plan</button></div><h4>Maintenance plans</h4>'+
+          T(["Plan", "Every", "Last done", "Left", "State"], v.plans.map(p=>[esc(p.name), esc([p.interval_km ? KM(p.interval_km)+" km" : "", p.interval_days ? p.interval_days+" days" : ""].filter(Boolean).join(" / ")), KM(p.last_done_odometer)+" km · "+dmy(p.last_done_date), esc([p.km_left != null ? KM(p.km_left)+" km" : "", p.days_left != null ? p.days_left+" days" : ""].filter(Boolean).join(" / ")), p.overdue ? '<span class="b b-am">Overdue</span>' : p.due_soon ? '<span class="b b-bl">Due soon</span>' : '<span class="b b-gr">OK</span>']), "No plan yet")+
+          '<h4 style="margin-top:12px">Work orders</h4>'+T(["No.", "Category / complaint", "Workshop", "Dates", "Cost", "Status"], v.work_orders.map(w=>[esc(w.number), esc(w.category || w.complaint || "—"), esc(w.workshop || "—"), dmy(w.start_date)+" – "+dmy(w.completion_date), money(w.total_cost), badge(w.status)]), "No work order yet")+'</div>',
+        '<div data-invpanel="4" style="display:none">'+(tyres.positions_defined ? "" : '<div class="ib ib-am" style="margin-bottom:8px">This vehicle has no wheel positions. Choose an Axle &amp; Wheel Configuration that has Position Labels (Masters &gt; Inventory &gt; Vehicle Inventory).</div>')+
+          T(["Position", "Tyre", "Brand / size", "Tread (mm)", "Km on tyre", ""], tyres.layout.map(x=>{ const t = x.tyre; return [esc(x.position), t ? '<span class="mono">'+esc(t.serial_number)+'</span>' : '<i style="color:var(--g5)">empty</i>', t ? esc([t.brand, t.size].filter(Boolean).join(" · ") || "—") : "", t ? esc(t.tread_depth_mm || "—") : "", t ? KM(t.total_km) : "",
+            t ? '<button class="ta" data-fl="tyre-remove:'+t.id+'">Remove</button> <button class="ta" data-fl="tyre-rotate:'+t.id+'">Rotate</button>' : '<button class="ta" data-fl="tyre-fit:'+esc(x.position)+'">Fit tyre</button>']; }), "No positions defined")+'</div>',
+        '<div data-invpanel="5" style="display:none"><div style="margin-bottom:8px"><button class="btn btn-pri btn-sm" data-fl="addfuel">Add fuel / lubricant</button></div>'+T(["Date", "Type", "Odometer", "Litres", "Amount", "Km / litre", "Station"], v.fuel.map(f=>[dmy(f.txn_date), esc(nice(f.kind)), KM(f.odometer), esc(f.litres), money(f.amount), f.km_per_litre ? esc(f.km_per_litre)+(f.abnormal ? ' <span class="b b-am">abnormal</span>' : "") : "—", esc(f.fuel_station || "—")]), "No fuel recorded yet")+'</div>',
+        '<div data-invpanel="6" style="display:none">'+T(["When", "What", "From", "To", "Reason", "By"], v.history.map(h=>[esc(new Date(h.at).toLocaleString("en-GB")), esc(nice(h.field)), esc(h.old || "—"), esc(h.new || "—"), esc(h.reason || "—"), esc(h.by || "—")]), "No change recorded")+'</div>',
+        '<div data-invpanel="7" style="display:none"><div class="card"><div class="cb" id="flPhotos"></div></div></div>'];
+      s.insertAdjacentHTML("beforeend", panels.join(""));
+      attachPanel(s.querySelector("#flPhotos"), "vehicle", v.id);
+    }
+    s.dataset.flId = v ? v.id : "";
+    if(window.renderIcons) window.renderIcons(s);
+  }
+  async function saveVehicle(){
+    const s = document.getElementById("s-inv-vehicle-detail"), id = s.dataset.flId, g = k=> { const el = document.getElementById("vf_"+k); return el && !el.disabled ? el.value.trim() : ""; };
+    const body = {}; FIELDS.forEach(f=>{ const val = g(f[0]); if(val !== "") body[f[0]] = (f[2] === "number" || f[0] === "manufacturing_year") && f[0] !== "tonnage" && f[0] !== "payload_capacity" && f[0] !== "purchase_cost" ? Number(val) : val; });
+    body.remarks = g("remarks") || null;
+    if(!id){ if(!body.registration_number){ say("Registration number required", "Enter the vehicle registration number", "warn"); return; } }
+    else { ["registration_number", "category", "chassis_number", "axle_config", "ownership", "odometer", "hand", "purchase_date", "purchase_cost", "manufacturing_year"].forEach(k=> delete body[k]); }
+    try{ const r = await (id ? api("PATCH", "/api/vehicles/"+id, body) : api("POST", "/api/vehicles", body)); say("Vehicle saved", r.registration_number); FLEET.openId = r.id; go("inv-vehicle-detail"); }
+    catch(e){ say("Could not save the vehicle", e.message, "warn"); }
+  }
+  const curId = ()=> Number(document.getElementById("s-inv-vehicle-detail").dataset.flId);
+  async function vehicleAction(act, arg){
+    const id = curId(), v = await api("GET", "/api/vehicles/"+id), again = ()=>{ closeModal(); go("inv-vehicle-detail"); };
+    if(act === "allocate") return ACT.vehicles.allocate(v), void 0;
+    if(act === "release") return ACT.vehicles.release(v), void 0;
+    if(act === "odo") return formModal("Record odometer", [{k:"odo", label:"Odometer reading (km)", t:"number", req:1, v:v.odometer}, {k:"why", label:"Note", span:3}], "Record", async f=>{ await call("POST", "/api/vehicles/"+id+"/odometer", {odometer:Number(f.odo), reason:f.why || "Reading recorded"}, "Odometer recorded"); again(); });
+    if(act === "status") return formModal("Change status", [{k:"st", label:"New status", t:"select", req:1, opts:["AVAILABLE", "IDLE", "BREAKDOWN", "ACCIDENT", "SOLD", "SCRAPPED"], span:2}, {k:"why", label:"Reason", req:1, span:2}], "Change", async f=>{ await call("POST", "/api/vehicles/"+id+"/status", {status:f.st, reason:f.why}, "Status changed"); again(); });
+    if(act === "adddoc"){ const types = (masters.inv_document_type || []).filter(t=>["Vehicle", "Both"].includes((t.data || {}).applies_to)).map(t=>[t.name, t.name+((t.data || {}).mandatory === "Yes" ? " (mandatory)" : "")]);
+      return formModal("Add / renew a document", [{k:"t", label:"Document type", req:1, t:"select", opts:[["", "— Select —"]].concat(types), span:2}, {k:"no", label:"Number"}, {k:"auth", label:"Issuing authority"}, {k:"iss", label:"Issue date", t:"date"}, {k:"exp", label:"Expiry date", t:"date"}], "Save", async f=>{
+        await call("POST", "/api/vehicles/"+id+"/documents", {doc_type:f.t, number:f.no || null, authority:f.auth || null, issue_date:f.iss || null, expiry_date:f.exp || null}, "Document saved (the previous one stays in the history)"); again(); }); }
+    if(act === "newwo") return woForm({reg:v.registration_number});
+    if(act === "newplan") return planForm({reg:v.registration_number});
+    if(act === "addfuel") return fuelForm({reg:v.registration_number});
+    if(act === "tyre-fit"){ const stock = (await api("GET", "/api/tyres?status=IN_STOCK&limit=200")).items;
+      return formModal("Fit a tyre at "+arg, [{k:"ty", label:"Tyre from stock", req:1, t:"select", opts:[["", stock.length ? "— Select —" : "No tyre in stock"]].concat(stock.map(t=>[t.id, t.serial_number+" · "+[t.brand, t.size].filter(Boolean).join(" ")])), span:2}, {k:"odo", label:"Odometer (km)", t:"number", req:1, v:v.odometer}, {k:"tread", label:"Tread depth (mm)", t:"number"}], "Fit tyre", async f=>{
+        await call("POST", "/api/tyres/"+f.ty+"/fit", {vehicle_id:id, position:arg, odometer:Number(f.odo), tread_depth_mm:f.tread || null}, "Tyre fitted"); again(); }); }
+    if(act === "tyre-remove") return ACT.tyres.remove({id:Number(arg), _then:again});
+    if(act === "tyre-rotate"){ const lay = (await api("GET", "/api/vehicles/"+id+"/tyres")).layout.filter(x=>!x.tyre).map(x=>x.position);
+      return formModal("Rotate the tyre", [{k:"pos", label:"Move to (empty position)", req:1, t:"select", opts:[["", lay.length ? "— Select —" : "No empty position"]].concat(lay), span:2}, {k:"odo", label:"Odometer (km)", t:"number", req:1, v:v.odometer}], "Rotate", async f=>{
+        await call("POST", "/api/tyres/"+arg+"/rotate", {position:f.pos, odometer:Number(f.odo)}, "Tyre rotated"); again(); }); }
+  }
+
+  /* ---------------- workshop work orders ---------------- */
+  async function woForm(pre){
+    await loadMasters(["inv_maintenance_category"]); pre = pre || {};
+    formModal("New work order", [{k:"reg", label:"Vehicle registration", req:1, span:2, v:pre.reg}, {k:"cat", label:"Maintenance category", t:"select", opts:mopts("inv_maintenance_category"), span:2}, {k:"cmp", label:"Complaint", t:"textarea", span:4}, {k:"by", label:"Reported by"}, {k:"odo", label:"Odometer (km)", t:"number"},
+      {k:"ws", label:"Workshop"}, {k:"mech", label:"Mechanic"}], "Create work order", async f=>{
+      const v = await findVehicle(f.reg); if(!v){ say("Vehicle not found", "Register the vehicle first", "warn"); return; }
+      const w = await call("POST", "/api/vehicle-work-orders", {vehicle_id:v.id, category:f.cat || null, complaint:f.cmp || null, reported_by:f.by || null, odometer:f.odo ? Number(f.odo) : null, workshop:f.ws || null, mechanic:f.mech || null}); closeModal(); say("Work order created", w.number);
+      if(document.getElementById("s-inv-workshop").classList.contains("on")) paintGrid("workshop"); else if(document.getElementById("s-inv-vehicle-detail").classList.contains("on")) go("inv-vehicle-detail"); });
+  }
+  grid({id:"workshop", searchHint:"Vehicle / work order no.", icon:"adjustments", title:"Vehicle Maintenance & Workshop", sub:"Breakdown and preventive work orders. Starting a job takes the vehicle out of service; closing it (approval) brings it back.", newLabel:"New Work Order", url:"/api/vehicle-work-orders",
+    masters:["inv_maintenance_category"], empty:'No work orders yet. Use "New Work Order".', onNew:()=>woForm(),
+    filters:[{k:"status", label:"Status", opts:[["", "All"], "OPEN", "IN_PROGRESS", "COMPLETED", "CLOSED", "CANCELLED"]}],
+    heads:["Work order", "Vehicle", "Category / complaint", "Workshop", "Start", "Completed", "Downtime", "Cost", "Status"],
+    row:w=>['<span class="mono">'+esc(w.number)+'</span>', '<b>'+esc(w.registration_number)+'</b>', esc(w.category || w.complaint || "—"), esc(w.workshop || "—"), dmy(w.start_date), dmy(w.completion_date), w.downtime_days == null ? "—" : w.downtime_days+" day(s)", money(w.total_cost), badge(w.status)],
+    acts:w=>[["view", "View"]].concat({OPEN:[["start", "Start"], ["cancel", "Cancel"]], IN_PROGRESS:[["complete", "Complete"], ["cancel", "Cancel"]], COMPLETED:[["close", "Approve & close"]]}[w.status] || [], [["photos", "Photos"]])});
+  ACT.workshop = {
+    view:w=> window.openModal({title:"Work order "+w.number, bodyHTML:'<p><b>'+esc(w.registration_number)+'</b> · '+badge(w.status)+' · '+esc(w.category || "—")+' · workshop '+esc(w.workshop || "—")+' · mechanic '+esc(w.mechanic || "—")+'</p><p>Complaint: '+esc(w.complaint || "—")+'</p><p>Inspection: '+esc(w.inspection_result || "—")+'</p><p>Work done: '+esc(w.repair_description || "—")+'</p><p>Parts (noted by hand): '+esc(w.parts_note || "—")+'</p>'+
+      '<table><tbody><tr><td>Labour</td><td style="text-align:right">'+money(w.labour_cost)+'</td></tr><tr><td>Material</td><td style="text-align:right">'+money(w.material_cost)+'</td></tr><tr><td>External</td><td style="text-align:right">'+money(w.external_cost)+'</td></tr><tr><td>Other</td><td style="text-align:right">'+money(w.other_cost)+'</td></tr><tr><td><b>Total</b></td><td style="text-align:right"><b>'+money(w.total_cost)+'</b></td></tr></tbody></table><p>Next service: '+dmy(w.next_service_date)+' / '+KM(w.next_service_odometer)+' km</p>'+(w.status_note ? '<p>Note: '+esc(w.status_note)+'</p>' : ""), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'}),
+    start:async w=>{ await call("POST", "/api/vehicle-work-orders/"+w.id+"/start", null, "Work order started"); loadGrid("workshop"); },
+    complete:w=> formModal("Complete "+w.number, [{k:"date", label:"Completion date", t:"date", req:1, v:today()}, {k:"odo", label:"Odometer (km)", t:"number"}, {k:"lh", label:"Labour hours", t:"number"}, {k:"lab", label:"Labour cost", t:"number", v:"0"}, {k:"mat", label:"Material cost", t:"number", v:"0"}, {k:"ext", label:"External cost", t:"number", v:"0"}, {k:"oth", label:"Other cost", t:"number", v:"0"},
+      {k:"ins", label:"Inspection result", span:2}, {k:"rep", label:"Work done", span:2}, {k:"parts", label:"Parts used (typed by hand; the Stores module will issue parts later)", span:4}, {k:"nsd", label:"Next service date", t:"date"}, {k:"nso", label:"Next service odometer", t:"number"}], "Mark completed", async f=>{
+      await call("POST", "/api/vehicle-work-orders/"+w.id+"/complete", {completion_date:f.date, odometer:f.odo ? Number(f.odo) : null, labour_hours:f.lh || null, labour_cost:f.lab || "0", material_cost:f.mat || "0", external_cost:f.ext || "0", other_cost:f.oth || "0", inspection_result:f.ins || null, repair_description:f.rep || null,
+        parts_note:f.parts || null, next_service_date:f.nsd || null, next_service_odometer:f.nso ? Number(f.nso) : null}, "Work order completed"); closeModal(); loadGrid("workshop"); }),
+    close:async w=>{ await call("POST", "/api/vehicle-work-orders/"+w.id+"/close", null, "Work order approved and closed"); loadGrid("workshop"); },
+    cancel:async w=>{ const why = reason("Why is this work order cancelled?"); if(!why) return; await call("POST", "/api/vehicle-work-orders/"+w.id+"/cancel", {reason:why}, "Work order cancelled"); loadGrid("workshop"); },
+    photos:w=> photosModal("vorder", w.id, w.number)};
+
+  /* ---------------- preventive maintenance plans ---------------- */
+  async function planForm(pre){
+    await loadMasters(["inv_maintenance_category"]); pre = pre || {};
+    formModal("New preventive maintenance plan", [{k:"reg", label:"Vehicle registration", req:1, span:2, v:pre.reg}, {k:"name", label:"Service name", req:1, span:2}, {k:"cat", label:"Maintenance category", t:"select", opts:mopts("inv_maintenance_category"), span:2}, {k:"km", label:"Every (km)", t:"number"}, {k:"days", label:"Every (days)", t:"number"},
+      {k:"lodo", label:"Last done at (km)", t:"number", ph:"current odometer"}, {k:"ldate", label:"Last done on", t:"date"}], "Create plan", async f=>{
+      const v = await findVehicle(f.reg); if(!v){ say("Vehicle not found", "Register the vehicle first", "warn"); return; }
+      await call("POST", "/api/vehicle-plans", {vehicle_id:v.id, name:f.name, category:f.cat || null, interval_km:f.km ? Number(f.km) : null, interval_days:f.days ? Number(f.days) : null, last_done_odometer:f.lodo ? Number(f.lodo) : null, last_done_date:f.ldate || null}, "Plan created"); closeModal();
+      if(document.getElementById("s-inv-plans").classList.contains("on")) paintGrid("plans"); else go("inv-vehicle-detail"); });
+  }
+  grid({id:"plans", search:false, icon:"calendar-check", title:"Preventive Maintenance", sub:"Service rules by kilometres and / or days. A work order is created once per due interval, never twice for the same service.", newLabel:"New Plan", url:"/api/vehicle-plans", masters:["inv_maintenance_category"],
+    empty:'No maintenance plans yet. Use "New Plan".', onNew:()=>planForm(), filters:[{k:"due", label:"Show", opts:[["", "All plans"], ["true", "Due or due soon only"]]}],
+    heads:["Vehicle", "Service", "Every", "Last done", "Odometer", "Left", "State"],
+    row:p=>['<b>'+esc(p.registration_number)+'</b>', esc(p.name), esc([p.interval_km ? KM(p.interval_km)+" km" : "", p.interval_days ? p.interval_days+" days" : ""].filter(Boolean).join(" / ")), KM(p.last_done_odometer)+" km · "+dmy(p.last_done_date), KM(p.current_odometer)+" km", esc([p.km_left != null ? KM(p.km_left)+" km" : "", p.days_left != null ? p.days_left+" days" : ""].filter(Boolean).join(" / ")), p.overdue ? '<span class="b b-am">Overdue</span>' : p.due_soon ? '<span class="b b-bl">Due soon</span>' : '<span class="b b-gr">OK</span>'],
+    acts:p=>(p.overdue || p.due_soon) ? [["gen", "Create work order"]] : []});
+  ACT.plans = {gen:async p=>{ const w = await call("POST", "/api/vehicle-plans/"+p.id+"/generate", null); say("Work order created", w.number); loadGrid("plans"); }};
+  document.addEventListener("click", async e=>{
+    const b = e.target.closest("#flGenAll"); if(!b) return;
+    try{ const r = await api("POST", "/api/vehicle-plans/generate-due"); say("Work orders created", r.created.length+" new, "+r.skipped_already_open+" already open"); loadGrid("plans"); }catch(err){ say("Could not create the work orders", err.message, "warn"); }
+  });
+
+  /* ---------------- tyres ---------------- */
+  async function tyreForm(){
+    await loadMasters(["inv_tyre_brand", "inv_tyre_category", "inv_warehouse"]);
+    formModal("Register a tyre", [{k:"sn", label:"Serial number", req:1, span:2}, {k:"brand", label:"Brand", t:"select", opts:mopts("inv_tyre_brand")}, {k:"cat", label:"Category", t:"select", opts:mopts("inv_tyre_category")}, {k:"model", label:"Model"}, {k:"size", label:"Size", ph:"295/80R22.5"},
+      {k:"cond", label:"New / retread", t:"select", opts:["NEW", "RETREAD"]}, {k:"tread", label:"Tread depth (mm)", t:"number"}, {k:"pd", label:"Purchase date", t:"date"}, {k:"pc", label:"Purchase cost", t:"number"}, {k:"sup", label:"Supplier"}, {k:"wu", label:"Warranty until", t:"date"},
+      {k:"wh", label:"Store", t:"select", opts:mopts("inv_warehouse")}], "Register tyre", async f=>{
+      const t = await call("POST", "/api/tyres", {serial_number:f.sn, brand:f.brand || null, category:f.cat || null, model:f.model || null, size:f.size || null, condition_type:f.cond, tread_depth_mm:f.tread || null, purchase_date:f.pd || null, purchase_cost:f.pc || null, supplier:f.sup || null, warranty_until:f.wu || null, warehouse:f.wh || null});
+      closeModal(); say("Tyre registered", t.serial_number); paintGrid("tyres"); });
+  }
+  grid({id:"tyres", searchHint:"Serial number / model", icon:"tag", title:"Tyre Management", sub:"Each tyre from purchase to scrap: stock, fitting to a wheel position, rotation, removal, repair and retreading, with kilometres and cost per km.", newLabel:"Register Tyre", url:"/api/tyres",
+    masters:["inv_tyre_brand"], empty:'No tyres registered yet. Use "Register Tyre".', onNew:()=>tyreForm(),
+    filters:[{k:"status", label:"Status", opts:[["", "All"], "IN_STOCK", "FITTED", "UNDER_REPAIR", "RETREADING", "SCRAPPED"]}, {k:"brand", label:"Brand", opts:()=>mopts("inv_tyre_brand", "All")}],
+    heads:["Serial", "Brand / size", "New / retread", "Tread (mm)", "Where", "Km run", "Cost / km", "Status"],
+    row:t=>['<span class="mono">'+esc(t.serial_number)+'</span>', esc([t.brand, t.size].filter(Boolean).join(" · ") || "—"), esc(nice(t.condition_type))+(t.retread_count ? " ×"+t.retread_count : ""), esc(t.tread_depth_mm || "—"), t.status === "FITTED" ? '<b>'+esc(t.registration_number || "")+'</b> · '+esc(t.current_position) : esc(t.warehouse || "—"), KM(t.total_km), t.cost_per_km ? esc(t.cost_per_km) : "—", badge(t.status)],
+    acts:t=>[["view", "History"]].concat({IN_STOCK:[["fit", "Fit"], ["scrap", "Scrap"]], FITTED:[["remove", "Remove"]], UNDER_REPAIR:[["receive", "Receive back"], ["scrap", "Scrap"]], RETREADING:[["receive", "Receive back"], ["scrap", "Scrap"]]}[t.status] || [], [["photos", "Photos"]])});
+  ACT.tyres = {
+    view:async t=>{ const d = await api("GET", "/api/tyres/"+t.id); window.openModal({title:"Tyre "+d.serial_number, bodyHTML:'<p>'+badge(d.status)+' · '+esc([d.brand, d.size, d.model].filter(Boolean).join(" · "))+' · purchase '+money(d.purchase_cost)+' · extra cost (repairs / retreads) '+money(d.total_cost - 0 - (d.purchase_cost || 0))+' · '+KM(d.total_km)+' km · cost per km '+esc(d.cost_per_km || "—")+'</p><table><thead><tr><th>When</th><th>Event</th><th>Vehicle</th><th>Position</th><th>Odometer</th><th>Tread</th><th>Cost</th><th>Reason</th></tr></thead><tbody>'+
+      d.history.map(h=>'<tr><td>'+esc(new Date(h.at).toLocaleDateString("en-GB"))+'</td><td>'+esc(nice(h.event))+'</td><td>'+esc(h.registration_number || "—")+'</td><td>'+esc(h.position || "—")+(h.from_position ? ' (from '+esc(h.from_position)+')' : "")+'</td><td>'+KM(h.odometer)+'</td><td>'+esc(h.tread_depth_mm || "—")+'</td><td>'+money(h.cost)+'</td><td>'+esc(h.reason || "—")+'</td></tr>').join("")+'</tbody></table>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'}); },
+    fit:t=> formModal("Fit tyre "+t.serial_number, [{k:"reg", label:"Vehicle registration", req:1, span:2}, {k:"pos", label:"Wheel position", req:1, t:"select", opts:[["", "Enter the vehicle first"]], span:2}, {k:"odo", label:"Odometer (km)", t:"number", req:1}, {k:"tread", label:"Tread depth (mm)", t:"number"}], "Fit tyre", async f=>{
+      const v = await findVehicle(f.reg); if(!v){ say("Vehicle not found", "", "warn"); return; } await call("POST", "/api/tyres/"+t.id+"/fit", {vehicle_id:v.id, position:f.pos, odometer:Number(f.odo), tread_depth_mm:f.tread || null}, "Tyre fitted"); closeModal(); loadGrid("tyres"); }),
+    remove:t=> formModal("Remove tyre", [{k:"odo", label:"Odometer (km)", t:"number", req:1}, {k:"to", label:"Send to", t:"select", req:1, opts:[["IN_STOCK", "Back to stock"], ["UNDER_REPAIR", "Repair"], ["RETREADING", "Retreading"], ["SCRAPPED", "Scrap"]], span:2}, {k:"why", label:"Reason", req:1, span:4}, {k:"tread", label:"Tread depth (mm)", t:"number"}, {k:"cost", label:"Cost (repair / retread)", t:"number"}], "Remove", async f=>{
+      await call("POST", "/api/tyres/"+t.id+"/remove", {odometer:Number(f.odo), to_status:f.to, reason:f.why, tread_depth_mm:f.tread || null, cost:f.cost || null}, "Tyre removed"); closeModal(); if(t._then) t._then(); else loadGrid("tyres"); }),
+    receive:async t=>{ await loadMasters(["inv_warehouse"]); formModal("Receive tyre back", [{k:"tread", label:"Tread depth (mm)", t:"number"}, {k:"cost", label:"Cost", t:"number"}, {k:"wh", label:"Store", t:"select", opts:mopts("inv_warehouse"), span:2}], "Receive", async f=>{
+      await call("POST", "/api/tyres/"+t.id+"/receive", {tread_depth_mm:f.tread || null, cost:f.cost || null, warehouse:f.wh || null}, "Tyre back in stock"); closeModal(); loadGrid("tyres"); }); },
+    scrap:t=> formModal("Scrap tyre "+t.serial_number, [{k:"why", label:"Reason", req:1, span:4}], "Scrap", async f=>{ await call("POST", "/api/tyres/"+t.id+"/scrap", {reason:f.why}, "Tyre scrapped"); closeModal(); loadGrid("tyres"); }),
+    photos:t=> photosModal("tyre", t.id, t.serial_number)};
+  document.addEventListener("input", async e=>{      /* the wheel positions of the vehicle typed into the Fit form */
+    if(e.target.id !== "of_reg" || !document.getElementById("of_pos")) return;
+    const v = await findVehicle(e.target.value), p = document.getElementById("of_pos"); if(!p) return;
+    if(!v){ p.innerHTML = '<option value="">Vehicle not found</option>'; return; }
+    const lay = await api("GET", "/api/vehicles/"+v.id+"/tyres").catch(()=>null);
+    p.innerHTML = '<option value="">'+(lay && lay.positions_defined ? "— Select —" : "No wheel positions defined")+'</option>'+(lay ? lay.layout.filter(x=>!x.tyre).map(x=>'<option>'+esc(x.position)+'</option>').join("") : "");
+  });
+
+  /* ---------------- fuel ---------------- */
+  function fuelForm(pre){
+    pre = pre || {};
+    formModal("Add fuel / lubricant", [{k:"reg", label:"Vehicle registration", req:1, span:2, v:pre.reg}, {k:"kind", label:"Type", t:"select", opts:[["FUEL", "Fuel"], ["LUBRICANT", "Lubricant"]]}, {k:"date", label:"Date", t:"date", req:1, v:today()}, {k:"odo", label:"Odometer (km) — needed for fuel", t:"number"},
+      {k:"l", label:"Litres", t:"number", req:1}, {k:"amt", label:"Amount", t:"number"}, {k:"st", label:"Fuel station"}, {k:"card", label:"Fuel card"}, {k:"drv", label:"Driver"}, {k:"full", label:"Full tank?", t:"select", opts:[["true", "Yes (full tank)"], ["false", "No (part fill)"]]}], "Save", async f=>{
+      const v = await findVehicle(f.reg); if(!v){ say("Vehicle not found", "Register the vehicle first", "warn"); return; }
+      const r = await call("POST", "/api/fuel", {vehicle_id:v.id, kind:f.kind, txn_date:f.date, odometer:f.odo ? Number(f.odo) : null, litres:f.l, amount:f.amt || null, fuel_station:f.st || null, fuel_card:f.card || null, driver:f.drv || null, full_tank:f.full === "true"});
+      closeModal(); say("Saved", r.km_per_litre ? r.km_per_litre+" km per litre"+(r.abnormal ? " (abnormal: far below this vehicle's average)" : "") : "Recorded");
+      if(document.getElementById("s-inv-fuel").classList.contains("on")) paintGrid("fuel"); else go("inv-vehicle-detail"); });
+  }
+  grid({id:"fuel", search:false, icon:"gear", title:"Fuel & Lubricant", sub:"Fills per vehicle with kilometres per litre measured from one full tank to the next, abnormal consumption flagged, and cost per km.", newLabel:"Add Fuel", url:"/api/fuel", empty:'No fuel recorded yet. Use "Add Fuel".', onNew:()=>fuelForm(),
+    filters:[{k:"abnormal", label:"Show", opts:[["", "All fills"], ["true", "Abnormal only"]]}, {k:"kind", label:"Type", opts:[["", "All"], ["FUEL", "Fuel"], ["LUBRICANT", "Lubricant"]]}],
+    kpis:async ()=>{ const s = await api("GET", "/api/fuel/summary"); return kpi("Fuel litres", s.total_litres)+kpi("Fuel cost", money(s.total_amount))+kpi("Vehicles", s.items.length)+kpi("Abnormal fills", s.items.reduce((a, x)=>a + x.abnormal_fills, 0))+(s.items.slice(0, 2).map(x=>kpi(x.registration_number, x.average_km_per_litre ? x.average_km_per_litre+" km/l" : "—", x.cost_per_km ? money(x.cost_per_km)+" per km" : "")).join("")); },
+    heads:["Date", "Vehicle", "Type", "Odometer", "Litres", "Amount", "Per litre", "Km / litre", "Station / card"],
+    row:f=>[dmy(f.txn_date), '<b>'+esc(f.registration_number)+'</b>', esc(nice(f.kind)), KM(f.odometer), esc(f.litres), money(f.amount), f.cost_per_litre ? esc(f.cost_per_litre) : "—", f.km_per_litre ? esc(f.km_per_litre)+(f.abnormal ? ' <span class="b b-am">abnormal</span>' : "") : "—", esc([f.fuel_station, f.fuel_card].filter(Boolean).join(" · ") || "—")], acts:()=>[]});
+
+  /* ---------------- events and hooks ---------------- */
+  document.addEventListener("click", e=>{
+    if(e.target.closest("#flSave")){ saveVehicle(); return; }
+    const t = e.target.closest("[data-fl]"); if(!t) return;
+    const [act, arg] = t.dataset.fl.split(":"); vehicleAction(act, arg).catch(err=>say("Could not complete the action", err.message, "warn"));
+  });
+  ["inv-fleet", "inv-vehicle-detail"].forEach(i=>section(i, ""));
+  const base = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    const r = base.apply(this, arguments);
+    if(screen === "inv-fleet") paintFleet(); else if(screen === "inv-vehicle-detail") paintVehicle();
+    if(screen === "inv-plans") setTimeout(()=>{ const pa = document.querySelector("#s-inv-plans .ph .pa"); if(pa && !document.getElementById("flGenAll")){ const b = document.createElement("button"); b.className = "btn btn-out btn-sm"; b.id = "flGenAll"; b.textContent = "Create work orders for everything due"; pa.insertBefore(b, pa.lastElementChild); } }, 150);
+    return r;
+  };
 })();
 </script>
 </body>
