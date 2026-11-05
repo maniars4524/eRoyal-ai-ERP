@@ -33,6 +33,28 @@ MASTER_TYPES = {
     "account": "Ledger Account",
     "bank": "Bank",
     "setting": "Company Setting",
+    # Inventory & asset masters (containers, depots, fleet, tyres, stores). Reference lists only: they start empty, nothing is seeded.
+    "inv_container_size": "Container Size",
+    "inv_container_grade": "Container Grade",
+    "inv_container_condition": "Container Condition",
+    "inv_container_ownership": "Container Ownership",
+    "inv_depot": "Depot",
+    "inv_yard_location": "Yard Location",
+    "inv_movement_type": "Container Movement Type",
+    "inv_survey_type": "Survey Type",
+    "inv_survey_item": "Survey Checklist Item",
+    "inv_damage_type": "Damage Type",
+    "inv_repair_category": "Repair Category",
+    "inv_document_type": "Asset Document Type",
+    "inv_vehicle_category": "Vehicle Category",
+    "inv_vehicle_ownership": "Vehicle Ownership",
+    "inv_maintenance_category": "Maintenance Category",
+    "inv_axle_config": "Axle & Wheel Configuration",
+    "inv_tyre_brand": "Tyre Brand",
+    "inv_tyre_category": "Tyre Category",
+    "inv_item_category": "Item Category",
+    "inv_warehouse": "Warehouse / Store",
+    "inv_item": "Spare Part / Store Item",
 }
 from . import currency_ref as cr
 from . import std_masters as sm

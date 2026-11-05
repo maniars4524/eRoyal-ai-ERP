@@ -6359,6 +6359,30 @@ const TOPNAV_MENU = [
       {label:"SAC / HSN Master", icon:"license", go:"hsn-master"},
       {label:"HBL Clause Master", icon:"file-text", go:"hbl-clauses"},
     ]},
+    {label:"Inventory", icon:"package", children:[
+      {label:"Container Size", icon:"package", go:"inv-container-size"},
+      {label:"Container Type", icon:"package", go:"container-master"},
+      {label:"Container Grade", icon:"award", go:"inv-container-grade"},
+      {label:"Container Condition", icon:"check-circle", go:"inv-container-condition"},
+      {label:"Container Ownership", icon:"license", go:"inv-container-ownership"},
+      {label:"Depot Master", icon:"warehouse", go:"inv-depot"},
+      {label:"Yard Location", icon:"map-pin", go:"inv-yard-location"},
+      {label:"Movement Type", icon:"shuffle", go:"inv-movement-type"},
+      {label:"Survey Type", icon:"clipboard", go:"inv-survey-type"},
+      {label:"Survey Checklist Item", icon:"check", go:"inv-survey-item"},
+      {label:"Damage Type", icon:"alert", go:"inv-damage-type"},
+      {label:"Repair Category", icon:"adjustments", go:"inv-repair-category"},
+      {label:"Asset Document Type", icon:"file-text", go:"inv-document-type"},
+      {label:"Vehicle Category", icon:"truck", go:"inv-vehicle-category"},
+      {label:"Vehicle Ownership", icon:"license", go:"inv-vehicle-ownership"},
+      {label:"Maintenance Category", icon:"adjustments", go:"inv-maintenance-category"},
+      {label:"Axle & Wheel Configuration", icon:"gear", go:"inv-axle-config"},
+      {label:"Tyre Brand", icon:"tag", go:"inv-tyre-brand"},
+      {label:"Tyre Category", icon:"tag", go:"inv-tyre-category"},
+      {label:"Item Category", icon:"folder", go:"inv-item-category"},
+      {label:"Warehouse / Store", icon:"warehouse", go:"inv-warehouse"},
+      {label:"Spare Part / Store Item", icon:"package", go:"inv-item"},
+    ]},
     {label:"Product Masters", icon:"chart-pie", children:[
       {label:"Rate Master", icon:"tag", go:"rate-master"},
       {label:"Product Sheet", icon:"file-text", go:"rate-master"},
@@ -14058,10 +14082,10 @@ if(document.readyState !== "loading") initChatWidget();
       if(pend) paintAudit(scr, cfg, pend.id || pend.rec.id);
       else scr.querySelectorAll("table").forEach(t=>{ if(/^\s*timestamp/i.test((t.querySelector("th") || {}).textContent || "")){ const tb = t.querySelector("tbody"); if(tb) tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--g5);padding:14px">The history starts when the record is saved</td></tr>'; } });
     };
-    const jobs = (cfg.selects || []).map(sp=> api("GET", "/api/masters/"+sp.from).then(rows=>{
+    const jobs = (cfg.selects || []).map(sp=> api("GET", sp.url || "/api/masters/"+sp.from).then(rows=>{
       const f = fields.find(x=>x.key === slug(sp.label)); if(!f || !f.ctl) return;
       const keep = f.ctl.options[0] && !f.ctl.options[0].value ? f.ctl.options[0].outerHTML : '<option value="">— Select —</option>';
-      f.ctl.innerHTML = keep + rows.filter(r=>r.status==="ACTIVE").map(r=> '<option value="'+esc2(sp.use==="code"?r.code:r.name)+'">'+esc2(sp.use==="code"? r.code+" — "+r.name : r.name)+'</option>').join("");
+      f.ctl.innerHTML = keep + rows.filter(r=>!r.status || r.status==="ACTIVE").map(r=> '<option value="'+esc2(sp.use==="code"?r.code:r.name)+'">'+esc2(sp.use==="code"? r.code+" — "+r.name : r.name)+'</option>').join("");
     }).catch(()=>{}));
     Promise.all(jobs).then(fill);
   };
@@ -23385,6 +23409,122 @@ body.job-readonly #jlBanner{display:flex}
   const origRender = MK.renderList;
   MK.renderList = function(cfg){ const r = origRender.apply(this, arguments); if(cfg && cfg.type === "employee") paint(); return r; };
   window.EmployeeGrid = {paint};
+})();
+</script>
+
+<script>
+/* ============================================================
+   INVENTORY MASTERS KIT: Masters > Inventory. Reference lists for containers, depots, fleet, tyres and stores.
+   Built on the Master Kit (list, form, Save / Save & New / Save & Close, import / export, audit) and /api/masters/inv_*.
+   The lists start empty: nothing is pre-loaded. Leasing companies, suppliers and depot operators are picked from the Organisation Master.
+   ============================================================ */
+(function(){
+  "use strict";
+  if(!window.MK || !window.SCREEN_META) return;
+  const esc = MK.util.esc2, slug = MK.util.slug;
+  const YN = ["Yes", "No"];
+  const T = (label, o)=> Object.assign({label, t:"text"}, o || {});
+  const N = (label, o)=> Object.assign({label, t:"number"}, o || {});
+  const S = (label, opts, o)=> Object.assign({label, t:"select", opts}, o || {});
+  const A = (label, o)=> Object.assign({label, t:"textarea"}, o || {});
+  const VENDORS = "/api/customers?role=vendor";
+  const DEFS = [
+    {key:"container-size", type:"inv_container_size", label:"Container Size", icon:"package", codeLabel:"Size Code", nameLabel:"Size Name", sub:"Container lengths used in the inventory (10, 20, 40, 40 HC, 45 ft ... add your own).",
+      fields:[N("Length (Feet)", {req:1}), S("Height Type", ["Standard", "High Cube", "Other"]), N("TEU Equivalent"), A("Description")], cols:["length_feet", "height_type", "teu_equivalent"]},
+    {key:"container-grade", type:"inv_container_grade", label:"Container Grade", icon:"award", codeLabel:"Grade Code", nameLabel:"Grade Name", sub:"Commercial grades (for example Grade 1 to 4, Scrap) and what each means.",
+      fields:[N("Grade Rank", {req:1}), A("Criteria")], cols:["grade_rank", "criteria"]},
+    {key:"container-condition", type:"inv_container_condition", label:"Container Condition", icon:"check-circle", codeLabel:"Condition Code", nameLabel:"Condition Name", sub:"Physical / operational conditions. Kept apart from grade, ownership and location.",
+      fields:[S("Available For Use", YN, {req:1}), S("Needs Repair", YN), N("Sort Order"), A("Description")], cols:["available_for_use", "needs_repair", "sort_order"]},
+    {key:"container-ownership", type:"inv_container_ownership", label:"Container Ownership", icon:"license", codeLabel:"Ownership Code", nameLabel:"Ownership Name", sub:"Who owns the container. Leased, agent and third-party containers are never company fixed assets.",
+      fields:[S("Treatment", ["Company fixed asset", "Leased (not a company asset)", "Agent owned", "Customer owned", "Third party", "Other"], {req:1}), A("Description")], cols:["treatment"]},
+    {key:"depot", type:"inv_depot", label:"Depot", icon:"warehouse", codeLabel:"Depot Code", nameLabel:"Depot Name", sub:"Container depots and yards. Operator and owner come from the Organisation Master.",
+      fields:[T("Depot Operator", {sel:{url:VENDORS}}), T("Depot Owner", {sel:{url:VENDORS}}), T("Country", {sel:{from:"country"}}), T("State"), T("City"), T("Postal Code"), T("Latitude"), T("Longitude"),
+        T("Contact Person"), T("Telephone"), T("Email"), S("Workshop Available", YN), N("Total Capacity (TEU)"), N("Reefer Capacity (Plugs)"), N("Empty Container Capacity"), T("Gate Opening Time", {type:"time"}), T("Gate Closing Time", {type:"time"}),
+        A("Address"), A("Contract Details")], cols:["city", "country", "total_capacity_teu", "workshop_available"]},
+    {key:"yard-location", type:"inv_yard_location", label:"Yard Location", icon:"map-pin", codeLabel:"Location Code", nameLabel:"Location Name", sub:"Exact place inside a depot: Depot, Zone, Block, Row, Bay, Tier.",
+      fields:[T("Depot", {req:1, sel:{from:"inv_depot"}}), T("Zone"), T("Block"), T("Row"), T("Bay"), T("Tier")], cols:["depot", "zone", "block", "row", "bay", "tier"]},
+    {key:"movement-type", type:"inv_movement_type", label:"Container Movement Type", icon:"shuffle", codeLabel:"Type Code", nameLabel:"Type Name", sub:"Reasons a container comes in or goes out (receipt, release, transfer, repair, return to lessor ...).",
+      fields:[S("Direction", ["IN", "OUT"], {req:1}), S("Needs Approval", YN), A("Description")], cols:["direction", "needs_approval"]},
+    {key:"survey-type", type:"inv_survey_type", label:"Survey Type", icon:"clipboard", codeLabel:"Type Code", nameLabel:"Type Name", sub:"Gate-in, gate-out, on-hire, off-hire, periodic, damage, post-repair surveys and so on.",
+      fields:[A("Description")], cols:["description"]},
+    {key:"survey-item", type:"inv_survey_item", label:"Survey Checklist Item", icon:"check", codeLabel:"Item Code", nameLabel:"Item Name", sub:"Points checked in a container survey (front panel, floor, doors, roof ...).",
+      fields:[S("Applies To", ["All containers", "Dry containers", "Refrigerated containers"], {req:1}), N("Sort Order"), A("Description")], cols:["applies_to", "sort_order"]},
+    {key:"damage-type", type:"inv_damage_type", label:"Damage Type", icon:"alert", codeLabel:"Damage Code", nameLabel:"Damage Name", sub:"Kinds of damage recorded on a survey.",
+      fields:[S("Default Severity", ["Minor", "Moderate", "Major", "Severe"]), A("Description")], cols:["default_severity"]},
+    {key:"repair-category", type:"inv_repair_category", label:"Repair Category", icon:"adjustments", codeLabel:"Category Code", nameLabel:"Category Name", sub:"Groups of container repair work.",
+      fields:[S("Needs Approval", YN), A("Description")], cols:["needs_approval"]},
+    {key:"document-type", type:"inv_document_type", label:"Asset Document Type", icon:"file-text", codeLabel:"Type Code", nameLabel:"Type Name", sub:"Documents kept for containers and vehicles, and when they need a reminder.",
+      fields:[S("Applies To", ["Container", "Vehicle", "Both"], {req:1}), S("Has Expiry Date", YN), N("Reminder Days Before Expiry"), S("Mandatory", YN)], cols:["applies_to", "has_expiry_date", "reminder_days_before_expiry", "mandatory"]},
+    {key:"vehicle-category", type:"inv_vehicle_category", label:"Vehicle Category", icon:"truck", codeLabel:"Category Code", nameLabel:"Category Name", sub:"Prime mover, trailer, tipper, forklift, reach stacker and so on.",
+      fields:[S("Is Trailer", YN), S("Needs Driver", YN), A("Description")], cols:["is_trailer", "needs_driver"]},
+    {key:"vehicle-ownership", type:"inv_vehicle_ownership", label:"Vehicle Ownership", icon:"license", codeLabel:"Ownership Code", nameLabel:"Ownership Name", sub:"Company owned, bank financed, leased, rented, subcontracted, agent owned.",
+      fields:[S("Company Asset", YN, {req:1}), S("Agreement Needed", YN), A("Description")], cols:["company_asset", "agreement_needed"]},
+    {key:"maintenance-category", type:"inv_maintenance_category", label:"Maintenance Category", icon:"adjustments", codeLabel:"Category Code", nameLabel:"Category Name", sub:"Preventive, breakdown, engine, brakes, electrical, body repair and so on.",
+      fields:[S("Type", ["Preventive", "Breakdown", "Accident", "Other"]), A("Description")], cols:["type"]},
+    {key:"axle-config", type:"inv_axle_config", label:"Axle & Wheel Configuration", icon:"gear", codeLabel:"Configuration Code", nameLabel:"Configuration Name", sub:"Axles and wheel positions of a vehicle type, so tyres are fitted to real positions.",
+      fields:[N("Number Of Axles", {req:1}), T("Wheels Per Axle"), N("Total Wheel Positions", {req:1}), A("Position Labels"), A("Description")], cols:["number_of_axles", "wheels_per_axle", "total_wheel_positions"]},
+    {key:"tyre-brand", type:"inv_tyre_brand", label:"Tyre Brand", icon:"tag", codeLabel:"Brand Code", nameLabel:"Brand Name", sub:"Tyre makers and brands.",
+      fields:[T("Manufacturer"), T("Country", {sel:{from:"country"}}), A("Remarks")], cols:["manufacturer", "country"]},
+    {key:"tyre-category", type:"inv_tyre_category", label:"Tyre Category", icon:"tag", codeLabel:"Category Code", nameLabel:"Category Name", sub:"Steer, drive, trailer, spare, retreaded and so on.",
+      fields:[S("Typical Position", ["Steer", "Drive", "Trailer", "Spare", "Other"]), A("Description")], cols:["typical_position"]},
+    {key:"item-category", type:"inv_item_category", label:"Item Category", icon:"folder", codeLabel:"Category Code", nameLabel:"Category Name", sub:"Groups of spare parts and store items (filters, brakes, paint, tools ...).",
+      fields:[T("Parent Category", {sel:{from:"inv_item_category"}}), A("Description")], cols:["parent_category"]},
+    {key:"warehouse", type:"inv_warehouse", label:"Warehouse / Store", icon:"warehouse", codeLabel:"Store Code", nameLabel:"Store Name", sub:"Stores that hold spare parts, tyres and consumables.",
+      fields:[T("Branch", {sel:{from:"branch"}}), T("Incharge"), T("Telephone"), A("Address")], cols:["branch", "incharge", "telephone"]},
+    {key:"item", type:"inv_item", label:"Spare Part / Store Item", icon:"package", codeLabel:"Item Code", nameLabel:"Item Name", sub:"Parts, lubricants, tools and materials with their stock limits. Supplier is picked from the Organisation Master.",
+      fields:[T("Category", {sel:{from:"inv_item_category"}}), T("Brand"), T("Manufacturer Part Number"), T("Stock Unit", {sel:{from:"unit"}}), T("Purchase Unit", {sel:{from:"unit"}}), N("Conversion Factor"), N("Minimum Stock"), N("Maximum Stock"),
+        N("Reorder Level"), T("Preferred Supplier", {sel:{url:VENDORS}}), T("Default Storage Location"), S("Serial Numbered", YN), S("Batch Tracked", YN), S("Has Expiry Date", YN), N("Warranty (Months)"), A("Description")],
+      cols:["category", "stock_unit", "minimum_stock", "reorder_level"]}
+  ];
+
+  const parent = (document.getElementById("s-pack-master") || {}).parentNode; if(!parent) return;
+  const fgHtml = f=>{
+    const lab = '<label class="fl">'+esc(f.label)+(f.req ? ' <span class="r">*</span>' : "")+'</label>';
+    let ctl;
+    if(f.t === "textarea") ctl = '<textarea class="fc" rows="2"></textarea>';
+    else if(f.t === "select") ctl = '<select class="fc"><option value="">— Select —</option>'+f.opts.map(o=>'<option>'+esc(o)+'</option>').join("")+'</select>';
+    else if(f.sel) ctl = '<select class="fc"><option value="">— Select —</option></select>';
+    else ctl = '<input class="fc"'+(f.t === "number" ? ' type="number" step="any" min="0"' : f.type ? ' type="'+f.type+'"' : "")+'>';
+    return '<div class="fg"'+(f.t === "textarea" ? ' style="grid-column:span 4"' : "")+'>'+lab+ctl+'</div>';
+  };
+  const detailHtml = d=>{
+    const rows = []; let cur = [];
+    const flush = ()=>{ if(cur.length){ rows.push('<div class="fr">'+cur.join("")+'</div>'); cur = []; } };
+    cur.push('<div class="fg"><label class="fl">'+esc(d.codeLabel)+' <span class="r">*</span></label><input class="fc" style="font-family:var(--font-mono)"></div>');
+    cur.push('<div class="fg"><label class="fl">'+esc(d.nameLabel)+' <span class="r">*</span></label><input class="fc"></div>');
+    cur.push('<div class="fg"><label class="fl">Status</label><select class="fc"><option>Active</option><option>Inactive</option></select></div>');
+    flush();
+    d.fields.filter(f=>f.t !== "textarea").forEach(f=>{ cur.push(fgHtml(f)); if(cur.length === 4) flush(); });
+    flush();
+    d.fields.filter(f=>f.t === "textarea").forEach(f=>{ cur.push(fgHtml(f)); flush(); });
+    return '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="'+d.icon+'" style="color:var(--bl)"></svg>New '+esc(d.label)+'</div><div class="ps">Fill in the details and click Save</div></div>'+
+      '<div class="pa"><button class="btn btn-out btn-sm" data-go="inv-'+d.key+'"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-suc btn-sm"><svg class="ic" data-icon="check"></svg> Save</button></div></div>'+
+      '<div class="card"><div class="ch"><div class="ct">'+esc(d.label)+' Information</div></div><div class="cb">'+rows.join("")+'</div></div>'+
+      '<div class="card" style="margin-top:12px"><div class="ch"><div class="ct">Audit Log</div></div><div class="tw"><table><thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Field Changed</th><th>Old Value</th><th>New Value</th><th>IP Address</th></tr></thead><tbody></tbody></table></div></div>';
+  };
+  const listHtml = d=>{
+    const heads = ["Code", "Name"].concat(d.cols.map(c=> (d.fields.find(f=>slug(f.label) === c) || {label:c}).label), ["Status", ""]);
+    return '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="'+d.icon+'" style="color:var(--bl)"></svg>'+esc(d.label)+' Master</div><div class="ps">'+esc(d.sub)+'</div></div>'+
+      '<div class="pa"><button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" data-go="inv-'+d.key+'-detail"><svg class="ic" data-icon="plus"></svg> New '+esc(d.label)+'</button></div></div>'+
+      '<div class="kpi-row"><div class="kpi"><div class="kpi-lbl">Total</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div><div class="kpi"><div class="kpi-lbl">Active</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div><div class="kpi"><div class="kpi-lbl">Inactive</div><div class="kpi-val">0</div><div class="kpi-sub"></div></div></div>'+
+      '<div class="card"><div class="ch"><div class="ct">'+esc(d.label)+' Directory</div><div style="display:flex;gap:8px"><input class="fc" placeholder="Search code / name..." style="width:240px"></div></div>'+
+      '<div class="tw"><table><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody></tbody></table></div></div>';
+  };
+  DEFS.forEach(d=>{
+    const list = "inv-"+d.key, detail = list+"-detail";
+    [[list, listHtml(d)], [detail, detailHtml(d)]].forEach(([id, html])=>{
+      if(document.getElementById("s-"+id)) return;
+      const sec = document.createElement("div"); sec.id = "s-"+id; sec.className = "scr"; sec.innerHTML = html; parent.appendChild(sec);
+    });
+    window.SCREEN_META[list] = {title:d.label+" Master", crumb:"eSway ERP 2.0 / Masters / Inventory / <strong>"+esc(d.label)+"</strong>", menu:""};
+    window.SCREEN_META[detail] = {title:d.label, crumb:"eSway ERP 2.0 / Masters / Inventory / "+esc(d.label)+" / <strong>Detail</strong>", menu:""};
+    const selects = d.fields.filter(f=>f.sel).map(f=> Object.assign({label:f.label, use:"name"}, f.sel));
+    MK.register({type:d.type, label:d.label, list, detail, codeLabel:d.codeLabel, nameLabel:d.nameLabel, selects,
+      cols:["code", "name"].concat(d.cols.map(c=>"data."+c), ["status", "actions"]),
+      kpis:rows=>[[rows.length, d.label+" records"], [rows.filter(r=>r.status === "ACTIVE").length, "In use"], [rows.filter(r=>r.status !== "ACTIVE").length, "Switched off"]]});
+  });
+  if(window.renderIcons) window.renderIcons(parent);
+  window.InventoryMasters = {DEFS};
 })();
 </script>
 </body>
