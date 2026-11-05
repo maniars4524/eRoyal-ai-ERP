@@ -6360,28 +6360,34 @@ const TOPNAV_MENU = [
       {label:"HBL Clause Master", icon:"file-text", go:"hbl-clauses"},
     ]},
     {label:"Inventory", icon:"package", children:[
-      {label:"Container Size", icon:"package", go:"inv-container-size"},
-      {label:"Container Type", icon:"package", go:"container-master"},
-      {label:"Container Grade", icon:"award", go:"inv-container-grade"},
-      {label:"Container Condition", icon:"check-circle", go:"inv-container-condition"},
-      {label:"Container Ownership", icon:"license", go:"inv-container-ownership"},
-      {label:"Depot Master", icon:"warehouse", go:"inv-depot"},
-      {label:"Yard Location", icon:"map-pin", go:"inv-yard-location"},
-      {label:"Movement Type", icon:"shuffle", go:"inv-movement-type"},
-      {label:"Survey Type", icon:"clipboard", go:"inv-survey-type"},
-      {label:"Survey Checklist Item", icon:"check", go:"inv-survey-item"},
-      {label:"Damage Type", icon:"alert", go:"inv-damage-type"},
-      {label:"Repair Category", icon:"adjustments", go:"inv-repair-category"},
-      {label:"Asset Document Type", icon:"file-text", go:"inv-document-type"},
-      {label:"Vehicle Category", icon:"truck", go:"inv-vehicle-category"},
-      {label:"Vehicle Ownership", icon:"license", go:"inv-vehicle-ownership"},
-      {label:"Maintenance Category", icon:"adjustments", go:"inv-maintenance-category"},
-      {label:"Axle & Wheel Configuration", icon:"gear", go:"inv-axle-config"},
-      {label:"Tyre Brand", icon:"tag", go:"inv-tyre-brand"},
-      {label:"Tyre Category", icon:"tag", go:"inv-tyre-category"},
-      {label:"Item Category", icon:"folder", go:"inv-item-category"},
-      {label:"Warehouse / Store", icon:"warehouse", go:"inv-warehouse"},
-      {label:"Spare Part / Store Item", icon:"package", go:"inv-item"},
+      {label:"Container Inventory", icon:"package", children:[
+        {label:"Container Size", icon:"package", go:"inv-container-size"},
+        {label:"Container Type", icon:"package", go:"container-master"},
+        {label:"Container Grade", icon:"award", go:"inv-container-grade"},
+        {label:"Container Condition", icon:"check-circle", go:"inv-container-condition"},
+        {label:"Container Ownership", icon:"license", go:"inv-container-ownership"},
+        {label:"Depot Master", icon:"warehouse", go:"inv-depot"},
+        {label:"Yard Location", icon:"map-pin", go:"inv-yard-location"},
+        {label:"Movement Type", icon:"shuffle", go:"inv-movement-type"},
+        {label:"Survey Type", icon:"clipboard", go:"inv-survey-type"},
+        {label:"Survey Checklist Item", icon:"check", go:"inv-survey-item"},
+        {label:"Damage Type", icon:"alert", go:"inv-damage-type"},
+        {label:"Repair Category", icon:"adjustments", go:"inv-repair-category"},
+      ]},
+      {label:"Vehicle Inventory", icon:"truck", children:[
+        {label:"Vehicle Category", icon:"truck", go:"inv-vehicle-category"},
+        {label:"Vehicle Ownership", icon:"license", go:"inv-vehicle-ownership"},
+        {label:"Maintenance Category", icon:"adjustments", go:"inv-maintenance-category"},
+        {label:"Axle & Wheel Configuration", icon:"gear", go:"inv-axle-config"},
+        {label:"Tyre Brand", icon:"tag", go:"inv-tyre-brand"},
+        {label:"Tyre Category", icon:"tag", go:"inv-tyre-category"},
+      ]},
+      {label:"Other Inventory", icon:"warehouse", children:[
+        {label:"Item Category", icon:"folder", go:"inv-item-category"},
+        {label:"Warehouse / Store", icon:"warehouse", go:"inv-warehouse"},
+        {label:"Spare Part / Store Item", icon:"package", go:"inv-item"},
+        {label:"Asset Document Type", icon:"file-text", go:"inv-document-type"},
+      ]},
     ]},
     {label:"Product Masters", icon:"chart-pie", children:[
       {label:"Rate Master", icon:"tag", go:"rate-master"},
@@ -6446,6 +6452,13 @@ const TOPNAV_MENU = [
         {label:"Multimodal", icon:"shuffle", go:"job-list", jobmode:"", jobdir:"Export"},
       ]},
       {label:"Shipment Console", icon:"globe", go:"svc-console", roles:["Admin","Operations"]},
+    ]},
+  ]},
+  {id:"inventory", label:"Inventory & Asset Mgmt", icon:"package", roles:["Admin","Operations"], children:[
+    {label:"Container Inventory", icon:"package", children:[
+      {label:"Inventory Dashboard", icon:"dashboard", go:"inv-dashboard"},
+      {label:"NVOCC Container Inventory", icon:"package", go:"inv-containers"},
+      {label:"Container Movement Management", icon:"shuffle", go:"inv-movements"},
     ]},
   ]},
   {id:"accounts", module:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts","CHA","Transport"], children:[
@@ -23525,6 +23538,238 @@ body.job-readonly #jlBanner{display:flex}
   });
   if(window.renderIcons) window.renderIcons(parent);
   window.InventoryMasters = {DEFS};
+})();
+</script>
+
+<script>
+/* ============================================================
+   CONTAINER INVENTORY KIT: Inventory & Asset Management > Inventory Dashboard, NVOCC Container Inventory, Container Movement Management.
+   All figures come from /api/containers and /api/container-movements (PostgreSQL). Nothing here is a sample.
+   ============================================================ */
+(function(){
+  "use strict";
+  if(!window.MK || !window.SCREEN_META) return;
+  const api = MK.util.api, say = MK.util.say, esc = MK.util.esc2;
+  const parent = (document.getElementById("s-pack-master") || {}).parentNode; if(!parent) return;
+  const nice = s=> { s = String(s == null ? "" : s).replace(/_/g, " ").toLowerCase(); return s ? s.charAt(0).toUpperCase() + s.slice(1) : "—"; };
+  const dmy = d=> d ? new Date(d).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
+  const AV = {AVAILABLE:"b-gr", IN_USE:"b-bl", UNDER_REPAIR:"b-am", NOT_AVAILABLE:"b-gy"};
+  const MV = {DRAFT:"b-am", APPROVED:"b-gr", REVERSED:"b-gy", CANCELLED:"b-gy"};
+  const badge = (cls, text)=> '<span class="b '+(cls || "b-gy")+'">'+esc(text)+'</span>';
+  const kpi = (label, val, sub)=> '<div class="kpi"><div class="kpi-lbl">'+esc(label)+'</div><div class="kpi-val">'+esc(val)+'</div><div class="kpi-sub">'+esc(sub || "")+'</div></div>';
+  const INV = window.INVC = {openId:null, C:{q:"", ownership:"", depot:"", availability:"", page:1, size:50}, M:{q:"", status:"", direction:"", page:1, size:50}, masters:{}};
+  const SEL_MASTERS = ["inv_container_size", "container_type", "inv_container_ownership", "inv_container_grade", "inv_container_condition", "inv_depot", "inv_yard_location", "inv_movement_type"];
+  async function loadMasters(){
+    await Promise.all(SEL_MASTERS.map(async t=>{ try{ INV.masters[t] = (await MK.fetchAll(t)).filter(r=>r.status === "ACTIVE"); }catch(e){ INV.masters[t] = []; } }));
+  }
+  const opts = (type, cur)=> '<option value="">— Select —</option>'+(INV.masters[type] || []).map(r=>'<option value="'+esc(r.name)+'"'+(r.name === cur ? " selected" : "")+'>'+esc(r.name)+'</option>').join("");
+  const listOf = (arr, cur)=> '<option value="">— Select —</option>'+arr.map(v=>'<option'+(v === cur ? " selected" : "")+'>'+esc(v)+'</option>').join("");
+  const fg = (label, ctl, o)=> '<div class="fg"'+(o && o.span ? ' style="grid-column:span '+o.span+'"' : "")+'><label class="fl">'+esc(label)+(o && o.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+'</div>';
+  const v = (id, val)=> '<input class="fc" id="'+id+'" value="'+esc(val == null ? "" : val)+'">';
+  const pager = (st, total, key)=> { const pages = Math.max(1, Math.ceil(total / st.size)); return '<div class="lk-foot"><span>'+(total ? "Showing "+((st.page - 1) * st.size + 1)+" to "+Math.min(total, st.page * st.size)+" of "+total : "")+'</span><span class="lk-sp"></span><button class="btn btn-out btn-sm" data-invpg="'+key+':-1"'+(st.page <= 1 ? " disabled" : "")+'>&#8249; Previous</button><span class="lk-pageinfo">'+(pages > 1 ? "Page "+st.page+" of "+pages : "")+'</span><button class="btn btn-out btn-sm" data-invpg="'+key+':1"'+(st.page >= pages ? " disabled" : "")+'>Next &#8250;</button></div>'; };
+  const section = (id, html)=> { let s = document.getElementById("s-"+id); if(!s){ s = document.createElement("div"); s.id = "s-"+id; s.className = "scr"; parent.appendChild(s); } s.innerHTML = html; return s; };
+  const head = (icon, title, sub, actions)=> '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="'+icon+'" style="color:var(--bl)"></svg>'+esc(title)+'</div><div class="ps">'+esc(sub)+'</div></div><div class="pa">'+(actions || "")+'</div></div>';
+  const backBtn = go=> '<button class="btn btn-out btn-sm" data-go="'+go+'"><svg class="ic" data-icon="arrow-left"></svg> Back</button>';
+  const meta = (id, title, crumb)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / <strong>"+esc(crumb)+"</strong>", menu:""}; };
+  const css = document.createElement("style");
+  css.textContent = ".inv-tabs{display:flex;gap:4px;border-bottom:1px solid var(--g2);margin:0 0 12px;flex-wrap:wrap}.inv-tabs button{border:0;background:none;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--g6);cursor:pointer;border-bottom:2px solid transparent}.inv-tabs button.on{color:var(--bl);border-bottom-color:var(--bl)}.inv-hint{font-size:11.5px;margin-top:3px}.inv-hint.ok{color:var(--gr,#15803d)}.inv-hint.bad{color:var(--rd,#b91c1c)}.inv-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}";
+  document.head.appendChild(css);
+
+  /* ---------------- dashboard ---------------- */
+  async function paintDashboard(){
+    const s = section("inv-dashboard", head("package", "Inventory Dashboard", "Live container figures from the register and approved movements", "")+'<div id="invDashBody"><div class="card"><div class="cb">Loading…</div></div></div>');
+    try{
+      const d = await api("GET", "/api/containers/summary");
+      const by = d.by_availability || {};
+      const table = (title, obj)=> { const keys = Object.keys(obj).sort(); return '<div class="card"><div class="ch"><div class="ct">'+esc(title)+'</div></div><div class="tw"><table><tbody>'+(keys.length ? keys.map(k=>'<tr><td>'+esc(nice(k) === "—" ? k : k)+'</td><td style="text-align:right"><b>'+obj[k]+'</b></td></tr>').join("") : '<tr><td class="tbl-empty">No containers yet</td></tr>')+'</tbody></table></div></div>'; };
+      s.querySelector("#invDashBody").innerHTML =
+        '<div class="kpi-row">'+kpi("Total containers", d.total, "in the register")+kpi("Available", by.AVAILABLE || 0, "ready to release")+kpi("In use", by.IN_USE || 0, "with customers / agents")+kpi("Under repair", by.UNDER_REPAIR || 0, "")+kpi("Awaiting approval", d.pending_movements, "movements")+'</div>'+
+        '<div class="card"><div class="ch"><div class="ct">Depot-wise inventory</div></div><div class="tw"><table><thead><tr><th>Depot</th><th>Containers</th><th>Available</th><th>In use</th><th>Under repair</th><th>Not available</th></tr></thead><tbody>'+
+        (d.by_depot.length ? d.by_depot.map(r=>'<tr><td><b>'+esc(r.depot)+'</b></td><td>'+r.total+'</td><td>'+r.available+'</td><td>'+r.in_use+'</td><td>'+r.under_repair+'</td><td>'+r.not_available+'</td></tr>').join("") : '<tr><td colspan="6" class="tbl-empty">No container is at a depot yet. Register containers and approve a movement IN.</td></tr>')+'</tbody></table></div></div>'+
+        '<div class="inv-two">'+table("By ownership", d.by_ownership)+table("By size", d.by_size)+table("By condition", d.by_condition)+table("By grade", d.by_grade)+table("By location status", Object.fromEntries(Object.entries(d.by_location_status).map(([k, n])=>[nice(k), n])))+'</div>';
+    }catch(e){ s.querySelector("#invDashBody").innerHTML = '<div class="card"><div class="cb">Could not load the figures: '+esc(e.message)+'</div></div>'; }
+    if(window.renderIcons) window.renderIcons(s);
+  }
+
+  /* ---------------- container list ---------------- */
+  async function paintContainers(){
+    await loadMasters();
+    const C = INV.C;
+    const s = section("inv-containers", head("package", "NVOCC Container Inventory", "Every container with its ownership, grade, condition, availability and current location",
+      backBtn("back")+'<button class="btn btn-pri btn-sm" id="invNewCont"><svg class="ic" data-icon="plus"></svg> New Container</button>')+
+      '<div class="card" style="margin-bottom:12px"><div class="cb"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'+
+      fg("Search", '<input class="fc" id="invCq" placeholder="Container no. / serial / depot" value="'+esc(C.q)+'">', {})+
+      fg("Ownership", '<select class="fc" id="invCown">'+opts("inv_container_ownership", C.ownership)+'</select>')+
+      fg("Depot", '<select class="fc" id="invCdep">'+opts("inv_depot", C.depot)+'</select>')+
+      fg("Availability", '<select class="fc" id="invCav"><option value="">All</option>'+["AVAILABLE", "IN_USE", "UNDER_REPAIR", "NOT_AVAILABLE"].map(x=>'<option value="'+x+'"'+(x === C.availability ? " selected" : "")+'>'+nice(x)+'</option>').join("")+'</select>')+
+      '</div></div></div><div class="card"><div class="tw"><table><thead><tr><th>Container No.</th><th>Size</th><th>Type</th><th>Ownership</th><th>Grade</th><th>Condition</th><th>Availability</th><th>Location</th><th></th></tr></thead><tbody id="invCbody"><tr><td colspan="9" class="tbl-empty">Loading…</td></tr></tbody></table></div><div id="invCpager"></div></div>');
+    if(window.renderIcons) window.renderIcons(s);
+    await loadContainers();
+  }
+  async function loadContainers(){
+    const C = INV.C, p = new URLSearchParams({limit:String(C.size), offset:String((C.page - 1) * C.size)});
+    [["q", C.q], ["ownership", C.ownership], ["depot", C.depot], ["availability", C.availability]].forEach(([k, val])=>{ if(val) p.set(k, val); });
+    let d; try{ d = await api("GET", "/api/containers?"+p); }catch(e){ say("Could not load the containers", e.message, "warn"); return; }
+    const body = document.getElementById("invCbody"); if(!body) return;
+    body.innerHTML = d.items.length ? d.items.map(c=>'<tr><td class="mono ta" style="font-weight:700;color:var(--bl);cursor:pointer" data-invopen="'+c.id+'">'+esc(c.container_number)+'</td><td>'+esc(c.size || "—")+'</td><td>'+esc(c.container_type || "—")+'</td><td>'+esc(c.ownership || "—")+(c.is_company_asset === false ? ' <span class="b b-gy" title="Not a company fixed asset">not owned</span>' : "")+'</td><td>'+esc(c.grade || "—")+'</td><td>'+esc(c.condition || "—")+'</td><td>'+badge(AV[c.availability], nice(c.availability))+'</td><td>'+(c.depot ? esc(c.depot)+(c.yard_location ? ' <span style="color:var(--g5)">· '+esc(c.yard_location)+'</span>' : "") : esc(nice(c.location_status)))+'</td><td><button class="ta" data-invopen="'+c.id+'">Open</button></td></tr>').join("")
+      : '<tr><td colspan="9" class="tbl-empty">'+(C.q || C.ownership || C.depot || C.availability ? "No container matches the filters." : 'No containers registered yet. Use "New Container".')+'</td></tr>';
+    document.getElementById("invCpager").innerHTML = pager(C, d.total, "C");
+  }
+
+  /* ---------------- container detail ---------------- */
+  const FIELDS = [["container_number", "Container Number", "text", 1], ["size", "Size", "sel:inv_container_size"], ["container_type", "Container Type", "sel:container_type"], ["iso_code", "ISO Size / Type Code", "text"],
+    ["manufacturer", "Manufacturer", "text"], ["manufacturing_year", "Manufacturing Year", "number"], ["manufacturing_country", "Manufacturing Country", "text"], ["purchase_date", "Purchase Date", "date"],
+    ["hand", "First-hand / Second-hand", "hand"], ["serial_number", "Serial Number", "text"], ["csc_plate", "CSC Plate Details", "text"], ["csc_valid_until", "CSC Valid Until", "date"]];
+  const ctl = (f, c, isNew)=> {
+    const [key, , type] = f, val = c ? c[key] : "";
+    if(type.startsWith("sel:")) return '<select class="fc" id="ic_'+key+'">'+opts(type.slice(4), val)+'</select>';
+    if(type === "hand") return '<select class="fc" id="ic_'+key+'">'+listOf(["First-hand", "Second-hand"], val)+'</select>';
+    return '<input class="fc" id="ic_'+key+'"'+(type === "number" ? ' type="number"' : type === "date" ? ' type="date"' : "")+(key === "container_number" && !isNew ? " readonly" : "")+' value="'+esc(val == null ? "" : val)+'"'+(key === "container_number" ? ' style="font-family:var(--font-mono);text-transform:uppercase"' : "")+'>';
+  };
+  async function paintDetail(){
+    await loadMasters();
+    const id = INV.openId; let c = null;
+    if(id){ try{ c = await api("GET", "/api/containers/"+id); }catch(e){ say("Could not open the container", e.message, "warn"); go("inv-containers"); return; } }
+    const isNew = !c;
+    const s = section("inv-container-detail", head("package", isNew ? "New Container" : "Container "+c.container_number, isNew ? "Register a container: the number is checked against ISO 6346" : (c.is_company_asset === false ? "Not a company fixed asset (leased / agent / customer / third party)" : "Company container"),
+      backBtn("inv-containers")+'<button class="btn btn-suc btn-sm" id="invCsave"><svg class="ic" data-icon="check"></svg> Save</button>')+
+      '<div class="inv-tabs">'+['Overview', isNew ? null : 'Status & Ownership', isNew ? null : 'Movement History', isNew ? null : 'Status History'].filter(Boolean).map((t, i)=>'<button data-invtab="'+i+'"'+(i === 0 ? ' class="on"' : "")+'>'+t+'</button>').join("")+'</div>'+
+      '<div data-invpanel="0"><div class="card"><div class="ch"><div class="ct">Container details</div></div><div class="cb"><div class="fr">'+
+      FIELDS.map(f=> fg(f[1], ctl(f, c, isNew), {req:f[0] === "container_number"})).join("")+
+      (isNew ? fg("Ownership", '<select class="fc" id="ic_ownership">'+opts("inv_container_ownership", "")+'</select>', {req:1})+fg("Grade", '<select class="fc" id="ic_grade">'+opts("inv_container_grade", "")+'</select>')+fg("Condition", '<select class="fc" id="ic_condition">'+opts("inv_container_condition", "")+'</select>') : "")+
+      '</div><div class="inv-hint" id="invNumHint"></div><div class="fr">'+fg("Description", '<textarea class="fc" id="ic_description" rows="2">'+esc(c ? c.description || "" : "")+'</textarea>', {span:2})+fg("Remarks", '<textarea class="fc" id="ic_remarks" rows="2">'+esc(c ? c.remarks || "" : "")+'</textarea>', {span:2})+'</div></div></div></div>'+
+      (isNew ? "" :
+        '<div data-invpanel="1" style="display:none"><div class="inv-two"><div class="card"><div class="ch"><div class="ct">Current status</div></div><div class="cb"><table><tbody>'+
+        [["Ownership", c.ownership], ["Grade", c.grade], ["Condition", c.condition], ["Availability", nice(c.availability)], ["Location status", nice(c.location_status)], ["Depot", c.depot], ["Yard location", c.yard_location], ["Lease status", nice(c.lease_status)]].map(([k, val])=>'<tr><td style="color:var(--g6)">'+k+'</td><td><b>'+esc(val || "—")+'</b></td></tr>').join("")+
+        '</tbody></table><div class="ib ib-am" style="margin-top:10px">Depot, yard location, location status and availability change only through an approved movement, never by editing here.</div></div></div>'+
+        '<div class="card"><div class="ch"><div class="ct">Change condition, grade or ownership</div></div><div class="cb"><div class="fr">'+
+        fg("Condition", '<select class="fc" id="ic_new_condition">'+opts("inv_container_condition", c.condition)+'</select>')+fg("Grade", '<select class="fc" id="ic_new_grade">'+opts("inv_container_grade", c.grade)+'</select>')+fg("Ownership", '<select class="fc" id="ic_new_ownership">'+opts("inv_container_ownership", c.ownership)+'</select>')+
+        '</div><div class="fr">'+fg("Reason", '<input class="fc" id="ic_reason" placeholder="Why is it changing? (kept in the history)">', {span:3, req:1})+'</div><button class="btn btn-pri btn-sm" id="invCstatus">Apply change</button> <span style="font-size:11.5px;color:var(--g5)">Grade and ownership need approval rights.</span></div></div></div></div>'+
+        '<div data-invpanel="2" style="display:none"><div class="card"><div class="tw"><table><thead><tr><th>No.</th><th>Date</th><th>Direction</th><th>Purpose</th><th>From</th><th>To</th><th>Truck</th><th>Status</th></tr></thead><tbody>'+
+        (c.movements.length ? c.movements.map(m=>'<tr><td class="mono">'+esc(m.number || "—")+'</td><td>'+dmy(m.movement_date)+'</td><td>'+esc(m.direction)+'</td><td>'+esc(nice(m.purpose))+'</td><td>'+esc(m.from_depot || "—")+'</td><td>'+esc(m.to_depot || "—")+'</td><td>'+esc(m.truck_number || "—")+'</td><td>'+badge(MV[m.status], nice(m.status))+'</td></tr>').join("") : '<tr><td colspan="8" class="tbl-empty">No movement yet</td></tr>')+'</tbody></table></div></div></div>'+
+        '<div data-invpanel="3" style="display:none"><div class="card"><div class="tw"><table><thead><tr><th>When</th><th>Field</th><th>From</th><th>To</th><th>Reason</th><th>By</th></tr></thead><tbody>'+
+        (c.history.length ? c.history.map(h=>'<tr><td>'+esc(new Date(h.at).toLocaleString("en-GB"))+'</td><td>'+esc(nice(h.field))+'</td><td>'+esc(h.old || "—")+'</td><td>'+esc(h.new || "—")+'</td><td>'+esc(h.reason || "—")+'</td><td>'+esc(h.by || "—")+'</td></tr>').join("") : '<tr><td colspan="6" class="tbl-empty">No change recorded yet</td></tr>')+'</tbody></table></div></div></div>'));
+    if(window.renderIcons) window.renderIcons(s);
+    s.dataset.invId = id || "";
+  }
+  async function saveContainer(){
+    const s = document.getElementById("s-inv-container-detail"), id = s.dataset.invId;
+    const g = k=> { const el = document.getElementById("ic_"+k); return el ? el.value.trim() : ""; };
+    const body = {};
+    FIELDS.forEach(f=>{ const val = g(f[0]); if(f[0] === "container_number"){ if(!id) body[f[0]] = val; return; } if(val !== "") body[f[0]] = f[2] === "number" ? Number(val) : val; });
+    ["description", "remarks"].forEach(k=>{ body[k] = g(k) || null; });
+    if(!id){
+      if(!body.container_number){ say("Container number is required", "Enter the 11-character ISO 6346 number", "warn"); return; }
+      ["ownership", "grade", "condition"].forEach(k=>{ if(g(k)) body[k] = g(k); });
+      if(!body.ownership){ say("Ownership is required", "Choose who owns the container", "warn"); return; }
+    }
+    try{
+      const res = await (id ? api("PATCH", "/api/containers/"+id, body) : api("POST", "/api/containers", body));
+      say("Container saved", res.container_number); INV.openId = res.id; go("inv-container-detail");
+    }catch(e){ say("Could not save the container", e.message, "warn"); }
+  }
+
+  /* ---------------- movements ---------------- */
+  async function paintMovements(){
+    await loadMasters();
+    const M = INV.M;
+    const s = section("inv-movements", head("shuffle", "Container Movement Management", "Containers coming IN and going OUT of depots. A movement changes the container only when it is approved.",
+      backBtn("back")+'<button class="btn btn-pri btn-sm" id="invNewMove"><svg class="ic" data-icon="plus"></svg> New Movement</button>')+
+      '<div class="card" style="margin-bottom:12px"><div class="cb"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'+
+      fg("Search", '<input class="fc" id="invMq" placeholder="Container / movement no. / booking / truck" value="'+esc(M.q)+'">')+
+      fg("Status", '<select class="fc" id="invMst">'+["", "DRAFT", "APPROVED", "REVERSED", "CANCELLED"].map(x=>'<option value="'+x+'"'+(x === M.status ? " selected" : "")+'>'+(x ? nice(x) : "All")+'</option>').join("")+'</select>')+
+      fg("Direction", '<select class="fc" id="invMdir">'+["", "IN", "OUT"].map(x=>'<option value="'+x+'"'+(x === M.direction ? " selected" : "")+'>'+(x || "All")+'</option>').join("")+'</select>')+
+      '</div></div></div><div class="card"><div class="tw"><table><thead><tr><th>Movement No.</th><th>Date</th><th>Container</th><th>Dir.</th><th>Purpose</th><th>From</th><th>To</th><th>Truck / Customer</th><th>Status</th><th></th></tr></thead><tbody id="invMbody"><tr><td colspan="10" class="tbl-empty">Loading…</td></tr></tbody></table></div><div id="invMpager"></div></div>');
+    if(window.renderIcons) window.renderIcons(s);
+    await loadMovements();
+  }
+  async function loadMovements(){
+    const M = INV.M, p = new URLSearchParams({limit:String(M.size), offset:String((M.page - 1) * M.size)});
+    [["q", M.q], ["status", M.status], ["direction", M.direction]].forEach(([k, val])=>{ if(val) p.set(k, val); });
+    let d; try{ d = await api("GET", "/api/container-movements?"+p); }catch(e){ say("Could not load the movements", e.message, "warn"); return; }
+    const body = document.getElementById("invMbody"); if(!body) return;
+    body.innerHTML = d.items.length ? d.items.map(m=>'<tr><td class="mono">'+esc(m.number || "—")+'</td><td>'+dmy(m.movement_date)+(m.movement_time ? " "+esc(m.movement_time) : "")+'</td><td class="mono">'+esc(m.container_number || "")+'</td><td>'+badge(m.direction === "IN" ? "b-gr" : "b-bl", m.direction)+'</td><td>'+esc(nice(m.purpose))+'</td><td>'+esc(m.from_depot || "—")+'</td><td>'+esc(m.to_depot || "—")+'</td><td>'+esc([m.truck_number, m.customer].filter(Boolean).join(" · ") || "—")+'</td><td>'+badge(MV[m.status], nice(m.status))+'</td><td style="white-space:nowrap">'+
+      (m.status === "DRAFT" ? '<button class="ta" data-invmv="approve:'+m.id+'">Approve</button> <button class="ta" data-invmv="cancel:'+m.id+'">Cancel</button>' : m.status === "APPROVED" ? '<button class="ta" data-invmv="reverse:'+m.id+'">Reverse</button>' : "")+'</td></tr>').join("")
+      : '<tr><td colspan="10" class="tbl-empty">'+(M.q || M.status || M.direction ? "No movement matches the filters." : 'No movements yet. Use "New Movement".')+'</td></tr>';
+    document.getElementById("invMpager").innerHTML = pager(M, d.total, "M");
+  }
+  const PURPOSE = {IN:[["RECEIPT", "Received (empty / import / agent / customer)"], ["RETURN", "Returned by customer or agent"], ["TRANSFER", "Inter-depot transfer in"], ["REPAIR_RETURN", "Returned from repair"], ["OTHER", "Other"]],
+                   OUT:[["RELEASE", "Released / dispatched to a party"], ["TRANSFER", "Inter-depot transfer out"], ["REPAIR", "Sent for repair"], ["RETURN_LESSOR", "Returned to leasing company"], ["DISPOSAL", "Sent for disposal"], ["OTHER", "Other"]]};
+  async function movementForm(){
+    await loadMasters();
+    const mt = dir=> (INV.masters.inv_movement_type || []).filter(r=>!(r.data || {}).direction || (r.data || {}).direction === dir);
+    const today = new Date().toISOString().slice(0, 10);
+    window.openModal({title:"New container movement", bodyHTML:'<div id="invMvForm"><div class="fr">'+
+      fg("Container number", '<input class="fc mono" id="im_cn" placeholder="e.g. CSQU3054383" style="text-transform:uppercase"><div class="inv-hint" id="im_cnhint"></div>', {req:1})+
+      fg("Direction", '<select class="fc" id="im_dir"><option value="IN">IN (into a depot)</option><option value="OUT">OUT (from a depot)</option></select>', {req:1})+
+      fg("Purpose", '<select class="fc" id="im_purpose"></select>', {req:1})+fg("Movement type", '<select class="fc" id="im_type"></select>')+
+      fg("Depot (IN: into)", '<select class="fc" id="im_depot">'+opts("inv_depot", "")+'</select>')+fg("Yard location", '<select class="fc" id="im_loc"><option value="">— Select —</option></select>')+
+      fg("Date", '<input class="fc" type="date" id="im_date" value="'+today+'">', {req:1})+fg("Time", '<input class="fc" type="time" id="im_time">')+
+      fg("Truck number", v("im_truck"))+fg("Driver name", v("im_driver"))+fg("Transport company", v("im_tc"))+fg("Customer", v("im_cust"))+fg("Agent", v("im_agent"))+fg("Booking number", v("im_bk"))+fg("BL number", v("im_bl"))+fg("Job reference", v("im_job"))+fg("EIR number", v("im_eir"))+
+      fg("Condition on arrival", '<select class="fc" id="im_cond">'+opts("inv_container_condition", "")+'</select>')+fg("Reason", v("im_reason"), {span:2})+fg("Damage remarks", '<textarea class="fc" id="im_dmg" rows="2"></textarea>', {span:4})+'</div></div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="im_save">Create movement</button>'});
+    const el = id=> document.getElementById(id);
+    const fillDir = ()=> { const dir = el("im_dir").value; el("im_purpose").innerHTML = PURPOSE[dir].map(([k, t])=>'<option value="'+k+'">'+esc(t)+'</option>').join(""); el("im_type").innerHTML = '<option value="">— Select —</option>'+mt(dir).map(r=>'<option>'+esc(r.name)+'</option>').join(""); el("im_depot").disabled = dir === "OUT"; el("im_loc").disabled = dir === "OUT"; };
+    const fillLoc = ()=> { const dep = el("im_depot").value; el("im_loc").innerHTML = '<option value="">— Select —</option>'+(INV.masters.inv_yard_location || []).filter(r=>(r.data || {}).depot === dep).map(r=>'<option value="'+esc(r.code)+'">'+esc(r.code+" — "+r.name)+'</option>').join(""); };
+    el("im_dir").addEventListener("change", fillDir); el("im_depot").addEventListener("change", fillLoc); fillDir();
+    let t = null; el("im_cn").addEventListener("input", ()=>{ clearTimeout(t); t = setTimeout(async ()=>{ const n = el("im_cn").value; if(n.replace(/\W/g, "").length < 4){ el("im_cnhint").textContent = ""; return; } try{ const r = await api("GET", "/api/containers?q="+encodeURIComponent(n)+"&limit=5"); const hit = r.items.find(x=>x.container_number === n.replace(/\W/g, "").toUpperCase()); el("im_cnhint").className = "inv-hint "+(hit ? "ok" : "bad"); el("im_cnhint").textContent = hit ? (hit.size || "")+" · "+nice(hit.availability)+" · "+(hit.depot || nice(hit.location_status)) : "Not in the register yet: register it under NVOCC Container Inventory first."; }catch(e){} }, 350); });
+    el("im_save").addEventListener("click", async ()=>{
+      const n = el("im_cn").value.replace(/\W/g, "").toUpperCase();
+      let c; try{ c = (await api("GET", "/api/containers?q="+encodeURIComponent(n)+"&limit=5")).items.find(x=>x.container_number === n); }catch(e){}
+      if(!c){ say("Container not found", "Register the container first, then make the movement", "warn"); return; }
+      const val = id=> el(id).value.trim() || null, dir = el("im_dir").value;
+      const body = {container_id:c.id, direction:dir, purpose:el("im_purpose").value, movement_type:val("im_type"), to_depot:dir === "IN" ? val("im_depot") : null, to_location:dir === "IN" ? val("im_loc") : null, movement_date:el("im_date").value, movement_time:val("im_time"),
+        truck_number:val("im_truck"), driver_name:val("im_driver"), transport_company:val("im_tc"), customer:val("im_cust"), agent:val("im_agent"), booking_number:val("im_bk"), bl_number:val("im_bl"), job_reference:val("im_job"), eir_number:val("im_eir"),
+        condition_arrival:val("im_cond"), reason:val("im_reason"), damage_remarks:val("im_dmg")};
+      try{ const m = await api("POST", "/api/container-movements", body); closeModal(); say("Movement created", m.number+" is waiting for approval"); paintMovements(); }
+      catch(e){ say("Could not create the movement", e.message, "warn"); }
+    });
+  }
+
+  /* ---------------- events ---------------- */
+  document.addEventListener("click", async e=>{
+    const t = e.target.closest("[data-invopen],[data-invpg],[data-invtab],[data-invmv],#invNewCont,#invNewMove,#invCsave,#invCstatus"); if(!t) return;
+    if(t.dataset.invopen){ INV.openId = Number(t.dataset.invopen); go("inv-container-detail"); return; }
+    if(t.id === "invNewCont"){ INV.openId = null; go("inv-container-detail"); return; }
+    if(t.id === "invNewMove"){ movementForm(); return; }
+    if(t.id === "invCsave"){ saveContainer(); return; }
+    if(t.dataset.invpg){ const [k, d] = t.dataset.invpg.split(":"); const st = k === "C" ? INV.C : INV.M; st.page = Math.max(1, st.page + Number(d)); (k === "C" ? loadContainers : loadMovements)(); return; }
+    if(t.dataset.invtab !== undefined){ const sc = t.closest(".scr"); sc.querySelectorAll("[data-invtab]").forEach(b=>b.classList.toggle("on", b === t)); sc.querySelectorAll("[data-invpanel]").forEach(p=>{ p.style.display = p.dataset.invpanel === t.dataset.invtab ? "" : "none"; }); return; }
+    if(t.id === "invCstatus"){
+      const g = id=> document.getElementById(id).value.trim(), id = document.getElementById("s-inv-container-detail").dataset.invId;
+      const body = {reason:g("ic_reason")}; ["condition", "grade", "ownership"].forEach(k=>{ const val = g("ic_new_"+k); if(val) body[k] = val; });
+      if(!body.reason){ say("Reason required", "Write why the status is changing", "warn"); return; }
+      try{ await api("POST", "/api/containers/"+id+"/status", body); say("Status changed", "Kept in the status history"); go("inv-container-detail"); }catch(err){ say("Could not change the status", err.message, "warn"); }
+      return;
+    }
+    if(t.dataset.invmv){
+      const [act, id] = t.dataset.invmv.split(":"); let body;
+      if(act !== "approve"){ const why = window.prompt(act === "cancel" ? "Why is this movement cancelled?" : "Why is this movement reversed? The container goes back to how it was before."); if(!why || why.trim().length < 3) return; body = {reason:why.trim()}; }
+      try{ await api("POST", "/api/container-movements/"+id+"/"+act, body); say("Movement "+(act === "approve" ? "approved" : act === "cancel" ? "cancelled" : "reversed"), "The container record is updated"); loadMovements(); }
+      catch(err){ say("Could not "+act+" the movement", err.message, "warn"); }
+    }
+  });
+  let timer = null;
+  const debounce = fn=> { clearTimeout(timer); timer = setTimeout(fn, 300); };
+  document.addEventListener("input", e=>{
+    const id = e.target.id;
+    if(id === "invCq"){ INV.C.q = e.target.value; INV.C.page = 1; debounce(loadContainers); }
+    if(id === "invMq"){ INV.M.q = e.target.value; INV.M.page = 1; debounce(loadMovements); }
+    if(id === "ic_container_number"){ clearTimeout(timer); timer = setTimeout(async ()=>{ const h = document.getElementById("invNumHint"); if(!h || e.target.readOnly) return; const n = e.target.value; if(n.replace(/\W/g, "").length < 4){ h.textContent = ""; return; } try{ const r = await api("GET", "/api/containers/check-number?number="+encodeURIComponent(n)); h.className = "inv-hint "+(r.valid ? "ok" : "bad"); h.textContent = r.valid ? "Valid ISO 6346 number" : (r.expected_check_digit != null ? "Check digit should be "+r.expected_check_digit+" ("+r.complete+")" : "Needs 3 owner letters + U / J / Z + 6 digits + check digit"); }catch(err){} }, 300); }
+  });
+  document.addEventListener("change", e=>{
+    const id = e.target.id, map = {invCown:["C", "ownership"], invCdep:["C", "depot"], invCav:["C", "availability"], invMst:["M", "status"], invMdir:["M", "direction"]};
+    if(map[id]){ const [k, f] = map[id]; (k === "C" ? INV.C : INV.M)[f] = e.target.value; (k === "C" ? INV.C : INV.M).page = 1; (k === "C" ? loadContainers : loadMovements)(); }
+  });
+  ["inv-dashboard", "inv-containers", "inv-container-detail", "inv-movements"].forEach(id=> section(id, ""));
+  meta("inv-dashboard", "Inventory Dashboard", "Inventory Dashboard"); meta("inv-containers", "NVOCC Container Inventory", "NVOCC Container Inventory");
+  meta("inv-container-detail", "Container", "NVOCC Container Inventory / Container"); meta("inv-movements", "Container Movement Management", "Container Movement Management");
+  const base = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    const r = base.apply(this, arguments);
+    if(screen === "inv-dashboard") paintDashboard(); else if(screen === "inv-containers") paintContainers(); else if(screen === "inv-container-detail") paintDetail(); else if(screen === "inv-movements") paintMovements();
+    return r;
+  };
 })();
 </script>
 </body>
