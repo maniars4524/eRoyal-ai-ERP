@@ -50,6 +50,8 @@ REGISTRY = {
     "followup": ("Sales & CRM", "Follow-up Reference", "FUP", False, False, True, None, 5, "FY"),
     "crm_booking": ("Sales & CRM", "Customer Booking Number", "CBK", False, False, True, None, 5, "FY"),
     "booking": ("Shipping & Documentation", "Booking Number", "BKG", False, False, True, "booking", 5, "FY"),
+    "vehicle": ("Inventory & Assets", "Vehicle Asset ID", "VEH", False, False, True, None, 5, "NEVER"),
+    "vehicle_work_order": ("Inventory & Assets", "Vehicle Maintenance Work Order", "VWO", False, False, True, None, 5, "NEVER"),
     "container_movement": ("Inventory & Assets", "Container Movement Number", "CMV", False, False, True, None, 5, "FY"),
     "container_survey": ("Inventory & Assets", "Container Survey Number", "SRV", False, False, True, None, 5, "FY"),
     "container_damage": ("Inventory & Assets", "Container Damage Number", "DMG", False, False, True, None, 5, "FY"),

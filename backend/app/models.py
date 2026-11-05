@@ -1625,3 +1625,205 @@ class ContainerAttachment(Base):
     data: Mapped[bytes] = mapped_column(LargeBinary)
     uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Vehicle(Base):
+    """One vehicle of the transport fleet. Status changes only through controlled actions (allocation, maintenance, status change) and are written to the history."""
+    __tablename__ = "vehicles"
+    __table_args__ = (UniqueConstraint("organization_id", "registration_number", name="uq_vehicle_registration"), UniqueConstraint("organization_id", "asset_id", name="uq_vehicle_asset_id"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    asset_id: Mapped[str | None] = mapped_column(String(40))
+    registration_number: Mapped[str] = mapped_column(String(20))
+    category: Mapped[str | None] = mapped_column(String(80), index=True)
+    vehicle_type: Mapped[str | None] = mapped_column(String(80))
+    make: Mapped[str | None] = mapped_column(String(80))
+    model: Mapped[str | None] = mapped_column(String(80))
+    manufacturing_year: Mapped[int | None] = mapped_column(Integer)
+    hand: Mapped[str | None] = mapped_column(String(20))
+    chassis_number: Mapped[str | None] = mapped_column(String(40), index=True)
+    engine_number: Mapped[str | None] = mapped_column(String(40))
+    vin: Mapped[str | None] = mapped_column(String(40))
+    fuel_type: Mapped[str | None] = mapped_column(String(20))
+    engine_capacity: Mapped[str | None] = mapped_column(String(20))
+    tonnage: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    payload_capacity: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    axle_config: Mapped[str | None] = mapped_column(String(80))
+    purchase_date: Mapped[date | None] = mapped_column(Date)
+    purchase_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    supplier: Mapped[str | None] = mapped_column(String(160))
+    purchase_invoice: Mapped[str | None] = mapped_column(String(60))
+    warranty_until: Mapped[date | None] = mapped_column(Date)
+    odometer: Mapped[int] = mapped_column(Integer, default=0)
+    location: Mapped[str | None] = mapped_column(String(120))
+    driver: Mapped[str | None] = mapped_column(String(120))
+    branch: Mapped[str | None] = mapped_column(String(80), index=True)
+    ownership: Mapped[str | None] = mapped_column(String(80), index=True)
+    ownership_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(20), default="AVAILABLE", index=True)
+    remarks: Mapped[str | None] = mapped_column(String(2000))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class VehicleHistory(Base):
+    """Append-only history of a vehicle's status, driver, ownership and odometer changes."""
+    __tablename__ = "vehicle_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicles.id", ondelete="CASCADE"), index=True)
+    field: Mapped[str] = mapped_column(String(30))
+    old_value: Mapped[str | None] = mapped_column(String(200))
+    new_value: Mapped[str | None] = mapped_column(String(200))
+    reason: Mapped[str | None] = mapped_column(String(500))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class VehicleDocument(Base):
+    """Registration, insurance, fitness, permit, PUC, tax ... A newer document of the same type supersedes the old one, which stays as history."""
+    __tablename__ = "vehicle_documents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicles.id", ondelete="CASCADE"), index=True)
+    doc_type: Mapped[str] = mapped_column(String(120))
+    number: Mapped[str | None] = mapped_column(String(80))
+    issue_date: Mapped[date | None] = mapped_column(Date)
+    expiry_date: Mapped[date | None] = mapped_column(Date, index=True)
+    authority: Mapped[str | None] = mapped_column(String(160))
+    mandatory: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(12), default="CURRENT", index=True)     # CURRENT / SUPERSEDED
+    remarks: Mapped[str | None] = mapped_column(String(300))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class VehicleWorkOrder(Base):
+    """Workshop job: OPEN -> IN_PROGRESS -> COMPLETED -> CLOSED (approved); CANCELLED. Starting it takes the vehicle out of service; closing it brings it back."""
+    __tablename__ = "vehicle_work_orders"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_vehicle_wo_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicles.id", ondelete="RESTRICT"), index=True)
+    plan_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    category: Mapped[str | None] = mapped_column(String(120))
+    complaint: Mapped[str | None] = mapped_column(String(1000))
+    reported_by: Mapped[str | None] = mapped_column(String(120))
+    odometer: Mapped[int | None] = mapped_column(Integer)
+    engine_hours: Mapped[Decimal | None] = mapped_column(Numeric(10, 1))
+    workshop: Mapped[str | None] = mapped_column(String(160))
+    mechanic: Mapped[str | None] = mapped_column(String(120))
+    inspection_result: Mapped[str | None] = mapped_column(String(1000))
+    repair_description: Mapped[str | None] = mapped_column(String(2000))
+    parts_note: Mapped[str | None] = mapped_column(String(1000))               # typed by hand until the Stores module issues parts
+    labour_hours: Mapped[Decimal | None] = mapped_column(Numeric(8, 1))
+    labour_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    material_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    external_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    other_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    total_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    start_date: Mapped[date | None] = mapped_column(Date)
+    completion_date: Mapped[date | None] = mapped_column(Date)
+    downtime_days: Mapped[int | None] = mapped_column(Integer)
+    next_service_date: Mapped[date | None] = mapped_column(Date)
+    next_service_odometer: Mapped[int | None] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(12), default="OPEN", index=True)
+    status_note: Mapped[str | None] = mapped_column(String(500))
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class VehiclePlan(Base):
+    """Preventive maintenance rule for one vehicle: every N km and / or N days since the last time it was done."""
+    __tablename__ = "vehicle_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicles.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    category: Mapped[str | None] = mapped_column(String(120))
+    interval_km: Mapped[int | None] = mapped_column(Integer)
+    interval_days: Mapped[int | None] = mapped_column(Integer)
+    last_done_odometer: Mapped[int | None] = mapped_column(Integer)
+    last_done_date: Mapped[date | None] = mapped_column(Date)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Tyre(Base):
+    __tablename__ = "tyres"
+    __table_args__ = (UniqueConstraint("organization_id", "serial_number", name="uq_tyre_serial"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    serial_number: Mapped[str] = mapped_column(String(60))
+    brand: Mapped[str | None] = mapped_column(String(80), index=True)
+    category: Mapped[str | None] = mapped_column(String(80))
+    model: Mapped[str | None] = mapped_column(String(80))
+    size: Mapped[str | None] = mapped_column(String(40))
+    condition_type: Mapped[str] = mapped_column(String(10), default="NEW")     # NEW / RETREAD
+    purchase_date: Mapped[date | None] = mapped_column(Date)
+    purchase_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    supplier: Mapped[str | None] = mapped_column(String(160))
+    warranty_until: Mapped[date | None] = mapped_column(Date)
+    tread_depth_mm: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
+    status: Mapped[str] = mapped_column(String(12), default="IN_STOCK", index=True)   # IN_STOCK / FITTED / UNDER_REPAIR / RETREADING / SCRAPPED
+    warehouse: Mapped[str | None] = mapped_column(String(120))
+    current_vehicle_id: Mapped[int | None] = mapped_column(ForeignKey("vehicles.id", ondelete="SET NULL"), index=True)
+    current_position: Mapped[str | None] = mapped_column(String(60))
+    fitted_odometer: Mapped[int | None] = mapped_column(Integer)
+    retread_count: Mapped[int] = mapped_column(Integer, default=0)
+    total_km: Mapped[int] = mapped_column(Integer, default=0)
+    extra_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)       # repairs and retreads
+    scrap_reason: Mapped[str | None] = mapped_column(String(300))
+    remarks: Mapped[str | None] = mapped_column(String(500))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TyreEvent(Base):
+    __tablename__ = "tyre_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    tyre_id: Mapped[int] = mapped_column(ForeignKey("tyres.id", ondelete="CASCADE"), index=True)
+    vehicle_id: Mapped[int | None] = mapped_column(ForeignKey("vehicles.id", ondelete="SET NULL"), index=True)
+    event: Mapped[str] = mapped_column(String(14))                              # RECEIVED FITTED REMOVED ROTATED REPAIR RETREAD RETREAD_BACK SCRAPPED
+    position: Mapped[str | None] = mapped_column(String(60))
+    from_position: Mapped[str | None] = mapped_column(String(60))
+    odometer: Mapped[int | None] = mapped_column(Integer)
+    tread_depth_mm: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
+    cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    reason: Mapped[str | None] = mapped_column(String(300))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class FuelTransaction(Base):
+    __tablename__ = "fuel_transactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicles.id", ondelete="RESTRICT"), index=True)
+    kind: Mapped[str] = mapped_column(String(10), default="FUEL")                # FUEL / LUBRICANT
+    txn_date: Mapped[date] = mapped_column(Date, index=True)
+    odometer: Mapped[int | None] = mapped_column(Integer)
+    litres: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    fuel_station: Mapped[str | None] = mapped_column(String(120))
+    fuel_card: Mapped[str | None] = mapped_column(String(60))
+    driver: Mapped[str | None] = mapped_column(String(120))
+    full_tank: Mapped[bool] = mapped_column(Boolean, default=True)
+    km_per_litre: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    abnormal: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
