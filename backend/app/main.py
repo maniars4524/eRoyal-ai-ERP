@@ -31,6 +31,7 @@ from .audit_api import router as audit_router
 from .license_mgmt_api import router as license_router
 from .job_details_api import company as company_doc_router, router as job_details_router
 from .containers_api import router as containers_router, movement_router as container_movements_router  # noqa: E402
+from . import container_ops_api as ops  # noqa: E402
 from .access_api import router as access_router
 from .crm_api import router as crm_router
 from .org_ext_api import router as org_ext_router
@@ -121,6 +122,8 @@ app.include_router(crm_router)
 app.include_router(access_router)
 app.include_router(containers_router)
 app.include_router(container_movements_router)
+for _r in (ops.survey_router, ops.damage_router, ops.repair_router, ops.lease_router, ops.eir_router, ops.count_router, ops.alert_router):
+    app.include_router(_r)
 app.include_router(org_ext_router)
 app.include_router(jobs_lifecycle_router)
 app.include_router(sequences_router)

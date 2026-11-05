@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import BigInteger, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, JSON, LargeBinary, Numeric, String, Table, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -1429,4 +1430,179 @@ class ContainerMovement(Base):
     reversed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reversal_reason: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+def _ts():
+    return mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ContainerSurvey(Base):
+    """Gate-in / gate-out / on-hire / off-hire / periodic / damage / post-repair surveys. DRAFT -> SUBMITTED -> APPROVED or REJECTED."""
+    __tablename__ = "container_surveys"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_container_survey_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    container_id: Mapped[int] = mapped_column(ForeignKey("containers.id", ondelete="RESTRICT"), index=True)
+    survey_type: Mapped[str] = mapped_column(String(120))
+    survey_date: Mapped[date] = mapped_column(Date, index=True)
+    depot: Mapped[str | None] = mapped_column(String(120))
+    surveyor: Mapped[str | None] = mapped_column(String(120))
+    checklist: Mapped[list] = mapped_column(JSON, default=list)                 # [{item, result OK/DAMAGED/NA, remarks}]
+    damage_location: Mapped[str | None] = mapped_column(String(200))
+    damage_description: Mapped[str | None] = mapped_column(String(2000))
+    severity: Mapped[str | None] = mapped_column(String(20))
+    recommended_repair: Mapped[str | None] = mapped_column(String(1000))
+    repair_estimate: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    remarks: Mapped[str | None] = mapped_column(String(1000))
+    status: Mapped[str] = mapped_column(String(12), default="DRAFT", index=True)
+    decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_note: Mapped[str | None] = mapped_column(String(500))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ContainerDamage(Base):
+    __tablename__ = "container_damages"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_container_damage_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    container_id: Mapped[int] = mapped_column(ForeignKey("containers.id", ondelete="RESTRICT"), index=True)
+    survey_id: Mapped[int | None] = mapped_column(ForeignKey("container_surveys.id", ondelete="SET NULL"))
+    damage_date: Mapped[date] = mapped_column(Date)
+    damage_location: Mapped[str | None] = mapped_column(String(200))
+    damage_type: Mapped[str | None] = mapped_column(String(120))
+    severity: Mapped[str | None] = mapped_column(String(20))
+    description: Mapped[str | None] = mapped_column(String(2000))
+    responsible_party: Mapped[str | None] = mapped_column(String(160))
+    depot: Mapped[str | None] = mapped_column(String(120))
+    estimated_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    actual_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    claim_status: Mapped[str] = mapped_column(String(12), default="NONE")       # NONE / RAISED / SETTLED / REJECTED
+    status: Mapped[str] = mapped_column(String(12), default="OPEN", index=True)  # OPEN / IN_REPAIR / CLOSED
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ContainerRepairOrder(Base):
+    """ESTIMATED -> APPROVED -> IN_PROGRESS -> COMPLETED -> QC_APPROVED (container usable again); REJECTED / CANCELLED on the way."""
+    __tablename__ = "container_repair_orders"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_container_repair_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    container_id: Mapped[int] = mapped_column(ForeignKey("containers.id", ondelete="RESTRICT"), index=True)
+    damage_id: Mapped[int | None] = mapped_column(ForeignKey("container_damages.id", ondelete="SET NULL"))
+    category: Mapped[str | None] = mapped_column(String(120))
+    description: Mapped[str | None] = mapped_column(String(2000))
+    vendor: Mapped[str | None] = mapped_column(String(160))
+    workshop: Mapped[str | None] = mapped_column(String(160))
+    labour: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    material: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    welding: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    painting: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    cleaning: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    transport: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    other: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    currency: Mapped[str] = mapped_column(String(3), default="INR")
+    estimated_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    approved_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    actual_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    supplements: Mapped[list] = mapped_column(JSON, default=list)               # [{amount, reason, status PENDING/APPROVED/REJECTED}]
+    start_date: Mapped[date | None] = mapped_column(Date)
+    completion_date: Mapped[date | None] = mapped_column(Date)
+    downtime_days: Mapped[int | None] = mapped_column(Integer)
+    warranty_days: Mapped[int | None] = mapped_column(Integer)
+    condition_after: Mapped[str | None] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(12), default="ESTIMATED", index=True)
+    status_note: Mapped[str | None] = mapped_column(String(500))
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    qc_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ContainerLease(Base):
+    __tablename__ = "container_leases"
+    __table_args__ = (UniqueConstraint("organization_id", "agreement_number", name="uq_container_lease_agreement"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    agreement_number: Mapped[str] = mapped_column(String(60))
+    leasing_company: Mapped[str] = mapped_column(String(160))
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date | None] = mapped_column(Date)
+    daily_rental: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    monthly_rental: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str] = mapped_column(String(3), default="USD")
+    free_days: Mapped[int] = mapped_column(Integer, default=0)
+    min_lease_days: Mapped[int | None] = mapped_column(Integer)
+    deposit: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    redelivery_location: Mapped[str | None] = mapped_column(String(160))
+    redelivery_conditions: Mapped[str | None] = mapped_column(String(1000))
+    extensions: Mapped[list] = mapped_column(JSON, default=list)               # [{old_end, new_end, reason, by, at}]
+    status: Mapped[str] = mapped_column(String(10), default="ACTIVE", index=True)   # ACTIVE / CLOSED
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ContainerLeaseItem(Base):
+    """One container on a lease: on-hire and off-hire dates."""
+    __tablename__ = "container_lease_items"
+    __table_args__ = (UniqueConstraint("lease_id", "container_id", "on_hire_date", name="uq_lease_item"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    lease_id: Mapped[int] = mapped_column(ForeignKey("container_leases.id", ondelete="CASCADE"), index=True)
+    container_id: Mapped[int] = mapped_column(ForeignKey("containers.id", ondelete="RESTRICT"), index=True)
+    on_hire_date: Mapped[date] = mapped_column(Date)
+    off_hire_date: Mapped[date | None] = mapped_column(Date)
+    daily_rate: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    status: Mapped[str] = mapped_column(String(10), default="ON_HIRE", index=True)   # ON_HIRE / OFF_HIRE
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+
+class ContainerEIR(Base):
+    """Equipment Interchange Receipt issued for an approved movement."""
+    __tablename__ = "container_eirs"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_container_eir_number"), UniqueConstraint("movement_id", name="uq_container_eir_movement"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    movement_id: Mapped[int] = mapped_column(ForeignKey("container_movements.id", ondelete="RESTRICT"))
+    container_id: Mapped[int] = mapped_column(ForeignKey("containers.id", ondelete="RESTRICT"), index=True)
+    gate_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    condition: Mapped[str | None] = mapped_column(String(80))
+    damage_description: Mapped[str | None] = mapped_column(String(1000))
+    driver_signed_by: Mapped[str | None] = mapped_column(String(120))
+    party_signed_by: Mapped[str | None] = mapped_column(String(120))
+    remarks: Mapped[str | None] = mapped_column(String(500))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ContainerStockCount(Base):
+    """Physical verification of one depot: the numbers found are compared with what the system says is there."""
+    __tablename__ = "container_stock_counts"
+    __table_args__ = (UniqueConstraint("organization_id", "number", name="uq_container_count_number"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str | None] = mapped_column(String(40))
+    depot: Mapped[str] = mapped_column(String(120))
+    count_date: Mapped[date] = mapped_column(Date)
+    found: Mapped[list] = mapped_column(JSON, default=list)                     # container numbers physically found
+    missing: Mapped[list] = mapped_column(JSON, default=list)                   # system says here, not found
+    unexpected: Mapped[list] = mapped_column(JSON, default=list)                # found here, system says elsewhere or unknown
+    status: Mapped[str] = mapped_column(String(10), default="OPEN")             # OPEN / REVIEWED
+    reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    review_note: Mapped[str | None] = mapped_column(String(500))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
