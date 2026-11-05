@@ -268,6 +268,51 @@ class StageIn(BaseModel):
     approval_ref: str | None = Field(default=None, max_length=60)
 
 
+class CancelIn(BaseModel):
+    reason: str = Field(min_length=5, max_length=500)
+
+
+@router.post("/{job_number:path}/cancel")
+def cancel_job(job_number: str, body: CancelIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+    """The way a job leaves the working list: cancelled with a reason, kept for ever with its number, charges, documents and history. A closed job must be reopened first; invoices and other
+    documents of the job must be cancelled first; open CHA / customs jobs under it must be cancelled first."""
+    from .models import Document
+
+    job = _job(db, user, job_number, lock=True)
+    if job.status == "Cancelled":
+        raise HTTPException(409, f"Job {job.job_number} is already cancelled")
+    if job.closure_status != "OPEN" or job.closure_cycle > 0:
+        raise HTTPException(409, "A closed (or reopened) job is part of the permanent record: reopen it with a reason and finish the closure rules before cancelling")
+    docs = [d.doc_number or ("draft " + str(d.id)) for d in db.scalars(select(Document).where(Document.organization_id == job.organization_id, Document.job_number == job.job_number, Document.status != "CANCELLED"))]
+    if docs:
+        raise HTTPException(409, "Cancel these documents of the job first: " + ", ".join(docs[:8]) + (" ..." if len(docs) > 8 else ""))
+    kids = [k.job_number for k in db.scalars(select(Shipment).where(Shipment.organization_id == job.organization_id, Shipment.parent_job_id == job.id, Shipment.status.notin_(("Cancelled", "Closed"))))]
+    if kids:
+        raise HTTPException(409, "Cancel these jobs under it first: " + ", ".join(kids[:8]))
+    before = job.status
+    job.status, job.cancel_reason, job.cancelled_by, job.cancelled_at = "Cancelled", body.reason.strip(), user.id, datetime.now(timezone.utc)
+    jl.log_event(db, job, user, "JOB_CANCELLED", "JOB", f"Job {job.job_number} cancelled: {body.reason.strip()}", previous=before, new="Cancelled", reason=body.reason.strip())
+    record_audit(db, "JOB_CANCELLED", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "reason": body.reason.strip()})
+    db.commit()
+    return {"job_number": job.job_number, "status": job.status, "cancel_reason": job.cancel_reason, "cancelled_at": job.cancelled_at}
+
+
+@router.post("/{job_number:path}/reinstate")
+def reinstate_job(job_number: str, body: CancelIn, user: User = Depends(permission_required("shipment.delete")), db: Session = Depends(get_db)):
+    """A cancelled job is brought back to the stage it was in (needs the job approval right). The cancellation stays in the job's history."""
+    job = _job(db, user, job_number, lock=True)
+    if job.status != "Cancelled":
+        raise HTTPException(409, "Only a cancelled job can be reinstated")
+    prev = db.scalar(select(JobEvent.previous_value).where(JobEvent.shipment_id == job.id, JobEvent.event_type == "JOB_CANCELLED").order_by(JobEvent.id.desc()).limit(1))
+    job.status = prev or jl.STAGE_STATUS.get(job.job_stage or "Draft", "Open")                  # back to exactly the status it had before the cancellation
+    old_reason = job.cancel_reason
+    job.cancel_reason = job.cancelled_by = job.cancelled_at = None
+    jl.log_event(db, job, user, "JOB_REINSTATED", "JOB", f"Job {job.job_number} reinstated: {body.reason.strip()}", previous="Cancelled", new=job.status, reason=body.reason.strip(), detail={"was_cancelled_for": old_reason})
+    record_audit(db, "JOB_REINSTATED", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "reason": body.reason.strip()})
+    db.commit()
+    return {"job_number": job.job_number, "status": job.status}
+
+
 @router.post("/{job_number:path}/stage")
 def change_stage(job_number: str, body: StageIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     job = _job(db, user, job_number, lock=True)

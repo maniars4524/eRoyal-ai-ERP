@@ -268,10 +268,12 @@ def test_activity_history_filters_pagination_export_and_immutability(h, world):
     assert client.get(f"/api/jobs/{jn}/lifecycle", headers=other).status_code == 404
     assert client.post(f"/api/jobs/{jn}/close", json=ACK, headers=other).status_code == 404
     assert client.get(f"/api/jobs/{jn}/activity/export", headers=other).status_code == 404
-    # deleting an (open, never closed) job keeps its history
-    assert client.delete(f"/api/shipments/{shipment['id']}", headers=h).status_code == 204
+    # a job is never deleted: cancelling an (open, never closed) job keeps it and its whole history
+    assert client.delete(f"/api/shipments/{shipment['id']}", headers=h).status_code == 409
+    assert client.post(f"/api/jobs/{jn}/cancel", json={"reason": "Cancelled at the end of the history test"}, headers=h).status_code == 200
     db = SessionLocal()
     try:
-        assert db.execute(text("SELECT count(*) FROM job_events WHERE job_number = :j"), {"j": jn}).scalar() >= 5
+        assert db.execute(text("SELECT count(*) FROM job_events WHERE job_number = :j"), {"j": jn}).scalar() >= 6
+        assert db.execute(text("SELECT status FROM shipments WHERE id = :i"), {"i": shipment["id"]}).scalar() == "Cancelled"
     finally:
         db.close()

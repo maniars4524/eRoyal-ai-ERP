@@ -219,6 +219,8 @@ def recompute_stage(db: Session, job: Shipment, trigger: str, user: User | None 
 
 
 def assert_job_editable(job: Shipment, what: str = "this job") -> None:
+    if job.status == "Cancelled":
+        raise HTTPException(status_code=409, detail=f"Job {job.job_number} was cancelled ({job.cancel_reason or 'no reason recorded'}). Reinstate it (with a reason) before changing {what}.")
     if job.closure_status == "CLOSED":
         raise HTTPException(status_code=409, detail=f"Job {job.job_number} is closed. Reopen it (with a reason) before changing {what}.")
 

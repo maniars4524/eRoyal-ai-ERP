@@ -185,6 +185,9 @@ class Shipment(Base):
     last_closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_closed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     reopen_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    cancel_reason: Mapped[str | None] = mapped_column(String(500))                 # a job is never deleted: it is cancelled, with the reason kept here and in its activity log
+    cancelled_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     branch: Mapped[str | None] = mapped_column(String(80), index=True)            # the office that handles the job (Branch MIS)
     salesperson: Mapped[str | None] = mapped_column(String(120), index=True)      # who sold it (Salesperson MIS)

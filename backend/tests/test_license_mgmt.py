@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 
 from app import license_mgmt as lm
 from app.db import SessionLocal
@@ -41,6 +41,7 @@ def owner(world, admin, admin2):
         ids = [o.id for o in db.scalars(select(Organization).where(Organization.name.like("LM Test %")))]
         if ids:
             db.execute(delete(AuditLog).where(AuditLog.organization_id.in_(ids)))
+            db.execute(text("SET LOCAL esway.allow_job_delete = 'on'"))
             db.execute(delete(Organization).where(Organization.id.in_(ids)))
             db.commit()
 

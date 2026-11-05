@@ -172,14 +172,5 @@ def update_shipment(shipment_id: int, payload: ShipmentUpdate, user: User = Depe
 
 @router.delete("/{shipment_id}", status_code=204)
 def delete_shipment(shipment_id: int, user: User = Depends(permission_required("shipment.delete")), db: Session = Depends(get_db)):
-    organization_id = _require_tenant(user)
-    shipment = db.scalar(select(Shipment).where(Shipment.id == shipment_id, Shipment.organization_id == organization_id, *_visible(db, user)))
-    if not shipment:
-        raise HTTPException(status_code=404, detail="Shipment not found")
-    if shipment.closure_cycle > 0 or shipment.closure_status != "OPEN":
-        raise HTTPException(status_code=409, detail="A job that has been closed (or reopened) is part of the permanent record and cannot be deleted")
-    jl.log_event(db, shipment, user, "JOB_DELETED", "JOB", f"Job {shipment.job_number} deleted", previous=shipment.job_number)
-    record_audit(db, "SHIPMENT_DELETED", "SHIPMENT", user, organization_id, "Shipment", str(shipment.id), {"job_number": shipment.job_number})
-    db.delete(shipment)
-    db.commit()
-    return None
+    """Jobs are never deleted, by anyone: they are cancelled with a reason (Cancel Job on the job screen). The database refuses a delete as well."""
+    raise HTTPException(status_code=409, detail="Jobs are never deleted. Cancel the job with a reason instead (Cancel Job on the job screen); it stays in the cancelled jobs list and its number is kept.")

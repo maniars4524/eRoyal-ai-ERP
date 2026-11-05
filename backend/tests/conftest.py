@@ -5,7 +5,7 @@ os.environ.setdefault("ENV_FILE", ".env.test")
 import uuid
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import SessionLocal
@@ -76,6 +76,7 @@ def world():
     db.execute(delete(MasterRecord).where(MasterRecord.organization_id.in_(made_orgs)))
     db.execute(delete(Customer).where(Customer.organization_id.in_(made_orgs)))
     db.execute(delete(User).where(User.id.in_(made_users)))
+    db.execute(text("SET LOCAL esway.allow_job_delete = 'on'"))          # test clean-up of throw-away companies only; the application never sets this
     db.execute(delete(Organization).where(Organization.id.in_(made_orgs)))
     db.commit()
     db.close()
