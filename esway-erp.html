@@ -6459,6 +6459,12 @@ const TOPNAV_MENU = [
       {label:"Inventory Dashboard", icon:"dashboard", go:"inv-dashboard"},
       {label:"NVOCC Container Inventory", icon:"package", go:"inv-containers"},
       {label:"Container Movement Management", icon:"shuffle", go:"inv-movements"},
+      {label:"Container Survey & Inspection", icon:"clipboard", go:"inv-surveys"},
+      {label:"Container Damage Register", icon:"alert", go:"inv-damages"},
+      {label:"Container Repair & Maintenance", icon:"adjustments", go:"inv-repairs"},
+      {label:"Container Leasing", icon:"license", go:"inv-leases"},
+      {label:"Depot Stock Verification", icon:"check-circle", go:"inv-counts"},
+      {label:"CSC & Lease Expiry", icon:"clock", go:"inv-expiry"},
     ]},
   ]},
   {id:"accounts", module:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts","CHA","Transport"], children:[
@@ -23689,7 +23695,7 @@ body.job-readonly #jlBanner{display:flex}
     let d; try{ d = await api("GET", "/api/container-movements?"+p); }catch(e){ say("Could not load the movements", e.message, "warn"); return; }
     const body = document.getElementById("invMbody"); if(!body) return;
     body.innerHTML = d.items.length ? d.items.map(m=>'<tr><td class="mono">'+esc(m.number || "—")+'</td><td>'+dmy(m.movement_date)+(m.movement_time ? " "+esc(m.movement_time) : "")+'</td><td class="mono">'+esc(m.container_number || "")+'</td><td>'+badge(m.direction === "IN" ? "b-gr" : "b-bl", m.direction)+'</td><td>'+esc(nice(m.purpose))+'</td><td>'+esc(m.from_depot || "—")+'</td><td>'+esc(m.to_depot || "—")+'</td><td>'+esc([m.truck_number, m.customer].filter(Boolean).join(" · ") || "—")+'</td><td>'+badge(MV[m.status], nice(m.status))+'</td><td style="white-space:nowrap">'+
-      (m.status === "DRAFT" ? '<button class="ta" data-invmv="approve:'+m.id+'">Approve</button> <button class="ta" data-invmv="cancel:'+m.id+'">Cancel</button>' : m.status === "APPROVED" ? '<button class="ta" data-invmv="reverse:'+m.id+'">Reverse</button>' : "")+'</td></tr>').join("")
+      (m.status === "DRAFT" ? '<button class="ta" data-invmv="approve:'+m.id+'">Approve</button> <button class="ta" data-invmv="cancel:'+m.id+'">Cancel</button>' : m.status === "APPROVED" ? '<button class="ta" data-ogeir="'+m.id+'">EIR</button> <button class="ta" data-invmv="reverse:'+m.id+'">Reverse</button>' : "")+'</td></tr>').join("")
       : '<tr><td colspan="10" class="tbl-empty">'+(M.q || M.status || M.direction ? "No movement matches the filters." : 'No movements yet. Use "New Movement".')+'</td></tr>';
     document.getElementById("invMpager").innerHTML = pager(M, d.total, "M");
   }
@@ -23770,6 +23776,431 @@ body.job-readonly #jlBanner{display:flex}
     if(screen === "inv-dashboard") paintDashboard(); else if(screen === "inv-containers") paintContainers(); else if(screen === "inv-container-detail") paintDetail(); else if(screen === "inv-movements") paintMovements();
     return r;
   };
+})();
+</script>
+
+<script>
+/* ============================================================
+   CONTAINER OPERATIONS KIT: survey & inspection, damage register, repair & maintenance, leasing, depot stock verification, EIR, alerts.
+   Every list and figure comes from /api/container-* (PostgreSQL). Workflow buttons call the server, which enforces the rules.
+   ============================================================ */
+(function(){
+  "use strict";
+  if(!window.MK || !window.SCREEN_META || !window.INVC) return;
+  const api = MK.util.api, say = MK.util.say, esc = MK.util.esc2;
+  const parent = (document.getElementById("s-pack-master") || {}).parentNode; if(!parent) return;
+  const nice = s=> { s = String(s == null ? "" : s).replace(/_/g, " ").toLowerCase(); return s ? s.charAt(0).toUpperCase() + s.slice(1) : "—"; };
+  const dmy = d=> d ? new Date(d).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
+  const money = v=> v == null || v === "" ? "—" : Number(v).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const ST = {DRAFT:"b-am", SUBMITTED:"b-bl", APPROVED:"b-gr", REJECTED:"b-gy", OPEN:"b-am", IN_REPAIR:"b-bl", CLOSED:"b-gr", ESTIMATED:"b-am", IN_PROGRESS:"b-bl", COMPLETED:"b-bl", QC_APPROVED:"b-gr", CANCELLED:"b-gy", ACTIVE:"b-gr", ON_HIRE:"b-bl", OFF_HIRE:"b-gy", REVIEWED:"b-gr"};
+  const badge = s=> '<span class="b '+(ST[s] || "b-gy")+'">'+esc(nice(s))+'</span>';
+  const kpi = (l, v, s)=> '<div class="kpi"><div class="kpi-lbl">'+esc(l)+'</div><div class="kpi-val">'+esc(v)+'</div><div class="kpi-sub">'+esc(s || "")+'</div></div>';
+  const section = (id, html)=> { let s = document.getElementById("s-"+id); if(!s){ s = document.createElement("div"); s.id = "s-"+id; s.className = "scr"; parent.appendChild(s); } s.innerHTML = html; return s; };
+  const head = (icon, title, sub, actions)=> '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="'+icon+'" style="color:var(--bl)"></svg>'+esc(title)+'</div><div class="ps">'+esc(sub)+'</div></div><div class="pa">'+(actions || "")+'</div></div>';
+  const back = '<button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button>';
+  const meta = (id, title)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / <strong>"+esc(title)+"</strong>", menu:""}; };
+  const masters = {};
+  const loadMasters = async types=> { await Promise.all(types.map(async t=>{ try{ masters[t] = (await MK.fetchAll(t)).filter(r=>r.status === "ACTIVE"); }catch(e){ masters[t] = []; } })); };
+  const mopts = (t, first)=> [["", first || "— Select —"]].concat((masters[t] || []).map(r=>[r.name, r.name]));
+  async function findContainer(text){
+    const n = String(text || "").replace(/\W/g, "").toUpperCase(); if(!n) return null;
+    try{ return (await api("GET", "/api/containers?q="+encodeURIComponent(n)+"&limit=5")).items.find(x=>x.container_number === n) || null; }catch(e){ return null; }
+  }
+
+  /* ----- a small form in a modal ----- */
+  function formModal(title, fields, saveLabel, onSave, extraHtml){
+    const ctl = f=> { const id = "of_"+f.k, val = f.v == null ? "" : f.v;
+      if(f.t === "select") return '<select class="fc" id="'+id+'">'+(f.opts || []).map(o=>{ const a = Array.isArray(o) ? o : [o, o]; return '<option value="'+esc(a[0])+'"'+(String(a[0]) === String(val) ? " selected" : "")+'>'+esc(a[1])+'</option>'; }).join("")+'</select>';
+      if(f.t === "textarea") return '<textarea class="fc" id="'+id+'" rows="'+(f.rows || 2)+'">'+esc(val)+'</textarea>';
+      return '<input class="fc" id="'+id+'"'+(f.t === "number" ? ' type="number" step="any" min="0"' : f.t === "date" ? ' type="date"' : f.t === "time" ? ' type="time"' : "")+' value="'+esc(val)+'"'+(f.ph ? ' placeholder="'+esc(f.ph)+'"' : "")+'>'; };
+    window.openModal({title, bodyHTML:(extraHtml || "")+'<div class="fr">'+fields.map(f=>'<div class="fg"'+(f.span ? ' style="grid-column:span '+f.span+'"' : "")+'><label class="fl">'+esc(f.label)+(f.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl(f)+(f.hint ? '<div class="inv-hint" id="oh_'+f.k+'"></div>' : "")+'</div>').join("")+'</div>',
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="of_save">'+esc(saveLabel)+'</button>'});
+    document.getElementById("of_save").onclick = async ()=>{
+      const vals = {}; fields.forEach(f=>{ vals[f.k] = document.getElementById("of_"+f.k).value.trim(); });
+      const miss = fields.filter(f=>f.req && !vals[f.k]); if(miss.length){ say("Please complete", miss.map(f=>f.label).join(", "), "warn"); return; }
+      try{ await onSave(vals); }catch(e){ say("Could not save", e.message, "warn"); }
+    };
+  }
+  const reason = text=> { const w = window.prompt(text); return w && w.trim().length >= 3 ? w.trim() : null; };
+  const call = async (method, url, body, okMsg)=> { const r = await api(method, url, body); if(okMsg) say(okMsg, ""); return r; };
+
+  /* ----- generic list screen with filters, paging and row actions ----- */
+  const GRIDS = {};
+  function grid(cfg){
+    cfg.st = {page:1, size:25, q:"", f:{}}; GRIDS[cfg.id] = cfg;
+    window.SCREEN_META["inv-"+cfg.id] = {title:cfg.title, crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / <strong>"+esc(cfg.title)+"</strong>", menu:""};
+    section("inv-"+cfg.id, "");
+  }
+  async function paintGrid(id){
+    const cfg = GRIDS[id]; if(cfg.masters) await loadMasters(cfg.masters);
+    const flt = (cfg.filters || []).map(f=>'<div class="fg"><label class="fl">'+esc(f.label)+'</label><select class="fc" data-ogf="'+id+':'+f.k+'">'+(typeof f.opts === "function" ? f.opts() : f.opts).map(o=>{ const a = Array.isArray(o) ? o : [o, o]; return '<option value="'+esc(a[0])+'"'+(cfg.st.f[f.k] === a[0] ? " selected" : "")+'>'+esc(a[1])+'</option>'; }).join("")+'</select></div>').join("");
+    const s = section("inv-"+id, head(cfg.icon, cfg.title, cfg.sub, back+(cfg.onNew ? '<button class="btn btn-pri btn-sm" data-ognew="'+id+'"><svg class="ic" data-icon="plus"></svg> '+esc(cfg.newLabel)+'</button>' : ""))+
+      '<div id="og_kpi_'+id+'" class="kpi-row"></div>'+
+      '<div class="card" style="margin-bottom:12px"><div class="cb"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><div class="fg"><label class="fl">Search</label><input class="fc" data-ogq="'+id+'" placeholder="Container / number" value="'+esc(cfg.st.q)+'"></div>'+flt+'</div></div></div>'+
+      '<div class="card"><div class="tw"><table><thead><tr>'+cfg.heads.map(h=>'<th>'+esc(h)+'</th>').join("")+'<th></th></tr></thead><tbody id="og_body_'+id+'"><tr><td colspan="'+(cfg.heads.length + 1)+'" class="tbl-empty">Loading…</td></tr></tbody></table></div><div id="og_pg_'+id+'"></div></div>');
+    if(window.renderIcons) window.renderIcons(s);
+    loadGrid(id); if(cfg.kpis) cfg.kpis().then(h=>{ const el = document.getElementById("og_kpi_"+id); if(el) el.innerHTML = h; }).catch(()=>{});
+  }
+  async function loadGrid(id){
+    const cfg = GRIDS[id], st = cfg.st, p = new URLSearchParams({limit:String(st.size), offset:String((st.page - 1) * st.size)});
+    if(st.q) p.set("q", st.q); Object.entries(st.f).forEach(([k, v])=>{ if(v) p.set(k, v); });
+    let d; try{ d = await api("GET", cfg.url+"?"+p); }catch(e){ say("Could not load "+cfg.title, e.message, "warn"); return; }
+    cfg.items = d.items; const body = document.getElementById("og_body_"+id); if(!body) return;
+    body.innerHTML = d.items.length ? d.items.map(it=>'<tr>'+cfg.row(it).map(c=>'<td>'+c+'</td>').join("")+'<td style="white-space:nowrap">'+cfg.acts(it).map(a=>'<button class="ta" data-ogact="'+id+':'+a[0]+':'+it.id+'">'+esc(a[1])+'</button>').join(" ")+'</td></tr>').join("")
+      : '<tr><td colspan="'+(cfg.heads.length + 1)+'" class="tbl-empty">'+(st.q || Object.values(st.f).some(Boolean) ? "Nothing matches the filters." : cfg.empty)+'</td></tr>';
+    const pages = Math.max(1, Math.ceil(d.total / st.size));
+    document.getElementById("og_pg_"+id).innerHTML = '<div class="lk-foot"><span>'+(d.total ? "Showing "+((st.page - 1) * st.size + 1)+" to "+Math.min(d.total, st.page * st.size)+" of "+d.total : "")+'</span><span class="lk-sp"></span><button class="btn btn-out btn-sm" data-ogpg="'+id+':-1"'+(st.page <= 1 ? " disabled" : "")+'>&#8249; Previous</button><span class="lk-pageinfo">'+(pages > 1 ? "Page "+st.page+" of "+pages : "")+'</span><button class="btn btn-out btn-sm" data-ogpg="'+id+':1"'+(st.page >= pages ? " disabled" : "")+'>Next &#8250;</button></div>';
+  }
+  const reload = id=> loadGrid(id);
+
+  /* ----- surveys ----- */
+  const SEVERITY = [["", "— None —"], "Minor", "Moderate", "Major", "Severe"];
+  grid({id:"surveys", icon:"clipboard", title:"Container Survey & Inspection", sub:"Gate-in, gate-out, on-hire, off-hire, periodic, damage and post-repair surveys. An approved survey that found damage opens a damage record.",
+    newLabel:"New Survey", url:"/api/container-surveys", masters:["inv_survey_type", "inv_survey_item"], empty:'No surveys yet. Use "New Survey".',
+    filters:[{k:"status", label:"Status", opts:[["", "All"], "DRAFT", "SUBMITTED", "APPROVED", "REJECTED"]}],
+    heads:["Survey No.", "Date", "Container", "Type", "Depot", "Severity", "Status"],
+    row:s=>['<span class="mono">'+esc(s.number)+'</span>', dmy(s.survey_date), '<span class="mono">'+esc(s.container_number)+'</span>', esc(s.survey_type), esc(s.depot || "—"), esc(s.severity || "—"), badge(s.status)],
+    acts:s=>[["view", "View"]].concat(s.status === "DRAFT" ? [["submit", "Submit"]] : [], s.status === "SUBMITTED" ? [["approve", "Approve"], ["reject", "Reject"]] : []),
+    onNew:()=> surveyForm()});
+  async function surveyForm(){
+    await loadMasters(["inv_survey_type", "inv_survey_item", "inv_depot"]);
+    const items = masters.inv_survey_item || [];
+    const rows = items.length ? '<div class="card" style="margin-bottom:10px"><div class="tw"><table><thead><tr><th>Checklist item</th><th style="width:130px">Result</th><th>Remarks</th></tr></thead><tbody>'+items.map((r, i)=>'<tr><td>'+esc(r.name)+'</td><td><select class="fc" id="osc_r'+i+'"><option value="">Not checked</option><option value="OK">OK</option><option value="DAMAGED">Damaged</option><option value="NA">N/A</option></select></td><td><input class="fc" id="osc_m'+i+'"></td></tr>').join("")+'</tbody></table></div></div>'
+      : '<div class="ib ib-am" style="margin-bottom:10px">No checklist items are defined yet (Masters &gt; Inventory &gt; Survey Checklist Item). You can still describe the condition below.</div>';
+    formModal("New container survey", [
+      {k:"cn", label:"Container number", req:1, span:2, hint:1}, {k:"type", label:"Survey type", req:1, t:"select", opts:mopts("inv_survey_type")}, {k:"date", label:"Survey date", req:1, t:"date", v:new Date().toISOString().slice(0, 10)},
+      {k:"depot", label:"Depot", t:"select", opts:mopts("inv_depot", "— Container's depot —")}, {k:"surveyor", label:"Surveyor"}, {k:"sev", label:"Damage severity", t:"select", opts:SEVERITY}, {k:"loc", label:"Damage location"},
+      {k:"desc", label:"Condition / damage description", t:"textarea", span:4}, {k:"rec", label:"Recommended repair", span:3}, {k:"est", label:"Repair estimate", t:"number"}, {k:"rem", label:"Remarks", span:4}],
+      "Save survey", async v=>{
+        const c = await findContainer(v.cn); if(!c){ say("Container not found", "Register the container first", "warn"); return; }
+        const checklist = items.map((r, i)=>({item:r.name, result:document.getElementById("osc_r"+i).value, remarks:document.getElementById("osc_m"+i).value.trim() || null})).filter(x=>x.result);
+        const s = await call("POST", "/api/container-surveys", {container_id:c.id, survey_type:v.type, survey_date:v.date, depot:v.depot || null, surveyor:v.surveyor || null, checklist, damage_location:v.loc || null,
+          damage_description:v.desc || null, severity:v.sev || null, recommended_repair:v.rec || null, repair_estimate:v.est || null, remarks:v.rem || null});
+        closeModal(); say("Survey saved", s.number+" is a draft: submit it for approval"); paintGrid("surveys");
+      }, rows);
+    const hint = document.getElementById("oh_cn"), inp = document.getElementById("of_cn"); let t = null;
+    inp.addEventListener("input", ()=>{ clearTimeout(t); t = setTimeout(async ()=>{ const c = await findContainer(inp.value); hint.className = "inv-hint "+(c ? "ok" : "bad"); hint.textContent = inp.value.replace(/\W/g, "").length < 4 ? "" : c ? (c.size || "")+" · "+nice(c.availability)+" · "+(c.depot || nice(c.location_status)) : "Not in the register"; }, 350); });
+  }
+  const ACT = {
+    surveys:{
+      view:s=> window.openModal({title:"Survey "+s.number, bodyHTML:'<p><b>'+esc(s.container_number)+'</b> · '+esc(s.survey_type)+' · '+dmy(s.survey_date)+' · '+esc(s.depot || "—")+' · surveyor '+esc(s.surveyor || "—")+'</p>'+
+        (s.checklist.length ? '<table><thead><tr><th>Item</th><th>Result</th><th>Remarks</th></tr></thead><tbody>'+s.checklist.map(r=>'<tr><td>'+esc(r.item)+'</td><td>'+esc(nice(r.result))+'</td><td>'+esc(r.remarks || "—")+'</td></tr>').join("")+'</tbody></table>' : '<p>No checklist rows.</p>')+
+        '<p>Severity: <b>'+esc(s.severity || "—")+'</b> · Location: '+esc(s.damage_location || "—")+' · Estimate: '+money(s.repair_estimate)+'</p><p>'+esc(s.damage_description || "")+'</p><p>Recommended: '+esc(s.recommended_repair || "—")+'</p>'+(s.decision_note ? '<p>Decision note: '+esc(s.decision_note)+'</p>' : ""), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'}),
+      submit:async s=>{ await call("POST", "/api/container-surveys/"+s.id+"/submit", null, "Survey submitted"); reload("surveys"); },
+      approve:async s=>{ const r = await call("POST", "/api/container-surveys/"+s.id+"/approve", null, "Survey approved"); if(r.damage_number) say("Damage record opened", r.damage_number); reload("surveys"); },
+      reject:async s=>{ const w = reason("Why is this survey rejected?"); if(!w) return; await call("POST", "/api/container-surveys/"+s.id+"/reject", {reason:w}, "Survey rejected"); reload("surveys"); }
+    }};
+
+  /* ----- damages ----- */
+  grid({id:"damages", icon:"alert", title:"Container Damage Register", sub:"Every damage found on a container, its estimated and actual repair cost and the claim against the responsible party.",
+    newLabel:"Record Damage", url:"/api/container-damages", masters:["inv_damage_type"], empty:'No damage recorded. Damage is opened automatically when a survey that found damage is approved, or use "Record Damage".',
+    filters:[{k:"status", label:"Status", opts:[["", "All"], "OPEN", "IN_REPAIR", "CLOSED"]}],
+    heads:["Damage No.", "Date", "Container", "Type / location", "Severity", "Est. cost", "Actual cost", "Claim", "Status"],
+    row:d=>['<span class="mono">'+esc(d.number)+'</span>', dmy(d.damage_date), '<span class="mono">'+esc(d.container_number)+'</span>', esc([d.damage_type, d.damage_location].filter(Boolean).join(" · ") || "—"), esc(d.severity || "—"), money(d.estimated_cost), money(d.actual_cost), esc(nice(d.claim_status)), badge(d.status)],
+    acts:d=>(d.status !== "CLOSED" ? [["repair", "Repair order"]] : []).concat([["claim", "Claim"]]),
+    onNew:async ()=>{ await loadMasters(["inv_damage_type"]);
+      formModal("Record damage", [{k:"cn", label:"Container number", req:1, span:2}, {k:"date", label:"Damage date", req:1, t:"date", v:new Date().toISOString().slice(0, 10)}, {k:"type", label:"Damage type", t:"select", opts:mopts("inv_damage_type")},
+        {k:"loc", label:"Location on container"}, {k:"sev", label:"Severity", t:"select", opts:SEVERITY}, {k:"party", label:"Responsible party"}, {k:"est", label:"Estimated cost", t:"number"}, {k:"desc", label:"Description", t:"textarea", span:4}], "Save damage", async v=>{
+        const c = await findContainer(v.cn); if(!c){ say("Container not found", "Register the container first", "warn"); return; }
+        const d = await call("POST", "/api/container-damages", {container_id:c.id, damage_date:v.date, damage_type:v.type || null, damage_location:v.loc || null, severity:v.sev || null, responsible_party:v.party || null, estimated_cost:v.est || null, description:v.desc || null});
+        closeModal(); say("Damage recorded", d.number); paintGrid("damages"); }); }});
+  ACT.damages = {
+    repair:d=> repairForm({cn:d.container_number, damage:d}),
+    claim:d=> formModal("Claim for "+d.number, [{k:"party", label:"Responsible party", v:d.responsible_party, span:2}, {k:"claim", label:"Claim status", t:"select", opts:["NONE", "RAISED", "SETTLED", "REJECTED"], v:d.claim_status}], "Save", async v=>{
+      await call("PATCH", "/api/container-damages/"+d.id, {responsible_party:v.party || null, claim_status:v.claim}, "Claim updated"); closeModal(); reload("damages"); })};
+
+  /* ----- repairs ----- */
+  const REPAIR_PARTS = ["labour", "material", "welding", "painting", "cleaning", "transport", "other"];
+  async function repairForm(pre){
+    await loadMasters(["inv_repair_category"]); pre = pre || {};
+    formModal("New repair work order", [{k:"cn", label:"Container number", req:1, span:2, v:pre.cn}, {k:"cat", label:"Repair category", t:"select", opts:mopts("inv_repair_category")}, {k:"vendor", label:"Repair vendor"}, {k:"ws", label:"Workshop"},
+      {k:"warranty", label:"Warranty (days)", t:"number"}, {k:"cur", label:"Currency", v:"INR"}].concat(REPAIR_PARTS.map(p=>({k:p, label:nice(p)+" charges", t:"number"})), [{k:"desc", label:"Repair description", t:"textarea", span:4}]),
+      "Create work order", async v=>{
+        const c = await findContainer(v.cn); if(!c){ say("Container not found", "Register the container first", "warn"); return; }
+        const body = {container_id:c.id, damage_id:pre.damage ? pre.damage.id : null, category:v.cat || null, description:v.desc || null, vendor:v.vendor || null, workshop:v.ws || null, currency:(v.cur || "INR").toUpperCase(), warranty_days:v.warranty ? Number(v.warranty) : null};
+        REPAIR_PARTS.forEach(p=>{ body[p] = v[p] || "0"; });
+        const r = await call("POST", "/api/container-repairs", body); closeModal(); say("Work order created", r.number+" is waiting for approval"); if(GRIDS.repairs.items) paintGrid("repairs"); else go("inv-repairs"); });
+  }
+  grid({id:"repairs", icon:"adjustments", title:"Container Repair & Maintenance", sub:"Estimate, approval, repair, post-repair quality approval. A container under repair cannot be released.",
+    newLabel:"New Work Order", url:"/api/container-repairs", masters:["inv_container_condition"], empty:'No repair work orders yet. Use "New Work Order" or open one from the Damage Register.', onNew:()=>repairForm(),
+    filters:[{k:"status", label:"Status", opts:[["", "All"], "ESTIMATED", "APPROVED", "IN_PROGRESS", "COMPLETED", "QC_APPROVED", "REJECTED", "CANCELLED"]}],
+    kpis:async ()=>{ const s = await api("GET", "/api/container-repairs/summary"); return kpi("Work orders", s.orders)+kpi("Waiting approval", s.waiting_approval)+kpi("In progress", s.by_status.IN_PROGRESS || 0)+kpi("Avg. downtime", s.average_downtime_days == null ? "—" : s.average_downtime_days+" days")+kpi("Estimate (completed)", money(s.estimated_of_completed))+kpi("Actual (completed)", money(s.actual_of_completed)); },
+    heads:["Work order", "Container", "Category", "Vendor", "Estimate", "Approved", "Actual", "Status"],
+    row:r=>['<span class="mono">'+esc(r.number)+'</span>', '<span class="mono">'+esc(r.container_number)+'</span>', esc(r.category || "—"), esc(r.vendor || "—"), money(r.estimated_total), money(r.approved_with_supplements), money(r.actual_cost)+(r.over_approved_amount ? ' <span class="b b-am" title="Actual cost is above the approved amount">over</span>' : ""), badge(r.status)],
+    acts:r=>[["view", "View"]].concat({ESTIMATED:[["approve", "Approve"], ["reject", "Reject"], ["cancel", "Cancel"]], APPROVED:[["start", "Start"], ["supp", "Extra cost"], ["cancel", "Cancel"]], IN_PROGRESS:[["complete", "Complete"], ["supp", "Extra cost"], ["cancel", "Cancel"]],
+      COMPLETED:[["qc", "Quality approve"], ["reopen", "Reopen"]], REJECTED:[["reopen", "Reopen"]]}[r.status] || [])});
+  ACT.repairs = {
+    view:r=> window.openModal({title:"Work order "+r.number, bodyHTML:'<p><b>'+esc(r.container_number)+'</b> · '+esc(r.category || "—")+' · '+esc(r.vendor || "—")+' / '+esc(r.workshop || "—")+' · '+badge(r.status)+'</p><table><tbody>'+
+      REPAIR_PARTS.map(p=>'<tr><td>'+esc(nice(p))+'</td><td style="text-align:right">'+money(r[p])+'</td></tr>').join("")+'<tr><td><b>Estimated total</b></td><td style="text-align:right"><b>'+money(r.estimated_total)+' '+esc(r.currency)+'</b></td></tr>'+
+      '<tr><td>Approved (with extra costs)</td><td style="text-align:right">'+money(r.approved_with_supplements)+'</td></tr><tr><td>Actual</td><td style="text-align:right">'+money(r.actual_cost)+'</td></tr></tbody></table>'+
+      '<p>Start '+dmy(r.start_date)+' · Completed '+dmy(r.completion_date)+' · Downtime '+(r.downtime_days == null ? "—" : r.downtime_days+" days")+' · Condition after: '+esc(r.condition_after || "—")+'</p>'+
+      (r.supplements.length ? '<h4>Extra cost requests</h4><table><tbody>'+r.supplements.map((x, i)=>'<tr><td>'+money(x.amount)+'</td><td>'+esc(x.reason)+'</td><td>'+badge(x.status)+'</td><td>'+(x.status === "PENDING" ? '<button class="ta" data-ogsup="'+r.id+':'+i+':approve">Approve</button> <button class="ta" data-ogsup="'+r.id+':'+i+':reject">Reject</button>' : "")+'</td></tr>').join("")+'</tbody></table>' : "")+
+      (r.status_note ? '<p>Note: '+esc(r.status_note)+'</p>' : ""), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'}),
+    approve:async r=>{ await call("POST", "/api/container-repairs/"+r.id+"/approve", null, "Work order approved"); reload("repairs"); },
+    reject:async r=>{ const w = reason("Why is this estimate rejected?"); if(!w) return; await call("POST", "/api/container-repairs/"+r.id+"/reject", {reason:w}, "Work order rejected"); reload("repairs"); },
+    start:async r=>{ await call("POST", "/api/container-repairs/"+r.id+"/start", null, "Repair started"); reload("repairs"); },
+    cancel:async r=>{ const w = reason("Why is this work order cancelled?"); if(!w) return; await call("POST", "/api/container-repairs/"+r.id+"/cancel", {reason:w}, "Work order cancelled"); reload("repairs"); },
+    reopen:async r=>{ const w = reason("Why is it reopened?"); if(!w) return; await call("POST", "/api/container-repairs/"+r.id+"/reopen", {reason:w}, "Work order reopened"); reload("repairs"); },
+    supp:r=> formModal("Extra cost for "+r.number, [{k:"amt", label:"Additional amount", t:"number", req:1}, {k:"why", label:"Reason", req:1, span:3}], "Request approval", async v=>{
+      await call("POST", "/api/container-repairs/"+r.id+"/supplement", {amount:v.amt, reason:v.why}, "Extra cost requested"); closeModal(); reload("repairs"); }),
+    complete:r=> formModal("Complete "+r.number, [{k:"cost", label:"Actual cost", t:"number", req:1}, {k:"date", label:"Completion date", t:"date", req:1, v:new Date().toISOString().slice(0, 10)}], "Mark completed", async v=>{
+      await call("POST", "/api/container-repairs/"+r.id+"/complete", {actual_cost:v.cost, completion_date:v.date}, "Repair completed"); closeModal(); reload("repairs"); }),
+    qc:async r=>{ await loadMasters(["inv_container_condition"]);
+      formModal("Quality approval for "+r.number, [{k:"cond", label:"Condition after repair", req:1, t:"select", opts:mopts("inv_container_condition"), span:2}, {k:"note", label:"Note", span:2}], "Quality approve", async v=>{
+        await call("POST", "/api/container-repairs/"+r.id+"/qc", {condition_after:v.cond, note:v.note || null}, "Quality approved"); closeModal(); reload("repairs"); }); }};
+
+  /* ----- leases ----- */
+  grid({id:"leases", icon:"license", title:"Container Leasing", sub:"Lease agreements with leasing companies, on-hire and off-hire of containers, free days, rental cost and redelivery.",
+    newLabel:"New Lease", url:"/api/container-leases", empty:'No lease agreements yet. Use "New Lease".', search:false,
+    filters:[{k:"status", label:"Status", opts:[["", "All"], "ACTIVE", "CLOSED"]}],
+    heads:["Agreement", "Leasing company", "Start", "End", "Daily rental", "On hire", "Accrued cost", "Status"],
+    row:l=>['<b>'+esc(l.agreement_number)+'</b>', esc(l.leasing_company), dmy(l.start_date), dmy(l.end_date)+(l.overdue_redelivery ? ' <span class="b b-am">overdue</span>' : ""), money(l.daily_rental)+" "+esc(l.currency), l.containers_on_hire+" of "+l.containers_total, money(l.accrued_cost)+" "+esc(l.currency), badge(l.status)],
+    acts:l=>[["view", "Open"]], onNew:()=>
+      formModal("New lease agreement", [{k:"ag", label:"Agreement number", req:1}, {k:"co", label:"Leasing company", req:1, span:2}, {k:"cur", label:"Currency", v:"USD"}, {k:"start", label:"Start date", t:"date", req:1}, {k:"end", label:"End date", t:"date"},
+        {k:"day", label:"Daily rental", t:"number"}, {k:"mon", label:"Monthly rental", t:"number"}, {k:"free", label:"Free days", t:"number", v:"0"}, {k:"min", label:"Minimum lease days", t:"number"}, {k:"dep", label:"Deposit", t:"number"},
+        {k:"loc", label:"Redelivery location", span:2}, {k:"cond", label:"Redelivery conditions", t:"textarea", span:4}], "Create lease", async v=>{
+        const l = await call("POST", "/api/container-leases", {agreement_number:v.ag, leasing_company:v.co, currency:(v.cur || "USD").toUpperCase(), start_date:v.start, end_date:v.end || null, daily_rental:v.day || null, monthly_rental:v.mon || null,
+          free_days:Number(v.free || 0), min_lease_days:v.min ? Number(v.min) : null, deposit:v.dep || null, redelivery_location:v.loc || null, redelivery_conditions:v.cond || null}, null, "Lease created"); closeModal(); paintGrid("leases"); })});
+  async function leaseView(id){
+    const l = await api("GET", "/api/container-leases/"+id), open = l.status === "ACTIVE";
+    window.openModal({title:"Lease "+l.agreement_number+" — "+l.leasing_company, bodyHTML:'<p>'+dmy(l.start_date)+' to '+dmy(l.end_date)+' · '+money(l.daily_rental)+' '+esc(l.currency)+'/day · free days '+l.free_days+' · minimum '+(l.min_lease_days || "—")+' days · deposit '+money(l.deposit)+' · '+badge(l.status)+'</p>'+
+      '<table><thead><tr><th>Container</th><th>On hire</th><th>Off hire</th><th>Days</th><th>Free</th><th>Billable</th><th>Amount</th><th></th></tr></thead><tbody>'+
+      (l.items.length ? l.items.map(i=>'<tr><td class="mono">'+esc(i.container_number)+'</td><td>'+dmy(i.on_hire_date)+'</td><td>'+(i.off_hire_date ? dmy(i.off_hire_date) : badge(i.status))+'</td><td>'+i.days+'</td><td>'+i.free_days+'</td><td>'+i.billable_days+'</td><td>'+money(i.amount)+'</td><td>'+(i.status === "ON_HIRE" ? '<button class="ta" data-oglease="off:'+l.id+':'+i.id+'">Off-hire</button>' : "")+'</td></tr>').join("") : '<tr><td colspan="8" class="tbl-empty">No container on this lease yet</td></tr>')+'</tbody></table>'+
+      '<p><b>Accrued cost: '+money(l.accrued_cost)+' '+esc(l.currency)+'</b></p>'+(l.extensions.length ? '<p>Extensions: '+l.extensions.map(x=>esc(x.old_end || "—")+' → '+esc(x.new_end)+' ('+esc(x.reason)+')').join("; ")+'</p>' : "")+(l.redelivery_conditions ? '<p>Redelivery: '+esc(l.redelivery_location || "")+' — '+esc(l.redelivery_conditions)+'</p>' : ""),
+      footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'+(open ? '<button class="btn btn-out" data-oglease="extend:'+l.id+'">Extend</button><button class="btn btn-out" data-oglease="close:'+l.id+'">Close lease</button><button class="btn btn-pri" data-oglease="on:'+l.id+'">On-hire a container</button>' : "")});
+  }
+  ACT.leases = {view:l=> leaseView(l.id)};
+  async function leaseAction(act, lid, iid){
+    if(act === "on") return formModal("On-hire a container", [{k:"cn", label:"Container number", req:1, span:2}, {k:"date", label:"On-hire date", t:"date", req:1, v:new Date().toISOString().slice(0, 10)}, {k:"rate", label:"Daily rate (if different)", t:"number"}], "On-hire", async v=>{
+      const c = await findContainer(v.cn); if(!c){ say("Container not found", "Register the container first", "warn"); return; }
+      await call("POST", "/api/container-leases/"+lid+"/on-hire", {container_id:c.id, on_hire_date:v.date, daily_rate:v.rate || null}, "Container on hire"); closeModal(); leaseView(lid); paintGrid("leases"); });
+    if(act === "off") return formModal("Off-hire", [{k:"date", label:"Off-hire date", t:"date", req:1, v:new Date().toISOString().slice(0, 10)}], "Off-hire", async v=>{ await call("POST", "/api/container-leases/items/"+iid+"/off-hire", {off_hire_date:v.date}, "Container off hire"); closeModal(); leaseView(lid); paintGrid("leases"); });
+    if(act === "extend") return formModal("Extend lease", [{k:"end", label:"New end date", t:"date", req:1}, {k:"why", label:"Reason", req:1, span:2}], "Extend", async v=>{ await call("POST", "/api/container-leases/"+lid+"/extend", {new_end_date:v.end, reason:v.why}, "Lease extended"); closeModal(); leaseView(lid); paintGrid("leases"); });
+    if(act === "close"){ await call("POST", "/api/container-leases/"+lid+"/close", null, "Lease closed"); closeModal(); paintGrid("leases"); }
+  }
+
+  /* ----- depot stock verification ----- */
+  grid({id:"counts", icon:"check-circle", title:"Depot Stock Verification", sub:"Compare the container numbers found in the yard with what the system says is at the depot. Differences are listed; fix them with movements.",
+    newLabel:"New Verification", url:"/api/container-counts", masters:["inv_depot"], empty:'No verification yet. Use "New Verification".',
+    heads:["Count no.", "Date", "Depot", "Found", "Missing", "Unexpected", "Status"],
+    row:k=>['<span class="mono">'+esc(k.number)+'</span>', dmy(k.count_date), esc(k.depot), k.found.length, k.missing.length ? '<b style="color:var(--rd,#b91c1c)">'+k.missing.length+'</b>' : "0", k.unexpected.length ? '<b style="color:var(--rd,#b91c1c)">'+k.unexpected.length+'</b>' : "0", badge(k.status)],
+    acts:k=>[["view", "View"]].concat(k.status === "OPEN" ? [["review", "Review"]] : []),
+    onNew:async ()=>{ await loadMasters(["inv_depot"]);
+      formModal("New depot verification", [{k:"depot", label:"Depot", req:1, t:"select", opts:mopts("inv_depot"), span:2}, {k:"date", label:"Count date", t:"date", req:1, v:new Date().toISOString().slice(0, 10), span:2}, {k:"nums", label:"Container numbers found (one per line, or separated by commas / spaces)", t:"textarea", rows:8, span:4, req:1}], "Compare", async v=>{
+        const numbers = v.nums.split(/[\s,;]+/).filter(Boolean); const k = await call("POST", "/api/container-counts", {depot:v.depot, count_date:v.date, numbers}); closeModal(); say("Verification recorded", k.number+": "+k.missing.length+" missing, "+k.unexpected.length+" unexpected"); paintGrid("counts"); ACT.counts.view(k); }); }});
+  ACT.counts = {
+    view:k=> window.openModal({title:"Verification "+k.number+" — "+k.depot, bodyHTML:'<p>'+dmy(k.count_date)+' · '+k.found.length+' numbers counted · '+badge(k.status)+'</p><h4>Missing (system says here, not found)</h4>'+
+      (k.missing.length ? '<table><tbody>'+k.missing.map(x=>'<tr><td class="mono">'+esc(x.number)+'</td><td>'+esc(x.note)+'</td></tr>').join("")+'</tbody></table>' : '<p>None</p>')+'<h4>Unexpected (found, but the system disagrees)</h4>'+
+      (k.unexpected.length ? '<table><tbody>'+k.unexpected.map(x=>'<tr><td class="mono">'+esc(x.number)+'</td><td>'+esc(x.note)+'</td></tr>').join("")+'</tbody></table>' : '<p>None</p>')+(k.review_note ? '<p>Review note: '+esc(k.review_note)+'</p>' : ""), footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'}),
+    review:async k=>{ const w = reason("Review note (what was checked or corrected)?"); if(!w) return; await call("POST", "/api/container-counts/"+k.id+"/review", {reason:w}, "Verification reviewed"); reload("counts"); }};
+
+  /* ----- photos and documents ----- */
+  const authFetch = (url, opt)=> fetch(url, Object.assign({headers:{Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}}, opt || {}));
+  const fileToB64 = blob=> new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=> res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
+  async function shrink(file){
+    if(!file.type.startsWith("image/") || file.type === "image/gif") return file;
+    try{
+      const url = URL.createObjectURL(file), img = await new Promise((res, rej)=>{ const i = new Image(); i.onload = ()=>res(i); i.onerror = rej; i.src = url; });
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height)); if(k === 1 && file.size < 1.5 * 1024 * 1024){ URL.revokeObjectURL(url); return file; }
+      const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+      const blob = await new Promise(res=>cv.toBlob(res, "image/jpeg", 0.82)); return blob || file;
+    }catch(e){ return file; }
+  }
+  async function attachPanel(host, type, id){
+    const rows = await api("GET", "/api/container-attachments?entity_type="+type+"&entity_id="+id).catch(()=>[]);
+    host.innerHTML = '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap"><label class="btn btn-pri btn-sm" style="cursor:pointer"><svg class="ic" data-icon="upload"></svg> Add photos / documents<input type="file" multiple accept="image/*,application/pdf" style="display:none" data-ogfile></label>'+
+      '<span style="font-size:11.5px;color:var(--g5)">JPEG, PNG, WebP, GIF or PDF, up to 5 MB each. On a phone you can take the photo directly.</span></div><div data-ogthumbs style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">'+
+      (rows.length ? "" : '<div style="color:var(--g5);font-style:italic">No photos or documents yet.</div>')+'</div>';
+    if(window.renderIcons) window.renderIcons(host);
+    const box = host.querySelector("[data-ogthumbs]");
+    rows.forEach(a=>{
+      const cell = document.createElement("div"); cell.style.cssText = "border:1px solid var(--g2);border-radius:8px;padding:6px;font-size:11px;word-break:break-word";
+      cell.innerHTML = '<div data-ogimg style="height:90px;display:flex;align-items:center;justify-content:center;background:var(--g0);border-radius:6px;overflow:hidden;cursor:pointer">'+(a.category === "PHOTO" ? "…" : '<b style="color:var(--bl)">PDF</b>')+'</div><div style="margin-top:4px">'+esc(a.caption || a.name)+'</div><div style="color:var(--g5)">'+Math.max(1, Math.round(a.size / 1024))+' KB · '+dmy(a.uploaded_at)+'</div><button class="ta" data-ogdelfile="'+a.id+'">Remove</button>';
+      box.appendChild(cell);
+      const open = async ()=>{ const r = await authFetch("/api/container-attachments/"+a.id+"/file"); if(!r.ok) return; const u = URL.createObjectURL(await r.blob()); window.open(u, "_blank"); };
+      cell.querySelector("[data-ogimg]").addEventListener("click", open);
+      if(a.category === "PHOTO") authFetch("/api/container-attachments/"+a.id+"/file").then(r=>r.ok ? r.blob() : null).then(b=>{ if(b){ const im = document.createElement("img"); im.src = URL.createObjectURL(b); im.style.cssText = "max-width:100%;max-height:90px"; const h = cell.querySelector("[data-ogimg]"); h.innerHTML = ""; h.appendChild(im); } });
+    });
+    host.querySelector("[data-ogfile]").addEventListener("change", async e=>{
+      const files = Array.from(e.target.files); e.target.value = ""; let done = 0;
+      for(const f of files){
+        try{ const blob = await shrink(f); const name = blob === f ? f.name : f.name.replace(/\.\w+$/, "")+".jpg";
+          await api("POST", "/api/container-attachments", {entity_type:type, entity_id:id, name, content_type:blob.type || f.type, data_base64:await fileToB64(blob)}); done++; }
+        catch(err){ say("Could not attach "+f.name, err.message, "warn"); }
+      }
+      if(done) say("Attached", done+" file(s) saved"); attachPanel(host, type, id);
+    });
+    host.querySelectorAll("[data-ogdelfile]").forEach(b=> b.addEventListener("click", async ()=>{
+      if(!window.confirm("Remove this file? Only approvers can remove files and the removal is logged.")) return;
+      try{ await api("DELETE", "/api/container-attachments/"+b.dataset.ogdelfile); attachPanel(host, type, id); }catch(err){ say("Could not remove the file", err.message, "warn"); } }));
+  }
+  function photosModal(type, id, title){
+    window.openModal({title:"Photos & documents — "+title, bodyHTML:'<div id="ogPhotoHost">Loading…</div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button>'});
+    attachPanel(document.getElementById("ogPhotoHost"), type, id);
+  }
+  ACT.surveys.photos = s=> photosModal("survey", s.id, s.number); ACT.damages.photos = d=> photosModal("damage", d.id, d.number);
+  ACT.repairs.photos = r=> photosModal("repair", r.id, r.number); ACT.leases.photos = l=> photosModal("lease", l.id, l.agreement_number);
+  [["surveys", s=>[["photos", "Photos"]]], ["damages", d=>[["photos", "Photos"]]], ["repairs", r=>[["photos", "Photos"]]], ["leases", l=>[["photos", "Documents"]]]].forEach(([g, extra])=>{ const base = GRIDS[g].acts; GRIDS[g].acts = it=> base(it).concat(extra(it)); });
+
+  /* ----- EIR: the printed receipt (IN / OUT, load / empty, seals, temperatures, tyres, chassis and container inspection, signatures) ----- */
+  const CHASSIS = ["King pin upper coupling device", "Rails / support frame", "Tie down bolster", "Locking pins", "Sliders or sliding frame lock", "Rim", "Reflective marking tape", "Air line connections, hoses / couplers", "Brakes", "Lighting devices, lamps, markers", "Sand shoes", "Legs", "Cross brace"];
+  const CCODES = [["01", "Bent"], ["02", "Broken"], ["03", "Defective"], ["04", "Inoperative"], ["05", "Leaking"], ["06", "Missing"], ["07", "Rail damage"], ["08", "Weld broken"], ["09", "Improper repair"], ["10", "Corrosion / rust"], ["11", "Rotted"], ["12", "Needs cleanout"]];
+  const TCODES = [["13", "Dragged"], ["14", "Separated cap"], ["15", "Blisters, knots"], ["16", "Blown out"], ["17", "Cut, torn"], ["18", "Run flat"], ["19", "Worn out, bald"], ["20", "Flat tire"]];
+  const TIRES = [["lo_front", "L.O. Front"], ["li_front", "L.I. Front"], ["lo_rear", "L.O. Rear"], ["li_rear", "L.I. Rear"], ["ro_front", "R.O. Front"], ["ri_front", "R.I. Front"], ["ro_rear", "R.O. Rear"], ["ri_rear", "R.I. Rear"]];
+  const box = c=> c ? "&#9746;" : "&#9744;";
+  function eirPrint(e){
+    const d = e.details || {}, co = (window.SESSION_USER && window.SESSION_USER.organization_name) || "";
+    const cell = (a, b, w)=> '<td style="border:1px solid #444;padding:4px 6px;vertical-align:top;'+(w ? "width:"+w+";" : "")+'"><span style="font-size:10px;color:#444">'+a+'</span><br><b>'+esc(b == null || b === "" ? " " : b)+'</b></td>';
+    const circle = (list, cur)=> list.map(x=> String(x).toLowerCase() === String(cur || "").toLowerCase() ? '<b style="border:1px solid #000;border-radius:10px;padding:1px 6px">'+esc(x)+'</b>' : esc(x)).join("&nbsp;&nbsp;");
+    const ck = k=> (d.chassis_check || {})[k];
+    const tires = TIRES.map(([k, l])=>'<td style="padding:2px 8px">'+box((d.tires || {})[k])+' '+l+' <u>&nbsp;'+esc((d.tires || {})[k] || "")+'&nbsp;&nbsp;</u></td>');
+    const html = '<!doctype html><html><head><meta charset="utf-8"><title>EIR '+esc(e.number)+'</title><style>@page{size:A4;margin:10mm}body{font-family:Arial,sans-serif;font-size:12px;margin:0}table{border-collapse:collapse}</style></head><body>'+
+      '<div style="text-align:center"><div style="font-size:22px;font-weight:bold">'+esc(co)+'</div><div style="font-weight:bold;font-size:14px">EQUIPMENT INTERCHANGE RECEIPT</div></div>'+
+      '<table style="width:100%;margin-top:6px"><tr><td style="font-size:14px;font-weight:bold">'+box(e.direction === "IN")+' IN &nbsp; '+box(e.direction === "OUT")+' OUT &nbsp; '+box(d.load_status === "LOAD")+' LOAD &nbsp; '+box(d.load_status === "EMPTY")+' EMPTY</td><td style="text-align:right;font-size:16px;font-weight:bold">No. '+esc(e.number)+'</td></tr>'+
+      '<tr><td>'+box(d.reposition_for_maintenance)+' REPOSITION FOR MAINTENANCE</td><td style="text-align:right;font-size:10px;color:#555">Movement '+esc(e.movement_number)+' · '+esc(nice(e.purpose))+'</td></tr></table>'+
+      '<table style="width:100%;margin-top:6px"><tr>'+cell("Custom seal #", d.custom_seal, "34%")+cell("Line (MSC) seal #", d.line_seal, "33%")+cell("Shipper's seal #", d.shipper_seal)+'</tr></table>'+
+      '<table style="width:100%;margin-top:6px"><tr>'+cell("Set temp", d.set_temp)+cell("Read temp", d.read_temp)+cell("Fuel", d.fuel)+cell("Container #", e.container_number, "40%")+cell("Chassis #", d.chassis_no)+cell("Genset unit #", d.genset_no)+'</tr></table>'+
+      '<table style="width:100%;margin-top:6px"><tr><td style="border:1px solid #444;padding:6px">Size: '+circle(["20", "40", "45", "48"], (String(e.size || "").match(/\d+/) || [""])[0])+' &nbsp; ('+esc(e.size || "—")+')</td><td style="border:1px solid #444;padding:6px">Type: '+circle(["Dry box", "Reefer", "Flatrack", "Opentop", "Tank", "Van", "Feed box"], (e.container_type || "").replace(/ container/i, ""))+' &nbsp; ('+esc(e.container_type || "—")+')</td></tr></table>'+
+      '<table style="margin-top:8px;border:1px solid #444;width:100%"><tr><td colspan="2" style="text-align:center;font-weight:bold;padding:3px">TIRES</td></tr><tr>'+tires.slice(0, 2).join("")+'</tr><tr>'+tires.slice(2, 4).join("")+'</tr><tr>'+tires.slice(4, 6).join("")+'</tr><tr>'+tires.slice(6, 8).join("")+'</tr>'+
+      '<tr><td colspan="2" style="text-align:center;padding:3px"><b>TATTLE CAPS MISSING</b> &nbsp; Left: '+box((d.tattle_caps_missing || {}).left_f)+' F '+box((d.tattle_caps_missing || {}).left_r)+' R &nbsp;&nbsp; Right: '+box((d.tattle_caps_missing || {}).right_f)+' F '+box((d.tattle_caps_missing || {}).right_r)+' R</td></tr></table>'+
+      '<p style="margin:10px 0 4px"><b>CONTAINER REMARKS:</b> '+esc(d.container_remarks || e.damage_description || "")+'</p>'+
+      '<table style="width:100%;border:1px solid #444"><tr><td style="width:50%;vertical-align:top;padding:6px;border-right:1px solid #444"><b>Chassis (visual inspection)</b><table style="width:100%">'+
+      CHASSIS.map((n, i)=>'<tr><td>'+esc(n)+'</td><td>'+box(ck(n) === "OK")+' OK</td><td>'+box(ck(n) === "DEFECTIVE")+' '+(i >= 10 ? "DAMAGE" : "DEFECTIVE")+'</td></tr>').join("")+'</table><div style="margin-top:6px">REMARKS: '+esc(d.chassis_remarks || "")+'</div></td>'+
+      '<td style="vertical-align:top;padding:6px"><b>Container codes (visual inspection)</b><table>'+CCODES.map(([k, n])=>'<tr><td>'+box((d.container_codes || []).includes(k))+' '+k+'</td><td>'+n+'</td></tr>').join("")+'</table><div style="margin-top:6px">REMARKS: '+esc(d.codes_remarks || "")+'</div></td></tr></table>'+
+      '<p style="margin:8px 0 4px"><b>TIRE CODES:</b> '+TCODES.map(([k, n])=>box((d.tire_codes || []).includes(k))+' '+k+' '+n).join(" &nbsp; ")+'</p>'+
+      '<table style="width:100%;border:1px solid #444;margin-top:6px"><tr><td style="padding:8px;width:55%">CUSTOMER SIGNATURE: <b>'+esc(d.customer_signature || e.party_signed_by || "")+'</b></td><td>TIME IN: <b>'+esc(d.time_in || e.movement_time || "")+'</b></td></tr>'+
+      '<tr><td style="padding:8px">DATE: <b>'+dmy(e.movement_date)+'</b> &nbsp; DRIVER: <b>'+esc(e.driver_signed_by || e.driver_name || "")+'</b></td><td>TIME OUT: <b>'+esc(d.time_out || "")+'</b></td></tr>'+
+      '<tr><td colspan="2" style="padding:8px">CARRIER / CONSIGNEE / SHIPPER: <b>'+esc(d.carrier || [e.transport_company, e.customer].filter(Boolean).join(" / "))+'</b></td></tr>'+
+      '<tr><td style="padding:8px">SHIPPING AGENTS: <b>'+esc(d.shipping_agent || e.agent || "")+'</b></td><td>TRUCK #: <b>'+esc(e.truck_number || "")+'</b></td></tr></table></body></html>';
+    const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups to print the EIR", "warn"); return; } w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 400);
+  }
+  async function eirFor(mid){
+    let e = null; try{ e = await api("GET", "/api/container-eirs/by-movement/"+mid); }catch(err){ if(err.status !== 404){ say("Could not load the EIR", err.message, "warn"); return; } }
+    const mv = e ? null : await api("GET", "/api/container-movements/"+mid).catch(()=>null);
+    if(e && !window.__eirEdit){
+      window.openModal({title:"EIR "+e.number, bodyHTML:'<p><b>'+esc(e.container_number)+'</b> · '+esc(e.direction)+' · '+esc(nice(e.purpose))+' · '+dmy(e.movement_date)+'</p><p>From '+esc(e.from_depot || "—")+' to '+esc(e.to_depot || "—")+' · truck '+esc(e.truck_number || "—")+'</p><p>Load status: '+esc(e.details.load_status || "—")+' · seals: '+esc([e.details.custom_seal, e.details.line_seal, e.details.shipper_seal].filter(Boolean).join(" / ") || "—")+'</p><div id="ogPhotoHost">Loading…</div>',
+        footHTML:'<button class="btn btn-out" onclick="closeModal()">Close</button><button class="btn btn-out" id="og_eiredit">Correct (approvers)</button><button class="btn btn-pri" id="og_eirprint">Print EIR</button>'});
+      document.getElementById("og_eirprint").onclick = ()=> eirPrint(e); document.getElementById("og_eiredit").onclick = ()=>{ closeModal(); eirForm(e.movement_id, e); };
+      attachPanel(document.getElementById("ogPhotoHost"), "eir", e.id); return;
+    }
+    eirForm(mid, e);
+  }
+  async function eirForm(mid, existing){
+    await loadMasters(["inv_container_condition"]); const d = (existing && existing.details) || {};
+    const inp = (k, label, v, w)=> '<div class="fg"><label class="fl">'+label+'</label><input class="fc" data-eir="'+k+'" value="'+esc(v == null ? "" : v)+'"></div>';
+    const chk = (k, label, on)=> '<label style="display:inline-flex;gap:4px;align-items:center;margin-right:10px;font-size:12px"><input type="checkbox" data-eirflag="'+k+'"'+(on ? " checked" : "")+'> '+label+'</label>';
+    const body = '<div style="max-height:62vh;overflow:auto;padding-right:6px">'+
+      '<div class="fr"><div class="fg"><label class="fl">Load status</label><select class="fc" data-eir="load_status"><option value="">—</option><option'+(d.load_status === "LOAD" ? " selected" : "")+'>LOAD</option><option'+(d.load_status === "EMPTY" ? " selected" : "")+'>EMPTY</option></select></div>'+
+      '<div class="fg" style="grid-column:span 3">'+chk("reposition_for_maintenance", "Reposition for maintenance", d.reposition_for_maintenance)+'</div></div>'+
+      '<div class="fr">'+inp("custom_seal", "Custom seal #", d.custom_seal)+inp("line_seal", "Line (MSC) seal #", d.line_seal)+inp("shipper_seal", "Shipper's seal #", d.shipper_seal)+inp("chassis_no", "Chassis #", d.chassis_no)+'</div>'+
+      '<div class="fr">'+inp("set_temp", "Set temp", d.set_temp)+inp("read_temp", "Read temp", d.read_temp)+'<div class="fg"><label class="fl">Fuel</label><select class="fc" data-eir="fuel"><option value="">—</option>'+["1/4", "1/2", "3/4", "Full"].map(x=>'<option'+(d.fuel === x ? " selected" : "")+'>'+x+'</option>').join("")+'</select></div>'+inp("genset_no", "Genset unit #", d.genset_no)+'</div>'+
+      '<h4 style="margin:8px 0 4px">Tires (OK or a tire code 13–20)</h4><div class="fr">'+TIRES.map(([k, l])=>'<div class="fg"><label class="fl">'+l+'</label><input class="fc" data-eirtire="'+k+'" value="'+esc((d.tires || {})[k] || "")+'"></div>').join("")+'</div>'+
+      '<div style="margin:4px 0">Tattle caps missing: '+[["left_f", "Left F"], ["left_r", "Left R"], ["right_f", "Right F"], ["right_r", "Right R"]].map(([k, l])=>'<label style="margin-right:10px"><input type="checkbox" data-eircap="'+k+'"'+((d.tattle_caps_missing || {})[k] ? " checked" : "")+'> '+l+'</label>').join("")+'</div>'+
+      '<div class="fr"><div class="fg" style="grid-column:span 4"><label class="fl">Container remarks</label><input class="fc" data-eir="container_remarks" value="'+esc(d.container_remarks || "")+'"></div></div>'+
+      '<h4 style="margin:8px 0 4px">Chassis (visual inspection)</h4><table><tbody>'+CHASSIS.map((n, i)=>'<tr><td>'+esc(n)+'</td><td><select class="fc" data-eirchk="'+esc(n)+'" style="width:130px"><option value="">—</option><option value="OK"'+((d.chassis_check || {})[n] === "OK" ? " selected" : "")+'>OK</option><option value="DEFECTIVE"'+((d.chassis_check || {})[n] === "DEFECTIVE" ? " selected" : "")+'>'+(i >= 10 ? "Damage" : "Defective")+'</option></select></td></tr>').join("")+'</tbody></table>'+
+      '<h4 style="margin:8px 0 4px">Container codes</h4><div>'+CCODES.map(([k, n])=>'<label style="display:inline-block;width:32%;font-size:12px"><input type="checkbox" data-eircc="'+k+'"'+((d.container_codes || []).includes(k) ? " checked" : "")+'> '+k+' '+n+'</label>').join("")+'</div>'+
+      '<h4 style="margin:8px 0 4px">Tire codes</h4><div>'+TCODES.map(([k, n])=>'<label style="display:inline-block;width:32%;font-size:12px"><input type="checkbox" data-eirtc="'+k+'"'+((d.tire_codes || []).includes(k) ? " checked" : "")+'> '+k+' '+n+'</label>').join("")+'</div>'+
+      '<div class="fr" style="margin-top:8px">'+inp("chassis_remarks", "Chassis remarks", d.chassis_remarks)+inp("codes_remarks", "Container codes remarks", d.codes_remarks)+inp("customer_signature", "Customer signature (name)", d.customer_signature)+inp("carrier", "Carrier / consignee / shipper", d.carrier)+'</div>'+
+      '<div class="fr">'+inp("time_in", "Time in", d.time_in)+inp("time_out", "Time out", d.time_out)+inp("shipping_agent", "Shipping agents", d.shipping_agent)+'<div class="fg"><label class="fl">Condition</label><select class="fc" data-eir="__cond">'+mopts("inv_container_condition", "— As recorded —").map(o=>'<option value="'+esc(o[0])+'"'+(existing && existing.condition === o[0] ? " selected" : "")+'>'+esc(o[1])+'</option>').join("")+'</select></div></div>'+
+      '<div class="fr">'+inp("__drv", "Driver signed by", existing && existing.driver_signed_by)+inp("__party", "Depot / party signed by", existing && existing.party_signed_by)+inp("__dmg", "Damage description", existing && existing.damage_description)+inp("__rem", "Remarks", existing && existing.remarks)+'</div></div>';
+    window.openModal({title:existing ? "Correct EIR "+existing.number : "Issue EIR for this movement", bodyHTML:body, footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="og_eirsave">'+(existing ? "Save correction" : "Issue EIR")+'</button>'});
+    document.getElementById("og_eirsave").onclick = async ()=>{
+      const q = s=> Array.from(document.querySelectorAll(s)), det = {}, own = {};
+      q("[data-eir]").forEach(x=>{ const k = x.dataset.eir, val = x.value.trim(); if(k.startsWith("__")) own[k] = val; else if(val) det[k] = val; });
+      q("[data-eirflag]").forEach(x=>{ if(x.checked) det[x.dataset.eirflag] = true; });
+      const tires = {}; q("[data-eirtire]").forEach(x=>{ if(x.value.trim()) tires[x.dataset.eirtire] = x.value.trim(); }); if(Object.keys(tires).length) det.tires = tires;
+      const caps = {}; q("[data-eircap]").forEach(x=>{ if(x.checked) caps[x.dataset.eircap] = true; }); if(Object.keys(caps).length) det.tattle_caps_missing = caps;
+      const chk = {}; q("[data-eirchk]").forEach(x=>{ if(x.value) chk[x.dataset.eirchk] = x.value; }); if(Object.keys(chk).length) det.chassis_check = chk;
+      det.container_codes = q("[data-eircc]").filter(x=>x.checked).map(x=>x.dataset.eircc); det.tire_codes = q("[data-eirtc]").filter(x=>x.checked).map(x=>x.dataset.eirtc);
+      const payload = {movement_id:mid, details:det, condition:own.__cond || null, damage_description:own.__dmg || null, driver_signed_by:own.__drv || null, party_signed_by:own.__party || null, remarks:own.__rem || null};
+      try{ const x = await (existing ? api("PATCH", "/api/container-eirs/"+existing.id, payload) : api("POST", "/api/container-eirs", payload)); closeModal(); say(existing ? "EIR corrected" : "EIR issued", x.number); window.__eirEdit = false; eirFor(mid); }
+      catch(err){ say("Could not save the EIR", err.message, "warn"); }
+    };
+  }
+
+  /* ----- expiry register: CSC and lease ----- */
+  window.SCREEN_META["inv-expiry"] = {title:"CSC & Lease Expiry", crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / <strong>CSC &amp; Lease Expiry</strong>", menu:""}; section("inv-expiry", "");
+  const EXP = {days:60};
+  async function paintExpiry(){
+    const a = await api("GET", "/api/container-alerts?days="+EXP.days).catch(e=>{ say("Could not load the expiry register", e.message, "warn"); return null; }); if(!a) return;
+    const left = n=> n < 0 ? '<b style="color:var(--rd,#b91c1c)">'+(-n)+' day(s) ago</b>' : n === 0 ? "<b>today</b>" : n+" day(s)";
+    const s = section("inv-expiry", head("clock", "CSC & Lease Expiry", "Containers whose CSC examination is expired or falling due, and leases ending soon or overdue for redelivery", back)+
+      '<div class="card" style="margin-bottom:12px"><div class="cb"><div class="fg" style="max-width:260px"><label class="fl">Show what falls due within</label><select class="fc" id="ogExpDays">'+[30, 60, 90, 180, 365].map(n=>'<option value="'+n+'"'+(n === EXP.days ? " selected" : "")+'>'+n+' days</option>').join("")+'</select></div></div></div>'+
+      '<div class="kpi-row">'+kpi("CSC expired", a.csc.filter(x=>x.expired).length)+kpi("CSC due", a.csc.filter(x=>!x.expired).length, "within "+EXP.days+" days")+kpi("Leases overdue", a.leases.filter(x=>x.overdue_redelivery).length)+kpi("Leases ending", a.leases.filter(x=>!x.overdue_redelivery).length, "within "+EXP.days+" days")+'</div>'+
+      '<div class="card"><div class="ch"><div class="ct">CSC examination</div></div><div class="tw"><table><thead><tr><th>Container</th><th>CSC valid until</th><th>Time left</th><th>Status</th><th></th></tr></thead><tbody>'+
+      (a.csc.length ? a.csc.map(c=>'<tr><td class="mono">'+esc(c.container_number)+'</td><td>'+dmy(c.csc_valid_until)+'</td><td>'+left(c.days_left)+'</td><td>'+(c.expired ? '<span class="b b-am">Expired</span>' : '<span class="b b-bl">Due</span>')+'</td><td><button class="ta" data-invopen="'+c.container_id+'">Open container</button></td></tr>').join("") : '<tr><td colspan="5" class="tbl-empty">No CSC examination falls due in this period. (Containers without a CSC date are not listed: enter it on the container.)</td></tr>')+'</tbody></table></div></div>'+
+      '<div class="card" style="margin-top:12px"><div class="ch"><div class="ct">Lease expiry and redelivery</div></div><div class="tw"><table><thead><tr><th>Agreement</th><th>Leasing company</th><th>End date</th><th>Time left</th><th>Containers on hire</th><th>Status</th></tr></thead><tbody>'+
+      (a.leases.length ? a.leases.map(l=>'<tr><td><b>'+esc(l.agreement_number)+'</b></td><td>'+esc(l.leasing_company)+'</td><td>'+dmy(l.end_date)+'</td><td>'+left(l.days_left)+'</td><td>'+l.containers_on_hire+'</td><td>'+(l.overdue_redelivery ? '<span class="b b-am">Redelivery overdue</span>' : '<span class="b b-bl">Ending</span>')+'</td></tr>').join("") : '<tr><td colspan="6" class="tbl-empty">No lease with containers on hire ends in this period.</td></tr>')+'</tbody></table></div></div>');
+    if(window.renderIcons) window.renderIcons(s);
+  }
+  document.addEventListener("change", e=>{ if(e.target.id === "ogExpDays"){ EXP.days = Number(e.target.value); paintExpiry(); } });
+  /* a Photos tab on the container, and the real EIR / expiry hooks */
+  async function photoTab(){
+    const s = document.getElementById("s-inv-container-detail"); if(!s) return;
+    for(let i = 0; i < 50 && !(s.dataset.invId && s.querySelector(".inv-tabs") && s.querySelector('[data-invtab="6"]')); i++) await new Promise(r=>setTimeout(r, 200));
+    const id = s.dataset.invId; if(!id) return;
+    const tabs = s.querySelector(".inv-tabs"); if(!tabs || tabs.querySelector('[data-invtab="7"]')) return;
+    const b = document.createElement("button"); b.dataset.invtab = "7"; b.textContent = "Photos & Documents"; tabs.appendChild(b);
+    const pnl = document.createElement("div"); pnl.dataset.invpanel = "7"; pnl.style.display = "none"; pnl.innerHTML = '<div class="card"><div class="cb" id="ogContPhotos"></div></div>'; s.appendChild(pnl);
+    attachPanel(pnl.querySelector("#ogContPhotos"), "container", Number(id));
+  }
+
+  /* ----- dashboard alerts and container detail tabs ----- */
+  async function dashboardAlerts(){
+    for(let i = 0; i < 20 && !document.querySelector("#invDashBody .kpi-row"); i++) await new Promise(r=>setTimeout(r, 200));
+    const host = document.getElementById("invDashBody"); if(!host || host.querySelector("[data-og-alerts]")) return;
+    let a; try{ a = await api("GET", "/api/container-alerts"); }catch(e){ return; }
+    const link = (n, label, go)=> n ? '<li><a href="#" data-go="'+go+'"><b>'+n+'</b> '+esc(label)+'</a></li>' : "";
+    const p = a.pending;
+    const items = link(p.movements_waiting_approval, "movement(s) waiting for approval", "inv-movements")+link(p.surveys_waiting_approval, "survey(s) waiting for approval", "inv-surveys")+link(p.repairs_waiting_approval, "repair estimate(s) waiting for approval", "inv-repairs")+
+      link(p.repairs_in_progress, "repair(s) in progress", "inv-repairs")+link(p.open_damages, "open damage record(s)", "inv-damages")+link(p.stock_counts_to_review, "stock verification(s) to review", "inv-counts")+
+      a.csc.map(c=>'<li>CSC '+(c.expired ? '<b style="color:var(--rd,#b91c1c)">expired</b>' : "expires")+' '+dmy(c.csc_valid_until)+': <span class="mono">'+esc(c.container_number)+'</span></li>').join("")+
+      a.leases.map(l=>'<li>Lease '+esc(l.agreement_number)+' ('+esc(l.leasing_company)+') '+(l.overdue_redelivery ? '<b style="color:var(--rd,#b91c1c)">redelivery overdue</b>' : "ends")+' '+dmy(l.end_date)+' — '+l.containers_on_hire+' on hire</li>').join("");
+    const card = document.createElement("div"); card.className = "card"; card.dataset.ogAlerts = "1";
+    card.innerHTML = '<div class="ch"><div class="ct">Needs attention</div></div><div class="cb">'+(items ? '<ul style="margin:0;padding-left:18px;line-height:1.9">'+items+'</ul>' : "Nothing needs attention right now.")+'<div style="margin-top:8px"><a href="#" data-go="inv-expiry">Open the CSC &amp; lease expiry register</a></div></div>';
+    host.querySelector(".kpi-row").insertAdjacentElement("afterend", card);
+  }
+  async function detailTabs(){
+    const s = document.getElementById("s-inv-container-detail"); if(!s) return;
+    for(let i = 0; i < 40 && !(s.dataset.invId && s.querySelector(".inv-tabs")); i++) await new Promise(r=>setTimeout(r, 200));
+    const id = s.dataset.invId; if(!id) return;
+    const tabs = s.querySelector(".inv-tabs"); if(!tabs || tabs.querySelector('[data-invtab="4"]')) return;
+    const [sv, dm, rp, ls] = await Promise.all(["container-surveys", "container-damages", "container-repairs"].map(u=>api("GET", "/api/"+u+"?container_id="+id+"&limit=100").catch(()=>({items:[]}))).concat(
+      [api("GET", "/api/container-leases?limit=200").then(async d=>{ const out = []; for(const l of d.items){ const full = await api("GET", "/api/container-leases/"+l.id); full.items.filter(i=>i.container_id === Number(id)).forEach(i=>out.push({...i, lease:l})); } return {items:out}; }).catch(()=>({items:[]}))]));
+    const tbl = (heads, rows, empty)=> '<div class="card"><div class="tw"><table><thead><tr>'+heads.map(h=>'<th>'+h+'</th>').join("")+'</tr></thead><tbody>'+(rows.length ? rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join("")+'</tr>').join("") : '<tr><td colspan="'+heads.length+'" class="tbl-empty">'+empty+'</td></tr>')+'</tbody></table></div></div>';
+    [["Survey History", tbl(["No.", "Date", "Type", "Severity", "Status"], sv.items.map(x=>[esc(x.number), dmy(x.survey_date), esc(x.survey_type), esc(x.severity || "—"), badge(x.status)]), "No survey yet")],
+     ["Damage & Repairs", tbl(["No.", "Date", "Severity", "Est. / actual", "Status"], dm.items.map(x=>[esc(x.number), dmy(x.damage_date), esc(x.severity || "—"), money(x.estimated_cost)+" / "+money(x.actual_cost), badge(x.status)]), "No damage recorded")+
+       '<div style="height:10px"></div>'+tbl(["Work order", "Category", "Vendor", "Estimate", "Actual", "Status"], rp.items.map(x=>[esc(x.number), esc(x.category || "—"), esc(x.vendor || "—"), money(x.estimated_total), money(x.actual_cost), badge(x.status)]), "No repair work order")],
+     ["Lease Details", tbl(["Agreement", "Leasing company", "On hire", "Off hire", "Billable days", "Amount"], ls.items.map(x=>[esc(x.lease.agreement_number), esc(x.lease.leasing_company), dmy(x.on_hire_date), x.off_hire_date ? dmy(x.off_hire_date) : badge(x.status), x.billable_days, money(x.amount)+" "+esc(x.lease.currency)]), "Not on any lease")]].forEach(([label, html], k)=>{
+      const b = document.createElement("button"); b.dataset.invtab = String(4 + k); b.textContent = label; tabs.appendChild(b);
+      const pnl = document.createElement("div"); pnl.dataset.invpanel = String(4 + k); pnl.style.display = "none"; pnl.innerHTML = html; s.appendChild(pnl); });
+  }
+
+  /* ----- events ----- */
+  document.addEventListener("click", async e=>{
+    const t = e.target.closest("[data-ogact],[data-ognew],[data-ogpg],[data-ogsup],[data-oglease],[data-ogeir]"); if(!t) return;
+    try{
+      if(t.dataset.ogact){ const [g, a, id] = t.dataset.ogact.split(":"); const it = (GRIDS[g].items || []).find(x=>x.id === Number(id)); if(it) await ACT[g][a](it); }
+      else if(t.dataset.ognew){ await GRIDS[t.dataset.ognew].onNew(); }
+      else if(t.dataset.ogpg){ const [g, d] = t.dataset.ogpg.split(":"); GRIDS[g].st.page = Math.max(1, GRIDS[g].st.page + Number(d)); loadGrid(g); }
+      else if(t.dataset.ogsup){ const [rid, idx, dec] = t.dataset.ogsup.split(":"); await call("POST", "/api/container-repairs/"+rid+"/supplement/"+idx+"/"+dec, {}, "Extra cost "+(dec === "approve" ? "approved" : "rejected")); closeModal(); reload("repairs"); }
+      else if(t.dataset.oglease){ const [a, lid, iid] = t.dataset.oglease.split(":"); await leaseAction(a, Number(lid), Number(iid)); }
+      else if(t.dataset.ogeir){ await eirFor(Number(t.dataset.ogeir)); }
+    }catch(err){ say("Could not complete the action", err.message, "warn"); }
+  });
+  let timer = null;
+  document.addEventListener("input", e=>{ const q = e.target.dataset && e.target.dataset.ogq; if(!q) return; GRIDS[q].st.q = e.target.value; GRIDS[q].st.page = 1; clearTimeout(timer); timer = setTimeout(()=>loadGrid(q), 300); });
+  document.addEventListener("change", e=>{ const f = e.target.dataset && e.target.dataset.ogf; if(!f) return; const [g, k] = f.split(":"); GRIDS[g].st.f[k] = e.target.value; GRIDS[g].st.page = 1; loadGrid(g); });
+  const base = MK.onScreen;
+  MK.onScreen = function(screen, opts){
+    const r = base.apply(this, arguments);
+    if(screen.startsWith("inv-") && GRIDS[screen.slice(4)]) paintGrid(screen.slice(4));
+    if(screen === "inv-dashboard") dashboardAlerts();
+    if(screen === "inv-expiry") paintExpiry();
+    if(screen === "inv-container-detail"){ setTimeout(detailTabs, 50); setTimeout(photoTab, 80); }
+    return r;
+  };
+  window.INVOPS = {GRIDS, eirFor};
 })();
 </script>
 </body>

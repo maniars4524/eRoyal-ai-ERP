@@ -19,7 +19,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
 
   const menu = await page.evaluate(() => { const g = Array.from(document.querySelectorAll(".tn-label")).find(x => x.textContent.trim() === "Inventory"); const panel = g && g.closest(".tn-panel, .tn-group, div"); const rows = Array.from(document.querySelectorAll('.tn-row[data-go^="inv-"], .tn-row[data-go="container-master"]')); return { group: !!g, goes: rows.map(r => r.dataset.go) }; });
   check("Masters has an Inventory group", menu.group, JSON.stringify(menu).slice(0, 200));
-  const master = menu.goes.filter(x => x.startsWith("inv-") && !["inv-dashboard", "inv-containers", "inv-movements"].includes(x));
+  const master = menu.goes.filter(x => x.startsWith("inv-") && !["inv-dashboard", "inv-containers", "inv-movements", "inv-surveys", "inv-damages", "inv-repairs", "inv-leases", "inv-counts", "inv-expiry"].includes(x));
   check("the Inventory group lists the 22 entries (21 new masters + the existing Container Type)", master.length === 21 && menu.goes.includes("container-master"), master.length + "");
   const groups = await page.evaluate(() => Array.from(document.querySelectorAll(".tn-label")).map(x => x.textContent.trim()));
   check("Masters > Inventory is split into Container Inventory, Vehicle Inventory and Other Inventory", ["Container Inventory", "Vehicle Inventory", "Other Inventory"].every(g => groups.includes(g)), groups.join("|").slice(0, 200));
