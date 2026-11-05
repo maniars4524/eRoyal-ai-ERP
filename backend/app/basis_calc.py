@@ -19,6 +19,7 @@ import math
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
+from . import cargo_engine as ce
 from . import config
 
 PER_SHIPMENT, PER_PACKAGE, BY_GROSS, BY_CHG, BY_VOLUME = "Per Shipment", "Per Package", "By Gross Wt", "By Chg Wt", "By Volume"
@@ -96,11 +97,11 @@ class Measures:
 
     @property
     def volumetric_kg(self) -> Decimal:
-        return sum((l * w * h * p / self.divisor for l, w, h, p in self.dims), ZERO)
+        return ce.total_volumetric_kg(self.dims, self.divisor)
 
     @property
     def dims_cbm(self) -> Decimal:
-        return sum((l * w * h * p / Decimal(1_000_000) for l, w, h, p in self.dims), ZERO)
+        return ce.total_cbm(self.dims)
 
     @property
     def volume_cbm(self) -> Decimal:
@@ -118,7 +119,7 @@ class Measures:
             return self.explicit_chargeable
         if self.is_air:
             kg = max(self.gross_kg, self.air_volumetric_kg)
-            return Decimal(str(math.ceil(round(float(kg) * 2, 6)) / 2)) if kg > 0 else ZERO       # the job's own rule: rounded up to the next 0.5 kg
+            return ce.round_chargeable_kg(kg, "UP_HALF")       # the job's own rule: rounded up to the next 0.5 kg
         return max(self.gross_kg, self.volume_cbm * THOUSAND)
 
     def snapshot(self) -> dict:

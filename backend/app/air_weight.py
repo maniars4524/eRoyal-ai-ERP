@@ -3,7 +3,10 @@ rounded UP to the next 0.5 kg. It is calculated here, once, and used by the job 
 from __future__ import annotations
 
 import math
+from decimal import Decimal
 from typing import Any
+
+from . import cargo_engine as ce
 
 LB_TO_KG = 0.45359237
 FORMULAS = {
@@ -24,7 +27,7 @@ def _n(v: Any) -> float:
 
 def round_up_half(kg: float) -> float:
     """Chargeable weights are rounded up to the next 0.5 kg."""
-    return math.ceil(round(kg * 2, 6)) / 2 if kg > 0 else 0.0
+    return float(ce.round_chargeable_kg(Decimal(str(kg)), "UP_HALF")) if kg > 0 else 0.0
 
 
 def compute(dims: dict | None) -> dict:
@@ -35,7 +38,7 @@ def compute(dims: dict | None) -> dict:
         p = int(_n(r.get("pkg")) or 1)
         l, w, h, aw = _n(r.get("l")), _n(r.get("w")), _n(r.get("h")), _n(r.get("awt"))
         if unit == "cm_kg":
-            v = l * w * h / 6000 * p
+            v = float(ce.row_volumetric_kg_cm(Decimal(str(l)), Decimal(str(w)), Decimal(str(h)), Decimal(p), ce.default_config().divisor))      # the one formula, shared with quotations and job costing
         elif unit == "in_lbs":
             v = l * w * h / 166 * p
         else:
