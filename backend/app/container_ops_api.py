@@ -703,8 +703,41 @@ def close_lease(lease_id: int, user: User = Depends(permission_required("contain
 
 
 # ================================================================ EIR
+EIR_TEXT = {"load_status": 12, "custom_seal": 40, "line_seal": 40, "shipper_seal": 40, "set_temp": 10, "read_temp": 10, "fuel": 10, "chassis_no": 40, "genset_no": 40, "carrier": 160, "shipping_agent": 160,
+            "time_in": 8, "time_out": 8, "container_remarks": 500, "chassis_remarks": 300, "codes_remarks": 300, "customer_signature": 120}
+EIR_FLAGS = {"reposition_for_maintenance"}
+EIR_RESULTS = {"OK", "DEFECTIVE", "DAMAGE"}
+
+
+def clean_eir_details(raw: dict | None) -> dict:
+    """The printed EIR form: only the known boxes are kept, each with a length limit."""
+    raw = raw or {}
+    out: dict[str, Any] = {}
+    for k, n in EIR_TEXT.items():
+        if raw.get(k) not in (None, ""):
+            out[k] = str(raw[k]).strip()[:n]
+    for k in EIR_FLAGS:
+        if raw.get(k):
+            out[k] = True
+    tires = {k: str(v).strip()[:20] for k, v in (raw.get("tires") or {}).items() if k in ("lo_front", "li_front", "lo_rear", "li_rear", "ro_front", "ri_front", "ro_rear", "ri_rear") and str(v).strip()}
+    if tires:
+        out["tires"] = tires
+    caps = {k: bool(v) for k, v in (raw.get("tattle_caps_missing") or {}).items() if k in ("left_f", "left_r", "right_f", "right_r") and v}
+    if caps:
+        out["tattle_caps_missing"] = caps
+    chk = {str(k)[:60]: v for k, v in (raw.get("chassis_check") or {}).items() if v in EIR_RESULTS}
+    if chk:
+        out["chassis_check"] = chk
+    for key in ("container_codes", "tire_codes"):
+        codes = [str(c)[:2] for c in (raw.get(key) or []) if str(c).strip().isdigit()][:30]
+        if codes:
+            out[key] = codes
+    return out
+
+
 class EirIn(BaseModel):
     movement_id: int
+    details: dict[str, Any] = Field(default_factory=dict)
     condition: str | None = Field(default=None, max_length=80)
     damage_description: str | None = Field(default=None, max_length=1000)
     driver_signed_by: str | None = Field(default=None, max_length=120)
@@ -719,7 +752,7 @@ def _eir_view(db: Session, e: ContainerEIR) -> dict:
             "ownership": c.ownership, "from_depot": m.from_depot, "to_depot": m.to_depot, "to_location": m.to_location, "movement_date": m.movement_date, "movement_time": m.movement_time,
             "truck_number": m.truck_number, "driver_name": m.driver_name, "transport_company": m.transport_company, "customer": m.customer, "agent": m.agent, "booking_number": m.booking_number,
             "bl_number": m.bl_number, "job_reference": m.job_reference, "condition": e.condition, "damage_description": e.damage_description, "driver_signed_by": e.driver_signed_by,
-            "party_signed_by": e.party_signed_by, "remarks": e.remarks, "approved_at": m.approved_at, "gate_time": e.gate_time, "created_at": e.created_at}
+            "party_signed_by": e.party_signed_by, "remarks": e.remarks, "details": e.details or {}, "movement_id": e.movement_id, "container_id": e.container_id, "approved_at": m.approved_at, "gate_time": e.gate_time, "created_at": e.created_at}
 
 
 @eir_router.post("", status_code=201)
@@ -734,12 +767,27 @@ def create_eir(body: EirIn, user: User = Depends(permission_required("container.
     if db.scalar(select(ContainerEIR.id).where(ContainerEIR.movement_id == m.id)):
         raise HTTPException(409, "This movement already has an EIR")
     e = ContainerEIR(organization_id=org, movement_id=m.id, container_id=m.container_id, gate_time=m.approved_at, condition=body.condition or m.condition_arrival or m.condition_departure,
-                     damage_description=body.damage_description or m.damage_remarks, driver_signed_by=body.driver_signed_by, party_signed_by=body.party_signed_by, remarks=body.remarks, created_by=user.id)
+                     damage_description=body.damage_description or m.damage_remarks, driver_signed_by=body.driver_signed_by, party_signed_by=body.party_signed_by, remarks=body.remarks, details=clean_eir_details(body.details), created_by=user.id)
     e.number = next_number(db, org, "container_eir", "EIR", m.movement_date, user=user)
     db.add(e)
     m.eir_number = e.number
     db.flush()
     record_audit(db, "CONTAINER_EIR_ISSUED", "INVENTORY", user, org, "ContainerEIR", str(e.id), {"number": e.number, "movement": m.number})
+    db.commit()
+    return _eir_view(db, e)
+
+
+@eir_router.patch("/{eir_id}")
+def correct_eir(eir_id: int, body: EirIn, user: User = Depends(permission_required("container.approve")), db: Session = Depends(get_db)):
+    """An issued EIR is corrected only by an approver; the old content is kept in the audit log."""
+    org = _org(user)
+    e = db.scalar(select(ContainerEIR).where(ContainerEIR.id == eir_id, ContainerEIR.organization_id == org).with_for_update())
+    if not e:
+        raise HTTPException(404, "EIR not found")
+    old = {"condition": e.condition, "damage": e.damage_description, "driver": e.driver_signed_by, "party": e.party_signed_by, "remarks": e.remarks, "details": e.details}
+    e.condition, e.damage_description, e.driver_signed_by, e.party_signed_by, e.remarks = body.condition, body.damage_description, body.driver_signed_by, body.party_signed_by, body.remarks
+    e.details = clean_eir_details(body.details)
+    record_audit(db, "CONTAINER_EIR_CORRECTED", "INVENTORY", user, org, "ContainerEIR", str(e.id), {"number": e.number}, old_value=old)
     db.commit()
     return _eir_view(db, e)
 
@@ -813,21 +861,21 @@ def review_count(count_id: int, body: Reason, user: User = Depends(permission_re
 
 # ================================================================ alerts
 @alert_router.get("")
-def alerts(user: User = Depends(permission_required("container.read")), db: Session = Depends(get_db)):
+def alerts(days: int = Query(default=60, ge=1, le=730), user: User = Depends(permission_required("container.read")), db: Session = Depends(get_db)):
     """Things that need attention, computed from live records."""
     org = _org(user)
     today = date.today()
-    soon = today + timedelta(days=60)
-    csc = [{"container_number": c.container_number, "csc_valid_until": c.csc_valid_until, "expired": c.csc_valid_until < today}
+    soon = today + timedelta(days=days)
+    csc = [{"container_number": c.container_number, "container_id": c.id, "csc_valid_until": c.csc_valid_until, "expired": c.csc_valid_until < today, "days_left": (c.csc_valid_until - today).days}
            for c in db.scalars(select(Container).where(Container.organization_id == org, Container.is_active.is_(True), Container.csc_valid_until.is_not(None), Container.csc_valid_until <= soon,
-                                                      Container.location_status != "DISPOSED").order_by(Container.csc_valid_until).limit(200))]
+                                                      Container.location_status != "DISPOSED").order_by(Container.csc_valid_until).limit(500))]
     leases = []
-    for l in db.scalars(select(ContainerLease).where(ContainerLease.organization_id == org, ContainerLease.status == "ACTIVE", ContainerLease.end_date.is_not(None), ContainerLease.end_date <= today + timedelta(days=30))):
+    for l in db.scalars(select(ContainerLease).where(ContainerLease.organization_id == org, ContainerLease.status == "ACTIVE", ContainerLease.end_date.is_not(None), ContainerLease.end_date <= today + timedelta(days=days))):
         on = db.scalar(select(func.count()).select_from(ContainerLeaseItem).where(ContainerLeaseItem.lease_id == l.id, ContainerLeaseItem.status == "ON_HIRE")) or 0
         if on:
-            leases.append({"agreement_number": l.agreement_number, "leasing_company": l.leasing_company, "end_date": l.end_date, "containers_on_hire": on, "overdue_redelivery": l.end_date < today})
+            leases.append({"lease_id": l.id, "agreement_number": l.agreement_number, "leasing_company": l.leasing_company, "end_date": l.end_date, "days_left": (l.end_date - today).days, "containers_on_hire": on, "overdue_redelivery": l.end_date < today})
     count = lambda model, *w: db.scalar(select(func.count()).select_from(model).where(model.organization_id == org, *w)) or 0
     pending = {"movements_waiting_approval": count(ContainerMovement, ContainerMovement.status == "DRAFT"), "surveys_waiting_approval": count(ContainerSurvey, ContainerSurvey.status == "SUBMITTED"),
                "repairs_waiting_approval": count(ContainerRepairOrder, ContainerRepairOrder.status == "ESTIMATED"), "repairs_in_progress": count(ContainerRepairOrder, ContainerRepairOrder.status == "IN_PROGRESS"),
                "open_damages": count(ContainerDamage, ContainerDamage.status != "CLOSED"), "stock_counts_to_review": count(ContainerStockCount, ContainerStockCount.status == "OPEN")}
-    return {"csc": csc, "leases": leases, "pending": pending, "total": len(csc) + len(leases) + sum(pending.values())}
+    return {"days": days, "csc": csc, "leases": leases, "pending": pending, "total": len(csc) + len(leases) + sum(pending.values())}

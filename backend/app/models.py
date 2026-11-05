@@ -1584,6 +1584,7 @@ class ContainerEIR(Base):
     driver_signed_by: Mapped[str | None] = mapped_column(String(120))
     party_signed_by: Mapped[str | None] = mapped_column(String(120))
     remarks: Mapped[str | None] = mapped_column(String(500))
+    details: Mapped[dict] = mapped_column(JSON, default=dict)                 # the printed EIR form: seals, temperatures, tyres, inspection codes, times ...
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -1605,4 +1606,22 @@ class ContainerStockCount(Base):
     reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     review_note: Mapped[str | None] = mapped_column(String(500))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ContainerAttachment(Base):
+    """A photo or document kept against a container, survey, damage, repair order, movement, EIR or lease."""
+    __tablename__ = "container_attachments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_type: Mapped[str] = mapped_column(String(20), index=True)
+    entity_id: Mapped[int] = mapped_column(Integer, index=True)
+    category: Mapped[str] = mapped_column(String(12), default="PHOTO")        # PHOTO / DOCUMENT
+    name: Mapped[str] = mapped_column(String(200))
+    content_type: Mapped[str] = mapped_column(String(100))
+    size: Mapped[int] = mapped_column(Integer, default=0)
+    caption: Mapped[str | None] = mapped_column(String(300))
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
