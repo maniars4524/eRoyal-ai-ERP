@@ -142,12 +142,25 @@ def job_measures(db: Session, job: Shipment, det: JobDetail | None) -> bc.Measur
 
     cargo = {**(booking_defaults(db, job).get("cargo") or {}), **{k: v for k, v in ((det.cargo if det else None) or {}).items() if v not in ("", None)}}
     bk = db.get(Booking, job.booking_id) if job.booking_id else None
+    from . import cargo_engine as ce
+
     rows = []
-    unit = ((det.dims if det else None) or {}).get("unit")
-    for r in (((det.dims if det else None) or {}).get("rows") or []):
-        f = 2.54 if unit == "in_lbs" else 1
-        rows.append({"l": float(bc.dec(r.get("l"))) * f, "w": float(bc.dec(r.get("w"))) * f, "h": float(bc.dec(r.get("h"))) * f, "packages": r.get("pkg") or 1})
-    return bc.Measures(mode=job.mode or "Sea", shipment_type=(getattr(job, "container_mode", None) or (bk.shipment_type if bk else "") or ""), packages=cargo.get("pkgs"), gross_kg=cargo.get("gwt"), net_kg=cargo.get("nwt"),
+    dims_doc = (det.dims if det else None) or {}
+    unit = dims_doc.get("unit")
+    row_gross, dim_packages = None, None
+    if ce.is_v2(dims_doc):
+        try:
+            rows, kg = ce.measures_from_dims(dims_doc)
+        except ce.CargoError as e:
+            raise bc.BasisError(str(e))
+        shipment_kg = ce.dec(dims_doc.get("shipment_gross_kg"), "Gross weight")
+        dim_packages = sum((r["packages"] for r in rows), ce.ZERO) or None
+        row_gross = kg if kg > 0 else (shipment_kg if shipment_kg > 0 else None)       # weights typed on the dimension rows win, then the weight saved with them, then the cargo tab's (never added together)
+    else:
+        for r in (dims_doc.get("rows") or []):
+            f = 2.54 if unit == "in_lbs" else 1
+            rows.append({"l": float(bc.dec(r.get("l"))) * f, "w": float(bc.dec(r.get("w"))) * f, "h": float(bc.dec(r.get("h"))) * f, "packages": r.get("pkg") or 1})
+    return bc.Measures(mode=job.mode or "Sea", shipment_type=(getattr(job, "container_mode", None) or (bk.shipment_type if bk else "") or ""), packages=cargo.get("pkgs") or dim_packages, gross_kg=row_gross if row_gross is not None else cargo.get("gwt"), net_kg=cargo.get("nwt"),
                        volume_cbm=cargo.get("vol"), vehicles=cargo.get("vehicles"), dims=rows)
 
 

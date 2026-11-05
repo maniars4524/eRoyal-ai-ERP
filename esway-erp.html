@@ -16638,7 +16638,7 @@ if(document.readyState !== "loading") initChatWidget();
       f("Packages", inp("packages","number","","min=\"0\""))+f("Gross Weight (kg)", inp("gross_weight","number","","min=\"0\" step=\"0.001\""))+f("Net Weight (kg)", inp("net_weight","number","","min=\"0\" step=\"0.001\""))+f("Volume (CBM)", inp("volume","number","","min=\"0\" step=\"0.001\""))+f("Vehicles", inp("vehicles","number","","min=\"0\" step=\"1\""))+
       (["Air","Courier"].indexOf((wiz() || {}).mode) < 0 ? f("Containers in this shipment", '<div id="qkConts">'+contHTML()+'</div>', "span4") : "")+
       f("Origin (Place of Receipt)", inp("origin","text","City / place of cargo pick-up",' list="qkPorts"'), "span2")+f("Final Destination", inp("final_destination","text","Place of final delivery",' list="qkPorts"'), "span2")+
-      f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+f("Dimensions (L x W x H cm)", inp("dimensions","text","e.g. 80 x 60 x 45"))+
+      f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+f("Dimensions", window.CargoDims ? CargoDims.quoteField(Q, wiz(), !d) : inp("dimensions","text","e.g. 80 x 60 x 45"), "span2")+
       f("Billing Branch", '<select class="fc" data-qh="billing_branch_id"'+d+'><option value="">— Registered address —</option>'+(Q.m.custBranches||[]).filter(b=>b.status==="ACTIVE" && b.billing_enabled).map(b=>opt(String(b.id), b.code+" — "+b.name, String(b.id)===String(h.billing_branch_id))).join("")+'</select>', "span2")+
       f("Contact Person", '<select class="fc" data-qh="contact_id"'+d+'><option value="">— Select contact —</option>'+contactChoices().map(c=>opt(String(c.id), c.name+(c.designation?" · "+c.designation:"")+(c.branch_code?" ("+c.branch_code+")":""), String(c.id)===String(h.contact_id))).join("")+'</select>', "span2")+
       '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2((p.unlocode||p.code)+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+carrierNames().map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
@@ -16719,7 +16719,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(["packages", "gross_weight", "net_weight", "volume", "vehicles", "chargeable_weight"].indexOf(t.dataset.qh) > -1) queueBasis(false);
   };
   document.addEventListener("input", basisEvent); document.addEventListener("change", basisEvent);
-  Q.recalcBasis = recalcBasis;
+  Q.recalcBasis = recalcBasis; Q.wiz = wiz;
   async function reloadCharges(){
     try{ const rows = await api("GET","/api/masters/charge"); Q.m.charges = rows.filter(c=>c.status === "ACTIVE"); return true; }catch(e){ return false; }
   }
@@ -16872,7 +16872,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* ---------- open / load ---------- */
   function fillFromRec(r){
     Q.head = {customer_id:r.customer_id||"", party_name:r.party_name||"", cust_source:(r.header||{}).cust_source || (r.customer_id ? "master" : "direct"), lead_ref:(r.header||{}).lead_ref||"", quote_date:r.quote_date, valid_until:r.valid_until||"", terms:r.terms||"", remarks:r.remarks||"", pol:r.pol||"", pod:r.pod||"",
-      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","net_weight","vehicles"].map(k=>[k, (r.header||{})[k]||""])), containers:Array.isArray((r.header||{}).containers) ? r.header.containers.map(c=>({type:c.type, qty:String(c.qty)})) : []};
+      ...Object.fromEntries(["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","dim_rows","dim_express","dim_shipment_gross_kg","dim_calculation","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","net_weight","vehicles"].map(k=>[k, (r.header||{})[k]||""])), containers:Array.isArray((r.header||{}).containers) ? r.header.containers.map(c=>({type:c.type, qty:String(c.qty)})) : []};
     const mk = l=>({qty_manual:!!l.qty_manual, pct_base:l.pct_base || null, side:l.side, charge_name:l.charge_name, carrier:l.carrier||"", basis:l.basis, container_type:l.container_type||"", container_breakup:(l.container_breakup||[]).map(b=>({type:b.type, qty:b.qty, rate:b.rate})), ccy:l.ccy, exch:l.exch, rate:l.rate, qty:l.qty, taxable:!!l.taxable, tax_pct:String(Number(l.tax_pct)), remarks:l.remarks||""});
     Q.sell = r.lines.filter(l=>l.side==="SELL").map(mk); Q.buy = r.lines.filter(l=>l.side==="BUY").map(mk); pairLines();
   }
@@ -16937,7 +16937,7 @@ if(document.readyState !== "loading") initChatWidget();
     };
     return {customer_id:h.customer_id ? Number(h.customer_id) : null, party_name:cust ? cust.name : (h.party_name||""), mode:w.mode, direction:w.dir, shipment_type:w.type, quote_type:w.qtype, carrier_mode:w.carrierMode || "single",
       pol:(h.pol||"").trim() || null, pod:(h.pod||"").trim() || null, quote_date:h.quote_date || today(), valid_until:h.valid_until || null, terms:h.terms || null, remarks:h.remarks || null,
-      header:Object.fromEntries(Object.entries({...h, containers:(h.containers || []).filter(c=>c.type && Number(c.qty) > 0).map(c=>({type:c.type, qty:String(Number(c.qty))})), ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","containers","net_weight","vehicles"].includes(k) && v!=="" && v!==undefined && v!==null)),
+      header:Object.fromEntries(Object.entries({...h, containers:(h.containers || []).filter(c=>c.type && Number(c.qty) > 0).map(c=>({type:c.type, qty:String(Number(c.qty))})), ...partySnapshot()}).filter(([k,v])=>["currency","sales_person","service_type","reference_no","incoterm","commodity","payment_terms","transit_days","packages","gross_weight","volume","origin","final_destination","carrier","chargeable_weight","dimensions","dim_rows","dim_express","dim_shipment_gross_kg","dim_calculation","billing_branch_id","contact_id","contact_person","contact_email","contact_mobile","billing_address","customer_gstin","branch_name","cust_source","lead_ref","containers","net_weight","vehicles"].includes(k) && v!=="" && v!==undefined && v!==null)),
       lines:keepLines().map(toLine)};
   }
   function validate(forSubmit){
@@ -24462,6 +24462,218 @@ body.job-readonly #jlBanner{display:flex}
     if(screen === "inv-plans") setTimeout(()=>{ const pa = document.querySelector("#s-inv-plans .ph .pa"); if(pa && !document.getElementById("flGenAll")){ const b = document.createElement("button"); b.className = "btn btn-out btn-sm"; b.id = "flGenAll"; b.textContent = "Create work orders for everything due"; pa.insertBefore(b, pa.lastElementChild); } }, 150);
     return r;
   };
+})();
+</script>
+
+<script>
+/* ============================================================
+   CARGO DIMENSIONS KIT: one popup (rows, units, live totals from the server) used by the quotation form and the job screen (Air, Sea LCL, consolidation cargo by house reference).
+   The browser only previews: every figure comes from POST /api/cargo/calc, the same engine the server uses to save and to rate the charges.
+   ============================================================ */
+(function(){
+  "use strict";
+  const esc = s=> String(s == null ? "" : s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const token = ()=> sessionStorage.getItem("esway_access_token");
+  async function api(method, url, body){
+    const r = await fetch(url, {method, headers:{Authorization:"Bearer "+token(), "Content-Type":"application/json"}, body: body ? JSON.stringify(body) : undefined});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok){ const e = new Error(typeof d.detail === "string" ? d.detail : "Request failed"); e.status = r.status; throw e; }
+    return d;
+  }
+  const say = (t, m, k)=> { if(window.toast) toast(t, m || "", k || "success"); };
+  const PKG_TYPES = ["PKG", "BOX", "PALLET", "CARTON", "CRATE", "DRUM", "BAG", "BUNDLE", "ROLL", "CASE", "OTHER"];
+  const UNITS = ["CM", "MM", "M", "INCH", "FEET"];
+  const num = v=> { const n = Number(String(v == null ? "" : v).replace(/,/g, "")); return isFinite(n) ? n : 0; };
+  const fmt = (v, d)=> v == null || v === "" ? "—" : Number(v).toLocaleString("en-IN", {minimumFractionDigits:d == null ? 3 : d, maximumFractionDigits:d == null ? 3 : d});
+  const clean = r=> ({packages:String(r.packages == null ? "" : r.packages), package_type:r.package_type || "", length:String(r.length == null ? "" : r.length), width:String(r.width == null ? "" : r.width), height:String(r.height == null ? "" : r.height),
+    unit:r.unit || "CM", gross:String(r.gross == null ? "" : r.gross), gross_unit:r.gross_unit || "KG", weight_basis:r.weight_basis || "TOTAL", reference:r.reference || "", remarks:r.remarks || ""});
+  /* a job saved before the standard format: rows keep their meaning (weight of ONE package), lb / inches are converted so the figures stay as they were */
+  function fromLegacy(dims){
+    const lbs = dims && dims.unit === "in_lbs", kgf = lbs ? 0.45359237 : 1;
+    return {rows:((dims && dims.rows) || []).map(r=>clean({packages:r.pkg || 1, length:r.l, width:r.w, height:r.h, unit:lbs ? "INCH" : "CM", gross:r.awt ? String(+(num(r.awt) * kgf).toFixed(4)) : "", gross_unit:"KG", weight_basis:"PER_PACKAGE", remarks:r.desc || ""})),
+            note:dims && dims.unit && dims.unit !== "cm_kg" ? "This set was saved with the older "+(dims.unit === "in_lbs" ? "inch / lb (÷166)" : "CBM × 167")+" formula. Saving it here converts it to the standard formula, so the volumetric weight can change." : ""};
+  }
+  const CD = window.CargoDims = {};
+  let S = null;                      // the popup's working state
+
+  const totalsHTML = (t, mode)=> {
+    if(!t) return '<div style="color:var(--g5)">Add a row to see the totals.</div>';
+    const cell = (l, v, strong)=> '<div style="min-width:120px"><div style="font-size:10.5px;color:var(--g5);text-transform:uppercase;letter-spacing:.04em">'+l+'</div><div style="font-size:'+(strong ? "17px;font-weight:700;color:var(--bl)" : "14px;font-weight:600")+'">'+v+'</div></div>';
+    const isAir = (t.mode || mode) === "Air", lcl = t.applicable && t.applicable.includes("chargeable_rt");
+    return '<div style="display:flex;gap:18px;flex-wrap:wrap">'+cell("Packages", fmt(t.packages, 0))+cell("Gross weight (kg)", fmt(t.gross_kg))+cell("CBM", fmt(t.cbm))+
+      (isAir ? cell("Volumetric weight (kg)", fmt(t.volumetric_kg))+cell("Chargeable weight (kg)", fmt(t.chargeable_kg), true) : "")+(lcl ? cell("Weight (MT)", fmt(t.weight_mt))+cell("Chargeable RT", fmt(t.chargeable_rt), true) : "")+
+      (!isAir && !lcl ? cell("Volumetric weight (kg)", fmt(t.volumetric_kg)) : "")+'</div>'+
+      (t.basis && t.method ? '<div style="font-size:11.5px;color:var(--g6);margin-top:6px">Rated on the '+esc(t.basis)+' figure · '+esc(t.method.formula_air)+(lcl ? " · "+esc(t.method.formula_lcl) : "")+" · rounding "+esc(t.method.rounding)+" · "+esc(t.method.configuration)+'</div>' : "")+
+      (t.warnings && t.warnings.length ? '<div style="color:#a15c00;font-size:12px;margin-top:6px">'+t.warnings.map(esc).join("<br>")+'</div>' : "");
+  };
+  const byRefHTML = t=> t && t.by_reference && t.by_reference.length ? '<div style="margin-top:10px"><b style="font-size:12px">By house reference (consolidation)</b><table style="margin-top:4px"><thead><tr><th>Reference</th><th>Packages</th><th>CBM</th><th>Volumetric kg</th><th>Gross kg</th></tr></thead><tbody>'+
+    t.by_reference.map(x=>'<tr><td>'+esc(x.reference)+'</td><td>'+fmt(x.packages, 0)+'</td><td>'+fmt(x.cbm)+'</td><td>'+fmt(x.volumetric_kg)+'</td><td>'+fmt(x.gross_kg)+'</td></tr>').join("")+'</tbody></table><div style="font-size:11px;color:var(--g5)">The total above is the sum of these references; nothing is counted twice.</div></div>' : "";
+
+  async function preview(){
+    const box = document.getElementById("cd_totals"); if(!box || !S) return;
+    const body = {mode:S.mode, shipment_type:S.type, rows:S.rows.filter(r=>r.packages || r.length || r.width || r.height || r.gross), shipment_gross_kg:S.shipment_gross_kg || null, express:!!S.express};
+    try{ const res = await api("POST", "/api/cargo/calc", body); if(!S) return; S.totals = res; S.error = ""; box.innerHTML = totalsHTML(S.totals, S.mode)+byRefHTML(S.totals); }
+    catch(e){ if(!S) return; S.totals = null; S.error = e.message; box.innerHTML = '<div style="color:var(--rd,#b91c1c);font-weight:600">'+esc(e.message)+'</div>'; }
+    if(!S) return;
+    document.querySelectorAll("#cd_rows [data-cd-rowcalc]").forEach(td=>{ const i = Number(td.dataset.cdRowcalc), r = S.totals && S.totals.rows && S.totals.rows[i]; td.textContent = r ? fmt(r.cbm)+" · "+fmt(r.volumetric_kg)+" kg" : ""; });
+  }
+  let pt = null; const queue = ()=> { clearTimeout(pt); pt = setTimeout(preview, 250); };
+  const snap = ()=> JSON.stringify({rows:S.rows, express:!!S.express, g:S.shipment_gross_kg || ""});
+  const dirty = ()=> snap() !== S.baseline;
+
+  function rowsHTML(){
+    if(!S.rows.length) return '<tr><td colspan="9" class="tbl-empty">No rows yet. Fill in the entry area above and press Add row.</td></tr>';
+    return S.rows.map((r, i)=>'<tr'+(S.editing === i ? ' style="background:var(--blt)"' : "")+'><td>'+(i + 1)+'</td><td>'+esc(r.packages)+' '+esc(r.package_type)+'</td><td>'+esc(r.length)+' × '+esc(r.width)+' × '+esc(r.height)+' '+esc(r.unit)+'</td><td>'+(r.gross ? esc(r.gross)+' '+esc(r.gross_unit)+(r.weight_basis === "PER_PACKAGE" ? ' <span class="b b-am" title="This older row\'s weight is the weight of one package">per package</span>' : "") : "—")+'</td>'+
+      '<td data-cd-rowcalc="'+i+'" style="white-space:nowrap"></td><td>'+esc(r.reference || "—")+'</td><td>'+esc(r.remarks || "")+'</td><td style="white-space:nowrap">'+(S.editable ? '<button class="ta" data-cd="edit:'+i+'">Edit</button> <button class="ta" data-cd="del:'+i+'">Delete</button>' : "")+'</td></tr>').join("");
+  }
+  const val = id=> (document.getElementById(id) || {}).value || "";
+  const setv = (id, v)=> { const e = document.getElementById(id); if(e) e.value = v; };
+  function entryRow(){ return clean({packages:val("cd_pk"), package_type:val("cd_pt"), length:val("cd_l"), width:val("cd_w"), height:val("cd_h"), unit:val("cd_u"), gross:val("cd_g"), gross_unit:val("cd_gu"), weight_basis:(S.editing != null && S.rows[S.editing] ? S.rows[S.editing].weight_basis : "TOTAL"), reference:val("cd_ref"), remarks:val("cd_rem")}); }
+  function clearEntry(){ ["cd_pk", "cd_l", "cd_w", "cd_h", "cd_g", "cd_ref", "cd_rem"].forEach(i=>setv(i, "")); setv("cd_pk", "1"); setv("cd_u", S.lastUnit || "CM"); S.editing = null; const b = document.getElementById("cd_add"); if(b) b.textContent = "Add row"; const f = document.getElementById("cd_pk"); if(f) f.focus(); }
+  function repaintRows(){ const tb = document.getElementById("cd_rows"); if(tb) tb.innerHTML = rowsHTML(); queue(); const dl = document.getElementById("cd_dirty"); if(dl) dl.style.display = dirty() ? "" : "none"; }
+  function validEntry(r){
+    if(!(num(r.packages) > 0)) return "Enter the number of packages (more than zero)";
+    const any = num(r.length) > 0 || num(r.width) > 0 || num(r.height) > 0;
+    if(any && !(num(r.length) > 0 && num(r.width) > 0 && num(r.height) > 0)) return "Length, width and height must all be greater than zero";
+    if(!any && !(num(r.gross) > 0)) return "Enter the dimensions, or at least the gross weight of this row";
+    return "";
+  }
+  function addOrUpdate(){
+    const r = entryRow(), why = validEntry(r); if(why){ say("Row not added", why, "warn"); return false; }
+    S.lastUnit = r.unit;
+    if(S.editing != null){ S.rows[S.editing] = r; } else S.rows.push(r);
+    clearEntry(); repaintRows(); return true;
+  }
+  function pendingEntry(){ const r = entryRow(); return num(r.length) > 0 || num(r.width) > 0 || num(r.height) > 0 || num(val("cd_g")) > 0; }
+
+  function doc(){ return {version:2, rows:S.rows.map(r=>({...r})), express:!!S.express, shipment_gross_kg:S.shipment_gross_kg || null}; }
+  async function commit(kind){                                      // kind: apply | save
+    if(pendingEntry() && !addOrUpdate()) return false;
+    if(!S.rows.length){ say("Nothing to apply", "Add at least one row", "warn"); return false; }
+    await preview(); if(S.error || !S.totals){ say("Cannot "+kind+" yet", S.error || "The totals could not be calculated", "warn"); return false; }
+    try{
+      if(kind === "save" && S.onSave) await S.onSave(doc(), S.totals); else if(S.onApply) await S.onApply(doc(), S.totals);
+    }catch(e){ say("Could not "+kind, e.message, "error"); return false; }
+    S.baseline = snap(); repaintRows(); return true;
+  }
+  function close(force){
+    if(!force && dirty() && !window.confirm("You have changes that were not applied or saved. Close without them?")) return;
+    S = null; if(window.closeModal) closeModal();
+  }
+
+  CD.open = async function(o){
+    let cfg = {}; try{ cfg = await api("GET", "/api/cargo/config"); }catch(e){}
+    S = {mode:o.mode || "Air", type:(o.shipmentType || "").toUpperCase(), rows:(o.rows || []).map(clean), express:!!o.express, shipment_gross_kg:o.shipmentGross || "", editable:o.editable !== false, editing:null, onApply:o.onApply, onSave:o.onSave, context:o.context || "job", note:o.note || "", lastUnit:"CM"};
+    S.baseline = snap();
+    const isAir = S.mode === "Air", lcl = S.mode === "Sea" && S.type === "LCL";
+    const fc = (label, ctl, span)=> '<div class="fg"'+(span ? ' style="grid-column:span '+span+'"' : "")+'><label class="fl">'+label+'</label>'+ctl+'</div>';
+    const inp = (id, ph, t)=> '<input class="fc" id="'+id+'"'+(t ? ' type="'+t+'"' : "")+(ph ? ' placeholder="'+ph+'"' : "")+(S.editable ? "" : " disabled")+' data-cd-in="1">';
+    const sel = (id, list, cur)=> '<select class="fc" id="'+id+'"'+(S.editable ? "" : " disabled")+'>'+list.map(x=>'<option'+(x === cur ? " selected" : "")+'>'+x+'</option>').join("")+'</select>';
+    const body = '<div id="cdBox">'+(S.note ? '<div class="ib ib-am" style="margin-bottom:8px">'+esc(S.note)+'</div>' : "")+
+      (S.mode === "Sea" && S.type !== "LCL" ? '<div class="ib ib-bl" style="margin-bottom:8px">This is not an LCL shipment: the figures are recorded for the file, but freight is charged per container.</div>' : "")+
+      '<div class="card" style="margin-bottom:10px"><div class="cb"><div class="fr">'+fc("No. of packages", inp("cd_pk", "", "number"))+fc("Package type", inp("cd_pt", "PKG").replace('data-cd-in="1"', 'data-cd-in="1" list="cdPkgTypes"'))+fc("Length", inp("cd_l", "", "number"))+fc("Width", inp("cd_w", "", "number"))+
+      fc("Height", inp("cd_h", "", "number"))+fc("Dimension unit", sel("cd_u", UNITS, "CM"))+fc("Gross weight of this row", inp("cd_g", "whole row, not per package", "number"))+fc("Weight unit", sel("cd_gu", ["KG", "TON"], "KG"))+
+      fc("House reference (consolidation)", inp("cd_ref", "HBL / HAWB no. (optional)"), 2)+fc("Remarks", inp("cd_rem", "optional"), 2)+'</div>'+
+      (S.editable ? '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-pri btn-sm" id="cd_add">Add row</button><button class="btn btn-out btn-sm" data-cd="clear">Clear entry</button><button class="btn btn-out btn-sm" data-cd="new">New</button></div>' : "")+
+      '</div></div><datalist id="cdPkgTypes">'+PKG_TYPES.map(t=>'<option value="'+t+'">').join("")+'</datalist>'+
+      '<div class="card" style="margin-bottom:10px"><div class="tw"><table><thead><tr><th>S.No</th><th>Packages</th><th>L × W × H</th><th>Gross weight</th><th>CBM · volumetric</th><th>Reference</th><th>Remarks</th><th></th></tr></thead><tbody id="cd_rows">'+rowsHTML()+'</tbody></table></div></div>'+
+      '<div class="fr" style="margin-bottom:8px">'+fc("Shipment gross weight (kg) — used only when the rows carry no weight", '<input class="fc" id="cd_sg" type="number" min="0" step="any" value="'+esc(S.shipment_gross_kg || "")+'"'+(S.editable ? "" : " disabled")+'>', 2)+
+      (isAir ? fc("Service", '<select class="fc" id="cd_ex"'+(S.editable ? "" : " disabled")+'><option value="0">General air freight (divisor '+esc(cfg.divisor || 6000)+')</option><option value="1"'+(S.express ? " selected" : "")+'>Express courier (divisor 5000)</option></select>', 2) : "")+'</div>'+
+      '<div class="card"><div class="cb" id="cd_totals">Calculating…</div></div><div id="cd_dirty" style="display:none;color:#a15c00;font-size:12px;margin-top:6px">Changes not applied or saved yet.</div></div>';
+    const isQuote = S.context === "quote";
+    window.openModal({title:(isAir ? "Cargo Dimensions — Air" : lcl ? "Cargo Dimensions — Sea LCL" : "Cargo Dimensions")+(S.editable ? "" : " (view only)"), size:"lg", bodyHTML:body,
+      footHTML:'<button class="btn btn-out" data-cd="cancel">Cancel</button>'+(S.editable ? '<button class="btn btn-out" data-cd="apply">Apply</button>'+(isQuote ? '<button class="btn btn-pri" data-cd="saveclose">Apply &amp; Close</button>' : '<button class="btn btn-out" data-cd="savenew">Save &amp; New</button><button class="btn btn-pri" data-cd="save">Save</button>') : "")});
+    setv("cd_pk", "1"); const ad = document.getElementById("cd_add"); if(ad) ad.addEventListener("click", addOrUpdate);
+    repaintRows();
+  };
+  document.addEventListener("click", async e=>{
+    const b = e.target.closest("[data-cd]"); if(!b || !S) return;
+    const [act, arg] = b.dataset.cd.split(":");
+    if(act === "edit"){ const r = S.rows[Number(arg)]; S.editing = Number(arg); setv("cd_pk", r.packages); setv("cd_pt", r.package_type); setv("cd_l", r.length); setv("cd_w", r.width); setv("cd_h", r.height); setv("cd_u", r.unit); setv("cd_g", r.gross); setv("cd_gu", r.gross_unit); setv("cd_ref", r.reference); setv("cd_rem", r.remarks);
+      const a = document.getElementById("cd_add"); if(a) a.textContent = "Update row"; repaintRows(); return; }
+    if(act === "del"){ S.rows.splice(Number(arg), 1); S.editing = null; clearEntry(); repaintRows(); return; }
+    if(act === "clear" || act === "new"){ clearEntry(); repaintRows(); return; }
+    if(act === "cancel"){ close(false); return; }
+    if(act === "apply"){ if(await commit("apply")) say("Applied", S && S.context === "quote" ? "The quotation fields now show these figures. Save the quotation to keep them." : "The job screen now shows these figures. Press Save to keep them."); return; }
+    if(act === "save"){ if(await commit("save")) close(true); return; }
+    if(act === "saveclose"){ if(await commit("apply")) close(true); return; }
+    if(act === "savenew"){ if(await commit("save")){ clearEntry(); say("Saved", "Enter the next row"); } return; }
+  });
+  document.addEventListener("input", e=>{
+    if(!S) return;
+    if(e.target.id === "cd_sg"){ S.shipment_gross_kg = e.target.value; repaintRows(); }
+  });
+  document.addEventListener("change", e=>{ if(S && e.target.id === "cd_ex"){ S.express = e.target.value === "1"; repaintRows(); } });
+
+  /* ---------------- the quotation form ---------------- */
+  function quoteSummary(Q, editable){
+    const h = Q.head || {}, rows = Array.isArray(h.dim_rows) ? h.dim_rows : [];
+    const old = h.dimensions && !rows.length ? '<div style="font-size:11px;color:var(--g5);margin-top:4px">Earlier note: '+esc(h.dimensions)+'</div>' : "";
+    return '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn btn-out btn-sm" data-cd-quote="1" data-cd-edit="'+(editable === false ? "0" : "1")+'">'+(rows.length ? "View / Edit Dimensions ("+rows.length+" row"+(rows.length > 1 ? "s" : "")+")" : "Dimensions…")+'</button>'+
+      (rows.length ? '<span style="font-size:12px;color:var(--g6)">'+esc(h.packages || "")+' pkgs · '+esc(h.volume || "—")+' CBM · gross '+esc(h.gross_weight || "—")+' kg'+(h.chargeable_weight ? ' · chargeable '+esc(h.chargeable_weight)+' kg' : "")+'</span>' : "")+'</div>'+old;
+  }
+  CD.quoteField = function(Q, w, editable){ const mode = ((w || {}).mode || ""), ok = mode === "Air" || (mode === "Sea" && (w || {}).type === "LCL");
+    return ok ? '<div id="qkDims">'+quoteSummary(Q, editable)+'</div>' : '<div id="qkDims" style="font-size:12px;color:var(--g5)">Dimensions apply to Air and Sea LCL quotations.</div>'; };
+  document.addEventListener("click", e=>{
+    if(!e.target.closest("[data-cd-quote]")) return;
+    const Q = window.QK; if(!Q) return; const w = Q.wiz ? Q.wiz() : {}, h = Q.head, btn = e.target.closest("[data-cd-quote]");
+    const mode = (w && w.mode) || Q.mode, type = (w && w.type) || Q.type || "";
+    CD.open({context:"quote", mode, shipmentType:type, rows:Array.isArray(h.dim_rows) ? h.dim_rows : [], express:String(h.dim_express) === "true", shipmentGross:h.dim_shipment_gross_kg || "", editable:btn.dataset.cdEdit === "1",
+      onApply:(d, t)=>{
+        h.dim_rows = d.rows; h.dim_express = d.express ? "true" : ""; h.dim_shipment_gross_kg = d.shipment_gross_kg || "";
+        const set = (k, v)=> { if(v == null || v === "" || Number(v) === 0) return; v = String(Number(v)); h[k] = v; const el = document.querySelector('[data-qh="'+k+'"]'); if(el){ el.value = v; el.dispatchEvent(new Event("input", {bubbles:true})); el.dispatchEvent(new Event("change", {bubbles:true})); } };
+        set("packages", t.packages); set("gross_weight", t.gross_kg); set("volume", t.cbm); if(t.chargeable_kg != null) set("chargeable_weight", t.chargeable_kg);
+        Q.dirty = true; const host = document.getElementById("qkDims"); if(host) host.innerHTML = quoteSummary(Q);
+      }});
+  });
+
+  /* ---------------- the job screen ---------------- */
+  const JD = ()=> window.JobDetailKit;
+  const J = {doc:null, applied:false};
+  function jobMode(){ const d = JD() && JD().data; return d ? {mode:d.mode, type:(d.container_mode || "")} : null; }
+  function jobSummary(){
+    const d = JD().data, dims = (J.doc ? {...J.doc, totals:null} : d.dims) || {}, t = J.totals || (d.dims && d.dims.totals), m = jobMode();
+    const has = (dims.rows || []).length;
+    const legacy = has && dims.version !== 2 && t && !t.method;
+    const src = dims.source ? '<span class="b b-bl">from quotation '+esc(dims.source.quotation || "")+'</span> ' : "";
+    return (J.applied ? '<span class="b b-am">applied, not saved yet</span> ' : "")+src+(!has ? '<div style="color:var(--g5)">No dimensions entered yet.</div>' : legacy ? '<div>Saved with the older formula: '+esc(t.packages)+' packages · actual '+fmt(t.actual_kg)+' kg · volumetric '+fmt(t.volumetric_kg)+' kg · <b>chargeable '+fmt(t.chargeable_kg)+' kg</b><div style="font-size:11.5px;color:var(--g6)">Open View / Edit Dimensions to move it to the standard calculation.</div></div>' : t && !t.error ? totalsHTML(t, m.mode) : (t && t.error ? '<div style="color:var(--rd,#b91c1c)">'+esc(t.error)+'</div>' : '<div style="color:var(--g5)">No dimensions entered yet.</div>'))+byRefHTML(t && !t.error ? t : null)+
+      (dims.calculation ? '<div style="font-size:11px;color:var(--g5);margin-top:6px">Calculated '+esc((dims.calculation.method || {}).calculated_at || "")+' with divisor '+esc((dims.calculation.method || {}).divisor || "")+'</div>' : "");
+  }
+  function paintJob(){
+    const kit = JD(), m = jobMode(); if(!kit || !kit.data || !m) return;
+    const show = m.mode === "Air" || m.mode === "Sea";
+    let card = document.getElementById("cdJobCard");
+    if(!card){ const anchor = document.getElementById("jt2Air"); if(!anchor) return; card = document.createElement("div"); card.id = "cdJobCard"; card.className = "card"; anchor.parentNode.insertBefore(card, anchor); }
+    card.style.display = show ? "" : "none"; if(!show) return;
+    const lcl = m.mode === "Sea" && m.type === "LCL", title = m.mode === "Air" ? "Cargo Dimensions — Air" : lcl ? "Cargo Dimensions — Sea LCL" : "Cargo Dimensions (recorded only: FCL is charged per container)";
+    card.innerHTML = '<div class="ch"><div class="ct"><svg class="ic" data-icon="ruler" style="color:var(--tl)"></svg> '+title+'</div><button class="btn btn-out btn-sm" id="cdJobOpen">View / Edit Dimensions</button></div><div class="cb" id="cdJobBody" style="padding:12px 14px">'+jobSummary()+'</div>';
+    if(window.renderIcons) renderIcons(card);
+  }
+  async function openJob(){
+    const kit = JD(), m = jobMode(), d = kit.data; let rows = [], note = "", express = false, sg = "";
+    const cur = J.doc || d.dims || {};
+    if(cur.version === 2){ rows = cur.rows || []; express = !!cur.express; sg = cur.shipment_gross_kg || ""; }
+    else if((cur.rows || []).length){ const l = fromLegacy(cur); rows = l.rows; note = l.note; }
+    CD.open({context:"job", mode:m.mode, shipmentType:m.type, rows, express, shipmentGross:sg, note, editable:true,
+      onApply:(doc, t)=>{ J.doc = doc; J.totals = t; J.applied = true; window.AIR_DIMS = {actual_kg:Number(t.gross_kg), volumetric_kg:Number(t.volumetric_kg), chargeable_kg:Number(t.chargeable_kg || 0), packages:Number(t.packages)}; if(window.JobAirSync) JobAirSync();
+        const set = (id, v)=> { const el = document.getElementById(id); if(el && v != null && Number(v) !== 0) el.value = String(Number(v)); }; set("jc_pkgs", t.packages); set("jc_gwt", t.gross_kg); set("jc_vol", t.cbm); paintJob(); },
+      onSave:async (doc, t)=>{
+        const r = await api("PUT", "/api/jobs/"+encodeURIComponent(kit.job)+"/details/dims", {data:doc, expected_version:kit.data ? kit.data.version : null});
+        kit.data = r; J.doc = null; J.applied = false; J.totals = null; kit.apply(); if(kit.bars) kit.bars(); paintJob(); if(window.populateJobDetail) populateJobDetail(kit.job); say("Dimensions saved", "Charges on chargeable weight / revenue ton now follow them");
+      }});
+  }
+  document.addEventListener("click", e=>{ if(e.target.closest("#cdJobOpen")) openJob().catch(err=>say("Could not open the dimensions", err.message, "warn")); });
+  const style = document.createElement("style"); style.textContent = "#jt2Air{display:none !important}"; document.head.appendChild(style);      // the single popup replaces the old inline calculator
+  /* the job screen: the summary follows the saved dimensions; saving the tab never overwrites them with the old table */
+  function hook(){
+    const kit = JD(); if(!kit || kit.__cdHooked || !kit.renderDims) return; kit.__cdHooked = true;
+    const oldRender = kit.renderDims, oldCollect = kit.collectDims;
+    kit.renderDims = function(d){ J.doc = null; J.applied = false; J.totals = null;
+      if(d && d.version === 2){ const t = d.totals; if(t && !t.error) window.AIR_DIMS = {actual_kg:t.actual_kg, volumetric_kg:t.volumetric_kg, chargeable_kg:t.chargeable_kg, packages:t.packages}; else window.AIR_DIMS = null; if(window.JobAirSync) JobAirSync(); paintJob(); return; }
+      const r = oldRender.apply(this, arguments); paintJob(); return r; };
+    kit.collectDims = function(){ if(J.doc) return J.doc; const cur = kit.data && kit.data.dims; if(cur && cur.version === 2){ const c = {...cur}; delete c.totals; return c; } return oldCollect.apply(this, arguments); };
+  }
+  setInterval(()=>{ hook(); const kit = JD(); if(kit && kit.data && document.getElementById("s-job-detail") && document.getElementById("s-job-detail").classList.contains("on") && !document.getElementById("cdJobCard")) paintJob(); }, 700);
 })();
 </script>
 </body>

@@ -177,6 +177,45 @@ def _currency_rates(db: Session, org_id: int) -> dict[str, Decimal]:
     return rates
 
 
+DIM_KEYS = ("dim_rows", "dim_express", "dim_shipment_gross_kg", "dim_calculation")
+
+
+def dims_from_header(h: dict) -> dict | None:
+    """The quotation's dimension set (new format) built from its header, or None when it has none."""
+    rows = h.get("dim_rows")
+    if not isinstance(rows, list) or not rows:
+        return None
+    return {"version": 2, "rows": rows, "express": str(h.get("dim_express")).lower() in ("1", "true", "yes"), "shipment_gross_kg": h.get("dim_shipment_gross_kg") or None}
+
+
+def apply_header_dims(q: Quotation) -> None:
+    """The server's calculation is the authoritative one: the packages, gross weight, volume and (Air) chargeable weight on the header follow the dimension rows, and the method is stamped with them."""
+    from . import cargo_engine as ce
+
+    h = dict(q.header or {})
+    d = dims_from_header(h)
+    if d is None:
+        if "dim_rows" in h:                       # rows were cleared on the screen
+            for k in DIM_KEYS:
+                h.pop(k, None)
+            q.header = h
+        return
+    try:
+        res = ce.compute(d["rows"], q.mode or "Air", q.shipment_type or "", ce.default_config(express=d["express"]), d.get("shipment_gross_kg"))
+    except ce.CargoError as e:
+        raise HTTPException(status_code=422, detail="Dimensions: " + str(e))
+    h["packages"] = res["packages"]
+    if Decimal(res["gross_kg"]) > 0:
+        h["gross_weight"] = res["gross_kg"]
+    if Decimal(res["cbm"]) > 0:
+        h["volume"] = res["cbm"]
+    if res["chargeable_kg"] is not None:
+        h["chargeable_weight"] = res["chargeable_kg"]
+    h["dim_calculation"] = "; ".join([f"divisor {res['method']['divisor']}", f"rounding {res['method']['rounding']}", f"configuration {res['method']['configuration']}", "calculated " + res["method"]["calculated_at"]] +
+                                     ([f"RT {res['chargeable_rt']} ({res['basis']})"] if res["chargeable_rt"] is not None else []))
+    q.header = h
+
+
 def _basis_quantities(db: Session, q: Quotation, lines: list[QLine], org_id: int) -> None:
     """The quantity of every line on a calculated Basis comes from the one calculation service, whatever the screen sent (a quantity typed by the user is kept). A missing measurement or a
     percentage with nothing to take it from is refused with the reason when the line is priced."""
@@ -271,6 +310,7 @@ def create_quotation(payload: QuotationIn, user: User = Depends(permission_requi
     today = date.today()
     quote = Quotation(organization_id=org_id, status="DRAFT", approval_status="DRAFT", quote_date=payload.quote_date or today, valid_until=payload.valid_until or today + timedelta(days=15), created_by=user.id,
                       prepared_by=user.id, prepared_at=datetime.now(timezone.utc), **payload.model_dump(exclude={"lines", "quote_date", "valid_until"}))
+    apply_header_dims(quote)
     _apply_lines(db, quote, payload.lines, user, org_id)
     db.add(quote)
     db.flush()
@@ -301,6 +341,8 @@ def update_quotation(quote_id: int, payload: QuotationPatch, user: User = Depend
         if key == "lines" or (value is None and key not in ("customer_id", "valid_until", "terms", "remarks", "shipment_type", "quote_type", "pol", "pod")):
             continue
         setattr(quote, key, value)
+    if "header" in changes or "mode" in changes or "shipment_type" in changes:
+        apply_header_dims(quote)
     if payload.lines is not None:
         _apply_lines(db, quote, payload.lines, user, org_id)
     record_audit(db, "QUOTATION_UPDATED", "SALES", user, org_id, "Quotation", str(quote.id), {"fields": sorted(k for k in changes if k != "lines"), "admin_edit": admin_edit})
@@ -638,6 +680,32 @@ def _fill_job_from_quote(job: Shipment, quote: Quotation) -> None:
         job.gross_weight = num(h["gross_weight"])
     if not job.volume and num(h.get("volume")) is not None:
         job.volume = num(h["volume"])
+    _copy_dims_to_job(job, quote)
+
+
+def _copy_dims_to_job(job: Shipment, quote: Quotation) -> None:
+    """The dimension rows of the quotation become the job's dimension set, once: nothing is typed again, an existing job dimension set is never overwritten, and the quotation's own rows stay as quoted."""
+    from sqlalchemy.orm import object_session
+
+    from . import cargo_engine as ce
+    from .job_details_api import _row
+
+    d = dims_from_header(quote.header or {})
+    db = object_session(job)
+    if d is None or db is None:
+        return
+    row = _row(db, job, create=True)
+    if (row.saved_sections or {}).get("dims") or ce.is_v2(row.dims):
+        return
+    try:
+        res = ce.compute(d["rows"], job.mode or "Air", getattr(job, "container_mode", None) or "", ce.default_config(express=d["express"]), d.get("shipment_gross_kg"))
+    except ce.CargoError:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    row.dims = {**d, "source": {"quotation": quote.number, "quotation_id": quote.id}, "calculation": {"method": res["method"], "packages": res["packages"], "cbm": res["cbm"], "gross_kg": res["gross_kg"], "volumetric_kg": res["volumetric_kg"],
+                                                                                                   "weight_mt": res["weight_mt"], "chargeable_kg": res["chargeable_kg"], "chargeable_rt": res["chargeable_rt"], "basis": res["basis"]}}
+    row.saved_sections = {**(row.saved_sections or {}), "dims": now}
+    row.version = (row.version or 0) + 1
 
 
 def copy_quote_charges(db: Session, org_id: int, quote_id: int, job: Shipment, carrier: str | None) -> None:

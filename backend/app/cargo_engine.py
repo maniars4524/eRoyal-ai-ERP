@@ -128,6 +128,7 @@ class Row:
     weight_basis: str = "TOTAL"        # TOTAL: the row's weight is for all its packages. PER_PACKAGE: older jobs, the weight is of one package
     package_type: str = ""
     remarks: str = ""
+    reference: str = ""                # consolidation: the house BL / AWB or house job this cargo belongs to
     has_dims: bool = field(default=True)
 
 
@@ -156,7 +157,7 @@ def parse_rows(raw: list[dict] | None, default_weight_basis: str = "TOTAL") -> l
         basis = str(r.get("weight_basis") or default_weight_basis).upper()
         if basis not in ("TOTAL", "PER_PACKAGE"):
             raise CargoError(f"Row {i}: weight basis must be TOTAL or PER_PACKAGE")
-        out.append(Row(packages=pk, length=l, width=w, height=h, unit=unit, gross=gross, gross_unit=wunit, weight_basis=basis, package_type=str(r.get("package_type") or ""), remarks=str(r.get("remarks") or ""), has_dims=any_dim))
+        out.append(Row(packages=pk, length=l, width=w, height=h, unit=unit, gross=gross, gross_unit=wunit, weight_basis=basis, package_type=str(r.get("package_type") or ""), remarks=str(r.get("remarks") or ""), reference=str(r.get("reference") or "").strip()[:40], has_dims=any_dim))
     return out
 
 
@@ -177,6 +178,7 @@ def compute(rows: list[dict] | list[Row] | None, mode: str = "Air", shipment_typ
     parsed = rows if rows and isinstance(rows[0], Row) else parse_rows(rows, default_weight_basis)       # type: ignore[arg-type]
     mode_n, stype = (mode or "Air").strip().title(), (shipment_type or "").strip().upper()
     per_row, cbm, vol, row_gross, pk = [], ZERO, ZERO, ZERO, ZERO
+    by_ref: dict[str, dict] = {}
     for i, r in enumerate(parsed, start=1):
         c = calc_row(r, cfg)
         cbm += c["cbm"]
@@ -185,11 +187,17 @@ def compute(rows: list[dict] | list[Row] | None, mode: str = "Air", shipment_typ
         pk += r.packages
         per_row.append({"serial": i, "packages": str(r.packages), "package_type": r.package_type, "length": str(r.length), "width": str(r.width), "height": str(r.height), "unit": r.unit,
                         "gross": str(r.gross), "gross_unit": r.gross_unit, "weight_basis": r.weight_basis, "cbm": str(q3(c["cbm"])), "volumetric_kg": str(q3(c["volumetric_kg"])),
-                        "gross_kg": str(q3(c["gross_kg"])), "remarks": r.remarks})
+                        "gross_kg": str(q3(c["gross_kg"])), "remarks": r.remarks, "reference": r.reference})
+        g = by_ref.setdefault(r.reference or "(no reference)", {"packages": ZERO, "cbm": ZERO, "volumetric_kg": ZERO, "gross_kg": ZERO})
+        g["packages"] += r.packages
+        g["cbm"] += c["cbm"]
+        g["volumetric_kg"] += c["volumetric_kg"]
+        g["gross_kg"] += c["gross_kg"]
     shipment_kg = dec(shipment_gross_kg, "Gross weight")
     gross = row_gross if row_gross > 0 else shipment_kg                  # row weights, or the shipment-level weight when the rows carry none; never both (no double counting)
     out: dict[str, Any] = {"mode": mode_n, "shipment_type": stype, "rows": per_row, "packages": str(pk), "cbm": str(q3(cbm)), "gross_kg": str(q3(gross)), "volumetric_kg": str(q3(vol)), "weight_mt": str(q3(gross / THOUSAND)),
-                           "chargeable_kg": None, "chargeable_rt": None, "basis": None, "applicable": [], "warnings": []}
+                           "chargeable_kg": None, "chargeable_rt": None, "basis": None, "applicable": [], "warnings": [],
+                           "by_reference": ([{"reference": k, "packages": str(v["packages"]), "cbm": str(q3(v["cbm"])), "volumetric_kg": str(q3(v["volumetric_kg"])), "gross_kg": str(q3(v["gross_kg"]))} for k, v in by_ref.items()] if any(k != "(no reference)" for k in by_ref) else [])}
     if mode_n == "Air":
         out["applicable"] = ["chargeable_kg"]
         if gross <= 0 and vol <= 0:
@@ -217,3 +225,19 @@ def compute(rows: list[dict] | list[Row] | None, mode: str = "Air", shipment_typ
                      "configuration": cfg.reference, "express": cfg.express, "formula_air": f"L x W x H (cm) x packages / {cfg.divisor}", "formula_lcl": f"RT = greater of CBM and gross kg / {cfg.wm_kg_per_cbm}",
                      "calculated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **(reference or {})}
     return out
+
+
+def is_v2(dims: dict | None) -> bool:
+    return bool(dims) and dims.get("version") == 2
+
+
+def measures_from_dims(dims: dict | None) -> tuple[list[dict], Decimal]:
+    """A saved v2 dimension set as the charge calculation needs it: rows in centimetres {l, w, h, packages}, and the gross weight (kg) the rows carry (0 when they carry none)."""
+    rows = parse_rows((dims or {}).get("rows"), "TOTAL")
+    out, gross = [], ZERO
+    for r in rows:
+        f = LENGTH_CM[r.unit]
+        if r.has_dims:
+            out.append({"l": r.length * f, "w": r.width * f, "h": r.height * f, "packages": r.packages})
+        gross += r.gross * WEIGHT_KG[r.gross_unit] * (r.packages if r.weight_basis == "PER_PACKAGE" else ONE)
+    return out, gross

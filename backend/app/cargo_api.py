@@ -23,6 +23,7 @@ class RowIn(BaseModel):
     gross_unit: str = Field(default="KG", max_length=8)
     weight_basis: str = Field(default="TOTAL", max_length=12)
     remarks: str | None = Field(default=None, max_length=200)
+    reference: str | None = Field(default=None, max_length=40)
 
 
 class CalcIn(BaseModel):

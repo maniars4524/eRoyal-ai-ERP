@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -173,16 +174,34 @@ def _out(db: Session, job: Shipment, row: JobDetail | None, user: User | None = 
             "company_code": company_code(db.get(Organization, job.organization_id)),
             "parties": ((row.parties if row else {}) or {}) if saved.get("parties") else pre["parties"], "cargo": ((row.cargo if row else {}) or {}) if saved.get("cargo") else pre["cargo"], "containers": ((row.containers if row else []) or []) if saved.get("containers") else pre["containers"],
             "release": release_check(db, job, user), "suggested_containers": suggested_containers(db, job),
-            "from_booking": {"parties": not saved.get("parties") and bool(pre["parties"]), "cargo": not saved.get("cargo") and bool(pre["cargo"])}, "dims": _dims_out(row.dims if row else None), "bl": (row.bl if row else {}) or {}, "impdocs": (row.impdocs if row else {}) or {},
+            "from_booking": {"parties": not saved.get("parties") and bool(pre["parties"]), "cargo": not saved.get("cargo") and bool(pre["cargo"])}, "dims": _dims_out(row.dims if row else None, job), "container_mode": job.container_mode, "bl": (row.bl if row else {}) or {}, "impdocs": (row.impdocs if row else {}) or {},
             "saved_sections": (row.saved_sections if row else {}) or {}, "version": row.version if row else 0, "updated_at": row.updated_at if row and row.version else None,
             "updated_by": jl.display_name(by) if by else None}
 
 
-def _dims_out(dims: dict | None) -> dict:
+def _v2_result(dims: dict, job: Shipment | None) -> dict:
+    """A saved v2 dimension set calculated by the cargo engine for this job's mode and type (the server's figures are the authoritative ones)."""
+    from . import cargo_engine as ce
+
+    cfg = ce.default_config(express=bool(dims.get("express")))
+    return ce.compute(dims.get("rows"), (job.mode if job else "Air") or "Air", (getattr(job, "container_mode", None) or "") if job else "", cfg, dims.get("shipment_gross_kg"))
+
+
+def _dims_out(dims: dict | None, job: Shipment | None = None) -> dict:
     from . import air_weight
+    from . import cargo_engine as ce
 
     d = dict(dims or {})
-    d["totals"] = air_weight.compute(d)
+    if ce.is_v2(d):
+        try:
+            t = _v2_result(d, job)
+            t = {**t, "actual_kg": float(t["gross_kg"]), "volumetric_kg": float(t["volumetric_kg"]), "chargeable_kg": float(t["chargeable_kg"]) if t["chargeable_kg"] is not None else 0.0,
+                 "packages": int(Decimal(t["packages"])) if Decimal(t["packages"]) == int(Decimal(t["packages"])) else float(t["packages"])}
+        except ce.CargoError as e:
+            t = {"error": str(e)}
+        d["totals"] = t
+    else:
+        d["totals"] = air_weight.compute(d)
     return d
 
 
@@ -225,6 +244,16 @@ def _validate(section: str, data: Any) -> Any:
         raise HTTPException(422, f"The {section} section must be an object")
     if len(str(data)) > 40000:
         raise HTTPException(422, "Too much data in this section")
+    if section == "dims" and data.get("version") == 2:
+        from . import cargo_engine as ce
+
+        if not isinstance(data.get("rows"), list) or len(data["rows"]) > 200:
+            raise HTTPException(422, "Dimensions must be a list of at most 200 rows")
+        try:
+            ce.parse_rows(data["rows"], "TOTAL")
+            ce.dec(data.get("shipment_gross_kg"), "Gross weight")
+        except ce.CargoError as e:
+            raise HTTPException(422, str(e))
     if section == "cargo":
         if _num(data.get("nwt")) is not None and _num(data.get("gwt")) is not None and _num(data["nwt"]) > _num(data["gwt"]):
             raise HTTPException(422, "Net weight cannot be more than the gross weight")
@@ -242,8 +271,24 @@ def _validate(section: str, data: Any) -> Any:
 def _apply_chargeable_weight(db: Session, job: Shipment, row: JobDetail) -> None:
     """Dimensions -> chargeable weight -> the job's charge lines charged on a chargeable-weight basis (quantity = chargeable weight), so the job cost, the invoice and the purchase bill follow the dimensions."""
     from . import air_weight
+    from . import basis_calc as bc
+    from . import cargo_engine as ce
+    from .job_charges_api import job_measures
     from .models import JobCharge
 
+    if ce.is_v2(row.dims):
+        try:
+            m = job_measures(db, job, row)
+        except (bc.BasisError, ce.CargoError):
+            return
+        for c in db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id)):
+            if c.breakup or c.uom not in (bc.BY_CHG, bc.BY_VOLUME, bc.BY_GW_VOL) and not air_weight.is_chargeable_uom(c.uom):
+                continue
+            try:
+                c.qty = bc.quantity(c.uom, m)[0] if c.uom in bc.BASES else bc.quantity(bc.BY_CHG, m)[0]      # only the quantity follows; no charge is added or copied
+            except bc.BasisError:
+                continue                                                                                    # not enough data yet: the line keeps its quantity, nothing is zeroed
+        return
     kg = air_weight.compute(row.dims or {}).get("chargeable_kg") or 0
     if kg <= 0:
         return
@@ -319,6 +364,15 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
             if k in (row.bl or {}):
                 data[k] = row.bl[k]
     first = not (row.saved_sections or {}).get(section)
+    if section == "dims" and data.get("version") == 2:
+        from . import cargo_engine as ce
+
+        try:
+            res = _v2_result(data, job)
+        except ce.CargoError as e:
+            raise HTTPException(422, str(e))
+        data = {**data, "calculation": {"method": res["method"], "packages": res["packages"], "cbm": res["cbm"], "gross_kg": res["gross_kg"], "volumetric_kg": res["volumetric_kg"], "weight_mt": res["weight_mt"],
+                                        "chargeable_kg": res["chargeable_kg"], "chargeable_rt": res["chargeable_rt"], "basis": res["basis"]}}
     setattr(row, section, data)
     row.saved_sections = {**(row.saved_sections or {}), section: datetime.now(timezone.utc).isoformat()}
     row.version = (row.version or 0) + 1
