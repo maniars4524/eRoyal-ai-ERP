@@ -18635,6 +18635,7 @@ function makePrintFit(){
       etd: bk.etd, eta: bk.eta, movement: bk.container_mode ? bk.container_mode+"/"+bk.container_mode : "", freight: (bl.terms || bk.freight_pp || ""),
       desc: first(c.cargoDesc, c.commodity, rd.commodity), marks: first(c.marks, bk.marks), party: rd.party_text || {}, p: (d.parties || {})};
   }
+  DK.h = {header, footer, bar, titleBar, kv, kvAll, box, sigBlock, wrapPages, measure, INNER, facts, fmt, dmy, num, first, lines, nl2br, NAVY, LINE, SOFT, PG, today};   /* shared with the Output Docs kit */
   const contType = x=> [x.type].filter(Boolean).join(" ");
 
   /* ---------- FREIGHT CERTIFICATE ---------- */
@@ -25057,6 +25058,7 @@ body.job-readonly #jlBanner{display:flex}
   /* ---------- dashboard: running message + notification centre (everything that needs attention: shipments, approvals, payments, people, messages) ---------- */
   const A = {items:[], counts:{}, cats:[], t:0, cat:"All", q:""};
   const SEV = [["Critical", "#dc2626", "#fee2e2"], ["Action", "#b45309", "#fef3c7"], ["Info", "#1d4ed8", "#dbeafe"], ["Low", "#64748b", "#f1f5f9"]];
+  const CATCOL = {Shipments:"#0e7490", Approvals:"#7c3aed", Payments:"#c2410c", People:"#be185d", Messages:"#15803d"};
   const CATICON = {Shipments:"ship", Approvals:"check-circle", Payments:"cash", People:"user", Messages:"file-text"};
   function dashCard(){
     let c = document.getElementById("rtDash"); if(c) return c;
@@ -25069,11 +25071,11 @@ body.job-readonly #jlBanner{display:flex}
     const rows = A.items, urgent = rows.filter(a=> a.severity <= 1).length;
     c.innerHTML = '<div class="cb" style="padding:8px 14px;display:flex;align-items:center;gap:12px">'+
       '<div style="flex:none;font-weight:700;font-size:12.5px;color:var(--n);white-space:nowrap"><svg class="ic" data-icon="bell" style="color:var(--bl)"></svg> Notifications &amp; Alerts <span class="b '+(urgent ? "b-am" : "b-gy")+'" style="margin-left:4px">'+rows.length+'</span></div>'+
-      (rows.length ? '<div class="rt-ticker" style="flex:1;min-width:0"><div class="rt-track">'+rows.concat(rows).map(a=>'<span class="rt-it" data-nc-open="'+esc(a.id)+'" style="color:'+SEV[a.severity][1]+'">'+esc(line(a))+'</span>').join("")+'</div></div>'
+      (rows.length ? '<div class="rt-ticker" style="flex:1;min-width:0"><div class="rt-track">'+rows.concat(rows).map(a=>'<span class="rt-it'+(a.severity === 0 ? " rt-crit" : "")+'" data-nc-open="'+esc(a.id)+'" style="color:'+SEV[a.severity][1]+';background:'+SEV[a.severity][2]+';border-left:4px solid '+(CATCOL[a.category] || "#64748b")+'"><b style="font-size:9.5px;letter-spacing:.4px;color:'+(CATCOL[a.category] || "#64748b")+'">'+esc(a.category.toUpperCase())+'</b> &nbsp;'+esc(line(a))+'</span>').join("")+'</div></div>'
         : '<div style="flex:1;color:var(--g5);font-size:12px">Nothing needs your attention right now.</div>')+
       '<button class="btn btn-out btn-sm" data-nc-all="1" style="flex:none">View all'+(rows.length ? " ("+rows.length+")" : "")+'</button></div>';
     if(window.renderIcons) renderIcons(c);
-    const tr = c.querySelector(".rt-track"); if(tr) tr.style.animationDuration = Math.max(40, Math.round(tr.scrollWidth / 45)) + "s";     /* about 45 px a second: easy to read */
+    const tr = c.querySelector(".rt-track"); if(tr) tr.style.animationDuration = Math.max(25, Math.round(tr.scrollWidth / 62)) + "s";     /* about 60 px a second: readable, not slow */
   }
   async function alerts(){
     try{ const r = await api("GET", "/api/notifications"); A.items = r.items || []; A.counts = r.counts || {}; A.cats = r.categories || []; }catch(e){ A.items = []; }
@@ -25095,7 +25097,7 @@ body.job-readonly #jlBanner{display:flex}
     const tabs = document.getElementById("ncTabs");
     if(tabs) tabs.innerHTML = ["All"].concat(A.cats).map(c=>{ const n = c === "All" ? A.items.length : (A.counts[c] || 0); return '<button type="button" class="btn btn-sm '+(A.cat === c ? "btn-pri" : "btn-out")+'" data-nc-cat="'+c+'">'+c+' <span style="opacity:.8">'+n+'</span></button>'; }).join("");
     list.innerHTML = rows.length ? rows.map(a=>{ const sv = SEV[a.severity] || SEV[3];
-      return '<div class="nc-row" data-nc-open="'+esc(a.id)+'" style="display:flex;gap:10px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid var(--g1);cursor:pointer"><div style="flex:none;width:30px;height:30px;border-radius:50%;background:'+sv[2]+';color:'+sv[1]+';display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="'+(CATICON[a.category] || "bell")+'"></svg></div>'+
+      return '<div class="nc-row" data-nc-open="'+esc(a.id)+'" style="display:flex;gap:10px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid var(--g1);cursor:pointer"><div style="flex:none;width:30px;height:30px;border-radius:50%;background:'+sv[2]+';color:'+(CATCOL[a.category] || sv[1])+';box-shadow:'+(a.severity === 0 ? "0 0 8px rgba(220,38,38,.7)" : "none")+';display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="'+(CATICON[a.category] || "bell")+'"></svg></div>'+
         '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px">'+esc(a.title)+'</div><div style="font-size:11.5px;color:var(--g6)">'+esc(a.text || "")+'</div></div>'+
         '<div style="flex:none;text-align:right"><span style="display:inline-block;padding:1px 8px;border-radius:10px;background:'+sv[2]+';color:'+sv[1]+';font-size:10px;font-weight:700">'+sv[0]+'</span><div style="font-size:10px;color:var(--g5);margin-top:2px">'+esc(a.category)+'</div>'+
         (a.category === "Messages" ? '<a href="#" data-nc-withdraw="'+esc(a.id.split(":")[2] || "")+'" style="font-size:10px">Withdraw</a>' : "")+'</div></div>'; }).join("")
@@ -25126,7 +25128,7 @@ body.job-readonly #jlBanner{display:flex}
     const it = e.target.closest("[data-nc-open]"); if(it){ const a = A.items.find(x=> x.id === it.dataset.ncOpen); if(a) openItem(a); }
   });
   const st = document.createElement("style");
-  st.textContent = ".rt-ticker{overflow:hidden;white-space:nowrap;background:var(--blt);border-radius:8px;padding:7px 0}.rt-track{display:inline-block;padding-left:100%;animation:rtmove 40s linear infinite}.rt-ticker:hover .rt-track{animation-play-state:paused}.rt-it{display:inline-block;margin-right:48px;font-size:12px;font-weight:600;cursor:pointer}@keyframes rtmove{to{transform:translateX(-100%)}}"+
+  st.textContent = ".rt-ticker{overflow:hidden;white-space:nowrap;background:var(--blt);border-radius:8px;padding:7px 0}.rt-track{display:inline-block;padding-left:100%;animation:rtmove 40s linear infinite}.rt-ticker:hover .rt-track{animation-play-state:paused}.rt-it{display:inline-block;margin-right:26px;font-size:12px;font-weight:600;cursor:pointer;padding:3px 12px;border-radius:999px}.rt-crit{animation:rtGlow 1.4s ease-in-out infinite alternate}@keyframes rtGlow{from{box-shadow:0 0 2px rgba(220,38,38,.35)}to{box-shadow:0 0 5px 1px rgba(220,38,38,.9),0 0 14px rgba(220,38,38,.65)}}@keyframes rtmove{to{transform:translateX(-100%)}}"+
     ".rt-jr{border-left:2px solid var(--g2);margin:6px 0 4px 8px;padding-left:14px}.rt-leg{position:relative;padding:4px 0 10px}.rt-leg:before{content:'';position:absolute;left:-21px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--bl)}.rt-leg.PLANNED:before{background:#fff;border:2px dashed var(--am)}.rt-leg .t{font-weight:700;font-size:12px}.rt-leg .m{font-size:11px;color:var(--g6)}";
   document.head.appendChild(st);
   setInterval(()=>{ const d = document.getElementById("s-dashboard"); if(d && d.offsetParent !== null && Date.now() - A.t > 60000){ A.t = Date.now(); alerts(); } }, 2000);
@@ -25248,6 +25250,257 @@ body.job-readonly #jlBanner{display:flex}
     catch(err){ say("Not saved", err.message || "Check the numbers", "error"); }
   });
   const prev = MK.onScreen; MK.onScreen = function(screen, opts){ prev.apply(this, arguments); if(screen === "notif-settings") load(); };
+})();
+</script>
+<script>
+/* OUTPUT DOCS KIT: Job > Output Docs. The reports that apply to the job's mode and direction are listed with their status; a report is built ONLY when the user presses Generate (from the job's latest saved
+   data), checked for missing information, stored as a numbered version, then shown in Preview with Download PDF and Print. Old versions stay in History. The server decides which reports apply. */
+(function(){
+  "use strict";
+  const DK = window.DocKit; if(!DK || !DK.h || !window.MK) return;
+  const H = DK.h, esc = MK.util.esc2, api = (m, p, b)=> MK.util.api(m, p, b), enc = encodeURIComponent;
+  const {header, bar, titleBar, box, sigBlock, wrapPages, measure, INNER, facts, fmt, dmy, first, lines, NAVY, LINE, SOFT} = H;
+  const say = (t, m, k)=> { if(window.toast) toast(t, m, k); };
+  const O = {job:null, data:null, prev:null};
+  const jobNo = ()=> window.__lastJobNo || ((document.getElementById("jobDetailNo") || {}).textContent || "").trim();
+  const dt = v=> { if(!v) return ""; const d = new Date(v); const p = n=> String(n).padStart(2, "0"); return isNaN(d) ? "" : p(d.getDate())+"-"+p(d.getMonth() + 1)+"-"+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes()); };
+  const V = x=> x == null || x === "" ? '<span style="color:#8896ab">—</span>' : esc(String(x));
+  const nm = t=> (lines(t)[0] || "");
+  const pay = v=> /collect|cc\b/i.test(v || "") ? "Collect (CC)" : /prepaid|pp\b/i.test(v || "") ? "Prepaid (PP)" : "";
+  const chip = st=> '<span style="display:inline-block;padding:1px 9px;border-radius:10px;font-weight:700;font-size:8.5px;background:'+(st === "CONFIRMED" ? "#dcfce7;color:#166534" : "#dbeafe;color:#1e40af")+'">'+(st === "CONFIRMED" ? "Confirmed" : "Planned")+'</span>';
+
+  /* ---------- the data a report is built from (read when Generate is pressed, never earlier) ---------- */
+  async function context(job){
+    const base = "/api/jobs/"+enc(job);
+    const rd = await api("GET", base+"/report-data");
+    const [routing, lc, me] = await Promise.all([api("GET", base+"/routing").catch(()=>({legs:[]})), api("GET", base+"/lifecycle").catch(()=>null), api("GET", "/api/auth/me").catch(()=>({}))]);
+    const ms = {}; ((lc && lc.milestones) || []).forEach(m=>{ if(m.actual_at) ms[m.code] = m.actual_at; });
+    const f = facts(rd), co = rd.company || {};
+    return {job, rd, f, co, P:co.profile || {}, legs:(routing.legs || []).slice().sort((a, b)=> a.seq - b.seq), ms, by:((me.first_name || "")+" "+(me.last_name || "")).trim() || me.username || "", now:new Date()};
+  }
+  const parties = c=> { const pt = c.f.party || {}, p = c.f.p || {}; return {shipper:pt.shipper || p.shipper || "", consignee:pt.consignee || p.consignee || "", notify:pt.notify1 || p.notify1 || "", agent:pt.deliveryAgent || p.deliveryAgent || "", originAgent:pt.originAgent || p.originAgent || ""}; };
+  const customer = c=> (c.f.p || {}).billTo || nm((c.f.party || {}).billTo) || nm(parties(c).shipper);
+  function vessel(c){ const l = c.legs[0]; if(l && l.carrier) return {name:l.carrier, voyage:l.voyage || ""}; const raw = (c.f.bk.vessel || ""); const i = raw.indexOf("/"); return i < 0 ? {name:raw.trim(), voyage:""} : {name:raw.slice(0, i).trim(), voyage:raw.slice(i + 1).trim()}; }
+  const lastLeg = c=> c.legs[c.legs.length - 1] || null;
+  const etd = c=> (c.legs[0] && c.legs[0].etd) || c.f.etd || ""; const eta = c=> (lastLeg(c) && lastLeg(c).eta) || c.f.eta || "";
+  const contSeal = x=> x.seal_no || x.seal || x.sealNo || "";
+
+  /* ---------- layout pieces ---------- */
+  const pairs = (rows, cols)=> '<div style="display:grid;grid-template-columns:'+new Array(cols || 2).fill("112px 1fr").join(" ")+';column-gap:8px;row-gap:5px;padding:8px 10px;font-size:10px">'+rows.map(r=>'<div style="font-weight:700;color:'+NAVY+'">'+esc(r[0])+'</div><div>: '+(r[2] ? r[1] : V(r[1]))+'</div>').join("")+'</div>';
+  const sec = (title, inner)=> '<div style="margin-top:9px">'+box(bar(title)+inner)+'</div>';
+  const table = (head, rows, align)=> '<table style="width:100%;border-collapse:collapse;font-size:9.5px"><thead><tr style="background:'+SOFT+'">'+head.map((h, i)=>'<th style="padding:5px 6px;text-align:'+((align || [])[i] || "left")+';font-size:8.8px;color:'+NAVY+';border-bottom:1px solid '+LINE+'">'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+
+    (rows.length ? rows.map(r=>'<tr>'+r.map((x, i)=>'<td style="padding:5px 6px;border-top:1px solid '+LINE+';text-align:'+((align || [])[i] || "left")+';vertical-align:top">'+(x == null || x === "" ? "—" : x)+'</td>').join("")+'</tr>').join("") : '<tr><td colspan="'+head.length+'" style="padding:8px;text-align:center;color:#8896ab">None</td></tr>')+'</tbody></table>';
+  const note = t=> '<div style="padding:7px 10px;font-size:10px;line-height:1.5;min-height:26px">'+(t ? esc(t).replace(/\n/g, "<br>") : '<span style="color:#8896ab">—</span>')+'</div>';
+  const partyBox = (t, txt)=> sec(t, '<div style="padding:7px 10px;font-size:10px;line-height:1.45;min-height:34px"><b>'+esc(lines(txt)[0] || "")+'</b>'+(lines(txt).length > 1 ? "<br>"+lines(txt).slice(1).map(esc).join("<br>") : "")+'</div>');
+  function signBlock(c){ return '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;border-top:1px solid '+LINE+';padding-top:8px;font-size:9.5px"><div style="line-height:1.8"><div><b>Generated On</b> : '+esc(dt(c.now))+'</div><div><b>Generated By</b> : '+esc(c.by)+'</div></div>'+sigBlock(c.co, true, "Authorized Signatory")+'</div>'; }
+  function paginate(c, title, blocks){
+    const pages = []; let cur = header(c.co)+titleBar(title); const sign = signBlock(c);
+    blocks.forEach(b=>{ const m = measure(cur+b+sign); if(m && m > INNER && cur.length > 400){ pages.push(cur); cur = header(c.co, true)+b; } else cur += b; });
+    if(measure(cur+sign) > INNER){ pages.push(cur); cur = header(c.co, true); } pages.push(cur+sign);
+    return wrapPages(pages, c.co, "Generated "+dt(c.now)+" by "+c.by+" · Job "+c.job);
+  }
+  const jobBlock = c=> { const f = c.f, air = f.air; return pairs([["Job No", c.job], ["Booking No", c.rd.booking_number || f.bk.number], ["Customer", customer(c)], [air ? "HAWB No" : "HBL No", f.hbl], ["Shipper", nm(parties(c).shipper)], [air ? "MAWB No" : "MBL No", f.mbl],
+    ["Consignee", nm(parties(c).consignee)], ["Shipment", c.rd.mode+" "+c.rd.direction+(c.rd.container_mode ? " · "+c.rd.container_mode : "")]]); };
+  const contRows = c=> c.f.conts.map(x=>[esc(x.container_no), esc(x.type || ""), esc(contSeal(x)), esc(x.pkgs || ""), esc(x.gross_wt ? fmt(x.gross_wt) : ""), esc(x.net_wt ? fmt(x.net_wt) : "")]);
+  const cargoPairs = c=> { const f = c.f; return pairs([["Packages", f.pkgs ? f.pkgs+" "+(f.pkgType || "") : ""], ["Gross Weight", f.gw ? fmt(f.gw)+" KG" : ""], ["Volume", f.vol ? fmt(f.vol, 3)+" CBM" : ""], ["Description", f.desc], ["Marks & Nos", f.marks], ["FCL / LCL", c.rd.container_mode || f.bk.container_mode]]); };
+  const legsTable = (c, sea)=> table(sea ? ["Leg", "Vessel", "Voyage", "POL", "POD", "ETD", "ETA", "Stage"] : ["Leg", "Airline", "Flight", "ETD", "ETA", "Stage"],
+    c.legs.map((l, i)=> sea ? [i + 1, esc(l.carrier || ""), esc(l.voyage || ""), esc(l.pol || ""), esc(l.pod || ""), esc(dmy(l.etd)), esc(dmy(l.eta)), chip(l.stage)] : [i + 1, esc(l.carrier || ""), esc(l.voyage || ""), esc(dmy(l.etd)), esc(dmy(l.eta)), chip(l.stage)]), sea ? ["center"] : ["center"]);
+
+  /* ---------- the reports ---------- */
+  const miss = (...a)=> a.filter(x=> x[1] === false || x[1] === "" || x[1] == null).map(x=> x[0]);
+  const hasMove = c=> c.legs.length > 0 || !!vessel(c).name;
+  const R = {};
+  R.sailing_confirmation = {inputs:[{k:"remarks", label:"Remarks (optional)", type:"textarea"}],
+    need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Port of Loading (POL)", c.f.pol], ["Port of Discharge (POD)", c.f.pod], ["Vessel and voyage (Routing tab or Booking)", hasMove(c)], ["Cargo or container details (Parties & Cargo / Containers)", c.f.conts.length > 0 || !!c.f.pkgs]),
+    build:(c, inp)=> { const f = c.f, v = vessel(c), atd = c.ms.departed ? dmy(c.ms.departed) : "";
+      return paginate(c, "SAILING CONFIRMATION", [
+        sec("Shipment General Information", pairs([["Job No", c.job], ["Booking No", c.rd.booking_number || f.bk.number], ["Customer", customer(c)], ["Vessel", v.name], ["Shipper", nm(parties(c).shipper)], ["Voyage No", v.voyage], ["Consignee", nm(parties(c).consignee)], ["Ocean Carrier", f.carrier],
+          ["HBL No", f.hbl], ["Shipment Type", c.rd.mode+" "+c.rd.direction], ["MBL No", f.mbl], ["Direction", c.rd.direction]])),
+        sec("Sailing & Route Details", pairs([["Port of Loading", f.pol], ["ETD", dmy(etd(c))], ["Port of Discharge", f.pod], ["ATD", atd], ["Place of Receipt", f.por], ["ETA", dmy(eta(c))], ["Final Destination", f.pld], ["Payment Terms", pay(f.freight)]])),
+        sec(c.legs.length > 1 ? "Transshipment & Sailing Details" : "Sailing Details", c.legs.length ? legsTable(c, true) : table(["Leg", "Vessel", "Voyage", "POL", "POD", "ETD", "ETA", "Stage"], [[1, esc(v.name), esc(v.voyage), esc(f.pol), esc(f.pod), esc(dmy(etd(c))), esc(dmy(eta(c))), chip("PLANNED")]], ["center"])+
+          '<div style="padding:5px 10px;font-size:8.5px;color:#52627d">No routing legs are saved: the vessel above comes from the booking and is shown as Planned.</div>'),
+        sec("Cargo & Container Details", table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"])+cargoPairs(c)),
+        sec("Remarks", note(inp.remarks)),
+        '<div style="margin-top:8px;font-size:8.5px;color:#52627d">Planned legs are tentative schedules and are not confirmed sailings. ATD appears only when the actual departure has been confirmed in the job\'s Tracking.</div>']); }};
+  R.shipment_summary = {inputs:[{k:"remarks", label:"Remarks (optional)", type:"textarea"}],
+    need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Port of Loading (POL)", c.f.pol], ["Port of Discharge (POD)", c.f.pod]),
+    build:(c, inp)=> { const f = c.f, v = vessel(c), P = parties(c), types = {}; f.conts.forEach(x=>{ types[x.type || "Container"] = (types[x.type || "Container"] || 0) + 1; });
+      return paginate(c, "SHIPMENT SUMMARY", [
+        sec("Reference", pairs([["Reference #", c.job], ["Customer", customer(c)], ["Shipment", c.rd.mode+" "+c.rd.direction+(c.rd.container_mode ? " · "+c.rd.container_mode : "")], ["Booking No", c.rd.booking_number || f.bk.number], [f.air ? "House AWB No" : "House B/L No", f.hbl], [f.air ? "Master AWB No" : "Master B/L No", f.mbl]])),
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+partyBox("SHIPPER", P.shipper)+partyBox("CONSIGNEE", P.consignee)+'</div>',
+        sec("Route & Vessel", pairs([["Place of Receipt", f.por], ["Shipping Line", f.carrier], ["Port of Loading", f.pol], [f.air ? "Flight" : "Vessel / Voyage", v.name+(v.voyage ? " / "+v.voyage : "")], ["Port of Discharge", f.pod], ["ETD", dmy(etd(c))], ["Final Destination", f.pld], ["ETA", dmy(eta(c))], ["Sailed Date", c.ms.departed ? dmy(c.ms.departed) : ""], ["No. of Containers", Object.keys(types).map(k=>types[k]+" x "+k).join(", ")]])),
+        sec("Containers", table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"])),
+        sec("Cargo", cargoPairs(c)),
+        sec("Remarks", note(inp.remarks))]); }};
+  const preAlert = c=> { const f = c.f, air = f.air, v = vessel(c), P = parties(c);
+    return paginate(c, "PRE-ALERT", [
+      '<div style="margin:6px 0 4px;font-size:10.5px"><b>To:</b> '+esc(nm(P.agent) || nm(P.consignee))+'<br><span style="color:#52627d">Please be informed of the following shipment sailing / flying to you. Kindly arrange to receive it.</span></div>',
+      sec("Shipment", pairs([["Job No", c.job], ["Date", dt(c.now).slice(0, 10)], [air ? "HAWB No" : "HBL No", f.hbl], [air ? "MAWB No" : "MBL No", f.mbl], [air ? "Airline / Flight" : "Vessel / Voyage", (c.legs[0] ? (c.legs[0].carrier || "")+" "+(c.legs[0].voyage || "") : v.name+" "+v.voyage).trim()], [air ? "Airport of Departure" : "Port of Loading", f.pol],
+        ["ETD", dmy(etd(c))], [air ? "Airport of Arrival" : "Port of Discharge", f.pod], ["ETA", dmy(eta(c))], ["Final Destination", f.pld]])),
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+partyBox("SHIPPER", P.shipper)+partyBox("CONSIGNEE", P.consignee)+'</div>', partyBox("NOTIFY PARTY", P.notify || P.consignee),
+      sec("Cargo", (air ? "" : table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"]))+cargoPairs(c)),
+      c.legs.length > 1 ? sec(air ? "Flights" : "Vessels", legsTable(c, !air)) : ""]); };
+  R.pre_alert = {need:c=> miss(["Consignee", nm(parties(c).consignee)], ["HBL / HAWB number (BL / AWB tab)", c.f.hbl || c.f.mbl], ["Vessel or flight (Routing tab or Booking)", hasMove(c)]), build:preAlert};
+  R.loading_confirmation = {inputs:[{k:"loaded_on", label:"Loaded on", type:"date", req:true}, {k:"loaded_packages", label:"Packages loaded", type:"number"}, {k:"remarks", label:"Remarks", type:"textarea"}],
+    need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Flight (Routing tab or Booking)", hasMove(c)]),
+    build:(c, inp)=> paginate(c, "SHIPMENT LOADING CONFIRMATION", [sec("Shipment", jobBlock(c)), sec("Flight", pairs([["Airline / Flight", c.legs[0] ? (c.legs[0].carrier || "")+" "+(c.legs[0].voyage || "") : vessel(c).name+" "+vessel(c).voyage], ["Airport of Departure", c.f.pol], ["ETD", dmy(etd(c))], ["Airport of Arrival", c.f.pod]])),
+      sec("Cargo", cargoPairs(c)), sec("Loading", pairs([["Loaded on", dmy(inp.loaded_on)], ["Packages loaded", inp.loaded_packages || c.f.pkgs]])), sec("Remarks", note(inp.remarks))])};
+  R.stuffing_report = {inputs:[{k:"stuffing_date", label:"Stuffing date", type:"date", req:true}, {k:"location", label:"Stuffing location"}, {k:"container_no", label:"Container No"}, {k:"seal_no", label:"Seal No"}, {k:"packages", label:"Packages stuffed", type:"number", req:true}, {k:"stuffed_by", label:"Stuffed by"}, {k:"remarks", label:"Remarks", type:"textarea"}],
+    need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)]),
+    build:(c, inp)=> paginate(c, "STUFFING REPORT", [sec("Shipment", jobBlock(c)), sec("Stuffing Details", pairs([["Stuffing date", dmy(inp.stuffing_date)], ["Location", inp.location], ["Container No", inp.container_no || (c.f.conts[0] || {}).container_no], ["Seal No", inp.seal_no || contSeal(c.f.conts[0] || {})], ["Packages stuffed", inp.packages], ["Stuffed by", inp.stuffed_by]])),
+      sec("Cargo (as booked)", cargoPairs(c)), sec("Remarks", note(inp.remarks))])};
+  R.transshipment_confirmation = {need:c=> c.legs.length < 2 ? ["At least two flights (a connection) in the Routing tab"] : [],
+    build:c=> paginate(c, "TRANSSHIPMENT CONFIRMATION", [sec("Shipment", jobBlock(c)), sec("Flight Legs (in route order)", legsTable(c, false)), sec("Route", pairs([["Origin", c.f.pol], ["Destination", c.f.pod], ["Connections", String(c.legs.length - 1)]])), sec("Cargo", cargoPairs(c)),
+      '<div style="margin-top:8px;font-size:8.5px;color:#52627d">Planned flights are tentative and are not confirmed connections.</div>'])};
+  R.export_declaration = {need:c=> (c.rd.shipping_bills || []).length ? [] : ["A Shipping Bill entered in the Customs tab"],
+    build:c=> paginate(c, "EXPORT DECLARATION", [sec("Shipment", jobBlock(c)), sec("Shipping Bill details (as entered in Customs)", table(["Shipping Bill No", "Date", "Port Code", "Assessable Value", "Duty", "Status", "OOC Date"], (c.rd.shipping_bills || []).map(b=>[esc(b.bill_no), esc(dmy(b.bill_date)), esc(b.port_code || ""), esc(fmt(b.assessable_value)), esc(fmt(b.duty_amount)), esc(b.status || ""), esc(dmy(b.ooc_date))]), ["left", "left", "left", "right", "right", "left", "left"])), sec("Cargo", cargoPairs(c)),
+      '<div style="margin-top:8px;font-size:8.5px;color:#52627d">This summary shows only what has been entered and verified in the Customs tab. No statutory declaration is added by the system.</div>'])};
+  const master = (c, name)=> paginate(c, name, [sec("Master details", pairs([[c.f.air ? "Master AWB No" : "Master B/L No", c.f.mbl], ["Date", dmy(c.f.mblDate)], ["Carrier", c.f.carrier], [c.f.air ? "Flight" : "Vessel / Voyage", vessel(c).name+" "+vessel(c).voyage], ["Job No", c.job]])),
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+partyBox("SHIPPER (FORWARDER)", c.P.legal_name || c.co.name)+partyBox("CONSIGNEE / AGENT", parties(c).agent || parties(c).consignee)+'</div>',
+    sec("Route", pairs([["Port of Loading", c.f.pol], ["Port of Discharge", c.f.pod], ["ETD", dmy(etd(c))], ["ETA", dmy(eta(c))]])), sec("Cargo", cargoPairs(c)), '<div style="margin-top:8px;font-size:8.5px;color:#52627d">Draft prepared from the job record. The carrier\'s own document governs.</div>']);
+  R.mawb = {need:c=> miss(["Master AWB number (BL / AWB tab)", c.f.mbl]), build:c=> master(c, "MASTER AIR WAYBILL (DRAFT)")};
+  R.mbl = {need:c=> miss(["Master B/L number (BL / AWB tab)", c.f.mbl]), build:c=> master(c, "MASTER BILL OF LADING (DRAFT)")};
+  R.hbl = {need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Port of Loading (POL)", c.f.pol], ["Port of Discharge (POD)", c.f.pod], ["Vessel and voyage (Routing tab or Booking)", hasMove(c)], ["House B/L number (BL / AWB tab)", c.f.hbl]),
+    build:c=> { const v = vessel(c), P = parties(c); return paginate(c, "HOUSE BILL OF LADING", [pairs([["B/L No", c.f.hbl], ["Date", dmy(c.f.hblDate)], ["Job No", c.job], ["Booking No", c.rd.booking_number || c.f.bk.number]]),
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+partyBox("SHIPPER", P.shipper)+partyBox("CONSIGNEE", P.consignee)+'</div>', partyBox("NOTIFY PARTY", P.notify || P.consignee),
+      sec("Carriage", pairs([["Vessel / Voyage", v.name+(v.voyage ? " / "+v.voyage : "")], ["Place of Receipt", c.f.por], ["Port of Loading", c.f.pol], ["Port of Discharge", c.f.pod], ["Place of Delivery", c.f.pld], ["Freight", pay(c.f.freight)]])),
+      sec("Particulars furnished by the shipper", table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"])+cargoPairs(c))]); }};
+  R.destuffing_report = {inputs:[{k:"unloading_date", label:"Unloading date", type:"date", req:true}, {k:"received_packages", label:"Packages received", type:"number", req:true}, {k:"damaged_packages", label:"Damaged packages", type:"number"}, {k:"shortage_packages", label:"Shortage (packages)", type:"number"}, {k:"received_by", label:"Received by"}, {k:"remarks", label:"Remarks", type:"textarea"}],
+    need:c=> miss(["Consignee", nm(parties(c).consignee)]),
+    build:(c, inp)=> paginate(c, "DESTUFFING REPORT", [sec("Shipment", jobBlock(c)), sec("Containers", table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"])), sec("Cargo (as per documents)", cargoPairs(c)),
+      sec("Unloading — actual", pairs([["Unloading date", dmy(inp.unloading_date)], ["Packages received", inp.received_packages], ["Damaged packages", inp.damaged_packages || "0"], ["Shortage", inp.shortage_packages || "0"], ["Received by", inp.received_by]])), sec("Remarks", note(inp.remarks))])};
+  R.pod = {inputs:[{k:"delivery_date", label:"Delivery date", type:"date", req:true}, {k:"received_by", label:"Received by", req:true}, {k:"acknowledgement", label:"Acknowledgement"}, {k:"remarks", label:"Remarks", type:"textarea"}],
+    need:c=> miss(["Consignee", nm(parties(c).consignee)]),
+    build:(c, inp)=> paginate(c, "PROOF OF DELIVERY", [sec("Shipment", jobBlock(c)), sec("Cargo delivered", cargoPairs(c)), sec("Delivery", pairs([["Delivered to", nm(parties(c).consignee)], ["Delivery date", dmy(inp.delivery_date)], ["Received by", inp.received_by], ["Acknowledgement", inp.acknowledgement]])), sec("Remarks", note(inp.remarks)),
+      '<div style="margin-top:26px;display:flex;justify-content:space-between;font-size:10px"><div style="border-top:1px solid #333;padding-top:3px;min-width:200px">Receiver\'s signature and stamp</div><div style="border-top:1px solid #333;padding-top:3px;min-width:200px">Date</div></div>'])};
+  R.air_manifest = {need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Airway bill number (BL / AWB tab)", c.f.hbl || c.f.mbl]),
+    build:c=> paginate(c, "AIR MANIFEST", [sec("Flight", pairs([["Airline / Flight", c.legs[0] ? (c.legs[0].carrier || "")+" "+(c.legs[0].voyage || "") : vessel(c).name+" "+vessel(c).voyage], ["Origin", c.f.pol], ["Destination", c.f.pod], ["ETA", dmy(eta(c))]])),
+      sec("Consignments", table(["MAWB", "HAWB", "Shipper", "Consignee", "Packages", "Gross Wt (KG)", "Description"], [[esc(c.f.mbl), esc(c.f.hbl), esc(nm(parties(c).shipper)), esc(nm(parties(c).consignee)), esc(c.f.pkgs || ""), esc(c.f.gw ? fmt(c.f.gw) : ""), esc(c.f.desc || "")]], ["left", "left", "left", "left", "right", "right", "left"]))])};
+  /* the existing document templates are reused unchanged */
+  const reuse = (kind, extra)=> async (c, inp, variant)=> { const b = await DK.build(kind, {job:c.job}); return {html:b.html, title:b.title}; };
+  R.hawb = {need:c=> c.f.air ? [] : ["An air job"], build:reuse("awb")};
+  R.delivery_order = {need:c=> miss(["Consignee", nm(parties(c).consignee)]), build:reuse("do")};
+  R.pl_report = {need:()=> [], build:reuse("pl")};
+  R.arrival_notice = {need:c=> miss(["Consignee", nm(parties(c).consignee)]), build:async c=> { const b = await DK.build("can", {job:c.job}); return {html:withoutRates(b.html), title:"Arrival Notice "+c.job}; }};
+  R.can = {need:c=> miss(["Consignee", nm(parties(c).consignee)], ["Vessel and voyage (Routing tab or Booking)", hasMove(c)]), build:async (c, inp, variant)=> { const b = await DK.build("can", {job:c.job}); return {html:variant === "without_rates" ? withoutRates(b.html) : b.html, title:b.title+(variant === "without_rates" ? " (Without Rates)" : " (With Rates)")}; }};
+  /* the Without Rates version carries no charge block and no amounts at all */
+  function withoutRates(html){ const d = document.createElement("div"); d.innerHTML = html; d.querySelectorAll("div").forEach(x=>{ if(x.children.length === 0 && /^\s*CHARGE DETAILS\s*$/.test(x.textContent) && x.parentElement) x.parentElement.remove(); }); return d.innerHTML; }
+
+  /* ---------- the screen ---------- */
+  const st = document.createElement("style"); st.textContent = "#odSeaExportDocs,#odSeaImportDocs,#odAirExportDocs,#odAirImportDocs,#odModeRow{display:none !important}.od2 td{vertical-align:middle}.od2 .od-act{display:flex;gap:6px;flex-wrap:wrap}.od-var{margin-top:6px;font-size:11px;color:var(--g6)}"; document.head.appendChild(st);
+  function host(){
+    let h = document.getElementById("odDyn"); if(h) return h;
+    const tab = document.getElementById("jt7b"); if(!tab) return null;
+    h = document.createElement("div"); h.id = "odDyn"; h.style.marginBottom = "14px";
+    const ref = document.getElementById("odModeRow"); if(ref && ref.parentNode === tab) tab.insertBefore(h, ref); else tab.insertBefore(h, tab.children[1] || null); return h;
+  }
+  async function load(){
+    const job = jobNo(); const h = host(); if(!h || !job || job === "—") return; O.job = job;
+    try{ O.data = await api("GET", "/api/jobs/"+enc(job)+"/outdocs"); }catch(e){ h.innerHTML = '<div class="ib ib-rd">'+esc(e.message || "Could not load Output Docs")+'</div>'; return; }
+    const lbl = document.getElementById("outDocMode"); if(lbl) lbl.textContent = O.data.mode+" "+O.data.direction;
+    paint();
+  }
+  const btn = (act, label, cls, extra)=> '<button class="btn btn-'+(cls || "out")+' btn-sm" type="button" data-od2="'+act+'"'+(extra || "")+'>'+label+'</button>';
+  function paint(){
+    const h = host(); if(!h || !O.data) return; const d = O.data, VL = d.variant_labels || {};
+    if(!d.reports.length){ h.innerHTML = '<div class="ib ib-bl">There are no Output Docs for a '+esc(d.mode)+' '+esc(d.direction)+' job.</div>'; return; }
+    h.innerHTML = '<div class="card"><div class="ch"><div class="ct">Output Documents — '+esc(d.mode)+' '+esc(d.direction)+(d.container_mode ? ' · '+esc(d.container_mode) : "")+'</div><div style="font-size:11px;color:var(--g5)">Nothing is generated until you press Generate. The latest saved job data is used.</div></div>'+
+      '<div class="tw"><table class="od2"><thead><tr><th>S.No</th><th>Report Name</th><th>Report Type</th><th>Status</th><th>Generated</th><th>Generated By</th><th>Action</th></tr></thead><tbody>'+
+      d.reports.map((r, i)=>{
+        const keys = Object.keys(r.generated), one = !r.variants.length ? r.generated[""] : null, st = one ? one.status : keys.length ? "Generated" : "Not Generated";
+        const stCls = st === "Not Generated" ? "b-gy" : st === "Regenerated" ? "b-am" : "b-gr";
+        const code = ' data-code="'+r.code+'"';
+        let actions;
+        if(!r.allowed) actions = '<span style="font-size:11px;color:var(--g5)">You do not have permission for this financial report</span>';
+        else if(r.variants.length) actions = btn("gen", keys.length ? "Generate again" : "Generate", "pri", code)+r.variants.map(v=> r.generated[v] ? '<div class="od-var"><b>'+esc(VL[v] || v)+'</b> v'+r.generated[v].version+' · '+btn("view", "Preview", "out", code+' data-var="'+v+'"')+btn("pdf", "Download", "out", code+' data-var="'+v+'"')+btn("print", "Print", "out", code+' data-var="'+v+'"')+btn("hist", "History", "out", code+' data-var="'+v+'"')+'</div>' : "").join("");
+        else actions = '<div class="od-act">'+(one ? btn("view", "Preview", "pri", code)+btn("pdf", "Download PDF", "out", code)+btn("print", "Print", "out", code)+btn("gen", "Regenerate", "out", code)+btn("hist", "History", "out", code) : btn("gen", "Generate", "pri", code))+'</div>';
+        const lastOf = ()=> { const all = keys.map(k=>r.generated[k]).sort((a, b)=> String(b.at).localeCompare(String(a.at))); return all[0]; }, l = keys.length ? lastOf() : null;
+        return '<tr><td>'+(i + 1)+'</td><td><b>'+esc(r.name)+'</b>'+(r.optional ? ' <span class="b b-gy">optional</span>' : "")+(r.ops ? '<div style="font-size:10.5px;color:var(--g5)">asks for the actual details first</div>' : "")+'</td><td>'+esc(r.type)+'</td><td><span class="b '+stCls+'">'+st+'</span></td><td>'+(l ? esc(dt(l.at)) : "—")+'</td><td>'+(l ? esc(l.by) : "—")+'</td><td>'+actions+'</td></tr>'; }).join("")+'</tbody></table></div></div>';
+  }
+
+  /* ---------- Generate ---------- */
+  function askInputs(rep, spec, prior){
+    return new Promise(resolve=>{
+      const fields = spec.inputs || []; if(!fields.length){ resolve({}); return; }
+      const body = fields.map(f=>{ const val = esc((prior || {})[f.k] || ""); const ctl = f.type === "textarea" ? '<textarea class="fc" rows="3" data-od-in="'+f.k+'">'+val+'</textarea>' : '<input class="fc" '+(f.type ? 'type="'+f.type+'" ' : "")+(f.type === "number" ? 'min="0" ' : "")+'data-od-in="'+f.k+'" value="'+val+'">';
+        return '<div class="fg"><label class="fl">'+esc(f.label)+(f.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+'</div>'; }).join("");
+      let done = false;
+      openModal({title:rep.name, size:"sm", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">'+(rep.ops ? "Enter or confirm the actual details for this report." : "Add anything you want on the report.")+'</div>'+body, footHTML:'<button class="btn btn-out" type="button" id="odInCancel">Cancel</button><button class="btn btn-pri" type="button" id="odInGo">Generate</button>'});
+      document.getElementById("odInCancel").addEventListener("click", ()=>{ done = true; closeModal(); resolve(null); });
+      document.getElementById("odInGo").addEventListener("click", ()=>{
+        const v = {}; document.querySelectorAll("[data-od-in]").forEach(e=>{ v[e.dataset.odIn] = e.value.trim(); });
+        const bad = fields.filter(f=> f.req && !v[f.k]).map(f=> f.label); if(bad.length){ say("Missing information", bad.join(", "), "warn"); return; }
+        done = true; closeModal(); resolve(v);
+      });
+    });
+  }
+  function pickVariant(rep){
+    return new Promise(resolve=>{
+      const VL = O.data.variant_labels || {};
+      openModal({title:"Select Arrival Notice Type", size:"sm", bodyHTML:'<div style="display:flex;flex-direction:column;gap:10px;padding:4px 0">'+rep.variants.map((v, i)=>'<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="odVar" value="'+v+'"'+(i === 0 ? " checked" : "")+'> '+esc(VL[v] || v)+'</label>').join("")+
+        '<div style="font-size:11px;color:var(--g5)">Without Rates carries no charges or amounts. Each version keeps its own history.</div></div>', footHTML:'<button class="btn btn-out" type="button" id="odVarCancel">Cancel</button><button class="btn btn-pri" type="button" id="odVarGo">Generate</button>'});
+      document.getElementById("odVarCancel").addEventListener("click", ()=>{ closeModal(); resolve(null); });
+      document.getElementById("odVarGo").addEventListener("click", ()=>{ const v = (document.querySelector('input[name="odVar"]:checked') || {}).value || null; closeModal(); resolve(v); });
+    });
+  }
+  function showMissing(rep, list){
+    openModal({title:"Cannot generate "+esc(rep.name), size:"sm", bodyHTML:'<div class="ib ib-am" style="margin-bottom:8px">Some information is missing. Add it on the job, then press Generate again.</div><ul style="margin:0 0 0 18px;line-height:1.7">'+list.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>',
+      footHTML:'<button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+  }
+  async function generate(code, variantIn){
+    const rep = O.data.reports.find(r=> r.code === code), spec = R[code]; if(!rep) return;
+    if(!spec){ say("Not available yet", "The layout for "+rep.name+" has not been prepared", "warn"); return; }
+    let variant = variantIn || "";
+    if(rep.variants.length && !variant){ variant = await pickVariant(rep); if(!variant) return; }
+    try{
+      const c = await context(O.job);
+      const missing = spec.need(c); if(missing.length){ showMissing(rep, missing); return; }
+      let prior = {}; const g = rep.generated[variant]; if(g && spec.inputs){ try{ prior = (await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/"+g.id)).inputs || {}; }catch(e){} }
+      const inp = await askInputs(rep, spec, prior); if(inp === null) return;
+      let out = await spec.build(c, inp, variant), html = out, title = rep.name+" "+O.job;
+      if(out && typeof out === "object"){ html = out.html; title = out.title || title; }
+      const rec = await api("POST", "/api/jobs/"+enc(O.job)+"/outdocs", {code, variant, title, html, inputs:Object.keys(inp).length ? inp : null});
+      say(rep.name+" generated", "Version "+rec.version+" is saved"); await load(); preview(rec.id, code, variant);
+    }catch(e){ say("Could not generate", e.message || "Check the job details", "error"); }
+  }
+
+  /* ---------- Preview / Download / Print / History ---------- */
+  async function record(id){ const r = await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/"+id); return {html:r.html, title:r.title || r.code, rec:r}; }
+  function latestId(code, variant){ const r = O.data.reports.find(x=> x.code === code); const g = r && r.generated[variant || ""]; return g ? g.id : null; }
+  async function preview(id, code, variant){
+    try{
+      const b = await record(id); O.prev = {id, code, variant:variant || "", b};
+      const rep = O.data.reports.find(r=> r.code === code) || {name:code};
+      openModal({title:esc(b.title)+' <span style="font-size:11px;font-weight:400;color:var(--g5)">version '+b.rec.version+'</span>', size:"full", expandable:true,
+        bodyHTML:'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
+        footHTML:'<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+    }catch(e){ say("Could not open the report", e.message, "error"); }
+  }
+  async function download(b){ try{ const r = await DK.pdf(b); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); }catch(e){ say("Could not make the PDF", e.message, "error"); } }
+  async function history(code, variant){
+    const rep = O.data.reports.find(r=> r.code === code);
+    try{
+      const rows = await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/history?code="+enc(code)+"&variant="+enc(variant || ""));
+      openModal({title:"History — "+esc(rep.name)+(variant ? " ("+esc((O.data.variant_labels || {})[variant] || variant)+")" : ""), size:"md", bodyHTML:'<div class="tw"><table><thead><tr><th>Version</th><th>Generated</th><th>By</th><th></th></tr></thead><tbody>'+rows.map(r=>'<tr><td>v'+r.version+'</td><td>'+esc(dt(r.at))+'</td><td>'+esc(r.by)+'</td><td>'+btn("view", "Preview", "out", ' data-id="'+r.id+'" data-code="'+code+'" data-var="'+(variant || "")+'"')+btn("pdf", "Download", "out", ' data-id="'+r.id+'"')+btn("print", "Print", "out", ' data-id="'+r.id+'"')+'</td></tr>').join("")+'</tbody></table></div>',
+        footHTML:'<button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+    }catch(e){ say("Could not load the history", e.message, "error"); }
+  }
+  document.addEventListener("click", async e=>{
+    const b = e.target.closest && e.target.closest("[data-od2]"); if(!b) return;
+    const act = b.dataset.od2, code = b.dataset.code, variant = b.dataset.var || "", id = b.dataset.id ? Number(b.dataset.id) : (code ? latestId(code, variant) : null);
+    if(act === "gen"){ closeModalIf(); generate(code, variant || null); return; }
+    if(act === "regen"){ closeModal(); generate(code, variant || null); return; }
+    if(act === "view"){ if(id) preview(id, code, variant); return; }
+    if(act === "hist"){ history(code, variant); return; }
+    if(act === "pdfp"){ if(O.prev) download(O.prev.b); return; }
+    if(act === "printp"){ if(O.prev) DK.print(O.prev.b); return; }
+    if(act === "pdf" || act === "print"){ if(!id) return; try{ const rec = await record(id); act === "pdf" ? download(rec) : DK.print(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
+  });
+  const closeModalIf = ()=> {};
+  document.addEventListener("click", e=>{ if(e.target.closest('.tbb[data-tab="jt7b"]')) setTimeout(load, 150); });
+  const prevScreen = MK.onScreen; MK.onScreen = function(screen, opts){ prevScreen.apply(this, arguments); if(screen === "job-detail") setTimeout(load, 1800); };
+  setInterval(()=>{ const t = document.getElementById("jt7b"); if(t && t.offsetParent !== null && jobNo() && O.job !== jobNo()) load(); }, 1500);
+  window.OutDocs = {R, context, load};
 })();
 </script>
 </body>
