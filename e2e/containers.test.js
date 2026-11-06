@@ -24,7 +24,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const text = sel => page.evaluate(sel => (document.querySelector(sel) || { innerText: "" }).innerText, sel);
 
   const goes = await page.evaluate(() => Array.from(document.querySelectorAll('.tn-row[data-go^="inv-"]')).map(r => r.dataset.go));
-  check("the Inventory & Asset Mgmt menu has Dashboard, Container Inventory and Movement Management", ["inv-dashboard", "inv-containers", "inv-movements"].every(x => goes.includes(x)), goes.join());
+  check("the NVOCC menu has Dashboard, Container Inventory and Movement Management", ["inv-dashboard", "inv-containers", "inv-movements"].every(x => goes.includes(x)), goes.join());
   await click('.tn-row[data-go="inv-dashboard"]'); await sleep(1500);
   const d0 = await text("#s-inv-dashboard");
   check("the dashboard starts at zero with an honest empty state (no sample figures)", /Total containers\s*0/i.test(d0.replace(/\n/g, " ")) && /No container is at a depot yet/.test(d0), d0.slice(0, 200));

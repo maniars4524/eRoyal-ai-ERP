@@ -1642,14 +1642,14 @@ tbody tr:hover{background:var(--g0)}
       <div class="mn-sub-sep"></div>
       <div class="mn-sub-section">Job / Shipment</div>
       <div class="mn-sub-item" data-go="job-new"><svg class="ic" data-icon="plus"></svg>Create Shipment</div>
-      <div class="mn-sub-item" data-go="job-list" data-jobmode="Air" data-jobdir="Import"><svg class="ic" data-icon="plane"></svg>Import — Air Freight</div>
-      <div class="mn-sub-item" data-go="job-list" data-jobmode="Sea" data-jobdir="Import"><svg class="ic" data-icon="ship"></svg>Import — Ocean Freight</div>
-      <div class="mn-sub-item" data-go="job-list" data-jobmode="Road" data-jobdir="Import"><svg class="ic" data-icon="truck"></svg>Import — Road Freight</div>
-      <div class="mn-sub-item" data-go="job-list" data-jobmode="" data-jobdir="Import"><svg class="ic" data-icon="shuffle"></svg>Import — Multimodal</div>
-      <div class="mn-sub-item" data-go="job-list" data-jobmode="Air" data-jobdir="Export"><svg class="ic" data-icon="plane"></svg>Export — Air Freight</div>
-      <div class="mn-sub-item" data-go="job-list" data-jobmode="Sea" data-jobdir="Export"><svg class="ic" data-icon="ship"></svg>Export — Ocean Freight</div>
-      <div class="mn-sub-item" data-go="job-list" data-jobmode="Road" data-jobdir="Export"><svg class="ic" data-icon="truck"></svg>Export — Road Freight</div>
-      <div class="mn-sub-item" data-go="job-list" data-jobmode="" data-jobdir="Export"><svg class="ic" data-icon="shuffle"></svg>Export — Multimodal</div>
+      <div class="mn-sub-item" data-go="job-new" data-jobmode="Air" data-jobdir="Import"><svg class="ic" data-icon="plane"></svg>Import — Air Freight</div>
+      <div class="mn-sub-item" data-go="job-new" data-jobmode="Sea" data-jobdir="Import"><svg class="ic" data-icon="ship"></svg>Import — Ocean Freight</div>
+      <div class="mn-sub-item" data-go="job-new" data-jobmode="Road" data-jobdir="Import"><svg class="ic" data-icon="truck"></svg>Import — Road Freight</div>
+      <div class="mn-sub-item" data-go="job-new" data-jobmode="" data-jobdir="Import"><svg class="ic" data-icon="shuffle"></svg>Import — Multimodal</div>
+      <div class="mn-sub-item" data-go="job-new" data-jobmode="Air" data-jobdir="Export"><svg class="ic" data-icon="plane"></svg>Export — Air Freight</div>
+      <div class="mn-sub-item" data-go="job-new" data-jobmode="Sea" data-jobdir="Export"><svg class="ic" data-icon="ship"></svg>Export — Ocean Freight</div>
+      <div class="mn-sub-item" data-go="job-new" data-jobmode="Road" data-jobdir="Export"><svg class="ic" data-icon="truck"></svg>Export — Road Freight</div>
+      <div class="mn-sub-item" data-go="job-new" data-jobmode="" data-jobdir="Export"><svg class="ic" data-icon="shuffle"></svg>Export — Multimodal</div>
     </div>
   </div>
 
@@ -6356,7 +6356,7 @@ window.renderJobRows = renderJobRows; window.renderPortRows = renderPortRows; wi
 
 /* Operations menu: Import / Export > Air, Ocean, Road, Multimodal open the job list already filtered */
 document.addEventListener("click", e=>{
-  const t = e.target.closest && e.target.closest("[data-jobdir]"); if(!t) return;
+  const t = e.target.closest && e.target.closest("[data-jobdir]"); if(!t || t.dataset.go === "job-new") return;           /* these now open New Shipment with the mode and direction already chosen */
   const apply = ()=>{
     window.JOB_VIEW = {bucket:"", state:"", closedMtd:false, jtype:""};
     [["jobModeFilter", t.dataset.jobmode || ""], ["jobDirFilter", t.dataset.jobdir || ""], ["jobStateFilter", ""], ["jobStatusFilter", ""]].forEach(([id, v])=>{ const n = document.getElementById(id); if(n) n.value = v; });
@@ -6486,37 +6486,7 @@ const TOPNAV_MENU = [
       {label:"Air Export", icon:"plane", go:"svc-cha", chadir:"Export", chamode:"Air"},
       {label:"Air Import", icon:"plane", go:"svc-cha", chadir:"Import", chamode:"Air"},
     ]},
-    {label:"Transport", module:"transport", icon:"truck", go:"svc-transport", badge:"badgeSvcTrans", roles:["Admin","Operations","Transport"]},
-    {label:"Warehouse", module:"warehouse", icon:"warehouse", go:"svc-warehouse", roles:["Admin","Operations"]},
-  ]},
-  {id:"ops", module:"jobs", label:"Operations", icon:"clipboard", badge:"badgeJobs", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
-    {label:"All Jobs", icon:"package", roles:["Admin","Operations","Sales"], children:[
-      {label:"View All Jobs", icon:"package", go:"job-list"},
-    ]},
-    {label:"Job / Shipment", icon:"package", roles:["Admin","Operations","Sales"], children:[
-      {label:"Create Shipment", icon:"plus", go:"job-new"},
-      {label:"Import", icon:"download", children:[
-        {label:"Air Freight", icon:"plane", go:"job-list", jobmode:"Air", jobdir:"Import"},
-        {label:"Ocean Freight", icon:"ship", go:"job-list", jobmode:"Sea", jobdir:"Import"},
-        {label:"Road Freight", icon:"truck", go:"job-list", jobmode:"Road", jobdir:"Import"},
-        {label:"Multimodal", icon:"shuffle", go:"job-list", jobmode:"", jobdir:"Import"},
-        {label:"Manifest", icon:"clipboard", children:[
-          {label:"Air Manifest", icon:"plane", go:"import-air-manifest"},
-          {label:"Sea Manifest", icon:"ship", go:"import-sea-manifest"},
-          {label:"CSN", icon:"clipboard", go:"import-csn"},
-        ]},
-      ]},
-      {label:"Export", icon:"upload", children:[
-        {label:"Air Freight", icon:"plane", go:"job-list", jobmode:"Air", jobdir:"Export"},
-        {label:"Ocean Freight", icon:"ship", go:"job-list", jobmode:"Sea", jobdir:"Export"},
-        {label:"Road Freight", icon:"truck", go:"job-list", jobmode:"Road", jobdir:"Export"},
-        {label:"Multimodal", icon:"shuffle", go:"job-list", jobmode:"", jobdir:"Export"},
-      ]},
-      {label:"Shipment Console", icon:"globe", go:"svc-console", roles:["Admin","Operations"]},
-    ]},
-  ]},
-  {id:"inventory", label:"Inventory & Asset Mgmt", icon:"package", roles:["Admin","Operations"], children:[
-    {label:"Container Inventory", icon:"package", children:[
+    {label:"NVOCC", icon:"ship", roles:["Admin","Operations"], children:[
       {label:"Inventory Dashboard", icon:"dashboard", go:"inv-dashboard"},
       {label:"NVOCC Container Inventory", icon:"package", go:"inv-containers"},
       {label:"Container Movement Management", icon:"shuffle", go:"inv-movements"},
@@ -6527,13 +6497,43 @@ const TOPNAV_MENU = [
       {label:"Depot Stock Verification", icon:"check-circle", go:"inv-counts"},
       {label:"CSC & Lease Expiry", icon:"clock", go:"inv-expiry"},
     ]},
-    {label:"Vehicle Inventory", icon:"truck", children:[
-      {label:"Fleet Dashboard", icon:"dashboard", go:"inv-fleet"},
-      {label:"Transport Fleet Inventory", icon:"truck", go:"inv-vehicles"},
-      {label:"Vehicle Maintenance & Workshop", icon:"adjustments", go:"inv-workshop"},
-      {label:"Preventive Maintenance", icon:"calendar-check", go:"inv-plans"},
-      {label:"Tyre Management", icon:"tag", go:"inv-tyres"},
-      {label:"Fuel & Lubricant", icon:"gear", go:"inv-fuel"},
+    {label:"Transport", module:"transport", icon:"truck", badge:"badgeSvcTrans", roles:["Admin","Operations","Transport"], children:[
+      {label:"Transport Jobs", icon:"truck", go:"svc-transport"},
+      {label:"Vehicle Inventory", icon:"truck", children:[
+        {label:"Fleet Dashboard", icon:"dashboard", go:"inv-fleet"},
+          {label:"Transport Fleet Inventory", icon:"truck", go:"inv-vehicles"},
+          {label:"Vehicle Maintenance & Workshop", icon:"adjustments", go:"inv-workshop"},
+          {label:"Preventive Maintenance", icon:"calendar-check", go:"inv-plans"},
+          {label:"Tyre Management", icon:"tag", go:"inv-tyres"},
+          {label:"Fuel & Lubricant", icon:"gear", go:"inv-fuel"},
+      ]},
+    ]},
+    {label:"Warehouse", module:"warehouse", icon:"warehouse", go:"svc-warehouse", roles:["Admin","Operations"]},
+  ]},
+  {id:"ops", module:"jobs", label:"Operations", icon:"clipboard", badge:"badgeJobs", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
+    {label:"All Jobs", icon:"package", roles:["Admin","Operations","Sales"], children:[
+      {label:"View All Jobs", icon:"package", go:"job-list"},
+    ]},
+    {label:"Job / Shipment", icon:"package", roles:["Admin","Operations","Sales"], children:[
+      {label:"Create Shipment", icon:"plus", go:"job-new"},
+      {label:"Import", icon:"download", children:[
+        {label:"Air Freight", icon:"plane", go:"job-new", jobmode:"Air", jobdir:"Import"},
+        {label:"Ocean Freight", icon:"ship", go:"job-new", jobmode:"Sea", jobdir:"Import"},
+        {label:"Road Freight", icon:"truck", go:"job-new", jobmode:"Road", jobdir:"Import"},
+        {label:"Multimodal", icon:"shuffle", go:"job-new", jobmode:"", jobdir:"Import"},
+        {label:"Manifest", icon:"clipboard", children:[
+          {label:"Air Manifest", icon:"plane", go:"import-air-manifest"},
+          {label:"Sea Manifest", icon:"ship", go:"import-sea-manifest"},
+          {label:"CSN", icon:"clipboard", go:"import-csn"},
+        ]},
+      ]},
+      {label:"Export", icon:"upload", children:[
+        {label:"Air Freight", icon:"plane", go:"job-new", jobmode:"Air", jobdir:"Export"},
+        {label:"Ocean Freight", icon:"ship", go:"job-new", jobmode:"Sea", jobdir:"Export"},
+        {label:"Road Freight", icon:"truck", go:"job-new", jobmode:"Road", jobdir:"Export"},
+        {label:"Multimodal", icon:"shuffle", go:"job-new", jobmode:"", jobdir:"Export"},
+      ]},
+      {label:"Shipment Console", icon:"globe", go:"svc-console", roles:["Admin","Operations"]},
     ]},
   ]},
   {id:"accounts", module:"accounts", label:"Accounts", icon:"book", roles:["Admin","Accounts","CHA","Transport"], children:[
@@ -12860,7 +12860,7 @@ document.addEventListener("click", e=>{
   if(seg){ jobWiz.sub = seg.dataset.sub === "1"; document.querySelectorAll("#jobWizSubSeg .wiz-seg").forEach(b=> b.classList.toggle("sel", b === seg)); $("#jobWizSubPick").style.display = jobWiz.sub ? "block" : "none"; if(jobWiz.sub) wizSubJobFill(); jobWizRefresh(); }
   const go = e.target.closest && e.target.closest("[data-go]");
   if(go){
-    if(go.dataset.go === "job-new") setTimeout(wizApplyPreset, 20);
+    if(go.dataset.go === "job-new"){ if(!go.closest("[data-jobdir]")) window.WIZ_PRESET = null; setTimeout(wizApplyPreset, 20); }
     else if(go.dataset.go !== "job-list" && go.dataset.go !== "job-detail") window.WIZ_PRESET = null;
   }
   const t = e.target.closest && e.target.closest("[data-jobdir]");
@@ -23676,7 +23676,7 @@ body.job-readonly #jlBanner{display:flex}
   const section = (id, html)=> { let s = document.getElementById("s-"+id); if(!s){ s = document.createElement("div"); s.id = "s-"+id; s.className = "scr"; parent.appendChild(s); } s.innerHTML = html; return s; };
   const head = (icon, title, sub, actions)=> '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="'+icon+'" style="color:var(--bl)"></svg>'+esc(title)+'</div><div class="ps">'+esc(sub)+'</div></div><div class="pa">'+(actions || "")+'</div></div>';
   const backBtn = go=> '<button class="btn btn-out btn-sm" data-go="'+go+'"><svg class="ic" data-icon="arrow-left"></svg> Back</button>';
-  const meta = (id, title, crumb)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / <strong>"+esc(crumb)+"</strong>", menu:""}; };
+  const meta = (id, title, crumb)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Logistics &amp; Customs / NVOCC / <strong>"+esc(crumb)+"</strong>", menu:""}; };
   const css = document.createElement("style");
   css.textContent = ".inv-tabs{display:flex;gap:4px;border-bottom:1px solid var(--g2);margin:0 0 12px;flex-wrap:wrap}.inv-tabs button{border:0;background:none;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--g6);cursor:pointer;border-bottom:2px solid transparent}.inv-tabs button.on{color:var(--bl);border-bottom-color:var(--bl)}.inv-hint{font-size:11.5px;margin-top:3px}.inv-hint.ok{color:var(--gr,#15803d)}.inv-hint.bad{color:var(--rd,#b91c1c)}.inv-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}";
   document.head.appendChild(css);
@@ -23898,7 +23898,7 @@ body.job-readonly #jlBanner{display:flex}
   const section = (id, html)=> { let s = document.getElementById("s-"+id); if(!s){ s = document.createElement("div"); s.id = "s-"+id; s.className = "scr"; parent.appendChild(s); } s.innerHTML = html; return s; };
   const head = (icon, title, sub, actions)=> '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="'+icon+'" style="color:var(--bl)"></svg>'+esc(title)+'</div><div class="ps">'+esc(sub)+'</div></div><div class="pa">'+(actions || "")+'</div></div>';
   const back = '<button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button>';
-  const meta = (id, title)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / <strong>"+esc(title)+"</strong>", menu:""}; };
+  const meta = (id, title)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Logistics &amp; Customs / NVOCC / <strong>"+esc(title)+"</strong>", menu:""}; };
   const masters = {};
   const loadMasters = async types=> { await Promise.all(types.map(async t=>{ try{ masters[t] = (await MK.fetchAll(t)).filter(r=>r.status === "ACTIVE"); }catch(e){ masters[t] = []; } })); };
   const mopts = (t, first)=> [["", first || "— Select —"]].concat((masters[t] || []).map(r=>[r.name, r.name]));
@@ -23928,7 +23928,7 @@ body.job-readonly #jlBanner{display:flex}
   const GRIDS = {};
   function grid(cfg){
     cfg.st = {page:1, size:25, q:"", f:{}}; GRIDS[cfg.id] = cfg;
-    window.SCREEN_META["inv-"+cfg.id] = {title:cfg.title, crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / <strong>"+esc(cfg.title)+"</strong>", menu:""};
+    window.SCREEN_META["inv-"+cfg.id] = {title:cfg.title, crumb:"eSway ERP 2.0 / Logistics &amp; Customs / NVOCC / <strong>"+esc(cfg.title)+"</strong>", menu:""};
     section("inv-"+cfg.id, "");
   }
   async function paintGrid(id){
@@ -24219,7 +24219,7 @@ body.job-readonly #jlBanner{display:flex}
   }
 
   /* ----- expiry register: CSC and lease ----- */
-  window.SCREEN_META["inv-expiry"] = {title:"CSC & Lease Expiry", crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / <strong>CSC &amp; Lease Expiry</strong>", menu:""}; section("inv-expiry", "");
+  window.SCREEN_META["inv-expiry"] = {title:"CSC & Lease Expiry", crumb:"eSway ERP 2.0 / Logistics &amp; Customs / NVOCC / <strong>CSC &amp; Lease Expiry</strong>", menu:""}; section("inv-expiry", "");
   const EXP = {days:60};
   async function paintExpiry(){
     const a = await api("GET", "/api/container-alerts?days="+EXP.days).catch(e=>{ say("Could not load the expiry register", e.message, "warn"); return null; }); if(!a) return;
@@ -24326,7 +24326,7 @@ body.job-readonly #jlBanner{display:flex}
     try{ return (await api("GET", "/api/vehicles?q="+encodeURIComponent(n)+"&limit=5&include_disposed=true")).items.find(v=>v.registration_number === n) || null; }catch(e){ return null; }
   }
   const FLEET = window.FLEETC = {openId:null, days:60};
-  const meta = (id, title)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Inventory &amp; Asset Management / Vehicle Inventory / <strong>"+esc(title)+"</strong>", menu:""}; };
+  const meta = (id, title)=> { window.SCREEN_META[id] = {title, crumb:"eSway ERP 2.0 / Logistics &amp; Customs / Transport / Vehicle Inventory / <strong>"+esc(title)+"</strong>", menu:""}; };
 
   /* ---------------- fleet dashboard ---------------- */
   meta("inv-fleet", "Fleet Dashboard"); section("inv-fleet", "");

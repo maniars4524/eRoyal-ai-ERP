@@ -566,3 +566,7 @@ Old simulated-browser tests (crm, dashboard, hblclauses) fail the same way on pr
 - Starts empty. "Import standard list" (admin button, POST /api/masters/shipment_template/import-sample) loads the 39 from the company list (sea 16, air 8, multimodal 5, road 10); CHA, warehouse, door-to-door and some multimodal combos are NOT loaded (the wizard cannot represent them yet).
 - New Shipment and New Booking pages show a Template picker (only when active templates exist) that fills the answers. New Quotation and the CRM enquiry "Service Template" drop-down (hard-coded list) are NOT yet linked.
 - Tests: backend/tests/test_shipment_templates.py, e2e/tpl.test.js.
+
+## Menu moves + Import/Export open New Shipment (2026-11-06)
+- Logistics & Customs: new NVOCC group (all Container Inventory options); Transport is now a group: Transport Jobs + Vehicle Inventory (fleet options). The top-level "Inventory & Asset Mgmt" menu is gone (stores, step E, will need a home later).
+- Operations > Job / Shipment > Import / Export > Air / Ocean / Road / Multimodal now open New Shipment with mode and direction pre-set (was the job list). The job list stays under All Jobs. e2e/navwiz.test.js.
