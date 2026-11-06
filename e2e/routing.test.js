@@ -41,10 +41,12 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await fill(0, { carrier: "MSC Orion", voyage: "VOY12345", pol: "Chennai", pod: "Singapore", etd: loc(4), eta: loc(11), stage: "CONFIRMED" });
   check("Confirmed hides the follow-up box", !(await page.evaluate(() => document.querySelector("#rtBody tbody tr [data-fu-wrap]").offsetParent !== null)));
   await page.evaluate(() => document.querySelector('[data-rt^="save:"]').click()); await sleep(2000);
-  check("after saving, the button shows Saved with the green glow", await page.evaluate(() => { const b = document.querySelector('#rtBody tbody tr [data-rt^="save:"]'); return !!b && b.classList.contains("btn-saved") && /Saved/.test(b.textContent); }));
+  check("after saving, the row is locked and shows Saved with the green glow, with Edit and Remove", await page.evaluate(() => { const tr = document.querySelector("#rtBody tbody tr"); const b = tr.querySelector('[data-rt^="saved:"]'); return !!b && b.classList.contains("btn-saved") && /Saved/.test(b.textContent) && !!tr.querySelector('[data-rt^="edit:"]') && tr.querySelector('[data-f="carrier"]').disabled; }));
+  await page.evaluate(() => document.querySelector('[data-rt^="edit:"]').click()); await sleep(500);
+  check("Edit opens the row for correction, with Update and Cancel", await page.evaluate(() => { const tr = document.querySelector("#rtBody tbody tr"); return !tr.querySelector('[data-f="carrier"]').disabled && /Update/.test(tr.querySelector('[data-rt^="save:"]').textContent) && !!tr.querySelector('[data-rt^="cancel:"]'); }));
   await fill(0, { remarks: "edited after save" });
-  check("editing the row turns it back into Save so a correction can be saved again", await page.evaluate(() => { const b = document.querySelector('#rtBody tbody tr [data-rt^="save:"]'); return !!b && !b.classList.contains("btn-saved") && /^Save$/.test(b.textContent.trim()); }));
   await page.evaluate(() => document.querySelector('[data-rt^="save:"]').click()); await sleep(1800);
+  check("saving the correction locks it again as Saved", await page.evaluate(() => !!document.querySelector('#rtBody tbody tr [data-rt^="saved:"]')) && (await j("GET", "/api/jobs/" + sea.job_number + "/routing", null, token)).body.legs[0].remarks === "edited after save");
   let d = (await j("GET", "/api/jobs/" + sea.job_number + "/routing", null, token)).body;
   check("Save stores vessel 1 as a confirmed leg", d.legs.length === 1 && d.legs[0].stage === "CONFIRMED" && d.legs[0].carrier === "MSC Orion" && d.legs[0].pol === "Chennai", JSON.stringify(d.legs).slice(0, 200));
   // add vessel 2: planned, follow-up yes
@@ -52,7 +54,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await fill(1, { carrier: "Maersk Bella", voyage: "VOY67890", pol: "Singapore", pod: "Rotterdam", etd: loc(14), eta: loc(30), stage: "PLANNED" });
   check("Planned shows the Follow-up Yes / No box next to it", await page.evaluate(() => document.querySelectorAll("#rtBody tbody tr")[1].querySelector("[data-fu-wrap]").offsetParent !== null));
   await fill(1, { follow_up: "1" });
-  await page.evaluate(() => document.querySelectorAll('[data-rt^="save:"]')[1].click()); await sleep(2000);
+  await page.evaluate(() => document.querySelector('#rtBody tbody tr:nth-child(2) [data-rt^="save:"]').click()); await sleep(2000);
   d = (await j("GET", "/api/jobs/" + sea.job_number + "/routing", null, token)).body;
   check("vessel 2 is saved as planned with follow-up", d.legs.length === 2 && d.legs[1].stage === "PLANNED" && d.legs[1].follow_up === true, JSON.stringify(d.legs[1]).slice(0, 200));
   await page.evaluate(() => document.querySelector('[data-rt="history"]').click()); await sleep(1200);
@@ -66,8 +68,8 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   // dashboard
   await page.evaluate(() => go("dashboard")); await sleep(1500); await page.evaluate(() => window.__rtAlerts()); await sleep(1500);
   const dash = await text("#rtDash");
-  check("the dashboard alert area lists the follow-up leg of the job", /Routing Alerts/i.test(dash) && dash.includes(sea.job_number) && /Maersk Bella/.test(dash) && /Follow-up/.test(dash), dash.slice(0, 300));
-  await page.evaluate(() => document.querySelector("#rtDash .rt-row").click()); await sleep(4500);
+  check("the dashboard alert area lists the follow-up leg of the job", /Notifications/i.test(dash) && /View all/.test(dash) && dash.includes(sea.job_number) && /Maersk Bella/.test(dash) && /Follow-up/i.test(dash), dash.slice(0, 300));
+  await page.evaluate(() => document.querySelector("#rtDash .rt-it").click()); await sleep(4500);
   check("clicking the alert opens the job on its Routing tab", await vis("#rtBody") && /Sea Shipment Routing/.test(await text("#rtBody")));
   // air
   await openJob(air.job_number);

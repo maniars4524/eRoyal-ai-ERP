@@ -1875,3 +1875,46 @@ class JobRoutingHistory(Base):
     remarks: Mapped[str | None] = mapped_column(String(500))
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class JobOutputDoc(Base):
+    """A report generated on request from a job's Output Docs: one row per version, so regenerating keeps the earlier versions."""
+    __tablename__ = "job_output_docs"
+    __table_args__ = (UniqueConstraint("shipment_id", "code", "variant", "version", name="uq_job_output_doc_version"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id", ondelete="RESTRICT"), index=True)
+    code: Mapped[str] = mapped_column(String(40))
+    variant: Mapped[str] = mapped_column(String(20), default="", server_default="")
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    title: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    html: Mapped[str] = mapped_column(Text)
+    inputs: Mapped[dict | None] = mapped_column(JSON)
+    generated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class InternalMessage(Base):
+    """A message from the company to its users (shown in the notification centre until it expires or is withdrawn)."""
+    __tablename__ = "internal_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    body: Mapped[str] = mapped_column(String(1000), default="", server_default="")
+    expires_on: Mapped[date | None] = mapped_column(Date)
+    audience_roles: Mapped[list | None] = mapped_column(JSON)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class NotificationSetting(Base):
+    """A company's notification rules: how long before an ETD / ETA, a due date or a birthday it is announced, and who receives each kind."""
+    __tablename__ = "notification_settings"
+
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True)
+    data: Mapped[dict] = mapped_column(JSON)
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

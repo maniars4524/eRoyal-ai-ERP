@@ -6698,6 +6698,7 @@ const TOPNAV_MENU = [
     {label:"Configuration", icon:"gear", children:[
       {label:"Email Configuration", icon:"mail", act:"info:email"},
       {label:"SMS Configuration", icon:"bell", act:"info:sms"},
+      {label:"Notification Settings", icon:"bell", go:"notif-settings"},
       {label:"Preferences", icon:"gear", go:"themes"},
       {label:"Themes", icon:"dashboard", go:"themes"},
     ]},
@@ -24946,7 +24947,7 @@ body.job-readonly #jlBanner{display:flex}
   "use strict";
   if(!window.MK) return;
   const api = (m, p, b)=> MK.util.api(m, p, b), esc = MK.util.esc2;
-  const R = {job:null, data:null, drafts:[], seq:0, hist:null, ports:null, airlines:null};
+  const R = {job:null, data:null, drafts:[], seq:0, hist:null, ports:null, airlines:null, edit:{}};
   const pad = n=> String(n).padStart(2, "0"), MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   /* ETD / ETA are dates only (no time of day): kept as the calendar date, never shifted by the time zone */
   const loc = iso=> iso ? String(iso).slice(0, 10) : "";
@@ -24962,7 +24963,7 @@ body.job-readonly #jlBanner{display:flex}
   }
   async function load(force){
     const no = jobNo(); if(!no) return;
-    if(R.job !== no){ R.drafts = []; R.hist = null; }
+    if(R.job !== no){ R.drafts = []; R.hist = null; R.edit = {}; }
     R.job = no;
     try{ await lists(); R.data = await api("GET", "/api/jobs/"+encodeURIComponent(no)+"/routing"); }catch(e){ R.data = null; const b = document.getElementById("rtBody"); if(b) b.innerHTML = '<div class="ib ib-rd">'+esc(e.message || "Could not load the routing")+'</div>'; return; }
     T.at = 0;                                                            /* the tracking view reads the routing again after any change */
@@ -24970,7 +24971,7 @@ body.job-readonly #jlBanner{display:flex}
     paint();
   }
   function rowHtml(l, i, sea, ed){
-    const key = l.id ? "L"+l.id : "D"+l.draft, dis = ed ? "" : " disabled";
+    const key = l.id ? "L"+l.id : "D"+l.draft, locked = !!l.id && !R.edit[key], dis = (ed && !locked) ? "" : " disabled";
     const inp = (f, v, extra)=> '<input class="fc" data-f="'+f+'" value="'+esc(v || "")+'"'+(extra || "")+dis+'>';
     const dt = f=> '<input class="fc" type="date" data-f="'+f+'" value="'+esc(loc(l[f]))+'"'+dis+'>';
     const note = l.draft && l.source ? '<div style="font-size:10px;color:var(--am)">from the '+(l.source === "BOOKING" ? "booking" : "job")+' — Save to keep</div>' : "";
@@ -24982,7 +24983,8 @@ body.job-readonly #jlBanner{display:flex}
       '<td><select class="fc" data-f="stage"'+dis+'><option value="PLANNED"'+(l.stage === "PLANNED" ? " selected" : "")+'>Planned</option><option value="CONFIRMED"'+(l.stage === "CONFIRMED" ? " selected" : "")+'>Confirmed</option></select></td>'+
       '<td data-fu-cell="1"><div data-fu-wrap="1" style="'+(l.stage === "PLANNED" ? "" : "display:none")+'"><select class="fc" data-f="follow_up"'+dis+' title="Follow-up required (planned legs only)"><option value="0"'+(l.follow_up ? "" : " selected")+'>No</option><option value="1"'+(l.follow_up ? " selected" : "")+'>Yes</option></select>'+done+'</div><span data-fu-none="1" style="color:var(--g5);'+(l.stage === "PLANNED" ? "display:none" : "")+'">—</span></td>'+
       '<td>'+inp("remarks", l.remarks, ' placeholder="Remarks"')+'</td>'+
-      '<td style="white-space:nowrap">'+(ed ? '<button class="btn btn-pri btn-sm" data-rt="save:'+key+'">Save</button> <button class="btn btn-out btn-sm" data-rt="remove:'+key+'">'+(l.id ? "Remove" : "Discard")+'</button>' : "")+'</td></tr>';
+      '<td style="white-space:nowrap">'+(!ed ? "" : locked ? '<button class="btn btn-pri btn-sm btn-saved" type="button" data-rt="saved:'+key+'" title="Saved. Press Edit to change it">&#10003; Saved</button> <button class="btn btn-out btn-sm" data-rt="edit:'+key+'">Edit</button> <button class="btn btn-out btn-sm" data-rt="remove:'+key+'">Remove</button>'
+        : '<button class="btn btn-pri btn-sm" data-rt="save:'+key+'">'+(l.id ? "Update" : "Save")+'</button> '+(l.id ? '<button class="btn btn-out btn-sm" data-rt="cancel:'+key+'">Cancel</button> ' : "")+'<button class="btn btn-out btn-sm" data-rt="remove:'+key+'">'+(l.id ? "Remove" : "Discard")+'</button>')+'</td></tr>';
   }
   window.__rtEdited = t=> { const tr = t.closest && t.closest("[data-rt-row]"); if(tr && R.saved === tr.dataset.rtRow) R.saved = null; };
   function paint(){
@@ -25023,12 +25025,15 @@ body.job-readonly #jlBanner{display:flex}
     const b = e.target.closest && e.target.closest("[data-rt]"); if(!b || !R.data) return;
     const [act, arg] = b.dataset.rt.split(":");
     try{
+      if(act === "edit"){ R.edit[arg] = true; paint(); return; }
+      if(act === "cancel"){ delete R.edit[arg]; paint(); return; }
+      if(act === "saved") return;
       if(act === "add"){ R.drafts.push({id:null, draft:++R.seq, stage:"PLANNED", follow_up:false, kind:R.data.kind}); paint(); return; }
       if(act === "history"){ R.hist = R.hist ? null : await api("GET", base()+"/history"); paint(); return; }
       if(act === "save"){
         const tr = document.querySelector('[data-rt-row="'+arg+'"]'), body = collect(tr);
-        if(arg[0] === "L"){ await api("PUT", base()+"/legs/"+arg.slice(1), body); R.saved = arg; }
-        else { const dr = R.drafts.find(x=> "D"+x.draft === arg); body.source = dr && dr.source || "MANUAL"; const nl = await api("POST", base()+"/legs", body); R.drafts = R.drafts.filter(x=> "D"+x.draft !== arg); R.saved = "L"+nl.id; }
+        if(arg[0] === "L"){ await api("PUT", base()+"/legs/"+arg.slice(1), body); delete R.edit[arg]; }
+        else { const dr = R.drafts.find(x=> "D"+x.draft === arg); body.source = dr && dr.source || "MANUAL"; const nl = await api("POST", base()+"/legs", body); R.drafts = R.drafts.filter(x=> "D"+x.draft !== arg); }
         say("Routing saved", "The leg is saved and the change is recorded"); R.hist = R.hist ? await api("GET", base()+"/history") : null; if(window.__rtAlerts) window.__rtAlerts(); await load(); return;
       }
       if(act === "remove"){
@@ -25049,34 +25054,79 @@ body.job-readonly #jlBanner{display:flex}
   setInterval(()=>{ const tab = document.getElementById("jtrt"); if(tab && tab.offsetParent !== null && jobNo() && R.job !== jobNo()) load(); }, 1500);
 
   /* ---------- dashboard: Air & Sea shipment routing alerts ---------- */
-  const A = {rows:[], t:0};
-  const FL = {OVERDUE:["Overdue", "b-rd"], FOLLOW_UP:["Follow-up", "b-am"], PLANNED:["Planned", "b-am"], ETD:["ETD soon", "b-bl"], ETA:["ETA soon", "b-bl"], CHANGED:["Changed", "b-gy"]};
+  /* ---------- dashboard: running message + notification centre (everything that needs attention: shipments, approvals, payments, people, messages) ---------- */
+  const A = {items:[], counts:{}, cats:[], t:0, cat:"All", q:""};
+  const SEV = [["Critical", "#dc2626", "#fee2e2"], ["Action", "#b45309", "#fef3c7"], ["Info", "#1d4ed8", "#dbeafe"], ["Low", "#64748b", "#f1f5f9"]];
+  const CATICON = {Shipments:"ship", Approvals:"check-circle", Payments:"cash", People:"user", Messages:"file-text"};
   function dashCard(){
     let c = document.getElementById("rtDash"); if(c) return c;
     const scr = document.getElementById("s-dashboard"), grid = scr && scr.querySelector(".dash-body-grid"); if(!grid) return null;
     c = document.createElement("div"); c.id = "rtDash"; c.className = "card"; c.style.marginBottom = "12px"; grid.parentNode.insertBefore(c, grid); return c;
   }
-  const alertLine = a=> (a.kind === "AIR" ? "AIR" : "SEA")+": Job "+a.job_number+(a.carrier ? " - "+a.carrier : "")+(a.voyage ? " - "+(a.kind === "AIR" ? "Flight " : "Voyage ")+a.voyage : "")+" - "+a.message;
+  const line = a=> a.title+(a.text ? " - "+a.text : "");
   function paintAlerts(){
     const c = dashCard(); if(!c) return;
-    const rows = A.rows;
-    c.innerHTML = '<div class="ch"><div class="ct"><svg class="ic" data-icon="ship" style="color:var(--bl)"></svg> Air &amp; Sea Shipment Routing Alerts <span class="b b-gy" style="margin-left:6px">'+rows.length+'</span></div></div>'+
-      '<div class="cb" style="padding:8px 14px">'+(rows.length ?
-        '<div class="rt-ticker"><div class="rt-track">'+rows.concat(rows).map(a=>'<span class="rt-it" data-rt-go="'+esc(a.job_number)+'">'+esc(alertLine(a))+'</span>').join("")+'</div></div>'+
-        '<div class="tw" style="margin-top:8px"><table><thead><tr><th>Job</th><th>Customer</th><th>Type</th><th>Airline / Vessel</th><th>Flight / Voyage</th><th>ETD</th><th>ETA</th><th>Stage</th><th>Alert</th></tr></thead><tbody>'+
-        rows.slice(0, 8).map(a=>'<tr class="rt-row" data-rt-go="'+esc(a.job_number)+'" style="cursor:pointer"><td><b>'+esc(a.job_number)+'</b></td><td>'+esc(a.customer || "")+'</td><td>'+(a.kind === "AIR" ? "Air" : "Sea")+' '+esc(a.direction || "")+'</td><td>'+esc(a.carrier || "—")+'</td><td>'+esc(a.voyage || "—")+'</td><td>'+show(a.etd)+'</td><td>'+show(a.eta)+'</td><td>'+stageChip(a.stage)+'</td><td>'+a.flags.map(f=>'<span class="b '+(FL[f] || ["", "b-gy"])[1]+'">'+(FL[f] || [f])[0]+'</span>').join(" ")+'</td></tr>').join("")+'</tbody></table></div>'
-        : '<div style="color:var(--g5);padding:6px 0">No routing alerts: nothing planned, followed-up, overdue or coming up in the next few days.</div>')+'</div>';
+    const rows = A.items, urgent = rows.filter(a=> a.severity <= 1).length;
+    c.innerHTML = '<div class="cb" style="padding:8px 14px;display:flex;align-items:center;gap:12px">'+
+      '<div style="flex:none;font-weight:700;font-size:12.5px;color:var(--n);white-space:nowrap"><svg class="ic" data-icon="bell" style="color:var(--bl)"></svg> Notifications &amp; Alerts <span class="b '+(urgent ? "b-am" : "b-gy")+'" style="margin-left:4px">'+rows.length+'</span></div>'+
+      (rows.length ? '<div class="rt-ticker" style="flex:1;min-width:0"><div class="rt-track">'+rows.concat(rows).map(a=>'<span class="rt-it" data-nc-open="'+esc(a.id)+'" style="color:'+SEV[a.severity][1]+'">'+esc(line(a))+'</span>').join("")+'</div></div>'
+        : '<div style="flex:1;color:var(--g5);font-size:12px">Nothing needs your attention right now.</div>')+
+      '<button class="btn btn-out btn-sm" data-nc-all="1" style="flex:none">View all'+(rows.length ? " ("+rows.length+")" : "")+'</button></div>';
     if(window.renderIcons) renderIcons(c);
+    const tr = c.querySelector(".rt-track"); if(tr) tr.style.animationDuration = Math.max(40, Math.round(tr.scrollWidth / 45)) + "s";     /* about 45 px a second: easy to read */
   }
-  async function alerts(){ try{ A.rows = await api("GET", "/api/routing/alerts"); }catch(e){ A.rows = []; } paintAlerts(); }
+  async function alerts(){
+    try{ const r = await api("GET", "/api/notifications"); A.items = r.items || []; A.counts = r.counts || {}; A.cats = r.categories || []; }catch(e){ A.items = []; }
+    const sig = JSON.stringify(A.items.map(x=> x.id+"|"+x.title+"|"+x.text)), card = document.getElementById("rtDash");
+    if(sig !== A.sig || !card || !card.firstChild){ A.sig = sig; paintAlerts(); }                     /* repaint only when something changed, so the running message does not restart every minute */
+    if(document.getElementById("ncList")) paintCenter();
+  }
   window.__rtAlerts = alerts;
-  document.addEventListener("click", e=>{
-    const g = e.target.closest && e.target.closest("[data-rt-go]"); if(!g) return;
-    const no = g.dataset.rtGo; go("job-detail", {jobNo:no});
-    let n = 0; const t = setInterval(()=>{ n++; const tab = document.querySelector('#s-job-detail .tbb[data-tab="jtrt"]'); if(tab && jobNo() === no){ clearInterval(t); tab.click(); } else if(n > 25) clearInterval(t); }, 300);
+  function openItem(a){
+    const l = a.link || {}; if(window.closeModal && document.getElementById("ncList")) closeModal();
+    if(l.jobNo){ const no = l.jobNo; go("job-detail", {jobNo:no});
+      if(l.tab === "routing"){ let n = 0; const t = setInterval(()=>{ n++; const tab = document.querySelector('#s-job-detail .tbb[data-tab="jtrt"]'); if(tab && jobNo() === no){ clearInterval(t); tab.click(); } else if(n > 25) clearInterval(t); }, 300); } }
+    else if(l.go) go(l.go);
+  }
+  function paintCenter(){
+    const list = document.getElementById("ncList"); if(!list) return;
+    const q = A.q.trim().toLowerCase();
+    const rows = A.items.filter(a=> (A.cat === "All" || a.category === A.cat) && (!q || (a.title+" "+a.text).toLowerCase().includes(q)));
+    const tabs = document.getElementById("ncTabs");
+    if(tabs) tabs.innerHTML = ["All"].concat(A.cats).map(c=>{ const n = c === "All" ? A.items.length : (A.counts[c] || 0); return '<button type="button" class="btn btn-sm '+(A.cat === c ? "btn-pri" : "btn-out")+'" data-nc-cat="'+c+'">'+c+' <span style="opacity:.8">'+n+'</span></button>'; }).join("");
+    list.innerHTML = rows.length ? rows.map(a=>{ const sv = SEV[a.severity] || SEV[3];
+      return '<div class="nc-row" data-nc-open="'+esc(a.id)+'" style="display:flex;gap:10px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid var(--g1);cursor:pointer"><div style="flex:none;width:30px;height:30px;border-radius:50%;background:'+sv[2]+';color:'+sv[1]+';display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="'+(CATICON[a.category] || "bell")+'"></svg></div>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px">'+esc(a.title)+'</div><div style="font-size:11.5px;color:var(--g6)">'+esc(a.text || "")+'</div></div>'+
+        '<div style="flex:none;text-align:right"><span style="display:inline-block;padding:1px 8px;border-radius:10px;background:'+sv[2]+';color:'+sv[1]+';font-size:10px;font-weight:700">'+sv[0]+'</span><div style="font-size:10px;color:var(--g5);margin-top:2px">'+esc(a.category)+'</div>'+
+        (a.category === "Messages" ? '<a href="#" data-nc-withdraw="'+esc(a.id.split(":")[2] || "")+'" style="font-size:10px">Withdraw</a>' : "")+'</div></div>'; }).join("")
+      : '<div style="padding:26px;text-align:center;color:var(--g5)">'+(A.items.length ? "Nothing matches this filter." : "No notifications. Shipment, approval, payment, birthday and message alerts will appear here.")+'</div>';
+    if(window.renderIcons) renderIcons(list);
+  }
+  async function openCenter(){
+    await alerts(); A.cat = "All"; A.q = "";
+    openModal({title:"Notifications & Alerts", size:"lg", bodyHTML:'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><div id="ncTabs" style="display:flex;gap:6px;flex-wrap:wrap"></div><input class="fc" id="ncSearch" placeholder="Search notifications…" style="margin-left:auto;max-width:240px"></div><div id="ncList" style="max-height:62vh;overflow:auto"></div>',
+      footHTML:'<button class="btn btn-out" type="button" id="ncPost">Post a message</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+    paintCenter();
+    document.getElementById("ncSearch").addEventListener("input", e=>{ A.q = e.target.value; paintCenter(); });
+    document.getElementById("ncPost").addEventListener("click", ()=>{
+      openModal({title:"Post a message to all users", size:"sm", bodyHTML:'<div class="fg"><label class="fl">Title <span class="r">*</span></label><input class="fc" id="ncMsgT" maxlength="160"></div><div class="fg"><label class="fl">Message</label><textarea class="fc" id="ncMsgB" rows="3" maxlength="1000"></textarea></div><div class="fg"><label class="fl">Show until (optional)</label><input class="fc" type="date" id="ncMsgD"></div>',
+        footHTML:'<button class="btn btn-out" type="button" id="ncMsgBack">Back</button><button class="btn btn-pri" type="button" id="ncMsgGo">Post</button>'});
+      document.getElementById("ncMsgBack").addEventListener("click", openCenter);
+      document.getElementById("ncMsgGo").addEventListener("click", async ()=>{
+        const t = document.getElementById("ncMsgT").value.trim(); if(t.length < 3){ say("Title needed", "Write at least 3 characters", "warn"); return; }
+        try{ await api("POST", "/api/notifications/messages", {title:t, body:document.getElementById("ncMsgB").value.trim(), expires_on:document.getElementById("ncMsgD").value || null}); say("Message posted", "Everyone sees it in Notifications"); openCenter(); }
+        catch(err){ say("Could not post", err.message || "You may not have permission to post messages", "error"); }
+      });
+    });
+  }
+  document.addEventListener("click", async e=>{
+    if(e.target.closest("[data-nc-all]")){ openCenter(); return; }
+    const cat = e.target.closest("[data-nc-cat]"); if(cat){ A.cat = cat.dataset.ncCat; paintCenter(); return; }
+    const wd = e.target.closest("[data-nc-withdraw]"); if(wd){ e.preventDefault(); e.stopPropagation(); try{ await api("DELETE", "/api/notifications/messages/"+wd.dataset.ncWithdraw); say("Message withdrawn", ""); alerts(); }catch(err){ say("Could not withdraw", err.message || "No permission", "error"); } return; }
+    const it = e.target.closest("[data-nc-open]"); if(it){ const a = A.items.find(x=> x.id === it.dataset.ncOpen); if(a) openItem(a); }
   });
   const st = document.createElement("style");
-  st.textContent = ".rt-ticker{overflow:hidden;white-space:nowrap;background:var(--blt);border-radius:8px;padding:7px 0}.rt-track{display:inline-block;padding-left:100%;animation:rtmove 40s linear infinite}.rt-ticker:hover .rt-track{animation-play-state:paused}.rt-it{display:inline-block;margin-right:48px;font-size:12px;font-weight:600;color:var(--n);cursor:pointer}@keyframes rtmove{to{transform:translateX(-100%)}}"+
+  st.textContent = ".rt-ticker{overflow:hidden;white-space:nowrap;background:var(--blt);border-radius:8px;padding:7px 0}.rt-track{display:inline-block;padding-left:100%;animation:rtmove 40s linear infinite}.rt-ticker:hover .rt-track{animation-play-state:paused}.rt-it{display:inline-block;margin-right:48px;font-size:12px;font-weight:600;cursor:pointer}@keyframes rtmove{to{transform:translateX(-100%)}}"+
     ".rt-jr{border-left:2px solid var(--g2);margin:6px 0 4px 8px;padding-left:14px}.rt-leg{position:relative;padding:4px 0 10px}.rt-leg:before{content:'';position:absolute;left:-21px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--bl)}.rt-leg.PLANNED:before{background:#fff;border:2px dashed var(--am)}.rt-leg .t{font-weight:700;font-size:12px}.rt-leg .m{font-size:11px;color:var(--g6)}";
   document.head.appendChild(st);
   setInterval(()=>{ const d = document.getElementById("s-dashboard"); if(d && d.offsetParent !== null && Date.now() - A.t > 60000){ A.t = Date.now(); alerts(); } }, 2000);
@@ -25145,6 +25195,59 @@ body.job-readonly #jlBanner{display:flex}
     if(mine) p.then(function(r){ if(r && r.ok) setTimeout(function(){ window.markSaved(mine.btn); }, 60); }).catch(function(){});
     return p;
   };
+})();
+</script>
+<script>
+/* NOTIFICATION SETTINGS (Settings > Notification Settings): how long before an ETD / ETA, a due date, a birthday ... something is announced, and who receives each kind. */
+(function(){
+  "use strict";
+  if(!window.MK || !window.SCREEN_META) return;
+  const esc = MK.util.esc2, api = (m, p, b)=> MK.util.api(m, p, b), say = (t, m, k)=> { if(window.toast) toast(t, m, k); };
+  const parent = (document.getElementById("s-pack-master") || {}).parentNode; if(!parent) return;
+  if(!document.getElementById("s-notif-settings")){
+    const sec = document.createElement("div"); sec.id = "s-notif-settings"; sec.className = "scr";
+    sec.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="bell" style="color:var(--bl)"></svg>Notification Settings</div><div class="ps">Decide when something is announced on the dashboard and who receives it. Only these notifications reach people; nothing else is added.</div></div>'+
+      '<div class="pa"><button class="btn btn-out btn-sm" data-go="back"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-pri btn-sm" id="nsSave">Save settings</button></div></div><div id="nsBody"><div class="card"><div class="cb">Loading…</div></div></div>';
+    parent.appendChild(sec);
+  }
+  window.SCREEN_META["notif-settings"] = {title:"Notification Settings", crumb:"eSway ERP 2.0 / Settings / <strong>Notification Settings</strong>", menu:""};
+  let S = null, ROLES = [], CATS = [];
+  const num = (id, v, min, max)=> '<input class="fc" type="number" min="'+min+'" max="'+max+'" id="'+id+'" value="'+esc(v)+'" style="max-width:90px">';
+  const unit = (id, v)=> '<select class="fc" id="'+id+'" style="max-width:100px"><option value="days"'+(v === "days" ? " selected" : "")+'>days</option><option value="hours"'+(v === "hours" ? " selected" : "")+'>hours</option></select>';
+  const row = (label, ctl, hint)=> '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--g1)"><div style="flex:1"><div style="font-weight:600;font-size:12.5px">'+label+'</div>'+(hint ? '<div style="font-size:11px;color:var(--g5)">'+hint+'</div>' : "")+'</div><div style="display:flex;gap:6px;align-items:center">'+ctl+'</div></div>';
+  const card = (title, inner)=> '<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">'+title+'</div></div><div class="cb">'+inner+'</div></div>';
+  function paint(){
+    const b = document.getElementById("nsBody"); if(!b || !S) return; const r = S.routing;
+    b.innerHTML =
+      card("Shipment routing alerts", row("Tell me about an ETD before", num("ns_etd", r.etd_lead_value, 1, 720)+unit("ns_etdu", r.etd_lead_unit), "ETD and ETA are dates, so the notice starts that long before the date begins (5 days = from 5 days ahead; 12 hours = from noon the day before).")+
+        row("Tell me about an ETA before", num("ns_eta", r.eta_lead_value, 1, 720)+unit("ns_etau", r.eta_lead_unit))+
+        row("Planned (not yet confirmed) schedules, when the ETD is within", num("ns_plan", r.planned_lead_days, 1, 90)+'<span>days</span>', "A Planned leg is announced as pending confirmation from this many days before its ETD.")+
+        row("Show a changed schedule for", num("ns_chg", r.changed_days, 1, 30)+'<span>days</span>'))+
+      card("Payments and approvals", row("Purchase bills: tell me before the due date", num("ns_pay", S.payments.due_lead_days, 0, 60)+'<span>days</span>', "Overdue bills are always shown.")+
+        row("Invoice approvals: mark as action needed after", num("ns_app", S.approvals.escalate_after_days, 0, 60)+'<span>days waiting</span>'))+
+      card("Employees", row("Birthdays: tell me before", num("ns_bd", S.birthdays.lead_days, 0, 30)+'<span>days</span>'))+
+      card("Who receives each kind", '<div style="font-size:11.5px;color:var(--g5);margin-bottom:6px">Leave all roles unticked to send it to everyone who may see that kind of record. Tick roles (for example managers or department heads) to send it only to them. Company administrators always receive everything.</div>'+
+        CATS.map(c=>{ const a = S.audience[c] || {enabled:true, roles:[]};
+          return '<div style="padding:9px 0;border-bottom:1px solid var(--g1)" data-ns-cat="'+c+'"><label style="display:flex;gap:8px;align-items:center;font-weight:700;font-size:12.5px"><input type="checkbox" data-ns-en="'+c+'"'+(a.enabled ? " checked" : "")+'> '+c+'</label>'+
+            '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 0 24px">'+(ROLES.length ? ROLES.map(x=>'<label style="font-size:11.5px;display:flex;gap:4px;align-items:center"><input type="checkbox" data-ns-role="'+esc(x)+'"'+(a.roles.indexOf(x) > -1 ? " checked" : "")+'> '+esc(x)+'</label>').join("") : '<span style="font-size:11px;color:var(--g5)">No roles defined yet</span>')+'</div></div>'; }).join(""));
+    if(window.renderIcons) renderIcons(b);
+  }
+  async function load(){
+    try{ const r = await api("GET", "/api/notifications/settings"); S = r.settings; ROLES = r.roles || []; CATS = r.categories || []; paint(); }
+    catch(e){ const b = document.getElementById("nsBody"); if(b) b.innerHTML = '<div class="ib ib-am">'+esc(e.message || "Could not load the settings")+'</div>'; }
+  }
+  function collect(){
+    const v = id=> document.getElementById(id).value, n = id=> Number(v(id));
+    const aud = {}; document.querySelectorAll("[data-ns-cat]").forEach(box=>{ const c = box.dataset.nsCat; aud[c] = {enabled:box.querySelector("[data-ns-en]").checked, roles:Array.from(box.querySelectorAll("[data-ns-role]:checked")).map(x=>x.dataset.nsRole)}; });
+    return {routing:{etd_lead_value:n("ns_etd"), etd_lead_unit:v("ns_etdu"), eta_lead_value:n("ns_eta"), eta_lead_unit:v("ns_etau"), planned_lead_days:n("ns_plan"), changed_days:n("ns_chg")}, payments:{due_lead_days:n("ns_pay")},
+      approvals:{escalate_after_days:n("ns_app")}, birthdays:{lead_days:n("ns_bd")}, audience:aud};
+  }
+  document.addEventListener("click", async e=>{
+    if(!e.target.closest("#nsSave")) return;
+    try{ const r = await api("PUT", "/api/notifications/settings", collect()); S = r.settings; say("Notification settings saved", "The dashboard follows them from now on"); if(window.__rtAlerts) window.__rtAlerts(); }
+    catch(err){ say("Not saved", err.message || "Check the numbers", "error"); }
+  });
+  const prev = MK.onScreen; MK.onScreen = function(screen, opts){ prev.apply(this, arguments); if(screen === "notif-settings") load(); };
 })();
 </script>
 </body>

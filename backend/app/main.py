@@ -40,6 +40,8 @@ from .crm_api import router as crm_router
 from .org_ext_api import router as org_ext_router
 from .jobs_lifecycle_api import router as jobs_lifecycle_router
 from .routing_api import router as routing_router
+from .outdocs_api import router as outdocs_router
+from .notifications_api import router as notifications_router
 from .sequences_api import router as sequences_router
 from .documents_api import router as documents_router
 from .job_charges_api import router as job_charges_router
@@ -135,6 +137,8 @@ for _r in (ops.survey_router, ops.damage_router, ops.repair_router, ops.lease_ro
 app.include_router(org_ext_router)
 app.include_router(jobs_lifecycle_router)
 app.include_router(routing_router)
+app.include_router(outdocs_router)
+app.include_router(notifications_router)
 app.include_router(sequences_router)
 
 

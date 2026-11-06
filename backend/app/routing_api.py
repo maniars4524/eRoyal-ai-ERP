@@ -254,13 +254,18 @@ def remove_leg(job_number: str, leg_id: int, reason: str = "", user: User = Depe
 # ---------------- dashboard alerts ----------------
 @router.get("/api/routing/alerts")
 def routing_alerts(days: int = 3, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
-    """One line per leg that needs attention, computed from the saved legs: overdue, follow-up open, planned (not yet confirmed) soon, ETD / ETA coming up, schedule recently changed."""
+    days = max(1, min(days, 30))
+    return compute_alerts(user, db, timedelta(days=days), timedelta(days=days), 14, 3)
+
+
+def compute_alerts(user: User, db: Session, etd_lead: timedelta, eta_lead: timedelta, planned_days: int, changed_days: int) -> list[dict]:
+    """One line per leg that needs attention, computed from the saved legs: overdue, follow-up open, planned (not yet confirmed) soon, ETD / ETA coming up (the lead time is a company setting),
+    schedule recently changed."""
     if user.organization_id is None:
         raise HTTPException(403, "Routing is tenant-scoped")
-    days = max(1, min(days, 30))
     now = _now()
     today = now.date()
-    horizon, plan_h, changed_since = today + timedelta(days=days), today + timedelta(days=14), now - timedelta(days=3)
+    plan_h, changed_since = today + timedelta(days=planned_days), now - timedelta(days=changed_days)
     dd = lambda v: v.astimezone(timezone.utc).date() if v else None
     q = select(JobRoutingLeg, Shipment).join(Shipment, Shipment.id == JobRoutingLeg.shipment_id).where(JobRoutingLeg.organization_id == user.organization_id, JobRoutingLeg.is_active.is_(True),
                                                                                                          Shipment.status.notin_(("Cancelled", "Closed")), Shipment.closure_status == "OPEN")
@@ -285,9 +290,9 @@ def routing_alerts(days: int = 3, user: User = Depends(permission_required("ship
             flags.append(("FOLLOW_UP", 1, "Follow-up required" + (f": {leg.follow_up_note}" if leg.follow_up_note else "")))
         if leg.stage == "PLANNED" and (leg.etd is None or dd(leg.etd) <= plan_h):
             flags.append(("PLANNED", 2, "Planned - confirmation pending"))
-        if leg.etd and today <= dd(leg.etd) <= horizon:
+        if leg.etd and dd(leg.etd) >= today and leg.etd - etd_lead <= now:               # ETD / ETA are dates (midnight): the alert starts "lead" before that date begins
             flags.append(("ETD", 3, "ETD coming up"))
-        if leg.eta and today <= dd(leg.eta) <= horizon:
+        if leg.eta and dd(leg.eta) >= today and leg.eta - eta_lead <= now:
             flags.append(("ETA", 3, "ETA coming up"))
         if leg.id in recent:
             flags.append(("CHANGED", 4, "Schedule changed (" + ", ".join(sorted(recent[leg.id])) + ")"))
