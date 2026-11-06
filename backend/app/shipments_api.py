@@ -70,6 +70,14 @@ def create_shipment(payload: ShipmentCreate, user: User = Depends(permission_req
         raise HTTPException(status_code=422, detail="CHA (customs) jobs are created in the CHA module (Logistics & Customs > CHA > Create Job), from a booking number")
     if data.get("party_branch_id") is not None and not (data.get("customer_id") and db.scalar(select(OrgBranch.id).where(OrgBranch.id == data["party_branch_id"], OrgBranch.customer_id == data["customer_id"], OrgBranch.organization_id == organization_id))):
         raise HTTPException(status_code=422, detail="The branch does not belong to the selected organization")
+    parent_number = (data.pop("parent_job_number", None) or "").strip()
+    if parent_number:
+        parent = db.scalar(select(Shipment).where(Shipment.organization_id == organization_id, Shipment.job_number == parent_number, *_visible(db, user)))
+        if not parent:
+            raise HTTPException(status_code=422, detail=f"Job {parent_number} was not found, so a sub job cannot be created under it")
+        if parent.status == "Cancelled":
+            raise HTTPException(status_code=409, detail=f"Job {parent.job_number} is cancelled: a sub job cannot be created under it")
+        data["parent_job_id"] = parent.id
     credit_enforce(db, organization_id, data.get("customer_id"), "create shipment job", user.id, data.get("party_branch_id"), Decimal(str(data.get("revenue") or 0)))
     job_number = _next_job_number(db, organization_id, data["mode"], data["direction"], data.get("container_mode"), user)
     shipment = Shipment(organization_id=organization_id, job_number=job_number, created_by=user.id, **data)

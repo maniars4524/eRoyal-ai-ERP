@@ -263,6 +263,31 @@ svg{display:block}
 .wiz-ico .ic{width:22px;height:22px;color:#fff}
 .wiz-ct{font-size:12.5px;font-weight:700;color:var(--g8)}
 .wiz-cs{font-size:10.5px;color:var(--g5);margin-top:3px;line-height:1.4}
+.wiz-wrap{padding:14px 18px !important}
+.wiz-wrap .wiz-step-sub{margin-bottom:8px}
+.wiz-wrap .wiz-row-label{margin:10px 0 6px}
+.wiz-mode-grid.wiz-compact{display:flex;flex-wrap:wrap;gap:4px;background:var(--g0);padding:5px;border-radius:10px;border:0.5px solid var(--g2)}
+.wiz-ritem{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;border:1.5px solid transparent;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--g7);transition:all .12s}
+.wiz-ritem:hover{background:var(--wh)}
+.wiz-ritem .rd{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--g4);background:var(--wh);flex:none}
+.wiz-ritem.sel{background:var(--wh);border-color:var(--wc,var(--bl));color:var(--g8)}
+.wiz-ritem.sel .rd{border:5px solid var(--wc,var(--bl))}
+.wiz-ritem .ic{width:18px;height:18px;color:var(--wc,var(--bl))}
+.wiz-type-grid.wiz-compact,.wiz-dir-row.wiz-seg-row{display:inline-flex;flex-wrap:wrap;gap:0;border:1.5px solid var(--g2);border-radius:10px;overflow:hidden;background:var(--wh)}
+.wiz-seg{display:flex;align-items:center;gap:7px;padding:8px 18px;font-size:12.5px;font-weight:600;color:var(--g6);cursor:pointer;border:0;border-right:1px solid var(--g2);background:var(--wh)}
+.wiz-seg:last-child{border-right:0}
+.wiz-seg:hover{background:var(--g0)}
+.wiz-seg.sel{background:var(--blt);color:var(--bl)}
+.wiz-seg .ic{width:15px;height:15px}
+.wiz-pre{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--blt);border-radius:8px;font-size:12.5px;margin-bottom:6px}
+.wiz-pre b{color:var(--bl)}
+.wiz-wrap.has-guide{position:relative;padding-right:312px !important}
+.wiz-guide{position:absolute;top:14px;right:18px;width:276px;background:var(--blt);border:0.5px solid var(--g2);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--g7);line-height:1.5}
+.wiz-guide h4{margin:0 0 8px;font-size:13.5px;color:var(--bl);display:flex;align-items:center;gap:7px}
+.wiz-guide ol{margin:0 0 10px;padding-left:18px}
+.wiz-guide li{margin-bottom:4px}
+.wiz-guide .now{background:var(--wh);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11.5px}
+@media (max-width:1100px){.wiz-wrap.has-guide{padding-right:18px !important}.wiz-guide{display:none}}
 .wiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:14px;border-top:0.5px solid var(--g1)}
 .wiz-subjob{display:flex;align-items:center;gap:10px;padding:12px 14px;border:0.5px solid var(--g2);border-radius:8px;margin-top:16px;cursor:pointer}
 .wiz-subjob:hover{border-color:var(--bl);background:var(--blt)}
@@ -2706,8 +2731,9 @@ tbody tr:hover{background:var(--g0)}
     </div>
   </div>
 
-  <div class="wiz-row-label">Sub Job <span style="font-weight:400;color:var(--g5);text-transform:none;letter-spacing:0">(optional — leave blank to create a standalone job)</span></div>
-  <select class="fc" id="jobWizMasterJob" style="max-width:340px"><option value="">— None — standalone job —</option><option>SEX-25-000047</option><option>AEX-25-000046</option><option>SIM-25-000045</option></select>
+  <div class="wiz-row-label">Sub Job <span style="font-weight:400;color:var(--g5);text-transform:none;letter-spacing:0">— is this a sub job of an existing job?</span></div>
+  <div class="wiz-dir-row wiz-seg-row" id="jobWizSubSeg"><button type="button" class="wiz-seg sel" data-sub="0">No — standalone job</button><button type="button" class="wiz-seg" data-sub="1">Yes — under an existing job</button></div>
+  <div id="jobWizSubPick" style="display:none;margin-top:8px"><select class="fc" id="jobWizMasterJob" style="max-width:420px"><option value="">— Select the main job —</option></select></div>
 
   <div class="wiz-nav"><span style="font-size:11px;color:var(--g5)" id="jobWizHint">Select mode, direction and type to continue</span><button class="btn btn-pri btn-sm" id="jobWizNext" disabled>Next →</button></div>
 </div>
@@ -8478,7 +8504,8 @@ $("#jobCreateBtn") && $("#jobCreateBtn").addEventListener("click", ()=>{
       consignee: consigneeSelect ? ((consigneeSelect.options[consigneeSelect.selectedIndex] || {}).dataset && consigneeSelect.options[consigneeSelect.selectedIndex].dataset.name || consigneeSelect.options[consigneeSelect.selectedIndex]?.text || null) : null,
       packages: num("nj_pkgs"),
       gross_weight: num("nj_wt"),
-      commodity: val("nj_commodity")
+      commodity: val("nj_commodity"),
+      parent_job_number: (window.jobWiz && jobWiz.sub && val("jobWizMasterJob")) || null
     })
   })
     .then(async response=>{
@@ -11602,8 +11629,9 @@ function wireHblTypeSelect(prefix, state){
   }
 }
 function wizRenderBookingTypeRow(container, noteEl, selected, onPick){
-  container.innerHTML = BOOKING_TYPES.map(b=>`<button type="button" class="wiz-dir-pill ${selected===b.id?'sel':''}" data-pick="${b.id}">${b.label}</button>`).join("");
-  Array.prototype.forEach.call(container.querySelectorAll(".wiz-dir-pill"), btn=>{
+  container.classList.add("wiz-seg-row");
+  container.innerHTML = BOOKING_TYPES.map(b=>`<button type="button" class="wiz-seg ${selected===b.id?'sel':''}" data-pick="${b.id}">${b.label}</button>`).join("");
+  Array.prototype.forEach.call(container.querySelectorAll(".wiz-seg"), btn=>{
     btn.addEventListener("click", ()=> onPick(btn.dataset.pick));
   });
   if(noteEl){
@@ -11628,13 +11656,14 @@ function applyBookingTypeToBl(bookingType){
 
   $("#jobBlDirectWrap").style.display = isDirect ? "block" : "none";
   $("#jobBlHouseWrap").style.display = isDirect ? "none" : "block";
-  hblTypeWrap.style.display = isDirect ? "none" : "block";
+  const seaJob = !(window.JobDetailKit && JobDetailKit.data && JobDetailKit.data.mode) || /sea/i.test(JobDetailKit.data.mode);
+  hblTypeWrap.style.display = (isDirect || !seaJob) ? "none" : "block";
 
   if(note){
     note.innerHTML = bt ? `<svg class="ic" data-icon="info" style="margin-right:5px"></svg>${bt.note}` : "";
     if(window.renderIcons) renderIcons(note);
   }
-  if(!isDirect){
+  if(!isDirect && seaJob){
     const info = HOUSE_BL_TYPES[hblTypeSel.value];
     scacWrap.style.display = (info && info.scac) ? "block" : "none";
     if(info && info.scac) hblScacFill("jobBlScac");
@@ -12756,33 +12785,16 @@ function wizRenderDirRow(container, mode, selected, onPick){
 }
 
 function wizRenderModeGrid(container, selected, onPick){
-  container.innerHTML = WIZ_MODES.map(m=>`
-    <div class="wiz-card ${selected===m.id?'sel':''}" data-pick="${m.id}" style="--wc:${m.color}">
-      <div class="wiz-radio"></div>
-      <div class="wiz-ico" style="background:${m.color}"><svg class="ic" data-icon="${m.icon}"></svg></div>
-      <div class="wiz-ct">${m.label}</div>
-      <div class="wiz-cs">${m.sub}</div>
-    </div>`).join("");
+  container.classList.add("wiz-compact");
+  container.innerHTML = WIZ_MODES.map(m=>`<div class="wiz-ritem ${selected===m.id?'sel':''}" data-pick="${m.id}" style="--wc:${m.color}" title="${m.sub}"><span class="rd"></span><svg class="ic" data-icon="${m.icon}"></svg>${m.label}</div>`).join("");
   if(window.renderIcons) renderIcons(container);
-  Array.prototype.forEach.call(container.querySelectorAll(".wiz-card"), c=>{
-    c.addEventListener("click", ()=> onPick(c.dataset.pick));
-  });
+  Array.prototype.forEach.call(container.querySelectorAll(".wiz-ritem"), c=>{ c.addEventListener("click", ()=> onPick(c.dataset.pick)); });
 }
 function wizRenderTypeGrid(container, mode, selected, onPick){
-  const modeInfo = WIZ_MODES.find(m=>m.id===mode);
-  const color = modeInfo ? modeInfo.color : "#1A6FBF";
+  container.classList.add("wiz-compact");
   const types = WIZ_TYPES[mode] || [];
-  container.innerHTML = types.map(t=>`
-    <div class="wiz-card ${selected===t.id?'sel':''}" data-pick="${t.id}" style="--wc:${color}">
-      <div class="wiz-radio"></div>
-      <div class="wiz-ico" style="background:${color}"><svg class="ic" data-icon="${t.icon}"></svg></div>
-      <div class="wiz-ct">${t.label}</div>
-      <div class="wiz-cs">${t.sub}</div>
-    </div>`).join("");
-  if(window.renderIcons) renderIcons(container);
-  Array.prototype.forEach.call(container.querySelectorAll(".wiz-card"), c=>{
-    c.addEventListener("click", ()=> onPick(c.dataset.pick));
-  });
+  container.innerHTML = types.map(t=>`<button type="button" class="wiz-seg ${selected===t.id?'sel':''}" data-pick="${t.id}" title="${t.sub}">${t.label}</button>`).join("");
+  Array.prototype.forEach.call(container.querySelectorAll(".wiz-seg"), c=>{ c.addEventListener("click", ()=> onPick(c.dataset.pick)); });
 }
 
 /* ---------------- NEW JOB WIZARD ---------------- */
@@ -12818,13 +12830,60 @@ function jobWizRefresh(){
       jobWiz.hblType = null; jobWiz.scac = null;
       jobWizRefresh();
     });
-    $("#jobWizHouseSubWrap").style.display = jobWiz.bookingType==="House" ? "block" : "none";
-    if(jobWiz.bookingType==="House") wireHblTypeSelect("jobWiz", jobWiz);
+    const jobHbl = jobWiz.bookingType==="House" && jobWiz.mode==="Sea";            /* House BL types (OTL / FMC / MTO) exist for sea only: air is Direct or House, nothing more */
+    $("#jobWizHouseSubWrap").style.display = jobHbl ? "block" : "none";
+    if(jobHbl) wireHblTypeSelect("jobWiz", jobWiz);
   }
-  const jobReady = jobWiz.mode && jobWiz.dir && jobWiz.type && jobWiz.bookingType && (jobWiz.bookingType!=="House" || (jobWiz.hblType && (!HOUSE_BL_TYPES[jobWiz.hblType].scac || jobWiz.scac)));
+  const jobReady = jobWiz.mode && jobWiz.dir && jobWiz.type && jobWiz.bookingType && (jobWiz.bookingType!=="House" || jobWiz.mode!=="Sea" || (jobWiz.hblType && (!HOUSE_BL_TYPES[jobWiz.hblType].scac || jobWiz.scac))) && (!jobWiz.sub || $("#jobWizMasterJob").value);
   $("#jobWizNext").disabled = !jobReady;
+  wizPreUI();
   $("#jobWizHint").textContent = jobReady ? `${jobWiz.dir} ${jobWiz.mode} — ${jobWiz.type} · ${jobWiz.bookingType} BL` : "Select mode, direction, type and booking type to continue";
 }
+/* arriving from Operations > Job / Shipment > Import / Export > Air ... the mode and direction are already known: they are not asked again */
+window.WIZ_PRESET = null;
+function wizPreUI(){
+  const wrap = $("#jobWizWrap"); if(!wrap) return;
+  const rows = [$("#jobWizModeGrid"), $("#jobWizModeGrid") && $("#jobWizModeGrid").previousElementSibling, $("#jobWizDirWrap")];
+  let chip = $("#jobWizPre");
+  const on = !!(jobWiz.pre && jobWiz.mode && jobWiz.dir);
+  if(!chip){ chip = document.createElement("div"); chip.id = "jobWizPre"; chip.className = "wiz-pre"; wrap.insertBefore(chip, $("#jobWizModeGrid").previousElementSibling); }
+  chip.style.display = on ? "flex" : "none";
+  if(on){ chip.innerHTML = '<span><b>'+jobWiz.dir+' · '+(WIZ_MODES.find(m=>m.id===jobWiz.mode)||{label:jobWiz.mode}).label+'</b> — chosen from the menu</span><a href="#" id="jobWizPreChange" style="margin-left:auto">Change</a>'; }
+  rows.forEach((el, k)=>{ if(!el) return; if(on) el.style.display = "none"; else if(k < 2) el.style.display = ""; else if(jobWiz.mode) el.style.display = "block"; });
+}
+document.addEventListener("click", e=>{
+  if(e.target && e.target.id === "jobWizPreChange"){ e.preventDefault(); jobWiz.pre = false; jobWizRefresh(); }
+  const seg = e.target.closest && e.target.closest("#jobWizSubSeg [data-sub]");
+  if(seg){ jobWiz.sub = seg.dataset.sub === "1"; document.querySelectorAll("#jobWizSubSeg .wiz-seg").forEach(b=> b.classList.toggle("sel", b === seg)); $("#jobWizSubPick").style.display = jobWiz.sub ? "block" : "none"; if(jobWiz.sub) wizSubJobFill(); jobWizRefresh(); }
+  const go = e.target.closest && e.target.closest("[data-go]");
+  if(go){
+    if(go.dataset.go === "job-new") setTimeout(wizApplyPreset, 20);
+    else if(go.dataset.go !== "job-list" && go.dataset.go !== "job-detail") window.WIZ_PRESET = null;
+  }
+  const t = e.target.closest && e.target.closest("[data-jobdir]");
+  if(t){ let m = t.dataset.jobmode || ""; if(!m && /multimodal/i.test(t.textContent)) m = "Multimodal"; window.WIZ_PRESET = m ? {mode:m, dir:t.dataset.jobdir} : null; }
+}, true);
+async function wizSubJobFill(){
+  const sel = $("#jobWizMasterJob"); if(!sel) return;
+  try{
+    const rows = await MK.util.api("GET", "/api/shipments");
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Select the main job —</option>' + rows.filter(r=>r.status !== "Cancelled" && r.closure_status !== "CLOSED").slice(0, 400).map(r=>'<option value="'+r.job_number+'">'+r.job_number+' — '+[r.mode, r.direction, [r.pol, r.pod].filter(Boolean).join(" → ")].filter(Boolean).join(" · ")+'</option>').join("");
+    sel.value = cur;
+  }catch(e){}
+}
+document.addEventListener("change", e=>{ if(e.target && e.target.id === "jobWizMasterJob") jobWizRefresh(); });
+function wizApplyPreset(){
+  if(!$("#jobWizWrap")) return;
+  jobWiz.sub = false; jobWiz.type = null; jobWiz.bookingType = null; jobWiz.hblType = null; jobWiz.scac = null;
+  const seg = document.querySelector('#jobWizSubSeg [data-sub="0"]'); if(seg){ document.querySelectorAll("#jobWizSubSeg .wiz-seg").forEach(b=> b.classList.toggle("sel", b === seg)); $("#jobWizSubPick").style.display = "none"; }
+  const p = window.WIZ_PRESET;
+  if(p && WIZ_DIRECTIONS[p.mode] && WIZ_DIRECTIONS[p.mode].indexOf(p.dir) > -1){ jobWiz.mode = p.mode; jobWiz.dir = p.dir; jobWiz.pre = true; $("#jobWizDirWrap").style.display = "block"; $("#jobWizTypeWrap").style.display = "block"; }
+  else { jobWiz.pre = false; }
+  $("#jobFormWrap").style.display = "none"; $("#jobWizWrap").style.display = "block";
+  jobWizRefresh();
+}
+window.wizApplyPreset = wizApplyPreset;
 function jobWizProcessTitle(){
   return `${jobWiz.dir} ${jobWiz.mode} — ${jobWiz.type} Creation Process`;
 }
@@ -12870,7 +12929,7 @@ function jobWizApplyAndShowForm(){
   if(titleEl) titleEl.innerHTML = `<svg class="ic" data-icon="clipboard-plus" style="color:var(--bl)"></svg>${jobWizProcessTitle()}`;
   if(subEl) subEl.textContent = `${jobWiz.dir} ${jobWiz.mode} shipment — fields below are configured for this process`;
   if(window.renderIcons) renderIcons(titleEl);
-  const masterJob = $("#jobWizMasterJob").value;
+  const masterJob = jobWiz.sub ? $("#jobWizMasterJob").value : "";
   const modeInfo = WIZ_MODES.find(m=>m.id===jobWiz.mode);
   $("#jobWizSummary").innerHTML = `<svg class="ic" data-icon="${modeInfo?modeInfo.icon:'package'}" style="color:${modeInfo?modeInfo.color:'var(--bl)'}"></svg> <b>${jobWiz.dir} ${jobWiz.mode} — ${jobWiz.type}</b>${masterJob ? ' · Sub Job under '+masterJob : ' · Standalone job'} <span class="ta" id="jobWizChange">Change selection</span>`;
   if(window.renderIcons) renderIcons($("#jobWizSummary"));
@@ -12940,17 +12999,9 @@ function comboAllTypes(){
 /* shared across Quotation / Booking / Job wizards */
 function wizRenderComboGrid(container, wizObj, onPick){
   const types = comboAllTypes();
-  container.innerHTML = types.map(q=>`
-    <div class="wiz-card ${wizObj.qtype===q.id?'sel':''}" data-pick="${q.id}" style="--wc:${q.color}">
-      <div class="wiz-radio"></div>
-      <div class="wiz-ico" style="background:${q.color}"><svg class="ic" data-icon="${q.icon}"></svg></div>
-      <div class="wiz-ct">${q.label}</div>
-      <div class="wiz-cs">${q.sub}</div>
-    </div>`).join("");
-  if(window.renderIcons) renderIcons(container);
-  Array.prototype.forEach.call(container.querySelectorAll(".wiz-card"), c=>{
-    c.addEventListener("click", ()=> onPick(c.dataset.pick));
-  });
+  container.classList.add("wiz-compact");
+  container.innerHTML = types.map(q=>`<button type="button" class="wiz-seg ${wizObj.qtype===q.id?'sel':''}" data-pick="${q.id}" title="${String(q.sub).replace(/"/g,"&quot;")}">${q.label}</button>`).join("");
+  Array.prototype.forEach.call(container.querySelectorAll(".wiz-seg"), c=>{ c.addEventListener("click", ()=> onPick(c.dataset.pick)); });
 }
 function wizRenderComboManual(container, wizObj, onChange){
   if(!container) return;
@@ -13306,10 +13357,11 @@ function bookWizRefresh(){
       bookWiz.hblType = null; bookWiz.scac = null;
       bookWizRefresh();
     });
-    $("#bookWizHouseSubWrap").style.display = bookWiz.bookingType==="House" ? "block" : "none";
-    if(bookWiz.bookingType==="House") wireHblTypeSelect("bookWiz", bookWiz);
+    const bookHbl = bookWiz.bookingType==="House" && bookWiz.mode==="Sea";
+    $("#bookWizHouseSubWrap").style.display = bookHbl ? "block" : "none";
+    if(bookHbl) wireHblTypeSelect("bookWiz", bookWiz);
   }
-  const bookReady = bookWiz.mode && bookWiz.dir && bookWiz.type && bookWiz.bookingType && (bookWiz.bookingType!=="House" || (bookWiz.hblType && (!HOUSE_BL_TYPES[bookWiz.hblType].scac || bookWiz.scac)));
+  const bookReady = bookWiz.mode && bookWiz.dir && bookWiz.type && bookWiz.bookingType && (bookWiz.bookingType!=="House" || bookWiz.mode!=="Sea" || (bookWiz.hblType && (!HOUSE_BL_TYPES[bookWiz.hblType].scac || bookWiz.scac)));
   $("#bookWizNext").disabled = !bookReady;
   $("#bookWizHint").textContent = bookReady ? `${bookWiz.dir} ${bookWiz.mode} — ${bookWiz.type} · ${bookWiz.bookingType} BL` : "Select mode, direction, type and booking type to continue";
 }
@@ -24758,6 +24810,45 @@ body.job-readonly #jlBanner{display:flex}
   };
   ["nj_mode","nj_contmode"].forEach(function(id){ document.addEventListener("change", function(e){ if(e.target && e.target.id === id) paint(); }); });
   setInterval(function(){ if(document.getElementById("njShipAir") && !document.querySelector(".njdims-host button") && ctx().ok) paint(); }, 1500);
+})();
+</script>
+<script>
+/* QUICK GUIDE: the side panel of every selection / creation wizard page (any ".wiz-wrap": shipment job, booking, quotation, lead, enquiry and the others). Its steps are read from the page's own
+   step labels, so a new wizard gets one without extra work; for job / booking / quotation it also explains the choice made so far. Nothing in it is data. */
+(function(){
+  var KNOWN = {jobWizWrap:["jobWiz", "shipment job"], bookWizWrap:["bookWiz", "booking"], quotWizWrap:["quotWiz", "quotation"]};
+  var TYPE = {FCL:"Full container load: charged per container.", LCL:"Less than container load: charged on CBM or weight, whichever is higher. Cargo dimensions are entered on the next page.", "General Cargo":"Standard air cargo, charged on chargeable weight. Cargo dimensions are entered on the next page.", Consolidation:"Groupage: several shippers on one master airway bill, each with a house bill.", FTL:"Full truck load.", LTL:"Less than truck load."};
+  function now(w, kind){
+    var o = window[w]; if(!o) return "";
+    if(!o.mode) return "Start by choosing how the cargo moves.";
+    if(!o.dir) return "Now choose the direction of the " + kind + ".";
+    if(!o.type) return "Now choose the shipment type.";
+    var t = TYPE[o.type] ? " " + TYPE[o.type] : "";
+    if(w !== "quotWiz" && !o.bookingType) return "<b>" + o.dir + " " + o.mode + " — " + o.type + ".</b>" + t + " Next: Direct or House.";
+    var bt = o.bookingType === "House" ? (o.mode === "Sea" ? "House: you issue your own House BL (OTL, FMC or MTO)." : "House: you issue your own house airway bill.") : o.bookingType === "Direct" ? "Direct: the carrier's own bill goes straight to the shipper." : "";
+    return "<b>" + o.dir + " " + o.mode + " — " + o.type + ".</b>" + t + (bt ? " " + bt : "");
+  }
+  function steps(wrap){
+    var out = []; wrap.querySelectorAll(".wiz-row-label").forEach(function(l){ var t = (l.childNodes[0] ? l.childNodes[0].textContent : l.textContent).replace(/^\s*\d+\.\s*/, "").trim(); if(t && out.indexOf(t) < 0) out.push(t); });
+    return out.slice(0, 12);
+  }
+  function paintOne(wrap){
+    if(wrap.offsetParent === null) return;
+    var g = wrap.querySelector(":scope > .wiz-guide"), list = steps(wrap), key = list.join("|");
+    var title = (wrap.querySelector(".wiz-step-title") || {textContent:"this page"}).textContent.trim();
+    if(!g){ g = document.createElement("aside"); g.className = "wiz-guide"; wrap.appendChild(g); wrap.classList.add("has-guide"); }
+    if(g.dataset.key !== key + "|" + title){
+      g.dataset.key = key + "|" + title;
+      g.innerHTML = '<h4>Quick Guide</h4>' + (list.length ? '<ol>' + list.map(function(x){ return "<li>" + x + "</li>"; }).join("") + '</ol>' : "<div style=\"margin-bottom:8px\">" + title + "</div>") + '<div>' + (KNOWN[wrap.id] ? "The page for the matching process opens when you press Next." : "Fields marked * are required.") + '</div><div class="now" data-guide-now="1" style="display:none"></div>';
+    }
+    var k = KNOWN[wrap.id], n = g.querySelector("[data-guide-now]");
+    if(k && n){ var h = now(k[0], k[1]); n.style.display = h ? "" : "none"; if(n.innerHTML !== h) n.innerHTML = h; }
+    wrap.style.minHeight = (g.offsetHeight + 30) + "px";
+  }
+  function paint(){ document.querySelectorAll(".wiz-wrap").forEach(paintOne); }
+  document.addEventListener("click", function(){ setTimeout(paint, 60); }, true);
+  setInterval(paint, 1500);
+  setTimeout(paint, 800);
 })();
 </script>
 </body>

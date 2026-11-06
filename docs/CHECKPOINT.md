@@ -553,3 +553,10 @@ Old simulated-browser tests (crm, dashboard, hblclauses) fail the same way on pr
 - New Job > Shipment Configuration: Dimensions button for Air and Sea LCL (same popup); Apply fills Packages/Gross/Volume; the rows are saved on the job right after it is created.
 - Job detail: Sea LCL tab is labelled "Containers & Dimensions" (Air: "Dimensions"). e2e/cargodims.test.js covers all of it.
 - Still waiting on the user: job numbers A/B, Demo portal confirmation, next block.
+
+## Shipment / booking / quotation selection pages (2026-11-06)
+- Compact list UI (radio list for mode, pills for direction, segmented for type / booking type / quotation type) with a right-hand Quick Guide on EVERY `.wiz-wrap` page (job, booking, quotation, lead, enquiry ...).
+- Coming from Operations > Job / Shipment > Import/Export > mode, the mode and direction are pre-set (chip with Change) - not asked again. Booking and quotation have no such menus yet.
+- House BL type (OTL/FMC/MTO) only for Sea; Air is Direct or House. Job BL tab hides it for non-sea jobs.
+- Sub Job: the fake list is gone; Yes/No, Yes lists real open jobs; backend `parent_job_number` on POST /api/shipments (tests/test_sub_job.py).
+- NEXT (user sent the template list as reference): admin-configurable shipment templates (name, mode, direction, type, booking type, house BL type, status) that auto-fill the wizard; replaces the hard-coded Service Template drop-down.
