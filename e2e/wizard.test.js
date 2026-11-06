@@ -24,8 +24,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const vis = sel => page.evaluate(sel => { const e = document.querySelector(sel); return !!e && e.offsetParent !== null; }, sel);
   const parent = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA", pod: "SGSIN" }, token)).body;
   // from the menu: Operations > Job / Shipment > Import > Air Freight, then New Job
-  await page.evaluate(() => { const el = document.createElement("div"); el.setAttribute("data-go", "job-list"); el.setAttribute("data-jobmode", "Air"); el.setAttribute("data-jobdir", "Import"); document.body.appendChild(el); el.click(); }); await sleep(1500);
-  await page.evaluate(() => { const el = document.createElement("div"); el.setAttribute("data-go", "job-new"); document.body.appendChild(el); el.click(); }); await sleep(1500);
+  await page.evaluate(() => document.querySelector('.tn-row[data-go="job-new"][data-jobmode="Air"][data-jobdir="Import"]').click()); await sleep(1800);
   check("coming from Air > Import the mode and direction are not asked again", await vis("#jobWizPre") && !(await vis("#jobWizModeGrid")) && !(await vis("#jobWizDirGrid")) && /Import/.test(await text("#jobWizPre")), await text("#jobWizPre"));
   check("the shipment type list is next, as compact buttons", (await page.evaluate(() => document.querySelectorAll("#jobWizTypeGrid .wiz-seg").length)) === 6);
   await page.evaluate(() => document.querySelector('#jobWizTypeGrid [data-pick="General Cargo"]').click()); await sleep(300);

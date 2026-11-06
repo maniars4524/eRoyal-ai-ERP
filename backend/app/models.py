@@ -1830,3 +1830,48 @@ class FuelTransaction(Base):
     abnormal: Mapped[bool] = mapped_column(Boolean, default=False)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class JobRoutingLeg(Base):
+    """One flight (air) or one vessel leg (sea) of a job. Kept apart from the job and its booking: it starts from what they know, then follows the carrier's schedule."""
+    __tablename__ = "job_routing_legs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id", ondelete="RESTRICT"), index=True)
+    seq: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    kind: Mapped[str] = mapped_column(String(5))                                           # AIR | SEA
+    carrier: Mapped[str | None] = mapped_column(String(120))                                # airline or vessel
+    voyage: Mapped[str | None] = mapped_column(String(40))                                  # flight no or voyage
+    pol: Mapped[str | None] = mapped_column(String(80))
+    pod: Mapped[str | None] = mapped_column(String(80))
+    etd: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    eta: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    stage: Mapped[str] = mapped_column(String(10), default="PLANNED", server_default="PLANNED")          # PLANNED (tentative) | CONFIRMED
+    follow_up: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    follow_up_status: Mapped[str] = mapped_column(String(10), default="OPEN", server_default="OPEN")    # OPEN | DONE
+    follow_up_note: Mapped[str | None] = mapped_column(String(500))
+    remarks: Mapped[str | None] = mapped_column(String(500))
+    source: Mapped[str] = mapped_column(String(10), default="MANUAL", server_default="MANUAL")           # MANUAL | JOB | BOOKING
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class JobRoutingHistory(Base):
+    """Every change to a routing leg: what it was, what it became, who and when. Never edited."""
+    __tablename__ = "job_routing_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id", ondelete="RESTRICT"), index=True)
+    leg_id: Mapped[int] = mapped_column(ForeignKey("job_routing_legs.id", ondelete="CASCADE"), index=True)
+    action: Mapped[str] = mapped_column(String(12))
+    field: Mapped[str | None] = mapped_column(String(30))
+    old_value: Mapped[str | None] = mapped_column(String(300))
+    new_value: Mapped[str | None] = mapped_column(String(300))
+    remarks: Mapped[str | None] = mapped_column(String(500))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

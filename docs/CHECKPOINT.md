@@ -570,3 +570,14 @@ Old simulated-browser tests (crm, dashboard, hblclauses) fail the same way on pr
 ## Menu moves + Import/Export open New Shipment (2026-11-06)
 - Logistics & Customs: new NVOCC group (all Container Inventory options); Transport is now a group: Transport Jobs + Vehicle Inventory (fleet options). The top-level "Inventory & Asset Mgmt" menu is gone (stores, step E, will need a home later).
 - Operations > Job / Shipment > Import / Export > Air / Ocean / Road / Multimodal now open New Shipment with mode and direction pre-set (was the job list). The job list stays under All Jobs. e2e/navwiz.test.js.
+
+## Job Routing (2026-11-06) - live
+- Job detail: Routing tab between Charges and Documents. Air = flights (airline, flight no, ETD, ETA, stage, follow-up, remarks); Sea = vessel legs incl. transshipment (vessel, voyage, POL, POD, ETD, ETA ...). Planned / Confirmed per leg; Follow-up Yes/No is for PLANNED legs only (server forces No on Confirmed).
+- First leg is only SUGGESTED from the booking/job (never written until Save); routing never changes job/booking. History table (job_routing_history) + job activity events; legs are removed with a reason (soft delete).
+- Dashboard card "Air & Sea Shipment Routing Alerts" (ticker + table, click opens job > Routing): rules in routing_api.routing_alerts (overdue, follow-up open, planned soon, ETD/ETA within 3 days, recent schedule change).
+- Tracking (popup / page / tab) shows the routing journey; planned legs marked tentative.
+- Migration 0061_job_routing; tests backend/tests/test_routing.py, e2e/routing.test.js.
+- NOT done from the routing prompt: ETD/ETA reminders by e-mail (none requested), airline/vessel picked from masters beyond datalists.
+
+## NEXT: Output Docs (user prompt "writing-block (2).md", received 2026-11-06)
+Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB, MAWB optional, Loading Confirmation, Pre-alert, Stuffing, Transshipment Confirmation, Export Declaration), Air Import (Arrival Notice, DO, Destuffing, POD, Air Manifest), Sea Export (HBL, MBL optional, Sailing Confirmation, Shipment Summary, P&L, Pre-alert, LCL Stuffing), Sea Import (CAN with/without rates chooser, DO, LCL Destuffing, POD, Shipment Summary). Status Not Generated/Generated/Regenerated, Preview/Download PDF/Print, versions kept, missing-field validation, operational entry for stuffing/destuffing/POD. Existing kit: DK (Output Docs tab jt7b, `DK.panels`). First step: inspect DK + document templates, map reports to data, list missing templates.
