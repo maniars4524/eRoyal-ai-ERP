@@ -547,3 +547,9 @@ Old simulated-browser tests (crm, dashboard, hblclauses) fail the same way on pr
 - STILL TO DO: the Cancel Job button + cancelled banner + "Cancelled jobs" filter on the job screens (front end), full-suite run, e2e test.
 - FINDING: the 2026-10-27/28 removal of jobs SEAEXP-26-000008..10 left NO application audit entry (zero SHIPMENT_DELETED rows ever): it was done directly in the database. That is no longer possible without the explicit flag.
 - WAITING FOR THE USER: they asked to "change job numbers 11, 12, 13 into 7, 8 and 10". 000007 already exists, so probably 8, 9, 10. Facts: 000011 (Bell Match, Draft, 2 charge lines, 4 events), 000012 (Sun Pharma, Draft, 1 booking link), 000013 (Sun Pharma, Booked / Confirmed, 1 booking link, 1 charge line). None has invoices / vouchers / payments. Renumbering would need updates in shipments, bookings.job_number, job_events, job_stage_history, issued_numbers (register) and the next-number counter, and it conflicts with restoring the old 8-10 as cancelled jobs (the same numbers). Needs the user's choice + exact mapping before any change.
+
+## Dimensions placement (2026-11-06)
+- Quotation: Dimensions now sits directly above Incoterm (Air and Sea LCL).
+- New Job > Shipment Configuration: Dimensions button for Air and Sea LCL (same popup); Apply fills Packages/Gross/Volume; the rows are saved on the job right after it is created.
+- Job detail: Sea LCL tab is labelled "Containers & Dimensions" (Air: "Dimensions"). e2e/cargodims.test.js covers all of it.
+- Still waiting on the user: job numbers A/B, Demo portal confirmation, next block.

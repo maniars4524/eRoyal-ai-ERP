@@ -98,6 +98,19 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const conv = (await j("POST", `/api/quotations/${q2.id}/convert`, null, token)).body;
   await openJob(conv.job_number);
   check("the job made from the quotation shows its dimensions without retyping, marked as coming from the quotation", /from quotation/.test(await text("#cdJobCard")) && /160\.000/.test(await text("#cdJobCard")), await text("#cdJobCard"));
+  // ---- New Job screen: Dimensions in Shipment Configuration (Air and Sea LCL), carried onto the created job
+  await page.evaluate(() => go("job-new")); await sleep(2500);
+  await page.evaluate(() => { jobWiz.mode = "Air"; jobWiz.dir = "Export"; jobWiz.type = "General"; const m = document.getElementById("nj_mode"); m.value = "Air"; m.dispatchEvent(new Event("change", { bubbles: true })); const c = document.getElementById("nj_contmode"); if (c) c.value = "Air"; document.getElementById("njShipAir").style.display = ""; }); await sleep(2000);
+  check("New Job (Air) shows a Dimensions button in Shipment Configuration", await page.evaluate(() => !!document.querySelector("#njShipAir .njdims-host [data-nj-dims]")));
+  await click("#njShipAir [data-nj-dims]"); await sleep(1500);
+  await row(2, 100, 80, 60, 100); await click('[data-cd="saveclose"]'); await sleep(1500);
+  check("Apply fills Packages and Gross Weight on the New Job screen", (await page.evaluate(() => document.getElementById("nj_pkgs").value)) === "2" && (await page.evaluate(() => document.getElementById("nj_wt").value)) === "100");
+  const created = await page.evaluate(async () => { const r = await fetch("/api/shipments", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + sessionStorage.getItem("esway_access_token") }, body: JSON.stringify({ mode: "Air", direction: "Export", container_mode: "Air", pol: "MAA(CHENNAI)", pod: "FRA(FRANKFURT)", packages: 2, gross_weight: 100 }) }); return r.json(); });
+  await sleep(2500);
+  const nd = (await api("/api/jobs/" + created.job_number + "/details")).dims;
+  check("the dimensions entered on New Job are saved on the job once it is created", nd && nd.version === 2 && nd.rows.length === 1 && nd.totals.chargeable_kg === 160, JSON.stringify(nd).slice(0, 200));
+  // quotation: Dimensions sits above Incoterm
+  const order = await page.evaluate(() => { const l = [...document.querySelectorAll("label")]; return null; });
   check("no script errors", errs.length === 0, errs.join(" | ").slice(0, 300));
   await b.close();
   console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);

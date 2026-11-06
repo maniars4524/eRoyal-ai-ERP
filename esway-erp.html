@@ -2744,6 +2744,7 @@ tbody tr:hover{background:var(--g0)}
       </div>
     </div>
     <div id="njShipSeaLcl" style="display:none">
+      <div class="njdims-host"></div>
       <div class="ib ib-bl"><svg class="ic" data-icon="info" style="width:13px;height:13px;vertical-align:-2px"></svg>&nbsp;LCL shipment — charged by CBM/weight (whichever higher). No container booking required at job creation; consolidation box/CFS will be assigned during operations.</div>
     </div>
   </div>
@@ -2751,6 +2752,7 @@ tbody tr:hover{background:var(--g0)}
   <!-- AIR: chargeable weight helper -->
   <div id="njShipAir" style="display:none">
     <div class="ib ib-bl" style="margin-bottom:10px"><svg class="ic" data-icon="info" style="width:13px;height:13px;vertical-align:-2px"></svg>&nbsp;Air Freight is charged on <strong>Chargeable Weight</strong> = greater of Gross Weight (KG) and Volumetric Weight (L×W×H ÷ 6,000). No container required — enter Packages / Weight / CBM in the Cargo panel.</div>
+    <div class="njdims-host"></div>
     <div class="fr">
       <div class="fg"><label class="fl">Gross Weight (KG)</label><input class="fc" id="njAirGw" placeholder="1500" oninput="njRecalcChargeable()"></div>
       <div class="fg"><label class="fl">Volume (CBM)</label><input class="fc" id="njAirCbm" placeholder="8.5" oninput="njRecalcChargeable()"></div>
@@ -2787,7 +2789,7 @@ tbody tr:hover{background:var(--g0)}
 </div></div>
 <div class="card"><div class="ch"><div class="ct">Cargo</div></div><div class="cb">
 <div class="fr"><div class="fg"><label class="fl">Packages</label><input class="fc" id="nj_pkgs" placeholder="100"></div><div class="fg"><label class="fl">Pkg Type</label><select class="fc"><option>Cartons</option><option>Pallets</option><option>Drums</option><option>Bags</option></select></div><div class="fg"><label class="fl">Gross Weight (KG)</label><input class="fc" id="nj_wt" placeholder="1500.000"></div></div>
-<div class="fr"><div class="fg"><label class="fl">Volume (CBM)</label><input class="fc" placeholder="8.500"></div><div class="fg" style="grid-column:span 2"><label class="fl">Commodity</label><input class="fc" id="nj_commodity" placeholder="Auto Parts / Chemicals…"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Volume (CBM)</label><input class="fc" id="nj_vol" placeholder="8.500"></div><div class="fg" style="grid-column:span 2"><label class="fl">Commodity</label><input class="fc" id="nj_commodity" placeholder="Auto Parts / Chemicals…"></div></div>
 <div class="fg"><label class="fl">HS Code</label><input class="fc" placeholder="8708.99" style="font-family:var(--font-mono);width:120px"></div>
 </div></div>
 </div></div>
@@ -16663,12 +16665,13 @@ if(document.readyState !== "loading") initChatWidget();
       f("Service Type", '<select class="fc" data-qh="service_type"'+d+'>'+SERVICE_TYPES.map(s=>opt(s, s, s===h.service_type)).join("")+'</select>')+
       f("Reference No", inp("reference_no","text","Customer enquiry / RFQ ref"))+
       f("From (Port / Place of Loading)", inp("pol","text","Search port…",' list="qkPorts"'), "span2", true)+f("To (Port / Place of Discharge)", inp("pod","text","Search port…",' list="qkPorts"'), "span2", true)+
+      f("Dimensions", window.CargoDims ? CargoDims.quoteField(Q, wiz(), !d) : inp("dimensions","text","e.g. 80 x 60 x 45"), "span4")+
       f("Incoterm", '<select class="fc" data-qh="incoterm"'+d+'><option value="">—</option>'+INCOTERMS.map(s=>opt(s, s, s===h.incoterm)).join("")+'</select>')+
       f("Commodity", inp("commodity","text","e.g. Cotton garments"))+f("Payment Terms", inp("payment_terms","text","e.g. 30 days from invoice"))+f("Transit Time (days)", inp("transit_days","number","","min=\"0\""))+
       f("Packages", inp("packages","number","","min=\"0\""))+f("Gross Weight (kg)", inp("gross_weight","number","","min=\"0\" step=\"0.001\""))+f("Net Weight (kg)", inp("net_weight","number","","min=\"0\" step=\"0.001\""))+f("Volume (CBM)", inp("volume","number","","min=\"0\" step=\"0.001\""))+f("Vehicles", inp("vehicles","number","","min=\"0\" step=\"1\""))+
       (["Air","Courier"].indexOf((wiz() || {}).mode) < 0 ? f("Containers in this shipment", '<div id="qkConts">'+contHTML()+'</div>', "span4") : "")+
       f("Origin (Place of Receipt)", inp("origin","text","City / place of cargo pick-up",' list="qkPorts"'), "span2")+f("Final Destination", inp("final_destination","text","Place of final delivery",' list="qkPorts"'), "span2")+
-      f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+f("Dimensions", window.CargoDims ? CargoDims.quoteField(Q, wiz(), !d) : inp("dimensions","text","e.g. 80 x 60 x 45"), "span2")+
+      f("Carrier / Airline", inp("carrier","text","e.g. Singapore Airlines (SQ)",' list="qkCarriers"'), "span2")+f("Chargeable Weight (kg)", inp("chargeable_weight","number","","min=\"0\" step=\"0.001\""))+
       f("Billing Branch", '<select class="fc" data-qh="billing_branch_id"'+d+'><option value="">— Registered address —</option>'+(Q.m.custBranches||[]).filter(b=>b.status==="ACTIVE" && b.billing_enabled).map(b=>opt(String(b.id), b.code+" — "+b.name, String(b.id)===String(h.billing_branch_id))).join("")+'</select>', "span2")+
       f("Contact Person", '<select class="fc" data-qh="contact_id"'+d+'><option value="">— Select contact —</option>'+contactChoices().map(c=>opt(String(c.id), c.name+(c.designation?" · "+c.designation:"")+(c.branch_code?" ("+c.branch_code+")":""), String(c.id)===String(h.contact_id))).join("")+'</select>', "span2")+
       '</div></div></div><datalist id="qkPorts">'+Q.m.ports.map(p=>'<option value="'+esc2((p.unlocode||p.code)+" - "+p.name)+'">').join("")+'</datalist><datalist id="qkCarriers">'+carrierNames().map(c=>'<option value="'+esc2(c)+'">').join("")+'</datalist>';
@@ -24675,6 +24678,7 @@ body.job-readonly #jlBanner{display:flex}
     let card = document.getElementById("cdJobCard");
     if(!card){ const anchor = document.getElementById("jt2Air"); if(!anchor) return; card = document.createElement("div"); card.id = "cdJobCard"; card.className = "card"; anchor.parentNode.insertBefore(card, anchor); }
     card.style.display = show ? "" : "none"; if(!show) return;
+    const tl = document.getElementById("tabContDim"); if(tl) tl.textContent = m.mode === "Air" ? "Dimensions" : (m.type === "LCL" ? "Containers & Dimensions" : "Containers");
     const lcl = m.mode === "Sea" && m.type === "LCL", title = m.mode === "Air" ? "Cargo Dimensions — Air" : lcl ? "Cargo Dimensions — Sea LCL" : "Cargo Dimensions (recorded only: FCL is charged per container)";
     card.innerHTML = '<div class="ch"><div class="ct"><svg class="ic" data-icon="ruler" style="color:var(--tl)"></svg> '+title+'</div><button class="btn btn-out btn-sm" id="cdJobOpen">View / Edit Dimensions</button></div><div class="cb" id="cdJobBody" style="padding:12px 14px">'+jobSummary()+'</div>';
     if(window.renderIcons) renderIcons(card);
@@ -24704,6 +24708,56 @@ body.job-readonly #jlBanner{display:flex}
     kit.collectDims = function(){ if(J.doc) return J.doc; const cur = kit.data && kit.data.dims; if(cur && cur.version === 2){ const c = {...cur}; delete c.totals; return c; } return oldCollect.apply(this, arguments); };
   }
   setInterval(()=>{ hook(); const kit = JD(); if(kit && kit.data && document.getElementById("s-job-detail") && document.getElementById("s-job-detail").classList.contains("on") && !document.getElementById("cdJobCard")) paintJob(); }, 700);
+})();
+</script>
+<script>
+/* NEW JOB: Dimensions for Air, Sea LCL and consolidation — entered with the same popup as the quotation, carried onto the job the moment it is created */
+(function(){
+  var doc = null, tot = null;
+  function ctx(){ var m = (document.getElementById("nj_mode") || {}).value || "", c = (document.getElementById("nj_contmode") || {}).value || ""; return {mode:m, type:c.toUpperCase(), ok:m === "Air" || (m === "Sea" && c.toUpperCase() === "LCL")}; }
+  function paint(){
+    var c = ctx();
+    document.querySelectorAll(".njdims-host").forEach(function(h){
+      if(!c.ok){ h.innerHTML = ""; return; }
+      var n = doc ? doc.rows.length : 0;
+      h.innerHTML = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px"><button type="button" class="btn btn-out btn-sm" data-nj-dims="1">'+(n ? "View / Edit Dimensions ("+n+" row"+(n > 1 ? "s" : "")+")" : "Dimensions…")+'</button>'+
+        (n && tot ? '<span style="font-size:12px;color:var(--g6)">'+tot.packages+' pkgs · '+Number(tot.cbm).toFixed(3)+' CBM · gross '+Number(tot.gross_kg).toFixed(2)+' kg'+(tot.chargeable_kg != null ? ' · chargeable '+Number(tot.chargeable_kg).toFixed(2)+' kg' : "")+'</span>' : '<span style="font-size:12px;color:var(--g5)">Enter the cargo dimensions here, or add them later on the job.</span>')+'</div>';
+    });
+  }
+  document.addEventListener("click", function(e){
+    if(!e.target.closest("[data-nj-dims]") || !window.CargoDims) return;
+    var c = ctx();
+    CargoDims.open({context:"quote", mode:c.mode, shipmentType:c.type, rows:doc ? doc.rows : [], express:doc ? !!doc.express : false, shipmentGross:doc ? doc.shipment_gross_kg || "" : "", editable:true,
+      note:"These dimensions are saved on the job when you create it.",
+      onApply:function(d, t){
+        doc = d; tot = t;
+        var set = function(id, v){ var el = document.getElementById(id); if(el && v != null && Number(v) !== 0){ el.value = String(Number(v)); el.dispatchEvent(new Event("input", {bubbles:true})); } };
+        set("nj_pkgs", t.packages); set("nj_wt", t.gross_kg); set("njAirGw", t.gross_kg); set("njAirCbm", t.cbm); set("nj_vol", t.cbm);
+        paint();
+      }});
+  });
+  /* once the job exists, save the dimension rows onto it */
+  var raw = window.fetch;
+  window.fetch = function(input, init){
+    var p = raw.apply(this, arguments);
+    try{
+      if(typeof input === "string" && /^\/api\/shipments$/.test(input) && init && String(init.method).toUpperCase() === "POST" && doc){
+        var mine = doc;
+        return p.then(function(r){
+          if(r.ok) r.clone().json().then(function(j){
+            if(!j || !j.job_number) return;
+            raw("/api/jobs/"+encodeURIComponent(j.job_number)+"/details/dims", {method:"PUT", headers:{"Content-Type":"application/json", Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}, body:JSON.stringify({data:mine, expected_version:null})})
+              .then(function(x){ if(!x.ok) x.json().then(function(d){ if(window.toast) toast("Dimensions not saved", (d && d.detail) || "Open the job and enter them again", "warn"); }); }).catch(function(){});
+            doc = null; tot = null; paint();
+          }).catch(function(){});
+          return r;
+        });
+      }
+    }catch(e){}
+    return p;
+  };
+  ["nj_mode","nj_contmode"].forEach(function(id){ document.addEventListener("change", function(e){ if(e.target && e.target.id === id) paint(); }); });
+  setInterval(function(){ if(document.getElementById("njShipAir") && !document.querySelector(".njdims-host button") && ctx().ok) paint(); }, 1500);
 })();
 </script>
 </body>
