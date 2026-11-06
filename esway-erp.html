@@ -24844,10 +24844,13 @@ body.job-readonly #jlBanner{display:flex}
     var g = wrap.querySelector(":scope > .wiz-guide"), list = steps(wrap), key = list.join("|");
     var title = (wrap.querySelector(".wiz-step-title") || {textContent:"this page"}).textContent.trim();
     if(!g){ g = document.createElement("aside"); g.className = "wiz-guide"; wrap.appendChild(g); wrap.classList.add("has-guide"); }
+    var tpl = KNOWN[wrap.id] ? document.getElementById(wrap.id.replace("Wrap", "TplWrap")) : null;
     if(g.dataset.key !== key + "|" + title){
+      if(tpl && g.contains(tpl)) wrap.appendChild(tpl);                      /* keep the picker alive while the panel is rebuilt */
       g.dataset.key = key + "|" + title;
-      g.innerHTML = '<h4>Quick Guide</h4>' + (list.length ? '<ol>' + list.map(function(x){ return "<li>" + x + "</li>"; }).join("") + '</ol>' : "<div style=\"margin-bottom:8px\">" + title + "</div>") + '<div>' + (KNOWN[wrap.id] ? "The page for the matching process opens when you press Next." : "Fields marked * are required.") + '</div><div class="now" data-guide-now="1" style="display:none"></div>';
+      g.innerHTML = '<h4>Quick Guide</h4>' + (list.length ? '<ol>' + list.map(function(x){ return "<li>" + x + "</li>"; }).join("") + '</ol>' : "<div style=\"margin-bottom:8px\">" + title + "</div>") + '<div>' + (KNOWN[wrap.id] ? "The page for the matching process opens when you press Next." : "Fields marked * are required.") + '</div><div data-tpl-slot="1" style="margin-top:10px"></div><div class="now" data-guide-now="1" style="display:none"></div>';
     }
+    if(tpl){ var slot = g.querySelector("[data-tpl-slot]"); if(slot && tpl.parentNode !== slot){ slot.appendChild(tpl); tpl.style.maxWidth = "none"; var sel = tpl.querySelector("select"); if(sel) sel.style.maxWidth = "100%"; } }
     var k = KNOWN[wrap.id], n = g.querySelector("[data-guide-now]");
     if(k && n){ var h = now(k[0], k[1]); n.style.display = h ? "" : "none"; if(n.innerHTML !== h) n.innerHTML = h; }
     wrap.style.minHeight = (g.offsetHeight + 30) + "px";
@@ -24873,7 +24876,9 @@ body.job-readonly #jlBanner{display:flex}
     var list = await load();
     W.forEach(function(x){
       var wrap = document.getElementById(x[0] + "WizTplWrap"), sel = document.getElementById(x[0] + "WizTemplate"); if(!wrap || !sel) return;
-      wrap.style.display = list.length ? "" : "none";
+      wrap.style.display = "";
+      var em = wrap.querySelector("[data-tpl-empty]"); if(!em){ em = document.createElement("div"); em.setAttribute("data-tpl-empty", "1"); em.style.cssText = "font-size:11.5px;color:var(--g6);margin-top:6px"; wrap.appendChild(em); }
+      em.innerHTML = list.length ? "" : 'No templates yet. <a href="#" data-tpl-import-wiz style="font-weight:700">Load the standard list</a> (sea, air, multimodal, road) or add your own under Masters &gt; Common Masters &gt; Shipment Templates.';
       var sig = list.map(function(t){ return t.id + t.name; }).join("|");
       if(sel.dataset.sig !== sig){ var cur = sel.value; sel.innerHTML = '<option value="">— None, enter manually —</option>' + list.map(function(t){ return '<option value="' + t.id + '">' + t.name.replace(/&/g, "&amp;").replace(/</g, "&lt;") + '</option>'; }).join(""); sel.value = cur; sel.dataset.sig = sig; }
     });
@@ -24893,7 +24898,9 @@ body.job-readonly #jlBanner{display:flex}
     var tw = document.getElementById(w[0] + "WizTypeWrap"); if(tw) tw.style.display = o.dir ? "block" : "none";
     var bw = document.getElementById(w[0] + "WizBTWrap"); if(bw) bw.style.display = o.type ? "block" : "none";
     if(window[w[2]]) window[w[2]]();
-    if(window.toast) toast("Template applied", t.name + (o.type && o.dir ? "" : " — choose the remaining answers"));
+    var nx = document.getElementById(w[0] + "WizNext");
+    if(nx && !nx.disabled){ if(window.toast) toast("Template applied", t.name); setTimeout(function(){ if(!nx.disabled) nx.click(); }, 350); }
+    else if(window.toast) toast("Template applied", t.name + " — choose the remaining answers");
   });
   document.addEventListener("click", function(){ setTimeout(fill, 150); }, true);
   setInterval(fill, 4000); setTimeout(fill, 1200);
@@ -24909,9 +24916,10 @@ body.job-readonly #jlBanner{display:flex}
     }, 200);
   };
   document.addEventListener("click", async function(e){
-    var b = e.target.closest && e.target.closest("[data-tpl-import]"); if(!b) return;
+    var b = e.target.closest && e.target.closest("[data-tpl-import], [data-tpl-import-wiz]"); if(!b) return;
+    e.preventDefault();
     if(!confirm("Load the standard shipment template list (sea, air, multimodal and road)? Templates with the same name are not touched.")) return;
-    try{ var r = await MK.util.api("POST", "/api/masters/shipment_template/import-sample"); if(window.toast) toast("Templates imported", r.added + " added, " + r.skipped + " already there"); window.WIZ_TPL_RELOAD(); if(window.MK && MK.reload) MK.reload("shipment_template"); else go("inv-shipment-template"); }
+    try{ var r = await MK.util.api("POST", "/api/masters/shipment_template/import-sample"); if(window.toast) toast("Templates imported", r.added + " added, " + r.skipped + " already there"); window.WIZ_TPL_RELOAD(); if(b.hasAttribute("data-tpl-import")){ if(window.MK && MK.reload) MK.reload("shipment_template"); else go("inv-shipment-template"); } }
     catch(err){ if(window.toast) toast("Import failed", err.message || "Could not import", "error"); }
   });
 })();

@@ -22,7 +22,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const text = sel => page.evaluate(sel => (document.querySelector(sel) || { innerText: "" }).innerText, sel);
   const vis = sel => page.evaluate(sel => { const e = document.querySelector(sel); return !!e && e.offsetParent !== null; }, sel);
   await page.evaluate(() => go("job-new")); await sleep(2500);
-  check("with no templates the picker is not shown (nothing is pre-loaded)", !(await vis("#jobWizTemplate")));
+  check("the template picker is always there, in the Quick Guide; with no templates it offers to load the standard list", await vis("#jobWizTemplate") && await vis("#jobWizWrap .wiz-guide #jobWizTemplate") && await vis("[data-tpl-import-wiz]"));
   await page.evaluate(() => go("inv-shipment-template")); await sleep(2500);
   check("the Shipment Templates master opens and has the Import standard list button", /Shipment Template/.test(await text("#s-inv-shipment-template .pt")) && await vis("[data-tpl-import]"));
   const r = (await j("POST", "/api/masters/shipment_template/import-sample", null, token)).body;
@@ -31,10 +31,10 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("the picker now lists them", (await page.evaluate(() => document.querySelectorAll("#jobWizTemplate option").length)) === 40);
   const pick = async name => { await page.evaluate(n => { const s = document.getElementById("jobWizTemplate"); const o = [...s.options].find(x => x.textContent === n); s.value = o.value; s.dispatchEvent(new Event("change", { bubbles: true })); }, name); await sleep(700); };
   await pick("Sea Export FCL HBL – MTO"); 
-  check("a Sea House template fills mode, direction, type, booking type and MTO", await page.evaluate(() => jobWiz.mode === "Sea" && jobWiz.dir === "Export" && jobWiz.type === "FCL" && jobWiz.bookingType === "House" && jobWiz.hblType === "MTO"));
-  check("and Next is ready (MTO needs no SCAC)", !(await page.evaluate(() => document.getElementById("jobWizNext").disabled)));
+  check("a Sea House template fills the answers and goes straight on to the job form", await vis("#jobFormWrap") && !(await vis("#jobWizWrap")) && (await page.evaluate(() => document.getElementById("nj_mode").value)) === "Sea" && (await page.evaluate(() => document.getElementById("nj_dir").value)) === "Export" && (await page.evaluate(() => jobWiz.hblType)) === "MTO");
+  await page.evaluate(() => go("job-new")); await sleep(2000);
   await pick("Air Import House AWB");
-  check("an Air House template has no House BL type and is ready", await page.evaluate(() => jobWiz.mode === "Air" && jobWiz.type === "General Cargo" && jobWiz.bookingType === "House" && !jobWiz.hblType && !document.getElementById("jobWizNext").disabled) && !(await vis("#jobWizHouseSubWrap")));
+  check("an Air House template has no House BL type and opens the Air job form", await page.evaluate(() => jobWiz.mode === "Air" && jobWiz.type === "General Cargo" && jobWiz.bookingType === "House" && !jobWiz.hblType) && await vis("#jobFormWrap") && await vis("#njShipAir"));
   await page.evaluate(() => go("book-new") || go("booking-new")); await sleep(2500);
   check("the booking page has the same picker", (await page.evaluate(() => document.querySelectorAll("#bookWizTemplate option").length)) === 40);
   check("no script errors", errs.length === 0, errs.join(" | ").slice(0, 300));
