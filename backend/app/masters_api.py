@@ -34,6 +34,7 @@ MASTER_TYPES = {
     "bank": "Bank",
     "setting": "Company Setting",
     # Inventory & asset masters (containers, depots, fleet, tyres, stores). Reference lists only: they start empty, nothing is seeded.
+    "shipment_template": "Shipment Template",
     "inv_container_size": "Container Size",
     "inv_container_grade": "Container Grade",
     "inv_container_condition": "Container Condition",
@@ -149,6 +150,72 @@ def _get(db: Session, org_id: int, master_type: str, record_id: int) -> MasterRe
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
     return record
+
+
+TPL_MODES = ("Sea", "Air", "Road", "Rail", "Courier", "Multimodal")
+TPL_DIRECTIONS = ("Export", "Import", "Cross-Trade", "Domestic", "Cross Border")
+TPL_BOOKING = ("Direct", "House")
+
+
+def _check_template(master_type: str, data: dict | None) -> None:
+    """A shipment template pre-fills the New Shipment / Booking selection page: it must name a real mode, and only a Sea House template carries a House BL type (OTL / FMC / MTO exist for sea only)."""
+    if master_type != "shipment_template":
+        return
+    d = data or {}
+    mode, direction, booking, hbl = (str(d.get(k) or "").strip() for k in ("shipment_mode", "direction", "booking_type", "house_bl_type"))
+    if mode not in TPL_MODES:
+        raise HTTPException(422, "Shipment Mode must be one of " + ", ".join(TPL_MODES))
+    if direction and direction not in TPL_DIRECTIONS:
+        raise HTTPException(422, "Direction must be one of " + ", ".join(TPL_DIRECTIONS))
+    if booking and booking not in TPL_BOOKING:
+        raise HTTPException(422, "Booking Type must be Direct or House")
+    if hbl and not (mode == "Sea" and booking == "House"):
+        raise HTTPException(422, "A House BL Type (MTO / FMC / OTL) applies only to a Sea shipment with Booking Type House")
+
+
+def _sample_templates() -> list[tuple[str, str, dict]]:
+    """The standard template list supplied by the company (sea, air, multimodal, road). Loaded only when an administrator presses Import."""
+    out: list[tuple[str, str, dict]] = []
+
+    def add(name, mode, direction, stype, booking, hbl=""):
+        out.append((name, name, {"shipment_mode": mode, "direction": direction, "shipment_type": stype, "booking_type": booking, "house_bl_type": hbl, "group": mode}))
+
+    for d, kinds in (("Export", ("MTO", "FMC")), ("Import", ("MTO", "FMC")), ("Cross Trade", ("MTO",))):
+        for st in ("FCL", "LCL"):
+            add(f"Sea {d} {st} Direct", "Sea", d.replace(" ", "-"), st, "Direct")
+            for k in kinds:
+                add(f"Sea {d} {st} HBL – {k}", "Sea", d.replace(" ", "-"), st, "House", k)
+    for d in ("Export", "Import", "Cross Trade"):
+        dd = d.replace(" ", "-")
+        add(f"Air {d} Direct", "Air", dd, "Direct Shipment", "Direct")
+        add(f"Air {d} House AWB", "Air", dd, "General Cargo", "House")
+        if d != "Cross Trade":
+            add(f"Air {d} Consolidation", "Air", dd, "Consolidation", "House")
+    for name, d, t in (("Sea + Road Export", "Export", "Sea-Road"), ("Sea + Road Import", "Import", "Sea-Road"), ("Air + Road Export", "Export", "Air-Road"), ("Air + Road Import", "Import", "Air-Road"),
+                       ("Sea + Air Shipment", "Export", "Sea-Air")):
+        add(name, "Multimodal", d, t, "")
+    for name, t in (("Factory to Port", "FTL"), ("Port to Factory", "FTL"), ("Factory to CFS", "FTL"), ("CFS to Port", "FTL"), ("Port to CFS", "FTL"), ("CFS to Warehouse", "FTL"), ("Warehouse to Customer", "LTL"),
+                    ("Domestic FTL Transport", "FTL"), ("Domestic LTL Transport", "LTL"), ("Container Trailer Transport", "FTL")):
+        add(name, "Road", "Domestic", t, "")
+    return out
+
+
+@router.post("/shipment_template/import-sample", status_code=201)
+def import_sample_templates(user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
+    """Administrator action: load the company's standard shipment template list. Existing templates (same name) are left alone; nothing is loaded unless this is pressed."""
+    org_id = _tenant(user)
+    have = {r.name for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "shipment_template"))}
+    n = db.scalar(select(func.count()).select_from(MasterRecord).where(MasterRecord.organization_id == org_id, MasterRecord.master_type == "shipment_template")) or 0
+    added = 0
+    for name, _, data in _sample_templates():
+        if name in have:
+            continue
+        n += 1
+        db.add(MasterRecord(organization_id=org_id, master_type="shipment_template", code=f"TPL{n:03d}", name=name, status="ACTIVE", data=data, created_by=user.id))
+        added += 1
+    record_audit(db, "MASTER_IMPORT", "MASTER", user, org_id, "shipment_template", "sample", {"added": added})
+    db.commit()
+    return {"added": added, "skipped": len(_sample_templates()) - added}
 
 
 def _check_charge_activation(master_type: str, status_value: str, data: dict | None) -> None:
@@ -547,6 +614,7 @@ def _sync_ledger(db: Session, record: MasterRecord, user: User) -> None:
 def create_record(master_type: str, payload: MasterPayload, request: Request, user: User = Depends(permission_required("master.create")), db: Session = Depends(get_db)):
     org_id, master_type = _tenant(user), _type(master_type)
     _check_charge_activation(master_type, payload.status, payload.data)
+    _check_template(master_type, payload.data)
     values = payload.model_dump()
     if master_type == "currency":
         values["data"] = cr.clean(db, org_id, payload.code, payload.name, payload.data, None)
@@ -618,6 +686,7 @@ def update_record(master_type: str, record_id: int, payload: MasterPatch, reques
     was_active = record.status == "ACTIVE"
     before = _flat(record)
     _check_charge_activation(master_type, changes.get("status") or record.status, changes.get("data") if changes.get("data") is not None else record.data)
+    _check_template(master_type, changes.get("data") if changes.get("data") is not None else record.data)
     for key, value in changes.items():
         if value is not None:
             setattr(record, key, value)

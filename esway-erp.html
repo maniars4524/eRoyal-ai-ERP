@@ -2701,6 +2701,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="wiz-step-title">Select Shipment Details</div>
   <div class="wiz-step-sub">Choose mode, direction and type — the matching process page opens automatically on Next</div>
 
+  <div id="jobWizTplWrap" class="wiz-tpl" style="display:none"><div class="wiz-row-label">Template <span style="font-weight:400;color:var(--g5);text-transform:none;letter-spacing:0">(optional — fills mode, direction, type and booking type)</span></div><select class="fc" id="jobWizTemplate" style="max-width:420px"><option value="">— None, enter manually —</option></select></div>
   <div class="wiz-row-label">1. Transport Mode</div>
   <div id="jobWizModeGrid" class="wiz-mode-grid"></div>
 
@@ -3748,6 +3749,7 @@ tbody tr:hover{background:var(--g0)}
   <div class="wiz-step-title">Select Shipment Details</div>
   <div class="wiz-step-sub">Choose mode, direction and type — the matching booking process page opens automatically on Next</div>
 
+  <div id="bookWizTplWrap" class="wiz-tpl" style="display:none"><div class="wiz-row-label">Template <span style="font-weight:400;color:var(--g5);text-transform:none;letter-spacing:0">(optional — fills mode, direction, type and booking type)</span></div><select class="fc" id="bookWizTemplate" style="max-width:420px"><option value="">— None, enter manually —</option></select></div>
   <div class="wiz-row-label">1. Transport Mode</div>
   <div id="bookWizModeGrid" class="wiz-mode-grid"></div>
 
@@ -6416,6 +6418,7 @@ const TOPNAV_MENU = [
       {label:"Inco Terms", icon:"tag", go:"incoterms-master"},
       {label:"SAC / HSN Master", icon:"license", go:"hsn-master"},
       {label:"HBL Clause Master", icon:"file-text", go:"hbl-clauses"},
+      {label:"Shipment Templates", icon:"file-text", go:"inv-shipment-template"},
     ]},
     {label:"Inventory", icon:"package", children:[
       {label:"Container Inventory", icon:"package", children:[
@@ -13403,7 +13406,7 @@ function bookWizApplyAndShowForm(){
   toast("Process page opened", bookWizProcessTitle());
 }
 window.bookWizApplyAndShowForm = bookWizApplyAndShowForm;
-window.WIZ_TYPES = WIZ_TYPES;
+window.WIZ_TYPES = WIZ_TYPES; window.WIZ_DIRECTIONS = WIZ_DIRECTIONS; window.WIZ_MODES = WIZ_MODES;
 function initBookWizard(){
   const wrap = $("#bookWizWrap");
   if(!wrap || wrap.dataset.inited) return;
@@ -23586,7 +23589,11 @@ body.job-readonly #jlBanner{display:flex}
     {key:"item", type:"inv_item", label:"Spare Part / Store Item", icon:"package", codeLabel:"Item Code", nameLabel:"Item Name", sub:"Parts, lubricants, tools and materials with their stock limits. Supplier is picked from the Organisation Master.",
       fields:[T("Category", {sel:{from:"inv_item_category"}}), T("Brand"), T("Manufacturer Part Number"), T("Stock Unit", {sel:{from:"unit"}}), T("Purchase Unit", {sel:{from:"unit"}}), N("Conversion Factor"), N("Minimum Stock"), N("Maximum Stock"),
         N("Reorder Level"), T("Preferred Supplier", {sel:{url:VENDORS}}), T("Default Storage Location"), S("Serial Numbered", YN), S("Batch Tracked", YN), S("Has Expiry Date", YN), N("Warranty (Months)"), A("Description")],
-      cols:["category", "stock_unit", "minimum_stock", "reorder_level"]}
+      cols:["category", "stock_unit", "minimum_stock", "reorder_level"]},
+    {key:"shipment-template", type:"shipment_template", group:"Common Masters", label:"Shipment Template", icon:"file-text", codeLabel:"Template Code", nameLabel:"Template Name", sub:"Ready-made combinations of mode, direction, shipment type, booking type and House BL type. Picking one on New Shipment / New Booking fills those answers for the user.",
+      fields:[S("Shipment Mode", ["Sea", "Air", "Road", "Rail", "Courier", "Multimodal"], {req:1}), S("Direction", ["Export", "Import", "Cross-Trade", "Domestic", "Cross Border"]),
+        S("Shipment Type", ["FCL", "LCL", "General Cargo", "Consolidation", "Direct Shipment", "Charter Flight", "Dangerous Goods", "Perishable", "FTL", "LTL", "Parcel", "Wagon Load", "Document", "Express", "Sea-Air", "Sea-Road", "Air-Road", "Not Applicable"]),
+        S("Booking Type", ["Direct", "House"]), S("House BL Type", ["MTO", "FMC", "OTL", "Other"]), A("Description")], cols:["shipment_mode", "direction", "shipment_type", "booking_type", "house_bl_type"]}
   ];
 
   const parent = (document.getElementById("s-pack-master") || {}).parentNode; if(!parent) return;
@@ -23628,8 +23635,8 @@ body.job-readonly #jlBanner{display:flex}
       if(document.getElementById("s-"+id)) return;
       const sec = document.createElement("div"); sec.id = "s-"+id; sec.className = "scr"; sec.innerHTML = html; parent.appendChild(sec);
     });
-    window.SCREEN_META[list] = {title:d.label+" Master", crumb:"eSway ERP 2.0 / Masters / Inventory / <strong>"+esc(d.label)+"</strong>", menu:""};
-    window.SCREEN_META[detail] = {title:d.label, crumb:"eSway ERP 2.0 / Masters / Inventory / "+esc(d.label)+" / <strong>Detail</strong>", menu:""};
+    window.SCREEN_META[list] = {title:d.label+" Master", crumb:"eSway ERP 2.0 / Masters / "+(d.group || "Inventory")+" / <strong>"+esc(d.label)+"</strong>", menu:""};
+    window.SCREEN_META[detail] = {title:d.label, crumb:"eSway ERP 2.0 / Masters / "+(d.group || "Inventory")+" / "+esc(d.label)+" / <strong>Detail</strong>", menu:""};
     const selects = d.fields.filter(f=>f.sel).map(f=> Object.assign({label:f.label, use:"name"}, f.sel));
     MK.register({type:d.type, label:d.label, list, detail, codeLabel:d.codeLabel, nameLabel:d.nameLabel, selects,
       cols:["code", "name"].concat(d.cols.map(c=>"data."+c), ["status", "actions"]),
@@ -24849,6 +24856,64 @@ body.job-readonly #jlBanner{display:flex}
   document.addEventListener("click", function(){ setTimeout(paint, 60); }, true);
   setInterval(paint, 1500);
   setTimeout(paint, 800);
+})();
+</script>
+<script>
+/* SHIPMENT TEMPLATES in the New Shipment / New Booking selection pages: an active template (Masters > Common Masters > Shipment Templates) fills mode, direction, type, booking type and House BL type.
+   The picker only appears when the company has at least one active template; nothing is pre-loaded. */
+(function(){
+  var cache = null, at = 0;
+  async function load(){
+    if(cache && Date.now() - at < 20000) return cache;
+    try{ cache = (await MK.util.api("GET", "/api/masters/shipment_template?status=ACTIVE")) || []; }catch(e){ cache = []; }
+    at = Date.now(); return cache;
+  }
+  var W = [["job", "jobWiz", "jobWizRefresh"], ["book", "bookWiz", "bookWizRefresh"]];
+  async function fill(){
+    var list = await load();
+    W.forEach(function(x){
+      var wrap = document.getElementById(x[0] + "WizTplWrap"), sel = document.getElementById(x[0] + "WizTemplate"); if(!wrap || !sel) return;
+      wrap.style.display = list.length ? "" : "none";
+      var sig = list.map(function(t){ return t.id + t.name; }).join("|");
+      if(sel.dataset.sig !== sig){ var cur = sel.value; sel.innerHTML = '<option value="">— None, enter manually —</option>' + list.map(function(t){ return '<option value="' + t.id + '">' + t.name.replace(/&/g, "&amp;").replace(/</g, "&lt;") + '</option>'; }).join(""); sel.value = cur; sel.dataset.sig = sig; }
+    });
+  }
+  document.addEventListener("change", function(e){
+    var w = W.filter(function(x){ return e.target && e.target.id === x[0] + "WizTemplate"; })[0]; if(!w) return;
+    var t = (cache || []).filter(function(r){ return String(r.id) === e.target.value; })[0], o = window[w[1]]; if(!o) return;
+    if(!t){ return; }
+    var d = t.data || {}, types = (window.WIZ_TYPES || {})[d.shipment_mode] || [], dirs = (window.WIZ_DIRECTIONS || {})[d.shipment_mode] || [];
+    o.mode = d.shipment_mode; o.pre = false;
+    o.dir = dirs.indexOf(d.direction) > -1 ? d.direction : null;
+    o.type = types.filter(function(x){ return x.id === d.shipment_type; })[0] ? d.shipment_type : null;
+    o.bookingType = d.booking_type === "Direct" || d.booking_type === "House" ? d.booking_type : null;
+    o.hblType = o.mode === "Sea" && o.bookingType === "House" && ["MTO", "FMC", "OTL"].indexOf(d.house_bl_type) > -1 ? d.house_bl_type : null; o.scac = null;
+    ["Dir", "Type", "BT"].forEach(function(k){ var el = document.getElementById(w[0] + "Wiz" + k + "Wrap"); if(el) el.style.display = ""; });
+    var dw = document.getElementById(w[0] + "WizDirWrap"); if(dw) dw.style.display = "block";
+    var tw = document.getElementById(w[0] + "WizTypeWrap"); if(tw) tw.style.display = o.dir ? "block" : "none";
+    var bw = document.getElementById(w[0] + "WizBTWrap"); if(bw) bw.style.display = o.type ? "block" : "none";
+    if(window[w[2]]) window[w[2]]();
+    if(window.toast) toast("Template applied", t.name + (o.type && o.dir ? "" : " — choose the remaining answers"));
+  });
+  document.addEventListener("click", function(){ setTimeout(fill, 150); }, true);
+  setInterval(fill, 4000); setTimeout(fill, 1200);
+  window.WIZ_TPL_RELOAD = function(){ cache = null; fill(); };
+  /* the master list gets an administrator button that loads the company's standard list on request */
+  var prev = window.MK && MK.onScreen;
+  if(prev) MK.onScreen = function(screen, opts){
+    prev.apply(this, arguments);
+    if(screen !== "inv-shipment-template") return;
+    setTimeout(function(){
+      var pa = document.querySelector("#s-inv-shipment-template .pa"); if(!pa || pa.querySelector("[data-tpl-import]")) return;
+      var b = document.createElement("button"); b.className = "btn btn-out btn-sm"; b.setAttribute("data-tpl-import", "1"); b.textContent = "Import standard list"; pa.insertBefore(b, pa.firstChild);
+    }, 200);
+  };
+  document.addEventListener("click", async function(e){
+    var b = e.target.closest && e.target.closest("[data-tpl-import]"); if(!b) return;
+    if(!confirm("Load the standard shipment template list (sea, air, multimodal and road)? Templates with the same name are not touched.")) return;
+    try{ var r = await MK.util.api("POST", "/api/masters/shipment_template/import-sample"); if(window.toast) toast("Templates imported", r.added + " added, " + r.skipped + " already there"); window.WIZ_TPL_RELOAD(); if(window.MK && MK.reload) MK.reload("shipment_template"); else go("inv-shipment-template"); }
+    catch(err){ if(window.toast) toast("Import failed", err.message || "Could not import", "error"); }
+  });
 })();
 </script>
 </body>

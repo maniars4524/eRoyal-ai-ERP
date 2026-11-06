@@ -560,3 +560,9 @@ Old simulated-browser tests (crm, dashboard, hblclauses) fail the same way on pr
 - House BL type (OTL/FMC/MTO) only for Sea; Air is Direct or House. Job BL tab hides it for non-sea jobs.
 - Sub Job: the fake list is gone; Yes/No, Yes lists real open jobs; backend `parent_job_number` on POST /api/shipments (tests/test_sub_job.py).
 - NEXT (user sent the template list as reference): admin-configurable shipment templates (name, mode, direction, type, booking type, house BL type, status) that auto-fill the wizard; replaces the hard-coded Service Template drop-down.
+
+## Shipment templates (2026-11-06)
+- Masters > Common Masters > Shipment Templates (master type `shipment_template`: mode, direction, shipment type, booking type, House BL type [sea+house only, enforced], description, status).
+- Starts empty. "Import standard list" (admin button, POST /api/masters/shipment_template/import-sample) loads the 39 from the company list (sea 16, air 8, multimodal 5, road 10); CHA, warehouse, door-to-door and some multimodal combos are NOT loaded (the wizard cannot represent them yet).
+- New Shipment and New Booking pages show a Template picker (only when active templates exist) that fills the answers. New Quotation and the CRM enquiry "Service Template" drop-down (hard-coded list) are NOT yet linked.
+- Tests: backend/tests/test_shipment_templates.py, e2e/tpl.test.js.
