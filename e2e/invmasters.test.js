@@ -26,7 +26,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
 
   const keys = await page.evaluate(() => window.InventoryMasters.DEFS.map(d => d.key));
   check("the kit defines 21 masters", keys.filter(k => k !== "shipment-template").length === 21, keys.length + "");
-  for (const k of keys) {
+  for (const k of keys.filter(k => k !== "shipment-template")) {
     await page.evaluate(k => document.querySelector('.tn-row[data-go="inv-' + k + '"]').click(), k); await sleep(900);
     const r = await page.evaluate(k => { const s = document.getElementById("s-inv-" + k); const rows = s.querySelectorAll("tbody tr:not(.mk-empty)").length; return { on: s.classList.contains("on"), rows, empty: /No records yet/.test(s.textContent), io: /Import/.test(s.textContent) && /Export/.test(s.textContent), title: document.title }; }, k);
     check(k + ": opens from the menu, empty (no sample rows), with Import / Export", r.on && r.rows === 0 && r.empty && r.io, JSON.stringify(r));

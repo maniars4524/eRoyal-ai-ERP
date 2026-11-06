@@ -51,7 +51,7 @@ def _kind(job: Shipment) -> str | None:
 
 def _fmt(v: Any) -> str:
     if isinstance(v, datetime):
-        return v.astimezone(timezone.utc).strftime("%d %b %Y %H:%M UTC")
+        return v.astimezone(timezone.utc).strftime("%d %b %Y")
     if isinstance(v, bool):
         return "Yes" if v else "No"
     return "" if v is None else str(v)
@@ -125,9 +125,10 @@ def _clean(body: LegIn, kind: str) -> dict:
         if not v["carrier"] and not v["voyage"]:
             raise HTTPException(422, "Enter the airline or the flight number")
         v["pol"] = v["pod"] = None
-    for k in ("etd", "eta"):
-        if v[k] is not None and v[k].tzinfo is None:
-            v[k] = v[k].replace(tzinfo=timezone.utc)
+    for k in ("etd", "eta"):                                    # ETD and ETA are dates: the time of day is not asked for and not kept
+        if v[k] is not None:
+            d = (v[k] if v[k].tzinfo else v[k].replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+            v[k] = datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
     if v["etd"] and v["eta"] and v["eta"] < v["etd"]:
         raise HTTPException(422, "ETA cannot be earlier than ETD")
     if v["stage"] == "CONFIRMED":
@@ -258,7 +259,9 @@ def routing_alerts(days: int = 3, user: User = Depends(permission_required("ship
         raise HTTPException(403, "Routing is tenant-scoped")
     days = max(1, min(days, 30))
     now = _now()
-    horizon, plan_h, changed_since = now + timedelta(days=days), now + timedelta(days=14), now - timedelta(days=3)
+    today = now.date()
+    horizon, plan_h, changed_since = today + timedelta(days=days), today + timedelta(days=14), now - timedelta(days=3)
+    dd = lambda v: v.astimezone(timezone.utc).date() if v else None
     q = select(JobRoutingLeg, Shipment).join(Shipment, Shipment.id == JobRoutingLeg.shipment_id).where(JobRoutingLeg.organization_id == user.organization_id, JobRoutingLeg.is_active.is_(True),
                                                                                                          Shipment.status.notin_(("Cancelled", "Closed")), Shipment.closure_status == "OPEN")
     clause = shipment_clause(db, user)
@@ -274,17 +277,17 @@ def routing_alerts(days: int = 3, user: User = Depends(permission_required("ship
     out = []
     for leg, job in rows:
         flags = []
-        if leg.etd and leg.etd < now and leg.stage == "PLANNED":
+        if leg.etd and dd(leg.etd) < today and leg.stage == "PLANNED":
             flags.append(("OVERDUE", 0, "ETD has passed and the leg is still Planned"))
-        if leg.eta and leg.eta < now:
+        if leg.eta and dd(leg.eta) < today:
             flags.append(("OVERDUE", 0, "ETA has passed"))
         if leg.follow_up and leg.follow_up_status == "OPEN" and leg.stage == "PLANNED":
             flags.append(("FOLLOW_UP", 1, "Follow-up required" + (f": {leg.follow_up_note}" if leg.follow_up_note else "")))
-        if leg.stage == "PLANNED" and (leg.etd is None or leg.etd <= plan_h):
+        if leg.stage == "PLANNED" and (leg.etd is None or dd(leg.etd) <= plan_h):
             flags.append(("PLANNED", 2, "Planned - confirmation pending"))
-        if leg.etd and now <= leg.etd <= horizon:
+        if leg.etd and today <= dd(leg.etd) <= horizon:
             flags.append(("ETD", 3, "ETD coming up"))
-        if leg.eta and now <= leg.eta <= horizon:
+        if leg.eta and today <= dd(leg.eta) <= horizon:
             flags.append(("ETA", 3, "ETA coming up"))
         if leg.id in recent:
             flags.append(("CHANGED", 4, "Schedule changed (" + ", ".join(sorted(recent[leg.id])) + ")"))

@@ -581,3 +581,9 @@ Old simulated-browser tests (crm, dashboard, hblclauses) fail the same way on pr
 
 ## NEXT: Output Docs (user prompt "writing-block (2).md", received 2026-11-06)
 Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB, MAWB optional, Loading Confirmation, Pre-alert, Stuffing, Transshipment Confirmation, Export Declaration), Air Import (Arrival Notice, DO, Destuffing, POD, Air Manifest), Sea Export (HBL, MBL optional, Sailing Confirmation, Shipment Summary, P&L, Pre-alert, LCL Stuffing), Sea Import (CAN with/without rates chooser, DO, LCL Destuffing, POD, Shipment Summary). Status Not Generated/Generated/Regenerated, Preview/Download PDF/Print, versions kept, missing-field validation, operational entry for stuffing/destuffing/POD. Existing kit: DK (Output Docs tab jt7b, `DK.panels`). First step: inspect DK + document templates, map reports to data, list missing templates.
+
+## Small fixes (2026-11-06, later)
+- Templates auto-load once per company on first picker use (localStorage flag per org); Import button stays for admins.
+- Routing: POL/POD search the Port Master (/api/ports) while typing; ETD/ETA are DATES only (no time) - stored as midnight UTC, alerts compare dates.
+- Global "Saved" state: any Save/Update button turns into green glowing "Saved/Updated" after a successful non-GET request; edits revert it (kit "SAVED STATE", markSaved()). Routing re-applies it after repaint.
+- Output Docs programme: inspected only (existing DK kit in esway-erp.html ~18569, report-data bundle, static panels odSeaExportDocs...). Plan: server catalogue + job_output_docs versions table + sanitizer, dynamic report table, std renderers (Sailing Confirmation + Shipment Summary per user samples), CAN with/without rates, validation, preview/print/PDF. NOT started in code.

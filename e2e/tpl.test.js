@@ -22,13 +22,13 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const text = sel => page.evaluate(sel => (document.querySelector(sel) || { innerText: "" }).innerText, sel);
   const vis = sel => page.evaluate(sel => { const e = document.querySelector(sel); return !!e && e.offsetParent !== null; }, sel);
   await page.evaluate(() => go("job-new")); await sleep(2500);
-  check("the template picker is always there, in the Quick Guide; with no templates it offers to load the standard list", await vis("#jobWizTemplate") && await vis("#jobWizWrap .wiz-guide #jobWizTemplate") && await vis("[data-tpl-import-wiz]"));
+  await sleep(4500);
+  check("the picker is in the Quick Guide and the company's standard templates are already loaded in it (first use)", await vis("#jobWizWrap .wiz-guide #jobWizTemplate") && (await page.evaluate(() => document.querySelectorAll("#jobWizTemplate option").length)) === 40, String(await page.evaluate(() => document.querySelectorAll("#jobWizTemplate option").length)));
   await page.evaluate(() => go("inv-shipment-template")); await sleep(2500);
-  check("the Shipment Templates master opens and has the Import standard list button", /Shipment Template/.test(await text("#s-inv-shipment-template .pt")) && await vis("[data-tpl-import]"));
+  check("the Shipment Templates master lists them and has the Import standard list button", /Shipment Template/.test(await text("#s-inv-shipment-template .pt")) && await vis("[data-tpl-import]"));
   const r = (await j("POST", "/api/masters/shipment_template/import-sample", null, token)).body;
-  check("importing loads the 39 standard templates", r.added === 39, JSON.stringify(r));
-  await page.evaluate(() => { window.WIZ_TPL_RELOAD(); go("job-new"); }); await sleep(2800);
-  check("the picker now lists them", (await page.evaluate(() => document.querySelectorAll("#jobWizTemplate option").length)) === 40);
+  check("importing again adds nothing (no duplicates)", r.added === 0 && r.skipped === 39, JSON.stringify(r));
+  await page.evaluate(() => { window.WIZ_TPL_RELOAD(); go("job-new"); }); await sleep(2500);
   const pick = async name => { await page.evaluate(n => { const s = document.getElementById("jobWizTemplate"); const o = [...s.options].find(x => x.textContent === n); s.value = o.value; s.dispatchEvent(new Event("change", { bubbles: true })); }, name); await sleep(700); };
   await pick("Sea Export FCL HBL – MTO"); 
   check("a Sea House template fills the answers and goes straight on to the job form", await vis("#jobFormWrap") && !(await vis("#jobWizWrap")) && (await page.evaluate(() => document.getElementById("nj_mode").value)) === "Sea" && (await page.evaluate(() => document.getElementById("nj_dir").value)) === "Export" && (await page.evaluate(() => jobWiz.hblType)) === "MTO");

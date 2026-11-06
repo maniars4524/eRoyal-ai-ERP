@@ -32,12 +32,19 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("Routing sits between Charges and Documents", tabs.filter(t => t !== "Tracking").indexOf("Routing") === tabs.filter(t => t !== "Tracking").indexOf("Charges") + 1 && tabs.indexOf("Documents") === tabs.indexOf("Routing") + 1, tabs.join("|"));
   check("a sea job shows Sea Shipment Routing with Vessel / Voyage / POL / POD and no air fields", /Sea Shipment Routing/.test(await text("#rtBody")) && /Vessel/.test(await text("#rtBody")) && !/Flight No/.test(await text("#rtBody")));
   check("the first row is suggested from the job (POL, ETD) but not saved", await page.evaluate(() => document.querySelector('[data-rt-row] [data-f="pol"]').value === "INMAA") && /Save to keep/.test(await text("#rtBody")) && (await j("GET", "/api/jobs/" + sea.job_number + "/routing", null, token)).body.legs.length === 0);
+  let portCalls = []; page.on("request", r => { if (/\/api\/ports\?q=/.test(r.url())) portCalls.push(r.url()); });
+  await page.evaluate(() => { const e = document.querySelector('[data-rt-row] [data-f="pol"]'); e.value = "Chen"; e.dispatchEvent(new Event("input", { bubbles: true })); }); await sleep(900);
+  check("typing in POL searches the Port Master", portCalls.length >= 1 && /q=Chen/.test(portCalls[0]), portCalls.join());
   // fill vessel 1 and save
   const fill = (row, vals) => page.evaluate((row, vals) => { const tr = document.querySelectorAll("#rtBody tbody tr")[row]; for (const [k, v] of Object.entries(vals)) { const e = tr.querySelector('[data-f="' + k + '"]'); e.value = v; e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true })); } }, row, vals);
-  const loc = d => { const x = new Date(Date.now() + d * 864e5); const p = n => String(n).padStart(2, "0"); return x.getFullYear() + "-" + p(x.getMonth() + 1) + "-" + p(x.getDate()) + "T" + p(x.getHours()) + ":" + p(x.getMinutes()); };
+  const loc = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
   await fill(0, { carrier: "MSC Orion", voyage: "VOY12345", pol: "Chennai", pod: "Singapore", etd: loc(4), eta: loc(11), stage: "CONFIRMED" });
   check("Confirmed hides the follow-up box", !(await page.evaluate(() => document.querySelector("#rtBody tbody tr [data-fu-wrap]").offsetParent !== null)));
   await page.evaluate(() => document.querySelector('[data-rt^="save:"]').click()); await sleep(2000);
+  check("after saving, the button shows Saved with the green glow", await page.evaluate(() => { const b = document.querySelector('#rtBody tbody tr [data-rt^="save:"]'); return !!b && b.classList.contains("btn-saved") && /Saved/.test(b.textContent); }));
+  await fill(0, { remarks: "edited after save" });
+  check("editing the row turns it back into Save so a correction can be saved again", await page.evaluate(() => { const b = document.querySelector('#rtBody tbody tr [data-rt^="save:"]'); return !!b && !b.classList.contains("btn-saved") && /^Save$/.test(b.textContent.trim()); }));
+  await page.evaluate(() => document.querySelector('[data-rt^="save:"]').click()); await sleep(1800);
   let d = (await j("GET", "/api/jobs/" + sea.job_number + "/routing", null, token)).body;
   check("Save stores vessel 1 as a confirmed leg", d.legs.length === 1 && d.legs[0].stage === "CONFIRMED" && d.legs[0].carrier === "MSC Orion" && d.legs[0].pol === "Chennai", JSON.stringify(d.legs).slice(0, 200));
   // add vessel 2: planned, follow-up yes
@@ -53,7 +60,8 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   // tracking
   console.log("JR", await page.evaluate(() => !!document.querySelector("#jlMilestones .rt-journey") + " " + !!document.getElementById("jlMilestones")));
   await page.evaluate(() => document.querySelector('[data-jl="tracking"]').click()); await sleep(2500);
-  check("tracking shows both legs, planned marked tentative", /Sea routing/.test(await text("#modalBody, .modal")) && /Maersk Bella/.test(await text("#modalBody, .modal")) && /tentative/.test(await text("#modalBody, .modal")), (await text("#modalBody, .modal")).slice(0, 200));
+  const trk = await page.evaluate(() => document.getElementById("modalBody").innerText);
+  check("tracking shows both legs, planned marked tentative", /Sea routing/.test(trk) && /Maersk Bella/.test(trk) && /tentative/.test(trk), trk.replace(/\s+/g, " ").slice(0, 400));
   await page.evaluate(() => closeModal()); await sleep(400);
   // dashboard
   await page.evaluate(() => go("dashboard")); await sleep(1500); await page.evaluate(() => window.__rtAlerts()); await sleep(1500);

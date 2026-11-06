@@ -24875,8 +24875,20 @@ body.job-readonly #jlBanner{display:flex}
     at = Date.now(); return cache;
   }
   var W = [["job", "jobWiz", "jobWizRefresh"], ["book", "bookWiz", "bookWizRefresh"]];
+  /* the company's standard template list is loaded for it automatically, once: the first time the picker finds none (a person without the master right is skipped) */
+  var auto = false;
+  async function autoLoad(){
+    if(auto) return; auto = true;
+    try{
+      var me = await MK.util.api("GET", "/api/auth/me"), key = "esway_tpl_auto_" + (me.organization_id || me.org_id || me.username || "x");
+      if(localStorage.getItem(key)) return;
+      var r = await MK.util.api("POST", "/api/masters/shipment_template/import-sample");
+      localStorage.setItem(key, "1"); cache = null; if(r.added && window.toast) toast("Shipment templates ready", r.added + " standard templates loaded for your company");
+    }catch(e){ auto = false; setTimeout(function(){ auto = true; }, 60000); }
+  }
   async function fill(){
     var list = await load();
+    if(!list.length && document.getElementById("jobWizTemplate") && !auto){ await autoLoad(); list = await load(); }
     W.forEach(function(x){
       var wrap = document.getElementById(x[0] + "WizTplWrap"), sel = document.getElementById(x[0] + "WizTemplate"); if(!wrap || !sel) return;
       wrap.style.display = "";
@@ -24936,15 +24948,16 @@ body.job-readonly #jlBanner{display:flex}
   const api = (m, p, b)=> MK.util.api(m, p, b), esc = MK.util.esc2;
   const R = {job:null, data:null, drafts:[], seq:0, hist:null, ports:null, airlines:null};
   const pad = n=> String(n).padStart(2, "0"), MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const loc = iso=> { if(!iso) return ""; const d = new Date(iso); return isNaN(d) ? "" : d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes()); };
-  const iso = v=> v ? new Date(v).toISOString() : null;
-  const show = v=> { if(!v) return "—"; const d = new Date(v); return isNaN(d) ? "—" : pad(d.getDate())+" "+MON[d.getMonth()]+" "+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes()); };
+  /* ETD / ETA are dates only (no time of day): kept as the calendar date, never shifted by the time zone */
+  const loc = iso=> iso ? String(iso).slice(0, 10) : "";
+  const iso = v=> v || null;
+  const show = v=> { if(!v) return "—"; const m = String(v).slice(0, 10).split("-"); return m.length === 3 ? m[2]+" "+MON[Number(m[1]) - 1]+" "+m[0] : "—"; };
   const say = (t, m, k)=> { if(window.toast) toast(t, m, k); };
   const jobNo = ()=> { const t = ((document.getElementById("jobDetailNo") || {}).textContent || "").trim(); return /^[A-Z0-9-]{5,}$/.test(t) && t !== "—" ? t : null; };
   const stageChip = st=> st === "CONFIRMED" ? '<span class="b b-gr">Confirmed</span>' : '<span class="b b-am">Planned</span>';
 
   async function lists(){
-    if(R.ports === null){ try{ R.ports = (await api("GET", "/api/masters/port")).map(p=> (p.data && p.data.unlocode ? p.data.unlocode+" - " : p.code ? p.code+" - " : "")+p.name); }catch(e){ R.ports = []; } }
+    if(R.ports === null) R.ports = [];                                  /* ports come from the Port Master as the user types (the master holds ~21,000 ports) */
     if(R.airlines === null){ try{ R.airlines = ((await api("GET", "/api/network/pickers")).airlines || []).map(a=>a.name); }catch(e){ R.airlines = []; } }
   }
   async function load(force){
@@ -24952,13 +24965,14 @@ body.job-readonly #jlBanner{display:flex}
     if(R.job !== no){ R.drafts = []; R.hist = null; }
     R.job = no;
     try{ await lists(); R.data = await api("GET", "/api/jobs/"+encodeURIComponent(no)+"/routing"); }catch(e){ R.data = null; const b = document.getElementById("rtBody"); if(b) b.innerHTML = '<div class="ib ib-rd">'+esc(e.message || "Could not load the routing")+'</div>'; return; }
+    T.at = 0;                                                            /* the tracking view reads the routing again after any change */
     if(!R.data.legs.length && R.data.suggested.length && !R.drafts.length) R.drafts = R.data.suggested.map(x=> Object.assign({}, x, {draft:++R.seq}));
     paint();
   }
   function rowHtml(l, i, sea, ed){
     const key = l.id ? "L"+l.id : "D"+l.draft, dis = ed ? "" : " disabled";
     const inp = (f, v, extra)=> '<input class="fc" data-f="'+f+'" value="'+esc(v || "")+'"'+(extra || "")+dis+'>';
-    const dt = f=> '<input class="fc" type="datetime-local" data-f="'+f+'" value="'+esc(loc(l[f]))+'"'+dis+'>';
+    const dt = f=> '<input class="fc" type="date" data-f="'+f+'" value="'+esc(loc(l[f]))+'"'+dis+'>';
     const note = l.draft && l.source ? '<div style="font-size:10px;color:var(--am)">from the '+(l.source === "BOOKING" ? "booking" : "job")+' — Save to keep</div>' : "";
     const done = l.id && l.follow_up && l.follow_up_status === "OPEN" ? '<button class="btn btn-out btn-sm" data-rt="done:'+l.id+'" style="margin-top:4px">Follow-up done</button>' : l.id && l.follow_up ? '<div style="font-size:10px;color:var(--g5);margin-top:3px">follow-up done</div>' : "";
     return '<tr data-rt-row="'+key+'"><td>'+(i + 1)+note+'</td>'+
@@ -24970,6 +24984,7 @@ body.job-readonly #jlBanner{display:flex}
       '<td>'+inp("remarks", l.remarks, ' placeholder="Remarks"')+'</td>'+
       '<td style="white-space:nowrap">'+(ed ? '<button class="btn btn-pri btn-sm" data-rt="save:'+key+'">Save</button> <button class="btn btn-out btn-sm" data-rt="remove:'+key+'">'+(l.id ? "Remove" : "Discard")+'</button>' : "")+'</td></tr>';
   }
+  window.__rtEdited = t=> { const tr = t.closest && t.closest("[data-rt-row]"); if(tr && R.saved === tr.dataset.rtRow) R.saved = null; };
   function paint(){
     const box = document.getElementById("rtBody"); if(!box || !R.data) return;
     const d = R.data;
@@ -24985,6 +25000,7 @@ body.job-readonly #jlBanner{display:flex}
       (R.hist ? '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Routing history</div></div><div class="tw"><table><thead><tr><th>When</th><th>By</th><th>Leg</th><th>Action</th><th>Field</th><th>From</th><th>To</th><th>Remarks</th></tr></thead><tbody>'+
         (R.hist.length ? R.hist.map(h=>'<tr><td style="white-space:nowrap">'+show(h.at)+'</td><td>'+esc(h.by)+'</td><td>'+esc(h.leg)+'</td><td>'+esc(h.action)+'</td><td>'+esc(h.field)+'</td><td>'+esc(h.from || "")+'</td><td>'+esc(h.to || "")+'</td><td>'+esc(h.remarks || "")+'</td></tr>').join("") : '<tr><td colspan="8" style="text-align:center;color:var(--g5)">No changes yet</td></tr>')+'</tbody></table></div></div>' : "");
     if(window.renderIcons) renderIcons(box);
+    if(R.saved){ const tr = box.querySelector('[data-rt-row="'+R.saved+'"]'), b = tr && tr.querySelector('[data-rt^="save:"]'); if(b && window.markSaved) window.markSaved(b); }
   }
   function collect(tr){ const v = {}; tr.querySelectorAll("[data-f]").forEach(e=>{ v[e.dataset.f] = e.value; });
     return {carrier:v.carrier || null, voyage:v.voyage || null, pol:v.pol || null, pod:v.pod || null, etd:iso(v.etd), eta:iso(v.eta), stage:v.stage || "PLANNED", follow_up:v.stage === "PLANNED" && v.follow_up === "1", remarks:v.remarks || null}; }
@@ -24992,6 +25008,16 @@ body.job-readonly #jlBanner{display:flex}
     openModal({title, size:"sm", bodyHTML:'<div class="fg"><label class="fl">'+esc(label)+' <span class="r">*</span></label><textarea class="fc" id="rtAsk" rows="3"></textarea></div>', footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="rtAskOk">OK</button>'});
     document.getElementById("rtAskOk").addEventListener("click", ()=>{ const t = document.getElementById("rtAsk").value.trim(); if(t.length < 5){ say("Reason needed", "Write at least 5 characters", "warn"); return; } closeModal(); cb(t); });
   }
+  /* POL / POD: search the Port Master while typing and offer code - name (country) */
+  let portTimer = null;
+  document.addEventListener("input", e=>{
+    const f = e.target; if(!f || !f.matches || !f.matches('#rtBody [data-f="pol"], #rtBody [data-f="pod"]')) return;
+    clearTimeout(portTimer); const q = f.value.trim(); if(q.length < 2) return;
+    portTimer = setTimeout(async ()=>{
+      try{ const rows = await api("GET", "/api/ports?q="+encodeURIComponent(q)+"&limit=25"); const dl = document.getElementById("rtPorts");
+        if(dl) dl.innerHTML = rows.map(p=>'<option value="'+esc((p.unlocode || p.code)+" - "+p.name)+'">'+esc(p.country || "")+'</option>').join(""); }catch(err){}
+    }, 250);
+  });
   const base = ()=> "/api/jobs/"+encodeURIComponent(R.job)+"/routing";
   document.addEventListener("click", async e=>{
     const b = e.target.closest && e.target.closest("[data-rt]"); if(!b || !R.data) return;
@@ -25001,8 +25027,8 @@ body.job-readonly #jlBanner{display:flex}
       if(act === "history"){ R.hist = R.hist ? null : await api("GET", base()+"/history"); paint(); return; }
       if(act === "save"){
         const tr = document.querySelector('[data-rt-row="'+arg+'"]'), body = collect(tr);
-        if(arg[0] === "L"){ await api("PUT", base()+"/legs/"+arg.slice(1), body); }
-        else { const dr = R.drafts.find(x=> "D"+x.draft === arg); body.source = dr && dr.source || "MANUAL"; await api("POST", base()+"/legs", body); R.drafts = R.drafts.filter(x=> "D"+x.draft !== arg); }
+        if(arg[0] === "L"){ await api("PUT", base()+"/legs/"+arg.slice(1), body); R.saved = arg; }
+        else { const dr = R.drafts.find(x=> "D"+x.draft === arg); body.source = dr && dr.source || "MANUAL"; const nl = await api("POST", base()+"/legs", body); R.drafts = R.drafts.filter(x=> "D"+x.draft !== arg); R.saved = "L"+nl.id; }
         say("Routing saved", "The leg is saved and the change is recorded"); R.hist = R.hist ? await api("GET", base()+"/history") : null; if(window.__rtAlerts) window.__rtAlerts(); await load(); return;
       }
       if(act === "remove"){
@@ -25075,6 +25101,50 @@ body.job-readonly #jlBanner{display:flex}
     need.forEach(card=>{ let el = card.querySelector(".rt-journey"); if(!el){ el = document.createElement("div"); el.className = "rt-journey"; el.style.cssText = "padding:10px 14px;border-bottom:1px solid var(--g1)"; card.insertBefore(el, card.firstChild); } el.dataset.job = no; el.innerHTML = journeyHtml(d); });
   }
   setInterval(()=>{ track().catch(()=>{}); }, 600);
+})();
+</script>
+<script>
+/* SAVED STATE: after a Save / Update button's request succeeds, the button shows "Saved" with a green glow. It goes back to "Save" as soon as anything in its form, card or row is edited, so a
+   correction can be made and saved again. It works for every Save / Update button in the ERP: the button is only marked when a save request really succeeded (nothing is faked). */
+(function(){
+  var st = document.createElement("style");
+  st.textContent = ".btn-saved{background:#16a34a !important;border-color:#16a34a !important;color:#fff !important;box-shadow:0 0 0 3px rgba(22,163,74,.28),0 0 14px rgba(22,163,74,.7) !important;animation:savedGlow 1.8s ease-in-out infinite alternate}@keyframes savedGlow{from{box-shadow:0 0 0 2px rgba(22,163,74,.22),0 0 8px rgba(22,163,74,.45)}to{box-shadow:0 0 0 4px rgba(22,163,74,.3),0 0 18px rgba(22,163,74,.85)}}";
+  document.head.appendChild(st);
+  var pending = null, SKIP = /\/api\/(auth|presence|heartbeat)\b/;
+  function label(btn){ return (btn.textContent || "").replace(/\s+/g, " ").trim(); }
+  function isSave(btn){ var t = label(btn); return /^(\W{0,3}\s*)?(save|update)\b/i.test(t) && !/[&]|\bnew\b|\bclose\b|\bprint\b|\bas\b/i.test(t) && t.length < 28; }
+  window.markSaved = function(btn){
+    if(!btn || !btn.isConnected) return;
+    if(!btn.classList.contains("btn-saved")){ btn.dataset.origHtml = btn.innerHTML; }
+    var t = label({textContent:btn.dataset.origHtml ? tmp(btn.dataset.origHtml) : btn.textContent});
+    btn.innerHTML = /update/i.test(t) ? "&#10003; Updated" : /draft/i.test(t) ? "&#10003; Draft Saved" : "&#10003; Saved";
+    btn.classList.add("btn-saved");
+  };
+  function tmp(h){ var d = document.createElement("div"); d.innerHTML = h; return d.textContent; }
+  function revert(btn){ if(btn.dataset.origHtml != null){ btn.innerHTML = btn.dataset.origHtml; delete btn.dataset.origHtml; } btn.classList.remove("btn-saved"); }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("button, .btn"); if(!b || b.disabled || b.classList.contains("btn-saved") && false) return;
+    if(isSave(b) || b.classList.contains("btn-saved")){ pending = {btn:b, at:Date.now()}; }
+  }, true);
+  /* any edit near a saved button turns it back into Save */
+  function edited(e){
+    var t = e.target; if(!t || !t.closest) return;
+    var box = t.closest("tr, .card, .modal-body, form, .scr"); if(!box) return;
+    box.querySelectorAll(".btn-saved").forEach(revert);
+    var up = box.parentElement && box.parentElement.closest ? box.parentElement.closest(".card, .modal-body, .scr") : null;
+    if(up) up.querySelectorAll(".btn-saved").forEach(function(b){ if(b.closest("tr") === null || b.closest("tr") === box) revert(b); });
+    if(window.__rtEdited) window.__rtEdited(t);
+  }
+  document.addEventListener("input", edited, true); document.addEventListener("change", edited, true);
+  var raw = window.fetch;
+  window.fetch = function(input, init){
+    var url = typeof input === "string" ? input : (input && input.url) || "", method = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
+    var mine = (method !== "GET" && !SKIP.test(url) && pending && Date.now() - pending.at < 8000) ? pending : null;
+    if(mine) pending = null;
+    var p = raw.apply(this, arguments);
+    if(mine) p.then(function(r){ if(r && r.ok) setTimeout(function(){ window.markSaved(mine.btn); }, 60); }).catch(function(){});
+    return p;
+  };
 })();
 </script>
 </body>
