@@ -79,6 +79,14 @@ def job_bills(db: Session, job: Shipment) -> list[CustomsBill]:
     return list(db.scalars(select(CustomsBill).where(CustomsBill.organization_id == job.organization_id, or_(*cond)).order_by(CustomsBill.id)))
 
 
+def _cha_row(c: Shipment, bills: list[CustomsBill]) -> dict:
+    """One CHA job of the booking with its own bills: filed or not, and where it stands."""
+    mine = [b for b in bills if b.shipment_id == c.id and b.status != "Cancelled"]
+    filed = [b for b in mine if b.status != "Draft"]
+    return {"job_number": c.job_number, "stage": c.job_stage, "status": c.status, "bill_count": len(mine), "filed_count": len(filed), "filed": bool(filed),
+            "bills": [{"bill_no": b.bill_no, "bill_date": b.bill_date, "status": b.status, "bill_type": b.bill_type} for b in mine]}
+
+
 def summary(db: Session, job: Shipment) -> dict:
     bills = [b for b in job_bills(db, job) if b.status != "Cancelled"]
     kind = "SB" if job.direction == "Export" else "BE" if job.direction == "Import" else None
@@ -91,7 +99,7 @@ def summary(db: Session, job: Shipment) -> dict:
             charges.append({"job_number": cj.job_number, "charge_name": c.charge_name, "sell_rate": str(c.sell_rate), "buy_rate": str(c.buy_rate), "vendor": c.vendor, "qty": str(c.qty)})
     booking = db.get(Booking, job.booking_id) if job.booking_id else None
     return {"job_number": job.job_number, "bill_type": kind, "label": "Shipping Bill" if kind == "SB" else "Bill of Entry" if kind == "BE" else None, "count": len(bills), "primary_no": first.bill_no if first else None, "primary_date": first.bill_date if first else None,
-            "booking_number": booking.number if booking else None, "bills": [_out(b, jobs) for b in job_bills(db, job)], "customs_jobs": [{"job_number": c.job_number, "stage": c.job_stage} for c in cha], "customs_charges": charges}
+            "booking_number": booking.number if booking else None, "bills": [_out(b, jobs) for b in job_bills(db, job)], "customs_jobs": [_cha_row(c, job_bills(db, job)) for c in cha], "customs_charges": charges}
 
 
 @router.get("/by-job/{job_number:path}")

@@ -140,7 +140,7 @@ def job_charges_block(db: Session, job: Shipment) -> list[dict]:
     out = []
     for r in rows:
         if (r.sell_rate or 0) > 0:
-            out.append({"name": r.charge_name, "ccy": r.sell_ccy, "qty": str(r.qty), "rate": str(r.sell_rate), "amount": str((r.qty or 0) * (r.sell_rate or 0)), "uom": r.uom})
+            out.append({"name": r.charge_name, "ccy": r.sell_ccy, "qty": str(r.qty), "rate": str(r.sell_rate), "amount": str((r.qty or 0) * (r.sell_rate or 0)), "uom": r.uom, "tax_type": r.sell_tax_type, "tax_pct": str(r.sell_tax_pct or 0)})
     return out
 
 

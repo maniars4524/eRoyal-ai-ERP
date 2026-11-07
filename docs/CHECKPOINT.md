@@ -649,3 +649,8 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - Saved button: booking (Draft Saved) and quotation (re-applied after the screen repaints) confirmed; organisation save navigates away.
 - Notifications & Alerts centre now also holds Tasks (own follow-ups due/overdue), credit approvals, and a Calendar tab (/api/notifications/calendar: ETD/ETA, bills and invoices due, birthdays, follow-ups). The dashboard's right sidebar (tasks, approvals, notifications, calendar) is REMOVED; the dashboard uses the full width; the running message + View all replace it.
 - Not possible from here: real paper printing check.
+
+## Verification sweep + Customs tab + CAN charges (2026-11-07)
+- Backend 457 passed. Browser sweep: remaining failures are old JSDOM tests / stale menu assertions (invmasters, invaudit, mobile manifest) - not live bugs. outdocs2 and portpick pass alone (parallel-load flakes). universalsearch and newtab still to look at.
+- Freight job Customs tab now lists every CHA job of the booking with job status, SB/BE no/date and Filed / Not filed (customs_api._cha_row).
+- Cargo Arrival Notice charge details are split into TAXABLE and NON-TAXABLE with totals per currency (job_charges_block carries tax_type/tax_pct).
