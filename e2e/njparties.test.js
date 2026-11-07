@@ -27,5 +27,53 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const a = await opt("nj_agent"), c = await opt("nj_cha");
   check("Overseas Agent lists only organisations with the Agent role from the master (no made-up names)", a.includes("Alpha Overseas Agents") && !a.includes("Panalpina Belgium") && !a.includes("Beta Customs House"), a.join("|"));
   check("CHA Broker lists only organisations with the CHA role from the master", c.includes("Beta Customs House") && !c.includes("Sea Air Marine Surveyors") && !c.includes("Alpha Overseas Agents"), c.join("|"));
+  const r3 = await mkOrg("Gamma Shipper Ltd", ["shipper"]), r4 = await mkOrg("Delta Consignee Ltd", ["consignee"]), r5 = await mkOrg("Epsilon Notify Co", ["consignee"]);
+  await page.evaluate(() => { window.__fetchCacheClear(); go("dashboard"); }); await sleep(500); await page.evaluate(() => go("job-new")); await sleep(4500); await page.evaluate(() => { window.__fetchCacheClear(); populateCustomerSelect("nj_shipper"); populateCustomerSelect("nj_consignee"); }); await sleep(2500);
+  const made = async notify => {
+    return page.evaluate(async notify => {
+      const pick = (id, name) => { const s = document.getElementById(id); const o = [...s.options].find(x => (x.dataset.name || x.textContent).trim() === name); s.value = o ? o.value : ""; return !!o; };
+      const okS = pick("nj_shipper", "Gamma Shipper Ltd"), okC = pick("nj_consignee", "Delta Consignee Ltd"); const n = document.getElementById("nj_notify"); n.value = notify || "";
+      const r = await fetch("/api/shipments", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + sessionStorage.getItem("esway_access_token") }, body: JSON.stringify({ mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA", pod: "SGSIN" }) });
+      const j = await r.json(); return { job: j.job_number, okS, okC };
+    }, notify);
+  };
+  const m1 = await made("Epsilon Notify Co"); await sleep(2500);
+  const p1 = (await j("GET", "/api/jobs/" + m1.job + "/details", null, token)).body.parties || {};
+  check("a Notify Party chosen on New Job is on the job's Parties tab", m1.okS && m1.okC && p1.notify1 === "Epsilon Notify Co" && p1.shipper === "Gamma Shipper Ltd" && p1.consignee === "Delta Consignee Ltd", JSON.stringify(p1));
+  const m2 = await made(""); await sleep(2500);
+  const p2 = (await j("GET", "/api/jobs/" + m2.job + "/details", null, token)).body.parties || {};
+  check("Same as Consignee puts the consignee as the notify party", p2.notify1 === "Delta Consignee Ltd", JSON.stringify(p2));
+  // the real Create Job button: planned containers and the cargo reach the job
+  await page.evaluate(() => { window.__fetchCacheClear(); go("dashboard"); }); await sleep(500);
+  await page.evaluate(() => document.querySelector('.tn-row[data-go="job-new"][data-jobmode="Sea"][data-jobdir="Export"]').click()); await sleep(2500);
+  await page.evaluate(() => document.querySelector('#jobWizTypeGrid [data-pick="FCL"]').click()); await sleep(300);
+  await page.evaluate(() => document.querySelector('#jobWizBTGrid [data-pick="Direct"]').click()); await sleep(300);
+  await page.evaluate(() => document.getElementById("jobWizNext").click()); await sleep(2500);
+  await page.evaluate(() => { window.__fetchCacheClear(); populateCustomerSelect("nj_shipper"); populateCustomerSelect("nj_consignee"); }); await sleep(2500);
+  await page.evaluate(() => {
+    const pick = (id, name) => { const s = document.getElementById(id); const o = [...s.options].find(x => (x.dataset.name || x.textContent).trim() === name); s.value = o ? o.value : ""; };
+    pick("nj_shipper", "Gamma Shipper Ltd"); pick("nj_consignee", "Delta Consignee Ltd");
+    const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true })); };
+    set("nj_pol", "INMAA(CHENNAI)"); set("nj_pod", "SGSIN(SINGAPORE)"); set("nj_pkgs", "100"); set("nj_wt", "1500"); set("nj_vol", "8.5"); set("nj_commodity", "Auto parts");
+    document.getElementById("njAddContRow").click();
+    const rows = document.querySelectorAll("#njContRows .njContRow");
+    rows[0].querySelector("select").value = "40HC"; rows[0].querySelector("input").value = "2";
+    rows[1].querySelector("select").value = "20GP"; rows[1].querySelector("input").value = "1";
+    document.getElementById("jobCreateBtn").click();
+  }); await sleep(5000);
+  const lst = (await j("GET", "/api/shipments", null, token)).body; const nj = lst.find(x => x.pol === "INMAA(CHENNAI)" && x.consignee === "Delta Consignee Ltd" || (x.commodity === "Auto parts"));
+  check("the job was created from the form with the cargo", !!nj && Number(nj.packages) === 100, JSON.stringify(nj || {}).slice(0, 160));
+  const dd = (await j("GET", "/api/jobs/" + nj.job_number + "/details", null, token)).body;
+  check("the cargo (packages, weight, volume, description) is on the job's cargo tab data", dd.cargo && dd.cargo.pkgs === "100" && dd.cargo.gwt === "1500" && dd.cargo.vol === "8.5" && dd.cargo.cargoDesc === "Auto parts", JSON.stringify(dd.cargo));
+  const sg = (dd.suggested_containers || []).map(x => x.qty + "x" + x.type).sort().join(",");
+  check("the container types and numbers are offered on the Containers tab (2 x 40HC, 1 x 20GP)", sg === "1x20GP,2x40HC", sg);
+  await page.evaluate(n => go("job-detail", { jobNo: n }), nj.job_number); await sleep(3500);
+  await page.evaluate(() => document.querySelector('#s-job-detail .tbb[data-tab="jt2"]').click()); await sleep(1500);
+  check("the Containers tab shows the planned containers with an Add button", /2 × 40HC/.test(await page.evaluate(() => (document.getElementById("jcSuggest") || {}).innerText || "")) && /1 × 20GP/.test(await page.evaluate(() => (document.getElementById("jcSuggest") || {}).innerText || "")));
+  await page.evaluate(() => document.querySelector("[data-jd-usecont]").click()); await sleep(800);
+  await page.evaluate(() => { const rows = [...document.querySelectorAll("#containerTableBody tr[data-jd-cont]")]; rows.forEach((tr, i) => { const set = (k, v) => { const e = tr.querySelector('[data-k="' + k + '"]'); if (e) { e.value = v; e.dispatchEvent(new Event("input", { bubbles: true })); } }; set("pkgs", String(10 * (i + 1))); set("gross_wt", String(100 * (i + 1))); set("net_wt", String(90 * (i + 1))); }); });
+  await sleep(600);
+  const bu = await page.evaluate(() => (document.getElementById("jcBreakup") || {}).innerText || "");
+  check("the Containers tab shows the break-up by container type with packages and weights, and the totals follow", /40HC/.test(bu) && /20GP/.test(bu) && /Gross wt/i.test(bu) && /Net wt/i.test(bu) && (await page.evaluate(() => document.getElementById("jc_pkgs").value)) === "60", bu.replace(/\s+/g, " "));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

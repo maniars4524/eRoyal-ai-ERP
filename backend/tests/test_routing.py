@@ -122,3 +122,12 @@ def test_a_viewer_can_read_but_not_change(h, world):
     hv = hdr(v["username"], v["license"])
     assert client.get(f"/api/jobs/{j}/routing", headers=hv).status_code == 200
     assert client.post(f"/api/jobs/{j}/routing/legs", json=sea(), headers=hv).status_code == 403
+
+
+def test_the_first_leg_is_suggested_from_the_ports_even_with_no_vessel_or_dates(h):
+    r = client.post("/api/shipments", json={"mode": "Sea", "direction": "Import", "container_mode": "FCL", "pol": "SGSIN(SINGAPORE)", "pod": "INMAA(CHENNAI)"}, headers=h)
+    j = r.json()["job_number"]
+    got = client.get(f"/api/jobs/{j}/routing", headers=h).json()
+    assert got["suggested"] and got["suggested"][0]["pol"] == "SGSIN(SINGAPORE)" and got["suggested"][0]["pod"] == "INMAA(CHENNAI)" and got["suggested"][0]["carrier"] is None
+    air = client.post("/api/shipments", json={"mode": "Air", "direction": "Import", "container_mode": "Air", "pol": "SIN", "pod": "MAA"}, headers=h).json()["job_number"]
+    assert client.get(f"/api/jobs/{air}/routing", headers=h).json()["suggested"] == []            # air legs carry no ports; nothing else is known

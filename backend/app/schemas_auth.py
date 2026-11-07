@@ -194,6 +194,7 @@ class ShipmentCreate(BaseModel):
     branch: str | None = Field(default=None, max_length=80)
     salesperson: str | None = Field(default=None, max_length=120)
     revenue: float = Field(default=0, ge=0)
+    containers: list[dict] | None = Field(default=None, max_length=30)                   # planned boxes: [{type, qty}]
     parent_job_number: str | None = Field(default=None, max_length=40)          # a sub job: only when the user chose to create one under this job
 
 

@@ -96,3 +96,11 @@ def test_who_receives_each_kind_is_a_setting(h, world):
     client.put("/api/notifications/settings", json={"audience": {"Messages": {"enabled": False, "roles": []}}}, headers=h)
     assert not any(x["category"] == "Messages" for x in client.get("/api/notifications", headers=hv).json()["items"])
     client.put("/api/notifications/settings", json={"audience": {"Messages": {"enabled": True, "roles": []}}}, headers=h)
+
+
+def test_the_running_message_speed_is_a_setting(h):
+    assert client.get("/api/notifications", headers=h).json()["ticker_speed"] == "normal"
+    assert client.put("/api/notifications/settings", json={"display": {"ticker_speed": "warp"}}, headers=h).status_code == 422
+    assert client.put("/api/notifications/settings", json={"display": {"ticker_speed": "slow"}}, headers=h).status_code == 200
+    assert client.get("/api/notifications", headers=h).json()["ticker_speed"] == "slow"
+    client.put("/api/notifications/settings", json={"display": {"ticker_speed": "normal"}}, headers=h)

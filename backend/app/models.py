@@ -185,6 +185,7 @@ class Shipment(Base):
     last_closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_closed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     reopen_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    planned_containers: Mapped[list | None] = mapped_column(JSON)                  # [{type, qty}] entered when the job was created: offered on the Containers tab
     cancel_reason: Mapped[str | None] = mapped_column(String(500))                 # a job is never deleted: it is cancelled, with the reason kept here and in its activity log
     cancelled_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

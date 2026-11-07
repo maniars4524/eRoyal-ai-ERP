@@ -38,6 +38,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.evaluate(() => document.getElementById("odCanGo").click()); await sleep(4500);
   let pv = await text("#modalBody");
   check("With Charges shows only the ticked charges (Terminal Handling and Documentation, not Delivery Order Fee)", /CARGO ARRIVAL NOTICE/.test(pv) && /TERMINAL HANDLING/i.test(pv) && /DOCUMENTATION/i.test(pv) && !/DELIVERY ORDER FEE/i.test(pv) && /3,000/.test(pv), pv.replace(/\s+/g, " ").slice(0, 300));
+  check("the CAN shows the vessel, voyage, ETA from the Routing tab", /MSC Orion/.test(pv) && /V1/.test(pv) && /20-05-2030/.test(pv), pv.replace(/\s+/g, " ").slice(0, 400));
   check("the preview offers the With Charges / Without Charges switch", await vis('[data-od2="canv"][data-var="with_rates"]') && await vis('[data-od2="canv"][data-var="without_rates"]'));
   await page.evaluate(() => document.querySelector('[data-od2="canv"][data-var="without_rates"]').click()); await sleep(4500);
   check("switching to Without Charges (not generated yet) asks again, with Without Charges chosen", await vis("#odCanGo") && await page.evaluate(() => document.querySelector('input[name="odCan"][value="without_rates"]').checked));

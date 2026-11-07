@@ -26,6 +26,7 @@ DEFAULTS = {
     "payments": {"due_lead_days": 7},
     "approvals": {"escalate_after_days": 3},
     "birthdays": {"lead_days": 7},
+    "display": {"ticker_speed": "normal"},                                           # the running message on the dashboard: slow | normal | fast
     "audience": {c: {"enabled": True, "roles": []} for c in CATEGORIES},          # roles empty = everyone who may see that kind of record
 }
 LIMITS = {("routing", "etd_lead_value"): (1, 720), ("routing", "eta_lead_value"): (1, 720), ("routing", "planned_lead_days"): (1, 90), ("routing", "changed_days"): (1, 30),
@@ -198,7 +199,7 @@ def notifications(user: User = Depends(get_current_user), db: Session = Depends(
             db.rollback()
     items.sort(key=lambda x: (x["severity"], str(x["at"] or "")))
     counts = {c: sum(1 for x in items if x["category"] == c) for c in CATEGORIES}
-    return {"items": items[:400], "counts": counts, "categories": CATEGORIES, "total": len(items)}
+    return {"items": items[:400], "counts": counts, "categories": CATEGORIES, "total": len(items), "ticker_speed": cfg["display"]["ticker_speed"]}
 
 
 class MessageIn(BaseModel):
@@ -242,20 +243,24 @@ class SettingsIn(BaseModel):
     payments: dict | None = None
     approvals: dict | None = None
     birthdays: dict | None = None
+    display: dict | None = None
     audience: dict | None = None
 
 
 @router.put("/settings")
 def put_settings(body: SettingsIn, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
     cur = settings_for(db, user.organization_id)
-    for group in ("routing", "payments", "approvals", "birthdays"):
+    for group in ("routing", "payments", "approvals", "birthdays", "display"):
         incoming = getattr(body, group)
         if incoming is None:
             continue
         for k, v in incoming.items():
             if k not in cur[group]:
                 raise HTTPException(422, f"Unknown setting {group}.{k}")
-            if k.endswith("_unit"):
+            if k == "ticker_speed":
+                if v not in ("slow", "normal", "fast"):
+                    raise HTTPException(422, "The running message speed must be slow, normal or fast")
+            elif k.endswith("_unit"):
                 if v not in ("days", "hours"):
                     raise HTTPException(422, "The unit must be days or hours")
             else:

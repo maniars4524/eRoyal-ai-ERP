@@ -611,3 +611,11 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 ## CAN with / without charges (2026-11-07)
 - Sea Import Cargo Arrival Notice: Generate opens a dialog: type (With Charges / Without Charges) and, for With Charges, a checklist of the job's sell charges to show. Without Charges has no charge block or amounts. Preview has a With / Without switch (shows the other version if generated, else asks to generate it). Each version has its own history. Labels now "With Charges / Without Charges" (server VARIANT_LABEL). e2e/can.test.js.
 - Visual check done for Sailing Confirmation and HBL (existing MTD/BL document). Test org had no logo, so company header shows only the name.
+
+## Batch (2026-11-07)
+- Output Docs: reports are ONE A4 page (scaled to fit, multi-page only when really long); signature and seal option (dialog checkbox, With/Without toggle in preview applies to Download/Print); HAWB = 2 pages (air waybill + IATA conditions of contract); HBL (existing BL doc) now has Gross Weight | Net Weight | Measurement columns. HBL TERMS: NOT changed - the attached terms image was unreadable; the existing text comes from Company letterhead & registration (profile "terms") or the built-in clause text. Need the terms as text/PDF.
+- CAN: vessel/voyage/ETD/ETA now come from Routing first (DK.mergeRouting + routed()), also for Delivery Order etc. built through DK.build.
+- New Job: Notify Party (master list) + Overseas Agent + CHA + cargo (packages, weight, volume, description, HS) are saved on the job's tabs after creation; planned containers (type + qty) saved on shipments.planned_containers (migration 0065) and offered on the Containers tab; Containers tab shows a break-up by container type (containers, packages, gross, net) with totals.
+- Notifications: running message moved by a timer (Slow 32 / Normal 48 / Fast 70 px/s) - setting in Notification Settings.
+- Routing: first leg suggested from the job/booking also when only POL/POD are known.
+- NOT DONE (request received): Import shipments - no automatic HBL number, HBL/MBL typed manually, no HBL clauses, no Release BL; use CAN + Delivery Order preparation. Export unchanged.

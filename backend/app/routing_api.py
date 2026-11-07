@@ -89,7 +89,7 @@ def suggested(db: Session, job: Shipment) -> list[dict]:
             voyage = raw or d.get("flight_no") or None
     etd, eta = (b.etd if b and b.etd else job.etd), (b.eta if b and b.eta else job.eta)
     pol, pod = (b.pol if b and b.pol else job.pol), (b.pod if b and b.pod else job.pod)
-    if not any([carrier, voyage, etd, eta]):
+    if not any([carrier, voyage, etd, eta]) and not (kind == "SEA" and (pol or pod)):
         return []
     return [{"id": None, "seq": 1, "kind": kind, "carrier": carrier, "voyage": voyage, "pol": pol if kind == "SEA" else None, "pod": pod if kind == "SEA" else None, "etd": _at(etd), "eta": _at(eta),
              "stage": "PLANNED", "follow_up": False, "follow_up_status": "OPEN", "follow_up_note": None, "remarks": None, "source": "BOOKING" if b else "JOB"}]

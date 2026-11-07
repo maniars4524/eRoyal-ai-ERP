@@ -132,6 +132,10 @@ def suggested_containers(db: Session, job: Shipment) -> list[dict]:
                 cn = 0
             if ct and cn > 0 and ct not in found:
                 found[ct] = {"type": ct, "qty": cn, "sources": ["Booking " + (b.number or "draft")]}
+    for pc in (job.planned_containers or []):                       # entered on the New Job page
+        pt = str(pc.get("type") or "").strip()
+        if pt and pt not in found:
+            found[pt] = {"type": pt, "qty": int(pc.get("qty") or 1), "sources": ["Job creation"]}
     quotes = []
     if b and b.quotation_id:
         q = db.get(Quotation, b.quotation_id)

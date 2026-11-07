@@ -70,6 +70,16 @@ def create_shipment(payload: ShipmentCreate, user: User = Depends(permission_req
         raise HTTPException(status_code=422, detail="CHA (customs) jobs are created in the CHA module (Logistics & Customs > CHA > Create Job), from a booking number")
     if data.get("party_branch_id") is not None and not (data.get("customer_id") and db.scalar(select(OrgBranch.id).where(OrgBranch.id == data["party_branch_id"], OrgBranch.customer_id == data["customer_id"], OrgBranch.organization_id == organization_id))):
         raise HTTPException(status_code=422, detail="The branch does not belong to the selected organization")
+    boxes = []
+    for b in (data.pop("containers", None) or []):
+        ty = str(b.get("type") or "").strip()[:40]
+        try:
+            q = int(float(str(b.get("qty") or 0)))
+        except ValueError:
+            q = 0
+        if ty and 0 < q <= 999:
+            boxes.append({"type": ty, "qty": q})
+    data["planned_containers"] = boxes or None
     parent_number = (data.pop("parent_job_number", None) or "").strip()
     if parent_number:
         parent = db.scalar(select(Shipment).where(Shipment.organization_id == organization_id, Shipment.job_number == parent_number, *_visible(db, user)))

@@ -2810,14 +2810,14 @@ tbody tr:hover{background:var(--g0)}
 <div class="card"><div class="ch"><div class="ct">Parties</div></div><div class="cb">
 <div class="fg" style="margin-bottom:7px"><label class="fl">Shipper / Exporter <span class="r">*</span></label><select class="fc" id="nj_shipper"><option value="">— Search or select —</option></select><span class="ferr">Shipper is required</span></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Consignee / Importer <span class="r">*</span></label><select class="fc" id="nj_consignee"><option value="">— Search or select —</option></select><span class="ferr">Consignee is required</span></div>
-<div class="fg" style="margin-bottom:7px"><label class="fl">Notify Party</label><select class="fc"><option>Same as Consignee</option></select></div>
+<div class="fg" style="margin-bottom:7px"><label class="fl">Notify Party</label><select class="fc" id="nj_notify"><option value="">Same as Consignee</option></select></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Overseas Agent</label><select class="fc" id="nj_agent"><option value="">— None —</option></select></div>
 <div class="fg"><label class="fl">CHA Broker</label><select class="fc" id="nj_cha"><option value="">— None —</option></select></div>
 </div></div>
 <div class="card"><div class="ch"><div class="ct">Cargo</div></div><div class="cb">
-<div class="fr"><div class="fg"><label class="fl">Packages</label><input class="fc" id="nj_pkgs" placeholder="100"></div><div class="fg"><label class="fl">Pkg Type</label><select class="fc"><option>Cartons</option><option>Pallets</option><option>Drums</option><option>Bags</option></select></div><div class="fg"><label class="fl">Gross Weight (KG)</label><input class="fc" id="nj_wt" placeholder="1500.000"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Packages</label><input class="fc" id="nj_pkgs" placeholder="100"></div><div class="fg"><label class="fl">Pkg Type</label><select class="fc" id="nj_pkgtype"><option>Cartons</option><option>Pallets</option><option>Drums</option><option>Bags</option></select></div><div class="fg"><label class="fl">Gross Weight (KG)</label><input class="fc" id="nj_wt" placeholder="1500.000"></div></div>
 <div class="fr"><div class="fg"><label class="fl">Volume (CBM)</label><input class="fc" id="nj_vol" placeholder="8.500"></div><div class="fg" style="grid-column:span 2"><label class="fl">Commodity</label><input class="fc" id="nj_commodity" placeholder="Auto Parts / Chemicals…"></div></div>
-<div class="fg"><label class="fl">HS Code</label><input class="fc" placeholder="8708.99" style="font-family:var(--font-mono);width:120px"></div>
+<div class="fg"><label class="fl">HS Code</label><input class="fc" id="nj_hs" placeholder="8708.99" style="font-family:var(--font-mono);width:120px"></div>
 </div></div>
 </div></div>
 </div>
@@ -8512,7 +8512,8 @@ $("#jobCreateBtn") && $("#jobCreateBtn").addEventListener("click", ()=>{
       packages: num("nj_pkgs"),
       gross_weight: num("nj_wt"),
       commodity: val("nj_commodity"),
-      parent_job_number: (window.jobWiz && jobWiz.sub && val("jobWizMasterJob")) || null
+      parent_job_number: (window.jobWiz && jobWiz.sub && val("jobWizMasterJob")) || null,
+      containers: (window.njPlannedBoxes ? window.njPlannedBoxes() : null)
     })
   })
     .then(async response=>{
@@ -18244,11 +18245,17 @@ function makePrintFit(){
   };
   const num = v=> { const n = parseFloat(String(v || "").replace(/,/g, "")); return isNaN(n) ? 0 : n; };
   JD.totals = function(){
-    const rows = [].map.call(document.querySelectorAll("#containerTableBody tr[data-jd-cont]"), tr=>({g:(tr.querySelector('[data-k="gross_wt"]') || {}).value, n:(tr.querySelector('[data-k="net_wt"]') || {}).value, p:(tr.querySelector('[data-k="pkgs"]') || {}).value, t:(tr.querySelector('[data-k="pkg_type"]') || {}).value}));
+    const rows = [].map.call(document.querySelectorAll("#containerTableBody tr[data-jd-cont]"), tr=>({g:(tr.querySelector('[data-k="gross_wt"]') || {}).value, n:(tr.querySelector('[data-k="net_wt"]') || {}).value, p:(tr.querySelector('[data-k="pkgs"]') || {}).value, t:(tr.querySelector('[data-k="pkg_type"]') || {}).value, ct:(tr.querySelector('[data-k="type"]') || {}).value}));
     const pk = el("jc_pkgs"), pt = el("jc_pkgType"); if(pk && pt){ const anyP = rows.some(r=>num(r.p)); pk.readOnly = anyP; pk.style.background = anyP ? "var(--g0)" : ""; if(anyP){ pk.value = String(Math.round(rows.reduce((a, r)=>a + num(r.p), 0))); const ts = Array.from(new Set(rows.filter(r=>num(r.p) && r.t).map(r=>r.t))); if(ts.length === 1) pt.value = ts[0]; } }
     const any = rows.some(r=>num(r.g) || num(r.n)); const g = el("jc_gwt"), n = el("jc_nwt"); if(!g || !n) return;
     g.readOnly = n.readOnly = any; g.style.background = n.style.background = any ? "var(--g0)" : "";
     if(any){ g.value = rows.reduce((a, r)=>a + num(r.g), 0).toFixed(3); n.value = rows.reduce((a, r)=>a + num(r.n), 0).toFixed(3); }
+    const bu = {}; rows.forEach(r=>{ const k = r.ct || "—"; const o = bu[k] || (bu[k] = {n:0, p:0, g:0, w:0}); o.n++; o.p += num(r.p); o.g += num(r.g); o.w += num(r.n); });
+    let host = el("jcBreakup"); const anyType = Object.keys(bu).length > 0 && rows.some(r=> num(r.p) || num(r.g) || num(r.n));
+    if(!host && el("jc_wtNote")){ host = document.createElement("div"); host.id = "jcBreakup"; el("jc_wtNote").parentNode.insertBefore(host, el("jc_wtNote").nextSibling); }
+    if(host) host.innerHTML = anyType ? '<div style="margin:8px 0 2px;font-size:11px;font-weight:700;color:var(--g6);text-transform:uppercase;letter-spacing:.3px">Break-up by container type</div><table style="font-size:12px;border-collapse:collapse;min-width:520px"><thead><tr style="color:var(--g5)"><th style="text-align:left;padding:3px 10px 3px 0">Type</th><th style="text-align:right;padding:3px 10px">Containers</th><th style="text-align:right;padding:3px 10px">Packages</th><th style="text-align:right;padding:3px 10px">Gross wt (KG)</th><th style="text-align:right;padding:3px 0 3px 10px">Net wt (KG)</th></tr></thead><tbody>'+
+      Object.keys(bu).map(k=>'<tr><td style="padding:2px 10px 2px 0;font-weight:600">'+esc2(k)+'</td><td style="text-align:right;padding:2px 10px">'+bu[k].n+'</td><td style="text-align:right;padding:2px 10px">'+Math.round(bu[k].p)+'</td><td style="text-align:right;padding:2px 10px">'+bu[k].g.toFixed(3)+'</td><td style="text-align:right;padding:2px 0 2px 10px">'+bu[k].w.toFixed(3)+'</td></tr>').join("")+
+      '<tr style="border-top:1px solid var(--g2);font-weight:700"><td style="padding:3px 10px 2px 0">Total</td><td style="text-align:right;padding:3px 10px 2px">'+rows.length+'</td><td style="text-align:right;padding:3px 10px 2px">'+Math.round(rows.reduce((a, r)=>a + num(r.p), 0))+'</td><td style="text-align:right;padding:3px 10px 2px">'+rows.reduce((a, r)=>a + num(r.g), 0).toFixed(3)+'</td><td style="text-align:right;padding:3px 0 2px 10px">'+rows.reduce((a, r)=>a + num(r.n), 0).toFixed(3)+'</td></tr></tbody></table>' : "";
     const note = el("jc_wtNote"); if(note) note.textContent = (any ? "Weights are the sum of the container weights below. " : "No container weights entered: type the weight totals here. ")+(rows.some(r=>num(r.p)) ? "Packages are the sum of the container packages." : "No container packages entered: type the total packages here.");
   };
   JD.collectCargo = function(){
@@ -18382,7 +18389,7 @@ function makePrintFit(){
     const contLines = conts.length ? conts.map(x=>"CONT NO: "+esc2(x.container_no)+(x.type ? "  "+esc2(x.type) : "")+(x.seal_no ? "<br>CARRIER SEAL: "+esc2(x.seal_no) : "")+(x.pkgs ? "<br>"+esc2(x.pkgs)+" "+esc2((x.pkg_type || "PACKAGES").toUpperCase()) : "")+(x.gross_wt ? "<br>GR. WT: "+esc2(x.gross_wt)+" KGS" : "")+(x.net_wt ? "<br>NET WT: "+esc2(x.net_wt)+" KGS" : "")).join("<br><br>") : "";
     const sb = (rd.shipping_bills || []).map(b=>"SB NO: "+esc2(b.bill_no)+(b.bill_date ? " DT. "+dmy(b.bill_date) : "")).join("<br>");
     const pk = c.pkgs ? esc2(c.pkgs)+" "+esc2((c.pkgType || "PACKAGES").toUpperCase()) : "";
-    const gw = c.gwt ? "GR. WT. KGS<br>"+esc2(c.gwt)+(c.nwt ? "<br>NET. WT. KGS<br>"+esc2(c.nwt) : "") : "";
+    const gw = c.gwt ? "GR. WT. KGS<br>"+esc2(c.gwt) : "", nw = c.nwt ? "NET. WT. KGS<br>"+esc2(c.nwt) : "", ms = c.vol ? "CBM<br>"+esc2(c.vol) : "";
     const rel = bl.releaseType || ""; const express = /express|telex/i.test(rel);
     const terms = bl.terms ? "FREIGHT "+esc2(String(bl.terms).toUpperCase()) : "";
     const remarks = [terms, bk.container_mode ? esc2(bk.container_mode)+"/"+esc2(bk.container_mode) : "", stage === "Released" && rel ? esc2(rel.toUpperCase()) : ""].filter(Boolean).join("<br>");
@@ -18408,8 +18415,8 @@ function makePrintFit(){
       '<div style="display:grid;grid-template-columns:33% 33% 34%;border-top:'+BORDER+'">'+cell("Place of Acceptance", esc2(bk.place_of_receipt || rd.pol), "border-right:"+BORDER)+cell("Date of Acceptance", dmy(bk.etd), "border-right:"+BORDER)+cell("Port of Loading", esc2(rd.pol))+'</div>'+
       cell("Vessel Voy. No.", esc2(bk.vessel || ""), "border-top:"+BORDER+";min-height:44px")+
       '<div style="display:grid;grid-template-columns:20% 20% 20% 20% 20%;border-top:'+BORDER+'">'+cell("Port of Discharge", esc2(rd.pod), "border-right:"+BORDER)+cell("Place of Delivery", esc2(bk.place_of_delivery || rd.pod), "border-right:"+BORDER)+cell("Date or Period of Delivery", dmy(bk.eta), "border-right:"+BORDER)+cell("Modes / Means of transport", "", "border-right:"+BORDER)+cell("Route / Place of Transhipment (if any)", "")+'</div>'+
-      '<div style="border-top:'+BORDER+';display:grid;grid-template-columns:21% 14% 31% 17% 17%;font-size:9px;text-align:center"><div style="padding:6px">Container No(s)</div><div style="padding:6px">Marks and Numbers</div><div style="padding:6px">Number of packages, kind of packages, general description of goods, (Said to contain)</div><div style="padding:6px">Gross Weight</div><div style="padding:6px">Measurement</div></div>'+
-      '<div style="display:grid;grid-template-columns:21% 14% 31% 17% 17%;font-size:11.5px;line-height:1.4;min-height:120px" class="bl-goods"><div style="padding:6px 7px">'+contLines+'</div><div style="padding:6px 7px">'+nl2br(c.marks || bk.marks || "")+'</div><div style="padding:6px 7px">'+pk+'<br>'+nl2br(c.cargoDesc || c.commodity || "")+(c.hscode ? "<br>HS CODE: "+esc2(c.hscode) : "")+'</div><div style="padding:6px 7px">'+gw+'</div><div style="padding:6px 7px">'+(c.vol ? esc2(c.vol)+" CBM" : "")+'</div></div>'+
+      '<div style="border-top:'+BORDER+';display:grid;grid-template-columns:18% 12% 28% 14% 14% 14%;font-size:9px;text-align:center"><div style="padding:6px">Container No(s)</div><div style="padding:6px">Marks and Numbers</div><div style="padding:6px">Number of packages, kind of packages, general description of goods, (Said to contain)</div><div style="padding:6px">Gross Weight</div><div style="padding:6px">Net Weight</div><div style="padding:6px">Measurement</div></div>'+
+      '<div style="display:grid;grid-template-columns:18% 12% 28% 14% 14% 14%;font-size:11.5px;line-height:1.4;min-height:120px" class="bl-goods"><div style="padding:6px 7px">'+contLines+'</div><div style="padding:6px 7px">'+nl2br(c.marks || bk.marks || "")+'</div><div style="padding:6px 7px">'+pk+'<br>'+nl2br(c.cargoDesc || c.commodity || "")+(c.hscode ? "<br>HS CODE: "+esc2(c.hscode) : "")+'</div><div style="padding:6px 7px;text-align:center">'+gw+'</div><div style="padding:6px 7px;text-align:center">'+nw+'</div><div style="padding:6px 7px;text-align:center">'+ms+'</div></div>'+
       /* the band under the cargo: the company stamp (when released with the digital signature) on the left, shipping bill / freight / release lines and the standard remark across the rest */
       '<div style="display:grid;grid-template-columns:30% 70%;min-height:170px;padding-bottom:6px"><div style="padding:8px 10px;text-align:center;align-self:end">'+(stage === "Released" ? (bl.digitalSign && pr.seal_image ? '<img src="'+pr.seal_image+'" style="max-height:130px;max-width:100%;object-fit:contain;display:block;margin:0 auto">' : "")+(relLabel ? '<div style="display:inline-block;margin-top:6px;border:2.5px solid #1b3a8a;color:#1b3a8a;padding:3px 12px;font:700 14px Arial,Helvetica,sans-serif;letter-spacing:1.2px;transform:rotate(-3deg);border-radius:3px">'+esc2(relLabel)+'</div>' : "") : "")+'</div>'+
         '<div style="padding:8px 10px 0 4px;font-size:13px;line-height:1.5;align-self:end">'+(sb ? sb+'<br><br>' : "")+(hasClauses ? clauseHtml : remarks+(bnote ? '<div style="margin-top:6px">'+nl2br(bnote)+'</div>' : ""))+'</div></div>'+
@@ -18852,6 +18859,37 @@ function makePrintFit(){
     if(tt && tt.packages) return {act:tt.actual_kg, vol:tt.volumetric_kg, chg:tt.chargeable_kg, pk:tt.packages, rows, unit, lbs:false};
     return {act, vol, pk, rows, unit, lbs:unit === "in_lbs"};
   };
+  /* IATA-style notice and conditions of contract printed on the back of the House Air Waybill (page 2) */
+  DK.awbConditions = function(rd){
+    const T = (n, t)=> '<div style="display:grid;grid-template-columns:34px 1fr;margin:0 0 4px"><div>'+n+'</div><div style="text-align:justify">'+t+'</div></div>';
+    const left = T("1.1.1", "In this contract and the Notices appearing hereon:<br><b>CARRIER</b> includes the air carrier issuing this air waybill and all carriers that carry or undertake to carry the cargo or perform any other services related to such carriage.<br><b>SPECIAL DRAWING RIGHT (SDR)</b> is a Special Drawing Right as defined by the International Monetary Fund.<br><b>WARSAW CONVENTION</b> means whichever of the following instruments is applicable to the contract of carriage: the Convention for the Unification of Certain Rules Relating to International Carriage by Air, signed at Warsaw, 12 October 1929; that Convention as amended at The Hague on 28 September 1955; that Convention as amended at The Hague 1955 and by Montreal Protocol No. 1, 2 or 4 (1975) as the case may be.<br><b>MONTREAL CONVENTION</b> means the Convention for the Unification of Certain Rules for International Carriage by Air, done at Montreal on 28 May 1999.")+
+      T("2.1", "Carriage is subject to the rules relating to liability established by the Warsaw Convention or the Montreal Convention unless such carriage is not &quot;international carriage&quot; as defined by the applicable Conventions.")+
+      T("2.2", "To the extent not in conflict with the foregoing, carriage and other related services performed by each Carrier are subject to: 2.2.1 applicable laws and government regulations; 2.2.2 provisions contained in the air waybill, Carrier's conditions of carriage and related rules, regulations, and timetables (but not the times of departure and arrival stated therein) and applicable tariffs of such Carrier, which are made part hereof, and which may be inspected at any airports or other cargo sales offices from which it operates regular services. When carriage is to/from the USA, the shipper and the consignee are entitled, upon request, to receive a free copy of the Carrier's conditions of carriage. The Carrier's conditions of carriage include, but are not limited to: 2.2.2.1 limits on the Carrier's liability for loss, damage or delay of goods, including fragile or perishable goods; 2.2.2.2 claims restrictions, including time periods within which shippers or consignees must file a claim or bring an action against the Carrier for its acts or omissions, or those of its agents; 2.2.2.3 rights, if any, of the Carrier to change the terms of the contract; 2.2.2.4 rules about Carrier's right to refuse to carry; 2.2.2.5 rights of the Carrier and limitations concerning delay or failure to perform service, including schedule changes, substitution of alternate Carrier or aircraft and rerouting.")+
+      T("3.", "The agreed stopping places (which may be altered by Carrier in case of necessity) are those places, except the place of departure and place of destination, set forth on the face hereof or shown in Carrier's timetables as scheduled stopping places for the route. Carriage to be performed hereunder by several successive Carriers is regarded as a single operation.")+
+      T("4.", "For carriage to which the Montreal Convention does not apply, Carrier's liability limitation for cargo lost, damaged or delayed shall be 26 SDRs per kilogram unless a greater per kilogram monetary limit is provided in any applicable Convention or in Carrier's tariffs or general conditions of carriage.")+
+      T("5.1", "Except when the Carrier has extended credit to the consignee without the written consent of the shipper, the shipper guarantees payment of all charges for the carriage due in accordance with Carrier's tariff, conditions of carriage and related regulations, applicable laws (including national laws implementing the Warsaw Convention and the Montreal Convention), government regulations, orders and requirements.")+
+      T("5.2", "When no part of the consignment is delivered, a claim with respect to such consignment will be considered even though transportation charges thereon are unpaid.");
+    const right = T("6.1", "For cargo accepted for carriage, the Warsaw Convention and the Montreal Convention permit shipper to increase the limitation of liability by declaring a higher value for carriage and paying a supplemental charge if required.")+
+      T("6.2", "In carriage to which neither the Warsaw Convention nor the Montreal Convention applies Carrier shall, in accordance with the procedures set forth in its general conditions of carriage and applicable tariffs, permit shipper to increase the limitation of liability by declaring a higher value for carriage and paying a charge if so required.")+
+      T("7.1", "In cases of loss of, damage or delay to part of the cargo, the weight to be taken into account in determining Carrier's limit of liability shall be only the weight of the package or packages concerned.")+
+      T("7.2", "Notwithstanding any other provisions, for &quot;foreign air transportation&quot; as defined by the U.S. Transportation Code: 7.2.1 in the case of loss of, damage or delay to a shipment, the weight to be used in determining Carrier's limit of liability shall be the weight which is used to determine the charge for carriage of such shipment; and 7.2.2 in the case of loss of, damage or delay to a part of a shipment, the shipment weight in 7.2.1 shall be prorated to the packages covered by the same air waybill whose value is affected by the loss, damage or delay. The weight applicable in the case of loss or damage to one or more articles in a package shall be the weight of the entire package.")+
+      T("8", "Any exclusion or limitation of liability applicable to Carrier shall apply to Carrier's agents, employees, and representatives and to any person whose aircraft or equipment is used by Carrier for carriage and such person's agents, employees and representatives.")+
+      T("9", "Carrier undertakes to complete the carriage with reasonable dispatch, where permitted by applicable laws, tariffs and government regulations, Carrier may use alternative carriers, aircraft or modes of transport without notice but with due regard to the interests of the shipper. Carrier is authorized by the shipper to select the routing and all intermediate stopping places that it deems appropriate or to change or deviate from the routing shown on the face hereof.")+
+      T("10", "Receipt by the person entitled to delivery of the cargo without complaint shall be prima facie evidence that the cargo has been delivered in good condition and in accordance with the contract of carriage.")+
+      T("10.1", "In the case of loss of, damage or delay to cargo a written complaint must be made to Carrier by the person entitled to delivery. Such complaint must be made: 10.1.1 in the case of damage to the cargo, immediately after discovery of the damage and at the latest within 14 days from the date of receipt of the cargo; 10.1.2 in the case of delay, within 21 days from the date on which the cargo was placed at the disposal of the person entitled to delivery; 10.1.3 in the case of non-delivery of the cargo, within 120 days from the date of issue of the air waybill, or if an air waybill has not been issued, within 120 days from the date of receipt of the cargo for transportation by the Carrier.")+
+      T("10.2", "Such complaint may be made to the Carrier whose air waybill was used, or to the first Carrier or to the last Carrier or to the Carrier which performed the carriage during which the loss, damage or delay took place.")+
+      T("10.3", "Unless a written complaint is made within the time limits specified in 10.1 no action may be brought against Carrier.")+
+      T("10.4", "Any rights to damages against Carrier shall be extinguished unless an action is brought within two years from the date of arrival at the destination, or from the date on which the aircraft ought to have arrived, or from the date on which the carriage stopped.")+
+      T("11", "Shipper shall comply with all applicable laws and government regulations of any country to or from which the cargo may be carried, including those relating to the packing, carriage or delivery of the cargo, and shall furnish such information and attach such documents to the air waybill as may be necessary to comply with such laws and regulations. Carrier is not liable to shipper and shipper shall indemnify Carrier for loss or expense due to shipper's failure to comply with this provision.")+
+      T("12", "No agent, employee or representative of Carrier has authority to alter, modify or waive any provisions of this contract.");
+    const stage = (((rd.details || {}).bl || {}).blStage) || "Draft";
+    return header(rd.company || {}, true)+'<div style="text-align:center;font-weight:800;font-size:12.5px;margin:6px 0 4px">NOTICE CONCERNING CARRIER\'S LIMITATION OF LIABILITY</div>'+
+      '<div style="font-size:8.2px;line-height:1.35;text-align:justify;margin-bottom:6px">If the carriage involves an ultimate destination or stop in a country other than the country of departure, the Montreal Convention or the Warsaw Convention may be applicable to the liability of the Carrier in respect of loss of, damage or delay to cargo. Carrier\'s limitation of liability in accordance with those Conventions shall be as set forth in subparagraph 4 unless a higher value is declared.</div>'+
+      '<div style="text-align:center;font-weight:800;font-size:11px;margin:4px 0">CONDITIONS OF CONTRACT</div>'+
+      '<div style="column-count:2;column-gap:14px;font-size:7.4px;line-height:1.28">'+left+right+'</div>'+
+      '<div style="border-top:1px solid #333;margin-top:8px;padding-top:4px;font-size:7.4px;line-height:1.3;text-align:justify">IF THIS AIR WAY BILL IS ISSUED BY A FORWARDER IN A CAPACITY AS CONTRACTING CARRIER FOR AIR TRANSPORTATION, ANY TRANSPORTATION OR OTHER WHICH IS NOT SUBJECT TO AN INTERNATIONAL AIR CARRIAGE CONVENTION WILL NOT BE SUBJECT TO THE TERMS AND CONDITIONS OF THIS AIR WAY BILL INSTEAD BE SUBJECT TO THE FORWARDER\'S GENERAL CONDITIONS AS APPROPRIATE.</div>'+
+      (stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:110px;font-weight:700;color:rgba(0,0,0,.06);transform:rotate(-28deg)">DRAFT</div>' : "");
+  };
   DK.awb = function(rd){
     const co = rd.company || {}, P = co.profile || {}, f = facts(rd); const bl = f.bl || {}; const a = bl.awb || {}; const stage = bl.blStage || "Draft";
     const wt = DK.awbWeights(f.d); const gross = num(first(f.gw, wt.act)); const chargeable = num(first(a.chargeableWt, wt.chg || Math.max(gross, wt.vol))); const rate = num(a.rate); const wtCharge = rate * chargeable; const other = num(a.otherCharges);
@@ -18878,7 +18916,7 @@ function makePrintFit(){
         '<div style="border:1px solid #333;border-left:0;padding:5px 7px;font-size:7.4px;line-height:1.35;min-height:100px">Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Regulations.<div style="margin-top:24px;border-top:1px solid #333;padding-top:2px;font-weight:700">Signature of Shipper or his Agent</div></div></div>'+
       row("50% 50%", [cell("Executed on (date) at (place)", esc2([dmy(a.execDate || bl.hblDate), a.place || bl.place].filter(Boolean).join("  at ")), "min-height:46px"), '<div style="border:1px solid #333;border-left:0;padding:3px 7px;min-height:46px;text-align:center"><div style="min-height:26px">'+(stage === "Released" && bl.digitalSign ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:30px;max-width:130px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:34px;max-width:70px;margin-left:6px">' : "") : "")+'</div><div style="font-size:7.4px;font-weight:700;border-top:1px solid #333;padding-top:1px">Signature of Issuing Carrier or its Agent — '+esc2(P.legal_name || co.name || "")+'</div></div>'])+
       '</div>';
-    return wrapPages([body], co, P.footer_note || "HAWB — "+(hawb || rd.job_number));
+    return wrapPages([body, DK.awbConditions(rd)], co, P.footer_note || "HAWB — "+(hawb || rd.job_number));
   };
 
   /* ---------- RECEIPT / PAYMENT VOUCHER ---------- */
@@ -18935,11 +18973,23 @@ function makePrintFit(){
 
   /* ---------- context, viewer, print / pdf / mail ---------- */
   DK.KINDS = {fc:"Freight Certificate", can:"Cargo Arrival Notice", do:"Delivery Order", awb:"House Air Waybill", doc:"Billing document"};
+  /* the vessel / voyage / flight, ETD and ETA shown on a document come from the job's Routing first (every leg), then from the booking */
+  DK.mergeRouting = async function(rd){
+    try{
+      const r = await api("GET", "/api/jobs/"+encodeURIComponent(rd.job_number)+"/routing"); const legs = (r.legs || []).slice().sort((a, b)=> a.seq - b.seq); if(!legs.length) return rd;
+      const a = legs[0], z = legs[legs.length - 1], bk = Object.assign({}, rd.booking || {});
+      if(rd.mode === "Air"){ bk.vessel = a.voyage || bk.vessel; bk.flight = a.voyage || bk.flight; if(!bk.carrier) bk.carrier = a.carrier; }
+      else { bk.vessel = (a.carrier || "")+(a.voyage ? " / "+a.voyage : "") || bk.vessel; }
+      if(a.etd) bk.etd = String(a.etd).slice(0, 10); if(z.eta) bk.eta = String(z.eta).slice(0, 10);
+      rd.booking = bk;
+    }catch(e){}
+    return rd;
+  };
   DK.build = async function(kind, opt){
     let doc = null, rd = null, billTo = "";
     if(kind === "doc"){ doc = await api("GET", "/api/documents/"+opt.docId); }
     const job = kind === "receipt" ? null : (opt.job || (doc && doc.job_number) || window.__lastJobNo);
-    if(job) rd = await api("GET", "/api/jobs/"+encodeURIComponent(job)+"/report-data");
+    if(job){ rd = await api("GET", "/api/jobs/"+encodeURIComponent(job)+"/report-data"); await DK.mergeRouting(rd); }
     else { const prof = await api("GET", "/api/company/doc-profile"); rd = {company:{name:prof.name, logo:prof.logo, profile:prof.print_profile || prof.profile}, details:{}, booking:{}, party_text:{}, job_charges:[], invoices:[], shipping_bills:[], bills_of_entry:[]}; }
     if(kind === "do" && rd.direction === "Import" && !((rd.details || {}).impdocs || {}).do_no){ const r = await api("POST", "/api/jobs/"+encodeURIComponent(job)+"/do-issue"); rd.details.impdocs = r.impdocs; }
     let html, title;
@@ -25077,15 +25127,29 @@ body.job-readonly #jlBanner{display:flex}
         : '<div style="flex:1;color:var(--g5);font-size:12px">Nothing needs your attention right now.</div>')+
       '<button class="btn btn-out btn-sm" data-nc-all="1" style="flex:none">View all'+(rows.length ? " ("+rows.length+")" : "")+'</button></div>';
     if(window.renderIcons) renderIcons(c);
-    const tr = c.querySelector(".rt-track"); if(tr) tr.style.animationDuration = Math.max(25, Math.round(tr.scrollWidth / 62)) + "s";     /* about 60 px a second: readable, not slow */
+    startTicker();
   }
   async function alerts(){
-    try{ const r = await api("GET", "/api/notifications"); A.items = r.items || []; A.counts = r.counts || {}; A.cats = r.categories || []; }catch(e){ A.items = []; }
+    try{ const r = await api("GET", "/api/notifications"); A.items = r.items || []; A.counts = r.counts || {}; A.cats = r.categories || []; TICK.speed = r.ticker_speed || "normal"; }catch(e){ A.items = []; }
     const sig = JSON.stringify(A.items.map(x=> x.id+"|"+x.title+"|"+x.text)), card = document.getElementById("rtDash");
     if(sig !== A.sig || !card || !card.firstChild){ A.sig = sig; paintAlerts(); }                     /* repaint only when something changed, so the running message does not restart every minute */
     if(document.getElementById("ncList")) paintCenter();
   }
   window.__rtAlerts = alerts;
+  /* running message: moves at a fixed speed (Slow 32 / Normal 48 / Fast 70 px a second, a company setting), stops while the mouse is over it, and starts again from the right when the list changes */
+  const TICK = {pos:null, raf:0, last:0, hover:false, speed:"normal"}, SPEED = {slow:32, normal:48, fast:70};
+  function startTicker(){
+    const box = document.querySelector("#rtDash .rt-ticker"), tr = box && box.querySelector(".rt-track"); if(!tr) return;
+    TICK.pos = box.clientWidth; tr.style.transform = "translateX("+TICK.pos+"px)";
+    box.onmouseenter = ()=> { TICK.hover = true; }; box.onmouseleave = ()=> { TICK.hover = false; };
+    cancelAnimationFrame(TICK.raf); TICK.last = 0;
+    const step = ts=>{
+      const t2 = document.querySelector("#rtDash .rt-track"); if(!t2 || t2 !== tr) return;
+      if(TICK.last && !TICK.hover && !document.hidden){ const dt = Math.min(0.1, (ts - TICK.last) / 1000), half = t2.scrollWidth / 2; TICK.pos -= (SPEED[TICK.speed] || 48) * dt; if(half > 0 && TICK.pos <= -half) TICK.pos += half; t2.style.transform = "translateX("+TICK.pos+"px)"; }
+      TICK.last = ts; TICK.raf = requestAnimationFrame(step);
+    };
+    TICK.raf = requestAnimationFrame(step);
+  }
   function openItem(a){
     const l = a.link || {}; if(window.closeModal && document.getElementById("ncList")) closeModal();
     if(l.jobNo){ const no = l.jobNo; go("job-detail", {jobNo:no});
@@ -25130,7 +25194,7 @@ body.job-readonly #jlBanner{display:flex}
     const it = e.target.closest("[data-nc-open]"); if(it){ const a = A.items.find(x=> x.id === it.dataset.ncOpen); if(a) openItem(a); }
   });
   const st = document.createElement("style");
-  st.textContent = ".rt-ticker{overflow:hidden;white-space:nowrap;background:var(--blt);border-radius:8px;padding:7px 0}.rt-track{display:inline-block;padding-left:100%;animation:rtmove 40s linear infinite}.rt-ticker:hover .rt-track{animation-play-state:paused}.rt-it{display:inline-block;margin-right:26px;font-size:12px;font-weight:600;cursor:pointer;padding:3px 12px;border-radius:999px}.rt-crit{animation:rtGlow 1.4s ease-in-out infinite alternate}@keyframes rtGlow{from{box-shadow:0 0 2px rgba(220,38,38,.35)}to{box-shadow:0 0 5px 1px rgba(220,38,38,.9),0 0 14px rgba(220,38,38,.65)}}@keyframes rtmove{to{transform:translateX(-100%)}}"+
+  st.textContent = ".rt-ticker{overflow:hidden;white-space:nowrap;background:var(--blt);border-radius:8px;padding:7px 0}.rt-track{display:inline-block;white-space:nowrap;will-change:transform}.rt-it{display:inline-block;margin-right:26px;font-size:12px;font-weight:600;cursor:pointer;padding:3px 12px;border-radius:999px}.rt-crit{animation:rtGlow 1.4s ease-in-out infinite alternate}@keyframes rtGlow{from{box-shadow:0 0 2px rgba(220,38,38,.35)}to{box-shadow:0 0 5px 1px rgba(220,38,38,.9),0 0 14px rgba(220,38,38,.65)}}@keyframes rtmove{to{transform:translateX(-100%)}}"+
     ".rt-jr{border-left:2px solid var(--g2);margin:6px 0 4px 8px;padding-left:14px}.rt-leg{position:relative;padding:4px 0 10px}.rt-leg:before{content:'';position:absolute;left:-21px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--bl)}.rt-leg.PLANNED:before{background:#fff;border:2px dashed var(--am)}.rt-leg .t{font-weight:700;font-size:12px}.rt-leg .m{font-size:11px;color:var(--g6)}";
   document.head.appendChild(st);
   setInterval(()=>{ const d = document.getElementById("s-dashboard"); if(d && d.offsetParent !== null && Date.now() - A.t > 60000){ A.t = Date.now(); alerts(); } }, 2000);
@@ -25230,6 +25294,7 @@ body.job-readonly #jlBanner{display:flex}
       card("Payments and approvals", row("Purchase bills: tell me before the due date", num("ns_pay", S.payments.due_lead_days, 0, 60)+'<span>days</span>', "Overdue bills are always shown.")+
         row("Invoice approvals: mark as action needed after", num("ns_app", S.approvals.escalate_after_days, 0, 60)+'<span>days waiting</span>'))+
       card("Employees", row("Birthdays: tell me before", num("ns_bd", S.birthdays.lead_days, 0, 30)+'<span>days</span>'))+
+      card("Dashboard running message", row("Speed", '<select class="fc" id="ns_speed" style="max-width:140px">'+[["slow", "Slow"], ["normal", "Normal"], ["fast", "Fast"]].map(x=>'<option value="'+x[0]+'"'+(((S.display || {}).ticker_speed || "normal") === x[0] ? " selected" : "")+'>'+x[1]+'</option>').join("")+'</select>', "Pick the speed that is comfortable to read. The message stops while the mouse is over it."))+
       card("Who receives each kind", '<div style="font-size:11.5px;color:var(--g5);margin-bottom:6px">Leave all roles unticked to send it to everyone who may see that kind of record. Tick roles (for example managers or department heads) to send it only to them. Company administrators always receive everything.</div>'+
         CATS.map(c=>{ const a = S.audience[c] || {enabled:true, roles:[]};
           return '<div style="padding:9px 0;border-bottom:1px solid var(--g1)" data-ns-cat="'+c+'"><label style="display:flex;gap:8px;align-items:center;font-weight:700;font-size:12.5px"><input type="checkbox" data-ns-en="'+c+'"'+(a.enabled ? " checked" : "")+'> '+c+'</label>'+
@@ -25244,7 +25309,7 @@ body.job-readonly #jlBanner{display:flex}
     const v = id=> document.getElementById(id).value, n = id=> Number(v(id));
     const aud = {}; document.querySelectorAll("[data-ns-cat]").forEach(box=>{ const c = box.dataset.nsCat; aud[c] = {enabled:box.querySelector("[data-ns-en]").checked, roles:Array.from(box.querySelectorAll("[data-ns-role]:checked")).map(x=>x.dataset.nsRole)}; });
     return {routing:{etd_lead_value:n("ns_etd"), etd_lead_unit:v("ns_etdu"), eta_lead_value:n("ns_eta"), eta_lead_unit:v("ns_etau"), planned_lead_days:n("ns_plan"), changed_days:n("ns_chg")}, payments:{due_lead_days:n("ns_pay")},
-      approvals:{escalate_after_days:n("ns_app")}, birthdays:{lead_days:n("ns_bd")}, audience:aud};
+      approvals:{escalate_after_days:n("ns_app")}, birthdays:{lead_days:n("ns_bd")}, display:{ticker_speed:v("ns_speed")}, audience:aud};
   }
   document.addEventListener("click", async e=>{
     if(!e.target.closest("#nsSave")) return;
@@ -25289,17 +25354,28 @@ body.job-readonly #jlBanner{display:flex}
 
   /* ---------- layout pieces ---------- */
   const pairs = (rows, cols)=> '<div style="display:grid;grid-template-columns:'+new Array(cols || 2).fill("112px 1fr").join(" ")+';column-gap:8px;row-gap:5px;padding:8px 10px;font-size:10px">'+rows.map(r=>'<div style="font-weight:700;color:'+NAVY+'">'+esc(r[0])+'</div><div>: '+(r[2] ? r[1] : V(r[1]))+'</div>').join("")+'</div>';
-  const sec = (title, inner)=> '<div style="margin-top:9px">'+box(bar(title)+inner)+'</div>';
+  const sec = (title, inner)=> '<div style="margin-top:7px">'+box(bar(title)+inner)+'</div>';
   const table = (head, rows, align)=> '<table style="width:100%;border-collapse:collapse;font-size:9.5px"><thead><tr style="background:'+SOFT+'">'+head.map((h, i)=>'<th style="padding:5px 6px;text-align:'+((align || [])[i] || "left")+';font-size:8.8px;color:'+NAVY+';border-bottom:1px solid '+LINE+'">'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+
     (rows.length ? rows.map(r=>'<tr>'+r.map((x, i)=>'<td style="padding:5px 6px;border-top:1px solid '+LINE+';text-align:'+((align || [])[i] || "left")+';vertical-align:top">'+(x == null || x === "" ? "—" : x)+'</td>').join("")+'</tr>').join("") : '<tr><td colspan="'+head.length+'" style="padding:8px;text-align:center;color:#8896ab">None</td></tr>')+'</tbody></table>';
   const note = t=> '<div style="padding:7px 10px;font-size:10px;line-height:1.5;min-height:26px">'+(t ? esc(t).replace(/\n/g, "<br>") : '<span style="color:#8896ab">—</span>')+'</div>';
   const partyBox = (t, txt)=> sec(t, '<div style="padding:7px 10px;font-size:10px;line-height:1.45;min-height:34px"><b>'+esc(lines(txt)[0] || "")+'</b>'+(lines(txt).length > 1 ? "<br>"+lines(txt).slice(1).map(esc).join("<br>") : "")+'</div>');
-  function signBlock(c){ return '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;border-top:1px solid '+LINE+';padding-top:8px;font-size:9.5px"><div style="line-height:1.8"><div><b>Generated On</b> : '+esc(dt(c.now))+'</div><div><b>Generated By</b> : '+esc(c.by)+'</div></div>'+sigBlock(c.co, true, "Authorized Signatory")+'</div>'; }
-  function paginate(c, title, blocks){
+  function signBlock(c){
+    const P = c.P || {}, imgs = c.sign === false ? "" : (P.sign_image ? '<img class="od-simg" src="'+P.sign_image+'" style="max-height:54px;max-width:150px">' : "")+(P.seal_image ? '<img class="od-simg" src="'+P.seal_image+'" style="max-height:62px;max-width:90px;margin-left:8px">' : "");
+    return '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;border-top:1px solid '+LINE+';padding-top:8px;font-size:9.5px"><div style="line-height:1.8"><div><b>Generated On</b> : '+esc(dt(c.now))+'</div><div><b>Generated By</b> : '+esc(c.by)+'</div></div>'+
+      '<div style="text-align:center;min-width:210px"><div style="font-weight:700">For '+esc(P.legal_name || c.co.name || "")+'</div><div style="min-height:58px;margin:2px 0">'+imgs+'</div><div style="border-top:1px solid #333;padding-top:2px;font-weight:700">Authorized Signatory</div></div></div>'; }
+  function paginateMulti(c, title, blocks){
     const pages = []; let cur = header(c.co)+titleBar(title); const sign = signBlock(c);
     blocks.forEach(b=>{ const m = measure(cur+b+sign); if(m && m > INNER && cur.length > 400){ pages.push(cur); cur = header(c.co, true)+b; } else cur += b; });
     if(measure(cur+sign) > INNER){ pages.push(cur); cur = header(c.co, true); } pages.push(cur+sign);
     return wrapPages(pages, c.co, "Generated "+dt(c.now)+" by "+c.by+" · Job "+c.job);
+  }
+  /* a report is one A4 page: laid out with the signature at the foot; if it is a little too tall it is scaled to fit (never below 62%); only a really long report runs to more pages */
+  function paginate(c, title, blocks){
+    const inner = header(c.co)+titleBar(title)+blocks.join(""), sign = signBlock(c), m = measure(inner+sign);
+    if(m && m > INNER / 0.62) return paginateMulti(c, title, blocks);
+    let html = '<div style="display:flex;flex-direction:column;min-height:'+INNER+'px"><div style="flex:1">'+inner+'</div>'+sign+'</div>';
+    if(m && m > INNER){ const k = INNER / m; html = '<div style="width:'+Math.round(734 / k)+'px;transform:scale('+k.toFixed(4)+');transform-origin:0 0;display:flex;flex-direction:column;min-height:'+Math.round(INNER / k)+'px"><div style="flex:1">'+inner+'</div>'+sign+'</div>'; }
+    return wrapPages([html], c.co, "Generated "+dt(c.now)+" by "+c.by+" · Job "+c.job);
   }
   const jobBlock = c=> { const f = c.f, air = f.air; return pairs([["Job No", c.job], ["Booking No", c.rd.booking_number || f.bk.number], ["Customer", customer(c)], [air ? "HAWB No" : "HBL No", f.hbl], ["Shipper", nm(parties(c).shipper)], [air ? "MAWB No" : "MBL No", f.mbl],
     ["Consignee", nm(parties(c).consignee)], ["Shipment", c.rd.mode+" "+c.rd.direction+(c.rd.container_mode ? " · "+c.rd.container_mode : "")]]); };
@@ -25381,15 +25457,19 @@ body.job-readonly #jlBanner{display:flex}
   R.air_manifest = {need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Airway bill number (BL / AWB tab)", c.f.hbl || c.f.mbl]),
     build:c=> paginate(c, "AIR MANIFEST", [sec("Flight", pairs([["Airline / Flight", c.legs[0] ? (c.legs[0].carrier || "")+" "+(c.legs[0].voyage || "") : vessel(c).name+" "+vessel(c).voyage], ["Origin", c.f.pol], ["Destination", c.f.pod], ["ETA", dmy(eta(c))]])),
       sec("Consignments", table(["MAWB", "HAWB", "Shipper", "Consignee", "Packages", "Gross Wt (KG)", "Description"], [[esc(c.f.mbl), esc(c.f.hbl), esc(nm(parties(c).shipper)), esc(nm(parties(c).consignee)), esc(c.f.pkgs || ""), esc(c.f.gw ? fmt(c.f.gw) : ""), esc(c.f.desc || "")]], ["left", "left", "left", "left", "right", "right", "left"]))])};
+  ["sailing_confirmation", "shipment_summary", "pre_alert", "loading_confirmation", "stuffing_report", "transshipment_confirmation", "export_declaration", "mawb", "mbl", "destuffing_report", "pod", "air_manifest"].forEach(k=>{ if(R[k]) R[k].std = true; });
   /* the existing document templates are reused unchanged */
   const reuse = (kind, extra)=> async (c, inp, variant)=> { const b = await DK.build(kind, {job:c.job}); return {html:b.html, title:b.title}; };
   R.hawb = {need:c=> c.f.air ? [] : ["An air job"], build:reuse("awb")};
   R.delivery_order = {need:c=> miss(["Consignee", nm(parties(c).consignee)]), build:reuse("do")};
   R.pl_report = {need:()=> [], build:reuse("pl")};
-  R.arrival_notice = {need:c=> miss(["Consignee", nm(parties(c).consignee)]), build:c=> ({html:withoutRates(DK.arrivalNotice(c.rd)), title:"Arrival Notice "+c.job})};
+  function routed(c){ const rd = Object.assign({}, c.rd); if(c.legs.length){ const a = c.legs[0], z = c.legs[c.legs.length - 1], bk = Object.assign({}, rd.booking || {});
+      if(rd.mode === "Air"){ bk.vessel = a.voyage || bk.vessel; bk.flight = a.voyage || bk.flight; if(!bk.carrier) bk.carrier = a.carrier; } else bk.vessel = (a.carrier || "")+(a.voyage ? " / "+a.voyage : "") || bk.vessel;
+      if(a.etd) bk.etd = String(a.etd).slice(0, 10); if(z.eta) bk.eta = String(z.eta).slice(0, 10); rd.booking = bk; } return rd; }
+  R.arrival_notice = {need:c=> miss(["Consignee", nm(parties(c).consignee)]), build:c=> ({html:withoutRates(DK.arrivalNotice(routed(c))), title:"Arrival Notice "+c.job})};
   /* Cargo Arrival Notice: With Charges shows only the sell charges the user ticked; Without Charges has no charge block and no amounts at all */
   R.can = {need:c=> miss(["Consignee", nm(parties(c).consignee)], ["Vessel and voyage (Routing tab or Booking)", hasMove(c)]),
-    build:(c, inp, variant)=> { const rd = Object.assign({}, c.rd); let html;
+    build:(c, inp, variant)=> { const rd = routed(c); let html;
       if(variant === "without_rates"){ rd.job_charges = []; html = withoutRates(DK.arrivalNotice(rd)); }
       else { const all = c.rd.job_charges || []; rd.job_charges = (inp.charges || []).map(i=> all[i]).filter(Boolean); html = DK.arrivalNotice(rd); }
       return {html, title:"Cargo Arrival Notice "+c.job+(variant === "without_rates" ? " (Without Charges)" : " (With Charges)")}; }};
@@ -25431,14 +25511,15 @@ body.job-readonly #jlBanner{display:flex}
   /* ---------- Generate ---------- */
   function askInputs(rep, spec, prior){
     return new Promise(resolve=>{
-      const fields = spec.inputs || []; if(!fields.length){ resolve({}); return; }
+      const fields = spec.inputs || []; if(!fields.length && !spec.std){ resolve({}); return; }
       const body = fields.map(f=>{ const val = esc((prior || {})[f.k] || ""); const ctl = f.type === "textarea" ? '<textarea class="fc" rows="3" data-od-in="'+f.k+'">'+val+'</textarea>' : '<input class="fc" '+(f.type ? 'type="'+f.type+'" ' : "")+(f.type === "number" ? 'min="0" ' : "")+'data-od-in="'+f.k+'" value="'+val+'">';
-        return '<div class="fg"><label class="fl">'+esc(f.label)+(f.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+'</div>'; }).join("");
+        return '<div class="fg"><label class="fl">'+esc(f.label)+(f.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+'</div>'; }).join("")+(spec.std ? '<label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12.5px"><input type="checkbox" data-od-sign'+((prior || {}).sign === false ? "" : " checked")+'> Print with signature and seal <span style="color:var(--g5);font-size:11px">(untick to leave room for a wet signature)</span></label>' : "");
       let done = false;
       openModal({title:rep.name, size:"sm", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">'+(rep.ops ? "Enter or confirm the actual details for this report." : "Add anything you want on the report.")+'</div>'+body, footHTML:'<button class="btn btn-out" type="button" id="odInCancel">Cancel</button><button class="btn btn-pri" type="button" id="odInGo">Generate</button>'});
       document.getElementById("odInCancel").addEventListener("click", ()=>{ done = true; closeModal(); resolve(null); });
       document.getElementById("odInGo").addEventListener("click", ()=>{
         const v = {}; document.querySelectorAll("[data-od-in]").forEach(e=>{ v[e.dataset.odIn] = e.value.trim(); });
+        const sg = document.querySelector("[data-od-sign]"); if(sg) v.sign = sg.checked;
         const bad = fields.filter(f=> f.req && !v[f.k]).map(f=> f.label); if(bad.length){ say("Missing information", bad.join(", "), "warn"); return; }
         done = true; closeModal(); resolve(v);
       });
@@ -25488,8 +25569,9 @@ body.job-readonly #jlBanner{display:flex}
       const missing = spec.need(c); if(missing.length){ showMissing(rep, missing); return; }
       let inp;
       if(code === "can"){ const a = await askCan(rep, c, variant); if(!a) return; variant = a.variant; inp = variant === "with_rates" ? {charges:a.charges} : {}; }
-      else { let prior = {}; const g = rep.generated[variant]; if(g && spec.inputs){ try{ prior = (await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/"+g.id)).inputs || {}; }catch(e){} }
+      else { let prior = {}; const g = rep.generated[variant]; if(g && (spec.inputs || spec.std)){ try{ prior = (await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/"+g.id)).inputs || {}; }catch(e){} }
         inp = await askInputs(rep, spec, prior); if(inp === null) return; }
+      c.sign = inp.sign !== false;
       let out = await spec.build(c, inp, variant), html = out, title = rep.name+" "+O.job;
       if(out && typeof out === "object"){ html = out.html; title = out.title || title; }
       const rec = await api("POST", "/api/jobs/"+enc(O.job)+"/outdocs", {code, variant, title, html, inputs:Object.keys(inp).length ? inp : null});
@@ -25506,10 +25588,11 @@ body.job-readonly #jlBanner{display:flex}
       const rep = O.data.reports.find(r=> r.code === code) || {name:code};
       openModal({title:esc(b.title)+' <span style="font-size:11px;font-weight:400;color:var(--g5)">version '+b.rec.version+'</span>', size:"full", expandable:true,
         bodyHTML:'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
-        footHTML:(code === "can" ? '<span style="margin-right:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">View:'+["with_rates", "without_rates"].map(v=>'<button class="btn btn-sm '+((variant || "") === v ? "btn-pri" : "btn-out")+'" type="button" data-od2="canv" data-code="can" data-var="'+v+'">'+(v === "with_rates" ? "With Charges" : "Without Charges")+'</button>').join("")+'</span>' : "")+
+        footHTML:(/class="od-simg"/.test(b.html) ? '<span style="margin-right:12px;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">Signature:<button class="btn btn-sm btn-pri" type="button" data-od2="sig" data-v="1">With</button><button class="btn btn-sm btn-out" type="button" data-od2="sig" data-v="0">Without</button></span>' : "")+(code === "can" ? '<span style="margin-right:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">View:'+["with_rates", "without_rates"].map(v=>'<button class="btn btn-sm '+((variant || "") === v ? "btn-pri" : "btn-out")+'" type="button" data-od2="canv" data-code="can" data-var="'+v+'">'+(v === "with_rates" ? "With Charges" : "Without Charges")+'</button>').join("")+'</span>' : "")+
           '<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
     }catch(e){ say("Could not open the report", e.message, "error"); }
   }
+  const withSig = pv=> pv.nosign ? Object.assign({}, pv.b, {html:pv.b.html.replace(/<img class="od-simg"[^>]*>/g, "")}) : pv.b;     /* the choice made in the preview applies to Download and Print */
   const isSheets = b=> !!(b && b.rec && b.rec.code === "hbl");
   function printSheets(b){
     const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
@@ -25542,8 +25625,10 @@ body.job-readonly #jlBanner{display:flex}
     if(act === "canv"){ const have = latestId("can", variant); closeModal(); if(have) preview(have, "can", variant); else generate("can", variant); return; }
     if(act === "view"){ if(id) preview(id, code, variant); return; }
     if(act === "hist"){ history(code, variant); return; }
-    if(act === "pdfp"){ if(O.prev) download(O.prev.b); return; }
-    if(act === "printp"){ if(O.prev) printDoc(O.prev.b); return; }
+    if(act === "sig"){ const on = b.dataset.v === "1"; if(O.prev) O.prev.nosign = !on; document.querySelectorAll("#modalBody .od-simg").forEach(x=>{ x.style.display = on ? "" : "none"; });
+      document.querySelectorAll('[data-od2="sig"]').forEach(x=>{ x.className = "btn btn-sm "+((x.dataset.v === "1") === on ? "btn-pri" : "btn-out"); }); return; }
+    if(act === "pdfp"){ if(O.prev) download(withSig(O.prev)); return; }
+    if(act === "printp"){ if(O.prev) printDoc(withSig(O.prev)); return; }
     if(act === "pdf" || act === "print"){ if(!id) return; try{ const rec = await record(id); act === "pdf" ? download(rec) : printDoc(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
   });
   const closeModalIf = ()=> {};
@@ -25563,23 +25648,35 @@ body.job-readonly #jlBanner{display:flex}
   let cache = null, at = 0;
   async function orgs(){ if(cache && Date.now() - at < 20000) return cache; try{ cache = (await api("GET", "/api/customers")).filter(c=> c.status === "ACTIVE"); }catch(e){ cache = []; } at = Date.now(); return cache; }
   async function fill(){
-    const a = document.getElementById("nj_agent"), c = document.getElementById("nj_cha"); if(!a || !c) return;
+    const a = document.getElementById("nj_agent"), c = document.getElementById("nj_cha"), nt = document.getElementById("nj_notify"); if(!a || !c) return;
     const list = await orgs(), has = (o, re)=> (o.roles || []).some(r=> re.test(String(r)));
     const put = (sel, rows, none)=> { const sig = rows.map(r=>r.name).join("|"); if(sel.dataset.sig === sig) return; const cur = sel.value; sel.innerHTML = '<option value="">— None'+(rows.length ? "" : " ("+none+")")+' —</option>'+rows.map(r=>'<option value="'+esc(r.name)+'">'+esc(r.name)+'</option>').join(""); sel.value = cur; sel.dataset.sig = sig; };
     put(a, list.filter(o=> has(o, /agent/i)), "no agent in the Organisation Master"); put(c, list.filter(o=> has(o, /^cha$|broker/i)), "no CHA in the Organisation Master");
+    if(nt){ const sig = list.map(o=>o.name).join("|"); if(nt.dataset.sig !== sig){ const cur = nt.value; nt.innerHTML = '<option value="">Same as Consignee</option>'+list.map(o=>'<option value="'+esc(o.name)+'">'+esc(o.name)+'</option>').join(""); nt.value = cur; nt.dataset.sig = sig; } }
   }
-  const prev = MK.onScreen; MK.onScreen = function(screen, opts){ prev.apply(this, arguments); if(screen === "job-new") setTimeout(fill, 300); };
+  const prev = MK.onScreen; MK.onScreen = function(screen, opts){ prev.apply(this, arguments); if(screen === "job-new"){ cache = null; setTimeout(fill, 300); } };
   setInterval(()=>{ const s = document.getElementById("s-job-new"); if(s && s.classList.contains("on")) fill(); }, 4000);
-  /* after the job is created, keep the chosen parties on its Parties tab */
+  /* the container types and numbers typed on New Job (sea / rail FCL): the type is the code before any bracket, e.g. "20RF (Reefer)" -> 20RF */
+  window.njPlannedBoxes = function(){
+    const fcl = document.getElementById("njShipSeaFcl"); if(!fcl || fcl.offsetParent === null) return null;
+    const out = {}; document.querySelectorAll("#njContRows .njContRow").forEach(r=>{ const t = (r.querySelector("select") || {}).value || "", q = parseInt((r.querySelector("input") || {}).value, 10) || 0; const code = t.replace(/\s*\(.*\)\s*/, "").trim(); if(code && q > 0) out[code] = (out[code] || 0) + q; });
+    const list = Object.keys(out).map(k=>({type:k, qty:out[k]})); return list.length ? list : null;
+  };
+  /* after the job is created, keep the chosen parties and the cargo on its tabs */
   const raw = window.fetch;
   window.fetch = function(input, init){
     const mine = (typeof input === "string" && /^\/api\/shipments$/.test(input) && init && String(init.method).toUpperCase() === "POST") ? (()=> {
       const v = id=> { const e = document.getElementById(id); return e ? e.value : ""; }, t = id=> { const e = document.getElementById(id); return e && e.selectedIndex > -1 && e.value ? (e.options[e.selectedIndex].dataset.name || e.options[e.selectedIndex].text) : ""; };
-      const dir = v("nj_dir"); return {agent:v("nj_agent"), cha:v("nj_cha"), shipper:t("nj_shipper"), consignee:t("nj_consignee"), dir}; })() : null;
+      const dir = v("nj_dir"), cons = t("nj_consignee"); return {agent:v("nj_agent"), cha:v("nj_cha"), shipper:t("nj_shipper"), consignee:cons, notify:v("nj_notify") || cons, dir,
+        cargo:{pkgs:v("nj_pkgs"), pkgType:v("nj_pkgtype"), gwt:v("nj_wt"), vol:v("nj_vol"), cargoDesc:v("nj_commodity"), hscode:v("nj_hs")}}; })() : null;
     const p = raw.apply(this, arguments);
-    if(mine && (mine.agent || mine.cha)) return p.then(r=>{ if(r.ok) r.clone().json().then(j=>{ if(!j || !j.job_number) return;
-      const data = {}; if(mine.shipper) data.shipper = mine.shipper; if(mine.consignee) data.consignee = mine.consignee; if(mine.agent) data[/import/i.test(mine.dir) ? "originAgent" : "deliveryAgent"] = mine.agent; if(mine.cha) data.cha = mine.cha;
-      raw("/api/jobs/"+encodeURIComponent(j.job_number)+"/details/parties", {method:"PUT", headers:{"Content-Type":"application/json", Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}, body:JSON.stringify({data, expected_version:null})}).catch(()=>{}); }).catch(()=>{}); return r; });
+    if(mine && (mine.shipper || mine.consignee || mine.agent || mine.cha || Object.keys(mine.cargo || {}).some(k=> String(mine.cargo[k] || "").trim()))) return p.then(r=>{ if(r.ok) r.clone().json().then(j=>{ if(!j || !j.job_number) return;
+      const data = {}; if(mine.shipper) data.shipper = mine.shipper; if(mine.consignee) data.consignee = mine.consignee; if(mine.notify) data.notify1 = mine.notify; if(mine.agent) data[/import/i.test(mine.dir) ? "originAgent" : "deliveryAgent"] = mine.agent; if(mine.cha) data.cha = mine.cha;
+      const hd = {"Content-Type":"application/json", Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}, base = "/api/jobs/"+encodeURIComponent(j.job_number)+"/details/";
+      raw(base+"parties", {method:"PUT", headers:hd, body:JSON.stringify({data, expected_version:null})}).then(()=>{
+        const cg = {}; Object.keys(mine.cargo || {}).forEach(k=>{ const x = String(mine.cargo[k] || "").trim(); if(x && !(k === "pkgType" && !mine.cargo.pkgs)) cg[k] = x; });
+        if(Object.keys(cg).length) raw(base+"cargo", {method:"PUT", headers:hd, body:JSON.stringify({data:cg, expected_version:null})}).catch(()=>{});
+      }).catch(()=>{}); }).catch(()=>{}); return r; });
     return p;
   };
 })();
