@@ -96,3 +96,19 @@ def test_mis_and_dashboard_follow_the_same_scope(w, h):
     assert str(da) != str(dall)                                                          # the dashboard figures differ: the placed user's are their own
     act = client.get("/api/dashboard/side?limit=40", headers=hu(a)).json()["activity"]
     assert len(act) <= len(client.get("/api/dashboard/side?limit=40", headers=h).json()["activity"])
+
+
+def test_executive_mis_for_a_placed_user_counts_only_their_scope_and_hides_bank_balances(w, h):
+    a = w["a"]
+    mine = client.get("/api/mis/executive", headers=hu(a))
+    assert mine.status_code == 200, mine.text
+    everyone = client.get("/api/mis/executive", headers=h).json()
+    m = mine.json()
+    flat = lambda d: str(d)
+    assert flat(m) != flat(everyone)                                           # not the company's figures
+    for key in ("jobs_total", "jobs", "total_jobs"):
+        if key in m and key in everyone:
+            assert m[key] <= everyone[key]
+    for key in ("cash_bank", "cashbank", "cash"):
+        if key in m:
+            assert float(m[key]) == 0                                          # bank and cash belong to the company, not to a placed user

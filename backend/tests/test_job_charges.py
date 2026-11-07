@@ -110,3 +110,23 @@ def test_dr_cr_statement_adds_dr_and_deducts_cr_per_currency(job):
     st = client.put(f"/api/shipments/by-number/{job['no']}/charges", json={"lines": lines}, headers=job["h"]).json()["totals"]["dr_cr"]
     assert {x["ccy"]: (x["net"], x["note"]) for x in st} == {"USD": ("-50.00", "CN"), "EUR": ("0.00", "NONE")}
     assert client.put(f"/api/shipments/by-number/{job['no']}/charges", json={"lines": [{**ln("A", "sell", "1", "XX")}]}, headers=job["h"]).status_code == 422
+
+
+def test_the_dr_cr_balance_can_be_raised_as_a_debit_or_credit_note(job):
+    def ln(name, side, rate, dr_cr, ccy="USD"):
+        zero = {"ccy": ccy, "exch": "83", "rate": "0", "tax_type": "Non-Taxable", "tax_pct": "0", "party": "", "use_party": False}
+        live = {**zero, "rate": rate}
+        return {"charge_name": name, "description": "", "uom": "Per Shipment", "qty": "1", "hsn": "", "dr_cr": dr_cr, "buy": live if side == "buy" else zero, "sell": live if side == "sell" else zero}
+
+    h, no = job["h"], job["no"]
+    client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": [ln("Ocean Freight Collect", "sell", "1000", "DR"), ln("Delivery Collect", "sell", "50", "DR"), ln("Payment to Liner", "buy", "800", "CR"), ln("Profit Share", "buy", "25", "CR")]}, headers=h)
+    r = client.post(f"/api/shipments/by-number/{no}/dr-cr-note", json={"ccy": "USD"}, headers=h)
+    assert r.status_code == 422 and "overseas agent" in r.json()["detail"]                  # no agent named on the job yet
+    r = client.post(f"/api/shipments/by-number/{no}/dr-cr-note", json={"ccy": "USD", "party": "Overseas Agent LLC"}, headers=h)
+    assert r.status_code == 201, r.text
+    d = r.json()
+    assert d["doc_type"] == "debit_note" and d["amount"] == "225.00" and d["party"] == "Overseas Agent LLC"            # 1,050 DR less 825 CR
+    assert client.post(f"/api/shipments/by-number/{no}/dr-cr-note", json={"ccy": "USD", "party": "Overseas Agent LLC"}, headers=h).status_code == 409   # not twice
+    assert client.post(f"/api/shipments/by-number/{no}/dr-cr-note", json={"ccy": "EUR", "party": "X"}, headers=h).status_code == 422                     # nothing in EUR
+    client.put(f"/api/shipments/by-number/{no}/charges", json={"lines": [ln("A", "sell", "100", "DR", "EUR"), ln("B", "buy", "100", "CR", "EUR")]}, headers=h)
+    assert client.post(f"/api/shipments/by-number/{no}/dr-cr-note", json={"ccy": "EUR", "party": "X"}, headers=h).status_code == 422                     # balanced: none needed

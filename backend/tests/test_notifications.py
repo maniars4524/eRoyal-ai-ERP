@@ -36,7 +36,7 @@ def test_pending_invoices_and_due_purchase_bills_are_listed(h):
     assert d.status_code == 201, d.text
     got = client.get("/api/notifications", headers=h).json()
     assert any(x["category"] == "Approvals" and "Invoice approval pending" in x["title"] and "Acme Notify" in x["text"] for x in got["items"])
-    assert set(got["counts"]) == {"Shipments", "Approvals", "Payments", "People", "Messages"}
+    assert set(got["counts"]) == {"Shipments", "Approvals", "Payments", "People", "Messages", "Tasks"}
 
 
 def test_routing_alerts_are_part_of_the_list(h):
@@ -104,3 +104,67 @@ def test_the_running_message_speed_is_a_setting(h):
     assert client.put("/api/notifications/settings", json={"display": {"ticker_speed": "slow"}}, headers=h).status_code == 200
     assert client.get("/api/notifications", headers=h).json()["ticker_speed"] == "slow"
     client.put("/api/notifications/settings", json={"display": {"ticker_speed": "normal"}}, headers=h)
+
+
+def test_read_state_is_kept_per_user_on_the_server(h, world):
+    client.post("/api/notifications/messages", json={"title": "Read state notice", "body": "x"}, headers=h)
+    items = client.get("/api/notifications", headers=h).json()
+    n = next(x for x in items["items"] if x["title"] == "Read state notice")
+    assert n["read"] is False and items["unread"] >= 1
+    assert client.post("/api/notifications/read", json={"ids": [n["id"]]}, headers=h).status_code == 200
+    again = client.get("/api/notifications", headers=h).json()
+    assert next(x for x in again["items"] if x["id"] == n["id"])["read"] is True and again["unread"] == items["unread"] - 1
+
+
+def test_a_birthday_today_is_announced_from_the_employee_master(h):
+    today = date.today().isoformat()
+    r = client.post("/api/masters/employee", json={"code": "EMPB1", "name": "Birthday Person", "data": {"date_of_birth": "1990" + today[4:]}}, headers=h)
+    assert r.status_code == 201, r.text
+    got = client.get("/api/notifications", headers=h).json()["items"]
+    assert any(x["category"] == "People" and "Birthday today" in x["title"] and "Birthday Person" in x["title"] for x in got)
+
+
+def test_email_sending_uses_the_mail_settings(h, monkeypatch):
+    import base64
+    import smtplib
+
+    j = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "container_mode": "FCL", "pol": "INMAA", "pod": "SGSIN"}, headers=h).json()["job_number"]
+    pdf = base64.b64encode(b"%PDF-1.4 test document").decode()
+    body = {"to": "buyer@example.com", "subject": "Docs", "message": "hello", "filename": "doc.pdf", "pdf_base64": pdf}
+    monkeypatch.delenv("SMTP_HOST", raising=False)
+    assert client.post(f"/api/jobs/{j}/send-document", json=body, headers=h).status_code == 503                    # not set up: a clear message, nothing pretended
+    sent = []
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout=0): sent.append(("connect", host, port))
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def starttls(self): sent.append(("tls",))
+        def login(self, u, p): sent.append(("login", u))
+        def send_message(self, m): sent.append(("send", m["To"], m["Subject"], [a.get_filename() for a in m.iter_attachments()]))
+
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.local"); monkeypatch.setenv("SMTP_USER", "u"); monkeypatch.setenv("SMTP_PASSWORD", "p")
+    monkeypatch.setattr(smtplib, "SMTP", FakeSMTP)
+    r = client.post(f"/api/jobs/{j}/send-document", json=body, headers=h)
+    assert r.status_code == 200, r.text
+    assert ("send", "buyer@example.com", "Docs", ["doc.pdf"]) in sent
+    assert "DOCUMENT_EMAILED" in str(client.get(f"/api/jobs/{j}/activity", headers=h).json())
+    assert client.post(f"/api/jobs/{j}/send-document", json={**body, "to": "not-an-address"}, headers=h).status_code == 422
+
+
+def test_tasks_credit_and_calendar_are_part_of_the_centre(h):
+    due = date.today().isoformat()
+    soon = (date.today() + timedelta(days=3)).isoformat()
+    for ref, d, kind in (("FU-T1", due, "Call"), ("FU-T2", soon, "Meeting")):
+        r = client.put("/api/crm/followup", json={"ref": ref, "company": "Task Co", "status": "Open", "data": {"due": d, "type": kind, "relatedLabel": "Task Co"}}, headers=h)
+        assert r.status_code in (200, 201), r.text
+    got = client.get("/api/notifications", headers=h).json()
+    assert "Tasks" in got["categories"] and any(x["category"] == "Tasks" and "Due today" in x["title"] for x in got["items"])
+    cal = client.get("/api/notifications/calendar?days=30", headers=h).json()
+    assert any(e["category"] == "Tasks" and e["date"] == soon and "Meeting" in e["title"] for e in cal)
+    j = client.post("/api/shipments", json={"mode": "Sea", "direction": "Export", "container_mode": "FCL", "pol": "INMAA", "pod": "SGSIN"}, headers=h).json()["job_number"]
+    etd = (datetime.now(timezone.utc) + timedelta(days=10)).isoformat()
+    client.post(f"/api/jobs/{j}/routing/legs", json={"carrier": "Calendar Ship", "voyage": "C1", "pol": "Chennai", "pod": "Singapore", "etd": etd, "stage": "CONFIRMED"}, headers=h)
+    cal = client.get("/api/notifications/calendar?days=30", headers=h).json()
+    assert any(e["category"] == "Shipments" and j in e["title"] and e["link"].get("tab") == "routing" for e in cal)
+    assert [e["date"] for e in cal] == sorted(e["date"] for e in cal)

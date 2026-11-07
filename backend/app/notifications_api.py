@@ -17,10 +17,10 @@ from .access import shipment_clause
 from .auth import get_current_user, has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
-from .models import ContainerMovement, Document, InternalMessage, MasterRecord, NotificationSetting, Quotation, Role, Shipment, User
+from .models import ContainerMovement, CreditFacility, CreditRequest, CrmRecord, Customer, Document, InternalMessage, JobRoutingLeg, MasterRecord, NotificationRead, NotificationSetting, Quotation, Role, Shipment, User
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
-CATEGORIES = ["Shipments", "Approvals", "Payments", "People", "Messages"]
+CATEGORIES = ["Shipments", "Approvals", "Payments", "People", "Messages", "Tasks"]
 DEFAULTS = {
     "routing": {"etd_lead_value": 5, "etd_lead_unit": "days", "eta_lead_value": 5, "eta_lead_unit": "days", "planned_lead_days": 14, "changed_days": 3},
     "payments": {"due_lead_days": 7},
@@ -181,7 +181,32 @@ def p_messages(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
     return out
 
 
-PROVIDERS = [p_routing, p_invoices, p_quotations, p_containers, p_purchase_bills, p_birthdays, p_messages]
+def p_credit(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
+    if not has_permission(user, "credit.approve"):
+        return []
+    out = []
+    names = {c.id: c.name for c in db.scalars(select(Customer).where(Customer.organization_id == user.organization_id))}
+    for f in db.scalars(select(CreditFacility).where(CreditFacility.organization_id == user.organization_id, CreditFacility.status.in_(("SUBMITTED", "UNDER_REVIEW"))).order_by(CreditFacility.id).limit(40)):
+        out.append(item(f"cf:{f.id}", "Approvals", 1, f"Credit application waiting for approval: #{f.id}", names.get(f.customer_id, ""), f.submitted_at, {"go": "approvals"}))
+    for r in db.scalars(select(CreditRequest).where(CreditRequest.organization_id == user.organization_id, CreditRequest.status == "PENDING").order_by(CreditRequest.id).limit(40)):
+        out.append(item(f"cr:{r.id}", "Approvals", 1, f"Credit request waiting for approval: #{r.id}", names.get(r.customer_id, ""), None, {"go": "approvals"}))
+    return out
+
+
+def p_tasks(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
+    """This user's own follow-ups that are due today or overdue."""
+    out = []
+    for r in db.scalars(select(CrmRecord).where(CrmRecord.organization_id == user.organization_id, CrmRecord.kind == "followup", CrmRecord.created_by == user.id).order_by(CrmRecord.id.desc()).limit(200)):
+        d = r.data or {}
+        due = str(d.get("due") or "")[:10]
+        if d.get("done") or not due or due > today.isoformat():
+            continue
+        what = f"{d.get('type') or 'Follow-up'} - {d.get('relatedLabel') or r.company or ''}".strip(" -")
+        out.append(item(f"task:{r.id}", "Tasks", 1 if due < today.isoformat() else 2, ("Overdue: " if due < today.isoformat() else "Due today: ") + what, (d.get("notes") or "") + f" (due {due})", None, {"go": "crm-engagement"}))
+    return out
+
+
+PROVIDERS = [p_routing, p_invoices, p_quotations, p_credit, p_containers, p_purchase_bills, p_tasks, p_birthdays, p_messages]
 
 
 @router.get("")
@@ -198,8 +223,27 @@ def notifications(user: User = Depends(get_current_user), db: Session = Depends(
         except Exception:                              # one broken source must never hide the others
             db.rollback()
     items.sort(key=lambda x: (x["severity"], str(x["at"] or "")))
+    ids = [x["id"] for x in items]
+    done = set(db.scalars(select(NotificationRead.item_id).where(NotificationRead.user_id == user.id, NotificationRead.item_id.in_(ids)))) if ids else set()
+    for x in items:
+        x["read"] = x["id"] in done
     counts = {c: sum(1 for x in items if x["category"] == c) for c in CATEGORIES}
-    return {"items": items[:400], "counts": counts, "categories": CATEGORIES, "total": len(items), "ticker_speed": cfg["display"]["ticker_speed"]}
+    return {"items": items[:400], "counts": counts, "categories": CATEGORIES, "total": len(items), "unread": sum(1 for x in items if not x["read"]), "ticker_speed": cfg["display"]["ticker_speed"]}
+
+
+class ReadIn(BaseModel):
+    ids: list[str] = Field(min_length=1, max_length=500)
+
+
+@router.post("/read")
+def mark_read(body: ReadIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Remember that this user has read these notifications (on every device they use)."""
+    ids = [i[:160] for i in body.ids]
+    have = set(db.scalars(select(NotificationRead.item_id).where(NotificationRead.user_id == user.id, NotificationRead.item_id.in_(ids))))
+    for i in set(ids) - have:
+        db.add(NotificationRead(user_id=user.id, item_id=i))
+    db.commit()
+    return {"read": len(set(ids))}
 
 
 class MessageIn(BaseModel):
@@ -285,3 +329,59 @@ def put_settings(body: SettingsIn, user: User = Depends(permission_required("mas
     record_audit(db, "NOTIFICATION_SETTINGS_CHANGED", "NOTIFICATION", user, user.organization_id, "NotificationSetting", str(user.organization_id), {})
     db.commit()
     return {"settings": cur}
+
+
+# ---------------------------------------------------------------- calendar: what is dated in the coming weeks
+@router.get("/calendar")
+def calendar(days: int = 30, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Dated things for the next days, from the real records: ETD / ETA of routing legs, bills and invoices falling due, birthdays, this user's follow-ups and meetings. Same access rules as the notifications."""
+    if user.organization_id is None:
+        return []
+    today = datetime.now(timezone.utc).date()
+    end = today + timedelta(days=max(1, min(days, 90)))
+    ev: list[dict] = []
+
+    def add(d, category, title, text="", link=None):
+        ev.append({"date": d.isoformat(), "category": category, "title": title, "text": text, "link": link or {}})
+
+    if has_permission(user, "shipment.read"):
+        q = select(JobRoutingLeg, Shipment).join(Shipment, Shipment.id == JobRoutingLeg.shipment_id).where(JobRoutingLeg.organization_id == user.organization_id, JobRoutingLeg.is_active.is_(True),
+                                                                                                         Shipment.status.notin_(("Cancelled", "Closed")), Shipment.closure_status == "OPEN")
+        cl = shipment_clause(db, user)
+        if cl is not None:
+            q = q.where(cl)
+        for leg, job in db.execute(q).all():
+            for kind, when in (("ETD", leg.etd), ("ETA", leg.eta)):
+                if when and today <= when.astimezone(timezone.utc).date() <= end:
+                    add(when.astimezone(timezone.utc).date(), "Shipments", f"{kind}: Job {job.job_number}", f"{leg.carrier or ''} {leg.voyage or ''} - {leg.stage.title()}".strip(), {"go": "job-detail", "jobNo": job.job_number, "tab": "routing"})
+    if has_permission(user, "billing.read"):
+        dq = select(Document).where(Document.organization_id == user.organization_id, Document.doc_type.in_(("invoice", "purchase_invoice")), Document.status == "POSTED", Document.due_date.is_not(None), Document.due_date >= today, Document.due_date <= end)
+        vis = _visible_jobs(db, user)
+        if vis is not None:
+            dq = dq.where((Document.job_number.is_(None)) | Document.job_number.in_(vis))
+        for d in db.scalars(dq.limit(300)):
+            owing = float(d.grand_total or 0) - float(d.paid_amount or 0) - float(getattr(d, "credited_amount", 0) or 0)
+            if owing > 0.005:
+                add(d.due_date, "Payments", ("Purchase bill due: " if d.doc_type == "purchase_invoice" else "Invoice due: ") + (d.doc_number or str(d.id)), f"{d.party_name or ''} - balance {_money(owing)}", {"go": "vendor-bill" if d.doc_type == "purchase_invoice" else "invoice-list"})
+    for r in db.scalars(select(MasterRecord).where(MasterRecord.organization_id == user.organization_id, MasterRecord.master_type == "employee", MasterRecord.status == "ACTIVE")):
+        raw = str((r.data or {}).get("date_of_birth") or (r.data or {}).get("dob") or "")[:10]
+        try:
+            dob = date.fromisoformat(raw)
+            nxt = dob.replace(year=today.year)
+        except ValueError:
+            continue
+        if nxt < today:
+            nxt = nxt.replace(year=today.year + 1)
+        if nxt <= end:
+            add(nxt, "People", f"Birthday: {r.name}", "")
+    for r in db.scalars(select(CrmRecord).where(CrmRecord.organization_id == user.organization_id, CrmRecord.kind == "followup", CrmRecord.created_by == user.id).limit(300)):
+        d = r.data or {}
+        due = str(d.get("due") or "")[:10]
+        try:
+            dd = date.fromisoformat(due)
+        except ValueError:
+            continue
+        if not d.get("done") and today <= dd <= end:
+            add(dd, "Tasks", f"{d.get('type') or 'Follow-up'}: {d.get('relatedLabel') or r.company or ''}".strip(": "), d.get("notes") or "", {"go": "crm-engagement"})
+    ev.sort(key=lambda x: (x["date"], x["category"]))
+    return ev[:300]

@@ -641,3 +641,11 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - HBL terms and conditions: still need the text. Paste it in Company letterhead & registration > Printed wording > "Bill of Lading terms" (field `terms`): the BL terms sheet and the terms print from it.
 - INSTALL-KEEPALIVE.cmd restored and stable (could not reproduce the earlier disappearance).
 - IATA logo on the HAWB conditions page: not available as an asset; left blank.
+
+## Tasks 6-11 + dashboard centre (2026-11-07)
+- DR/CR statement -> "Raise Debit Note / Credit Note" per currency (POST /api/shipments/by-number/{job}/dr-cr-note): draft DN (net DR) or CN (net CR) to the overseas agent (job Parties delivery/origin agent, or named), one per currency balance, refused when balanced or already raised.
+- Notification read marks are stored on the server per user (table notification_reads, migration 0067; POST /api/notifications/read). Birthdays verified from the employee master (date_of_birth).
+- Mail: send-document verified with a fake SMTP in tests (503 clear message when SMTP_HOST is not set; sends PDF + logs DOCUMENT_EMAILED). Real sending needs SMTP_HOST/PORT/USER/PASSWORD/FROM in the server .env. The PDF libraries are preloaded when Output Docs opens.
+- Saved button: booking (Draft Saved) and quotation (re-applied after the screen repaints) confirmed; organisation save navigates away.
+- Notifications & Alerts centre now also holds Tasks (own follow-ups due/overdue), credit approvals, and a Calendar tab (/api/notifications/calendar: ETD/ETA, bills and invoices due, birthdays, follow-ups). The dashboard's right sidebar (tasks, approvals, notifications, calendar) is REMOVED; the dashboard uses the full width; the running message + View all replace it.
+- Not possible from here: real paper printing check.

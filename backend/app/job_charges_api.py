@@ -126,6 +126,45 @@ def _response(rows: list[JobCharge]) -> dict:
     return {"lines": clean, "totals": totals(lines)}
 
 
+class DrCrNoteIn(BaseModel):
+    ccy: str = Field(pattern="^[A-Z]{3}$")
+    party: str | None = Field(default=None, max_length=200)
+
+
+@router.post("/by-number/{job_number:path}/dr-cr-note", status_code=201)
+def raise_dr_cr_note(job_number: str, body: DrCrNoteIn, user: User = Depends(permission_required("billing.create")), db: Session = Depends(get_db)):
+    """The net balance of the DR / CR statement in one currency becomes a draft Debit Note (net DR) or Credit Note (net CR) to the overseas agent. A balanced currency needs neither, and the same balance is not raised twice."""
+    from .documents_api import DocumentIn, LineIn as DocLine, _new_document, _load, _out, proforma_required
+    from .models import Document
+
+    job = _job(db, user, job_number)
+    rows = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id).order_by(JobCharge.line_no)))
+    st = next((x for x in dr_cr_statement([line_out(r) for r in rows]) if x["ccy"] == body.ccy), None)
+    if not st or st["note"] == "NONE":
+        raise HTTPException(422, f"The DR / CR statement is balanced in {body.ccy}: no debit note or credit note is required")
+    doc_type = "debit_note" if st["note"] == "DN" else "credit_note"
+    net = abs(Decimal(st["net"]))
+    prior = [d for d in db.scalars(select(Document).where(Document.organization_id == job.organization_id, Document.job_number == job.job_number, Document.doc_type.in_(("debit_note", "credit_note")), Document.status != "CANCELLED"))
+             if (d.header or {}).get("dr_cr_ccy") == body.ccy]
+    if prior:
+        raise HTTPException(409, f"A {prior[0].doc_type.replace('_', ' ')} for the {body.ccy} balance of this job has already been raised ({prior[0].doc_number or 'draft'}). Cancel it before raising another")
+    det = db.scalar(select(JobDetail).where(JobDetail.shipment_id == job.id))
+    pa = (det.parties if det else None) or {}
+    party = (body.party or "").strip() or ((pa.get("deliveryAgent") or pa.get("originAgent")) if job.direction != "Import" else (pa.get("originAgent") or pa.get("deliveryAgent"))) or ""
+    if not party:
+        raise HTTPException(422, "Choose the overseas agent: set the Delivery Agent / Origin Agent in the job's Parties tab, or name the party")
+    exch = Decimal(1)
+    if body.ccy != "INR":
+        exch = next((x for r in rows for x in ((r.sell_exch if r.sell_ccy == body.ccy else None), (r.buy_exch if r.buy_ccy == body.ccy else None)) if x), Decimal(1))
+    line = DocLine(charge_name="Net balance as per DR / CR statement", description=f"DR {st['dr']} less CR {st['cr']} ({body.ccy})", qty=Decimal(1), ccy=body.ccy, exch=exch, rate=net, tax_type="Non-Taxable", tax_pct=Decimal(0), job_number=job.job_number)
+    doc = _new_document(db, user, job.organization_id, DocumentIn(doc_type=doc_type, job_number=job.job_number, party_name=party, lines=[line], header={"dr_cr_ccy": body.ccy, "dr_cr_net": st["net"]},
+                                                                  remarks=f"Net balance of the DR / CR statement of job {job.job_number}"))
+    record_audit(db, "DR_CR_NOTE_RAISED", "BILLING", user, job.organization_id, doc.doc_type, str(doc.id), {"job_number": job.job_number, "ccy": body.ccy, "net": st["net"], "party": party})
+    db.commit()
+    out = _out(_load(db, job.organization_id, doc.id), True, proforma_required(db, job.organization_id))
+    return {"id": doc.id, "doc_type": doc.doc_type, "party": party, "ccy": body.ccy, "amount": str(net), "document": out}
+
+
 @router.get("/by-number/{job_number:path}/charges")
 def get_charges(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)

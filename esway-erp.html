@@ -263,6 +263,8 @@ svg{display:block}
 .wiz-ico .ic{width:22px;height:22px;color:#fff}
 .wiz-ct{font-size:12.5px;font-weight:700;color:var(--g8)}
 .wiz-cs{font-size:10.5px;color:var(--g5);margin-top:3px;line-height:1.4}
+/* the dashboard's right sidebar (tasks, approvals, notifications, calendar) is gone: all of it lives under Notifications & Alerts > View all, so the dashboard uses the full width */
+.dash-side-col{display:none !important}.dash-body-grid{grid-template-columns:minmax(0,1fr) !important}
 .wiz-wrap{padding:14px 18px !important}
 .wiz-wrap .wiz-step-sub{margin-bottom:8px}
 .wiz-wrap .wiz-row-label{margin:10px 0 6px}
@@ -2127,22 +2129,22 @@ tbody tr:hover{background:var(--g0)}
 <div class="dash-side-col">
 
   <div class="card" style="margin:0">
-    <div class="ch"><div class="ct"><svg class="ic" data-icon="check-circle" style="color:var(--bl)"></svg>Today's Tasks</div><span class="ta" style="font-size:10.5px" data-go="crm-engagement">View All</span></div>
+    <div class="ch"><div class="ct"><svg class="ic" data-icon="check-circle" style="color:var(--bl)"></svg>Today's Tasks</div><span class="ta" style="font-size:10.5px" data-nc-all="1" data-nc-tab="Tasks">View All</span></div>
     <div style="padding:20px 14px;text-align:center;color:var(--g5);font-size:11.5px">No tasks yet</div>
   </div>
 
   <div class="card" style="margin:0">
-    <div class="ch"><div class="ct"><svg class="ic" data-icon="check-circle" style="color:var(--pu)"></svg>Pending Approvals</div><span class="ta" style="font-size:10.5px" data-go="approvals">View All</span></div>
+    <div class="ch"><div class="ct"><svg class="ic" data-icon="check-circle" style="color:var(--pu)"></svg>Pending Approvals</div><span class="ta" style="font-size:10.5px" data-nc-all="1" data-nc-tab="Approvals">View All</span></div>
     <div style="padding:20px 14px;text-align:center;color:var(--g5);font-size:11.5px">Nothing pending approval</div>
   </div>
 
   <div class="card" style="margin:0">
-    <div class="ch"><div class="ct"><svg class="ic" data-icon="bell" style="color:var(--bl)"></svg>Notifications</div><span class="ta" style="font-size:10.5px" data-go="notifications">View All</span></div>
+    <div class="ch"><div class="ct"><svg class="ic" data-icon="bell" style="color:var(--bl)"></svg>Notifications</div><span class="ta" style="font-size:10.5px" data-nc-all="1" data-nc-tab="All">View All</span></div>
     <div style="padding:20px 14px;text-align:center;color:var(--g5);font-size:11.5px">No notifications yet</div>
   </div>
 
   <div class="card" style="margin:0">
-    <div class="ch"><div class="ct"><svg class="ic" data-icon="calendar-check" style="color:var(--tl)"></svg>Calendar</div><span class="ta" style="font-size:10.5px" data-go="meetings">View All</span></div>
+    <div class="ch"><div class="ct"><svg class="ic" data-icon="calendar-check" style="color:var(--tl)"></svg>Calendar</div><span class="ta" style="font-size:10.5px" data-nc-all="1" data-nc-tab="Calendar">View All</span></div>
     <div style="padding:8px 14px 0;font-size:10.3px;color:var(--g5)">Today · <span id="dashCalToday"></span></div><div style="padding:20px 14px;text-align:center;color:var(--g5);font-size:11.5px">No meetings scheduled</div>
   </div>
 
@@ -7883,10 +7885,22 @@ function jcDrCrPanel(){
   const keys = Object.keys(by).sort(); const f = n=> Number(n).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
   host.innerHTML = '<div style="font-weight:700;font-size:12.5px;margin-bottom:4px">DR / CR statement <span style="font-weight:400;color:var(--g5);font-size:11px">— DR adds the amount, CR deducts it. The amount of a line is its sell amount, or its buy amount when it has no sell rate (before tax). Each currency has its own balance.</span></div>'+
     (keys.length ? '<table style="font-size:12px;border-collapse:collapse;min-width:560px"><thead><tr style="color:var(--g5)"><th style="text-align:left;padding:3px 12px 3px 0">Currency</th><th style="text-align:right;padding:3px 12px">Total DR (+)</th><th style="text-align:right;padding:3px 12px">Total CR (−)</th><th style="text-align:right;padding:3px 12px">Net balance</th><th style="text-align:left;padding:3px 0 3px 12px">Result</th></tr></thead><tbody>'+
-      keys.map(k=>{ const e = by[k], net = Math.round((e.dr - e.cr) * 100) / 100, res = !anyCr ? '<span style="color:var(--g5)">Set CR on the lines that are to be deducted</span>' : net > 0 ? '<b style="color:#166534">DR — Debit Note (DN) to be issued to the overseas agent</b>' : net < 0 ? '<b style="color:#b91c1c">CR — Credit Note (CN) to be issued</b>' : '<span style="color:var(--g6)">Balanced — no debit note or credit note is required</span>';
+      keys.map(k=>{ const e = by[k], net = Math.round((e.dr - e.cr) * 100) / 100, res = !anyCr ? '<span style="color:var(--g5)">Set CR on the lines that are to be deducted</span>' : net > 0 ? '<b style="color:#166534">DR — Debit Note (DN) to be issued to the overseas agent</b> <button class="btn btn-out btn-sm" type="button" data-jc-note="'+k+'" style="margin-left:8px">Raise Debit Note</button>' : net < 0 ? '<b style="color:#b91c1c">CR — Credit Note (CN) to be issued</b> <button class="btn btn-out btn-sm" type="button" data-jc-note="'+k+'" style="margin-left:8px">Raise Credit Note</button>' : '<span style="color:var(--g6)">Balanced — no debit note or credit note is required</span>';
         return '<tr><td style="padding:3px 12px 3px 0;font-weight:700">'+k+'</td><td style="text-align:right;padding:3px 12px">'+f(e.dr)+'</td><td style="text-align:right;padding:3px 12px">'+f(e.cr)+'</td><td style="text-align:right;padding:3px 12px;font-weight:700">'+(net < 0 ? "−" : "")+f(Math.abs(net))+'</td><td style="padding:3px 0 3px 12px">'+res+'</td></tr>'; }).join("")+'</tbody></table>'
       : '<div style="color:var(--g5);font-size:12px">No charge amounts yet.</div>');
 }
+document.addEventListener("click", async e=>{
+  const b = e.target.closest("[data-jc-note]"); if(!b) return;
+  const ccy = b.dataset.jcNote, tok = sessionStorage.getItem("esway_access_token");
+  const ask = party=> fetch("/api/shipments/by-number/"+encodeURIComponent(jcCurrentJob)+"/dr-cr-note", {method:"POST", headers:{"Content-Type":"application/json", Authorization:"Bearer "+tok}, body:JSON.stringify(party ? {ccy, party} : {ccy})});
+  try{
+    let r = await ask(); let d = await r.json().catch(()=>({}));
+    if(r.status === 422 && /overseas agent/i.test(d.detail || "")){ const who = window.prompt("Name of the overseas agent for this note (it can also be set in the job's Parties tab):", ""); if(!who) return; r = await ask(who.trim()); d = await r.json().catch(()=>({})); }
+    if(!r.ok){ toast("Could not raise the note", d.detail || "Check the job's DR / CR lines", "error"); return; }
+    toast((d.doc_type === "debit_note" ? "Debit Note" : "Credit Note")+" raised (draft)", d.party+" · "+d.ccy+" "+d.amount);
+    go("debit-note-list");
+  }catch(err){ toast("Could not raise the note", err.message || "", "error"); }
+});
 function jcRecalcAll(){
   try{ jcDrCrPanel(); }catch(e){}
   const st = jcGetState(jcCurrentJob);
@@ -16466,7 +16480,7 @@ if(document.readyState !== "loading") initChatWidget();
   let SIDE = {tasks:[], approvals:[], notifications:[], activity:[]};
   function paintSide(side){
     SIDE = side;
-    const set = (title, html)=>{ const c = cardByTitle(title); if(!c) return; const body = c.querySelector(".ch").nextElementSibling; if(title === "Calendar") return; if(body){ body.className = ""; body.style.cssText = "padding:0"; body.innerHTML = html; } };
+    const set = (title, html)=>{ if(window.__ncOwnsSidebar) return; const c = cardByTitle(title); if(!c) return; const body = c.querySelector(".ch").nextElementSibling; if(title === "Calendar") return; if(body){ body.className = ""; body.style.cssText = "padding:0"; body.innerHTML = html; } };
     set("Today's Tasks", side.tasks.length ? side.tasks.map((t, i)=>row('<b>'+esc2(t.title)+'</b><div style="font-size:11px;color:'+(t.overdue ? "var(--rd)" : "var(--g5)")+'">'+(t.overdue ? "Overdue · " : "Due today · ")+esc2(t.due)+(t.notes ? " · "+esc2(t.notes) : "")+'</div>', i, "tasks")).join("") : empty("No tasks for today"));
     set("Pending Approvals", side.approvals.length ? side.approvals.map((a, i)=>row('<b>'+esc2(a.type)+' · '+esc2(a.ref)+'</b><div style="font-size:11px;color:var(--g5)">'+esc2(a.party)+' · from '+esc2(a.by)+(a.at ? ' · '+ago(a.at) : "")+'</div>', i, "approvals")).join("") : empty("Nothing pending your approval"));
     set("Notifications", side.notifications.length ? side.notifications.map((n, i)=>row('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:'+(n.kind === "ok" ? "var(--gr)" : "var(--rd)")+'"></span>'+esc2(n.text)+'<div style="font-size:11px;color:var(--g5)">'+ago(n.at)+'</div>', i, "notifications")).join("") : empty("No notifications"));
@@ -25219,8 +25233,8 @@ body.job-readonly #jlBanner{display:flex}
   /* ---------- dashboard: running message + notification centre (everything that needs attention: shipments, approvals, payments, people, messages) ---------- */
   const A = {items:[], counts:{}, cats:[], t:0, cat:"All", q:""};
   const SEV = [["Critical", "#dc2626", "#fee2e2"], ["Action", "#b45309", "#fef3c7"], ["Info", "#1d4ed8", "#dbeafe"], ["Low", "#64748b", "#f1f5f9"]];
-  const CATCOL = {Shipments:"#0e7490", Approvals:"#7c3aed", Payments:"#c2410c", People:"#be185d", Messages:"#15803d"};
-  const CATICON = {Shipments:"ship", Approvals:"check-circle", Payments:"cash", People:"user", Messages:"file-text"};
+  const CATCOL = {Shipments:"#0e7490", Approvals:"#7c3aed", Payments:"#c2410c", People:"#be185d", Messages:"#15803d", Tasks:"#1d4ed8", Calendar:"#0f766e"};
+  const CATICON = {Shipments:"ship", Approvals:"check-circle", Payments:"cash", People:"user", Messages:"file-text", Tasks:"check-circle", Calendar:"calendar-check"};
   function dashCard(){
     let c = document.getElementById("rtDash"); if(c) return c;
     const scr = document.getElementById("s-dashboard"), grid = scr && scr.querySelector(".dash-body-grid"); if(!grid) return null;
@@ -25243,20 +25257,37 @@ body.job-readonly #jlBanner{display:flex}
     const sig = JSON.stringify(A.items.map(x=> x.id+"|"+x.title+"|"+x.text)), card = document.getElementById("rtDash");
     if(sig !== A.sig || !card || !card.firstChild){ A.sig = sig; paintAlerts(); }                     /* repaint only when something changed, so the running message does not restart every minute */
     if(document.getElementById("ncList")) paintCenter();
-    window.NotifBell.render();
+    window.NotifBell.render(); sidebar(); loadCal();
   }
   window.__rtAlerts = alerts;
-  /* the header bell: the same list, newest urgent first; the red number counts the ones not yet seen (Mark all as read remembers them on this device) */
-  const SEEN = "esway_notif_seen", seenSet = ()=> { try{ return new Set(JSON.parse(localStorage.getItem(SEEN) || "[]")); }catch(e){ return new Set(); } };
+  window.__ncOwnsSidebar = true;
+  const dayLabel = iso=> { const d = new Date(iso+"T00:00:00"), t0 = new Date(); t0.setHours(0, 0, 0, 0); const diff = Math.round((d - t0) / 864e5); return (diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : d.toLocaleDateString("en-GB", {weekday:"short"}))+" · "+d.toLocaleDateString("en-GB", {day:"2-digit", month:"short"}); };
+  function sidebar(){
+    const cards = Array.from(document.querySelectorAll(".dash-side-col > .card")), by = t=> cards.find(c=> (c.querySelector(".ct") || {}).textContent.trim() === t);
+    const fill = (title, html)=> { const c = by(title); if(!c) return; const head = c.querySelector(".ch"); let body = head.nextElementSibling; while(body && body.nextElementSibling) { body.nextElementSibling.remove(); }
+      if(!body){ body = document.createElement("div"); c.appendChild(body); } body.className = ""; body.style.cssText = "padding:0"; body.innerHTML = html; };
+    const rowOf = a=> { const sv = SEV[a.severity] || SEV[3]; return '<div data-nc-open="'+esc(a.id)+'" style="padding:8px 14px;border-bottom:1px solid var(--g1);cursor:pointer;font-size:12px;line-height:1.4"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:'+sv[1]+'"></span><b>'+esc(a.title)+'</b>'+(a.text ? '<div style="font-size:11px;color:var(--g5)">'+esc(a.text)+'</div>' : "")+'</div>'; };
+    const empty = m=> '<div style="padding:20px 14px;text-align:center;color:var(--g5);font-size:11.5px">'+m+'</div>';
+    const of = c=> A.items.filter(a=> a.category === c);
+    fill("Today's Tasks", of("Tasks").length ? of("Tasks").slice(0, 4).map(rowOf).join("") : empty("No tasks for today"));
+    fill("Pending Approvals", of("Approvals").length ? of("Approvals").slice(0, 4).map(rowOf).join("") : empty("Nothing pending your approval"));
+    fill("Notifications", A.items.length ? A.items.slice(0, 5).map(rowOf).join("") : empty("No notifications"));
+    const ev = (A.cal || []).slice(0, 5), today = new Date().toISOString().slice(0, 10);
+    fill("Calendar", '<div style="padding:8px 14px 0;font-size:10.3px;color:var(--g5)">Today · '+new Date().toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"})+'</div>'+(ev.length ? ev.map(e=>'<div data-nc-cal="'+esc(e.title)+'" style="padding:7px 14px;border-bottom:1px solid var(--g1);font-size:12px;line-height:1.4"><span style="font-size:10.5px;color:'+(CATCOL[e.category] || "var(--g5)")+';font-weight:700">'+esc(dayLabel(e.date))+'</span><div><b>'+esc(e.title)+'</b></div></div>').join("") : empty("Nothing dated in the next 30 days")));
+  }
+  async function loadCal(){ try{ A.cal = await api("GET", "/api/notifications/calendar?days=30"); }catch(e){ A.cal = A.cal || []; } sidebar(); if(document.getElementById("ncList") && A.cat === "Calendar") paintCenter(); }
+  window.__rtCal = loadCal;
+  /* the header bell: the same list, urgent first; the dot shows while something is unread. Read marks are kept on the server for each user, so they follow the person to every device */
+  const markRead = async ids=> { ids = ids.filter(Boolean); if(!ids.length) return; A.items.forEach(a=>{ if(ids.indexOf(a.id) > -1) a.read = true; }); window.NotifBell.render(); paintAlerts(); try{ await api("POST", "/api/notifications/read", {ids}); }catch(e){} };
   window.NotifBell = {render(){
-    const body = document.getElementById("notifBody"), sn = seenSet(), items = A.items.slice(0, 12), unseen = A.items.filter(a=> !sn.has(a.id)).length;
-    const badge = document.querySelector(".hdr-badge"); if(badge){ badge.style.display = unseen ? "" : "none"; badge.title = unseen+" new notification"+(unseen === 1 ? "" : "s"); }
+    const body = document.getElementById("notifBody"), items = A.items.slice(0, 12), unseen = A.items.filter(a=> !a.read).length;
+    const badge = document.querySelector(".hdr-badge"); if(badge){ badge.style.display = unseen ? "" : "none"; badge.title = unseen+" unread notification"+(unseen === 1 ? "" : "s"); }
     if(!body) return;
-    body.innerHTML = items.length ? items.map(a=>{ const sv = SEV[a.severity] || SEV[3]; return '<div class="hdr-notif" data-nc-open="'+esc(a.id)+'" style="cursor:pointer'+(sn.has(a.id) ? ";opacity:.65" : "")+'"><div class="hdr-notif-ico" style="background:'+sv[2]+';color:'+(CATCOL[a.category] || sv[1])+'"><svg class="ic" data-icon="'+(CATICON[a.category] || "bell")+'"></svg></div><div><div class="hdr-notif-t">'+esc(a.title)+'</div><div class="hdr-notif-s">'+esc(a.text || "")+'</div></div></div>'; }).join("")+
+    body.innerHTML = items.length ? items.map(a=>{ const sv = SEV[a.severity] || SEV[3]; return '<div class="hdr-notif" data-nc-open="'+esc(a.id)+'" style="cursor:pointer'+(a.read ? ";opacity:.65" : "")+'"><div class="hdr-notif-ico" style="background:'+sv[2]+';color:'+(CATCOL[a.category] || sv[1])+'"><svg class="ic" data-icon="'+(CATICON[a.category] || "bell")+'"></svg></div><div><div class="hdr-notif-t">'+esc(a.title)+'</div><div class="hdr-notif-s">'+esc(a.text || "")+'</div></div></div>'; }).join("")+
       '<div style="padding:8px 12px;text-align:center"><a href="#" data-nc-all="1">View all ('+A.items.length+')</a></div>' : '<div style="padding:24px 14px;text-align:center;color:var(--g5);font-size:12px">No notifications. Nothing needs your attention.</div>';
     if(window.renderIcons) renderIcons(body);
   }};
-  document.addEventListener("click", e=>{ if(e.target.closest("#notifMarkAll")){ try{ localStorage.setItem(SEEN, JSON.stringify(A.items.map(a=>a.id))); }catch(err){} window.NotifBell.render(); } }, true);
+  document.addEventListener("click", e=>{ if(e.target.closest("#notifMarkAll")) markRead(A.items.filter(a=> !a.read).map(a=> a.id)); }, true);
   /* running message: moves at a fixed speed (Slow 32 / Normal 48 / Fast 70 px a second, a company setting), stops while the mouse is over it, and starts again from the right when the list changes */
   const TICK = {pos:null, raf:0, last:0, hover:false, speed:"normal"}, SPEED = {slow:32, normal:48, fast:70};
   function startTicker(){
@@ -25272,6 +25303,7 @@ body.job-readonly #jlBanner{display:flex}
     TICK.raf = requestAnimationFrame(step);
   }
   function openItem(a){
+    markRead([a.id]);
     const l = a.link || {}; if(window.closeModal && document.getElementById("ncList")) closeModal();
     const pop = document.getElementById("notifPop"); if(pop) pop.classList.remove("on");
     if(l.jobNo){ const no = l.jobNo; go("job-detail", {jobNo:no});
@@ -25283,7 +25315,14 @@ body.job-readonly #jlBanner{display:flex}
     const q = A.q.trim().toLowerCase();
     const rows = A.items.filter(a=> (A.cat === "All" || a.category === A.cat) && (!q || (a.title+" "+a.text).toLowerCase().includes(q)));
     const tabs = document.getElementById("ncTabs");
-    if(tabs) tabs.innerHTML = ["All"].concat(A.cats).map(c=>{ const n = c === "All" ? A.items.length : (A.counts[c] || 0); return '<button type="button" class="btn btn-sm '+(A.cat === c ? "btn-pri" : "btn-out")+'" data-nc-cat="'+c+'">'+c+' <span style="opacity:.8">'+n+'</span></button>'; }).join("");
+    if(tabs) tabs.innerHTML = ["All"].concat(A.cats, ["Calendar"]).map(c=>{ const n = c === "All" ? A.items.length : c === "Calendar" ? (A.cal || []).length : (A.counts[c] || 0); return '<button type="button" class="btn btn-sm '+(A.cat === c ? "btn-pri" : "btn-out")+'" data-nc-cat="'+c+'">'+c+' <span style="opacity:.8">'+n+'</span></button>'; }).join("");
+    if(A.cat === "Calendar"){
+      const ev = (A.cal || []).filter(e=> !q || (e.title+" "+e.text).toLowerCase().includes(q)); let last = "";
+      list.innerHTML = ev.length ? ev.map(e=>{ const head = e.date !== last ? '<div style="margin:10px 6px 2px;font-size:11px;font-weight:700;color:'+(CATCOL.Calendar)+';text-transform:uppercase;letter-spacing:.3px">'+esc(dayLabel(e.date))+'</div>' : ""; last = e.date;
+        return head+'<div class="nc-row" data-nc-cal="'+esc(e.title)+'" data-nc-link="'+esc(JSON.stringify(e.link || {}))+'" style="display:flex;gap:10px;align-items:flex-start;padding:7px 6px;border-bottom:1px solid var(--g1);cursor:pointer"><div style="flex:none;width:8px;height:8px;border-radius:50%;margin-top:6px;background:'+(CATCOL[e.category] || "#64748b")+'"></div><div style="flex:1"><div style="font-weight:600;font-size:12.5px">'+esc(e.title)+'</div><div style="font-size:11.5px;color:var(--g6)">'+esc(e.text || "")+'</div></div><div style="flex:none;font-size:10.5px;color:var(--g5)">'+esc(e.category)+'</div></div>'; }).join("")
+        : '<div style="padding:26px;text-align:center;color:var(--g5)">Nothing is dated in the next 30 days: no sailing or flight, bill or invoice due, birthday or follow-up.</div>';
+      if(window.renderIcons) renderIcons(list); return;
+    }
     list.innerHTML = rows.length ? rows.map(a=>{ const sv = SEV[a.severity] || SEV[3];
       return '<div class="nc-row" data-nc-open="'+esc(a.id)+'" style="display:flex;gap:10px;align-items:flex-start;padding:9px 6px;border-bottom:1px solid var(--g1);cursor:pointer"><div style="flex:none;width:30px;height:30px;border-radius:50%;background:'+sv[2]+';color:'+(CATCOL[a.category] || sv[1])+';box-shadow:'+(a.severity === 0 ? "0 0 8px rgba(220,38,38,.7)" : "none")+';display:flex;align-items:center;justify-content:center"><svg class="ic" data-icon="'+(CATICON[a.category] || "bell")+'"></svg></div>'+
         '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px">'+esc(a.title)+'</div><div style="font-size:11.5px;color:var(--g6)">'+esc(a.text || "")+'</div></div>'+
@@ -25292,8 +25331,8 @@ body.job-readonly #jlBanner{display:flex}
       : '<div style="padding:26px;text-align:center;color:var(--g5)">'+(A.items.length ? "Nothing matches this filter." : "No notifications. Shipment, approval, payment, birthday and message alerts will appear here.")+'</div>';
     if(window.renderIcons) renderIcons(list);
   }
-  async function openCenter(){
-    await alerts(); A.cat = "All"; A.q = "";
+  async function openCenter(tab){
+    await alerts(); A.cat = typeof tab === "string" && tab ? tab : "All"; A.q = "";
     openModal({title:"Notifications & Alerts", size:"lg", bodyHTML:'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><div id="ncTabs" style="display:flex;gap:6px;flex-wrap:wrap"></div><input class="fc" id="ncSearch" placeholder="Search notifications…" style="margin-left:auto;max-width:240px"></div><div id="ncList" style="max-height:62vh;overflow:auto"></div>',
       footHTML:'<button class="btn btn-out" type="button" id="ncPost">Post a message</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
     paintCenter();
@@ -25310,7 +25349,8 @@ body.job-readonly #jlBanner{display:flex}
     });
   }
   document.addEventListener("click", async e=>{
-    if(e.target.closest("[data-nc-all]")){ openCenter(); return; }
+    const allBtn = e.target.closest("[data-nc-all]"); if(allBtn){ e.preventDefault(); openCenter(allBtn.dataset.ncTab || "All"); return; }
+    const cal = e.target.closest("[data-nc-cal]"); if(cal){ let l = {}; try{ l = JSON.parse(cal.dataset.ncLink || "{}"); }catch(x){} if(window.closeModal && document.getElementById("ncList")) closeModal(); openItem({id:"cal", link:l}); return; }
     const cat = e.target.closest("[data-nc-cat]"); if(cat){ A.cat = cat.dataset.ncCat; paintCenter(); return; }
     const wd = e.target.closest("[data-nc-withdraw]"); if(wd){ e.preventDefault(); e.stopPropagation(); try{ await api("DELETE", "/api/notifications/messages/"+wd.dataset.ncWithdraw); say("Message withdrawn", ""); alerts(); }catch(err){ say("Could not withdraw", err.message || "No permission", "error"); } return; }
     const it = e.target.closest("[data-nc-open]"); if(it){ const a = A.items.find(x=> x.id === it.dataset.ncOpen); if(a) openItem(a); }
@@ -25353,8 +25393,15 @@ body.job-readonly #jlBanner{display:flex}
   var pending = null, SKIP = /\/api\/(auth|presence|heartbeat)\b/;
   function label(btn){ return (btn.textContent || "").replace(/\s+/g, " ").trim(); }
   function isSave(btn){ var t = label(btn); return /^(\W{0,3}\s*)?(save|update)\b/i.test(t) && !/[&]|\bnew\b|\bclose\b|\bprint\b|\bas\b/i.test(t) && t.length < 28; }
-  window.markSaved = function(btn){
+  var recent = null;                                                       /* a screen that repaints itself after a save replaces the button: the Saved mark is put back on the new one until something is edited */
+  function selFor(b){ if(b.id) return "#"+b.id; if(b.dataset.qa) return '[data-qa="'+b.dataset.qa+'"]'; if(b.dataset.bk) return '[data-bk="'+b.dataset.bk+'"]'; return null; }
+  new MutationObserver(function(){
+    if(!recent || Date.now() - recent.t > 6000 || !recent.sel) return;
+    var b = document.querySelector(recent.sel); if(b && b.offsetParent && !b.classList.contains("btn-saved") && b.dataset.origHtml === undefined) window.markSaved(b, true);
+  }).observe(document.body, {childList:true, subtree:true});
+  window.markSaved = function(btn, again){
     if(!btn || !btn.isConnected) return;
+    if(!again) recent = {sel:selFor(btn), t:Date.now()};
     if(!btn.classList.contains("btn-saved")){ btn.dataset.origHtml = btn.innerHTML; }
     var t = label({textContent:btn.dataset.origHtml ? tmp(btn.dataset.origHtml) : btn.textContent});
     btn.innerHTML = /update/i.test(t) ? "&#10003; Updated" : /draft/i.test(t) ? "&#10003; Draft Saved" : "&#10003; Saved";
@@ -25369,6 +25416,7 @@ body.job-readonly #jlBanner{display:flex}
   /* any edit near a saved button turns it back into Save */
   function edited(e){
     var t = e.target; if(!t || !t.closest) return;
+    recent = null;
     var box = t.closest("tr, .card, .modal-body, form, .scr"); if(!box) return;
     box.querySelectorAll(".btn-saved").forEach(revert);
     var up = box.parentElement && box.parentElement.closest ? box.parentElement.closest(".card, .modal-body, .scr") : null;
@@ -25620,6 +25668,7 @@ body.job-readonly #jlBanner{display:flex}
     try{ O.data = await api("GET", "/api/jobs/"+enc(job)+"/outdocs"); }catch(e){ h.innerHTML = '<div class="ib ib-rd">'+esc(e.message || "Could not load Output Docs")+'</div>'; return; }
     const lbl = document.getElementById("outDocMode"); if(lbl) lbl.textContent = O.data.mode+" "+O.data.direction;
     paint();
+    loadJs("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js").then(()=> loadJs("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")).catch(()=>{});
   }
   const btn = (act, label, cls, extra)=> '<button class="btn btn-'+(cls || "out")+' btn-sm" type="button" data-od2="'+act+'"'+(extra || "")+'>'+label+'</button>';
   function paint(){

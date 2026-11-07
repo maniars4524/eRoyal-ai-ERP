@@ -41,6 +41,17 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.evaluate(() => { const b = [...document.querySelectorAll("#jt5 button")].find(b => /^\W*\s*save\b/i.test(b.textContent.trim()) && !/&/.test(b.textContent)); if (b) b.click(); }); await sleep(2500);
   const back = (await j("GET", "/api/shipments/by-number/" + job + "/charges", null, token)).body;
   check("saving keeps the DR / CR of every line and the server statement agrees", back.lines.map(l => l.dr_cr).join() === "CR,CR,CR" && back.totals.dr_cr[0].note === "CN", JSON.stringify(back.totals.dr_cr));
+  // raise the note from the statement
+  await j("PUT", "/api/shipments/by-number/" + job + "/charges", { lines: [ln("Ocean Freight", "sell", "1000", "DR"), ln("Delivery Charges", "sell", "50", "DR"), ln("Payment to Liner", "buy", "800", "CR"), ln("Profit Share", "buy", "25", "CR")] }, token);
+  await j("PUT", "/api/jobs/" + job + "/details/parties", { data: { shipper: "S Ltd", consignee: "C Ltd", originAgent: "Overseas Agent LLC" } }, token);
+  await page.evaluate(n => go("job-detail", { jobNo: n }), job); await sleep(3500);
+  await page.evaluate(() => document.querySelector('#s-job-detail .tbb[data-tab="jt5"]').click()); await sleep(2500);
+  st = await text("#jcDrCr");
+  check("the statement offers Raise Debit Note for the 225.00 balance", /225\.00/.test(st) && await page.evaluate(() => !!document.querySelector("[data-jc-note=USD]") && /Raise Debit Note/.test(document.querySelector("[data-jc-note=USD]").textContent)), st.replace(/\s+/g, " ").slice(0, 200));
+  await page.evaluate(() => document.querySelector("[data-jc-note=USD]").click()); await sleep(3500);
+  const docs = (await j("GET", "/api/documents?job_number=" + encodeURIComponent(job), null, token)).body;
+  const dn = (Array.isArray(docs) ? docs : docs.items || []).find(d => d.doc_type === "debit_note");
+  check("a draft Debit Note to the overseas agent for USD 225.00 was created", !!dn && dn.party_name === "Overseas Agent LLC", JSON.stringify(dn || docs).slice(0, 160));
   check("no script errors", errs.length === 0, errs.join(" | ").slice(0, 300));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

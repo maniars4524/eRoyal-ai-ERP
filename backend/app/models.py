@@ -1920,3 +1920,14 @@ class NotificationSetting(Base):
     data: Mapped[dict] = mapped_column(JSON)
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class NotificationRead(Base):
+    """A notification a user has read (the list itself is computed live; only the read mark is stored)."""
+    __tablename__ = "notification_reads"
+    __table_args__ = (UniqueConstraint("user_id", "item_id", name="uq_notification_read"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    item_id: Mapped[str] = mapped_column(String(160))
+    read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
