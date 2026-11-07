@@ -291,6 +291,8 @@ def save_selection(job_number: str, body: SelectionIn, user: User = Depends(perm
 
     job = _job(db, user, job_number, lock=True)
     jl.assert_job_editable(job, "the HBL clauses")
+    if job.direction == "Import":
+        raise HTTPException(409, "HBL clauses do not apply to import jobs")
     row = _row(db, job, create=True)
     bl = dict(row.bl or {})
     stage = bl.get("blStage") or "Draft"

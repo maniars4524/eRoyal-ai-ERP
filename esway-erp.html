@@ -3112,10 +3112,11 @@ tbody tr:hover{background:var(--g0)}
 
 <div class="fr" id="jobBlGenericRow"><div class="fg"><label class="fl">Originals</label><input class="fc" id="jobBl_originals" value="3" style="width:55px"></div><div class="fg"><label class="fl">Freight Terms</label><select class="fc" id="jobBl_terms"><option>Prepaid</option><option>Collect</option><option>Both</option></select></div><div class="fg"><label class="fl">Place of Issue</label><input class="fc" id="jobBl_place" value=""></div><div class="fg"><label class="fl">Released Date</label><input class="fc" type="date" id="jobBl_released"></div></div>
 <div id="hblClausesWrap"></div>
-<div class="fsec">BL stage and release</div>
+<div id="jobBlStageBlock"><div class="fsec">BL stage and release</div>
 <div class="fr"><div class="fg"><label class="fl">BL Stage</label><input class="fc" id="jobBl_stage" readonly value="Draft" style="font-weight:700;background:var(--g0)"></div><div class="fg"><label class="fl">Release Type</label><select class="fc" id="jobBl_relType"><option>Original</option><option>Express Release</option><option>Telex Release</option><option>Surrender</option></select></div><div class="fg" style="display:flex;align-items:flex-end"><label style="display:flex;gap:6px;align-items:center;font-size:12px"><input type="checkbox" id="jobBl_digSign"> Apply digital signature &amp; seal</label></div></div>
 <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"><button class="btn btn-out btn-sm" type="button" id="jobBl_confirmBtn">Confirm BL</button><button class="btn btn-pri btn-sm" type="button" id="jobBl_releaseBtn">Release BL</button><button class="btn btn-out btn-sm" type="button" id="jobBl_draftBtn">Back to Draft</button><button class="btn btn-out btn-sm" type="button" data-doc-profile>Company letterhead &amp; registration</button></div>
 <div class="ib ib-am" id="jobBl_releaseNote" style="margin-top:8px"><svg class="ic" data-icon="alert" style="margin-right:5px"></svg>Original BL is released only after full payment is confirmed by Accounts.</div>
+</div>
 </div></div>
 <div class="card" id="chaJobsCard" style="margin-top:14px;display:none"><div class="ch"><div class="ct">CUSTOMS / CHA JOB INFORMATION <span class="mn-badge" id="chaJobsCount">0</span></div><button class="btn btn-out btn-sm" id="chaJobsAdd" type="button">＋ Add CHA job</button></div><div class="cb" id="chaJobsBody"></div></div>
 </div>
@@ -18198,6 +18199,7 @@ function makePrintFit(){
     else if(e.target.closest("#jobBl_releaseBtn")) stageTo("Released", {release_type:el("jobBl_relType").value, digital_sign:!!el("jobBl_digSign").checked});
   });
   JD.preview = async function(){
+    if(JD.data && JD.data.direction === "Import") return;                               /* import jobs: the HBL / MBL numbers are typed, never previewed or generated */
     if(JD.data && JD.data.mode === "Air"){ const n = el("jobAwb_hawbNo"); if(!n || !JD.job || (JD.data.bl && JD.data.bl.hblNo)) return; try{ const r = await api("GET", "/api/jobs/"+encodeURIComponent(JD.job)+"/hbl-preview?hbl_type=HAWB"); n.placeholder = "Next: "+r.preview; }catch(e){} return; }
     const t = (el("jobBlHbltype") || {}).value, n = el("jobBl_hblNo"); if(!n || !JD.job || (JD.data && JD.data.bl && JD.data.bl.hblNo)) return;
     n.placeholder = "Not generated yet";
@@ -25679,6 +25681,32 @@ body.job-readonly #jlBanner{display:flex}
       }).catch(()=>{}); }).catch(()=>{}); return r; });
     return p;
   };
+})();
+</script>
+<script>
+/* IMPORT JOBS, BL / AWB tab: the HBL and MBL (HAWB / MAWB) numbers are typed by the user: nothing is generated, there are no HBL clauses and no BL release / confirm. The Cargo Arrival Notice and the
+   Delivery Order Preparation (Output Docs) are the import documents. Export jobs are unchanged. The server refuses the generate, stage and clause calls for import jobs as well. */
+(function(){
+  "use strict";
+  const st = document.createElement("style");
+  st.textContent = "#jt3.bl-import #jobBl_genHblBtn,#jt3.bl-import #jobBlHbltypeWrap,#jt3.bl-import #jobBlScacWrap,#jt3.bl-import #hblClausesWrap,#jt3.bl-import #jobBlStageBlock,#jt3.bl-import #jobAwb_genBtn,#jt3.bl-import #jobBlBookingTypeNote{display:none !important}";
+  document.head.appendChild(st);
+  function tick(){
+    const jt3 = document.getElementById("jt3"), JD = window.JobDetailKit; if(!jt3 || !JD || !JD.data || !JD.job) return;
+    const imp = JD.data.direction === "Import" && (JD.data.mode === "Sea" || JD.data.mode === "Air");
+    jt3.classList.toggle("bl-import", imp);
+    let note = document.getElementById("jobBlImportNote");
+    if(imp && !note){ const host = jt3.querySelector(".cb"); if(host){ note = document.createElement("div"); note.id = "jobBlImportNote"; note.className = "ib ib-bl"; note.style.marginBottom = "10px";
+      note.innerHTML = 'Import job: enter the <b>HBL and MBL numbers yourself</b> (from the origin agent and the carrier). No HBL number is generated, there are no HBL clauses and no BL release. Use the <b>Cargo Arrival Notice</b> and the <b>Delivery Order Preparation</b> under Output Docs.'; host.insertBefore(note, host.firstChild); } }
+    if(note) note.style.display = imp ? "" : "none";
+    [["jobBl_hblNo", "Enter the HBL number given by the origin agent"], ["jobAwb_hawbNo", "Enter the HAWB number given by the origin agent"]].forEach(x=>{
+      const n = document.getElementById(x[0]); if(!n) return;
+      if(n.dataset.roOrig === undefined) n.dataset.roOrig = n.readOnly ? "1" : "0";
+      if(imp){ n.readOnly = false; n.style.background = ""; n.placeholder = x[1]; } else if(n.dataset.roOrig === "1" && JD.data.bl && !JD.data.bl.hblNo){ n.readOnly = true; }
+    });
+    document.querySelectorAll("#jt3 .fsec").forEach(f=>{ if(/House BL — issued by us/i.test(f.textContent) || f.dataset.impOrig){ if(!f.dataset.impOrig) f.dataset.impOrig = f.textContent; f.textContent = imp ? "House BL — enter the number given by the origin agent (manual entry)" : f.dataset.impOrig; } });
+  }
+  setInterval(tick, 700);
 })();
 </script>
 </body>

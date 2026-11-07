@@ -358,7 +358,10 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
     row = _row(db, job, create=True)
     if body.expected_version is not None and body.expected_version != row.version:
         raise HTTPException(409, "These details were changed by someone else. Reload the job and try again")
-    if section == "bl":
+    if section == "bl" and job.direction == "Import":
+        # an import job: the HBL / MBL numbers and dates are typed by the user and may be corrected; there is no generated number, no clause snapshot and no stage / release
+        data = {k: v for k, v in data.items() if k not in ("clauses", "clausesSavedAt", "clauseVersion", "clauseHistory", "blStage", "releaseType", "digitalSign", "releasedAt", "releaseOverride", "hblType", "scac")}
+    elif section == "bl":
         keep = {k: v for k, v in (row.bl or {}).items() if k in ("hblNo", "hblDate", "hblIssuedFor", "blStage", "releaseType", "digitalSign", "releasedAt", "releaseOverride") and not data.get(k)}
         keep.update({k: v for k, v in (row.bl or {}).items() if k in ("clauses", "clausesSavedAt", "clauseVersion", "clauseHistory")})        # the clause snapshot is only changed from the HBL Clauses section
         data = {**data, **keep}   # the House BL number belongs to the system: a save never erases or replaces it
@@ -395,6 +398,8 @@ def issue_hbl(job_number: str, body: HblIn, user: User = Depends(permission_requ
     """Issue the House BL number: company code + type + running number + POL code + POD code (e.g. RTSMTO001MAASIN). A job gets one; asking again returns it."""
     job = _job(db, user, job_number, lock=True)
     jl.assert_job_editable(job, "the House BL")
+    if job.direction == "Import":
+        raise HTTPException(409, "HBL numbers are not generated for import jobs: enter the HBL / MBL number yourself on the BL / AWB tab. Use the Cargo Arrival Notice and the Delivery Order for this job.")
     if job.mode == "Air" and body.hbl_type != "HAWB":
         raise HTTPException(422, "An air job carries a House AWB (HAWB)")
     if job.mode != "Air" and body.hbl_type == "HAWB":
@@ -452,6 +457,8 @@ def bl_stage(job_number: str, body: BlStageIn, user: User = Depends(permission_r
     """Draft -> Confirmed -> Released. An Original BL is released only after full payment; a user with the release-override right may release it earlier, with a reason that goes to the job history."""
     job = _job(db, user, job_number, lock=True)
     jl.assert_job_editable(job, "the BL")
+    if job.direction == "Import":
+        raise HTTPException(409, "Confirming and releasing a BL does not apply to import jobs: use the Cargo Arrival Notice and the Delivery Order instead.")
     row = _row(db, job, create=True)
     bl = dict(row.bl or {})
     cur = bl.get("blStage") or "Draft"
