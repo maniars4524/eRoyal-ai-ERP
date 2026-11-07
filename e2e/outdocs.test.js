@@ -50,7 +50,8 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.evaluate(() => document.querySelector('[data-od2="hist"][data-code="sailing_confirmation"]').click()); await sleep(1500);
   check("History lists both versions", /v2/.test(await text("#modalBody")) && /v1/.test(await text("#modalBody")));
   await page.evaluate(() => closeModal()); await sleep(400);
-  await page.evaluate(() => document.querySelector('[data-od2="gen"][data-code="shipment_summary"]').click()); await sleep(1500);
+  await page.evaluate(() => document.querySelector('[data-od2="gen"][data-code="shipment_summary"]').click()); await sleep(2500);
+  await page.evaluate(() => { document.querySelector('input[name="odVar"][value="without_rates"]').checked = true; document.getElementById("odVarGo").click(); }); await sleep(2500);
   await page.evaluate(() => document.getElementById("odInGo").click()); await sleep(3500);
   const ss = await text("#modalBody");
   check("the Shipment Summary shows the job, shipper, consignee, route and cargo", /SHIPMENT SUMMARY/.test(ss) && /ABC Trading Co/.test(ss) && /Global Importers/.test(ss) && /INMAA/.test(ss) && /Auto parts/.test(ss), ss.replace(/\s+/g, " ").slice(0, 200));

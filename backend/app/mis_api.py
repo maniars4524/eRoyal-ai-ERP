@@ -11,12 +11,29 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from .auth import permission_required
+from contextvars import ContextVar
+
+from .access import record_clause, scope_for, shipment_clause
+from .auth import get_current_user, permission_required
 from .billing import outstanding
 from .db import get_db
 from .models import AccEntry, AccGroup, AccLedger, AccVoucher, Booking, Customer, Document, JobDetail, Shipment, User
 
-router = APIRouter(prefix="/api/mis", tags=["mis"])
+_ME: ContextVar = ContextVar("mis_user", default=None)
+
+
+async def _bind(user: User = Depends(get_current_user)) -> None:
+    """Remember who is asking, so every MIS query below is limited to the jobs and documents that person may see (placed users see their own scope, not the whole company)."""
+    _ME.set(user)
+
+
+router = APIRouter(prefix="/api/mis", tags=["mis"], dependencies=[Depends(_bind)])
+
+
+def _jobs_q(db: Session, q):
+    u = _ME.get()
+    cl = shipment_clause(db, u) if u is not None else None
+    return q.where(cl) if cl is not None else q
 ZERO = Decimal(0)
 SALES = ("invoice", "debit_note", "credit_note")
 COST = ("purchase_invoice", "purchase_credit_note")
@@ -43,6 +60,10 @@ def _docs(db: Session, org_id: int, date_from: date | None, date_to: date | None
         q = q.where(Document.doc_date >= date_from)
     if date_to:
         q = q.where(Document.doc_date <= date_to)
+    u = _ME.get()
+    cl = record_clause(db, u, Document) if u is not None else None
+    if cl is not None:
+        q = q.where(cl)
     return list(db.scalars(q.order_by(Document.doc_date, Document.id)))
 
 
@@ -51,7 +72,7 @@ def _val(d: Document) -> Decimal:
 
 
 def _job_index(db: Session, org_id: int) -> dict[str, Shipment]:
-    return {s.job_number: s for s in db.scalars(select(Shipment).where(Shipment.organization_id == org_id))}
+    return {s.job_number: s for s in db.scalars(_jobs_q(db, select(Shipment).where(Shipment.organization_id == org_id)))}
 
 
 @router.get("/executive")
@@ -65,11 +86,12 @@ def executive(date_from: date | None = None, date_to: date | None = None, user: 
     ar = sum((outstanding(d) for d in open_docs if d.doc_type in ("invoice", "debit_note")), ZERO)
     ap = sum((outstanding(d) for d in open_docs if d.doc_type == "purchase_invoice"), ZERO)
     overdue = sum((outstanding(d) for d in open_docs if d.doc_type in ("invoice", "debit_note") and d.due_date and d.due_date < today and outstanding(d) > 0), ZERO)
-    jq = select(func.count()).select_from(Shipment).where(Shipment.organization_id == org_id)
+    jq = _jobs_q(db, select(func.count()).select_from(Shipment).where(Shipment.organization_id == org_id))
     jobs_total = db.scalar(jq) or 0
     jobs_open = db.scalar(jq.where(Shipment.closure_status == "OPEN")) or 0
     jobs_period = db.scalar(jq.where(*( [Shipment.created_at >= date_from] if date_from else []), *( [Shipment.created_at < date.fromordinal(date_to.toordinal() + 1)] if date_to else []))) or 0
-    ids = [l.id for l in db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id)) if db.get(AccGroup, l.group_id).name in ("BANK ACCOUNTS", "CASH-IN-HAND")]
+    me = _ME.get()
+    ids = [l.id for l in db.scalars(select(AccLedger).where(AccLedger.organization_id == org_id)) if db.get(AccGroup, l.group_id).name in ("BANK ACCOUNTS", "CASH-IN-HAND")] if (me is None or scope_for(db, me).unrestricted) else []     # bank and cash balances belong to the company, not to a placed user
     cashbank = ZERO
     if ids:
         led = {l.id: l for l in db.scalars(select(AccLedger).where(AccLedger.id.in_(ids)))}
@@ -168,7 +190,7 @@ def customer_profitability(date_from: date | None = None, date_to: date | None =
 @router.get("/shipments")
 def shipments(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
-    q = select(Shipment).where(Shipment.organization_id == org_id)
+    q = _jobs_q(db, select(Shipment).where(Shipment.organization_id == org_id))
     if date_from:
         q = q.where(Shipment.created_at >= date_from)
     if date_to:
@@ -194,7 +216,7 @@ def _teu(kind: str) -> int:
 def carrier_teu(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """Containers and TEUs by carrier: a 20' container is 1 TEU, a 40' or 45' container is 2 TEU. Containers come from the job's Containers tab, else from the booking."""
     org_id = _tenant(user)
-    q = select(Shipment).where(Shipment.organization_id == org_id, Shipment.mode == "Sea")
+    q = _jobs_q(db, select(Shipment).where(Shipment.organization_id == org_id, Shipment.mode == "Sea"))
     if date_from:
         q = q.where(Shipment.created_at >= date_from)
     if date_to:

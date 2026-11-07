@@ -625,3 +625,12 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - Cancel Job / Reinstate Job buttons + CANCELLED banner on the job screen (lifecycle kit; lifecycle_out has status, cancel_reason, can_cancel, can_reinstate); status filter has Closed + Cancelled. e2e/cancelui.test.js.
 - All Output Docs of all four categories generate (e2e/allreports.test.js); Export Declaration refuses without a Shipping Bill, CAN With Charges without charges, by design.
 - INSTALL-KEEPALIVE.cmd is deleted again by something outside this work within seconds of being restored; the keep-alive task is already registered.
+
+## HAWB format, print modes, access scope, bell, misc (2026-11-07)
+- HAWB (Output Docs) rebuilt to the company's IATA sample: top "603 MAA 60343360 | HAWB NO", shipper/consignee with account numbers, agent + IATA code, routing row, flight/date, declared values, charges block, shipper's certification, executed on/at/by, both signature lines, HAWB NO bottom right; page 2 = conditions of contract. Data from the BL/AWB tab (bl.awb: airline, routingTo, flight, flightDate, rateClass, rate, chargeableWt, payment, otherCharges/otherText, place, execDate, executedBy, iata, shipperAccount, consigneeAccount, handling, accounting ...).
+- Printing HBL/HAWB: Print opens Draft / A4 (original) / Pre print (data only, no lines/labels/margins, first page) / Multiple print (choose ORIGINAL 1-3 / SHIPPER / CONSIGNEE / AGENT / ACCOUNTS / OFFICE copies, caption at foot). Labels and printed text carry class "lbl" (hidden in a pre-print) in DK.awb and BD.html.
+- Dashboard summary/side, MIS (executive, revenue, shipments, carrier TEU ...) now follow the user's access scope (placed users see their own); bank/cash balances only for unrestricted users.
+- Header bell = live notification list with unseen dot (per device), Mark all as read.
+- Shipment Summary With/Without Charges (collections, payments, net profit); variant reports open to everyone, the money version needs billing.read (finance flag in /outdocs). Mail button (send-document) in Output Docs.
+- Planned containers auto-fill rows on the Containers tab; routing names (vessels used before) suggested; NVOCC > Masters and Transport > Vehicle Inventory > Masters menus.
+- Backend suite: 449 passed (full run). Mistake caught: DR/CR was briefly mapped onto quotation lines too (code only) - fixed and live restarted.

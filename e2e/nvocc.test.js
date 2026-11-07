@@ -10,8 +10,8 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
 (async () => {
   const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
   const tag = Date.now().toString(36).toUpperCase().slice(-5);
-  const org = await j("POST", "/api/organizations", { code: "WZ" + tag, name: "Wiz " + tag, admin_email: `wz${tag}@t.test`, admin_username: "wz" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "C" }, dev.body.access_token);
-  const token = (await j("POST", "/api/auth/login", { identifier: "wz" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const org = await j("POST", "/api/organizations", { code: "NV" + tag, name: "Wiz " + tag, admin_email: `nv${tag}@t.test`, admin_username: "nv" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "C" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "nv" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
   const api = async p => (await j("GET", p, null, token)).body;
   const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
   const page = await b.newPage(); await page.setViewport({ width: 1500, height: 1000 }); const errs = []; let confirms = 0;
@@ -19,13 +19,13 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   page.on("dialog", d => { if (d.type() === "confirm") confirms++; d.accept(); });
   await page.goto(BASE + "/erp/login", { waitUntil: "networkidle2" }); await page.evaluate(t => localStorage.setItem("esway_persistent_token", t), token); await page.reload({ waitUntil: "networkidle2" }); await sleep(2500);
   const click = sel => page.evaluate(sel => document.querySelector(sel).click(), sel);
-  const sea = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA", pod: "SGSIN" }, token)).body;
-  await page.evaluate(n => go("job-detail", { jobNo: n }), sea.job_number); await sleep(3500);
-  const btns = await page.evaluate(() => [...document.querySelectorAll("#s-job-detail button")].filter(b => /save|update/i.test(b.textContent)).map(b => b.textContent.trim().replace(/\s+/g, " ") + " | tab " + (b.closest(".tp") || {}).id));
-  console.log(JSON.stringify(btns));
-  await page.evaluate(() => document.querySelector('.tbb[data-tab="jtpc"]').click()); await sleep(1200);
-  const b0 = await page.evaluate(() => { const b = [...document.querySelectorAll("#jtpc button")].find(b => /save/i.test(b.textContent)); b.click(); return b.textContent.trim(); });
-  await sleep(2500);
-  console.log("clicked:", b0, "->", await page.evaluate(() => [...document.querySelectorAll("#jtpc button")].filter(b => /saved|save/i.test(b.textContent)).map(b => b.textContent.trim() + ":" + b.className).join(" || ")));
-  await b.close(); process.exit(0);
-})();
+  const vis = sel => page.evaluate(sel => { const e = document.querySelector(sel); return !!e && e.offsetParent !== null; }, sel);
+  const goes = await page.evaluate(() => [...document.querySelectorAll(".tn-row[data-go]")].map(r => r.dataset.go));
+  const need = ["inv-container-size", "container-master", "inv-container-grade", "inv-container-condition", "inv-container-ownership", "inv-depot", "inv-yard-location", "inv-movement-type", "inv-survey-type", "inv-survey-item", "inv-damage-type", "inv-repair-category", "inv-document-type", "inv-vehicle-category", "inv-tyre-brand"];
+  const labels = await page.evaluate(() => [...document.querySelectorAll(".tn-label")].map(x => x.textContent.trim()));
+  check("NVOCC has a Masters group, and Transport > Vehicle Inventory has its Masters", labels.filter(l => l === "Masters").length >= 3, labels.filter(l => /Masters|NVOCC/.test(l)).join("|"));
+  check("every container and vehicle master is reachable from those menus", need.every(g => goes.includes(g)), need.filter(g => !goes.includes(g)).join());
+  await page.evaluate(() => document.querySelector('.tn-row[data-go="inv-depot"]').click()); await sleep(2000);
+  check("a master opens from the NVOCC menu", await vis("#s-inv-depot"));
+  await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

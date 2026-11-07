@@ -131,3 +131,11 @@ def test_the_first_leg_is_suggested_from_the_ports_even_with_no_vessel_or_dates(
     assert got["suggested"] and got["suggested"][0]["pol"] == "SGSIN(SINGAPORE)" and got["suggested"][0]["pod"] == "INMAA(CHENNAI)" and got["suggested"][0]["carrier"] is None
     air = client.post("/api/shipments", json={"mode": "Air", "direction": "Import", "container_mode": "Air", "pol": "SIN", "pod": "MAA"}, headers=h).json()["job_number"]
     assert client.get(f"/api/jobs/{air}/routing", headers=h).json()["suggested"] == []            # air legs carry no ports; nothing else is known
+
+
+def test_names_used_before_are_offered_as_suggestions(h):
+    j = mk(h)
+    client.post(f"/api/jobs/{j}/routing/legs", json=sea(carrier="Suggest Ship One"), headers=h)
+    names = client.get("/api/routing/names?kind=SEA", headers=h).json()
+    assert "Suggest Ship One" in names
+    assert "Suggest Ship One" not in client.get("/api/routing/names?kind=AIR", headers=h).json()

@@ -89,3 +89,17 @@ def test_financial_reports_need_the_billing_right(h, world):
     k = mk(h, "Sea", "Import")
     assert client.post(f"/api/jobs/{k}/outdocs", json={"code": "can", "variant": "with_rates", "html": HTML}, headers=hv).status_code == 403
     assert client.post(f"/api/jobs/{k}/outdocs", json={"code": "can", "variant": "without_rates", "html": HTML}, headers=hv).status_code == 201
+
+
+def test_the_shipment_summary_has_a_charges_version_that_needs_the_billing_right(h, world):
+    from tests.test_containers import make_user
+
+    v = make_user(world, "odsum", ["shipment.read"])
+    hv = hdr(v["username"], v["license"])
+    j = mk(h, "Sea", "Export")
+    rep = {x["code"]: x for x in client.get(f"/api/jobs/{j}/outdocs", headers=hv).json()["reports"]}["shipment_summary"]
+    assert rep["allowed"] is True and rep["variants"] == ["without_rates", "with_rates"]            # a user without the billing right can still make the version without charges
+    assert client.get(f"/api/jobs/{j}/outdocs", headers=hv).json()["finance"] is False
+    assert client.post(f"/api/jobs/{j}/outdocs", json={"code": "shipment_summary", "variant": "without_rates", "html": HTML}, headers=hv).status_code == 201
+    assert client.post(f"/api/jobs/{j}/outdocs", json={"code": "shipment_summary", "variant": "with_rates", "html": HTML}, headers=hv).status_code == 403
+    assert client.post(f"/api/jobs/{j}/outdocs", json={"code": "shipment_summary", "variant": "with_rates", "html": HTML}, headers=h).status_code == 201

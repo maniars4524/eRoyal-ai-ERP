@@ -34,6 +34,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const pages = () => page.evaluate(() => document.querySelectorAll("#modalBody .pg").length);
   for (const [code, label] of [["sailing_confirmation", "Sailing Confirmation"], ["shipment_summary", "Shipment Summary"], ["pre_alert", "Pre-alert"]]) {
     await gen(code);
+    if (code === "shipment_summary") { await page.evaluate(() => { document.querySelector('input[name="odVar"][value="without_rates"]').checked = true; document.getElementById("odVarGo").click(); }); await sleep(3000); }
     const dlg = await text("#modalBody");
     check(label + ": the generate dialog offers the signature choice", /signature and seal/i.test(dlg), dlg.slice(0, 120));
     await page.evaluate(() => document.getElementById("odInGo").click()); await sleep(4500);
@@ -52,6 +53,21 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await gen("hawb", 6500);
   const hw = await text("#modalBody");
   check("the HAWB is two pages: the air waybill and the conditions of contract", (await pages()) === 2 && /NOTICE CONCERNING CARRIER'S LIMITATION OF LIABILITY/.test(hw) && /CONDITIONS OF CONTRACT/.test(hw) && /MONTREAL CONVENTION/.test(hw), String(await pages()));
+  check("the HAWB face has the IATA layout: account numbers, agent IATA code, routing, flight/date, declared values, charges block, both signatures and the HAWB number", ["Shipper's Account Number", "Consignee's Account Number", "Agent's IATA Code", "Requested Flight/Date", "Declared Value for Carriage", "Declared Value for Customs", "Amount of Insurance", "Total Other Charges Due Agent", "Total Other Charges Due Carrier", "Currency Conversion Rates", "For Carrier's Use only at Destination", "Signature of Shipper or his Agent", "Signature Of Issuing Carrier or its Agent", "HAWB NO:"].every(t => hw.includes(t)), hw.replace(/\s+/g, " ").slice(0, 200));
+  // printing the HAWB: Draft / A4 / Pre print / Multiple print
+  await page.evaluate(() => { window.__w = []; window.open = () => { const o = { html: "", document: { write: h => { o.html += h; }, close: () => {} }, focus: () => {}, print: () => {} }; window.__w.push(o); return o; }; });
+  const pr = async (mode, afterPick) => { await page.evaluate(() => document.querySelector('[data-od2="printp"]').click()); await sleep(600); await page.evaluate(m => document.querySelector('[data-od-pm="' + m + '"]').click(), mode); await sleep(500); if (afterPick) await afterPick(); await sleep(600); return page.evaluate(() => window.__w[window.__w.length - 1].html); };
+  const pv = async () => { await page.evaluate(() => document.querySelector('#odDyn [data-od2="view"][data-code="hawb"]').click()); await sleep(3000); };
+  await pv();
+  const cnt = (h, re) => (h.match(re) || []).length;
+  const dr = await pr("draft");
+  check("Draft print marks every page DRAFT", cnt(dr, /DRAFT/g) >= 2 && cnt(dr, /class="pg/g) === 2);
+  await pv(); const a4 = await pr("a4");
+  check("A4 print has both pages and no DRAFT mark", cnt(a4, /class="pg/g) === 2 && !/>DRAFT</.test(a4) && !/Page \d+ of \d+/.test(a4));
+  await pv(); const pp = await pr("preprint");
+  check("Pre print is the first page only, with the lines and printed text hidden", cnt(pp, /class="pg/g) === 1 && /preprint/.test(pp) && /visibility:hidden/.test(pp) && !/SPECIAL DRAWING RIGHT/.test(pp));
+  await pv(); const mp = await pr("multiple", () => page.evaluate(() => { document.querySelectorAll("[data-od-cp]").forEach(e => { e.checked = /SHIPPER COPY|AGENT COPY/.test(e.parentElement.textContent) && !/ORIGINAL/.test(e.parentElement.textContent); }); document.getElementById("odCopiesGo").click(); }));
+  check("Multiple print prints each chosen copy marked SHIPPER COPY / AGENT COPY, both pages each", /SHIPPER COPY/.test(mp) && /AGENT COPY/.test(mp) && !/ORIGINAL 1/.test(mp) && cnt(mp, /class="pg/g) === 4, String(cnt(mp, /class="pg/g)));
   check("no script errors", errs.length === 0, errs.join(" | ").slice(0, 300));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

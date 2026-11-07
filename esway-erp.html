@@ -6500,6 +6500,21 @@ const TOPNAV_MENU = [
       {label:"Container Leasing", icon:"license", go:"inv-leases"},
       {label:"Depot Stock Verification", icon:"check-circle", go:"inv-counts"},
       {label:"CSC & Lease Expiry", icon:"clock", go:"inv-expiry"},
+      {label:"Masters", icon:"tag", children:[
+        {label:"Container Size", icon:"package", go:"inv-container-size"},
+        {label:"Container Type", icon:"package", go:"container-master"},
+        {label:"Container Grade", icon:"award", go:"inv-container-grade"},
+        {label:"Container Condition", icon:"check-circle", go:"inv-container-condition"},
+        {label:"Container Ownership", icon:"license", go:"inv-container-ownership"},
+        {label:"Depot Master", icon:"warehouse", go:"inv-depot"},
+        {label:"Yard Location", icon:"map-pin", go:"inv-yard-location"},
+        {label:"Movement Type", icon:"shuffle", go:"inv-movement-type"},
+        {label:"Survey Type", icon:"clipboard", go:"inv-survey-type"},
+        {label:"Survey Checklist Item", icon:"check", go:"inv-survey-item"},
+        {label:"Damage Type", icon:"alert", go:"inv-damage-type"},
+        {label:"Repair Category", icon:"adjustments", go:"inv-repair-category"},
+        {label:"Asset Document Type", icon:"file-text", go:"inv-document-type"},
+      ]},
     ]},
     {label:"Transport", module:"transport", icon:"truck", badge:"badgeSvcTrans", roles:["Admin","Operations","Transport"], children:[
       {label:"Transport Jobs", icon:"truck", go:"svc-transport"},
@@ -6510,6 +6525,15 @@ const TOPNAV_MENU = [
           {label:"Preventive Maintenance", icon:"calendar-check", go:"inv-plans"},
           {label:"Tyre Management", icon:"tag", go:"inv-tyres"},
           {label:"Fuel & Lubricant", icon:"gear", go:"inv-fuel"},
+        {label:"Masters", icon:"tag", children:[
+          {label:"Vehicle Category", icon:"truck", go:"inv-vehicle-category"},
+          {label:"Vehicle Ownership", icon:"license", go:"inv-vehicle-ownership"},
+          {label:"Maintenance Category", icon:"adjustments", go:"inv-maintenance-category"},
+          {label:"Axle & Wheel Configuration", icon:"gear", go:"inv-axle-config"},
+          {label:"Tyre Brand", icon:"tag", go:"inv-tyre-brand"},
+          {label:"Tyre Category", icon:"tag", go:"inv-tyre-category"},
+          {label:"Asset Document Type", icon:"file-text", go:"inv-document-type"},
+        ]},
       ]},
     ]},
     {label:"Warehouse", module:"warehouse", icon:"warehouse", go:"svc-warehouse", roles:["Admin","Operations"]},
@@ -7253,6 +7277,7 @@ function renderDashAlerts(){
    5c. HEADER NOTIFICATIONS
    ============================================================ */
 function renderNotifications(){
+  if(window.NotifBell){ window.NotifBell.render(); return; }          /* the bell shows the same live list as the dashboard (Notifications & Alerts) */
   // Populates once real transactions (invoices, payments, shipments) exist
   const items = [];
   const all = (typeof CRM_NOTIFS!=="undefined" ? CRM_NOTIFS : []).concat(items);
@@ -18266,6 +18291,9 @@ function makePrintFit(){
     const need = ((JD.data && JD.data.suggested_containers) || []).map(x=>Object.assign({}, x, {missing:Math.max(0, x.qty - (have[x.type] || 0))})).filter(x=>x.missing > 0);
     JD.needBoxes = need;
     host.innerHTML = need.length ? '<div class="ib ib-bl" style="margin:8px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px"><b>Containers already planned:</b> '+need.map(x=>esc2(x.qty+" × "+x.type)+' <span style="color:var(--g5)">('+esc2(x.sources.join(", "))+')</span>').join(" · ")+'<br><span style="font-size:11px">The same containers can be used here; add the container numbers and seals afterwards.</span></div><button class="btn btn-pri btn-sm" type="button" data-jd-usecont>Use these ('+need.reduce((a, x)=>a + x.missing, 0)+' row'+(need.reduce((a, x)=>a + x.missing, 0) === 1 ? "" : "s")+')</button></div>' : "";
+  
+    /* a job that has planned containers and none saved yet gets its rows filled once, so nothing has to be typed again (they are saved with the tab's Save) */
+    try{ const key = "jcAuto_"+(JD.job || ""), tb = el("containerTableBody"); if(need.length && JD.job && !sessionStorage.getItem(key) && tb && !tb.querySelector("tr[data-jd-cont]")){ sessionStorage.setItem(key, "1"); const b = host.querySelector("[data-jd-usecont]"); if(b) b.click(); } }catch(e){}
   };
   document.addEventListener("click", e=>{
     if(!e.target.closest("[data-jd-usecont]")) return;
@@ -18412,7 +18440,7 @@ function makePrintFit(){
     OTHER:"Received in apparent good order and condition, unless otherwise stated, the goods described herein for carriage from the place of receipt to the place of delivery, subject to the terms and conditions of this Bill of Lading. One of the original Bills of Lading must be surrendered, duly endorsed, in exchange for the goods. In witness whereof the original Bills of Lading all of this tenor and date have been signed in the number indicated above, one of which being accomplished the other(s) to be void."};
   const CLAUSES = "By accepting this Bill of Lading shipper accepts to abide by all terms, conditions and clauses printed and stamped on the face or reverse side of this Bill of Lading. For freight collect shipments the shipper accepts his responsibility towards the carrier for payment of freight, detention, demurrage, reshipment costs and/or disposal costs, accrued governments costs etc., if the consignee fails to take delivery of the cargo within 90 days from the date the cargo reaches destination. Carrier reserves the right to repack the goods if the same are not in seaworthy packing, and the packing condition will be certified by the local bonded warehouse or surveyor and shipper by virtue of accepting this Bill of Lading accepts the liability towards the cost for the same. All charges are as per declared weight and volume from shipper / consignee as per the revised weight and volume whichever is higher.";
 
-  const cell = (label, body, style)=> '<div style="padding:4px 7px;'+(style || "")+'"><div style="font-size:9px;color:#444">'+label+'</div><div style="font-size:11.5px;line-height:1.35;margin-top:2px">'+(body || "&nbsp;")+'</div></div>';
+  const cell = (label, body, style)=> '<div style="padding:4px 7px;'+(style || "")+'"><div class="lbl" style="font-size:9px;color:#444">'+label+'</div><div style="font-size:11.5px;line-height:1.35;margin-top:2px">'+(body || "&nbsp;")+'</div></div>';
   const BORDER = "1px solid #000";
 
   BD.html = function(rd){
@@ -18442,15 +18470,15 @@ function makePrintFit(){
     const contact = [pr.phone ? "Tel : "+esc2(pr.phone) : "", pr.fax ? "Fax : "+esc2(pr.fax) : "", pr.email ? "Email : "+esc2(pr.email) : "", pr.web ? "Web : "+esc2(pr.web) : ""].filter(Boolean).join(" &nbsp;&nbsp; ");
     return '<div class="bldoc" style="position:relative;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;width:760px;margin:0 auto;border:2px solid #000;box-sizing:border-box">'+water+
       '<div style="display:grid;grid-template-columns:55% 45%">'+
-        '<div style="border-right:'+BORDER+'"><div style="padding:8px 8px 4px;font-weight:700;font-size:14px;letter-spacing:.3px">'+T.title+'</div>'+
+        '<div style="border-right:'+BORDER+'"><div class="lbl" style="padding:8px 8px 4px;font-weight:700;font-size:14px;letter-spacing:.3px">'+T.title+'</div>'+
           cell("Consignor / Shipper", nl2br(pt.shipper || p.shipper), "border-top:"+BORDER+";min-height:96px")+cell("Consignee (or order)", nl2br(pt.consignee || p.consignee), "border-top:"+BORDER+";min-height:96px")+cell("Notify Address", nl2br(pt.notify1 || p.notify1), "border-top:"+BORDER+";min-height:96px")+'</div>'+
-        '<div><div style="display:grid;grid-template-columns:38% 62%;border-bottom:'+BORDER+'"><div style="padding:8px;font-size:10px;text-align:center">'+T.no+'<br><br>Shipment reference no.</div><div><div style="border-left:'+BORDER+';border-bottom:'+BORDER+';padding:6px 8px;font-weight:700;min-height:34px">'+esc2(number || "")+'</div><div style="border-left:'+BORDER+';padding:6px 8px;min-height:34px">'+esc2(rd.job_number || "")+'</div></div></div>'+
-          '<div style="text-align:center;padding:8px 10px">'+logo+'<div style="font-size:17px;font-weight:700;margin-top:6px">'+esc2(co.name || "")+'</div>'+(pr.tagline ? '<div style="font-style:italic;font-size:13px">'+esc2(pr.tagline)+'</div>' : "")+'<div style="font-size:10.5px;margin-top:4px;line-height:1.4">'+nl2br(pr.address)+'</div><div style="font-size:10px;margin-top:3px">'+contact+'</div>'+reg+'</div>'+
-          '<div style="padding:0 10px 8px;font-size:9.5px;line-height:1.45;text-align:justify">'+esc2(type === "MTO" ? PREAMBLE.MTO : PREAMBLE.OTHER)+'</div></div></div>'+
+        '<div><div style="display:grid;grid-template-columns:38% 62%;border-bottom:'+BORDER+'"><div class="lbl" style="padding:8px;font-size:10px;text-align:center">'+T.no+'<br><br>Shipment reference no.</div><div><div style="border-left:'+BORDER+';border-bottom:'+BORDER+';padding:6px 8px;font-weight:700;min-height:34px">'+esc2(number || "")+'</div><div style="border-left:'+BORDER+';padding:6px 8px;min-height:34px">'+esc2(rd.job_number || "")+'</div></div></div>'+
+          '<div class="lbl" style="text-align:center;padding:8px 10px">'+logo+'<div style="font-size:17px;font-weight:700;margin-top:6px">'+esc2(co.name || "")+'</div>'+(pr.tagline ? '<div style="font-style:italic;font-size:13px">'+esc2(pr.tagline)+'</div>' : "")+'<div style="font-size:10.5px;margin-top:4px;line-height:1.4">'+nl2br(pr.address)+'</div><div style="font-size:10px;margin-top:3px">'+contact+'</div>'+reg+'</div>'+
+          '<div class="lbl" style="padding:0 10px 8px;font-size:9.5px;line-height:1.45;text-align:justify">'+esc2(type === "MTO" ? PREAMBLE.MTO : PREAMBLE.OTHER)+'</div></div></div>'+
       '<div style="display:grid;grid-template-columns:33% 33% 34%;border-top:'+BORDER+'">'+cell("Place of Acceptance", esc2(bk.place_of_receipt || rd.pol), "border-right:"+BORDER)+cell("Date of Acceptance", dmy(bk.etd), "border-right:"+BORDER)+cell("Port of Loading", esc2(rd.pol))+'</div>'+
       cell("Vessel Voy. No.", esc2(bk.vessel || ""), "border-top:"+BORDER+";min-height:44px")+
       '<div style="display:grid;grid-template-columns:20% 20% 20% 20% 20%;border-top:'+BORDER+'">'+cell("Port of Discharge", esc2(rd.pod), "border-right:"+BORDER)+cell("Place of Delivery", esc2(bk.place_of_delivery || rd.pod), "border-right:"+BORDER)+cell("Date or Period of Delivery", dmy(bk.eta), "border-right:"+BORDER)+cell("Modes / Means of transport", "", "border-right:"+BORDER)+cell("Route / Place of Transhipment (if any)", "")+'</div>'+
-      '<div style="border-top:'+BORDER+';display:grid;grid-template-columns:18% 12% 28% 14% 14% 14%;font-size:9px;text-align:center"><div style="padding:6px">Container No(s)</div><div style="padding:6px">Marks and Numbers</div><div style="padding:6px">Number of packages, kind of packages, general description of goods, (Said to contain)</div><div style="padding:6px">Gross Weight</div><div style="padding:6px">Net Weight</div><div style="padding:6px">Measurement</div></div>'+
+      '<div class="lbl" style="border-top:'+BORDER+';display:grid;grid-template-columns:18% 12% 28% 14% 14% 14%;font-size:9px;text-align:center"><div style="padding:6px">Container No(s)</div><div style="padding:6px">Marks and Numbers</div><div style="padding:6px">Number of packages, kind of packages, general description of goods, (Said to contain)</div><div style="padding:6px">Gross Weight</div><div style="padding:6px">Net Weight</div><div style="padding:6px">Measurement</div></div>'+
       '<div style="display:grid;grid-template-columns:18% 12% 28% 14% 14% 14%;font-size:11.5px;line-height:1.4;min-height:120px" class="bl-goods"><div style="padding:6px 7px">'+contLines+'</div><div style="padding:6px 7px">'+nl2br(c.marks || bk.marks || "")+'</div><div style="padding:6px 7px">'+pk+'<br>'+nl2br(c.cargoDesc || c.commodity || "")+(c.hscode ? "<br>HS CODE: "+esc2(c.hscode) : "")+'</div><div style="padding:6px 7px;text-align:center">'+gw+'</div><div style="padding:6px 7px;text-align:center">'+nw+'</div><div style="padding:6px 7px;text-align:center">'+ms+'</div></div>'+
       /* the band under the cargo: the company stamp (when released with the digital signature) on the left, shipping bill / freight / release lines and the standard remark across the rest */
       '<div style="display:grid;grid-template-columns:30% 70%;min-height:170px;padding-bottom:6px"><div style="padding:8px 10px;text-align:center;align-self:end">'+(stage === "Released" ? (bl.digitalSign && pr.seal_image ? '<img src="'+pr.seal_image+'" style="max-height:130px;max-width:100%;object-fit:contain;display:block;margin:0 auto">' : "")+(relLabel ? '<div style="display:inline-block;margin-top:6px;border:2.5px solid #1b3a8a;color:#1b3a8a;padding:3px 12px;font:700 14px Arial,Helvetica,sans-serif;letter-spacing:1.2px;transform:rotate(-3deg);border-radius:3px">'+esc2(relLabel)+'</div>' : "") : "")+'</div>'+
@@ -18462,7 +18490,7 @@ function makePrintFit(){
         '<div style="grid-area:orig;border-right:'+BORDER+';border-bottom:'+BORDER+'">'+cell("Number of Original "+T.short+" (s)", origNo, "min-height:56px")+'</div>'+
         '<div style="grid-area:issue;border-bottom:'+BORDER+'">'+cell("Place and date of issue", esc2(placeDate), "min-height:56px")+'</div>'+
         '<div style="grid-area:payable;border-right:'+BORDER+';border-bottom:'+BORDER+'">'+cell("Freight Payable at", esc2(bl.terms === "Collect" ? "DESTINATION" : (bl.place || "")), "min-height:92px")+'</div>'+
-        '<div style="grid-area:clauses;border-right:'+BORDER+';font-size:6.8px;line-height:1.3;padding:4px 5px;text-align:justify">'+esc2(pr.terms || CLAUSES)+'</div>'+
+        '<div class="lbl" style="grid-area:clauses;border-right:'+BORDER+';font-size:6.8px;line-height:1.3;padding:4px 5px;text-align:justify">'+esc2(pr.terms || CLAUSES)+'</div>'+
         '<div style="grid-area:sign;padding:8px;text-align:center;position:relative;min-height:150px"><div style="font-weight:700;font-size:12px">For '+esc2(co.name || "")+'</div><div style="margin-top:6px;min-height:80px">'+(stage === "Released" && bl.digitalSign && pr.sign_image ? '<img src="'+pr.sign_image+'" style="max-height:80px;max-width:210px">' : "")+'</div><div style="position:absolute;bottom:6px;left:0;right:0;font-size:10px">'+esc2(pr.signatory || "Authorised Signatory")+'</div></div></div></div>';
   };
 
@@ -18925,32 +18953,71 @@ function makePrintFit(){
       '<div style="border-top:1px solid #333;margin-top:8px;padding-top:4px;font-size:7.4px;line-height:1.3;text-align:justify">IF THIS AIR WAY BILL IS ISSUED BY A FORWARDER IN A CAPACITY AS CONTRACTING CARRIER FOR AIR TRANSPORTATION, ANY TRANSPORTATION OR OTHER WHICH IS NOT SUBJECT TO AN INTERNATIONAL AIR CARRIAGE CONVENTION WILL NOT BE SUBJECT TO THE TERMS AND CONDITIONS OF THIS AIR WAY BILL INSTEAD BE SUBJECT TO THE FORWARDER\'S GENERAL CONDITIONS AS APPROPRIATE.</div>'+
       (stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:110px;font-weight:700;color:rgba(0,0,0,.06);transform:rotate(-28deg)">DRAFT</div>' : "");
   };
+  /* House Air Waybill: the IATA-style face (Shipper / Consignee with account numbers, issuing carrier's agent, routing, declared values, the charges block, shipper's certification, execution and
+     both signatures) laid out like the company's HAWB sample; page 2 carries the conditions of contract */
   DK.awb = function(rd){
     const co = rd.company || {}, P = co.profile || {}, f = facts(rd); const bl = f.bl || {}; const a = bl.awb || {}; const stage = bl.blStage || "Draft";
     const wt = DK.awbWeights(f.d); const gross = num(first(f.gw, wt.act)); const chargeable = num(first(a.chargeableWt, wt.chg || Math.max(gross, wt.vol))); const rate = num(a.rate); const wtCharge = rate * chargeable; const other = num(a.otherCharges);
-    const pc = (a.payment || "Prepaid") === "Prepaid"; const total = wtCharge + other; const money = v=> v ? fmt(v) : "";
-    const hawb = f.hbl || ""; const cell = (label, inner, st)=> '<div style="border:1px solid #333;padding:2px 5px;'+(st || "")+'"><div style="font-size:6.8px;color:#444;line-height:1.1">'+label+'</div><div style="font-size:9px;line-height:1.3;margin-top:1px">'+(inner || "&nbsp;")+'</div></div>';
-    const partyTxt = t=> { const l = lines(t); return l.length ? "<b>"+esc2(l[0])+"</b><br>"+l.slice(1).map(esc2).join("<br>") : ""; };
-    const watermark = stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:110px;font-weight:700;color:rgba(0,0,0,.06);transform:rotate(-28deg)">DRAFT</div>' : "";
-    const dimsTxt = wt.rows.filter(r=>r.l || r.w || r.h).map(r=>esc2((r.pkg || 1)+" pcs × "+r.l+"×"+r.w+"×"+r.h+(wt.lbs ? " in" : " cm"))).join("<br>");
-    const row = (cols, cells)=> '<div style="display:grid;grid-template-columns:'+cols+'">'+cells.join("")+'</div>';
-    const body = header(co, true)+'<div style="position:relative">'+watermark+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px"><div><div style="font-size:9px;color:#444">House Air Waybill No.</div><div style="font-size:16px;font-weight:800;letter-spacing:.5px">'+esc2(hawb || "—")+'</div></div><div style="text-align:center"><div style="font-size:17px;font-weight:800;color:'+NAVY+'">HOUSE AIR WAYBILL</div><div style="font-size:8px">Not negotiable</div></div><div style="text-align:right"><div style="font-size:9px;color:#444">Master AWB No.</div><div style="font-size:13px;font-weight:700">'+esc2(f.mbl || "—")+'</div></div></div>'+
-      row("55% 45%", [cell("Shipper's Name and Address", partyTxt(f.party.shipper || f.p.shipper), "min-height:70px"), cell("Issued by", '<b>'+esc2(P.legal_name || co.name || "")+'</b><br>'+nl2br(P.address), "min-height:70px")])+
-      row("55% 45%", [cell("Consignee's Name and Address", partyTxt(f.party.consignee || f.p.consignee), "min-height:70px"), cell("Issuing Carrier's Agent — Name and City", '<b>'+esc2(P.legal_name || co.name || "")+'</b>'+(P.state ? "<br>"+esc2(P.state) : ""), "min-height:70px")])+
-      row("55% 45%", [cell("Notify Party", partyTxt(f.party.notify1 || f.p.notify1), "min-height:38px"), cell("Accounting Information", esc2(a.accounting || ""), "min-height:38px")])+
-      row("55% 45%", [cell("Airport of Departure (Address of first carrier) and requested routing", esc2(f.pol)), cell("Reference Number / Optional Shipping Information", esc2(rd.job_number))])+
-      row("12% 15% 28% 45%", [cell("To", esc2(a.routingTo || "")), cell("By first carrier", esc2(a.airline || f.carrier)), cell("Routing and Flight / Date", esc2([f.vessel, a.flight].filter(Boolean).join("  ")) ), '<div style="display:grid;grid-template-columns:14% 14% 14% 14% 22% 22%">'+[cell("Currency", esc2(a.currency || "INR")), cell("CHGS code", pc ? "PP" : "CC"), cell("WT/VAL", pc ? "PPD" : "COLL"), cell("Other", pc ? "PPD" : "COLL"), cell("Declared value for carriage", esc2(a.declCarriage || "NVD")), cell("Declared value for customs", esc2(a.declCustoms || "NCV"))].join("")+'</div>'])+
-      row("55% 20% 25%", [cell("Airport of Destination", esc2(f.pod)), cell("Flight / Date", esc2(a.flightDate || dmy(f.etd))), cell("Amount of insurance", esc2(a.insurance || "NIL"))])+
-      row("100%", [cell("Handling Information", nl2br(a.handling || ""), "min-height:42px")])+
-      '<div style="display:grid;grid-template-columns:9% 12% 5% 9% 12% 11% 12% 30%;border:1px solid #333;border-bottom:0;margin-top:3px;font-size:6.8px;text-align:center;background:#f3f6fb">'+["No. of pieces RCP", "Gross weight", "kg / lb", "Rate class", "Chargeable weight", "Rate / Charge", "Total", "Nature and quantity of goods (incl. dimensions or volume)"].map(t=>'<div style="padding:3px 2px;border-right:1px solid #333">'+t+'</div>').join("")+'</div>'+
-      '<div style="display:grid;grid-template-columns:9% 12% 5% 9% 12% 11% 12% 30%;border:1px solid #333;font-size:9px;min-height:150px">'+[esc2(first(f.pkgs, wt.pk) || ""), gross ? fmt(gross, 3) : "", wt.lbs ? "L" : "K", esc2(a.rateClass || "N"), chargeable ? fmt(chargeable, 3) : "", rate ? fmt(rate) : "", wtCharge ? fmt(wtCharge) : "", esc2(f.desc)+(dimsTxt ? "<br><span style='font-size:8px'>Dimensions:</span><br><span style='font-size:8px'>"+dimsTxt+"</span>" : "")+(f.marks ? "<br>Marks: "+esc2(f.marks) : "")].map((v, i)=>'<div style="padding:4px;border-right:1px solid #333;text-align:'+(i === 7 ? "left" : "center")+'">'+v+'</div>').join("")+'</div>'+
-      '<div style="display:grid;grid-template-columns:50% 50%">'+
-        '<div>'+''+
-          [["Weight charge", wtCharge], ["Valuation charge", 0], ["Tax", 0], ["Total other charges due agent", other], ["Total other charges due carrier", 0], ["TOTAL", total]].map(([k, v])=>'<div style="display:grid;grid-template-columns:50% 25% 25%;border:1px solid #333;border-top:0;font-size:8.5px"><div style="padding:2px 5px;'+(k === "TOTAL" ? "font-weight:800" : "")+'">'+k+'</div><div style="padding:2px 5px;text-align:right;border-left:1px solid #333">'+(pc ? money(v) : "")+'</div><div style="padding:2px 5px;text-align:right;border-left:1px solid #333">'+(!pc ? money(v) : "")+'</div></div>').join("")+'<div style="display:grid;grid-template-columns:50% 25% 25%;border:1px solid #333;border-top:0;font-size:7px;text-align:center;background:#f3f6fb"><div></div><div style="border-left:1px solid #333">Prepaid</div><div style="border-left:1px solid #333">Collect</div></div></div>'+
-        '<div style="border:1px solid #333;border-left:0;padding:5px 7px;font-size:7.4px;line-height:1.35;min-height:100px">Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Regulations.<div style="margin-top:24px;border-top:1px solid #333;padding-top:2px;font-weight:700">Signature of Shipper or his Agent</div></div></div>'+
-      row("50% 50%", [cell("Executed on (date) at (place)", esc2([dmy(a.execDate || bl.hblDate), a.place || bl.place].filter(Boolean).join("  at ")), "min-height:46px"), '<div style="border:1px solid #333;border-left:0;padding:3px 7px;min-height:46px;text-align:center"><div style="min-height:26px">'+(stage === "Released" && bl.digitalSign ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:30px;max-width:130px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:34px;max-width:70px;margin-left:6px">' : "") : "")+'</div><div style="font-size:7.4px;font-weight:700;border-top:1px solid #333;padding-top:1px">Signature of Issuing Carrier or its Agent — '+esc2(P.legal_name || co.name || "")+'</div></div>'])+
-      '</div>';
+    const pc = (a.payment || "Prepaid") === "Prepaid", total = wtCharge + other, hawb = f.hbl || "", B = "1px solid #000";
+    const c = (label, inner, st)=> '<div style="border-right:'+B+';border-bottom:'+B+';padding:2px 5px;box-sizing:border-box;'+(st || "")+'"><div class="lbl" style="font-size:7.6px;color:#222;line-height:1.1">'+label+'</div><div style="font-size:10.5px;line-height:1.3;margin-top:1px">'+(inner || "&nbsp;")+'</div></div>';
+    const grid = (cols, cells, st)=> '<div style="display:grid;grid-template-columns:'+cols+';'+(st || "")+'">'+cells.join("")+'</div>';
+    const ptxt = t=> { const l = lines(t); return l.length ? "<b>"+esc2(l[0])+"</b><br>"+l.slice(1).map(esc2).join("<br>") : ""; };
+    const code3 = v=> { const m = String(v || "").match(/([A-Z]{3})(?:\(|$)/); return m ? m[1] : String(v || "").slice(0, 3).toUpperCase(); };
+    const place = v=> String(v || "").replace(/^[A-Z]{5}\(?/, "").replace(/\)$/, "") || String(v || "");
+    const mm = String(f.mbl || "").match(/^(\d{3})[-\s]?(\d{6,8})$/), topLeft = mm ? mm[1]+" "+code3(f.pol)+" "+mm[2] : esc2(f.mbl || "");
+    const agreed = v=> v ? fmt(v) : "AS AGREED";
+    const dimsRows = wt.rows.filter(r=>r.l || r.w || r.h);
+    const nature = esc2(f.desc || "")+(f.marks ? "<br>"+esc2(f.marks) : "")+(dimsRows.length ? "<br>DIM IN "+(wt.lbs ? "INCHES" : "CMS")+"<br>"+dimsRows.map(r=>esc2(r.l+"X"+r.w+"X"+r.h+"("+(r.pkg || 1)+")")).join("<br>")+(wt.vol ? "<br>VOL WT:"+Math.round(wt.vol)+"KGS" : "") : "");
+    const watermark = stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:120px;font-weight:700;color:rgba(0,0,0,.07);transform:rotate(-38deg)">DRAFT</div>' : "";
+    const sigImgs = stage === "Released" && bl.digitalSign ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:34px;max-width:140px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:38px;max-width:80px;margin-left:6px">' : "") : "";
+    const left = '<div style="border-top:'+B+';border-left:'+B+'">'+
+      grid("68% 32%", [c("Shipper's Name and Address", ptxt(f.party.shipper || f.p.shipper), "min-height:84px"), c("Shipper's Account Number", esc2(a.shipperAccount || ""))])+
+      grid("68% 32%", [c("Consignee's Name and Address", ptxt(f.party.consignee || f.p.consignee), "min-height:84px"), c("Consignee's Account Number", esc2(a.consigneeAccount || ""))])+
+      c("Issuing Carrier's Agent Name and City", "<b>"+esc2(P.legal_name || co.name || "")+"</b><br>"+esc2([P.city, P.country].filter(Boolean).join(",") || P.state || ""), "min-height:52px;font-size:10.5px")+
+      grid("62% 38%", [c("Agent's IATA Code", "<b>"+esc2(a.iata || P.iata_code || P.iata || "")+"</b>"), c("Account No.", esc2(a.agentAccount || ""))])+
+      c("Airport of Departure (Addr. of First Carrier) and Requested Routing", esc2(place(f.pol)), "min-height:36px")+
+      grid("9% 17% 18% 14% 14% 14% 14%", [c("To", esc2(a.routingTo || code3(f.pod))), c("By First Carrier", esc2(a.airline || f.carrier || "")), c("Routing and Destination &nbsp; to", ""), c("by", ""), c("to", ""), c("by", ""), c("&nbsp;", "")], "min-height:42px")+
+      grid("60% 40%", [c("Airport of Destination", '<div style="text-align:center;font-weight:700;font-size:11px">'+esc2(place(f.pod))+'</div>', "min-height:40px"), c("Requested Flight/Date", esc2([a.flight, a.flightDate ? dmy(a.flightDate) : ""].filter(Boolean).join("  ")))])+
+      c("Handling Information", nl2br(a.handling || "")+(a.sci ? '<div style="text-align:right;font-weight:700">'+esc2(a.sci)+'</div>' : ""), "min-height:60px")+
+    '</div>';
+    const wtval = (lbl)=> c(lbl+'<div style="display:flex;justify-content:space-around;font-size:6px"><span>PPD</span><span>CLT</span></div>', '<div style="display:flex;justify-content:space-around;font-weight:700"><span>'+(pc ? "P" : "")+'</span><span>'+(pc ? "" : "C")+'</span></div>');
+    const right = '<div style="border-top:'+B+';border-left:'+B+';display:flex;flex-direction:column">'+
+      grid("38% 62%", [c("Not Negotiable", '<span class="lbl"><b style="font-size:12px">Air Waybill</b><div style="font-size:8px;margin-top:4px">Issued By</div></span>', "min-height:58px"), c("", "<b>"+esc2(P.legal_name || co.name || "")+"</b><br>"+esc2(a.issuerCode || P.hawb_code || ""), "min-height:58px")])+
+      c("", '<span class="lbl" style="font-size:8px">Copies 1,2 and 3 of this Air Waybill are originals and have the same validity.</span>')+
+      c("", '<div class="lbl" style="font-size:6.5px;line-height:1.28;text-align:justify">It is agreed that the goods described herein are accepted in apparent good order and condition (except as noted) for carriage SUBJECT TO THE CONDITIONS OF CONTRACT ON THE REVERSE HEREOF. ALL GOODS MAY BE CARRIED BY ANY OTHER MEANS INCLUDING ROAD OR ANY OTHER CARRIER UNLESS SPECIFIC CONTRARY INSTRUCTIONS ARE GIVEN HEREON BY THE SHIPPER, AND SHIPPER AGREES THAT THE SHIPMENT MAY BE CARRIED VIA INTERMEDIATE STOPPING PLACES WHICH THE CARRIER DEEMS APPROPRIATE. THE SHIPPER\'S ATTENTION IS DRAWN TO THE NOTICE CONCERNING CARRIER\'S LIMITATION OF LIABILITY. Shipper may increase such limitation of liability by declaring a higher value for carriage and paying a supplemental charge if required.</div>')+
+      '<div style="flex:1;display:flex;flex-direction:column">'+c("Accounting Information", nl2br(a.accounting || (pc ? "FREIGHT PREPAID" : "FREIGHT COLLECT")), "flex:1;min-height:70px")+'</div>'+
+      grid("38% 62%", [c("Reference Number", esc2(rd.job_number)), c("Optional Shipping Information", "")])+
+      grid("13% 11% 13% 13% 26% 24%", [c("Currency", esc2(a.currency || "INR")), c("CHGS Code", pc ? "PP" : "CC"), wtval("WT/VAL"), wtval("Other"), c("Declared Value for Carriage", esc2(a.declCarriage || "NVD")), c("Declared Value for Customs", esc2(a.declCustoms || ""))], "min-height:50px")+
+      grid("40% 60%", [c("Amount of Insurance", esc2(a.insurance || "")), c("", '<span class="lbl" style="font-size:6.4px;line-height:1.25">INSURANCE - If carrier offers insurance, and such insurance is requested in accordance with the conditions thereof, indicate amount to be insured in figures in box marked "Amount of Insurance".</span>')], "min-height:38px")+
+    '</div>';
+    const cols = "8% 11% 4% 7% 8% 12% 10% 12% 28%";
+    const th = t=> '<div class="lbl" style="border-right:'+B+';padding:3px 2px;text-align:center;font-size:7.2px;line-height:1.2;background:#f7f7f7">'+t+'</div>';
+    const td = (t, al)=> '<div style="border-right:'+B+';padding:4px 3px;font-size:9.5px;text-align:'+(al || "center")+'">'+t+'</div>';
+    const goods = '<div style="border:'+B+';border-bottom:0;margin-top:0;display:grid;grid-template-columns:'+cols+'">'+["No. of Pieces", "Gross Weight", "kg<br>lb", "Rate Class", "Commodity Item No.", "Chargeable Weight", "Rate<br>Charge", "Total", "Nature and Quantity of Goods<br>(Incl. Dimensions or Volume)"].map(th).join("")+'</div>'+
+      '<div style="border:'+B+';border-bottom:0;display:grid;grid-template-columns:'+cols+';min-height:150px">'+[td(esc2(first(f.pkgs, wt.pk) || "")), td(gross ? fmt(gross, 3) : ""), td(wt.lbs ? "L" : "K"), td(esc2(a.rateClass || "Q")), td(esc2(a.commodityNo || "")), td(chargeable ? fmt(chargeable) : ""), td(rate ? fmt(rate) : ""), td(wtCharge ? fmt(wtCharge) : "AS AGREED"), td(nature, "left")].join("")+'</div>'+
+      '<div style="border:'+B+';border-bottom:0;display:grid;grid-template-columns:'+cols+'">'+[td(esc2(first(f.pkgs, wt.pk) || "")), td(gross ? fmt(gross) : ""), td(""), td(""), td(""), td(""), td(""), td(wtCharge ? fmt(wtCharge) : "AS AGREED"), td("")].join("")+'</div>';
+    const money = v=> v ? fmt(v) : "AS AGREED";
+    const chargeL = '<div style="border-left:'+B+';display:flex;flex-direction:column">'+
+      grid("33% 34% 33%", [c("Prepaid", pc ? money(wtCharge) : "", "text-align:center"), c("Weight Charge", "", "text-align:center"), c("Collect", pc ? "" : money(wtCharge), "text-align:center")], "border-top:"+B)+
+      grid("33% 34% 33%", [c("&nbsp;", ""), c("Valuation Charge", "", "text-align:center"), c("&nbsp;", "")])+
+      grid("33% 34% 33%", [c("&nbsp;", ""), c("Tax", "", "text-align:center"), c("&nbsp;", "")])+
+      c("Total Other Charges Due Agent", other ? fmt(other) : "AS AGREED")+c("Total Other Charges Due Carrier", "AS AGREED")+
+      grid("50% 50%", [c("Total Prepaid", pc ? (total ? fmt(total) : "AS AGREED") : ""), c("Total Collect", pc ? "" : (total ? fmt(total) : "AS AGREED"))])+
+      grid("50% 50%", [c("Currency Conversion Rates", ""), c("CC Charges in Dest. Currency", "")])+
+      grid("34% 33% 33%", [c("For Carrier's Use only at Destination", "", "min-height:44px"), c("Charges at Destination", ""), c("Total Collect Charges", "")], "flex:1")+
+    '</div>';
+    const chargeR = '<div style="display:flex;flex-direction:column;border-left:'+B+';border-top:'+B+'">'+
+      c("Other Charges", esc2(a.otherText || (other ? "AWB : "+fmt(other)+" /-" : "")), "min-height:62px")+
+      c("", '<div class="lbl" style="font-size:6.8px;line-height:1.3;text-align:justify">Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Good Regulations.</div>', "min-height:34px")+
+      c("", '<div style="text-align:center;min-height:34px">'+sigImgs+'<div style="font-weight:800;font-size:11px;margin-top:6px;border-top:1px dashed #666;padding-top:3px">'+esc2(P.legal_name || co.name || "")+'</div><div class="lbl" style="font-size:7.5px">Signature of Shipper or his Agent</div></div>', "min-height:56px")+
+      grid("36% 34% 30%", [c("Executed on", esc2(dmy(a.execDate || bl.hblDate)), "text-align:center"), c("at (place)", esc2(a.place || bl.place || ""), "text-align:center"), c("Executed by", esc2(a.executedBy || ""), "text-align:center")])+
+      c("", '<div style="text-align:center;min-height:30px"><div class="lbl" style="margin-top:18px;border-top:1px dashed #666;padding-top:2px;font-size:7.5px">Signature Of Issuing Carrier or its Agent</div></div>', "min-height:44px")+
+      c("", '<div style="text-align:right;font-weight:800;font-size:12px;line-height:1.25">HAWB NO:<br>'+esc2(hawb || "—")+'</div>', "flex:1;min-height:46px")+
+    '</div>';
+    const body = '<div style="position:relative">'+watermark+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin:2px 0 2px;font-weight:800;font-size:15px"><div>'+topLeft+'</div><div>HAWB NO: '+esc2(hawb || "—")+'</div></div>'+
+      '<div style="display:grid;grid-template-columns:53% 47%">'+left+right+'</div>'+goods+
+      '<div style="display:grid;grid-template-columns:53% 47%">'+chargeL+chargeR+'</div></div>';
     return wrapPages([body, DK.awbConditions(rd)], co, P.footer_note || "HAWB — "+(hawb || rd.job_number));
   };
 
@@ -25047,6 +25114,7 @@ body.job-readonly #jlBanner{display:flex}
 
   async function lists(){
     if(R.ports === null) R.ports = [];                                  /* ports come from the Port Master as the user types (the master holds ~21,000 ports) */
+    try{ R.vessels = await api("GET", "/api/routing/names?kind=SEA"); }catch(e){ R.vessels = []; }
     if(R.airlines === null){ try{ R.airlines = ((await api("GET", "/api/network/pickers")).airlines || []).map(a=>a.name); }catch(e){ R.airlines = []; } }
   }
   async function load(force){
@@ -25065,7 +25133,7 @@ body.job-readonly #jlBanner{display:flex}
     const note = l.draft && l.source ? '<div style="font-size:10px;color:var(--am)">from the '+(l.source === "BOOKING" ? "booking" : "job")+' — Save to keep</div>' : "";
     const done = l.id && l.follow_up && l.follow_up_status === "OPEN" ? '<button class="btn btn-out btn-sm" data-rt="done:'+l.id+'" style="margin-top:4px">Follow-up done</button>' : l.id && l.follow_up ? '<div style="font-size:10px;color:var(--g5);margin-top:3px">follow-up done</div>' : "";
     return '<tr data-rt-row="'+key+'"><td>'+(i + 1)+note+'</td>'+
-      '<td>'+inp("carrier", l.carrier, sea ? ' placeholder="Vessel name"' : ' list="rtAirlines" placeholder="Airline"')+'</td><td>'+inp("voyage", l.voyage, ' placeholder="'+(sea ? "Voyage" : "Flight no.")+'"')+'</td>'+
+      '<td>'+inp("carrier", l.carrier, sea ? ' list="rtVessels" placeholder="Vessel name"' : ' list="rtAirlines" placeholder="Airline"')+'</td><td>'+inp("voyage", l.voyage, ' placeholder="'+(sea ? "Voyage" : "Flight no.")+'"')+'</td>'+
       (sea ? '<td>'+inp("pol", l.pol, ' list="rtPorts" placeholder="POL"')+'</td><td>'+inp("pod", l.pod, ' list="rtPorts" placeholder="POD"')+'</td>' : "")+
       '<td>'+dt("etd")+'</td><td>'+dt("eta")+'</td>'+
       '<td><select class="fc" data-f="stage"'+dis+'><option value="PLANNED"'+(l.stage === "PLANNED" ? " selected" : "")+'>Planned</option><option value="CONFIRMED"'+(l.stage === "CONFIRMED" ? " selected" : "")+'>Confirmed</option></select></td>'+
@@ -25085,7 +25153,7 @@ body.job-readonly #jlBanner{display:flex}
       '<span class="b b-bl">'+(sea ? "Sea Shipment" : "Air Shipment")+'</span><span class="b b-gy">'+esc(d.direction || "")+'</span>'+(ed ? "" : '<span class="b b-am">view only: this job cannot be changed</span>')+
       '<div style="margin-left:auto;display:flex;gap:8px"><button class="btn btn-out btn-sm" data-rt="history">'+(R.hist ? "Hide history" : "History")+'</button>'+(ed ? '<button class="btn btn-pri btn-sm" data-rt="add">+ '+(sea ? "Add Vessel" : "Add Flight")+'</button>' : "")+'</div></div>'+
       '<div class="tw"><table><thead><tr>'+heads.map(h=>'<th>'+h+'</th>').join("")+'</tr></thead><tbody>'+(rows.length ? rows.map((l, i)=> rowHtml(l, i, sea, ed)).join("") : '<tr><td colspan="'+heads.length+'" style="text-align:center;color:var(--g5);padding:16px">No '+(sea ? "vessel" : "flight")+' entered yet. Press '+(sea ? "Add Vessel" : "Add Flight")+'.</td></tr>')+'</tbody></table></div>'+
-      '<datalist id="rtPorts">'+(R.ports || []).map(p=>'<option value="'+esc(p)+'">').join("")+'</datalist><datalist id="rtAirlines">'+(R.airlines || []).map(p=>'<option value="'+esc(p)+'">').join("")+'</datalist>'+
+      '<datalist id="rtPorts">'+(R.ports || []).map(p=>'<option value="'+esc(p)+'">').join("")+'</datalist><datalist id="rtVessels">'+(R.vessels || []).map(p=>'<option value="'+esc(p)+'">').join("")+'</datalist><datalist id="rtAirlines">'+(R.airlines || []).map(p=>'<option value="'+esc(p)+'">').join("")+'</datalist>'+
       '<div class="ib ib-bl" style="margin-top:10px"><b>Planned</b> is a tentative schedule; <b>Confirmed</b> is a confirmed one. '+(sea ? "Add a vessel for every leg, including transshipment. " : "Add a flight for every connection. ")+'On a Planned leg, Follow-up <b>Yes</b> keeps the leg in the dashboard alerts until it is marked done. Routing is saved separately and never changes the job or its booking.</div>'+
       (R.hist ? '<div class="card" style="margin-top:10px"><div class="ch"><div class="ct">Routing history</div></div><div class="tw"><table><thead><tr><th>When</th><th>By</th><th>Leg</th><th>Action</th><th>Field</th><th>From</th><th>To</th><th>Remarks</th></tr></thead><tbody>'+
         (R.hist.length ? R.hist.map(h=>'<tr><td style="white-space:nowrap">'+show(h.at)+'</td><td>'+esc(h.by)+'</td><td>'+esc(h.leg)+'</td><td>'+esc(h.action)+'</td><td>'+esc(h.field)+'</td><td>'+esc(h.from || "")+'</td><td>'+esc(h.to || "")+'</td><td>'+esc(h.remarks || "")+'</td></tr>').join("") : '<tr><td colspan="8" style="text-align:center;color:var(--g5)">No changes yet</td></tr>')+'</tbody></table></div></div>' : "");
@@ -25169,8 +25237,20 @@ body.job-readonly #jlBanner{display:flex}
     const sig = JSON.stringify(A.items.map(x=> x.id+"|"+x.title+"|"+x.text)), card = document.getElementById("rtDash");
     if(sig !== A.sig || !card || !card.firstChild){ A.sig = sig; paintAlerts(); }                     /* repaint only when something changed, so the running message does not restart every minute */
     if(document.getElementById("ncList")) paintCenter();
+    window.NotifBell.render();
   }
   window.__rtAlerts = alerts;
+  /* the header bell: the same list, newest urgent first; the red number counts the ones not yet seen (Mark all as read remembers them on this device) */
+  const SEEN = "esway_notif_seen", seenSet = ()=> { try{ return new Set(JSON.parse(localStorage.getItem(SEEN) || "[]")); }catch(e){ return new Set(); } };
+  window.NotifBell = {render(){
+    const body = document.getElementById("notifBody"), sn = seenSet(), items = A.items.slice(0, 12), unseen = A.items.filter(a=> !sn.has(a.id)).length;
+    const badge = document.querySelector(".hdr-badge"); if(badge){ badge.style.display = unseen ? "" : "none"; badge.title = unseen+" new notification"+(unseen === 1 ? "" : "s"); }
+    if(!body) return;
+    body.innerHTML = items.length ? items.map(a=>{ const sv = SEV[a.severity] || SEV[3]; return '<div class="hdr-notif" data-nc-open="'+esc(a.id)+'" style="cursor:pointer'+(sn.has(a.id) ? ";opacity:.65" : "")+'"><div class="hdr-notif-ico" style="background:'+sv[2]+';color:'+(CATCOL[a.category] || sv[1])+'"><svg class="ic" data-icon="'+(CATICON[a.category] || "bell")+'"></svg></div><div><div class="hdr-notif-t">'+esc(a.title)+'</div><div class="hdr-notif-s">'+esc(a.text || "")+'</div></div></div>'; }).join("")+
+      '<div style="padding:8px 12px;text-align:center"><a href="#" data-nc-all="1">View all ('+A.items.length+')</a></div>' : '<div style="padding:24px 14px;text-align:center;color:var(--g5);font-size:12px">No notifications. Nothing needs your attention.</div>';
+    if(window.renderIcons) renderIcons(body);
+  }};
+  document.addEventListener("click", e=>{ if(e.target.closest("#notifMarkAll")){ try{ localStorage.setItem(SEEN, JSON.stringify(A.items.map(a=>a.id))); }catch(err){} window.NotifBell.render(); } }, true);
   /* running message: moves at a fixed speed (Slow 32 / Normal 48 / Fast 70 px a second, a company setting), stops while the mouse is over it, and starts again from the right when the list changes */
   const TICK = {pos:null, raf:0, last:0, hover:false, speed:"normal"}, SPEED = {slow:32, normal:48, fast:70};
   function startTicker(){
@@ -25187,6 +25267,7 @@ body.job-readonly #jlBanner{display:flex}
   }
   function openItem(a){
     const l = a.link || {}; if(window.closeModal && document.getElementById("ncList")) closeModal();
+    const pop = document.getElementById("notifPop"); if(pop) pop.classList.remove("on");
     if(l.jobNo){ const no = l.jobNo; go("job-detail", {jobNo:no});
       if(l.tab === "routing"){ let n = 0; const t = setInterval(()=>{ n++; const tab = document.querySelector('#s-job-detail .tbb[data-tab="jtrt"]'); if(tab && jobNo() === no){ clearInterval(t); tab.click(); } else if(n > 25) clearInterval(t); }, 300); } }
     else if(l.go) go(l.go);
@@ -25232,7 +25313,7 @@ body.job-readonly #jlBanner{display:flex}
   st.textContent = ".rt-ticker{overflow:hidden;white-space:nowrap;background:var(--blt);border-radius:8px;padding:7px 0}.rt-track{display:inline-block;white-space:nowrap;will-change:transform}.rt-it{display:inline-block;margin-right:26px;font-size:12px;font-weight:600;cursor:pointer;padding:3px 12px;border-radius:999px}.rt-crit{animation:rtGlow 1.4s ease-in-out infinite alternate}@keyframes rtGlow{from{box-shadow:0 0 2px rgba(220,38,38,.35)}to{box-shadow:0 0 5px 1px rgba(220,38,38,.9),0 0 14px rgba(220,38,38,.65)}}@keyframes rtmove{to{transform:translateX(-100%)}}"+
     ".rt-jr{border-left:2px solid var(--g2);margin:6px 0 4px 8px;padding-left:14px}.rt-leg{position:relative;padding:4px 0 10px}.rt-leg:before{content:'';position:absolute;left:-21px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--bl)}.rt-leg.PLANNED:before{background:#fff;border:2px dashed var(--am)}.rt-leg .t{font-weight:700;font-size:12px}.rt-leg .m{font-size:11px;color:var(--g6)}";
   document.head.appendChild(st);
-  setInterval(()=>{ const d = document.getElementById("s-dashboard"); if(d && d.offsetParent !== null && Date.now() - A.t > 60000){ A.t = Date.now(); alerts(); } }, 2000);
+  setInterval(()=>{ if(!document.hidden && Date.now() - A.t > 60000){ A.t = Date.now(); alerts(); } }, 2000);
   setTimeout(()=>{ A.t = Date.now(); alerts(); }, 2500);
 
   /* ---------- tracking: the routing journey of the job ---------- */
@@ -25435,16 +25516,25 @@ body.job-readonly #jlBanner{display:flex}
         sec("Cargo & Container Details", table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"])+cargoPairs(c)),
         sec("Remarks", note(inp.remarks)),
         '<div style="margin-top:8px;font-size:8.5px;color:#52627d">Planned legs are tentative schedules and are not confirmed sailings. ATD appears only when the actual departure has been confirmed in the job\'s Tracking.</div>']); }};
+  /* Shipment Summary With Charges: what is collected (sell charges) and what is paid (buy charges), with the net profit in INR (the same figures as the job's Charges tab) */
+  function chargeSections(c){
+    const L = (c.charges && c.charges.lines) || [], T = (c.charges && c.charges.totals) || {};
+    const amt = (l, k)=> Number(l.qty) * Number(l[k].rate), inr = (l, k)=> l[k].ccy === "INR" ? amt(l, k) : amt(l, k) * Number(l[k].exch || 1);
+    const block = (title, k)=> { const rows = L.filter(l=> Number(l[k].rate) > 0); const sum = rows.reduce((a, l)=> a + inr(l, k), 0);
+      return sec(title, table(["Charge", "Ccy", "Ex. rate", "Qty x Rate", "Amount", "Amount (INR)"], rows.map(l=>[esc(l.charge_name), esc(l[k].ccy), l[k].ccy === "INR" ? "" : esc(l[k].exch), esc(l.qty)+" x "+esc(fmt(l[k].rate)), esc(fmt(amt(l, k))), esc(fmt(inr(l, k)))]).concat(rows.length ? [["<b>Total</b>", "", "", "", "", "<b>"+esc(fmt(sum))+"</b>"]] : []), ["left", "left", "right", "right", "right", "right"])); };
+    const gp = Number(T.gross_profit || 0);
+    return [block("Collections (sell)", "sell"), block("Payments (buy)", "buy"), sec("Net profit", pairs([["Total collections (INR)", fmt(T.ar || 0)], ["Total payments (INR)", fmt(T.ap || 0)], ["Net profit (INR)", (gp < 0 ? "−" : "")+fmt(Math.abs(gp))], ["Margin", (T.gp_percent || "0")+" %"]]))];
+  }
   R.shipment_summary = {inputs:[{k:"remarks", label:"Remarks (optional)", type:"textarea"}],
     need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Port of Loading (POL)", c.f.pol], ["Port of Discharge (POD)", c.f.pod]),
-    build:(c, inp)=> { const f = c.f, v = vessel(c), P = parties(c), types = {}; f.conts.forEach(x=>{ types[x.type || "Container"] = (types[x.type || "Container"] || 0) + 1; });
+    build:(c, inp, variant)=> { const f = c.f, v = vessel(c), P = parties(c), types = {}; f.conts.forEach(x=>{ types[x.type || "Container"] = (types[x.type || "Container"] || 0) + 1; });
       return paginate(c, "SHIPMENT SUMMARY", [
         sec("Reference", pairs([["Reference #", c.job], ["Customer", customer(c)], ["Shipment", c.rd.mode+" "+c.rd.direction+(c.rd.container_mode ? " · "+c.rd.container_mode : "")], ["Booking No", c.rd.booking_number || f.bk.number], [f.air ? "House AWB No" : "House B/L No", f.hbl], [f.air ? "Master AWB No" : "Master B/L No", f.mbl]])),
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+partyBox("SHIPPER", P.shipper)+partyBox("CONSIGNEE", P.consignee)+'</div>',
         sec("Route & Vessel", pairs([["Place of Receipt", f.por], ["Shipping Line", f.carrier], ["Port of Loading", f.pol], [f.air ? "Flight" : "Vessel / Voyage", v.name+(v.voyage ? " / "+v.voyage : "")], ["Port of Discharge", f.pod], ["ETD", dmy(etd(c))], ["Final Destination", f.pld], ["ETA", dmy(eta(c))], ["Sailed Date", c.ms.departed ? dmy(c.ms.departed) : ""], ["No. of Containers", Object.keys(types).map(k=>types[k]+" x "+k).join(", ")]])),
         sec("Containers", table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"])),
         sec("Cargo", cargoPairs(c)),
-        sec("Remarks", note(inp.remarks))]); }};
+      ].concat(variant === "with_rates" ? chargeSections(c) : [], [sec("Remarks", note(inp.remarks))])); }};
   const preAlert = c=> { const f = c.f, air = f.air, v = vessel(c), P = parties(c);
     return paginate(c, "PRE-ALERT", [
       '<div style="margin:6px 0 4px;font-size:10.5px"><b>To:</b> '+esc(nm(P.agent) || nm(P.consignee))+'<br><span style="color:#52627d">Please be informed of the following shipment sailing / flying to you. Kindly arrange to receive it.</span></div>',
@@ -25537,8 +25627,8 @@ body.job-readonly #jlBanner{display:flex}
         const code = ' data-code="'+r.code+'"';
         let actions;
         if(!r.allowed) actions = '<span style="font-size:11px;color:var(--g5)">You do not have permission for this financial report</span>';
-        else if(r.variants.length) actions = btn("gen", keys.length ? "Generate again" : "Generate", "pri", code)+r.variants.map(v=> r.generated[v] ? '<div class="od-var"><b>'+esc(VL[v] || v)+'</b> v'+r.generated[v].version+' · '+btn("view", "Preview", "out", code+' data-var="'+v+'"')+btn("pdf", "Download", "out", code+' data-var="'+v+'"')+btn("print", "Print", "out", code+' data-var="'+v+'"')+btn("hist", "History", "out", code+' data-var="'+v+'"')+'</div>' : "").join("");
-        else actions = '<div class="od-act">'+(one ? btn("view", "Preview", "pri", code)+btn("pdf", "Download PDF", "out", code)+btn("print", "Print", "out", code)+btn("gen", "Regenerate", "out", code)+btn("hist", "History", "out", code) : btn("gen", "Generate", "pri", code))+'</div>';
+        else if(r.variants.length) actions = btn("gen", keys.length ? "Generate again" : "Generate", "pri", code)+r.variants.map(v=> r.generated[v] ? '<div class="od-var"><b>'+esc(VL[v] || v)+'</b> v'+r.generated[v].version+' · '+btn("view", "Preview", "out", code+' data-var="'+v+'"')+btn("pdf", "Download", "out", code+' data-var="'+v+'"')+btn("print", "Print", "out", code+' data-var="'+v+'"')+btn("mail", "Mail", "out", code+' data-var="'+v+'"')+btn("hist", "History", "out", code+' data-var="'+v+'"')+'</div>' : "").join("");
+        else actions = '<div class="od-act">'+(one ? btn("view", "Preview", "pri", code)+btn("pdf", "Download PDF", "out", code)+btn("print", "Print", "out", code)+btn("mail", "Mail", "out", code)+btn("gen", "Regenerate", "out", code)+btn("hist", "History", "out", code) : btn("gen", "Generate", "pri", code))+'</div>';
         const lastOf = ()=> { const all = keys.map(k=>r.generated[k]).sort((a, b)=> String(b.at).localeCompare(String(a.at))); return all[0]; }, l = keys.length ? lastOf() : null;
         return '<tr><td>'+(i + 1)+'</td><td><b>'+esc(r.name)+'</b>'+(r.optional ? ' <span class="b b-gy">optional</span>' : "")+(r.ops ? '<div style="font-size:10.5px;color:var(--g5)">asks for the actual details first</div>' : "")+'</td><td>'+esc(r.type)+'</td><td><span class="b '+stCls+'">'+st+'</span></td><td>'+(l ? esc(dt(l.at)) : "—")+'</td><td>'+(l ? esc(l.by) : "—")+'</td><td>'+actions+'</td></tr>'; }).join("")+'</tbody></table></div></div>';
   }
@@ -25563,8 +25653,9 @@ body.job-readonly #jlBanner{display:flex}
   function pickVariant(rep){
     return new Promise(resolve=>{
       const VL = O.data.variant_labels || {};
-      openModal({title:"Select Arrival Notice Type", size:"sm", bodyHTML:'<div style="display:flex;flex-direction:column;gap:10px;padding:4px 0">'+rep.variants.map((v, i)=>'<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="odVar" value="'+v+'"'+(i === 0 ? " checked" : "")+'> '+esc(VL[v] || v)+'</label>').join("")+
-        '<div style="font-size:11px;color:var(--g5)">Without Rates carries no charges or amounts. Each version keeps its own history.</div></div>', footHTML:'<button class="btn btn-out" type="button" id="odVarCancel">Cancel</button><button class="btn btn-pri" type="button" id="odVarGo">Generate</button>'});
+      const vs = rep.variants.filter(v=> v !== "with_rates" || O.data.finance); if(vs.length === 1){ resolve(vs[0]); return; }
+      openModal({title:esc(rep.name), size:"sm", bodyHTML:'<div style="display:flex;flex-direction:column;gap:10px;padding:4px 0">'+vs.map((v, i)=>'<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="odVar" value="'+v+'"'+(i === 0 ? " checked" : "")+'> '+esc(VL[v] || v)+'</label>').join("")+
+        '<div style="font-size:11px;color:var(--g5)">Without Charges carries no charges or amounts. Each version keeps its own history.</div></div>', footHTML:'<button class="btn btn-out" type="button" id="odVarCancel">Cancel</button><button class="btn btn-pri" type="button" id="odVarGo">Generate</button>'});
       document.getElementById("odVarCancel").addEventListener("click", ()=>{ closeModal(); resolve(null); });
       document.getElementById("odVarGo").addEventListener("click", ()=>{ const v = (document.querySelector('input[name="odVar"]:checked') || {}).value || null; closeModal(); resolve(v); });
     });
@@ -25573,7 +25664,7 @@ body.job-readonly #jlBanner{display:flex}
     return new Promise(resolve=>{
       const ch = c.rd.job_charges || [], mo = v=> (v == null ? "" : Number(v).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}));
       const rows = ch.map((x, i)=>'<tr><td><input type="checkbox" data-od-ch="'+i+'" checked></td><td>'+esc(x.name)+'</td><td>'+esc(x.ccy || "")+'</td><td style="text-align:right">'+esc(x.qty || "")+' x '+esc(mo(x.rate))+'</td><td style="text-align:right">'+esc(mo(x.amount))+'</td></tr>').join("");
-      openModal({title:"Cargo Arrival Notice", size:"md", bodyHTML:'<div class="fg"><label class="fl">Arrival notice type</label><div style="display:flex;gap:18px;padding:4px 0"><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="odCan" value="with_rates"'+(preset === "without_rates" ? "" : " checked")+'> With Charges</label><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="odCan" value="without_rates"'+(preset === "without_rates" ? " checked" : "")+'> Without Charges</label></div></div>'+
+      openModal({title:"Cargo Arrival Notice", size:"md", bodyHTML:'<div class="fg"><label class="fl">Arrival notice type</label><div style="display:flex;gap:18px;padding:4px 0"><label style="display:'+(O.data.finance ? "flex" : "none")+';gap:6px;align-items:center"><input type="radio" name="odCan" value="with_rates"'+(preset === "without_rates" || !O.data.finance ? "" : " checked")+'> With Charges</label><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="odCan" value="without_rates"'+(preset === "without_rates" || !O.data.finance ? " checked" : "")+'> Without Charges</label></div></div>'+
         '<div id="odCanCh">'+(ch.length ? '<div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 4px"><b>Choose the charges to show on the notice</b><span style="font-size:11px"><a href="#" id="odChAll">select all</a> · <a href="#" id="odChNone">clear</a></span></div><div class="tw" style="max-height:260px;overflow:auto"><table><thead><tr><th></th><th>Charge</th><th>Ccy</th><th style="text-align:right">Qty x Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
           : '<div class="ib ib-am">This job has no sell charges yet. Add them in the Charges tab, or choose Without Charges.</div>')+'</div><div style="font-size:11px;color:var(--g5);margin-top:6px">Without Charges carries no charges, rates or amounts. Each type keeps its own history.</div>',
         footHTML:'<button class="btn btn-out" type="button" id="odCanCancel">Cancel</button><button class="btn btn-pri" type="button" id="odCanGo">Generate</button>'});
@@ -25607,6 +25698,7 @@ body.job-readonly #jlBanner{display:flex}
       else { let prior = {}; const g = rep.generated[variant]; if(g && (spec.inputs || spec.std)){ try{ prior = (await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/"+g.id)).inputs || {}; }catch(e){} }
         inp = await askInputs(rep, spec, prior); if(inp === null) return; }
       c.sign = inp.sign !== false;
+      if(variant === "with_rates" && code === "shipment_summary") c.charges = await api("GET", "/api/shipments/by-number/"+enc(O.job)+"/charges");
       let out = await spec.build(c, inp, variant), html = out, title = rep.name+" "+O.job;
       if(out && typeof out === "object"){ html = out.html; title = out.title || title; }
       const rec = await api("POST", "/api/jobs/"+enc(O.job)+"/outdocs", {code, variant, title, html, inputs:Object.keys(inp).length ? inp : null});
@@ -25624,7 +25716,7 @@ body.job-readonly #jlBanner{display:flex}
       openModal({title:esc(b.title)+' <span style="font-size:11px;font-weight:400;color:var(--g5)">version '+b.rec.version+'</span>', size:"full", expandable:true,
         bodyHTML:'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
         footHTML:(/class="od-simg"/.test(b.html) ? '<span style="margin-right:12px;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">Signature:<button class="btn btn-sm btn-pri" type="button" data-od2="sig" data-v="1">With</button><button class="btn btn-sm btn-out" type="button" data-od2="sig" data-v="0">Without</button></span>' : "")+(code === "can" ? '<span style="margin-right:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">View:'+["with_rates", "without_rates"].map(v=>'<button class="btn btn-sm '+((variant || "") === v ? "btn-pri" : "btn-out")+'" type="button" data-od2="canv" data-code="can" data-var="'+v+'">'+(v === "with_rates" ? "With Charges" : "Without Charges")+'</button>').join("")+'</span>' : "")+
-          '<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+          '<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="mailp">Send by email</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
     }catch(e){ say("Could not open the report", e.message, "error"); }
   }
   const withSig = pv=> pv.nosign ? Object.assign({}, pv.b, {html:pv.b.html.replace(/<img class="od-simg"[^>]*>/g, "")}) : pv.b;     /* the choice made in the preview applies to Download and Print */
@@ -25642,7 +25734,63 @@ body.job-readonly #jlBanner{display:flex}
       return {pdf, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf"};
     } finally { host.remove(); }
   }
-  const printDoc = b=> isSheets(b) ? printSheets(b) : DK.print(b);
+
+  /* BL and HAWB printing as the company's operators know it: Draft print, A4 print (original), Pre print (only the typed data, no margins, lines or printed text, for pre-printed stationery) and
+     Multiple print (several copies, each marked ORIGINAL n / SHIPPER COPY / AGENT COPY ...) */
+  const PRINT_MODES = {hbl:1, hawb:1};
+  const COPY_LIST = [["ORIGINAL 1 ( FOR SHIPPER )", true], ["ORIGINAL 2 ( FOR CONSIGNEE )", true], ["ORIGINAL 3 ( FOR AGENT )", true], ["SHIPPER COPY", false], ["CONSIGNEE COPY", false], ["AGENT COPY", false], ["ACCOUNTS COPY", false], ["OFFICE COPY", false]];
+  const PP_CSS = ".preprint *{border-color:transparent !important;background:transparent !important;box-shadow:none !important}.preprint .lbl{visibility:hidden !important}";
+  function dom(html){ const d = document.createElement("div"); d.innerHTML = html; return d; }
+  function cleanPages(root){
+    root.querySelectorAll("div").forEach(x=>{ const st = x.getAttribute("style") || ""; if(/pointer-events:\s*none/.test(st) && /^\s*DRAFT\s*$/.test(x.textContent)) x.remove(); });                       /* the stored DRAFT mark */
+    root.querySelectorAll(".pg > div").forEach(x=>{ const st = x.getAttribute("style") || ""; if(/position:\s*absolute/.test(st) && /bottom:\s*12px/.test(st) && /Page \d+ of \d+/.test(x.textContent)) x.remove(); });  /* the page footer */
+    return Array.from(root.querySelectorAll(".pg, .bl-sheet"));
+  }
+  const mark = (pg, css, text)=> { const d = document.createElement("div"); d.style.cssText = css; d.textContent = text; pg.appendChild(d); };
+  function composePrint(b, mode, copies){
+    const pages = cleanPages(dom(b.html)), out = document.createElement("div"), face = pages[0];
+    if(mode === "preprint"){ const f = face.cloneNode(true); f.classList.add("preprint"); out.appendChild(f); return out.innerHTML; }
+    const sets = mode === "multiple" ? copies : [""];
+    sets.forEach(cap=> pages.forEach((pg, i)=>{ const c = pg.cloneNode(true);
+      if(mode === "draft") mark(c, "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:120px;font-weight:700;color:rgba(0,0,0,.08);transform:rotate(-30deg)", "DRAFT");
+      if(cap && i === 0) mark(c, "position:absolute;left:0;right:0;bottom:20px;text-align:center;font-weight:700;font-size:11px;font-family:Arial,Helvetica,sans-serif;color:#000", cap);
+      out.appendChild(c); }));
+    return out.innerHTML;
+  }
+  function printHtml(title, html){
+    const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
+    w.document.write("<!doctype html><title>"+esc(title)+"</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.bl-sheet,.pg{margin:0!important;box-shadow:none!important;page-break-after:always;break-after:page}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}"+PP_CSS+"</style>"+html);
+    w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 900);
+  }
+  function choosePrint(b){
+    openModal({title:"Print — "+esc(b.title), size:"sm", bodyHTML:'<div style="display:flex;flex-direction:column;gap:8px">'+
+      [["draft", "Draft print", "every page marked DRAFT"], ["a4", "A4 print (original)", "the document as issued, both pages"], ["preprint", "Pre print", "only the typed data, no margins, lines or printed text (pre-printed stationery)"], ["multiple", "Multiple print", "several copies, each marked ORIGINAL / SHIPPER COPY / AGENT COPY ..."]]
+        .map(x=>'<button class="btn btn-out" type="button" data-od-pm="'+x[0]+'" style="text-align:left"><b>'+x[1]+'</b><br><span style="font-size:11px;color:var(--g5)">'+x[2]+'</span></button>').join("")+'</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button>'});
+    document.querySelectorAll("[data-od-pm]").forEach(x=> x.addEventListener("click", ()=>{
+      const m = x.dataset.odPm; closeModal();
+      if(m === "multiple"){
+        openModal({title:"Multiple print", size:"sm", bodyHTML:'<div style="font-size:12px;margin-bottom:6px">Tick the copies to print. Each copy is marked at the foot of its first page.</div>'+COPY_LIST.map((c, i)=>'<label style="display:flex;gap:8px;align-items:center;padding:3px 0"><input type="checkbox" data-od-cp="'+i+'"'+(c[1] ? " checked" : "")+'> '+esc(c[0])+'</label>').join(""),
+          footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="odCopiesGo">Print</button>'});
+        document.getElementById("odCopiesGo").addEventListener("click", ()=>{ const caps = Array.from(document.querySelectorAll("[data-od-cp]:checked")).map(e=> COPY_LIST[Number(e.dataset.odCp)][0]); if(!caps.length){ say("Choose a copy", "Tick at least one copy", "warn"); return; } closeModal(); printHtml(b.title, composePrint(b, "multiple", caps)); });
+        return;
+      }
+      printHtml(b.title, composePrint(b, m === "a4" ? "a4" : m, []));
+    }));
+  }
+  const printDoc = b=> (b.rec && PRINT_MODES[b.rec.code]) ? choosePrint(b) : isSheets(b) ? printSheets(b) : DK.print(b);
+  /* send the report to the customer as a PDF by e-mail (the company's mail settings are used by the server) */
+  function mailDoc(b){
+    const f = (id, label, v, span)=> '<div class="fg" style="grid-column:span '+(span || 3)+'"><label class="fl">'+label+'</label><input class="fc" id="'+id+'" value="'+esc(v || "")+'"></div>';
+    openModal({title:"Send "+esc(b.title), bodyHTML:'<div class="fr">'+f("odMailTo", "To (separate several with commas)", "")+'</div><div class="fr">'+f("odMailSub", "Subject", b.title+(O.job ? " — Job "+O.job : ""))+'</div><div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Message</label><textarea class="fc" id="odMailMsg" rows="3">Please find the attached document.</textarea></div></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="odMailSend">Send</button>'});
+    document.getElementById("odMailSend").addEventListener("click", async ()=>{
+      const to = document.getElementById("odMailTo").value.trim(); if(!/\S+@\S+/.test(to)){ say("Enter an e-mail address", "Write the customer's e-mail address", "warn"); return; }
+      const btn2 = document.getElementById("odMailSend"); btn2.disabled = true; btn2.textContent = "Sending…";
+      try{ const r = isSheets(b) ? await pdfSheets(b) : await DK.pdf(b); const b64 = r.pdf.output("datauristring").split(",")[1];
+        await api("POST", "/api/jobs/"+enc(O.job)+"/send-document", {to, subject:document.getElementById("odMailSub").value, message:document.getElementById("odMailMsg").value, filename:r.filename, pdf_base64:b64}); closeModal(); say("Document Sent Successfully!", "Emailed to "+to);
+      }catch(e){ btn2.disabled = false; btn2.textContent = "Send"; say("Could not send the document", e.message, "error"); }
+    });
+  }
   async function download(b){ try{ const r = isSheets(b) ? await pdfSheets(b) : await DK.pdf(b); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); }catch(e){ say("Could not make the PDF", e.message, "error"); } }
   async function history(code, variant){
     const rep = O.data.reports.find(r=> r.code === code);
@@ -25662,9 +25810,10 @@ body.job-readonly #jlBanner{display:flex}
     if(act === "hist"){ history(code, variant); return; }
     if(act === "sig"){ const on = b.dataset.v === "1"; if(O.prev) O.prev.nosign = !on; document.querySelectorAll("#modalBody .od-simg").forEach(x=>{ x.style.display = on ? "" : "none"; });
       document.querySelectorAll('[data-od2="sig"]').forEach(x=>{ x.className = "btn btn-sm "+((x.dataset.v === "1") === on ? "btn-pri" : "btn-out"); }); return; }
+    if(act === "mailp"){ if(O.prev) mailDoc(withSig(O.prev)); return; }
     if(act === "pdfp"){ if(O.prev) download(withSig(O.prev)); return; }
     if(act === "printp"){ if(O.prev) printDoc(withSig(O.prev)); return; }
-    if(act === "pdf" || act === "print"){ if(!id) return; try{ const rec = await record(id); act === "pdf" ? download(rec) : printDoc(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
+    if(act === "pdf" || act === "print" || act === "mail"){ if(!id) return; try{ const rec = await record(id); act === "pdf" ? download(rec) : act === "mail" ? mailDoc(rec) : printDoc(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
   });
   const closeModalIf = ()=> {};
   document.addEventListener("click", e=>{ if(e.target.closest('.tbb[data-tab="jt7b"]')) setTimeout(load, 150); });

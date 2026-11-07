@@ -69,8 +69,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("the container types and numbers are offered on the Containers tab (2 x 40HC, 1 x 20GP)", sg === "1x20GP,2x40HC", sg);
   await page.evaluate(n => go("job-detail", { jobNo: n }), nj.job_number); await sleep(3500);
   await page.evaluate(() => document.querySelector('#s-job-detail .tbb[data-tab="jt2"]').click()); await sleep(1500);
-  check("the Containers tab shows the planned containers with an Add button", /2 × 40HC/.test(await page.evaluate(() => (document.getElementById("jcSuggest") || {}).innerText || "")) && /1 × 20GP/.test(await page.evaluate(() => (document.getElementById("jcSuggest") || {}).innerText || "")));
-  await page.evaluate(() => document.querySelector("[data-jd-usecont]").click()); await sleep(800);
+  check("the planned containers are already added as rows on the Containers tab (3 rows: 2 x 40HC and 1 x 20GP)", (await page.evaluate(() => [...document.querySelectorAll("#containerTableBody tr[data-jd-cont] [data-k=type]")].map(x => x.value).sort().join())) === "20GP,40HC,40HC");
   await page.evaluate(() => { const rows = [...document.querySelectorAll("#containerTableBody tr[data-jd-cont]")]; rows.forEach((tr, i) => { const set = (k, v) => { const e = tr.querySelector('[data-k="' + k + '"]'); if (e) { e.value = v; e.dispatchEvent(new Event("input", { bubbles: true })); } }; set("pkgs", String(10 * (i + 1))); set("gross_wt", String(100 * (i + 1))); set("net_wt", String(90 * (i + 1))); }); });
   await sleep(600);
   const bu = await page.evaluate(() => (document.getElementById("jcBreakup") || {}).innerText || "");

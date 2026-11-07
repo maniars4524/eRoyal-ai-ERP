@@ -83,3 +83,16 @@ def test_direct_ids_and_job_sub_pages_are_hidden(w):
     for url in (f"/api/quotations/{mine['quote']['id']}", f"/api/bookings/{mine['book']['id']}", f"/api/documents/{mine['inv']['id']}"):
         assert client.get(url, headers=hd).status_code == 200, url
     assert client.post(f"/api/quotations/{other['quote']['id']}/duplicate", headers=hd).status_code == 404
+
+
+def test_mis_and_dashboard_follow_the_same_scope(w, h):
+    a = w["a"]
+    mine = client.get("/api/mis/shipments", headers=hu(a))
+    assert mine.status_code == 200, mine.text
+    everyone = client.get("/api/mis/shipments", headers=h).json()
+    assert mine.json()["total"] == 1 and everyone["total"] >= 2                         # a placed user's MIS counts only their own job; the administrator's counts all
+    da = client.get("/api/dashboard/summary", headers=hu(a)).json()
+    dall = client.get("/api/dashboard/summary", headers=h).json()
+    assert str(da) != str(dall)                                                          # the dashboard figures differ: the placed user's are their own
+    act = client.get("/api/dashboard/side?limit=40", headers=hu(a)).json()["activity"]
+    assert len(act) <= len(client.get("/api/dashboard/side?limit=40", headers=h).json()["activity"])

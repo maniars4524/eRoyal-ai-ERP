@@ -31,11 +31,11 @@ CATALOG = {
     ("Air", "Import"): [R("arrival_notice", "Arrival Notice", "Notice"), R("delivery_order", "Delivery Order Preparation", "Release document"), R("destuffing_report", "Destuffing Report (Unloading)", "Operational", ops=True),
                         R("pod", "Proof of Delivery (POD)", "Operational", ops=True), R("air_manifest", "Air Manifest", "Manifest")],
     ("Sea", "Export"): [R("hbl", "HBL (House Bill of Lading)", "Transport document"), R("mbl", "MBL (Master Bill of Lading)", "Transport document", optional=True), R("sailing_confirmation", "Sailing Confirmation", "Confirmation"),
-                        R("shipment_summary", "Shipment Summary", "Summary"), R("pl_report", "P&L Report", "Financial", restricted=True), R("pre_alert", "Pre-alert", "Notice"),
+                        R("shipment_summary", "Shipment Summary", "Summary", variants=("without_rates", "with_rates")), R("pl_report", "P&L Report", "Financial", restricted=True), R("pre_alert", "Pre-alert", "Notice"),
                         R("stuffing_report", "Stuffing Report (LCL Shipment)", "Operational", lcl=True, ops=True)],
     ("Sea", "Import"): [R("can", "Cargo Arrival Notice (CAN)", "Notice", variants=("with_rates", "without_rates")), R("delivery_order", "Delivery Order Preparation", "Release document"),
                         R("destuffing_report", "Destuffing Report (Unloading - LCL)", "Operational", lcl=True, ops=True), R("pod", "Proof of Delivery (POD)", "Operational", ops=True),
-                        R("shipment_summary", "Shipment Summary", "Summary")],
+                        R("shipment_summary", "Shipment Summary", "Summary", variants=("without_rates", "with_rates"))],
 }
 VARIANT_LABEL = {"with_rates": "With Charges", "without_rates": "Without Charges", "": ""}
 MAX_HTML = 600_000
@@ -172,8 +172,8 @@ def outdocs_list(job_number: str, user: User = Depends(permission_required("ship
         for k, r in latest.items():
             if k[0] == rep["code"]:
                 gen[k[1]] = _meta(r, names, counts[k])
-        out.append({**rep, "allowed": finance or not (rep["restricted"] or "with_rates" in rep["variants"]), "generated": gen})
-    return {"job_number": job.job_number, "mode": job.mode, "direction": job.direction, "container_mode": job.container_mode, "reports": out, "variant_labels": VARIANT_LABEL}
+        out.append({**rep, "allowed": finance or not rep["restricted"], "generated": gen})
+    return {"job_number": job.job_number, "mode": job.mode, "direction": job.direction, "container_mode": job.container_mode, "finance": finance, "reports": out, "variant_labels": VARIANT_LABEL}
 
 
 class GenIn(BaseModel):

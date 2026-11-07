@@ -251,6 +251,18 @@ def remove_leg(job_number: str, leg_id: int, reason: str = "", user: User = Depe
     return {"removed": leg.id}
 
 
+@router.get("/api/routing/names")
+def routing_names(kind: str = "SEA", user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """Vessel names (sea) or airline names (air) this company has already used in routing, most used first: offered as suggestions so a name is typed once."""
+    if user.organization_id is None:
+        raise HTTPException(403, "Routing is tenant-scoped")
+    from sqlalchemy import func
+
+    rows = db.execute(select(JobRoutingLeg.carrier, func.count().label("n")).where(JobRoutingLeg.organization_id == user.organization_id, JobRoutingLeg.kind == ("AIR" if kind.upper() == "AIR" else "SEA"),
+                                                                                    JobRoutingLeg.carrier.is_not(None), JobRoutingLeg.is_active.is_(True)).group_by(JobRoutingLeg.carrier).order_by(func.count().desc()).limit(200)).all()
+    return [r[0] for r in rows if r[0]]
+
+
 # ---------------- dashboard alerts ----------------
 @router.get("/api/routing/alerts")
 def routing_alerts(days: int = 3, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):

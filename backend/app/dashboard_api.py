@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .access import record_clause, scope_for, shipment_clause
 from .auth import get_current_user, has_permission
 from .billing import outstanding
 from .db import get_db
@@ -66,7 +67,11 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     month_start = today.replace(day=1)
     can_jobs, can_bill = _has(user, "shipment.read"), _has(user, "billing.read")
 
-    jobs = list(db.scalars(select(Shipment).where(Shipment.organization_id == org_id))) if can_jobs else []
+    jq = select(Shipment).where(Shipment.organization_id == org_id)
+    jcl = shipment_clause(db, user)                                  # a placed user's dashboard counts only the jobs their role allows
+    if jcl is not None:
+        jq = jq.where(jcl)
+    jobs = list(db.scalars(jq)) if can_jobs else []
     names = {c.id: c.name for c in db.scalars(select(Customer).where(Customer.organization_id == org_id))} if can_jobs else {}
     live = [j for j in jobs if j.status != "Cancelled"]
     done_cha = lambda j: j.job_type == "Customs" and (j.customs_status or "") in ("DELIVERED", "CLOSED")          # customs finished: no longer "in progress"
@@ -119,7 +124,9 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
     months = _month_keys(today)
     jobs_by_month = Counter(j.created_at.strftime("%Y-%m") for j in live if j.created_at)
 
-    docs = list(db.scalars(select(Document).where(Document.organization_id == org_id, Document.status == "POSTED"))) if can_bill else []
+    dcl = record_clause(db, user, Document)
+    dq = select(Document).where(Document.organization_id == org_id, Document.status == "POSTED")
+    docs = list(db.scalars(dq.where(dcl) if dcl is not None else dq)) if can_bill else []
     mode_of = {j.id: j.mode for j in jobs}
     revenue_by_month: dict[str, Decimal] = defaultdict(Decimal)
     rev_mode: dict[str, Decimal] = defaultdict(Decimal)
@@ -150,7 +157,8 @@ def summary(user: User = Depends(get_current_user), db: Session = Depends(get_db
             overdue_by_party[d.party_name] += left
             overdue_count += 1
     ar_total = sum(ageing.values(), Decimal(0))
-    drafts = db.scalar(select(func.count()).select_from(Document).where(Document.organization_id == org_id, Document.status == "DRAFT")) if can_bill else 0
+    dr_q = select(func.count()).select_from(Document).where(Document.organization_id == org_id, Document.status == "DRAFT")
+    drafts = db.scalar(dr_q.where(dcl) if dcl is not None else dr_q) if can_bill else 0
 
     soon = today + timedelta(days=7)
     eta_soon = [j for j in active if j.eta and today <= j.eta <= soon]
@@ -201,7 +209,9 @@ def side_lists(limit: int = Query(default=6, ge=1, le=300), user: User = Depends
 
     # approvals waiting for this user's decision
     if _has(user, "quote.approve"):
-        for q in db.scalars(select(Quotation).where(Quotation.organization_id == org_id, Quotation.status == "DRAFT", Quotation.approval_status == "SUBMITTED").order_by(Quotation.submitted_at)):
+        qcl = record_clause(db, user, Quotation)
+        qq = select(Quotation).where(Quotation.organization_id == org_id, Quotation.status == "DRAFT", Quotation.approval_status == "SUBMITTED").order_by(Quotation.submitted_at)
+        for q in db.scalars(qq.where(qcl) if qcl is not None else qq):
             out["approvals"].append({"type": "Quotation", "ref": q.number or f"Draft #{q.id}", "party": q.party_name, "by": _name(db, names, q.prepared_by), "at": q.submitted_at, "own": q.prepared_by == user.id, "id": q.id, "go": "quotation", "open": "quotation"})
     if _has(user, "credit.approve"):
         for f in db.scalars(select(CreditFacility).where(CreditFacility.organization_id == org_id, CreditFacility.status.in_(("SUBMITTED", "UNDER_REVIEW"))).order_by(CreditFacility.submitted_at)):
@@ -222,7 +232,11 @@ def side_lists(limit: int = Query(default=6, ge=1, le=300), user: User = Depends
     out["notifications"].sort(key=lambda n: n["at"], reverse=True)
 
     # recent activity of the company (the audit trail, newest first)
-    for a in db.scalars(select(AuditLog).where(AuditLog.organization_id == org_id, AuditLog.module != "AUTHENTICATION").order_by(AuditLog.id.desc()).limit(limit if limit > 6 else 40)):
+    aq = select(AuditLog).where(AuditLog.organization_id == org_id, AuditLog.module != "AUTHENTICATION")
+    sc = scope_for(db, user)
+    if not sc.unrestricted:                                           # a placed user sees their own activity and their team's, not the whole company's
+        aq = aq.where(AuditLog.user_id.in_(list(sc.user_ids) + [user.id]) if sc.user_ids is not None else AuditLog.user_id == user.id)
+    for a in db.scalars(aq.order_by(AuditLog.id.desc()).limit(limit if limit > 6 else 40)):
         nv = a.new_value or {}
         ref = nv.get("number") or nv.get("job_number") or nv.get("code") or nv.get("name") or ""
         out["activity"].append({"text": _words(a.action) + (f" — {ref}" if ref else ""), "by": _name(db, names, a.user_id), "at": a.created_at, "module": a.module})

@@ -783,7 +783,6 @@ class QuotationLine(Base):
     taxable: Mapped[bool] = mapped_column(default=False)
     container_type: Mapped[str | None] = mapped_column(String(40))
     container_breakup: Mapped[list | None] = mapped_column(JSON)
-    dr_cr: Mapped[str] = mapped_column(String(2), default="DR", server_default="DR")        # DR adds the amount, CR deducts it (settlement with an overseas agent)
     qty_manual: Mapped[bool] = mapped_column(default=False, server_default="false")      # the quantity was typed by the user: a calculated Basis does not overwrite it
     pct_base: Mapped[list | None] = mapped_column(JSON)         # "% of Other Charges": the names of the charges the percentage is taken from
     remarks: Mapped[str] = mapped_column(String(500), default="")
