@@ -90,3 +90,23 @@ def test_tenant_isolation_and_permissions(world, admin, job):
     dev = hdr(world["dev"], portal="developer")
     assert client.get(url, headers=dev).status_code == 403
     assert client.get("/api/shipments/by-number/NOPE/charges", headers=job["h"]).status_code == 404
+
+
+def test_dr_cr_statement_adds_dr_and_deducts_cr_per_currency(job):
+    def ln(name, side, rate, dr_cr, ccy="USD"):
+        zero = {"ccy": ccy, "exch": "83", "rate": "0", "tax_type": "Non-Taxable", "tax_pct": "0", "party": "", "use_party": False}
+        live = {**zero, "rate": rate}
+        return {"charge_name": name, "description": "", "uom": "Per Shipment", "qty": "1", "hsn": "", "dr_cr": dr_cr, "buy": live if side == "buy" else zero, "sell": live if side == "sell" else zero}
+
+    lines = [ln("Ocean Freight Collect from Consignee", "sell", "1000", "DR"), ln("Delivery Charges Collect from Consignee", "sell", "50", "DR"), ln("Payment to Liner", "buy", "800", "CR"), ln("Profit Share", "buy", "25", "CR")]
+    r = client.put(f"/api/shipments/by-number/{job['no']}/charges", json={"lines": lines}, headers=job["h"])
+    assert r.status_code == 200, r.text
+    st = r.json()["totals"]["dr_cr"]
+    assert st == [{"ccy": "USD", "dr": "1050.00", "cr": "825.00", "net": "225.00", "note": "DN"}]
+    got = client.get(f"/api/shipments/by-number/{job['no']}/charges", headers=job["h"]).json()
+    assert [l["dr_cr"] for l in got["lines"]] == ["DR", "DR", "CR", "CR"]                      # saved and returned
+    # a CR larger than the DR is a credit note, equal is nothing, and other currencies keep their own balance
+    lines = [ln("A", "sell", "100", "DR"), ln("B", "buy", "150", "CR"), ln("C", "sell", "40", "DR", "EUR"), ln("D", "buy", "40", "CR", "EUR")]
+    st = client.put(f"/api/shipments/by-number/{job['no']}/charges", json={"lines": lines}, headers=job["h"]).json()["totals"]["dr_cr"]
+    assert {x["ccy"]: (x["net"], x["note"]) for x in st} == {"USD": ("-50.00", "CN"), "EUR": ("0.00", "NONE")}
+    assert client.put(f"/api/shipments/by-number/{job['no']}/charges", json={"lines": [{**ln("A", "sell", "1", "XX")}]}, headers=job["h"]).status_code == 422

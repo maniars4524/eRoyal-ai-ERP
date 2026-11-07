@@ -95,12 +95,16 @@ def lifecycle_out(db: Session, job: Shipment, user: User) -> dict:
     last_closer = db.get(User, job.last_closed_by) if job.last_closed_by else None
     count = db.scalar(select(func.count()).select_from(JobEvent).where(JobEvent.organization_id == job.organization_id, JobEvent.shipment_id == job.id)) or 0
     closed = job.closure_status == "CLOSED"
-    return {"job_number": job.job_number, "job_stage": job.job_stage, "stage_source": job.stage_source, "stage_reason": job.stage_reason, "stage_updated_at": _ts(job.stage_updated_at), "stage_updated_by": _stage_actor(db, job), "closure_status": job.closure_status,
+    canceller = db.get(User, job.cancelled_by) if job.cancelled_by else None
+    cancelled = job.status == "Cancelled"
+    return {"job_number": job.job_number, "status": job.status, "cancel_reason": job.cancel_reason, "cancelled_at": _ts(job.cancelled_at), "cancelled_by": jl.display_name(canceller) if canceller else None,
+            "job_stage": job.job_stage, "stage_source": job.stage_source, "stage_reason": job.stage_reason, "stage_updated_at": _ts(job.stage_updated_at), "stage_updated_by": _stage_actor(db, job), "closure_status": job.closure_status,
             "closure_cycle": job.closure_cycle, "last_closed_at": _ts(job.last_closed_at), "last_closed_by": jl.display_name(last_closer) if last_closer else None, "reopen_count": job.reopen_count,
             "last_activity_at": _ts(job.last_activity_at), "event_count": count, "stages": jl.STAGES, "manual_stages": jl.MANUAL_STAGES, "reopen_reasons": REOPEN_REASONS,
             "milestones": [{"code": c, "label": jl.MILESTONE_LABEL.get(c, c), "required": c in req, "stage": jl.MILESTONES.get(c), "done": c in ms, "actual_at": _ts(ms[c].actual_at) if c in ms else None,
                             "remarks": ms[c].remarks if c in ms else None, "source": "booking" if c in ms and ms[c].id is None else "user"} for c in jl.applicable_milestones(job)],
-            "actions": {"can_close": _can(user, "job.close") and not closed, "can_reopen": _can(user, "job.reopen") and closed, "can_change_stage": _can(user, "job.change_stage") and job.closure_status == "OPEN", "can_view_history": _can(user, "job.view_history"),
+            "actions": {"can_cancel": _can(user, "shipment.update") and not cancelled and job.closure_status == "OPEN" and (job.closure_cycle or 0) == 0, "can_reinstate": _can(user, "shipment.delete") and cancelled,
+                        "can_close": _can(user, "job.close") and not closed and not cancelled, "can_reopen": _can(user, "job.reopen") and closed, "can_change_stage": _can(user, "job.change_stage") and job.closure_status == "OPEN", "can_view_history": _can(user, "job.view_history"),
                         "can_export_history": _can(user, "job.export_history"), "can_record_milestone": _can(user, "shipment.update") and not closed, "can_exceptional_close": _can(user, "job.exceptional_close") and jl.setting_enabled(db, job.organization_id, "JOB_EXCEPTIONAL_CLOSURE")}}
 
 

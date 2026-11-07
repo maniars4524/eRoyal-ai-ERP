@@ -2683,7 +2683,7 @@ tbody tr:hover{background:var(--g0)}
     <select class="fc" id="jobModeFilter" style="width:100px;padding:5px 7px"><option value="">All Modes</option><option>Sea</option><option>Air</option><option>Road</option></select>
     <select class="fc" id="jobDirFilter" style="width:105px;padding:5px 7px"><option value="">All Directions</option><option>Export</option><option>Import</option></select>
     <select class="fc" id="jobStateFilter" style="width:125px;padding:5px 7px"><option value="">All Jobs</option><option value="active">Active</option><option value="pending">Pending action</option><option value="closed">Closed</option></select>
-    <select class="fc" id="jobStatusFilter" style="width:115px;padding:5px 7px"><option value="">All Statuses</option><option>Open</option><option>Booked</option><option>In Transit</option><option>Customs</option><option>Delivered</option></select>
+    <select class="fc" id="jobStatusFilter" style="width:115px;padding:5px 7px"><option value="">All Statuses</option><option>Open</option><option>Booked</option><option>In Transit</option><option>Customs</option><option>Delivered</option><option>Closed</option><option>Cancelled</option></select>
     <input class="fc" id="jobSearchInput" placeholder="Search job / BL / shipper…" style="width:200px">
     <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--g6);cursor:pointer" title="Keep the Job No and the first party column in view while the table scrolls sideways"><input type="checkbox" id="jobFreezeToggle" checked> Freeze Job No &amp; party</label>
   </div>
@@ -7506,7 +7506,7 @@ function jcFromServer(l){
   return jcPercentFromServer(jcFromServerRaw(l), l);
 }
 function jcFromServerRaw(l){
-  return {id: jcRowSeq++, selected:false, chargeName:l.charge_name, desc:l.description, uom:l.uom, qty:Number(l.qty), hsn:l.hsn || ((JC_CHARGE_MASTER.find(c=>c.name===l.charge_name) || {}).code || ""),
+  return {id: jcRowSeq++, selected:false, drCr:l.dr_cr === "CR" ? "CR" : "DR", chargeName:l.charge_name, desc:l.description, uom:l.uom, qty:Number(l.qty), hsn:l.hsn || ((JC_CHARGE_MASTER.find(c=>c.name===l.charge_name) || {}).code || ""),
     buy:{ccy:l.buy.ccy, exch:Number(l.buy.exch), rate:Number(l.buy.rate), taxType:l.buy.tax_type, taxPct:Number(l.buy.tax_pct), vendor:l.buy.party},
     sell:{ccy:l.sell.ccy, exch:Number(l.sell.exch), rate:Number(l.sell.rate), taxType:l.sell.tax_type, taxPct:Number(l.sell.tax_pct), client:l.sell.party},
     useVendor:l.buy.use_party, useClient:l.sell.use_party, qtyManual:!!l.qty_manual,
@@ -7519,7 +7519,7 @@ function jcPercentFromServer(r, l){
 }
 function jcToServer(r){
   const n = v=> String(Number(v)||0);
-  return {charge_name:r.chargeName||"", description:r.desc||"", uom:r.uom||"Per Shipment", qty:n(r.qty), qty_manual:!!r.qtyManual && JC_BASIS.indexOf(r.uom) > -1, hsn:r.hsn||"",
+  return {dr_cr:r.drCr === "CR" ? "CR" : "DR", charge_name:r.chargeName||"", description:r.desc||"", uom:r.uom||"Per Shipment", qty:n(r.qty), qty_manual:!!r.qtyManual && JC_BASIS.indexOf(r.uom) > -1, hsn:r.hsn||"",
     buy:{ccy:r.buy.ccy, exch:n(r.buy.exch), rate:n(r.buy.rate), tax_type:r.buy.taxType, tax_pct:n(r.buy.taxPct), party:r.buy.vendor||"", use_party:!!r.useVendor},
     sell:{ccy:r.sell.ccy, exch:n(r.sell.exch), rate:n(r.sell.rate), tax_type:r.sell.taxType, tax_pct:n(r.sell.taxPct), party:r.sell.client||"", use_party:!!r.useClient},
     breakup:(r.breakup || []).filter(b=>Number(b.qty) > 0).map(b=>({type:b.type||"", qty:n(b.qty), sell:n(b.sell), buy:n(b.buy)}))};
@@ -7728,7 +7728,7 @@ function jcRenderHead(){
   const side = (k, label)=> ({top:`<th class="jc-th-${k}" colspan="8">${label}</th>`, sub:["Currency", "Exch. Rate", "Rate", "Tax", "Tax %", "Amount", "Amt (INR)", k === "buy" ? "Vendor" : "Client"].map(t=>`<th class="jc-th-${k}">${t}</th>`).join("")});
   const buy = side("buy", "BUY / PURCHASE (COST)"), sell = side("sell", "SELL / REVENUE");
   const [a, b] = sf ? [sell, buy] : [buy, sell];
-  thead.innerHTML = `<tr><th rowspan="2"></th><th rowspan="2">#</th><th rowspan="2">Charge Name</th><th rowspan="2">Description / Remarks</th><th rowspan="2">UOM</th><th rowspan="2">Units</th>${a.top}${b.top}<th rowspan="2">HSN / SAC</th><th rowspan="2"></th></tr><tr>${a.sub}${b.sub}</tr>`;
+  thead.innerHTML = `<tr><th rowspan="2"></th><th rowspan="2">#</th><th rowspan="2" title="DR = add the amount, CR = deduct it">DR / CR</th><th rowspan="2">Charge Name</th><th rowspan="2">Description / Remarks</th><th rowspan="2">UOM</th><th rowspan="2">Units</th>${a.top}${b.top}<th rowspan="2">HSN / SAC</th><th rowspan="2"></th></tr><tr>${a.sub}${b.sub}</tr>`;
   const btn = document.getElementById("jc_flipBtn"); if(btn) btn.title = sf ? "Sell is on the left, Buy on the right. Click to put Buy on the left" : "Buy is on the left, Sell on the right. Click to put Sell on the left";
 }
 document.addEventListener("click", e=>{ if(!e.target.closest("#jc_flipBtn")) return; window.JC_SELL_FIRST = window.JC_SELL_FIRST === false; try{ localStorage.setItem("esway_jc_sell_first", window.JC_SELL_FIRST ? "1" : "0"); }catch(err){} jcRenderRows(); });
@@ -7777,6 +7777,7 @@ function jcRenderRows(){
     return `<tr data-jc-row="${r.id}">
       <td><input type="checkbox" class="jc-chk" data-jc-sel="${r.id}" ${r.selected?"checked":""}></td>
       <td class="mono">${idx+1}</td>
+      <td><select class="fc" data-jc-f="drCr" data-jc-id="${r.id}" style="width:62px;font-weight:700;color:${r.drCr==="CR"?"#b91c1c":"#166534"}" title="DR = add the amount, CR = deduct it"><option ${r.drCr==="CR"?"":"selected"}>DR</option><option ${r.drCr==="CR"?"selected":""}>CR</option></select></td>
       <td style="min-width:175px"><div style="display:flex;gap:3px;align-items:center">
         <select class="fc" data-jc-f="chargeName" data-jc-id="${r.id}" style="min-width:140px"><option value="">— Select —</option>${chargeOpts}</select>
         <button class="ta" title="Add new charge to master" data-jc-newcharge="${r.id}" style="flex-shrink:0;font-weight:700">+</button>
@@ -7788,7 +7789,7 @@ ${firstCells}${secondCells}
       <td class="mono"><input class="fc" style="width:72px" data-jc-f="hsn" data-jc-id="${r.id}" value="${esc(r.hsn)}" placeholder="HSN/SAC"></td>
       <td><button class="ta" data-jc-removerow="${r.id}" title="Remove row">✕</button></td>
     </tr>`;
-  }).join("") : `<tr><td colspan="24" class="tbl-empty">${JC_CHARGE_MASTER.length ? 'No charges added yet — click "Add Row" to begin.' : 'No charge codes exist yet — add them in Masters → Charge Master (or use + on a row), then click "Add Row".'}</td></tr>`;
+  }).join("") : `<tr><td colspan="25" class="tbl-empty">${JC_CHARGE_MASTER.length ? 'No charges added yet — click "Add Row" to begin.' : 'No charge codes exist yet — add them in Masters → Charge Master (or use + on a row), then click "Add Row".'}</td></tr>`;
   renderIcons(tb);
   jcApplySides();
   jcRecalcAll();
@@ -7843,7 +7844,22 @@ function jcRenderValidation(){
   renderIcons(bar);
 }
 
+/* DR / CR statement under the charge table: every DR adds, every CR deducts, per currency, and the net balance says whether a Debit Note or a Credit Note is to be raised */
+function jcDrCrPanel(){
+  const st = jcGetState(jcCurrentJob), tab = document.getElementById("jc_table"); if(!tab || !st) return;
+  let host = document.getElementById("jcDrCr"); if(!host){ host = document.createElement("div"); host.id = "jcDrCr"; host.style.cssText = "margin:12px 14px 4px"; const wrap = tab.closest(".tw"); wrap.parentNode.insertBefore(host, wrap.nextSibling); }
+  const by = {}; let anyCr = false;
+  st.rows.forEach(r=>{ const sellOn = (Number(r.sell.rate) || 0) > 0 || (r.breakup || []).some(b=>Number(b.sell) > 0), c = jcRowCalc(r), amt = sellOn ? c.sellAmt : c.buyAmt, ccy = sellOn ? r.sell.ccy : r.buy.ccy; if(!amt) return;
+    const e = by[ccy] || (by[ccy] = {dr:0, cr:0}); if(r.drCr === "CR"){ e.cr += amt; anyCr = true; } else e.dr += amt; });
+  const keys = Object.keys(by).sort(); const f = n=> Number(n).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+  host.innerHTML = '<div style="font-weight:700;font-size:12.5px;margin-bottom:4px">DR / CR statement <span style="font-weight:400;color:var(--g5);font-size:11px">— DR adds the amount, CR deducts it. The amount of a line is its sell amount, or its buy amount when it has no sell rate (before tax). Each currency has its own balance.</span></div>'+
+    (keys.length ? '<table style="font-size:12px;border-collapse:collapse;min-width:560px"><thead><tr style="color:var(--g5)"><th style="text-align:left;padding:3px 12px 3px 0">Currency</th><th style="text-align:right;padding:3px 12px">Total DR (+)</th><th style="text-align:right;padding:3px 12px">Total CR (−)</th><th style="text-align:right;padding:3px 12px">Net balance</th><th style="text-align:left;padding:3px 0 3px 12px">Result</th></tr></thead><tbody>'+
+      keys.map(k=>{ const e = by[k], net = Math.round((e.dr - e.cr) * 100) / 100, res = !anyCr ? '<span style="color:var(--g5)">Set CR on the lines that are to be deducted</span>' : net > 0 ? '<b style="color:#166534">DR — Debit Note (DN) to be issued to the overseas agent</b>' : net < 0 ? '<b style="color:#b91c1c">CR — Credit Note (CN) to be issued</b>' : '<span style="color:var(--g6)">Balanced — no debit note or credit note is required</span>';
+        return '<tr><td style="padding:3px 12px 3px 0;font-weight:700">'+k+'</td><td style="text-align:right;padding:3px 12px">'+f(e.dr)+'</td><td style="text-align:right;padding:3px 12px">'+f(e.cr)+'</td><td style="text-align:right;padding:3px 12px;font-weight:700">'+(net < 0 ? "−" : "")+f(Math.abs(net))+'</td><td style="padding:3px 0 3px 12px">'+res+'</td></tr>'; }).join("")+'</tbody></table>'
+      : '<div style="color:var(--g5);font-size:12px">No charge amounts yet.</div>');
+}
 function jcRecalcAll(){
+  try{ jcDrCrPanel(); }catch(e){}
   const st = jcGetState(jcCurrentJob);
   let totalBuyINR=0, totalSellINR=0, totalBuyTax=0, totalSellTax=0;
   const byCcy = {};
@@ -15490,6 +15506,12 @@ if(document.readyState !== "loading") initChatWidget();
     const a = lc.actions;
     if(a.can_change_stage) add("stage", "Change Stage", "btn-out");
     if(a.can_close) add("close", "Close Job", "btn-out");
+    if(a.can_cancel) add("cancel", "Cancel Job", "btn-out");
+    if(a.can_reinstate) add("reinstate", "Reinstate Job", "btn-pri");
+    let cb = document.getElementById("jlCancelBanner");
+    if(lc.status === "Cancelled"){ if(!cb){ cb = document.createElement("div"); cb.id = "jlCancelBanner"; cb.className = "ib ib-rd"; cb.style.cssText = "margin:8px 0 0;font-weight:600"; const sub = document.getElementById("jobDetailSub"); if(sub && sub.parentNode) sub.parentNode.appendChild(cb); }
+      cb.innerHTML = 'CANCELLED — '+esc2(lc.cancel_reason || "no reason recorded")+' <span style="font-weight:400">· by '+esc2(lc.cancelled_by || "—")+' on '+esc2(dmyt(lc.cancelled_at))+'. The job keeps its number and history and cannot be edited until it is reinstated.</span>'; cb.style.display = ""; }
+    else if(cb) cb.style.display = "none";
     if(a.can_reopen) add("reopen", "Reopen Job", "btn-pri");
     add("tracking", "📍 Tracking", "btn-out");
     if(a.can_view_history) add("history", "🕘 Activity History <span class=\"b b-gy\" style=\"margin-left:4px\">"+lc.event_count+"</span>", "btn-out");
@@ -15616,6 +15638,17 @@ if(document.readyState !== "loading") initChatWidget();
   }
 
   /* ---------- reopen ---------- */
+  function reasonDialog(title, intro, label, goLabel, path, okMsg){
+    openModal({title, bodyHTML:'<div class="ib ib-am" style="margin-bottom:8px">'+intro+'</div><div class="fg"><label class="fl">'+label+' <span class="r">*</span></label><textarea class="fc" id="jlWhy" rows="3" maxlength="500"></textarea></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Back</button><button class="btn btn-pri" type="button" id="jlWhyGo">'+goLabel+'</button>'});
+    document.getElementById("jlWhyGo").addEventListener("click", async ()=>{
+      const why = (document.getElementById("jlWhy").value || "").trim(); if(why.length < 5){ say("A reason is needed", "Write at least 5 characters"); return; }
+      const r = await req("POST", "/api/jobs/"+encodeURIComponent(J.job)+path, {reason:why}); if(!r.ok){ say("Could not complete this", detailMsg(r)); return; }
+      closeModal(); say(okMsg, J.job); await loadLifecycle(); refreshAfter();
+    });
+  }
+  const cancelDialog = ()=> reasonDialog("Cancel Job", "A job is never deleted. Cancelling keeps its number, charges, documents and history, and it can be reinstated later.", "Reason for cancelling", "Cancel this job", "/cancel", "Job cancelled");
+  const reinstateDialog = ()=> reasonDialog("Reinstate Job", "The job returns to the stage it was in before it was cancelled. The cancellation stays in its history.", "Reason for reinstating", "Reinstate this job", "/reinstate", "Job reinstated");
   async function reopenDialog(){
     const cl = await req("GET","/api/jobs/"+encodeURIComponent(J.job)+"/closures"); const last = cl.ok ? (cl.data.find(c=>c.action!=="REOPEN")||{}) : {};
     openModal({title:"Reopen Job", bodyHTML:'<div class="fr"><div class="fg"><label class="fl">Job</label><input class="fc" disabled value="'+esc2(J.job)+'"></div><div class="fg"><label class="fl">Previous closure</label><input class="fc" disabled value="'+dmyt(last.at)+'"></div><div class="fg"><label class="fl">Closed by</label><input class="fc" disabled value="'+esc2(last.actor||"")+'"></div></div>'+
@@ -15734,7 +15767,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* ---------- wiring ---------- */
   document.addEventListener("click", e=>{
     const srcLink = e.target.closest("[data-jl-source]"); if(srcLink){ e.preventDefault(); e.stopPropagation(); sourceDialog(); return; }
-    const b = e.target.closest("[data-jl]"); if(b){ e.stopPropagation(); const k = b.dataset.jl; if(k==="history") return openDrawer(); if(k==="stage") return stageDialog(); if(k==="close") return closeDialog(); if(k==="reopen") return reopenDialog(); if(k==="tracking") return openTracking(); }
+    const b = e.target.closest("[data-jl]"); if(b){ e.stopPropagation(); const k = b.dataset.jl; if(k==="history") return openDrawer(); if(k==="stage") return stageDialog(); if(k==="close") return closeDialog(); if(k==="reopen") return reopenDialog(); if(k==="cancel") return cancelDialog(); if(k==="reinstate") return reinstateDialog(); if(k==="tracking") return openTracking(); }
     const m = e.target.closest("[data-jl-ms]"); if(m){ e.stopPropagation(); return milestoneDialog(m.dataset.jlMs); }
     const h = e.target.closest("[data-jl-hist]"); if(h){ e.stopPropagation(); J.pendingHistory = h.dataset.jlHist; const c = document.querySelector('[data-job="'+h.dataset.jlHist+'"]'); if(c) c.click(); setTimeout(()=>{ const btn = document.querySelector('#s-job-detail [data-jl="history"]'); if(btn) btn.click(); }, 1500); }
   }, true);

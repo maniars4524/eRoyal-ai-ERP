@@ -619,3 +619,9 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - Notifications: running message moved by a timer (Slow 32 / Normal 48 / Fast 70 px/s) - setting in Notification Settings.
 - Routing: first leg suggested from the job/booking also when only POL/POD are known.
 - DONE: Import jobs (sea + air): HBL/MBL (HAWB/MAWB) typed manually, no generated number (POST /hbl 409), no HBL clauses (PUT /hbl-clauses 409), no BL confirm/release (POST /bl/stage 409); BL tab hides those parts (class bl-import) and points to CAN + Delivery Order Preparation (Output Docs name). Export unchanged. Tests: backend/tests/test_import_bl.py, e2e/importbl.test.js.
+
+## DR/CR charges + Cancel Job UI (2026-11-07)
+- Job Cost > Charge Entry: DR / CR column between # and Charge Name (job_charges.dr_cr, migration 0066). Statement under the table: per currency Total DR (+), Total CR (-), Net and DN / CN / none. Line amount = sell amount if the line has a sell rate, else buy amount (before tax). Server totals.dr_cr in the charges response. Tests: test_job_charges.py, e2e/drcr.test.js.
+- Cancel Job / Reinstate Job buttons + CANCELLED banner on the job screen (lifecycle kit; lifecycle_out has status, cancel_reason, can_cancel, can_reinstate); status filter has Closed + Cancelled. e2e/cancelui.test.js.
+- All Output Docs of all four categories generate (e2e/allreports.test.js); Export Declaration refuses without a Shipping Bill, CAN With Charges without charges, by design.
+- INSTALL-KEEPALIVE.cmd is deleted again by something outside this work within seconds of being restored; the keep-alive task is already registered.

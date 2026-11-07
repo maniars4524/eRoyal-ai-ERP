@@ -56,6 +56,7 @@ class ChargeLine(BaseModel):
     buy: Side = Field(default_factory=Side)
     sell: Side = Field(default_factory=Side)
     breakup: list[Breakup] | None = Field(default=None, max_length=30)
+    dr_cr: str = Field(default="DR", pattern="^(DR|CR)$")        # DR = amount added, CR = amount deducted
     qty_manual: bool = False            # the user typed the quantity: a calculated Basis does not overwrite it
     pct_base: list[str] | None = Field(default=None, max_length=60)      # "% of Other Charges": the charges the percentage is taken from
 
@@ -75,11 +76,29 @@ def line_out(row: JobCharge) -> dict:
     buy = compute_side(row.qty, row.buy_ccy, row.buy_exch, row.buy_rate, row.buy_tax_type, row.buy_tax_pct)
     sell = compute_side(row.qty, row.sell_ccy, row.sell_exch, row.sell_rate, row.sell_tax_type, row.sell_tax_pct)
     return {
-        "id": row.id, "line_no": row.line_no, "breakup": row.breakup or [], "charge_name": row.charge_name, "description": row.description, "uom": row.uom, "qty": str(row.qty), "hsn": row.hsn, "qty_manual": bool(row.qty_manual), "pct_base": row.pct_base,
+        "id": row.id, "line_no": row.line_no, "dr_cr": row.dr_cr or "DR", "breakup": row.breakup or [], "charge_name": row.charge_name, "description": row.description, "uom": row.uom, "qty": str(row.qty), "hsn": row.hsn, "qty_manual": bool(row.qty_manual), "pct_base": row.pct_base,
         "buy": {"pct": None if row.buy_pct is None else str(row.buy_pct), "ccy": row.buy_ccy, "exch": str(row.buy_exch), "rate": str(row.buy_rate), "tax_type": row.buy_tax_type, "tax_pct": str(row.buy_tax_pct), "party": row.vendor, "use_party": row.use_vendor, **{k: str(v) for k, v in buy.items()}},
         "sell": {"pct": None if row.sell_pct is None else str(row.sell_pct), "ccy": row.sell_ccy, "exch": str(row.sell_exch), "rate": str(row.sell_rate), "tax_type": row.sell_tax_type, "tax_pct": str(row.sell_tax_pct), "party": row.client, "use_party": row.use_client, **{k: str(v) for k, v in sell.items()}},
         "_buy": buy, "_sell": sell,
+        "_dc": {"ccy": row.sell_ccy if (row.sell_rate or 0) > 0 else row.buy_ccy, "amount": sell["amount"] if (row.sell_rate or 0) > 0 else buy["amount"]},
     }
+
+
+def dr_cr_statement(lines: list[dict]) -> list[dict]:
+    """Per currency: total DR (added), total CR (deducted), the net balance and what it means. The amount of a line is its sell amount when it has a sell rate, otherwise its buy amount; tax is not included.
+    Currencies are never mixed: each has its own balance. Net > 0 is a Debit Note (DN) to the overseas agent, net < 0 a Credit Note (CN), zero needs neither."""
+    by: dict[str, dict] = {}
+    for l in lines:
+        d = l["_dc"]
+        if not d["amount"]:
+            continue
+        e = by.setdefault(d["ccy"], {"ccy": d["ccy"], "dr": Decimal(0), "cr": Decimal(0)})
+        e["dr" if l.get("dr_cr", "DR") == "DR" else "cr"] += d["amount"]
+    out = []
+    for e in by.values():
+        net = e["dr"] - e["cr"]
+        out.append({"ccy": e["ccy"], "dr": str(q2(e["dr"])), "cr": str(q2(e["cr"])), "net": str(q2(net)), "note": "DN" if net > 0 else "CN" if net < 0 else "NONE"})
+    return sorted(out, key=lambda x: x["ccy"])
 
 
 def totals(lines: list[dict]) -> dict:
@@ -89,7 +108,7 @@ def totals(lines: list[dict]) -> dict:
     ar_tax = sum((l["_sell"]["tax"] for l in lines), Decimal(0))
     gp = ar - ap
     pct = q2(gp / ar * Decimal(100)) if ar else Decimal(0)
-    return {"ar": str(ar), "ar_tax": str(ar_tax), "ar_total": str(ar + ar_tax), "ap": str(ap), "ap_tax": str(ap_tax), "ap_total": str(ap + ap_tax), "gross_profit": str(gp), "gp_percent": str(pct)}
+    return {"dr_cr": dr_cr_statement(lines), "ar": str(ar), "ar_tax": str(ar_tax), "ar_total": str(ar + ar_tax), "ap": str(ap), "ap_tax": str(ap_tax), "ap_total": str(ap + ap_tax), "gross_profit": str(gp), "gp_percent": str(pct)}
 
 
 def _job(db: Session, user: User, job_number: str) -> Shipment:
@@ -278,6 +297,7 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
             sell_ccy=line.sell.ccy, sell_exch=Decimal(1) if line.sell.ccy == "INR" else line.sell.exch, sell_rate=line.sell.rate, sell_tax_type=line.sell.tax_type, sell_tax_pct=line.sell.tax_pct if line.sell.tax_type in ("Taxable", "RCM") else Decimal(0), client=line.sell.party.strip(), use_client=line.sell.use_party,
         )
         row.breakup = bu or None
+        row.dr_cr = line.dr_cr
         row.qty_manual = bool(line.qty_manual and line.uom in bc.BASES)
         row.pct_base = [str(n)[:160] for n in line.pct_base] if line.uom == bc.PCT_OTHER and line.pct_base is not None else None
         if cl.get("pct"):

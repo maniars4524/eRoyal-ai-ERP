@@ -599,6 +599,7 @@ class JobCharge(Base):
     breakup: Mapped[list | None] = mapped_column(JSON)       # container-wise break-up: [{type, qty, sell, buy}] (the line then carries qty 1 and the totals as its rates)
     buy_pct = mapped_column(Numeric(8, 3), nullable=True)    # a "% of Freight" / "% of Other Charges" line: the percentage entered (the rates then hold the calculated amounts, quantity 1)
     sell_pct = mapped_column(Numeric(8, 3), nullable=True)
+    dr_cr: Mapped[str] = mapped_column(String(2), default="DR", server_default="DR")        # DR adds the amount, CR deducts it (settlement with an overseas agent)
     qty_manual: Mapped[bool] = mapped_column(default=False, server_default="false")      # the quantity was typed by the user and is not recalculated from the Basis
     pct_base: Mapped[list | None] = mapped_column(JSON)         # "% of Other Charges": the names of the charges the percentage is taken from
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -782,6 +783,7 @@ class QuotationLine(Base):
     taxable: Mapped[bool] = mapped_column(default=False)
     container_type: Mapped[str | None] = mapped_column(String(40))
     container_breakup: Mapped[list | None] = mapped_column(JSON)
+    dr_cr: Mapped[str] = mapped_column(String(2), default="DR", server_default="DR")        # DR adds the amount, CR deducts it (settlement with an overseas agent)
     qty_manual: Mapped[bool] = mapped_column(default=False, server_default="false")      # the quantity was typed by the user: a calculated Basis does not overwrite it
     pct_base: Mapped[list | None] = mapped_column(JSON)         # "% of Other Charges": the names of the charges the percentage is taken from
     remarks: Mapped[str] = mapped_column(String(500), default="")
