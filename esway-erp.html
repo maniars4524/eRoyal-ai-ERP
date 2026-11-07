@@ -2811,8 +2811,8 @@ tbody tr:hover{background:var(--g0)}
 <div class="fg" style="margin-bottom:7px"><label class="fl">Shipper / Exporter <span class="r">*</span></label><select class="fc" id="nj_shipper"><option value="">— Search or select —</option></select><span class="ferr">Shipper is required</span></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Consignee / Importer <span class="r">*</span></label><select class="fc" id="nj_consignee"><option value="">— Search or select —</option></select><span class="ferr">Consignee is required</span></div>
 <div class="fg" style="margin-bottom:7px"><label class="fl">Notify Party</label><select class="fc"><option>Same as Consignee</option></select></div>
-<div class="fg" style="margin-bottom:7px"><label class="fl">Overseas Agent</label><select class="fc"><option>— None —</option><option>Panalpina Belgium</option></select></div>
-<div class="fg"><label class="fl">CHA Broker</label><select class="fc"><option>— None —</option><option>Sea Air Marine Surveyors</option></select></div>
+<div class="fg" style="margin-bottom:7px"><label class="fl">Overseas Agent</label><select class="fc" id="nj_agent"><option value="">— None —</option></select></div>
+<div class="fg"><label class="fl">CHA Broker</label><select class="fc" id="nj_cha"><option value="">— None —</option></select></div>
 </div></div>
 <div class="card"><div class="ch"><div class="ct">Cargo</div></div><div class="cb">
 <div class="fr"><div class="fg"><label class="fl">Packages</label><input class="fc" id="nj_pkgs" placeholder="100"></div><div class="fg"><label class="fl">Pkg Type</label><select class="fc"><option>Cartons</option><option>Pallets</option><option>Drums</option><option>Bags</option></select></div><div class="fg"><label class="fl">Gross Weight (KG)</label><input class="fc" id="nj_wt" placeholder="1500.000"></div></div>
@@ -8985,9 +8985,10 @@ function filterJobTable(){
     const st = tr.dataset.state;
     const stateOk = !state || (state === "active" ? st !== "closed" : state === "pending" ? st === "pending" : state === "closed" ? (V.closedMtd ? tr.dataset.closedMtd === "1" : st === "closed") : true);
     const show = (!q||text.includes(q)) && (!mode||tr.dataset.mode===mode) && (!dir||tr.dataset.dir===dir) && (!status||tr.dataset.status===status) && (!V.bucket||tr.dataset.bucket===V.bucket) && (!V.jtype||tr.dataset.jtype===V.jtype) && stateOk;
-    tr.style.display = show ? "" : "none";
+    tr.style.display = show ? "" : "none"; tr.dataset.jfHide = show ? "0" : "1";            /* the paging list (ListKit) must respect these filters */
     if(show) visible++;
   });
+  if(window.ListKit && ListKit.apply && ListKit.state && ListKit.state.job){ const c = ListKit.CFG.find(x=>x.key === "job"); if(c) ListKit.apply(c); }
   const foot = $("#jobListFooter"); if(foot) foot.textContent = `Showing ${visible} of ${total} job${total === 1 ? "" : "s"}`;
 }
 window.filterJobTable = filterJobTable;
@@ -23350,6 +23351,7 @@ body.job-readonly #jlBanner{display:flex}
         if(f.company && !iCo.some(i=>cell(tr, i) === f.company)) ok = false;
         if(f.status && (iSt < 0 || cell(tr, iSt) !== f.status)) ok = false;
         if(f.q && (tr.textContent || "").toLowerCase().indexOf(f.q.toLowerCase()) < 0) ok = false;
+        if(tr.dataset.jfHide === "1") ok = false;                      /* hidden by the Mode / Direction / Status / card filters of the page */
         tr.dataset.lkOk = ok ? "1" : "0"; tr.style.display = ok ? "" : "none"; if(ok) shown++;
       });
       const key = st.sortBy === "date" ? (tr=> iDate > -1 ? parseDate(cell(tr, iDate)) : 0) : (tr=> iNum > -1 ? cell(tr, iNum) : "");
@@ -25360,11 +25362,14 @@ body.job-readonly #jlBanner{display:flex}
     sec("Route", pairs([["Port of Loading", c.f.pol], ["Port of Discharge", c.f.pod], ["ETD", dmy(etd(c))], ["ETA", dmy(eta(c))]])), sec("Cargo", cargoPairs(c)), '<div style="margin-top:8px;font-size:8.5px;color:#52627d">Draft prepared from the job record. The carrier\'s own document governs.</div>']);
   R.mawb = {need:c=> miss(["Master AWB number (BL / AWB tab)", c.f.mbl]), build:c=> master(c, "MASTER AIR WAYBILL (DRAFT)")};
   R.mbl = {need:c=> miss(["Master B/L number (BL / AWB tab)", c.f.mbl]), build:c=> master(c, "MASTER BILL OF LADING (DRAFT)")};
-  R.hbl = {need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Port of Loading (POL)", c.f.pol], ["Port of Discharge (POD)", c.f.pod], ["Vessel and voyage (Routing tab or Booking)", hasMove(c)], ["House B/L number (BL / AWB tab)", c.f.hbl]),
-    build:c=> { const v = vessel(c), P = parties(c); return paginate(c, "HOUSE BILL OF LADING", [pairs([["B/L No", c.f.hbl], ["Date", dmy(c.f.hblDate)], ["Job No", c.job], ["Booking No", c.rd.booking_number || c.f.bk.number]]),
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+partyBox("SHIPPER", P.shipper)+partyBox("CONSIGNEE", P.consignee)+'</div>', partyBox("NOTIFY PARTY", P.notify || P.consignee),
-      sec("Carriage", pairs([["Vessel / Voyage", v.name+(v.voyage ? " / "+v.voyage : "")], ["Place of Receipt", c.f.por], ["Port of Loading", c.f.pol], ["Port of Discharge", c.f.pod], ["Place of Delivery", c.f.pld], ["Freight", pay(c.f.freight)]])),
-      sec("Particulars furnished by the shipper", table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"])+cargoPairs(c))]); }};
+  /* HBL: the company's existing Bill of Lading / Multimodal Transport Document (2 A4 sheets: the document and its terms), unchanged. It is laid out, fitted to the sheet and stored as it appears. */
+  R.hbl = {need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Port of Loading (POL)", c.f.pol], ["Port of Discharge (POD)", c.f.pod]),
+    build:async c=> {
+      if(!window.BLDocKit) throw new Error("The Bill of Lading document is not available");
+      const b = await BLDocKit.build(c.job), w = (/class="bl-sheet"[^>]*style="width:(\d+)px/.exec(b.sheets) || [])[1] || 794;
+      const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-12000px;top:0;background:#fff;padding:0;width:"+w+"px"; host.innerHTML = b.sheets; document.body.appendChild(host);
+      try{ BLDocKit.fitAll(host); return {html:host.innerHTML, title:"House Bill of Lading "+(b.title || c.job), sheets:true}; } finally { host.remove(); }
+    }};
   R.destuffing_report = {inputs:[{k:"unloading_date", label:"Unloading date", type:"date", req:true}, {k:"received_packages", label:"Packages received", type:"number", req:true}, {k:"damaged_packages", label:"Damaged packages", type:"number"}, {k:"shortage_packages", label:"Shortage (packages)", type:"number"}, {k:"received_by", label:"Received by"}, {k:"remarks", label:"Remarks", type:"textarea"}],
     need:c=> miss(["Consignee", nm(parties(c).consignee)]),
     build:(c, inp)=> paginate(c, "DESTUFFING REPORT", [sec("Shipment", jobBlock(c)), sec("Containers", table(["Container No", "Type", "Seal No", "Packages", "Gross Wt (KG)", "Net Wt (KG)"], contRows(c), ["left", "left", "left", "right", "right", "right"])), sec("Cargo (as per documents)", cargoPairs(c)),
@@ -25476,7 +25481,22 @@ body.job-readonly #jlBanner{display:flex}
         footHTML:'<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
     }catch(e){ say("Could not open the report", e.message, "error"); }
   }
-  async function download(b){ try{ const r = await DK.pdf(b); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); }catch(e){ say("Could not make the PDF", e.message, "error"); } }
+  const isSheets = b=> !!(b && b.rec && b.rec.code === "hbl");
+  function printSheets(b){
+    const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
+    w.document.write("<!doctype html><title>"+esc(b.title)+"</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.bl-sheet{margin:0!important;box-shadow:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>"+b.html); w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 900);
+  }
+  const loadJs = src=> new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const x = document.createElement("script"); x.src = src; x.onload = ok; x.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(x); });
+  async function pdfSheets(b){
+    await loadJs("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadJs("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-12000px;top:0;background:#fff;padding:0"; host.innerHTML = b.html; document.body.appendChild(host);
+    try{ const sheets = host.querySelectorAll(".bl-sheet"), W = sheets[0].offsetWidth, Hh = sheets[0].offsetHeight; const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4", compress:true});
+      for(let i = 0; i < sheets.length; i++){ const canvas = await window.html2canvas(sheets[i], {scale:3.6, backgroundColor:"#fff", useCORS:true, width:W, height:Hh, windowWidth:W}); if(i) pdf.addPage("a4"); pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST"); }
+      return {pdf, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf"};
+    } finally { host.remove(); }
+  }
+  const printDoc = b=> isSheets(b) ? printSheets(b) : DK.print(b);
+  async function download(b){ try{ const r = isSheets(b) ? await pdfSheets(b) : await DK.pdf(b); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); }catch(e){ say("Could not make the PDF", e.message, "error"); } }
   async function history(code, variant){
     const rep = O.data.reports.find(r=> r.code === code);
     try{
@@ -25493,14 +25513,45 @@ body.job-readonly #jlBanner{display:flex}
     if(act === "view"){ if(id) preview(id, code, variant); return; }
     if(act === "hist"){ history(code, variant); return; }
     if(act === "pdfp"){ if(O.prev) download(O.prev.b); return; }
-    if(act === "printp"){ if(O.prev) DK.print(O.prev.b); return; }
-    if(act === "pdf" || act === "print"){ if(!id) return; try{ const rec = await record(id); act === "pdf" ? download(rec) : DK.print(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
+    if(act === "printp"){ if(O.prev) printDoc(O.prev.b); return; }
+    if(act === "pdf" || act === "print"){ if(!id) return; try{ const rec = await record(id); act === "pdf" ? download(rec) : printDoc(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
   });
   const closeModalIf = ()=> {};
   document.addEventListener("click", e=>{ if(e.target.closest('.tbb[data-tab="jt7b"]')) setTimeout(load, 150); });
   const prevScreen = MK.onScreen; MK.onScreen = function(screen, opts){ prevScreen.apply(this, arguments); if(screen === "job-detail") setTimeout(load, 1800); };
   setInterval(()=>{ const t = document.getElementById("jt7b"); if(t && t.offsetParent !== null && jobNo() && O.job !== jobNo()) load(); }, 1500);
   window.OutDocs = {R, context, load};
+})();
+</script>
+<script>
+/* NEW JOB > Parties: the Overseas Agent and CHA Broker lists come from the Organisation Master (organisations with the Agent / CHA role): no names are typed into the page. A choice is saved
+   on the job's Parties tab as soon as the job is created. */
+(function(){
+  "use strict";
+  if(!window.MK) return;
+  const api = (m, p, b)=> MK.util.api(m, p, b), esc = MK.util.esc2;
+  let cache = null, at = 0;
+  async function orgs(){ if(cache && Date.now() - at < 20000) return cache; try{ cache = (await api("GET", "/api/customers")).filter(c=> c.status === "ACTIVE"); }catch(e){ cache = []; } at = Date.now(); return cache; }
+  async function fill(){
+    const a = document.getElementById("nj_agent"), c = document.getElementById("nj_cha"); if(!a || !c) return;
+    const list = await orgs(), has = (o, re)=> (o.roles || []).some(r=> re.test(String(r)));
+    const put = (sel, rows, none)=> { const sig = rows.map(r=>r.name).join("|"); if(sel.dataset.sig === sig) return; const cur = sel.value; sel.innerHTML = '<option value="">— None'+(rows.length ? "" : " ("+none+")")+' —</option>'+rows.map(r=>'<option value="'+esc(r.name)+'">'+esc(r.name)+'</option>').join(""); sel.value = cur; sel.dataset.sig = sig; };
+    put(a, list.filter(o=> has(o, /agent/i)), "no agent in the Organisation Master"); put(c, list.filter(o=> has(o, /^cha$|broker/i)), "no CHA in the Organisation Master");
+  }
+  const prev = MK.onScreen; MK.onScreen = function(screen, opts){ prev.apply(this, arguments); if(screen === "job-new") setTimeout(fill, 300); };
+  setInterval(()=>{ const s = document.getElementById("s-job-new"); if(s && s.classList.contains("on")) fill(); }, 4000);
+  /* after the job is created, keep the chosen parties on its Parties tab */
+  const raw = window.fetch;
+  window.fetch = function(input, init){
+    const mine = (typeof input === "string" && /^\/api\/shipments$/.test(input) && init && String(init.method).toUpperCase() === "POST") ? (()=> {
+      const v = id=> { const e = document.getElementById(id); return e ? e.value : ""; }, t = id=> { const e = document.getElementById(id); return e && e.selectedIndex > -1 && e.value ? (e.options[e.selectedIndex].dataset.name || e.options[e.selectedIndex].text) : ""; };
+      const dir = v("nj_dir"); return {agent:v("nj_agent"), cha:v("nj_cha"), shipper:t("nj_shipper"), consignee:t("nj_consignee"), dir}; })() : null;
+    const p = raw.apply(this, arguments);
+    if(mine && (mine.agent || mine.cha)) return p.then(r=>{ if(r.ok) r.clone().json().then(j=>{ if(!j || !j.job_number) return;
+      const data = {}; if(mine.shipper) data.shipper = mine.shipper; if(mine.consignee) data.consignee = mine.consignee; if(mine.agent) data[/import/i.test(mine.dir) ? "originAgent" : "deliveryAgent"] = mine.agent; if(mine.cha) data.cha = mine.cha;
+      raw("/api/jobs/"+encodeURIComponent(j.job_number)+"/details/parties", {method:"PUT", headers:{"Content-Type":"application/json", Authorization:"Bearer "+sessionStorage.getItem("esway_access_token")}, body:JSON.stringify({data, expected_version:null})}).catch(()=>{}); }).catch(()=>{}); return r; });
+    return p;
+  };
 })();
 </script>
 </body>

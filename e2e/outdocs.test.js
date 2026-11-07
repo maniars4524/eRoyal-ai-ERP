@@ -55,6 +55,12 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const ss = await text("#modalBody");
   check("the Shipment Summary shows the job, shipper, consignee, route and cargo", /SHIPMENT SUMMARY/.test(ss) && /ABC Trading Co/.test(ss) && /Global Importers/.test(ss) && /INMAA/.test(ss) && /Auto parts/.test(ss), ss.replace(/\s+/g, " ").slice(0, 200));
   await page.evaluate(() => closeModal()); await sleep(400);
+  await page.evaluate(() => document.querySelector('[data-od2="gen"][data-code="hbl"]').click()); await sleep(4500);
+  const hb = await text("#modalBody");
+  check("the HBL is the existing Bill of Lading / MTD document (its own layout and terms sheet)", /BILL OF LADING|MULTIMODAL TRANSPORT DOCUMENT/.test(hb) && /ABC Trading Co/.test(hb) && (await page.evaluate(() => document.querySelectorAll("#modalBody .bl-sheet").length)) === 2, hb.replace(/\s+/g, " ").slice(0, 200));
+  const hid = (await j("GET", "/api/jobs/" + sea + "/outdocs", null, token)).body.reports.find(r => r.code === "hbl").generated[""];
+  check("it is stored as version 1 with both sheets", hid && hid.version === 1 && ((await j("GET", "/api/jobs/" + sea + "/outdocs/" + hid.id, null, token)).body.html.match(/bl-sheet/g) || []).length >= 2);
+  await page.evaluate(() => closeModal()); await sleep(400);
   await openOD(bare);
   await page.evaluate(() => document.querySelector('[data-od2="gen"][data-code="sailing_confirmation"]').click()); await sleep(2500);
   const mi = await text("#modalBody");

@@ -600,3 +600,10 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - Layouts built: Sailing Confirmation (with routing legs, Planned/Confirmed, ATD only from confirmed 'departed' milestone, remarks), Shipment Summary, Pre-alert, Loading Confirmation, Stuffing, Transshipment Confirmation, Export Declaration (from Customs bills only), MAWB/MBL draft, HBL, Destuffing, POD, Air Manifest. Reused existing templates: HAWB, Delivery Order, P&L, CAN (Without Rates strips the charge block). Arrival Notice (air) = CAN without rates.
 - Validation lists missing fields and stops; ops reports ask actual details first. e2e/outdocs.test.js covers sea export (list, generate, version 2, history, summary, missing info).
 - TO DO: visual review of each layout against the user's samples (Relay Shipment Summary has Collections/Payments/Net profit tables - this Shipment Summary is non-financial; add a financial variant only if the user wants), per-report e2e for air/sea import, HBL clauses, more fields from the BL tab, mail option, notification ticker colours (done: category colours, critical glow, ~60 px/s).
+
+## Fixes (2026-11-06, night)
+- HBL in Output Docs = the existing Bill of Lading / MTD document (BLDocKit, 2 A4 sheets) fitted and stored as-is; print/PDF use the same sheet method.
+- Job list filters: ListKit (paging list) overrode the Mode/Direction/Status/dashboard-bucket filters (all jobs reappeared). filterJobTable now marks rows (data-jf-hide) and ListKit honours it. e2e/jobfilter.test.js.
+- New Job > Parties: Overseas Agent / CHA Broker were hard-coded demo names; now filled from the Organisation Master (roles agent / cha) and saved on the job's Parties tab after creation. e2e/njparties.test.js.
+- Other hard-coded demo party names may remain elsewhere (not audited).
+- Note: INSTALL-KEEPALIVE.cmd shows as deleted in the working tree (not by this work); left untouched.
