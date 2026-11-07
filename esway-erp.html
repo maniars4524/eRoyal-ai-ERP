@@ -3091,6 +3091,10 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr"><div class="fg"><label class="fl">Declared value for carriage</label><input class="fc" id="jobAwb_declCarriage" value="NVD"></div><div class="fg"><label class="fl">Declared value for customs</label><input class="fc" id="jobAwb_declCustoms" value="NCV"></div><div class="fg"><label class="fl">Amount of insurance</label><input class="fc" id="jobAwb_insurance" value="NIL"></div></div>
 <div class="fr"><div class="fg"><label class="fl">Rate class</label><input class="fc" id="jobAwb_rateClass" value="N" style="width:70px"></div><div class="fg"><label class="fl">Rate per kg</label><input class="fc" id="jobAwb_rate" type="number" step="0.01" placeholder="0.00"></div><div class="fg"><label class="fl">Chargeable weight (blank = highest of actual and volumetric)</label><input class="fc" id="jobAwb_chg" type="number" step="0.001"></div></div>
 <div class="fr"><div class="fg"><label class="fl">Charges</label><select class="fc" id="jobAwb_payment"><option>Prepaid</option><option>Collect</option></select></div><div class="fg"><label class="fl">Other charges due agent</label><input class="fc" id="jobAwb_other" type="number" step="0.01" placeholder="0.00"></div><div class="fg"><label class="fl">Currency</label><input class="fc" id="jobAwb_currency" value="INR" style="width:80px"></div></div>
+<div class="fsec">House Air Waybill — printed details</div>
+<div class="fr"><div class="fg"><label class="fl">Agent's IATA code</label><input class="fc" id="jobAwb_iata"></div><div class="fg"><label class="fl">Agent's account no.</label><input class="fc" id="jobAwb_agentAcct"></div><div class="fg"><label class="fl">Shipper's account no.</label><input class="fc" id="jobAwb_shipperAcct"></div><div class="fg"><label class="fl">Consignee's account no.</label><input class="fc" id="jobAwb_consigneeAcct"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Commodity item no.</label><input class="fc" id="jobAwb_commodityNo"></div><div class="fg"><label class="fl">Other charges (as printed)</label><input class="fc" id="jobAwb_otherText" placeholder="AWB : 500 /-"></div><div class="fg"><label class="fl">SCI</label><input class="fc" id="jobAwb_sci" style="width:80px"></div><div class="fg"><label class="fl">Executed by</label><input class="fc" id="jobAwb_executedBy" placeholder="SUB AGENT"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Charges are printed as</label><select class="fc" id="jobAwb_totalMode"><option value="calc">The calculated amounts</option><option value="agreed">AS AGREED</option></select></div></div>
 <div class="fr"><div class="fg"><label class="fl">Place of issue</label><input class="fc" id="jobAwb_place" ></div><div class="fg"><label class="fl">Executed on</label><input class="fc" id="jobAwb_execDate" type="date"></div></div>
 <div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Handling information</label><textarea class="fc" id="jobAwb_handling" rows="2"></textarea></div></div>
 <div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Accounting information</label><textarea class="fc" id="jobAwb_accounting" rows="2"></textarea></div></div>
@@ -18221,6 +18225,7 @@ function makePrintFit(){
     const set = (id, v)=>{ const n = el(id); if(n && v != null && v !== "") n.value = v; };
     set("jobAwb_hawbNo", b.hblNo); set("jobAwb_hawbDate", b.hblDate); set("jobAwb_mawb", b.mblNo); set("jobAwb_mawbDate", b.mblDate); set("jobAwb_airline", a.airline); set("jobAwb_to", a.routingTo); set("jobAwb_flight", a.flight); set("jobAwb_flightDate", a.flightDate);
     set("jobAwb_declCarriage", a.declCarriage); set("jobAwb_declCustoms", a.declCustoms); set("jobAwb_insurance", a.insurance); set("jobAwb_rateClass", a.rateClass); set("jobAwb_rate", a.rate); { const cf = el("jobAwb_chg"); if(cf){ if(a.chargeableWt){ cf.dataset.manual = "1"; cf.value = a.chargeableWt; } else { delete cf.dataset.manual; } if(window.JobAirSync) JobAirSync(); } } set("jobAwb_payment", a.payment);
+    set("jobAwb_iata", a.iata); set("jobAwb_agentAcct", a.agentAccount); set("jobAwb_shipperAcct", a.shipperAccount); set("jobAwb_consigneeAcct", a.consigneeAccount); set("jobAwb_commodityNo", a.commodityNo); set("jobAwb_otherText", a.otherText); set("jobAwb_sci", a.sci); set("jobAwb_executedBy", a.executedBy); set("jobAwb_totalMode", a.totalMode || "calc");
     set("jobAwb_other", a.otherCharges); set("jobAwb_currency", a.currency); set("jobAwb_place", a.place); set("jobAwb_execDate", a.execDate); set("jobAwb_handling", a.handling); set("jobAwb_accounting", a.accounting);
     const gen = el("jobAwb_genBtn"); if(gen){ gen.disabled = !!b.hblNo; gen.style.opacity = b.hblNo ? ".5" : ""; }
   };
@@ -18361,6 +18366,7 @@ function makePrintFit(){
     if(JD.data && JD.data.mode === "Air"){
       return {bookingType:"House", mblNo:g("jobAwb_mawb"), mblDate:g("jobAwb_mawbDate"), hblDate:g("jobAwb_hawbDate"), originals:g("jobBl_originals"), terms:g("jobAwb_payment"), place:g("jobAwb_place"), released:g("jobBl_released"),
         awb:{airline:g("jobAwb_airline"), routingTo:g("jobAwb_to"), flight:g("jobAwb_flight"), flightDate:g("jobAwb_flightDate"), declCarriage:g("jobAwb_declCarriage"), declCustoms:g("jobAwb_declCustoms"), insurance:g("jobAwb_insurance"), rateClass:g("jobAwb_rateClass"), rate:g("jobAwb_rate"), chargeableWt:((el("jobAwb_chg") || {}).dataset || {}).manual ? g("jobAwb_chg") : "",
+          iata:g("jobAwb_iata"), agentAccount:g("jobAwb_agentAcct"), shipperAccount:g("jobAwb_shipperAcct"), consigneeAccount:g("jobAwb_consigneeAcct"), commodityNo:g("jobAwb_commodityNo"), otherText:g("jobAwb_otherText"), sci:g("jobAwb_sci"), executedBy:g("jobAwb_executedBy"), totalMode:g("jobAwb_totalMode"),
           payment:g("jobAwb_payment"), otherCharges:g("jobAwb_other"), currency:g("jobAwb_currency"), place:g("jobAwb_place"), execDate:g("jobAwb_execDate"), handling:(el("jobAwb_handling") || {}).value || "", accounting:(el("jobAwb_accounting") || {}).value || ""}};
     }
     const b = {bookingType:g("jobBlBookingType")};
@@ -18965,7 +18971,7 @@ function makePrintFit(){
     const code3 = v=> { const m = String(v || "").match(/([A-Z]{3})(?:\(|$)/); return m ? m[1] : String(v || "").slice(0, 3).toUpperCase(); };
     const place = v=> String(v || "").replace(/^[A-Z]{5}\(?/, "").replace(/\)$/, "") || String(v || "");
     const mm = String(f.mbl || "").match(/^(\d{3})[-\s]?(\d{6,8})$/), topLeft = mm ? mm[1]+" "+code3(f.pol)+" "+mm[2] : esc2(f.mbl || "");
-    const agreed = v=> v ? fmt(v) : "AS AGREED";
+    const AG = a.totalMode === "agreed", agreed = v=> AG || !v ? "AS AGREED" : fmt(v);
     const dimsRows = wt.rows.filter(r=>r.l || r.w || r.h);
     const nature = esc2(f.desc || "")+(f.marks ? "<br>"+esc2(f.marks) : "")+(dimsRows.length ? "<br>DIM IN "+(wt.lbs ? "INCHES" : "CMS")+"<br>"+dimsRows.map(r=>esc2(r.l+"X"+r.w+"X"+r.h+"("+(r.pkg || 1)+")")).join("<br>")+(wt.vol ? "<br>VOL WT:"+Math.round(wt.vol)+"KGS" : "") : "");
     const watermark = stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:120px;font-weight:700;color:rgba(0,0,0,.07);transform:rotate(-38deg)">DRAFT</div>' : "";
@@ -18994,15 +19000,15 @@ function makePrintFit(){
     const th = t=> '<div class="lbl" style="border-right:'+B+';padding:3px 2px;text-align:center;font-size:7.2px;line-height:1.2;background:#f7f7f7">'+t+'</div>';
     const td = (t, al)=> '<div style="border-right:'+B+';padding:4px 3px;font-size:9.5px;text-align:'+(al || "center")+'">'+t+'</div>';
     const goods = '<div style="border:'+B+';border-bottom:0;margin-top:0;display:grid;grid-template-columns:'+cols+'">'+["No. of Pieces", "Gross Weight", "kg<br>lb", "Rate Class", "Commodity Item No.", "Chargeable Weight", "Rate<br>Charge", "Total", "Nature and Quantity of Goods<br>(Incl. Dimensions or Volume)"].map(th).join("")+'</div>'+
-      '<div style="border:'+B+';border-bottom:0;display:grid;grid-template-columns:'+cols+';min-height:150px">'+[td(esc2(first(f.pkgs, wt.pk) || "")), td(gross ? fmt(gross, 3) : ""), td(wt.lbs ? "L" : "K"), td(esc2(a.rateClass || "Q")), td(esc2(a.commodityNo || "")), td(chargeable ? fmt(chargeable) : ""), td(rate ? fmt(rate) : ""), td(wtCharge ? fmt(wtCharge) : "AS AGREED"), td(nature, "left")].join("")+'</div>'+
-      '<div style="border:'+B+';border-bottom:0;display:grid;grid-template-columns:'+cols+'">'+[td(esc2(first(f.pkgs, wt.pk) || "")), td(gross ? fmt(gross) : ""), td(""), td(""), td(""), td(""), td(""), td(wtCharge ? fmt(wtCharge) : "AS AGREED"), td("")].join("")+'</div>';
-    const money = v=> v ? fmt(v) : "AS AGREED";
+      '<div style="border:'+B+';border-bottom:0;display:grid;grid-template-columns:'+cols+';min-height:150px">'+[td(esc2(first(f.pkgs, wt.pk) || "")), td(gross ? fmt(gross, 3) : ""), td(wt.lbs ? "L" : "K"), td(esc2(a.rateClass || "Q")), td(esc2(a.commodityNo || "")), td(chargeable ? fmt(chargeable) : ""), td(rate ? fmt(rate) : ""), td(agreed(wtCharge)), td(nature, "left")].join("")+'</div>'+
+      '<div style="border:'+B+';border-bottom:0;display:grid;grid-template-columns:'+cols+'">'+[td(esc2(first(f.pkgs, wt.pk) || "")), td(gross ? fmt(gross) : ""), td(""), td(""), td(""), td(""), td(""), td(agreed(wtCharge)), td("")].join("")+'</div>';
+    const money = agreed;
     const chargeL = '<div style="border-left:'+B+';display:flex;flex-direction:column">'+
       grid("33% 34% 33%", [c("Prepaid", pc ? money(wtCharge) : "", "text-align:center"), c("Weight Charge", "", "text-align:center"), c("Collect", pc ? "" : money(wtCharge), "text-align:center")], "border-top:"+B)+
       grid("33% 34% 33%", [c("&nbsp;", ""), c("Valuation Charge", "", "text-align:center"), c("&nbsp;", "")])+
       grid("33% 34% 33%", [c("&nbsp;", ""), c("Tax", "", "text-align:center"), c("&nbsp;", "")])+
-      c("Total Other Charges Due Agent", other ? fmt(other) : "AS AGREED")+c("Total Other Charges Due Carrier", "AS AGREED")+
-      grid("50% 50%", [c("Total Prepaid", pc ? (total ? fmt(total) : "AS AGREED") : ""), c("Total Collect", pc ? "" : (total ? fmt(total) : "AS AGREED"))])+
+      c("Total Other Charges Due Agent", agreed(other))+c("Total Other Charges Due Carrier", "AS AGREED")+
+      grid("50% 50%", [c("Total Prepaid", pc ? agreed(total) : ""), c("Total Collect", pc ? "" : agreed(total))])+
       grid("50% 50%", [c("Currency Conversion Rates", ""), c("CC Charges in Dest. Currency", "")])+
       grid("34% 33% 33%", [c("For Carrier's Use only at Destination", "", "min-height:44px"), c("Charges at Destination", ""), c("Total Collect Charges", "")], "flex:1")+
     '</div>';
@@ -25496,7 +25502,7 @@ body.job-readonly #jlBanner{display:flex}
   const jobBlock = c=> { const f = c.f, air = f.air; return pairs([["Job No", c.job], ["Booking No", c.rd.booking_number || f.bk.number], ["Customer", customer(c)], [air ? "HAWB No" : "HBL No", f.hbl], ["Shipper", nm(parties(c).shipper)], [air ? "MAWB No" : "MBL No", f.mbl],
     ["Consignee", nm(parties(c).consignee)], ["Shipment", c.rd.mode+" "+c.rd.direction+(c.rd.container_mode ? " · "+c.rd.container_mode : "")]]); };
   const contRows = c=> c.f.conts.map(x=>[esc(x.container_no), esc(x.type || ""), esc(contSeal(x)), esc(x.pkgs || ""), esc(x.gross_wt ? fmt(x.gross_wt) : ""), esc(x.net_wt ? fmt(x.net_wt) : "")]);
-  const cargoPairs = c=> { const f = c.f; return pairs([["Packages", f.pkgs ? f.pkgs+" "+(f.pkgType || "") : ""], ["Gross Weight", f.gw ? fmt(f.gw)+" KG" : ""], ["Volume", f.vol ? fmt(f.vol, 3)+" CBM" : ""], ["Description", f.desc], ["Marks & Nos", f.marks], ["FCL / LCL", c.rd.container_mode || f.bk.container_mode]]); };
+  const cargoPairs = c=> { const f = c.f; return pairs([["Packages", f.pkgs ? f.pkgs+" "+(f.pkgType || "") : ""], ["Gross Weight", f.gw ? fmt(f.gw)+" KG" : ""], ["Volume", f.vol ? fmt(f.vol, 3)+" CBM" : ""], ["Description", f.desc], ["Marks & Nos", f.marks]].concat(f.air ? [] : [["FCL / LCL", c.rd.container_mode || f.bk.container_mode]])); };
   const legsTable = (c, sea)=> table(sea ? ["Leg", "Vessel", "Voyage", "POL", "POD", "ETD", "ETA", "Stage"] : ["Leg", "Airline", "Flight", "ETD", "ETA", "Stage"],
     c.legs.map((l, i)=> sea ? [i + 1, esc(l.carrier || ""), esc(l.voyage || ""), esc(l.pol || ""), esc(l.pod || ""), esc(dmy(l.etd)), esc(dmy(l.eta)), chip(l.stage)] : [i + 1, esc(l.carrier || ""), esc(l.voyage || ""), esc(dmy(l.etd)), esc(dmy(l.eta)), chip(l.stage)]), sea ? ["center"] : ["center"]);
 

@@ -634,3 +634,10 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - Shipment Summary With/Without Charges (collections, payments, net profit); variant reports open to everyone, the money version needs billing.read (finance flag in /outdocs). Mail button (send-document) in Output Docs.
 - Planned containers auto-fill rows on the Containers tab; routing names (vessels used before) suggested; NVOCC > Masters and Transport > Vehicle Inventory > Masters menus.
 - Backend suite: 449 passed (full run). Mistake caught: DR/CR was briefly mapped onto quotation lines too (code only) - fixed and live restarted.
+
+## Tasks 1-5 round (2026-11-07)
+- AWB tab (BL / AWB) has a "House Air Waybill - printed details" block: agent IATA code, agent / shipper / consignee account no., commodity item no., other charges (as printed), SCI, executed by, "Charges are printed as" (calculated amounts | AS AGREED). The HAWB face prints them. e2e/hawbfields.test.js (also BL pre print / multiple / draft).
+- Air reports no longer show an "FCL / LCL" row.
+- HBL terms and conditions: still need the text. Paste it in Company letterhead & registration > Printed wording > "Bill of Lading terms" (field `terms`): the BL terms sheet and the terms print from it.
+- INSTALL-KEEPALIVE.cmd restored and stable (could not reproduce the earlier disappearance).
+- IATA logo on the HAWB conditions page: not available as an asset; left blank.
