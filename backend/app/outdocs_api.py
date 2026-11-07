@@ -37,7 +37,7 @@ CATALOG = {
                         R("destuffing_report", "Destuffing Report (Unloading - LCL)", "Operational", lcl=True, ops=True), R("pod", "Proof of Delivery (POD)", "Operational", ops=True),
                         R("shipment_summary", "Shipment Summary", "Summary")],
 }
-VARIANT_LABEL = {"with_rates": "With Rates", "without_rates": "Without Rates", "": ""}
+VARIANT_LABEL = {"with_rates": "With Charges", "without_rates": "Without Charges", "": ""}
 MAX_HTML = 600_000
 
 _TAGS = {"div", "span", "table", "thead", "tbody", "tfoot", "tr", "td", "th", "p", "br", "hr", "b", "i", "u", "strong", "em", "small", "sup", "sub", "ol", "ul", "li", "h1", "h2", "h3", "h4", "h5", "h6", "img", "colgroup", "col"}

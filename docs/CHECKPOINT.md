@@ -607,3 +607,7 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - New Job > Parties: Overseas Agent / CHA Broker were hard-coded demo names; now filled from the Organisation Master (roles agent / cha) and saved on the job's Parties tab after creation. e2e/njparties.test.js.
 - Other hard-coded demo party names may remain elsewhere (not audited).
 - Note: INSTALL-KEEPALIVE.cmd shows as deleted in the working tree (not by this work); left untouched.
+
+## CAN with / without charges (2026-11-07)
+- Sea Import Cargo Arrival Notice: Generate opens a dialog: type (With Charges / Without Charges) and, for With Charges, a checklist of the job's sell charges to show. Without Charges has no charge block or amounts. Preview has a With / Without switch (shows the other version if generated, else asks to generate it). Each version has its own history. Labels now "With Charges / Without Charges" (server VARIANT_LABEL). e2e/can.test.js.
+- Visual check done for Sailing Confirmation and HBL (existing MTD/BL document). Test org had no logo, so company header shows only the name.

@@ -25386,8 +25386,13 @@ body.job-readonly #jlBanner{display:flex}
   R.hawb = {need:c=> c.f.air ? [] : ["An air job"], build:reuse("awb")};
   R.delivery_order = {need:c=> miss(["Consignee", nm(parties(c).consignee)]), build:reuse("do")};
   R.pl_report = {need:()=> [], build:reuse("pl")};
-  R.arrival_notice = {need:c=> miss(["Consignee", nm(parties(c).consignee)]), build:async c=> { const b = await DK.build("can", {job:c.job}); return {html:withoutRates(b.html), title:"Arrival Notice "+c.job}; }};
-  R.can = {need:c=> miss(["Consignee", nm(parties(c).consignee)], ["Vessel and voyage (Routing tab or Booking)", hasMove(c)]), build:async (c, inp, variant)=> { const b = await DK.build("can", {job:c.job}); return {html:variant === "without_rates" ? withoutRates(b.html) : b.html, title:b.title+(variant === "without_rates" ? " (Without Rates)" : " (With Rates)")}; }};
+  R.arrival_notice = {need:c=> miss(["Consignee", nm(parties(c).consignee)]), build:c=> ({html:withoutRates(DK.arrivalNotice(c.rd)), title:"Arrival Notice "+c.job})};
+  /* Cargo Arrival Notice: With Charges shows only the sell charges the user ticked; Without Charges has no charge block and no amounts at all */
+  R.can = {need:c=> miss(["Consignee", nm(parties(c).consignee)], ["Vessel and voyage (Routing tab or Booking)", hasMove(c)]),
+    build:(c, inp, variant)=> { const rd = Object.assign({}, c.rd); let html;
+      if(variant === "without_rates"){ rd.job_charges = []; html = withoutRates(DK.arrivalNotice(rd)); }
+      else { const all = c.rd.job_charges || []; rd.job_charges = (inp.charges || []).map(i=> all[i]).filter(Boolean); html = DK.arrivalNotice(rd); }
+      return {html, title:"Cargo Arrival Notice "+c.job+(variant === "without_rates" ? " (Without Charges)" : " (With Charges)")}; }};
   /* the Without Rates version carries no charge block and no amounts at all */
   function withoutRates(html){ const d = document.createElement("div"); d.innerHTML = html; d.querySelectorAll("div").forEach(x=>{ if(x.children.length === 0 && /^\s*CHARGE DETAILS\s*$/.test(x.textContent) && x.parentElement) x.parentElement.remove(); }); return d.innerHTML; }
 
@@ -25448,6 +25453,27 @@ body.job-readonly #jlBanner{display:flex}
       document.getElementById("odVarGo").addEventListener("click", ()=>{ const v = (document.querySelector('input[name="odVar"]:checked') || {}).value || null; closeModal(); resolve(v); });
     });
   }
+  function askCan(rep, c, preset){
+    return new Promise(resolve=>{
+      const ch = c.rd.job_charges || [], mo = v=> (v == null ? "" : Number(v).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}));
+      const rows = ch.map((x, i)=>'<tr><td><input type="checkbox" data-od-ch="'+i+'" checked></td><td>'+esc(x.name)+'</td><td>'+esc(x.ccy || "")+'</td><td style="text-align:right">'+esc(x.qty || "")+' x '+esc(mo(x.rate))+'</td><td style="text-align:right">'+esc(mo(x.amount))+'</td></tr>').join("");
+      openModal({title:"Cargo Arrival Notice", size:"md", bodyHTML:'<div class="fg"><label class="fl">Arrival notice type</label><div style="display:flex;gap:18px;padding:4px 0"><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="odCan" value="with_rates"'+(preset === "without_rates" ? "" : " checked")+'> With Charges</label><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="odCan" value="without_rates"'+(preset === "without_rates" ? " checked" : "")+'> Without Charges</label></div></div>'+
+        '<div id="odCanCh">'+(ch.length ? '<div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 4px"><b>Choose the charges to show on the notice</b><span style="font-size:11px"><a href="#" id="odChAll">select all</a> · <a href="#" id="odChNone">clear</a></span></div><div class="tw" style="max-height:260px;overflow:auto"><table><thead><tr><th></th><th>Charge</th><th>Ccy</th><th style="text-align:right">Qty x Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          : '<div class="ib ib-am">This job has no sell charges yet. Add them in the Charges tab, or choose Without Charges.</div>')+'</div><div style="font-size:11px;color:var(--g5);margin-top:6px">Without Charges carries no charges, rates or amounts. Each type keeps its own history.</div>',
+        footHTML:'<button class="btn btn-out" type="button" id="odCanCancel">Cancel</button><button class="btn btn-pri" type="button" id="odCanGo">Generate</button>'});
+      const sync = ()=> { const w = (document.querySelector('input[name="odCan"]:checked') || {}).value; const b = document.getElementById("odCanCh"); if(b) b.style.display = w === "without_rates" ? "none" : ""; };
+      document.querySelectorAll('input[name="odCan"]').forEach(r=> r.addEventListener("change", sync)); sync();
+      const setAll = on=> document.querySelectorAll("[data-od-ch]").forEach(x=>{ x.checked = on; });
+      const a = document.getElementById("odChAll"), n = document.getElementById("odChNone"); if(a) a.addEventListener("click", e=>{ e.preventDefault(); setAll(true); }); if(n) n.addEventListener("click", e=>{ e.preventDefault(); setAll(false); });
+      document.getElementById("odCanCancel").addEventListener("click", ()=>{ closeModal(); resolve(null); });
+      document.getElementById("odCanGo").addEventListener("click", ()=>{
+        const variant = (document.querySelector('input[name="odCan"]:checked') || {}).value || "with_rates";
+        const picked = Array.from(document.querySelectorAll("[data-od-ch]:checked")).map(x=> Number(x.dataset.odCh));
+        if(variant === "with_rates" && !picked.length){ say("Choose the charges", ch.length ? "Tick at least one charge, or choose Without Charges" : "This job has no charges: choose Without Charges", "warn"); return; }
+        closeModal(); resolve({variant, charges:picked});
+      });
+    });
+  }
   function showMissing(rep, list){
     openModal({title:"Cannot generate "+esc(rep.name), size:"sm", bodyHTML:'<div class="ib ib-am" style="margin-bottom:8px">Some information is missing. Add it on the job, then press Generate again.</div><ul style="margin:0 0 0 18px;line-height:1.7">'+list.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>',
       footHTML:'<button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
@@ -25456,12 +25482,14 @@ body.job-readonly #jlBanner{display:flex}
     const rep = O.data.reports.find(r=> r.code === code), spec = R[code]; if(!rep) return;
     if(!spec){ say("Not available yet", "The layout for "+rep.name+" has not been prepared", "warn"); return; }
     let variant = variantIn || "";
-    if(rep.variants.length && !variant){ variant = await pickVariant(rep); if(!variant) return; }
+    if(rep.variants.length && !variant && code !== "can"){ variant = await pickVariant(rep); if(!variant) return; }
     try{
       const c = await context(O.job);
       const missing = spec.need(c); if(missing.length){ showMissing(rep, missing); return; }
-      let prior = {}; const g = rep.generated[variant]; if(g && spec.inputs){ try{ prior = (await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/"+g.id)).inputs || {}; }catch(e){} }
-      const inp = await askInputs(rep, spec, prior); if(inp === null) return;
+      let inp;
+      if(code === "can"){ const a = await askCan(rep, c, variant); if(!a) return; variant = a.variant; inp = variant === "with_rates" ? {charges:a.charges} : {}; }
+      else { let prior = {}; const g = rep.generated[variant]; if(g && spec.inputs){ try{ prior = (await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/"+g.id)).inputs || {}; }catch(e){} }
+        inp = await askInputs(rep, spec, prior); if(inp === null) return; }
       let out = await spec.build(c, inp, variant), html = out, title = rep.name+" "+O.job;
       if(out && typeof out === "object"){ html = out.html; title = out.title || title; }
       const rec = await api("POST", "/api/jobs/"+enc(O.job)+"/outdocs", {code, variant, title, html, inputs:Object.keys(inp).length ? inp : null});
@@ -25478,7 +25506,8 @@ body.job-readonly #jlBanner{display:flex}
       const rep = O.data.reports.find(r=> r.code === code) || {name:code};
       openModal({title:esc(b.title)+' <span style="font-size:11px;font-weight:400;color:var(--g5)">version '+b.rec.version+'</span>', size:"full", expandable:true,
         bodyHTML:'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
-        footHTML:'<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+        footHTML:(code === "can" ? '<span style="margin-right:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">View:'+["with_rates", "without_rates"].map(v=>'<button class="btn btn-sm '+((variant || "") === v ? "btn-pri" : "btn-out")+'" type="button" data-od2="canv" data-code="can" data-var="'+v+'">'+(v === "with_rates" ? "With Charges" : "Without Charges")+'</button>').join("")+'</span>' : "")+
+          '<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
     }catch(e){ say("Could not open the report", e.message, "error"); }
   }
   const isSheets = b=> !!(b && b.rec && b.rec.code === "hbl");
@@ -25510,6 +25539,7 @@ body.job-readonly #jlBanner{display:flex}
     const act = b.dataset.od2, code = b.dataset.code, variant = b.dataset.var || "", id = b.dataset.id ? Number(b.dataset.id) : (code ? latestId(code, variant) : null);
     if(act === "gen"){ closeModalIf(); generate(code, variant || null); return; }
     if(act === "regen"){ closeModal(); generate(code, variant || null); return; }
+    if(act === "canv"){ const have = latestId("can", variant); closeModal(); if(have) preview(have, "can", variant); else generate("can", variant); return; }
     if(act === "view"){ if(id) preview(id, code, variant); return; }
     if(act === "hist"){ history(code, variant); return; }
     if(act === "pdfp"){ if(O.prev) download(O.prev.b); return; }
