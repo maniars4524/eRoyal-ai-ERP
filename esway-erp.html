@@ -1558,6 +1558,7 @@ tbody tr:hover{background:var(--g0)}
       <div class="hdr-menu-item" data-role="Sales"><svg class="ic" data-icon="file-text"></svg>View as Sales</div>
       <div class="hdr-menu-item" data-role="CHA"><svg class="ic" data-icon="license"></svg>View as CHA</div>
       <div class="hdr-menu-item" data-role="Transport"><svg class="ic" data-icon="truck"></svg>View as Transport</div>
+      <div class="hdr-menu-item" data-role="Exporter" id="viewExporter"><svg class="ic" data-icon="globe"></svg>View as Exporter / Importer</div>
       <div class="hdr-menu-div"></div>
       <div class="hdr-menu-item"><svg class="ic" data-icon="help"></svg>Help &amp; Support</div>
       <div class="hdr-menu-item"><svg class="ic" data-icon="logout"></svg>Sign out</div>
@@ -6754,7 +6755,13 @@ let currentRole = "Admin";
 let tnIdSeq = 0;
 /* a company licence can enable only some modules (e.g. CHA + Accounts): menu nodes carry a module key and disappear when the licence does not include it */
 window.modOn = m=> !window.COMPANY_MODULES || window.COMPANY_MODULES.indexOf(m) !== -1;
-function tnVisible(node){ if(node.licenseOnly && (window.LICENSE_ADMIN !== true || currentRole !== "Super Admin")) return false; if(node.module && !window.modOn(node.module)) return false; if(node.children && node.children.length && !node.module && node.children.every(c=>c.module && !window.modOn(c.module))) return false; const r = currentRole === "Super Admin" ? "Admin" : currentRole; return !node.roles || node.roles.indexOf(r) !== -1; }
+/* Exporter / Importer sign-in: only Organisation Master (Masters), CRM, CHA > Invoice & Packing List and the invoice / bill / voucher screens of Accounts */
+const EXP_GO = ["org-list", "cha-invpl", "invoice-list", "purchase-invoice-list", "receipt-voucher", "payment-voucher"];
+let EXP_SET = null;
+function expSet(){ if(EXP_SET) return EXP_SET; EXP_SET = new Set();
+  const walk = (n, force)=>{ const f = force || n.id === "crm" || !!(n.go && EXP_GO.indexOf(n.go) > -1); let any = f; (n.children || []).forEach(c=>{ if(walk(c, force || n.id === "crm")) any = true; }); if(any && (!n.module || window.modOn(n.module))) EXP_SET.add(n); return any; };
+  TOPNAV_MENU.filter(n=>n.id !== "reports").forEach(n=>walk(n, false)); return EXP_SET; }
+function tnVisible(node){ if(currentRole === "Exporter") return expSet().has(node); if(node.licenseOnly && (window.LICENSE_ADMIN !== true || currentRole !== "Super Admin")) return false; if(node.module && !window.modOn(node.module)) return false; if(node.children && node.children.length && !node.module && node.children.every(c=>c.module && !window.modOn(c.module))) return false; const r = currentRole === "Super Admin" ? "Admin" : currentRole; return !node.roles || node.roles.indexOf(r) !== -1; }
 
 /* ---- build the DOM for one level (called recursively for unlimited depth) ---- */
 function tnBuildLevel(nodes, depth){
@@ -7048,10 +7055,11 @@ $all(".hdr-menu-item[data-role]").forEach(item=>{
     const role = item.dataset.role;
     currentRole = role;
     if(window.dashRoleRefresh) dashRoleRefresh();
-    $("#userRoleLbl").textContent = role+" · Chennai";
+    $("#userRoleLbl").textContent = (role === "Exporter" ? "Exporter / Importer" : role)+" · Chennai";
     $("#userPop").classList.remove("on");
     renderTopNav();
-    toast("Role switched", "Now viewing as "+role);
+    if(role === "Exporter"){ try{ go("cha-invpl"); }catch(e){} }
+    toast("Role switched", "Now viewing as "+(role === "Exporter" ? "Exporter / Importer" : role));
   });
 });
 
@@ -14633,12 +14641,18 @@ if(document.readyState !== "loading") initChatWidget();
   async function loadParty(S, fill){
     const name = (S.head.party_name || "").trim(); S.jobs = []; const seq = S.jobSeq = (S.jobSeq || 0) + 1; if(!name) return;       // seq: a slower earlier request (e.g. the party field losing focus as a category is clicked) must not overwrite the newer list
     if(fill){ try{ const pd = await api("GET", "/api/documents/billing/party-defaults?party="+encodeURIComponent(name)+"&doc_type="+S.type); if(pd.known){ GST_OFF = pd.gst_applicable === "No"; if(GST_OFF) S.head.party_gstin = ""; (S.lines || []).forEach(l=>{ if(!l.charge_name && Number(l.rate) === 0){ l.tax_type = GST_OFF ? "Non-Taxable" : "Taxable"; l.tax_pct = GST_OFF ? "0" : "18"; } }); if(pd.party_gstin) S.head.party_gstin = pd.party_gstin; if(pd.place_of_supply) S.head.place_of_supply = pd.place_of_supply; if(pd.supply_type) S.head.supply_type = pd.supply_type; } }catch(e){} }
-    if(pickable(S) && !S.doc){ const cat = svcOf(S); try{ const list = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(name)+"&doc_type="+S.type+"&service="+encodeURIComponent(cat === "All" ? "" : cat)+"&include_empty=true"); if(seq === S.jobSeq) S.jobs = list; }catch(e){} }
+    if(pickable(S) && !S.doc && svcOf(S) === EXPCAT){
+      try{ const r = await api("GET", "/api/cha/invoice-packing?limit=200"), want = name.toUpperCase();
+        const mine = (r.items || []).filter(x=> [x.exporter, x.consignee, x.buyer, x.notify].some(t=> String(t || "").split("\n")[0].trim().toUpperCase() === want));
+        if(seq === S.jobSeq) S.jobs = mine.map(x=>({job_number:x.invoice_no, job_type:"Invoice & Packing List", mode:"Invoice & Packing List", direction:"", pol:x.port_of_loading || "", pod:x.port_of_discharge || "", lines:0, amount:x.total || "0", empty:true})); }catch(e){}
+    } else if(pickable(S) && !S.doc){ const cat = svcOf(S); try{ const list = await api("GET", "/api/documents/billing/billable-jobs?party="+encodeURIComponent(name)+"&doc_type="+S.type+"&service="+encodeURIComponent(cat === "All" ? "" : cat)+"&include_empty=true"); if(seq === S.jobSeq) S.jobs = list; }catch(e){} }
   }
   /* Job category of the invoice: a CHA or Transport user (only their module + Accounts) bills their own jobs; Admin / Accounts choose All, Freight, CHA or Transport */
-  const svcChoices = ()=> { const r = window.getViewRole ? getViewRole() : "Admin"; if(r === "CHA") return ["CHA"]; if(r === "Transport") return ["Transport"];
+  const EXPCAT = "Exporter/Importer", isExpRole = ()=> (window.getViewRole ? getViewRole() : "") === "Exporter";
+  const svcChoices = ()=> { const r = window.getViewRole ? getViewRole() : "Admin"; if(r === "CHA") return ["CHA"]; if(r === "Transport") return ["Transport"]; if(r === "Exporter") return [EXPCAT];
     const on = [["Freight", "jobs"], ["CHA", "customs"], ["Transport", "transport"], ["Warehouse", "warehouse"]].filter(x=>!window.modOn || window.modOn(x[1])).map(x=>x[0]);       // only the categories the company's licence includes
-    return on.length > 1 ? ["All"].concat(on) : (on.length ? on : ["All"]); };
+    const all = on.length > 1 ? ["All"].concat(on) : (on.length ? on : ["All"]); return (!window.modOn || window.modOn("customs")) ? all.concat([EXPCAT]) : all; };
+  const svcAll = ()=> ["All", "Freight", "CHA", "Transport", "Warehouse", EXPCAT];
   const svcOf = S=> { const c = svcChoices(); return c.includes(S.svc) ? S.svc : c[0]; };
   let GST_OFF = false;        // the party of the document has GST Applicable = No in the Organization Master: new lines default to Non-Taxable
   const blankLine = ()=> ({charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:GST_OFF ? "Non-Taxable" : "Taxable", tax_pct:GST_OFF ? "0" : "18"});
@@ -14727,7 +14741,7 @@ if(document.readyState !== "loading") initChatWidget();
       '<div class="fr"><div class="fg"><label class="fl">Document No</label><input class="fc" value="'+esc2(num)+'" readonly style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Date <span class="r">*</span></label><input class="fc" type="date" data-bkh="doc_date" value="'+esc2(h.doc_date)+'"'+dis+'></div><div class="fg"><label class="fl">Due Date</label><input class="fc" type="date" data-bkh="due_date" value="'+esc2(h.due_date)+'"'+dis+'></div></div>'+
       '<div class="fr"><div class="fg" style="grid-column:span 2"><label class="fl">'+esc2(T.party)+' <span class="r">*</span></label><input class="fc" list="bkParties_'+S.screen+'" data-bkh="party_name" value="'+esc2(h.party_name)+'" placeholder="'+(T.ar?"Select or type customer":"Vendor name")+'"'+dis+'></div><div class="fg"><label class="fl">GSTIN</label><input class="fc" data-bkh="party_gstin" maxlength="15" value="'+esc2(h.party_gstin)+'"'+dis+'></div></div>'+
       ((S.type === "purchase_invoice" || S.type === "purchase_credit_note") ? '<div class="fr"><div class="fg"><label class="fl">Vendor invoice no.</label><input class="fc" data-bkh="vendor_inv_no" maxlength="40" value="'+esc2(h.vendor_inv_no)+'" placeholder="as printed on the vendor bill (matches GSTR-2B)"'+dis+'></div><div class="fg"><label class="fl">Vendor invoice date</label><input class="fc" type="date" data-bkh="vendor_inv_date" value="'+esc2(h.vendor_inv_date)+'"'+dis+'></div></div>' : '')+
-      (pickable(S) && !d ? '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Job category</label><div style="display:flex;gap:8px;flex-wrap:wrap">'+svcChoices().map(x=>'<button type="button" class="btn btn-sm '+(svcOf(S) === x ? "btn-pri" : "btn-out")+'" data-bk-svc="'+x+'" style="min-width:110px">'+(x === "CHA" ? "CHA (Customs)" : x)+'</button>').join("")+'</div></div></div>' : '')+
+      (pickable(S) && !d ? '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Job category</label><div style="display:flex;gap:8px;flex-wrap:wrap">'+(isExpRole() ? svcAll() : svcChoices()).map(x=>{ const off = isExpRole() && x !== EXPCAT; return '<button type="button" class="btn btn-sm '+(svcOf(S) === x ? "btn-pri" : "btn-out")+'" data-bk-svc="'+x+'" style="min-width:110px'+(off ? ";opacity:.45;cursor:not-allowed" : "")+'"'+(off ? " disabled" : "")+'>'+(x === "CHA" ? "CHA (Customs)" : x === EXPCAT ? "Exporter / Importer" : x)+'</button>'; }).join("")+'</div></div></div>' : '')+
       '<div class="fr"><div class="fg"><label class="fl">Job Reference'+(pickable(S) && !d ? ' <span style="font-weight:400;text-transform:none;color:var(--g5)">(jobs with unbilled entries)</span>' : '')+'</label>'+(pickable(S) && !d ? '<select class="fc" data-bkh="job_number" data-bk-jobpick="1"><option value="">'+(h.party_name.trim() ? (S.jobs.length ? "— Select a job —" : (svcOf(S) !== "All" ? "No "+svcOf(S)+" job with unbilled entries for this party (enter the job's selling charges first)" : "No job with unbilled entries for this party")) : "Choose the party first")+'</option>'+S.jobs.map(j=>'<option value="'+esc2(j.job_number)+'"'+(j.job_number === h.job_number ? " selected" : "")+'>'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+(j.empty ? " · no charges yet — enter cost &amp; selling" : " · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount)))+'</option>').join("")+(h.job_number && !S.jobs.some(j=>j.job_number === h.job_number) ? '<option value="'+esc2(h.job_number)+'" selected>'+esc2(h.job_number)+'</option>' : "")+'</select>' : '<input class="fc" data-bkh="job_number" value="'+esc2(h.job_number)+'" placeholder="e.g. SEAEXP-26-000001"'+(d?" disabled":"")+'>')+'</div><div class="fg"><label class="fl">Place of Supply</label><input class="fc" data-bkh="place_of_supply" value="'+esc2(h.place_of_supply)+'"'+dis+'></div><div class="fg"><label class="fl">Supply Type</label><select class="fc" data-bkh="supply_type"'+dis+'>'+opt("inter","Inter-state (IGST)",h.supply_type==="inter")+opt("intra","Intra-state (CGST + SGST)",h.supply_type==="intra")+'</select></div></div>'+
       (pickable(S) && !d && h.job_number ? (()=>{ const used = new Set([h.job_number].concat(S.lines.map(l=>l.job_number).filter(Boolean))); const more = S.jobs.filter(j=>!used.has(j.job_number)); return '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Add another job of this party <span style="font-weight:400;text-transform:none;color:var(--g5)">(one '+(S.type === "invoice" ? "invoice" : "bill")+' for several jobs)</span></label><select class="fc" data-bk-jobadd="1"><option value="">'+(more.length ? "— Add a job —" : "No other job of this party")+'</option>'+more.map(j=>'<option value="'+esc2(j.job_number)+'">'+esc2(j.job_number+" · "+j.mode+" "+j.direction+" · "+(j.pol||"")+(j.pod ? " → "+j.pod : "")+(j.empty ? " · no charges yet" : " · "+j.lines+" entr"+(j.lines === 1 ? "y" : "ies")+" · "+inr(j.amount)))+'</option>').join("")+'</select></div></div>'; })() : '')+
       (refSelect ? '<div class="fr">'+refSelect+'</div>' : '')+
@@ -14821,7 +14835,7 @@ if(document.readyState !== "loading") initChatWidget();
   async function save(){
     const S = BK.state; const body = payload();
     if(S.doc && S.doc.updated_at) body.expected_updated_at = S.doc.updated_at;          // refused when someone changed the invoice after this screen loaded it
-    const doc = S.doc ? await api("PATCH","/api/documents/"+S.doc.id, body) : await api("POST","/api/documents", {...body, doc_type:S.type, job_number:S.head.job_number.trim() || null});
+    const doc = S.doc ? await api("PATCH","/api/documents/"+S.doc.id, body) : await api("POST","/api/documents", {...body, doc_type:S.type, job_number:svcOf(S) === EXPCAT ? null : (S.head.job_number.trim() || null)});
     S.doc = doc; S.dirty = false; S.head.job_number = doc.job_number || S.head.job_number;
     S.lines = doc.lines.map(l=>({job_number:l.job_number, charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct, breakup:l.breakup || []}));
     renderEditor(); return doc;
@@ -25308,6 +25322,8 @@ body.job-readonly #jlBanner{display:flex}
     window.NotifBell.render(); sidebar(); loadCal();
   }
   window.__rtAlerts = alerts;
+  /* an action on a job, routing leg, booking or document refreshes the dashboard notices straight away (not only on the minute timer) */
+  (function(){ const f0 = window.fetch; let tm = null; window.fetch = function(input, init){ const r = f0.apply(this, arguments); try{ const m = ((init && init.method) || (input && input.method) || "GET").toUpperCase(), u = String((input && input.url) || input || ""); if(m !== "GET" && /\/api\/(jobs|routing|shipments|bookings|documents|quotations|cha)/.test(u)){ r.then(()=>{ clearTimeout(tm); tm = setTimeout(()=>{ try{ alerts(); }catch(e){} }, 700); }).catch(()=>{}); } }catch(e){} return r; }; })();
   window.__ncOwnsSidebar = true;
   const dayLabel = iso=> { const d = new Date(iso+"T00:00:00"), t0 = new Date(); t0.setHours(0, 0, 0, 0); const diff = Math.round((d - t0) / 864e5); return (diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : d.toLocaleDateString("en-GB", {weekday:"short"}))+" · "+d.toLocaleDateString("en-GB", {day:"2-digit", month:"short"}); };
   function sidebar(){
@@ -26180,7 +26196,7 @@ body.job-readonly #jlBanner{display:flex}
         '<div class="fg"><label class="fl">Invoice Name</label>'+inp("ip_invname", d.invoice_name)+'</div><div class="fg"><label class="fl">Job (optional)</label>'+inp("ip_job", rec && rec.job_number || "", 'placeholder="e.g. AIREXP-26-000001"')+'</div></div>'+
       '<div class="ip-tabs"><button type="button" class="on" data-ip="tab:general">General</button><button type="button" data-ip="tab:charge">Charge details</button></div>'+
       '<div id="ipGeneral"><div class="ip-grid"><div class="ip-sec">Parties</div>'+partyBlock("exporter", "Exporter (Manufacturer)")+partyBlock("buyer", "Buyer (other than consignee)")+partyBlock("consignee", "Consignee")+partyBlock("notify", "Notify")+
-        '<div class="ip-sec">Shipment &amp; route</div>'+txtf("pre_carriage", "Pre-carriage by", "", "ipCarriage", "AIR / SEA / ROAD")+txtf("place_of_receipt", "Place of Receipt by pre-carrier", "", "ipPorts", "Search the Port Master")+
+        '<div class="ip-sec">Shipment &amp; route</div>'+(()=>{ const cur = String(d.pre_carriage || "").toUpperCase(), opts = ["SEA", "AIR", "ROAD", "RAIL"].concat(cur && ["SEA", "AIR", "ROAD", "RAIL"].indexOf(cur) < 0 ? [cur] : []); return '<div class="ip-f"><label>Pre-carriage by</label><select class="fc" id="ip_pre_carriage"><option value="">- Select -</option>'+opts.map(o=>'<option'+(o === cur ? " selected" : "")+'>'+esc(o)+'</option>').join("")+'</select></div>'; })()+txtf("place_of_receipt", "Place of Receipt by pre-carrier", "", "ipPorts", "Search the Port Master")+
         txtf("vessel_flight", "Vessel / Flight", "", "", "Vessel or flight number")+txtf("port_of_loading", "Port of Loading", "", "ipPorts", "Search the Port Master")+
         txtf("port_of_discharge", "Port of Discharge", "", "ipPorts", "Search the Port Master")+txtf("final_destination", "Final Destination", "", "ipPorts", "Search the Port Master")+
         txtf("origin_country", "Country of Origin of Goods", "", "ipCountries", "Country Master")+txtf("dest_country", "Country of Final Destination", "", "ipCountries", "Country Master")+

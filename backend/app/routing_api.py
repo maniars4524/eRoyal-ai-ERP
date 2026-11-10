@@ -306,7 +306,7 @@ def compute_alerts(user: User, db: Session, etd_lead: timedelta, eta_lead: timed
             flags.append(("ETD", 3, "ETD coming up"))
         if leg.eta and dd(leg.eta) >= today and leg.eta - eta_lead <= now:
             flags.append(("ETA", 3, "ETA coming up"))
-        if leg.id in recent:
+        if leg.id in recent and leg.stage == "PLANNED":                                    # once the plan is confirmed (or the ETA corrected and acted on) the change is taken care of: no "schedule changed" line
             flags.append(("CHANGED", 4, "Schedule changed (" + ", ".join(sorted(recent[leg.id])) + ")"))
         if not flags:
             continue
