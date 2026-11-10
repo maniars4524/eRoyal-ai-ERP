@@ -77,7 +77,7 @@ def test_validation(job):
 
 def test_tenant_isolation_and_permissions(world, admin, job):
     url = f"/api/shipments/by-number/{job['no']}/charges"
-    other = hdr(world["demo"], portal="demo")
+    other = hdr(world["demo"], world["demo_license"])
     assert client.get(url, headers=other).status_code in (403, 404)
     assert client.put(url, json={"lines": [line()]}, headers=other).status_code in (403, 404)
     tag = uuid.uuid4().hex[:6]

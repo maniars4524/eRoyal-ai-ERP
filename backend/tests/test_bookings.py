@@ -163,7 +163,7 @@ def test_draft_delete_and_search(h):
 
 def test_tenant_isolation_and_permissions(world, admin, h):
     b = draft(h)
-    assert client.get(f"/api/bookings/{b['id']}", headers=hdr(world["demo"], portal="demo")).status_code in (403, 404)
+    assert client.get(f"/api/bookings/{b['id']}", headers=hdr(world["demo"], world["demo_license"])).status_code in (403, 404)
     tag = uuid.uuid4().hex[:6]
     for role in ("VIEWER", "OPERATIONS"):
         client.post("/api/users", json={"username": f"{role[:2].lower()}{tag}", "email": f"{role[:2].lower()}{tag}@b.test", "password": PASSWORD, "first_name": role, "role": role}, headers=h)

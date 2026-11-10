@@ -25,15 +25,14 @@ def test_developer_portal_only_for_super_admin(world):
     ok = login(world["dev"], "developer")
     assert ok.status_code == 200 and ok.json()["user"]["portal"] == "developer"
     assert login(world["erp"], "developer", world["erp_license"]).status_code == 403
-    assert login(world["demo"], "developer").status_code == 403
+    assert login(world["demo"], "developer", world["demo_license"]).status_code == 403
 
 
-def test_erp_portal_rejects_developer_and_demo_accounts(world):
+def test_erp_portal_rejects_developer_accounts(world):
     ok = login(world["erp"], "erp", world["erp_license"])
     assert ok.status_code == 200 and ok.json()["user"]["portal"] == "erp"
     wrong_dev = login(world["dev"], "erp", world["platform_license"])
     assert wrong_dev.status_code == 403 and "Developer" in wrong_dev.json()["detail"]
-    assert login(world["demo"], "erp").status_code == 403
 
 
 def test_erp_portal_requires_license_number(world):
@@ -41,30 +40,14 @@ def test_erp_portal_requires_license_number(world):
     assert login(world["erp"], "erp", "RTS9999").status_code == 401
 
 
-def test_demo_portal_only_for_demo_accounts(world):
-    ok = login(world["demo"], "demo")
-    assert ok.status_code == 200 and ok.json()["user"]["portal"] == "demo"
-    assert login(world["erp"], "demo", world["erp_license"]).status_code == 403
-    assert login(world["dev"], "demo").status_code == 403
-
-
 def test_wrong_password_is_generic_401(world):
     assert login(world["erp"], "erp", world["erp_license"], password="nope").status_code == 401
     assert login("no-such-user", "erp", "RTS0001").status_code == 401
 
 
-def test_demo_user_cannot_delete_or_create_orgs_but_can_create_customers(world):
-    h = headers(login(world["demo"], "demo"))
-    created = client.post("/api/customers", json={"code": "DX1", "name": "Demo Customer X"}, headers=h)
-    assert created.status_code == 201, created.text
-    deleted = client.delete(f"/api/customers/{created.json()['id']}", headers=h)
-    assert deleted.status_code == 403 and "demo" in deleted.json()["detail"].lower()
-    assert client.post("/api/organizations", json={}, headers=h).status_code in (403, 422)
-
-
 def test_erp_user_can_delete_own_customer_and_tenants_are_isolated(world):
     h_erp = headers(login(world["erp"], "erp", world["erp_license"]))
-    h_demo = headers(login(world["demo"], "demo"))
+    h_demo = headers(login(world["demo"], "erp", world["demo_license"]))
     made = client.post("/api/customers", json={"code": "EX1", "name": "ERP Customer"}, headers=h_erp)
     assert made.status_code == 201, made.text
     cid = made.json()["id"]
@@ -98,24 +81,34 @@ def test_lockout_after_repeated_failures_and_audit(world):
 
 
 def test_portal_routes_serve_ui():
-    for path in ("/developer/login", "/erp/login", "/demo/login", "/developer", "/erp", "/demo"):
+    for path in ("/developer/login", "/erp/login", "/developer", "/erp"):
         r = client.get(path)
         assert r.status_code == 200 and "text/html" in r.headers["content-type"], path
 
 
-def test_public_server_only_offers_listed_portals_and_never_locks_the_shared_demo_account(world, monkeypatch):
+def test_demo_portal_is_gone():
+    assert "/demo/login" not in client.get("/").text
+    r = client.get("/demo/login", follow_redirects=False)
+    assert r.status_code == 301 and r.headers["location"] == "/erp/login"
+    assert client.post("/api/auth/login", json={"identifier": "x", "password": "y", "portal": "demo"}).status_code == 422
+    assert client.get("/api/auth/portal-info?portal=demo").status_code in (404, 405)
+
+
+def test_public_server_only_offers_listed_portals(world, monkeypatch):
     from app import config
 
-    monkeypatch.setattr(config, "PUBLIC_PORTALS", {"demo", "erp"})
+    monkeypatch.setattr(config, "PUBLIC_PORTALS", {"erp"})
     assert login(world["dev"], "developer").status_code == 403
     assert login(world["erp"], "erp", world["erp_license"]).status_code == 200  # ERP is public on this server
-    assert login(world["erp"], "developer", world["erp_license"]).status_code == 403
-    ok = login(world["demo"], "demo")
-    assert ok.status_code == 200 and ok.json()["user"]["portal"] == "demo"
-    for _ in range(7):
-        assert login(world["demo"], "demo", password="wrong").status_code == 401
-    assert login(world["demo"], "demo").status_code == 200  # shared public demo account is never locked out
     monkeypatch.setattr(config, "PUBLIC_PORTALS", set())
     for _ in range(5):
         login(world["lock"], "erp", world["erp_license"], password="wrong")
     assert login(world["lock"], "erp", world["erp_license"]).status_code == 429  # normal servers still lock
+
+
+def test_a_company_that_was_a_demo_company_signs_in_on_the_erp_page_with_full_rights(world):
+    h = headers(login(world["demo"], "erp", world["demo_license"]))
+    assert client.get("/api/auth/me", headers=h).json()["portal"] == "erp"
+    made = client.post("/api/customers", json={"code": "OLDDEMO1", "name": "Old Demo Co"}, headers=h)
+    assert made.status_code == 201, made.text
+    assert client.delete(f"/api/customers/{made.json()['id']}", headers=h).status_code in (200, 204)   # no demo limits any more

@@ -49,21 +49,13 @@ def test_validation_rejects_bad_input(world):
 
 def test_masters_are_tenant_isolated(world):
     h_erp = auth(world["erp"], "erp", world["erp_license"])
-    h_demo = auth(world["demo"], "demo")
+    h_demo = auth(world["demo"], "erp", world["demo_license"])
     made = client.post("/api/masters/country", json={"code": "IN", "name": "India"}, headers=h_erp).json()
     assert client.get("/api/masters/country", headers=h_demo).json() == []
     assert client.get(f"/api/masters/country/{made['id']}", headers=h_demo).status_code == 404
     assert client.patch(f"/api/masters/country/{made['id']}", json={"name": "Hacked"}, headers=h_demo).status_code == 404
     assert client.delete(f"/api/masters/country/{made['id']}", headers=h_demo).status_code in (403, 404)
     assert client.get(f"/api/masters/country/{made['id']}", headers=h_erp).json()["name"] == "India"
-
-
-def test_demo_user_cannot_delete_masters_but_can_create(world):
-    h = auth(world["demo"], "demo")
-    made = client.post("/api/masters/branch", json={"code": "DEMO-HQ", "name": "Demo HQ"}, headers=h)
-    assert made.status_code == 201
-    gone = client.delete(f"/api/masters/branch/{made.json()['id']}", headers=h)
-    assert gone.status_code == 403 and "demo" in gone.json()["detail"].lower()
 
 
 def test_super_admin_and_anonymous_cannot_use_masters(world):

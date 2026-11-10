@@ -314,5 +314,5 @@ def test_permissions_tenant_isolation_and_export(h, lic, world):
     assert client.post("/api/sequences", json={"name": "Non fin", "doc_type": "quotation", "components": comps("QY", "~-", "number")}, headers=cfg).status_code == 201
     assert client.post("/api/sequences", json={"name": "Fin", "doc_type": "invoice", "components": comps("IV", "~-", "number")}, headers=cfg).status_code == 403
     # another company sees nothing of this one's sequences
-    other = hdr(world["demo"], portal="demo")
+    other = hdr(world["demo"], world["demo_license"])
     assert client.get(f"/api/sequences/{c['id']}", headers=other).status_code in (403, 404)

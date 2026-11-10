@@ -11,7 +11,7 @@ const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name
 (async () => {
   // PWA pieces
   const man = await (await fetch(BASE + "/manifest.webmanifest")).json();
-  check("the web app manifest is served (standalone, start /erp, 192 + 512 + maskable icons)", man.display === "standalone" && man.start_url === "/erp/login" && man.icons.some(i => i.sizes === "192x192") && man.icons.some(i => i.sizes === "512x512") && man.icons.some(i => i.purpose === "maskable"), JSON.stringify(man).slice(0, 120));
+  check("the web app manifest is served (standalone, start /erp, 192 + 512 + maskable icons)", man.display === "standalone" && /^/erp/login/.test(man.start_url) && man.icons.some(i => i.sizes === "192x192") && man.icons.some(i => i.sizes === "512x512") && man.icons.some(i => i.purpose === "maskable"), JSON.stringify(man).slice(0, 120));
   const sw = await fetch(BASE + "/sw.js");
   check("the service worker is served with scope /", sw.status === 200 && sw.headers.get("service-worker-allowed") === "/" && /\/api\//.test(await sw.text()));
   check("the icons and the offline page are served", (await Promise.all(["icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png", "offline.html"].map(n => fetch(BASE + "/pwa/" + n)))).every(r => r.status === 200));

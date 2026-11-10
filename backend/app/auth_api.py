@@ -30,7 +30,7 @@ def record_audit(db: Session, action: str, module: str, user: User | None = None
 
 MAX_FAILED_LOGINS = 5
 LOCKOUT_MINUTES = 15
-PORTAL_LABELS = {"developer": "Developer / System Administrator", "erp": "ERP", "demo": "Demo"}
+PORTAL_LABELS = {"developer": "Developer / System Administrator", "erp": "ERP"}
 
 
 def _public_only_message() -> str:
@@ -56,8 +56,7 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     portal = portal_for(user) if user else None
     if user and payload.portal in portals_for(user):
         portal = payload.portal           # the page the user is signing in on, when the account is allowed on it
-    shared_demo = bool(config.PUBLIC_PORTALS) and portal == "demo"  # public shared demo account is never locked
-    if user and not shared_demo and user.locked_until and user.locked_until > now:
+    if user and user.locked_until and user.locked_until > now:
         record_audit(db, "LOGIN_BLOCKED_LOCKED", "AUTHENTICATION", user, user.organization_id, "User", str(user.id), meta)
         db.commit()
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Account temporarily locked after repeated failed sign-ins. Try again later.")
@@ -67,10 +66,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     license_ok = True
     if user and expected_license and portal == "erp":
         license_ok = (payload.license_number or "").strip().upper() == expected_license.upper()
-    elif user and expected_license and portal == "demo" and (payload.license_number or "").strip():
-        license_ok = (payload.license_number or "").strip().upper() == expected_license.upper()      # the Demo page shows the license it belongs to; if one is typed it must be the account's own
     if not user or user.status != "ACTIVE" or not verify_password(payload.password, user.password_hash) or not license_ok:
-        if user and not shared_demo:
+        if user:
             user.failed_login_count = (user.failed_login_count or 0) + 1
             if user.failed_login_count >= MAX_FAILED_LOGINS:
                 user.locked_until = now + timedelta(minutes=LOCKOUT_MINUTES)
@@ -141,16 +138,6 @@ def save_preferences(body: Preferences, user: User = Depends(get_current_user), 
     user.profile = prof
     db.commit()
     return {"theme": prof.get("theme"), "custom_colors": prof.get("custom_colors")}
-
-
-@router.get("/portal-info")
-def portal_info(portal: str = "demo", db: Session = Depends(get_db)):
-    """What a login page needs before anyone signs in: the license the Demo page belongs to (shown above the user name). A license number is an identifier, not a secret."""
-    if portal != "demo":
-        return {"license": None}
-    org = db.scalar(select(Organization).where(Organization.demo_portal.is_(True), Organization.status == "ACTIVE").order_by(Organization.id)) or \
-        db.scalar(select(Organization).where(Organization.is_demo.is_(True), Organization.status == "ACTIVE").order_by(Organization.id))
-    return {"license": org.license_number if org else None}
 
 
 _LICENSE_LOOKUPS: dict[str, list[float]] = {}

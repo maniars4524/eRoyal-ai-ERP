@@ -78,7 +78,7 @@ def test_branches_billing_flag_and_isolation(h, admin2, world):
 
 
 def party_other_tenant(world):
-    return hdr(world["demo"], portal="demo")  # a different company (the demo tenant)
+    return hdr(world["demo"], world["demo_license"])  # a different company (the demo tenant)
 
 
 def test_contacts_are_branch_wise(h):

@@ -192,7 +192,7 @@ def test_summary_reflects_posted_documents(h):
 
 def test_tenant_isolation_and_permissions(world, admin, h):
     inv = posted_invoice(h)
-    demo = hdr(world["demo"], portal="demo")
+    demo = hdr(world["demo"], world["demo_license"])
     assert client.get(f"/api/documents/{inv['id']}", headers=demo).status_code in (403, 404)
     assert client.get("/api/documents", headers=demo).status_code in (200, 403)
     if client.get("/api/documents", headers=demo).status_code == 200:

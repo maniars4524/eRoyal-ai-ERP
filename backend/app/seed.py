@@ -126,52 +126,6 @@ DEMO_JOBS = [
 ]
 
 
-def seed_demo_portal() -> None:
-    """Create the isolated demo tenant used by the /demo portal. Requires DEMO_PORTAL_PASSWORD; skipped otherwise."""
-    password = os.getenv("DEMO_PORTAL_PASSWORD")
-    if not password:
-        return
-    from .models import Customer, Shipment
-
-    db = SessionLocal()
-    try:
-        permissions = {p.code: p for p in db.scalars(select(Permission))}
-        org = db.scalar(select(Organization).where(Organization.code == "DEMO-COMPANY"))
-        if not org:
-            org = Organization(code="DEMO-COMPANY", license_number=next_license_number(db), name="eSway Demo Company", legal_name="eSway Demo Company", country="India", status="ACTIVE", is_demo=True)
-            db.add(org)
-            db.flush()
-        org.is_demo = True
-        role = db.scalar(select(Role).where(Role.organization_id == org.id, Role.name == "DEMO_USER"))
-        if not role:
-            role = Role(name="DEMO_USER", organization_id=org.id, description="Demo evaluator (no destructive actions)", status="ACTIVE")
-            db.add(role)
-        role.permissions = [permissions[c] for c in ("organization.read", "user.read", "master.read", "master.create", "master.update", "billing.read", "billing.create", "billing.post", "payment.read", "payment.create", "quote.read", "quote.create", "quote.send", "quote.approve", "quote.view_cost", "quote.rate_override", "booking.read", "booking.create", "booking.confirm", "credit.read", "credit.request", "credit.approve", "credit.override", "job.view_history", "job.export_history", "job.change_stage", "job.close", "job.reopen", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update") if c in permissions]
-        email = os.getenv("DEMO_PORTAL_EMAIL", "demo@esway.local")
-        username = os.getenv("DEMO_PORTAL_USERNAME", "demo")
-        if not db.scalar(select(User).where((User.email == email) | (User.username == username))):
-            user = User(email=email, username=username, password_hash=hash_password(password), first_name="Demo", last_name="User", organization_id=org.id, status="ACTIVE")
-            user.roles.append(role)
-            db.add(user)
-        customers = []
-        for code, name, category, country in DEMO_CUSTOMERS:
-            customer = db.scalar(select(Customer).where(Customer.organization_id == org.id, Customer.code == code))
-            if not customer:
-                customer = Customer(organization_id=org.id, code=code, name=name, category=category, country=country, status="ACTIVE")
-                db.add(customer)
-            customers.append(customer)
-        db.flush()
-        if not db.scalar(select(Shipment.id).where(Shipment.organization_id == org.id)):
-            from .shipments_api import _next_job_number
-
-            for mode, direction, container, pol, pod, commodity, idx in DEMO_JOBS:
-                db.add(Shipment(organization_id=org.id, job_number=_next_job_number(db, org.id, mode, direction), mode=mode, direction=direction, container_mode=container, pol=pol, pod=pod, commodity=commodity, customer_id=customers[idx].id, status="Open"))
-                db.flush()
-        db.commit()
-    finally:
-        db.close()
-
-
 def sync_roles() -> None:
     from .roles import sync_template_roles
 
@@ -196,7 +150,6 @@ if __name__ == "__main__":
     seed_super_admin()
     sync_roles()
     seed_ports()
-    seed_demo_portal()
     from . import std_masters
 
     with SessionLocal() as _db:

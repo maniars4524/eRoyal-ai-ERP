@@ -67,7 +67,7 @@ def test_dashboard_reflects_real_jobs_and_billing(h):
 
 
 def test_dashboard_is_tenant_isolated(world, h):
-    demo = client.get("/api/dashboard/summary", headers=hdr(world["demo"], portal="demo")).json()
+    demo = client.get("/api/dashboard/summary", headers=hdr(world["demo"], world["demo_license"])).json()
     assert demo["jobs"]["total"] == 0 and demo["money"]["ar_outstanding"] == "0"
 
 

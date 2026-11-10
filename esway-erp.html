@@ -3695,6 +3695,8 @@ tbody tr:hover{background:var(--g0)}
   <div class="wiz-row-label" id="quotWizModeLbl">1. Transport Mode</div>
   <div id="quotWizModeGrid" class="wiz-mode-grid"></div>
 
+  <div id="quotWizTplWrap" class="wiz-tpl" style="display:none"><div class="wiz-row-label">Template <span style="font-weight:400;color:var(--g5);text-transform:none;letter-spacing:0">(optional — fills mode, direction and shipment type; then choose the quotation type)</span></div><select class="fc" id="quotWizTemplate" style="max-width:420px"><option value="">— None, enter manually —</option></select></div>
+
   <div id="quotWizDirWrap" style="display:none">
     <div class="wiz-row-label">2. Direction</div>
     <div id="quotWizDirGrid" class="wiz-dir-row"></div>
@@ -9851,9 +9853,9 @@ function crmRenderEnquiryForm(prefill){
     const shipmentType = $("#crmEq_shptype").value;
     const department = CRM_DEPARTMENTS[shipmentType] || "Operations";
     const templateName = $("#crmEq_template").value;
-    const tpl = CRM_SERVICE_TEMPLATES[templateName];
+    const tpl = CRM_SERVICE_TEMPLATES[templateName] || (window.enqMasterTpl ? window.enqMasterTpl(templateName) : null);
     const enquiry = {
-      id: crmNextId("ENQ"), customerId: masterCust ? masterCust.id : null, leadId: p.leadId||null, opportunityId:null, templateName: templateName||null,
+      id: crmNextId("ENQ"), customerId: masterCust ? masterCust.id : null, leadId: p.leadId||null, opportunityId:null, templateName: (tpl && tpl.name) || templateName || null,
       services: tpl ? {...tpl.services} : {Freight:false, CHA:false, Transport:false, Warehouse:false},
       requiredDocuments: tpl ? tpl.documents.slice() : [],
       company: masterCust ? masterCust.name : company, contact:$("#crmEq_contact").value.trim(), mobile:$("#crmEq_mobile").value.trim(), email:$("#crmEq_email").value.trim(),
@@ -13707,8 +13709,7 @@ if(document.readyState !== "loading") initChatWidget();
   /* ---- Portal selection: derived from the URL; the server independently enforces which portal an account may use ---- */
   const PORTALS = {
     developer:{title:"ERP System Administration", sub:"System Administrator Access", btn:"Sign In", foot:"System administrator access only", needsLicense:false, label:"Developer / System Administrator"},
-    erp:{title:"", sub:"Sign in to your workspace", btn:"Sign In", foot:"eSway ERP 2.0 · © 2026", needsLicense:true, label:"ERP"},
-    demo:{title:"ERP Demo", sub:"Explore the ERP system using sample data.", btn:"Enter Demo", foot:"Demo environment — no production data", needsLicense:false, label:"Demo"}
+    erp:{title:"", sub:"Sign in to your workspace", btn:"Sign In", foot:"eSway ERP 2.0 · © 2026", needsLicense:true, label:"ERP"}
   };
   const seg = (location.pathname.split("/")[1] || "").toLowerCase();
   const PORTAL = PORTALS[seg] ? seg : "erp";
@@ -13719,14 +13720,12 @@ if(document.readyState !== "loading") initChatWidget();
     set(".login-title", P.title); { const lt = document.querySelector(".login-title"); if(lt && !P.title) lt.style.display = "none"; } set(".login-sub", P.sub); set("#loginBtnText", P.btn); set(".login-footer", P.foot);
     const userLabel = document.querySelector('label[for="loginUser"]'); if(userLabel) userLabel.textContent = "Email or Username";
     const userField = document.getElementById("loginUser"); if(userField) userField.placeholder = "Enter your email or username";
-    if(!P.needsLicense && PORTAL !== "demo"){ const lf = document.getElementById("loginLicense"); if(lf && lf.closest(".login-field")) lf.closest(".login-field").style.display = "none"; }
+    if(!P.needsLicense){ const lf = document.getElementById("loginLicense"); if(lf && lf.closest(".login-field")) lf.closest(".login-field").style.display = "none"; }
     document.title = P.label + " · eSway ERP 2.0";
   })();
 
   const overlay  = document.getElementById("loginOverlay");
   const licenseInp = document.getElementById("loginLicense");
-  /* the Demo page shows the license it belongs to, above the user name */
-  if(PORTAL === "demo" && licenseInp){ fetch("/api/auth/portal-info?portal=demo").then(r=>r.ok ? r.json() : null).then(d=>{ if(d && d.license && !licenseInp.value) licenseInp.value = d.license; }).catch(()=>{}); }
   /* the company name appears under the logo once a license number is typed */
   (function companyName(){
     const box = document.getElementById("loginCompany"); if(!box || !licenseInp) return; let t = null, seq = 0;
@@ -13738,7 +13737,7 @@ if(document.readyState !== "loading") initChatWidget();
     };
     licenseInp.addEventListener("input", ()=>{ clearTimeout(t); t = setTimeout(look, 350); });
     licenseInp.addEventListener("change", look);
-    setTimeout(look, 600); setTimeout(look, 1800);        // a license that was filled in for the user (Demo page, remembered sign-in)
+    setTimeout(look, 600); setTimeout(look, 1800);        // a license that was filled in for the user (remembered sign-in)
   })();
   const userInp  = document.getElementById("loginUser");
   const passInp  = document.getElementById("loginPass");
@@ -13894,7 +13893,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(spinner)  spinner.style.display = "block";
     if(arrow)    arrow.style.display = "none";
 
-    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, portal:PORTAL, license_number:((P.needsLicense || PORTAL === "demo") && lic ? lic : undefined), replace_session:replaceSession === true})})
+    fetch("/api/auth/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({identifier:u, password:p, portal:PORTAL, license_number:(P.needsLicense && lic ? lic : undefined), replace_session:replaceSession === true})})
       .then(async response=>{
         const data = await response.json().catch(()=>({}));
         if(!response.ok){ const error = new Error(typeof data.detail === "string" ? data.detail : "Invalid credentials"); error.status = response.status; if(data.detail && data.detail.code === "ALREADY_SIGNED_IN") error.conflict = data.detail; throw error; }
@@ -16550,7 +16549,7 @@ if(document.readyState !== "loading") initChatWidget();
     if(!sessionStorage.getItem("esway_access_token")) return;
     try{ const data = await api("GET","/api/dashboard/summary"); try{ render(data); }catch(err){ console.error("dashboard render", err); say("Dashboard display problem", err.message); } }
     catch(e){
-      if(e.status === 403) say("No company dashboard", "Platform administrators have no company data. Sign in to the ERP or Demo portal to see a company dashboard.", "warn");
+      if(e.status === 403) say("No company dashboard", "Platform administrators have no company data. Sign in to the ERP to see a company dashboard.", "warn");
       else say("Could not load the dashboard", e.message);
     }
   }
@@ -17646,8 +17645,13 @@ if(document.readyState !== "loading") initChatWidget();
     el.dataset.stdFilled = String(rows.length);
   }
   function refresh(){ FEEDS.forEach(feed=> document.querySelectorAll(feed.sel).forEach(el=> fill(el, feed))); }
-  let timer = null;
-  new MutationObserver(()=>{ clearTimeout(timer); timer = setTimeout(()=>{ if(!token()) return; if(!cache.incoterm) load(); else refresh(); }, 250); }).observe(document.body, {childList:true, subtree:true});
+  let timer = null, lastEmptyTry = 0;
+  new MutationObserver(()=>{ clearTimeout(timer); timer = setTimeout(()=>{ if(!token()) return;
+    /* a list that came back empty (for instance before the company's standard masters existed) is asked for again, at most every 8 seconds */
+    if(cache.incoterm && !cache.incoterm.length && Date.now() - lastEmptyTry > 8000){ lastEmptyTry = Date.now(); delete cache.incoterm; }
+    if(!cache.incoterm) load(); else refresh(); }, 250); }).observe(document.body, {childList:true, subtree:true});
+  /* forms that are built later (the enquiry form, booking pages) are filled even while the page keeps changing */
+  setInterval(()=>{ if(token() && cache.incoterm && cache.incoterm.length) refresh(); }, 1500);
   window.StdKit = {ctnForm, containerPills, usage, reload:()=>{ loading = null; Object.keys(cache).forEach(k=> delete cache[k]); return load(); }, cache, incoPanel};
 })();
 </script>
@@ -25056,7 +25060,7 @@ body.job-readonly #jlBanner{display:flex}
     try{ cache = (await MK.util.api("GET", "/api/masters/shipment_template?status=ACTIVE")) || []; }catch(e){ cache = []; }
     at = Date.now(); return cache;
   }
-  var W = [["job", "jobWiz", "jobWizRefresh"], ["book", "bookWiz", "bookWizRefresh"]];
+  var W = [["job", "jobWiz", "jobWizRefresh"], ["book", "bookWiz", "bookWizRefresh"], ["quot", "quotWiz", "quotWizRefresh"]];
   /* the company's standard template list is loaded for it automatically, once: the first time the picker finds none (a person without the master right is skipped) */
   var auto = false;
   async function autoLoad(){
@@ -25095,6 +25099,7 @@ body.job-readonly #jlBanner{display:flex}
     var tw = document.getElementById(w[0] + "WizTypeWrap"); if(tw) tw.style.display = o.dir ? "block" : "none";
     var bw = document.getElementById(w[0] + "WizBTWrap"); if(bw) bw.style.display = o.type ? "block" : "none";
     if(window[w[2]]) window[w[2]]();
+    if(w[0] === "quot"){ o.qtype = null; o.carrierMode = null; }
     var nx = document.getElementById(w[0] + "WizNext");
     if(nx && !nx.disabled){ if(window.toast) toast("Template applied", t.name); setTimeout(function(){ if(!nx.disabled) nx.click(); }, 350); }
     else if(window.toast) toast("Template applied", t.name + " — choose the remaining answers");
@@ -25950,6 +25955,48 @@ body.job-readonly #jlBanner{display:flex}
     document.querySelectorAll("#jt3 .fsec").forEach(f=>{ if(/House BL — issued by us/i.test(f.textContent) || f.dataset.impOrig){ if(!f.dataset.impOrig) f.dataset.impOrig = f.textContent; f.textContent = imp ? "House BL — enter the number given by the origin agent (manual entry)" : f.dataset.impOrig; } });
   }
   setInterval(tick, 700);
+})();
+</script>
+
+<script>
+/* ENQUIRY <- SHIPMENT TEMPLATES: the enquiry form's Template list also offers the company's active Shipment Templates (Masters > Common Masters). Choosing one fills Mode of Transport and Shipment Type. */
+(function(){
+  var cache = null, at = 0;
+  async function load(){
+    if(cache && Date.now() - at < 20000) return cache;
+    try{ cache = (await MK.util.api("GET", "/api/masters/shipment_template?status=ACTIVE")) || []; }catch(e){ cache = []; }
+    at = Date.now(); return cache;
+  }
+  function typeOf(d){
+    var m = d.shipment_mode, dir = d.direction || "", st = d.shipment_type || "";
+    if(dir === "Domestic") return "Domestic";
+    if(m === "Air") return dir === "Import" ? "Air Import" : dir === "Export" ? "Air Export" : "Cross Trade";
+    if(m === "Sea"){ if(dir === "Cross-Trade") return "Cross Trade"; var k = st === "LCL" ? "LCL" : "FCL"; return "Sea " + (dir === "Import" ? "Import" : "Export") + " (" + k + ")"; }
+    if(m === "Road") return "Road Transport"; if(m === "Rail") return "Rail"; if(m === "Courier") return "Courier"; if(m === "Multimodal") return "Multimodal";
+    return "";
+  }
+  window.enqMasterTpl = function(v){
+    var t = /^tpl#(\d+)$/.exec(v || ""); if(!t) return null;
+    var r = (cache || []).filter(function(x){ return String(x.id) === t[1]; })[0]; if(!r) return null;
+    return {name: r.name, services: {Freight:true, CHA:false, Transport:false, Warehouse:false}, documents: []};
+  };
+  async function fill(){
+    var sel = document.getElementById("crmEq_template"); if(!sel || sel.dataset.tplDone) return;
+    sel.dataset.tplDone = "1";
+    var list = await load(); if(!list.length) return;
+    var g = document.createElement("optgroup"); g.label = "Company shipment templates (Masters)";
+    list.forEach(function(r){ var o = document.createElement("option"); o.value = "tpl#" + r.id; o.textContent = r.name; g.appendChild(o); });
+    sel.appendChild(g);
+  }
+  document.addEventListener("change", function(e){
+    if(!e.target || e.target.id !== "crmEq_template") return;
+    var t = window.enqMasterTpl(e.target.value), r = t && (cache || []).filter(function(x){ return "tpl#" + x.id === e.target.value; })[0]; if(!r) return;
+    var d = r.data || {}, ty = typeOf(d), mo = document.getElementById("crmEq_mode"), st = document.getElementById("crmEq_shptype");
+    if(st && ty && Array.prototype.some.call(st.options, function(o){ return o.value === ty || o.text === ty; })) st.value = ty;
+    if(mo && Array.prototype.some.call(mo.options, function(o){ return o.text === d.shipment_mode; })){ mo.value = d.shipment_mode; mo.dispatchEvent(new Event("change", {bubbles:true})); }
+    if(window.toast) toast("Template applied", r.name + " — mode and shipment type filled");
+  });
+  setInterval(fill, 1200);
 })();
 </script>
 </body>

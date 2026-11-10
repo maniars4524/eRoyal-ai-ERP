@@ -6,7 +6,6 @@ const BASE = process.env.BASE || "http://127.0.0.1:8010";
 const env = Object.fromEntries(fs.readFileSync(process.env.ENVF || "../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 const ACCOUNTS = {
   developer: { user: env.SUPER_ADMIN_USERNAME, pass: env.SUPER_ADMIN_PASSWORD, license: undefined, path: "/developer/login" },
-  demo: { user: env.DEMO_PORTAL_USERNAME, pass: env.DEMO_PORTAL_PASSWORD, license: undefined, path: "/demo/login" },
   erp: { user: process.env.LOGIN_ERP_USER, pass: process.env.LOGIN_ERP_PASS, license: process.env.LOGIN_ERP_LICENSE, path: "/erp/login" },       // created below when not given
 };
 let failures = 0;

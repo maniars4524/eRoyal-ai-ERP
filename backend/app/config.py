@@ -13,11 +13,8 @@ DB_NAME = os.getenv("DB_NAME", "esway_erp")
 DB_USER = os.getenv("DB_USER", "esway")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "esway")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
-# Public demo server: only the demo portal is reachable; no lockout on the shared (public) demo account.
+# Portals reachable on a public server (e.g. "erp"). Empty = a normal server where every portal is available.
 _public = {p.strip() for p in os.getenv("PUBLIC_PORTALS", "").split(",") if p.strip()}
-if os.getenv("DEMO_ONLY", "").strip().lower() in ("1", "true", "yes"):
-    _public.add("demo")
-# Portals reachable on a public server (e.g. "demo,erp"). Empty = a normal server where every portal is available.
 PUBLIC_PORTALS = _public
 # Quotation approval: the person who prepared a quotation may not approve it (not enforced for demo companies).
 QUOTE_SOD = os.getenv("QUOTE_SOD", "true").strip().lower() not in ("0", "false", "no")
@@ -27,7 +24,6 @@ ACCESS_URL = os.getenv("ERP_ACCESS_URL", "").strip().rstrip("/")          # the 
 ACCESS_NOTE = os.getenv("ERP_ACCESS_NOTE", "").strip()
 SINGLE_SESSION = os.getenv("SINGLE_SESSION", "false").strip().lower() in ("1", "true", "yes")
 SESSION_ACTIVE_MINUTES = int(os.getenv("SESSION_ACTIVE_MINUTES", "10"))
-DEMO_ONLY = PUBLIC_PORTALS == {"demo"}
 IS_PRODUCTION = APP_ENV == "production"
 
 

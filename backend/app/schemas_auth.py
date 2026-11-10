@@ -9,7 +9,7 @@ class LoginRequest(BaseModel):
     identifier: str = Field(min_length=1, max_length=254)
     password: str = Field(min_length=1, max_length=256)
     license_number: str | None = Field(default=None, max_length=20)
-    portal: str | None = Field(default=None, pattern="^(developer|erp|demo)$")
+    portal: str | None = Field(default=None, pattern="^(developer|erp)$")
     replace_session: bool = False
 
 

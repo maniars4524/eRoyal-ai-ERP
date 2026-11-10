@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import HTTPException, FastAPI, Request
 from fastapi import Response
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
@@ -197,14 +197,12 @@ a{background:var(--card);color:var(--ink);border-radius:12px;padding:20px;text-d
 a:hover{outline:3px solid var(--acc)}b{font-size:17px;display:block;margin-bottom:6px}span{color:var(--mut);font-size:13.5px;line-height:1.4}
 </style></head><body><main><h1>eSway ERP 2.0</h1><p class="s">Choose your portal</p><div class="g">
 <a href="/erp/login"><b>ERP</b><span>Employees and business users. Operations, finance and reports.</span></a>
-<a href="/demo/login"><b>Demo</b><span>Explore the system with sample data. No production data.</span></a>
 <a href="/developer/login"><b>Developer / Admin</b><span>System administration, companies, users and security.</span></a>
 </div></main></body></html>"""
 
 
 PORTAL_CARDS = {
     "erp": ("ERP", "Employees and business users. Operations, finance and reports."),
-    "demo": ("Demo", "Explore the system with sample data. No production data."),
     "developer": ("Developer / Admin", "System administration, companies, users and security."),
 }
 
@@ -229,7 +227,7 @@ def _ui_response(request: Request):
 
 
 _UI_GZ: dict = {}
-_allowed = [p for p in ("erp", "demo", "developer") if not PUBLIC_PORTALS or p in PUBLIC_PORTALS]
+_allowed = [p for p in ("erp", "developer") if not PUBLIC_PORTALS or p in PUBLIC_PORTALS]
 
 
 @app.get("/brand/{name}", include_in_schema=False)
@@ -281,6 +279,13 @@ def pwa_file(name: str) -> FileResponse:
 @app.get("/", include_in_schema=False)
 def landing() -> HTMLResponse:
     return HTMLResponse(_landing(_allowed), headers={"Cache-Control": "no-store"})
+
+
+@app.get("/demo", include_in_schema=False)
+@app.get("/demo/{rest:path}", include_in_schema=False)
+def demo_removed(rest: str = ""):
+    """The Demo portal no longer exists: an old bookmark lands on the ERP sign-in page."""
+    return RedirectResponse("/erp/login", status_code=301)
 
 
 for _p in _allowed:

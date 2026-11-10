@@ -38,7 +38,7 @@ def get_current_user(
     token_portal = claims.get("portal")
     if token_portal and token_portal not in portals_for(user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Session is not valid for this account")
-    user._session_portal = token_portal or portal_for(user)       # the page this session was opened on (demo limits apply to demo sessions only)
+    user._session_portal = token_portal or portal_for(user)       # the page this session was opened on
     from . import license_mgmt as lm            # imported here: license_mgmt itself imports this module
 
     lm.touch_usage(db, user)
@@ -50,22 +50,15 @@ def get_current_user(
     return user
 
 
-DEMO_BLOCKED_PERMISSIONS = {"organization.update", "organization.create", "user.create", "user.update"}
-
-
 def portals_for(user: User) -> list[str]:
-    """Every login page this account may use: its own portal, plus the other company login page (ERP <-> Demo) when its company is flagged for both."""
-    own = portal_for(user)
-    other = {"erp": "demo", "demo": "erp"}.get(own)
-    return [own, other] if other and user.organization and user.organization.demo_portal else [own]
+    """Every login page this account may use: the one portal of its account."""
+    return [portal_for(user)]
 
 
 def portal_for(user: User) -> str:
     """The one portal an account may use, derived from the account itself (never from the client)."""
     if user.is_super_admin:
         return "developer"
-    if user.organization and user.organization.is_demo:
-        return "demo"
     return "erp"
 
 
@@ -79,8 +72,6 @@ def permission_required(code: str):
     def dependency(user: User = Depends(get_current_user)) -> User:
         if user.is_super_admin:
             return user
-        if getattr(user, "_session_portal", portal_for(user)) == "demo" and (code.endswith(".delete") or code in DEMO_BLOCKED_PERMISSIONS):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This action is not available in the demo environment")
         permissions = {permission.code for role in user.roles for permission in role.permissions}
         if code not in permissions:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")

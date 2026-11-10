@@ -262,7 +262,7 @@ def test_activity_history_filters_pagination_export_and_immutability(h, world):
         db2.commit()
     finally:
         db2.close()
-    other = hdr(world["demo"], portal="demo")
+    other = hdr(world["demo"], world["demo_license"])
     assert client.get("/api/jobs/stages", headers=other).status_code == 200  # the other tenant has rights ...
     assert client.get(f"/api/jobs/{jn}/activity", headers=other).status_code == 404  # ... but sees nothing of this tenant's job
     assert client.get(f"/api/jobs/{jn}/lifecycle", headers=other).status_code == 404

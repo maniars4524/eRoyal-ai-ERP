@@ -60,7 +60,7 @@ def test_only_the_license_super_admin_of_the_owner_company_gets_in(world, owner,
         assert client.get(path).status_code == 401                                                        # no sign-in
         assert client.get(path, headers=owner["plain"]).status_code == 403                                # an ordinary admin of the owner company
     # an admin of ANOTHER company, and the platform super admin, are refused as well
-    assert client.get("/api/license-mgmt/summary", headers=hdr(world["demo"], None) if False else {"Authorization": "Bearer " + login(world["demo"], None, "demo").json()["access_token"]}).status_code == 403
+    assert client.get("/api/license-mgmt/summary", headers=hdr(world["demo"], world["demo_license"])).status_code == 403
     dev = client.post("/api/auth/login", json={"identifier": world["dev"], "password": PASSWORD, "portal": "developer"})
     assert dev.status_code == 200 and client.get("/api/license-mgmt/summary", headers={"Authorization": "Bearer " + dev.json()["access_token"]}).status_code == 403
     me = client.get("/api/auth/me", headers=owner["h"]).json()

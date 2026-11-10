@@ -320,7 +320,7 @@ def test_exchange_rate_comes_from_the_currency_master_and_editing_needs_permissi
 # ------------------------------------------------------------------ tenancy and permissions
 def test_tenant_isolation_and_permissions(world, admin, h):
     q = draft(h)
-    demo = hdr(world["demo"], portal="demo")
+    demo = hdr(world["demo"], world["demo_license"])
     assert client.get(f"/api/quotations/{q['id']}", headers=demo).status_code in (403, 404)
     assert client.get(f"/api/quotations/{q['id']}/events", headers=demo).status_code in (403, 404)
     tag = uuid.uuid4().hex[:6]

@@ -1,0 +1,37 @@
+// Real Chrome: the cargo dimensions popup on an Air quotation, and on jobs (Air, Sea LCL, FCL, consolidation by house reference), with quotation -> job.
+const puppeteer = require("puppeteer-core");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); return { status: r.status, body: await r.json().catch(() => null) }; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let failures = 0;
+const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "" : " -> " + (x || ""))); if (!ok) failures++; };
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36).toUpperCase().slice(-5);
+  const org = await j("POST", "/api/organizations", { code: "SV" + tag, name: "Sav " + tag, admin_email: `sv${tag}@t.test`, admin_username: "sv" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "C" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "sv" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const api = async p => (await j("GET", p, null, token)).body;
+  const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
+  const page = await b.newPage(); await page.setViewport({ width: 1500, height: 1000 }); const errs = []; let confirms = 0;
+  page.on("pageerror", e => errs.push(String(e.stack || e.message).split(String.fromCharCode(10)).slice(0, 3).join(" <- ")));
+  page.on("dialog", d => { if (d.type() === "confirm") confirms++; d.accept(); });
+  await page.goto(BASE + "/erp/login", { waitUntil: "networkidle2" }); await page.evaluate(t => localStorage.setItem("esway_persistent_token", t), token); await page.reload({ waitUntil: "networkidle2" }); await sleep(2500);
+  const click = sel => page.evaluate(sel => document.querySelector(sel).click(), sel);
+  const count = async () => ((await j("GET", "/api/masters/department", null, token)).body || []).length;
+  await page.evaluate(() => window.go("dept-new")); await sleep(1500);
+  const fill = (c, n) => page.evaluate((c, n) => { const i = document.querySelectorAll("#s-dept-new input.fc"); i[0].value = c; i[1].value = n; i[0].dispatchEvent(new Event("input", { bubbles: true })); i[1].dispatchEvent(new Event("input", { bubbles: true })); }, c, n);
+  await fill("D1" + tag, "Sales " + tag);
+  await page.evaluate(() => Array.from(document.querySelectorAll("#s-dept-new button")).find(b => /^\s*Save\s*$/.test(b.textContent)).click()); await sleep(1800);
+  check("Save stores the record and stays on the form", (await count()) === 1 && await page.evaluate(() => document.body.dataset.screen) === "dept-new", String(await count()));
+  const lbl = await page.evaluate(() => Array.from(document.querySelectorAll("#s-dept-new button")).map(b => b.textContent.trim()).filter(Boolean).join("|"));
+  console.log("buttons:", lbl);
+  await page.evaluate(() => document.querySelector("#s-dept-new [data-mk-save-mode=new]").click()); await sleep(1800);
+  check("Save & New on a saved record opens a blank form without a duplicate", (await count()) === 1 && await page.evaluate(() => document.querySelectorAll("#s-dept-new input.fc")[0].value) === "");
+  await fill("D2" + tag, "Ops " + tag);
+  await page.evaluate(() => document.querySelector("#s-dept-new [data-mk-save-mode=new]").click()); await sleep(2000);
+  check("Save & New saves one more and opens a blank form", (await count()) === 2 && await page.evaluate(() => document.querySelectorAll("#s-dept-new input.fc")[0].value) === "", String(await count()));
+  check("no script errors", errs.length === 0, errs.join(" | "));
+  await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})();

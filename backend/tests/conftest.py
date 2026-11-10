@@ -66,6 +66,7 @@ def world():
         "lock": user("lock", erp_org),
         "erp_org": erp_org.id,
         "demo_org": demo_org.id,
+        "demo_license": demo_org.license_number,
     }
     db.commit()
     data = {k: (v.username if isinstance(v, User) else v) for k, v in data.items()}

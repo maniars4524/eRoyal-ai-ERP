@@ -654,3 +654,11 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - Backend 457 passed. Browser sweep: remaining failures are old JSDOM tests / stale menu assertions (invmasters, invaudit, mobile manifest) - not live bugs. outdocs2 and portpick pass alone (parallel-load flakes). universalsearch and newtab still to look at.
 - Freight job Customs tab now lists every CHA job of the booking with job status, SB/BE no/date and Filed / Not filed (customs_api._cha_row).
 - Cargo Arrival Notice charge details are split into TAXABLE and NON-TAXABLE with totals per currency (job_charges_block carries tax_type/tax_pct).
+
+## Demo portal removed, templates linked to quotation + enquiry, wiring sweep (2026-11-10)
+- Demo portal removed: no /demo login or landing card, no demo session limits, no demo seeding; /demo redirects to /erp/login; portal "demo" is refused by the login API. The existing demo company (SWF00002) and its data stay in the live DB and its users sign in on the ERP page with the licence number. Tests updated (`test_dual_portal.py` deleted, `test_portals.py` rewritten, `demo_license` in conftest). Backend: 452 passed.
+- Shipment templates now fill the quotation wizard (mode, direction, type; the quotation type is still asked) and the enquiry form (Mode and Shipment Type), see `e2e/tpllink.test.js`.
+- Enquiry Incoterm and Container Type lists were not being filled from the masters when the form was built later: fixed (refresh timer in the std-masters kit).
+- Navigation: all 172 screens open with no script error (`e2e/navall.test.js`); only record-dependent detail screens show empty when opened without a record.
+- Left as is on the owner's instruction: job numbers 8/9/10. On hold: HBL terms text, paper-print check, real SMTP (no fake mail).
+- Stale tests (not live bugs): opsmenu, menuops, stdmasters, jobwizard SCAC, savebuttons (JSDOM; real-Chrome `savechk.test.js` passes), newtab selector, mobile manifest start_url (fixed in test).

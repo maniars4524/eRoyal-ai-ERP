@@ -86,17 +86,12 @@ def test_users_are_tenant_isolated_and_super_admin_hidden(world, admin):
     h = hdr(admin["username"], admin["license"])
     listed = client.get("/api/users", headers=h).json()
     assert all(u["username"] != world["dev"] for u in listed)
-    h_demo = {"Authorization": "Bearer " + login(world["demo"], "demo").json()["access_token"]}
+    h_demo = {"Authorization": "Bearer " + login(world["demo"], "erp", world["demo_license"]).json()["access_token"]}
     assert client.get(f"/api/users/{admin['id']}", headers=h_demo).status_code in (403, 404)
     assert client.patch(f"/api/users/{admin['id']}", json={"first_name": "X"}, headers=h_demo).status_code in (403, 404)
     dev = {"Authorization": "Bearer " + login(world["dev"], "developer").json()["access_token"]}
     assert client.get("/api/users", headers=dev).status_code == 403
     assert client.get("/api/users").status_code == 401
-
-
-def test_demo_user_cannot_create_or_edit_users(world):
-    h_demo = {"Authorization": "Bearer " + login(world["demo"], "demo").json()["access_token"]}
-    assert new_user(h_demo, "demohack").status_code == 403
 
 
 def test_the_user_chooses_the_password_length(world, admin):
