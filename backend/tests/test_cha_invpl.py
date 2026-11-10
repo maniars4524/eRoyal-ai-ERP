@@ -87,3 +87,9 @@ def test_approve_revoke_and_cha_job_from_invoice(h):
     assert client.post(f"/api/cha/invoice-packing/{rec['id']}/revoke", headers=h).status_code == 409
     imp = client.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Sea", "exporter": "X", "importer": "Y", "invoice_id": rec["id"], "allow_unapproved": True}, headers=h)
     assert imp.status_code == 409                                                                                           # an export invoice cannot create an import job
+
+
+def test_dashboard_summary(h):
+    r = client.get("/api/cha/invoice-packing/summary", headers=h).json()
+    c = r["counts"]
+    assert c["total"] == c["approved"] + c["draft"] == c["export"] + c["import"] and len(r["months"]) == 6 and isinstance(r["value"], list) and isinstance(r["top_parties"], list)

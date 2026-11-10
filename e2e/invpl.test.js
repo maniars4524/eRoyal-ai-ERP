@@ -101,6 +101,11 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const gi = await page.evaluate(() => ({ info: document.getElementById("chaNIInfo").innerText, exp: document.getElementById("chaNExp").value }));
   check("CHA job: Get Invoice Details fetches the approved invoice and fills the job form", /1333/.test(gi.info) && /USD/.test(gi.info) && gi.exp === "PSR EXPORTERS", JSON.stringify(gi));
   await page.evaluate(() => closeModal()); await sleep(300);
+  await page.evaluate(() => window.go("cha-invpl")); await sleep(1500);
+  const dt = await text("#s-cha-invpl");
+  check("the dashboard shows Total, Approved, Waiting approval, Export, Import and the charts", /Total/i.test(dt) && /Approved/i.test(dt) && /Waiting approval/i.test(dt) && /Last six months/i.test(dt) && /Invoice value/i.test(dt) && /Busiest parties/i.test(dt), dt.slice(0, 200));
+  await page.evaluate(() => document.querySelector('[data-ipd="approved"]').click()); await sleep(1200);
+  check("clicking the Approved tile lists only approved invoices", /Showing approved only/.test(await text("#s-cha-invpl")) && await page.evaluate(() => !document.querySelector('#ipRows [data-ip^="approve:"]')));
   check("no script errors", errs.length === 0, errs.join(" | "));
   await browserClose();
   async function browserClose() { await page.browser().close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0); }

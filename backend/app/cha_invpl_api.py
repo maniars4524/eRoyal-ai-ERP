@@ -149,6 +149,43 @@ def from_job(job_number: str, user: User = Depends(permission_required("shipment
     return {"job_number": job.job_number, "data": data}
 
 
+@router.get("/summary")
+def summary(user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """The dashboard of the Invoice & Packing List screen: counts by approval and type, value by currency, the last six months and the busiest parties."""
+    org_id = _tenant(user)
+    rows = db.scalars(select(ChaInvoicePacking).where(ChaInvoicePacking.organization_id == org_id)).all()
+    today = date.today()
+    months = []
+    for i in range(5, -1, -1):
+        y, m = today.year, today.month - i
+        while m < 1:
+            m += 12
+            y -= 1
+        months.append((y, m))
+    by_month = {mm: 0 for mm in months}
+    cnt = {"total": len(rows), "approved": 0, "draft": 0, "export": 0, "import": 0, "with_job": 0, "this_month": 0}
+    val: dict[str, Decimal] = {}
+    parties: dict[str, int] = {}
+    for r in rows:
+        d = r.data or {}
+        ok = (d.get("approval") or {}).get("status") == "APPROVED"
+        cnt["approved" if ok else "draft"] += 1
+        cnt["import" if (d.get("direction") or "Export") == "Import" else "export"] += 1
+        cnt["with_job"] += 1 if r.job_number else 0
+        when = r.invoice_date or (r.created_at.date() if r.created_at else None)
+        if when:
+            if (when.year, when.month) == (today.year, today.month):
+                cnt["this_month"] += 1
+            if (when.year, when.month) in by_month:
+                by_month[(when.year, when.month)] += 1
+        val[r.currency] = val.get(r.currency, Decimal(0)) + (r.total or Decimal(0))
+        name = (r.consignee if (d.get("direction") or "Export") == "Import" else r.exporter) or "-"
+        parties[name] = parties.get(name, 0) + 1
+    return {"counts": cnt, "value": [{"currency": k, "total": str(v.quantize(Decimal("0.01")))} for k, v in sorted(val.items())],
+            "months": [{"label": f"{y}-{m:02d}", "count": by_month[(y, m)]} for y, m in months], "top_parties": [{"name": k, "count": v} for k, v in sorted(parties.items(), key=lambda x: -x[1])[:6]],
+            "waiting_approval": [_out(r) for r in rows if ((r.data or {}).get("approval") or {}).get("status") != "APPROVED"][:8] if False else [_out(r) for r in sorted(rows, key=lambda r: -r.id) if ((r.data or {}).get("approval") or {}).get("status") != "APPROVED"][:8]}
+
+
 @router.get("/{rid}")
 def get_record(rid: int, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     return _out(_get(db, _tenant(user), rid), True)
