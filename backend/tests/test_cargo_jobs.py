@@ -139,3 +139,25 @@ def test_consolidation_cargo_is_listed_by_house_reference_without_double_countin
     refs = {x["reference"]: x for x in r["by_reference"]}
     assert refs["HAWB-1"]["packages"] == "3" and refs["HAWB-2"]["packages"] == "3" and r["packages"] == "6" and r["gross_kg"] == "310.000"
     assert sum(float(x["gross_kg"]) for x in r["by_reference"]) == float(r["gross_kg"])                                    # the master total is the sum of the houses, nothing counted twice
+
+
+def test_saved_dimensions_fill_the_cargo_figures_and_the_lcl_zero_container_line(h):
+    j = lcl_job(h)
+    r = put_dims(h, j, [{"packages": 2, "length": 100, "width": 80, "height": 60, "gross": 150}, {"packages": 3, "length": 50, "width": 50, "height": 50, "gross": 90}])
+    assert r.status_code == 200, r.text
+    d = client.get(f"/api/jobs/{j}/details", headers=h).json()
+    assert d["cargo"]["pkgs"] == "5" and d["cargo"]["gwt"] == "240" and d["cargo"]["vol"] == "1.335" and d["cargo"]["chgRt"]
+    assert d["containers"] == [{"container_no": "", "type": "LCL", "seal_no": "", "from_dims": True, "pkgs": "5", "gross_wt": "240", "vol": "1.335"}]
+    # the container number is typed on that line later; the next dimension save still updates its figures
+    cont = dict(d["containers"][0], container_no="MSCU1234567", seal_no="S1")
+    assert client.put(f"/api/jobs/{j}/details/containers", json={"data": [cont]}, headers=h).status_code == 200
+    put_dims(h, j, [{"packages": 4, "length": 100, "width": 100, "height": 100, "gross": 500}])
+    d2 = client.get(f"/api/jobs/{j}/details", headers=h).json()
+    assert len(d2["containers"]) == 1 and d2["containers"][0]["container_no"] == "MSCU1234567" and d2["containers"][0]["pkgs"] == "4" and d2["containers"][0]["vol"] == "4" and d2["cargo"]["pkgs"] == "4"
+
+
+def test_air_dimensions_give_the_cargo_figures_and_the_chargeable_weight(h):
+    j = job(h, mode="Air", pol="MAA(CHENNAI)", pod="FRA(FRANKFURT)")
+    put_dims(h, j, [{"packages": 2, "length": 100, "width": 80, "height": 60, "gross": 100}])
+    c = client.get(f"/api/jobs/{j}/details", headers=h).json()["cargo"]
+    assert c["pkgs"] == "2" and c["gwt"] == "100" and c["vol"] == "0.96" and c["chgWt"] == "160" and c["volWt"] == "160"

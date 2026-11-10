@@ -301,6 +301,55 @@ def _apply_chargeable_weight(db: Session, job: Shipment, row: JobDetail) -> None
             c.qty = kg
 
 
+def _trim(v: Any, places: int = 3) -> str:
+    """12.500 -> '12.5', 3.000 -> '3' (what a person would type)."""
+    try:
+        d = Decimal(str(v))
+    except Exception:
+        return ""
+    q = d.quantize(Decimal(1).scaleb(-places))
+    t = format(q, "f")
+    return t.rstrip("0").rstrip(".") if "." in t else t
+
+
+def _dims_to_sections(db: Session, job: Shipment, row: JobDetail) -> None:
+    """Saved cargo dimensions drive the cargo figures: packages, gross weight and volume (and the chargeable weight of an air job / the revenue ton of a sea LCL job) go to the Cargo section, and a
+    sea LCL job gets its "0 container" line (no container number yet, type LCL) carrying the packages, weight and volume; the container number and seal are typed on that line afterwards.
+    Every screen and document reads these sections, so they all agree with the dimensions."""
+    from . import cargo_engine as ce
+
+    d = row.dims or {}
+    if not ce.is_v2(d) or job.mode not in ("Air", "Sea"):
+        return
+    calc = d.get("calculation") or {}
+    pk = calc.get("packages")
+    if not pk:
+        return
+    saved = dict(row.saved_sections or {})
+    pre = booking_defaults(db, job)
+    cargo = dict((row.cargo or {}) if saved.get("cargo") else pre["cargo"])
+    cargo.update({"pkgs": str(int(pk)), "gwt": _trim(calc.get("gross_kg")), "vol": _trim(calc.get("cbm"))})
+    if job.mode == "Air":
+        cargo["chgWt"] = _trim(calc.get("chargeable_kg"))
+        cargo["volWt"] = _trim(calc.get("volumetric_kg"))
+    elif job.container_mode == "LCL":
+        cargo["chgRt"] = _trim(calc.get("chargeable_rt"))
+    row.cargo = cargo
+    now = datetime.now(timezone.utc).isoformat()
+    saved["cargo"] = saved.get("cargo") or now
+    if job.mode == "Sea" and job.container_mode == "LCL":
+        conts = [dict(c) for c in ((row.containers or []) if saved.get("containers") else pre["containers"])]
+        mine = next((c for c in conts if c.get("from_dims")), None)
+        figures = {"pkgs": str(int(pk)), "gross_wt": _trim(calc.get("gross_kg")), "vol": _trim(calc.get("cbm"))}
+        if mine is not None:
+            mine.update(figures)
+        elif not any(c.get("container_no") for c in conts):
+            conts = [{"container_no": "", "type": "LCL", "seal_no": "", "from_dims": True, **figures}]
+        row.containers = conts
+        saved["containers"] = saved.get("containers") or now
+    row.saved_sections = saved
+
+
 def _reflect(job: Shipment, row: JobDetail) -> None:
     """What the user saved on the screens becomes the job's own data, so the lists, the overview and the documents agree."""
     c = row.cargo or {}
@@ -384,6 +433,8 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
     row.saved_sections = {**(row.saved_sections or {}), section: datetime.now(timezone.utc).isoformat()}
     row.version = (row.version or 0) + 1
     row.updated_by = user.id
+    if section == "dims":
+        _dims_to_sections(db, job, row)
     _reflect(job, row)
     if section == "dims":
         _apply_chargeable_weight(db, job, row)

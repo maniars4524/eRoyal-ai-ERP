@@ -678,3 +678,10 @@ On hold by the owner: customer approval workflow, role/CEO dashboards, licence/c
 - New Air Export output docs from the owner's samples: Air Cargo Manifest, Screening of Cargo letter (to the airline security officer), Cargo Security Declaration (Annexure I and II). Catalogue in `outdocs_api.py`, builders in the Output Docs kit (`R.air_cargo_manifest`, `R.screening_letter`, `R.security_declaration`). Test `e2e/airdocs.test.js`.
 - HAWB conditions page: the IATA Cargo Agent logo (extracted from the owner's sample PDF) now sits above the notice; the conditions text already matched the sample.
 - HBL page 2 (terms): the built-in text is now the HAGUE RULES 1924 (from the owner's sample), 4 columns, fits ONE page; typos of the sample were corrected (connexion -> Convention, etc.). A company's own text in Company letterhead & registration > Printed wording still overrides it. Draft print, A4 print and Multiple print carry face + terms (2 sheets); Pre print is the face only. Check `e2e/termscheck2.test.js`.
+
+## Cargo dimensions drive the cargo figures, the 0-container line and the reports (2026-11-10)
+- Saving the dimensions (job screen, new job, quotation -> job) now fills the Cargo section: packages, gross weight, volume (CBM), and for Air the chargeable weight (`chgWt`, `volWt`), for Sea LCL the revenue ton (`chgRt`) - `job_details_api._dims_to_sections`.
+- Sea LCL: the Containers tab gets the "0 container" line (type LCL, no container number yet, packages / gross weight / volume, mark `from_dims`). The container number and seal are typed on that line afterwards; later dimension saves still update its figures. New Volume (CBM) column on the Containers table and "LCL" as a container type.
+- Cargo summary on the job screen has Total Volume and a read-only Chargeable Weight (Air) / Chargeable Revenue Ton (LCL).
+- Reports read these figures: output-document cargo block (adds the chargeable line), Cargo Arrival Notice (chargeable column, a proper cargo line while there is no container number), HAWB already used the dimensions.
+- Tests: `test_cargo_jobs.py` (2 new), `e2e/dimsreports.test.js`, `e2e/cargodims.test.js` still pass.

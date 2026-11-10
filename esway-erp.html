@@ -2966,8 +2966,9 @@ tbody tr:hover{background:var(--g0)}
 <div class="cb" style="padding:10px 14px 4px"><div class="fsec" style="margin-top:0">Cargo as it appears on the BL</div>
 <div class="fr"><div class="fg" style="grid-column:span 1"><label class="fl">Marks and Numbers</label><textarea class="fc" id="jc_marks" rows="3" placeholder="e.g. 1-877&#10;CE NOS.: 1-877"></textarea></div><div class="fg" style="grid-column:span 2"><label class="fl">Cargo Description</label><textarea class="fc" id="jc_desc" rows="3" placeholder="Kind of packages and general description of goods (said to contain)"></textarea></div></div>
 <div class="fr"><div class="fg"><label class="fl">Total Packages</label><input class="fc" id="jc_pkgs" placeholder="0"></div><div class="fg"><label class="fl">Package Type</label><select class="fc" id="jc_pkgType"></select></div><div class="fg"><label class="fl">Total Gross Weight (KG)</label><input class="fc" id="jc_gwt" placeholder="0.000"></div><div class="fg"><label class="fl">Total Net Weight (KG)</label><input class="fc" id="jc_nwt" placeholder="0.000"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Total Volume (CBM)</label><input class="fc" id="jc_vol" placeholder="0.000"></div><div class="fg" id="jc_chgWrap"><label class="fl" id="jc_chgLbl">Chargeable Weight (KG)</label><input class="fc" id="jc_chg" readonly placeholder="from the dimensions" title="Calculated from the cargo dimensions"></div></div>
 <div class="fr"><div class="fg" style="grid-column:span 3;font-size:11px;color:var(--g5)" id="jc_wtNote">Totals add up the weights entered for each container below.</div></div></div>
-<div class="tw"><table id="containerTable"><thead><tr><th>Container No</th><th>Type</th><th>Seal No</th><th>VGM (KG)</th><th>Empty Pickup</th><th>Stuffed</th><th>Gate-In</th><th>Packages</th><th>Package Type</th><th>Gross Wt (KG)</th><th>Net Wt (KG)</th><th>Free Days</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="containerTableBody"><tr class="empty-row"><td colspan="14" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr></tbody></table></div>
+<div class="tw"><table id="containerTable"><thead><tr><th>Container No</th><th>Type</th><th>Seal No</th><th>VGM (KG)</th><th>Empty Pickup</th><th>Stuffed</th><th>Gate-In</th><th>Packages</th><th>Package Type</th><th>Gross Wt (KG)</th><th>Net Wt (KG)</th><th>Volume (CBM)</th><th>Free Days</th><th>Status</th><th class="no-print"></th></tr></thead><tbody id="containerTableBody"><tr class="empty-row"><td colspan="15" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr></tbody></table></div>
 <div class="cf">Total: 0 containers</div>
 </div>
 
@@ -18241,7 +18242,10 @@ function makePrintFit(){
     if(Object.keys(d.parties || {}).length || Object.keys(d.cargo || {}).length) window.pcApplySaved(d.job_number, Object.assign({}, d.parties), d.cargo);
     const jt = el("jc_pkgType"); if(jt){ const cur = (d.cargo || {}).pkgType || ""; jt.innerHTML = pkgOpts(cur); jt.value = cur; }
     JD.renderContainers(d.containers || []); JD.renderDims(d.dims || {}); JD.suggest();
-    const cg = d.cargo || {}; [["jc_marks", cg.marks], ["jc_desc", cg.cargoDesc], ["jc_gwt", cg.gwt], ["jc_nwt", cg.nwt], ["jc_pkgs", cg.pkgs]].forEach(([id, v])=>{ const n = el(id); if(n) n.value = v == null ? "" : v; }); JD.totals();
+    const cg = d.cargo || {}; [["jc_marks", cg.marks], ["jc_desc", cg.cargoDesc], ["jc_gwt", cg.gwt], ["jc_nwt", cg.nwt], ["jc_pkgs", cg.pkgs], ["jc_vol", cg.vol]].forEach(([id, v])=>{ const n = el(id); if(n) n.value = v == null ? "" : v; });
+    { const airJ = d.mode === "Air", lclJ = d.mode === "Sea" && d.container_mode === "LCL", w = el("jc_chgWrap"), l = el("jc_chgLbl"), c = el("jc_chg");
+      if(w) w.style.display = airJ || lclJ ? "" : "none"; if(l) l.textContent = airJ ? "Chargeable Weight (KG)" : "Chargeable Revenue Ton (W/M)"; if(c) c.value = airJ ? (cg.chgWt || "") : lclJ ? (cg.chgRt || "") : ""; }
+    JD.totals();
     const b = d.bl || {}; const set = (id, v)=>{ const n = el(id); if(n && v != null) n.value = v; };
     const scac = el("jobBlScac"); if(scac && b.scac && ![].some.call(scac.options, o=>o.value === b.scac)) scac.add(new Option(b.scac, b.scac));
     set("jobBlBookingType", b.bookingType || "House"); set("jobBlHbltype", b.hblType || "");
@@ -18314,14 +18318,14 @@ function makePrintFit(){
   function pkgTypes(){ const src = document.getElementById("pc_pkgType"); const l = src ? [].map.call(src.options, o=>o.value || o.text) : ["Carton", "Pallet", "Drum", "Bag", "Crate", "Box"]; return l.length ? l : ["Carton"]; }
   function pkgOpts(v){ const l = pkgTypes().slice(); if(v && l.indexOf(v) < 0) l.push(v); return '<option value="">—</option>'+l.map(t=>'<option'+(t === v ? " selected" : "")+'>'+esc2(t)+'</option>').join(""); }
   function contRow(r){
-    r = r || {}; const tr = document.createElement("tr"); tr.dataset.jdCont = "1";
-    const types = ["40GP", "20GP", "40HC", "20RF", "40RF", "20OT", "40OT"]; if(r.type && types.indexOf(r.type) < 0) types.push(r.type);
+    r = r || {}; const tr = document.createElement("tr"); tr.dataset.jdCont = "1"; if(r.from_dims) tr.dataset.fromDims = "1";
+    const types = ["40GP", "20GP", "40HC", "20RF", "40RF", "20OT", "40OT", "LCL"]; if(r.type && types.indexOf(r.type) < 0) types.push(r.type);
     tr.innerHTML = '<td><input class="fc" data-k="container_no" placeholder="MSCU1234567" maxlength="11" style="font-family:var(--font-mono);width:120px;text-transform:uppercase" value="'+esc2(r.container_no || "")+'"></td>'+
       '<td><select class="fc" data-k="type" style="width:78px">'+types.map(t=>'<option'+(t === (r.type || "40GP") ? " selected" : "")+'>'+t+'</option>').join("")+'</select></td>'+
       '<td><input class="fc" data-k="seal_no" placeholder="Seal No" style="font-family:var(--font-mono);width:100px" value="'+esc2(r.seal_no || "")+'"></td>'+
       '<td><input class="fc" data-k="vgm" placeholder="0" style="width:80px" value="'+esc2(r.vgm || "")+'"></td>'+
       ["empty_pickup", "stuffed", "gate_in"].map(k=>'<td><input class="fc" data-k="'+k+'" type="date" style="width:110px" value="'+esc2(r[k] || "")+'"></td>').join("")+
-      '<td><input class="fc" data-k="pkgs" placeholder="0" style="width:70px" value="'+esc2(r.pkgs || "")+'"></td><td><select class="fc" data-k="pkg_type" style="width:96px">'+pkgOpts(r.pkg_type)+'</select></td><td><input class="fc" data-k="gross_wt" placeholder="0.000" style="width:90px" value="'+esc2(r.gross_wt || "")+'"></td><td><input class="fc" data-k="net_wt" placeholder="0.000" style="width:90px" value="'+esc2(r.net_wt || "")+'"></td>'+
+      '<td><input class="fc" data-k="pkgs" placeholder="0" style="width:70px" value="'+esc2(r.pkgs || "")+'"></td><td><select class="fc" data-k="pkg_type" style="width:96px">'+pkgOpts(r.pkg_type)+'</select></td><td><input class="fc" data-k="gross_wt" placeholder="0.000" style="width:90px" value="'+esc2(r.gross_wt || "")+'"></td><td><input class="fc" data-k="net_wt" placeholder="0.000" style="width:90px" value="'+esc2(r.net_wt || "")+'"></td><td><input class="fc" data-k="vol" placeholder="0.000" style="width:80px" value="'+esc2(r.vol || "")+'"></td>'+
       '<td><input class="fc" data-k="free_days" placeholder="14" style="width:55px" value="'+esc2(r.free_days || "")+'"></td>'+
       '<td><span class="b b-gy dot" data-jd-status>'+stat(r)+'</span></td><td class="no-print"><button class="ta" type="button" data-jd-del>✕</button></td>';
     return tr;
@@ -18347,7 +18351,7 @@ function makePrintFit(){
   });
   JD.renderContainers = function(rows){
     const tb = el("containerTableBody"); if(!tb) return; tb.innerHTML = "";
-    if(!rows.length) tb.innerHTML = '<tr class="empty-row"><td colspan="14" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr>';
+    if(!rows.length) tb.innerHTML = '<tr class="empty-row"><td colspan="15" style="text-align:center;color:var(--g4);padding:18px;font-style:italic">No containers added yet</td></tr>';
     rows.forEach(r=> tb.appendChild(contRow(r))); contFoot(); if(JD.suggest) JD.suggest();
   };
   const num = v=> { const n = parseFloat(String(v || "").replace(/,/g, "")); return isNaN(n) ? 0 : n; };
@@ -18367,11 +18371,11 @@ function makePrintFit(){
   };
   JD.collectCargo = function(){
     const c = Object.assign({}, JD.data && JD.data.cargo || {}, window.pcSnapshot(JD.job).cargo);
-    return Object.assign(c, {marks:(el("jc_marks") || {}).value || "", cargoDesc:(el("jc_desc") || {}).value || "", gwt:(el("jc_gwt") || {}).value || "", nwt:(el("jc_nwt") || {}).value || "", pkgs:(el("jc_pkgs") || {}).value || "", pkgType:(el("jc_pkgType") || {}).value || c.pkgType || ""});
+    return Object.assign(c, {marks:(el("jc_marks") || {}).value || "", cargoDesc:(el("jc_desc") || {}).value || "", gwt:(el("jc_gwt") || {}).value || "", nwt:(el("jc_nwt") || {}).value || "", vol:(el("jc_vol") || {}).value || "", pkgs:(el("jc_pkgs") || {}).value || "", pkgType:(el("jc_pkgType") || {}).value || c.pkgType || ""});
   };
   JD.collectContainers = function(){
-    return [].map.call(document.querySelectorAll("#containerTableBody tr[data-jd-cont]"), tr=>{ const o = {}; tr.querySelectorAll("[data-k]").forEach(i=>{ o[i.dataset.k] = (i.value || "").trim(); }); return o; })
-      .filter(o=> o.container_no || o.seal_no || o.vgm || o.gross_wt || o.net_wt || o.pkgs);
+    return [].map.call(document.querySelectorAll("#containerTableBody tr[data-jd-cont]"), tr=>{ const o = {}; tr.querySelectorAll("[data-k]").forEach(i=>{ o[i.dataset.k] = (i.value || "").trim(); }); if(tr.dataset.fromDims) o.from_dims = true; return o; })
+      .filter(o=> o.container_no || o.seal_no || o.vgm || o.gross_wt || o.net_wt || o.pkgs || o.vol);
   };
 
   /* ---------------- air dimensions ---------------- */
@@ -18749,7 +18753,7 @@ function makePrintFit(){
     const types = Array.from(new Set(conts.map(x=>x.type).filter(Boolean)));
     return {air, bl, c, bk, im, conts, bills, d, types,
       mbl: bl.mblNo || (bl.bookingType === "Direct" ? bl.directNo : ""), mblDate: bl.mblDate || bl.directDate || "", hbl: bl.hblNo || "", hblDate: bl.hblDate || "",
-      pkgs: first(c.pkgs, sum("pkgs") || ""), pkgType: first(c.pkgType), gw: first(c.gwt, sum("gross_wt") || ""), nw: first(c.nwt, sum("net_wt") || ""), vol: first(c.vol),
+      pkgs: first(c.pkgs, sum("pkgs") || ""), pkgType: first(c.pkgType), gw: first(c.gwt, sum("gross_wt") || ""), nw: first(c.nwt, sum("net_wt") || ""), vol: first(c.vol, sum("vol") || ""), chg: first(c.chgWt), rt: first(c.chgRt),
       vessel: bk.vessel || "", carrier: bk.carrier || "", por: first(bk.place_of_receipt, rd.pol), pol: rd.pol || "", pod: rd.pod || "", pld: first(bk.place_of_delivery, rd.pod),
       etd: bk.etd, eta: bk.eta, movement: bk.container_mode ? bk.container_mode+"/"+bk.container_mode : "", freight: (bl.terms || bk.freight_pp || ""),
       desc: first(c.cargoDesc, c.commodity, rd.commodity), marks: first(c.marks, bk.marks), party: rd.party_text || {}, p: (d.parties || {})};
@@ -18799,8 +18803,9 @@ function makePrintFit(){
     const co = rd.company || {}, f = facts(rd), P = co.profile || {}, air = f.air; const pt = f.party;
     const partyBox = (t, txt)=> '<div style="border:1px solid '+LINE+';border-radius:3px;overflow:hidden;margin-bottom:6px">'+bar(t)+'<div style="padding:6px 8px;min-height:30px"><b>'+esc2(lines(txt)[0] || "")+'</b><br>'+lines(txt).slice(1).map(esc2).join("<br>")+'</div></div>';
     const chargeRows = (rd.job_charges || []);
-    const contRows = f.conts.length ? f.conts.map((x, i)=>'<tr><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+esc2(x.container_no)+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+esc2(contType(x))+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+(x.pkgs ? esc2(x.pkgs)+" "+esc2((x.pkg_type || "PACKAGES").toUpperCase()) : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+(i === 0 ? (f.pkgs ? "TOTAL PACKAGE "+esc2(f.pkgs)+"<br>" : "")+esc2(f.desc)+(f.bills.length ? "<br>"+f.bills.map(b=>(b.bill_type === "BE" ? "BE NO: " : "SB NO: ")+esc2(b.bill_no)+(b.bill_date ? " /"+esc2(dmy(b.bill_date)) : "")).join("<br>") : "") : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:center">-</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:right">'+(x.net_wt ? esc2(fmt(x.net_wt, 0))+" KG" : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:right">'+(x.gross_wt ? esc2(fmt(x.gross_wt, 0))+" KG" : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:center">'+(i === 0 && f.vol ? esc2(fmt(f.vol, 3)) : "-")+'</td></tr>').join("")
-      : '<tr><td colspan="8" style="padding:8px;text-align:center;border-top:1px solid '+LINE+'">'+esc2(f.desc || "")+(f.pkgs ? " — "+esc2(f.pkgs)+" "+esc2(f.pkgType) : "")+(f.gw ? " — "+esc2(fmt(f.gw))+" KG gross" : "")+'</td></tr>';
+    const contRows = f.conts.length ? f.conts.map((x, i)=>'<tr><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+esc2(x.container_no)+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+esc2(contType(x))+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+(x.pkgs ? esc2(x.pkgs)+" "+esc2((x.pkg_type || "PACKAGES").toUpperCase()) : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+'">'+(i === 0 ? (f.pkgs ? "TOTAL PACKAGE "+esc2(f.pkgs)+"<br>" : "")+esc2(f.desc)+(f.bills.length ? "<br>"+f.bills.map(b=>(b.bill_type === "BE" ? "BE NO: " : "SB NO: ")+esc2(b.bill_no)+(b.bill_date ? " /"+esc2(dmy(b.bill_date)) : "")).join("<br>") : "") : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:center">'+(i === 0 && f.chg ? esc2(fmt(f.chg, 3))+" KG" : i === 0 && f.rt ? esc2(fmt(f.rt, 3))+" W/M" : "-")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:right">'+(x.net_wt ? esc2(fmt(x.net_wt, 0))+" KG" : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:right">'+(x.gross_wt ? esc2(fmt(x.gross_wt, 0))+" KG" : "")+'</td><td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:center">'+(i === 0 && f.vol ? esc2(fmt(f.vol, 3)) : "-")+'</td></tr>').join("")
+      : (()=>{ const c = (t, al)=> '<td style="padding:6px 5px;border-top:1px solid '+LINE+';text-align:'+(al || "left")+'">'+t+'</td>';
+        return '<tr>'+c(air ? "" : esc2(f.d && (f.d.containers || [])[0] && (f.d.containers[0].type === "LCL") ? "LCL" : ""))+c(air ? "" : "")+c(f.pkgs ? esc2(f.pkgs)+" "+esc2((f.pkgType || "PACKAGES").toUpperCase()) : "")+c((f.pkgs ? "TOTAL PACKAGE "+esc2(f.pkgs)+"<br>" : "")+esc2(f.desc || ""))+c(f.chg ? esc2(fmt(f.chg, 3))+" KG" : f.rt ? esc2(fmt(f.rt, 3))+" W/M" : "-", "center")+c(f.nw ? esc2(fmt(f.nw, 0))+" KG" : "", "right")+c(f.gw ? esc2(fmt(f.gw, 0))+" KG" : "", "right")+c(f.vol ? esc2(fmt(f.vol, 3)) : "-", "center")+'</tr>'; })();
     const th = t=> '<th style="padding:5px;text-align:'+(/WEIGHT|VOLUME/.test(t) ? "right" : "left")+';font-size:8.5px;color:'+NAVY+'">'+t+'</th>';
     const body = header(co, true)+
       '<div style="border:1px solid '+LINE+';background:'+SOFT+';border-radius:3px;padding:6px 10px;width:290px;margin-bottom:6px;font-size:10.5px;font-weight:700"><div>JOB NO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : <span style="font-weight:400">'+esc2(rd.job_number)+'</span></div><div>'+(air ? "HAWB NO" : "BL NO")+' &nbsp;&nbsp;&nbsp;&nbsp; : <span style="font-weight:400">'+esc2(f.hbl || "/")+'</span></div><div>'+(air ? "MAWB NO" : "MBL NO")+' &nbsp;&nbsp; : <span style="font-weight:400">'+esc2(f.mbl || "/")+'</span></div></div>'+
@@ -25583,7 +25588,7 @@ body.job-readonly #jlBanner{display:flex}
   const jobBlock = c=> { const f = c.f, air = f.air; return pairs([["Job No", c.job], ["Booking No", c.rd.booking_number || f.bk.number], ["Customer", customer(c)], [air ? "HAWB No" : "HBL No", f.hbl], ["Shipper", nm(parties(c).shipper)], [air ? "MAWB No" : "MBL No", f.mbl],
     ["Consignee", nm(parties(c).consignee)], ["Shipment", c.rd.mode+" "+c.rd.direction+(c.rd.container_mode ? " · "+c.rd.container_mode : "")]]); };
   const contRows = c=> c.f.conts.map(x=>[esc(x.container_no), esc(x.type || ""), esc(contSeal(x)), esc(x.pkgs || ""), esc(x.gross_wt ? fmt(x.gross_wt) : ""), esc(x.net_wt ? fmt(x.net_wt) : "")]);
-  const cargoPairs = c=> { const f = c.f; return pairs([["Packages", f.pkgs ? f.pkgs+" "+(f.pkgType || "") : ""], ["Gross Weight", f.gw ? fmt(f.gw)+" KG" : ""], ["Volume", f.vol ? fmt(f.vol, 3)+" CBM" : ""], ["Description", f.desc], ["Marks & Nos", f.marks]].concat(f.air ? [] : [["FCL / LCL", c.rd.container_mode || f.bk.container_mode]])); };
+  const cargoPairs = c=> { const f = c.f; return pairs([["Packages", f.pkgs ? f.pkgs+" "+(f.pkgType || "") : ""], ["Gross Weight", f.gw ? fmt(f.gw)+" KG" : ""], ["Volume", f.vol ? fmt(f.vol, 3)+" CBM" : ""]].concat(f.chg ? [["Chargeable Weight", fmt(f.chg, 3)+" KG"]] : f.rt ? [["Chargeable (W/M)", fmt(f.rt, 3)+" RT"]] : []).concat([["Description", f.desc], ["Marks & Nos", f.marks]]).concat(f.air ? [] : [["FCL / LCL", c.rd.container_mode || f.bk.container_mode]])); };
   const legsTable = (c, sea)=> table(sea ? ["Leg", "Vessel", "Voyage", "POL", "POD", "ETD", "ETA", "Stage"] : ["Leg", "Airline", "Flight", "ETD", "ETA", "Stage"],
     c.legs.map((l, i)=> sea ? [i + 1, esc(l.carrier || ""), esc(l.voyage || ""), esc(l.pol || ""), esc(l.pod || ""), esc(dmy(l.etd)), esc(dmy(l.eta)), chip(l.stage)] : [i + 1, esc(l.carrier || ""), esc(l.voyage || ""), esc(dmy(l.etd)), esc(dmy(l.eta)), chip(l.stage)]), sea ? ["center"] : ["center"]);
 

@@ -706,6 +706,9 @@ def _copy_dims_to_job(job: Shipment, quote: Quotation) -> None:
                                                                                                    "weight_mt": res["weight_mt"], "chargeable_kg": res["chargeable_kg"], "chargeable_rt": res["chargeable_rt"], "basis": res["basis"]}}
     row.saved_sections = {**(row.saved_sections or {}), "dims": now}
     row.version = (row.version or 0) + 1
+    from .job_details_api import _dims_to_sections
+
+    _dims_to_sections(db, job, row)
 
 
 def copy_quote_charges(db: Session, org_id: int, quote_id: int, job: Shipment, carrier: str | None) -> None:
