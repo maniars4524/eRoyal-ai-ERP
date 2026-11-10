@@ -1931,3 +1931,22 @@ class NotificationRead(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     item_id: Mapped[str] = mapped_column(String(160))
     read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChaInvoicePacking(Base):
+    """A commercial invoice and packing list the CHA prepares on behalf of the shipper (header, parties, route, item lines and totals in `data`)."""
+    __tablename__ = "cha_invoice_packing"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    invoice_no: Mapped[str] = mapped_column(String(60))
+    invoice_date: Mapped[date | None] = mapped_column(Date)
+    job_number: Mapped[str | None] = mapped_column(String(40))
+    exporter: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    consignee: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    currency: Mapped[str] = mapped_column(String(3), default="USD", server_default="USD")
+    total = mapped_column(Numeric(16, 2), default=0, server_default="0")
+    data: Mapped[dict | None] = mapped_column(JSON)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

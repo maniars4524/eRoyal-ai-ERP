@@ -6200,6 +6200,7 @@ const SCREEN_META = {
   "crm-engagement":{title:"Engagement", crumb:"eSway ERP 2.0 / CRM / <strong>Engagement</strong>", menu:"crm-engagement"},
   "svc-console":{title:"Shipment Console", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Shipment Console</strong>", menu:"svc-console"},
   "svc-cha":{title:"CHA", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>CHA</strong>", menu:"svc-cha"},
+  "cha-invpl":{title:"Invoice & Packing List", crumb:"eSway ERP 2.0 / Logistics & Customs / CHA / <strong>Invoice & Packing List</strong>", menu:"svc-cha"},
   "svc-transport":{title:"Transport", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Transport</strong>", menu:"svc-transport"},
   "svc-warehouse":{title:"Warehouse", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Warehouse</strong>", menu:"svc-warehouse"},
   "sequence-setting":{title:"Sequence Setting", crumb:"eSway ERP 2.0 / Settings / <strong>Sequence Setting</strong>", menu:"sequence-setting"},
@@ -6502,6 +6503,7 @@ const TOPNAV_MENU = [
       {label:"Sea Import", icon:"ship", go:"svc-cha", chadir:"Import", chamode:"Sea"},
       {label:"Air Export", icon:"plane", go:"svc-cha", chadir:"Export", chamode:"Air"},
       {label:"Air Import", icon:"plane", go:"svc-cha", chadir:"Import", chamode:"Air"},
+      {label:"Invoice & Packing List", icon:"file-text", go:"cha-invpl"},
     ]},
     {label:"NVOCC", icon:"ship", roles:["Admin","Operations"], children:[
       {label:"Inventory Dashboard", icon:"dashboard", go:"inv-dashboard"},
@@ -26076,6 +26078,275 @@ body.job-readonly #jlBanner{display:flex}
     if(window.toast) toast("Template applied", r.name + " — mode and shipment type filled");
   });
   setInterval(fill, 1200);
+})();
+</script>
+<script>
+/* ============================================================
+   CHA > INVOICE & PACKING LIST KIT
+   The CHA prepares the commercial invoice and the packing list on behalf of the shipper. Records are kept on the server (/api/cha/invoice-packing);
+   the documents are printed as: Invoice + Packing List, Packing List alone, Invoice alone, or one Invoice-cum-Packing List, with or without signature and seal.
+   ============================================================ */
+(function(){
+  "use strict";
+  if(!window.MK || !window.DocKit || !DocKit.h) return;
+  const api = (m, p, b)=> MK.util.api(m, p, b), esc = MK.util.esc2, H = DocKit.h;
+  const num = v=> { const n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isNaN(n) ? 0 : n; };
+  const r2 = n=> Math.round((n + Number.EPSILON) * 100) / 100, r3 = n=> Math.round((n + Number.EPSILON) * 1000) / 1000;
+  const S = {rec:null, list:[], total:0, q:"", lines:[], tab:"general"};
+  const GEN = [
+    ["exporter", "Exporter (manufacturer / shipper)", "area"], ["buyer", "Buyer (if other than consignee)", "area"], ["consignee", "Consignee", "area"], ["notify", "Notify", "area"],
+    ["pre_carriage", "Pre-carriage by"], ["place_of_receipt", "Place of receipt by pre-carrier"], ["vessel_flight", "Vessel / Flight"], ["port_of_loading", "Port of loading"],
+    ["port_of_discharge", "Port of discharge"], ["final_destination", "Final destination"], ["origin_country", "Country of origin of goods"], ["dest_country", "Country of final destination"],
+    ["terms", "Terms of delivery and payment", "area"]
+  ];
+  const UNITS_PK = ["PKG", "CARTON", "BOX", "BAG", "PALLET", "DRUM", "CRATE", "ROLL", "NOS"], UNITS_Q = ["KG", "NOS", "MT", "LTR", "MTR", "SET"], UNITS_B = ["BOX", "CARTON", "BAG", "PALLET"];
+  const el = id=> document.getElementById(id);
+  const val = id=> (el(id) || {}).value || "";
+
+  /* ---------- screen ---------- */
+  function ensureScreen(){
+    if(el("s-cha-invpl")) return;
+    const host = el("s-svc-cha") && el("s-svc-cha").parentElement; if(!host) return;
+    const d = document.createElement("div"); d.id = "s-cha-invpl"; d.className = "scr"; d.innerHTML = '<div id="ipRoot"></div>'; host.appendChild(d);
+  }
+  const SEL = (id, list, v)=> '<select class="fc" id="'+id+'">'+list.map(x=>'<option'+(x === v ? " selected" : "")+'>'+x+'</option>').join("")+'</select>';
+  function listView(){
+    const root = el("ipRoot"); if(!root) return;
+    root.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Invoice &amp; Packing List</div><div class="ps">Commercial invoice and packing list prepared by the CHA on behalf of the shipper</div></div>'+
+      '<div class="pa"><input class="fc" id="ipSearch" placeholder="Search invoice no, exporter, consignee, job" style="width:260px" value="'+esc(S.q)+'"><button class="btn btn-pri btn-sm" id="ipNew"><svg class="ic" data-icon="plus"></svg> New</button></div></div>'+
+      '<div class="card"><div class="tw"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Exporter</th><th>Consignee</th><th>Job</th><th>Currency</th><th style="text-align:right">Invoice value</th><th></th></tr></thead><tbody id="ipRows">'+
+      (S.list.length ? S.list.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc(r.invoice_no)+'</td><td>'+esc(H.dmy(r.invoice_date))+'</td><td>'+esc(r.exporter)+'</td><td>'+esc(r.consignee)+'</td><td class="mono">'+esc(r.job_number || "")+'</td><td>'+esc(r.currency)+'</td><td style="text-align:right">'+esc(H.fmt(r.total, 2))+'</td>'+
+        '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-ip="edit:'+r.id+'">Edit</button> <button class="btn btn-out btn-sm" data-ip="print:'+r.id+'">Print</button> <button class="btn btn-out btn-sm" data-ip="del:'+r.id+'">Delete</button></td></tr>').join("")
+        : '<tr><td colspan="8" style="text-align:center;color:var(--g5);padding:22px;font-style:italic">No invoice and packing list yet. Press New to prepare one for a shipper.</td></tr>')+'</tbody></table></div></div>';
+    if(window.renderIcons) renderIcons(root);
+  }
+  async function loadList(){ try{ const r = await api("GET", "/api/cha/invoice-packing?limit=100&q="+encodeURIComponent(S.q)); S.list = r.items; S.total = r.total; }catch(e){ S.list = []; } listView(); }
+  function lineRow(l, i){
+    const f = (k, w, extra)=> '<input class="fc" data-ipl="'+i+':'+k+'" value="'+esc(l[k] == null ? "" : l[k])+'" style="width:'+w+'px"'+(extra || "")+'>';
+    const u = (k, list)=> '<select class="fc" data-ipl="'+i+':'+k+'" style="width:78px">'+list.map(x=>'<option'+(x === (l[k] || list[0]) ? " selected" : "")+'>'+x+'</option>').join("")+'</select>';
+    const c = lineCalc(l);
+    return '<tr><td>'+(i + 1)+'</td><td>'+f("marks", 90)+'</td><td>'+f("pkgs", 56)+'</td><td>'+u("pkg_unit", UNITS_PK)+'</td><td>'+f("description", 190)+'</td><td>'+f("hs", 80)+'</td><td>'+f("qty", 64)+'</td><td>'+u("qty_unit", UNITS_Q)+'</td><td>'+f("box", 48)+'</td><td>'+u("box_unit", UNITS_B)+'</td>'+
+      '<td><b data-ipc="'+i+':net">'+H.fmt(c.net, 2)+'</b></td><td>'+f("spl", 60)+'</td><td data-ipc="'+i+':gross">'+H.fmt(c.gross, 2)+'</td><td>'+f("dims", 90)+'</td><td>'+f("rate", 70)+'</td><td><b data-ipc="'+i+':amt">'+H.fmt(c.amount, 2)+'</b></td><td><a href="#" data-ip="rm:'+i+'">Del</a></td></tr>';
+  }
+  /* net = the weight typed (or the quantity when the quantity is in KG); gross = net + the common additional % + the special additional; amount = quantity x rate */
+  function lineCalc(l){
+    const pct = num(val("ip_addpct") || S.addpct), net = l.net_wt !== "" && l.net_wt != null ? num(l.net_wt) : ((l.qty_unit || "KG") === "KG" ? num(l.qty) : 0);
+    const gross = l.gross_wt !== "" && l.gross_wt != null ? num(l.gross_wt) : net * (1 + pct / 100) + num(l.spl);
+    return {net: r3(net), gross: r3(gross), amount: r2(num(l.qty) * num(l.rate))};
+  }
+  function totals(){
+    const t = {pkgs:0, net:0, gross:0, cif:0};
+    S.lines.forEach(l=>{ const c = lineCalc(l); t.pkgs += num(l.pkgs); t.net += c.net; t.gross += c.gross; t.cif += c.amount; });
+    const frt = num(val("ip_frt")), ins = num(val("ip_ins")), cv = num(val("ip_curvalue")) || 1;
+    return {pkgs:t.pkgs, net:r3(t.net), gross:r3(t.gross), cif:r2(t.cif), frt, ins, fob:r2(t.cif - frt - ins), cv, rs:r2(t.cif * cv), rsFob:r2((t.cif - frt - ins) * cv)};
+  }
+  function paintTotals(){
+    const t = totals(), set = (id, v)=> { const n = el(id); if(n) n.value = v; };
+    set("ip_tpkgs", t.pkgs); set("ip_tnet", H.fmt(t.net, 3)); set("ip_tgross", H.fmt(t.gross, 3)); set("ip_tcif", H.fmt(t.cif, 2)); set("ip_rscif", H.fmt(t.rs, 2)); set("ip_fob", H.fmt(t.fob, 2)); set("ip_rsfob", H.fmt(t.rsFob, 2));
+    set("ip_words", DocKit.words ? DocKit.words(t.cif, val("ip_cur") || "USD") : "");
+    S.lines.forEach((l, i)=>{ const c = lineCalc(l); [["net", c.net], ["gross", c.gross], ["amt", c.amount]].forEach(([k, v])=>{ const n = document.querySelector('[data-ipc="'+i+':'+k+'"]'); if(n) n.textContent = H.fmt(v, k === "amt" ? 2 : 2); }); });
+  }
+  function formView(rec){
+    S.rec = rec || null; const d = (rec && rec.data) || {}; S.lines = (d.lines || []).map(x=>Object.assign({}, x)); if(!S.lines.length) S.lines = [{}];
+    S.addpct = d.add_pct == null ? "2" : d.add_pct; S.tab = "general";
+    const root = el("ipRoot"), inp = (id, v, extra)=> '<input class="fc" id="'+id+'" value="'+esc(v == null ? "" : v)+'" '+(extra || "")+'>';
+    root.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Packing List &amp; Invoice</div><div class="ps">'+(rec ? "Edit "+esc(rec.invoice_no) : "New — prepared on behalf of the shipper")+'</div></div>'+
+      '<div class="pa"><button class="btn btn-out btn-sm" id="ipGet" title="Fill the parties, route and cargo from a job">Get Bill</button><button class="btn btn-out btn-sm" id="ipExit">Exit</button><button class="btn btn-out btn-sm" id="ipPrint">Print…</button><button class="btn btn-pri btn-sm" id="ipSave"><svg class="ic" data-icon="check"></svg> Save</button></div></div>'+
+      '<div class="card"><div class="cb"><div class="fr"><div class="fg"><label class="fl">Invoice No <span class="r">*</span></label>'+inp("ip_no", rec && rec.invoice_no)+'</div><div class="fg"><label class="fl">Invoice Date</label>'+inp("ip_date", rec && rec.invoice_date || new Date().toISOString().slice(0, 10), 'type="date"')+'</div>'+
+        '<div class="fg"><label class="fl">Exporter\'s Ref. (IEC / PAN)</label>'+inp("ip_exref", d.exporter_ref)+'</div><div class="fg"><label class="fl">Buyer Order No &amp; Date</label>'+inp("ip_buyord", d.buyer_order)+'</div></div>'+
+        '<div class="fr"><div class="fg"><label class="fl">Other References</label>'+inp("ip_otherref", d.other_ref)+'</div><div class="fg"><label class="fl">Invoice Name</label>'+inp("ip_invname", d.invoice_name)+'</div><div class="fg"><label class="fl">Job (optional)</label>'+inp("ip_job", rec && rec.job_number || "", 'placeholder="e.g. AIREXP-26-000001"')+'</div></div></div></div>'+
+      '<div class="tabs" style="margin:8px 0"><button class="tbb on" data-ip="tab:general">General</button><button class="tbb" data-ip="tab:charge">Charge details</button></div>'+
+      '<div class="card" id="ipGeneral"><div class="cb"><div class="fr" style="flex-wrap:wrap">'+GEN.map(g=>'<div class="fg" style="min-width:300px;flex:1 1 45%"><label class="fl">'+g[1]+'</label>'+(g[2] === "area" ? '<textarea class="fc" id="ip_'+g[0]+'" rows="3">'+esc(d[g[0]] || "")+'</textarea>' : inp("ip_"+g[0], d[g[0]]))+'</div>').join("")+'</div></div></div>'+
+      '<div class="card" id="ipCharge" style="display:none"><div class="cb"><div class="fr"><div class="fg"><label class="fl">Currency</label>'+inp("ip_cur", d.currency || "USD", 'maxlength="3" style="text-transform:uppercase;width:90px"')+'</div><div class="fg"><label class="fl">Cur. value (1 unit = Rs.)</label>'+inp("ip_curvalue", d.cur_value, 'type="number" step="0.0001"')+'</div><div class="fg"><label class="fl">Net wt common additional %</label>'+inp("ip_addpct", S.addpct, 'type="number" step="0.01"')+'</div></div>'+
+        '<div class="tw"><table><thead><tr><th>S.No</th><th>Marks &amp; Nos</th><th>Pkgs</th><th>Unit</th><th>Description</th><th>HS code</th><th>Qty</th><th>Unit</th><th>Box</th><th>Unit</th><th>NT.wt</th><th>Spl. additional</th><th>GR.wt</th><th>Dimensions</th><th>Rate</th><th>Amount</th><th></th></tr></thead><tbody id="ipLines">'+S.lines.map(lineRow).join("")+'</tbody></table></div>'+
+        '<div style="margin:6px 0"><button class="btn btn-out btn-sm" data-ip="add">Add New</button></div>'+
+        '<div class="fr"><div class="fg"><label class="fl">Total Pkgs</label><input class="fc" id="ip_tpkgs" readonly></div><div class="fg"><label class="fl">Total Net wt</label><input class="fc" id="ip_tnet" readonly></div><div class="fg"><label class="fl">Total Gross wt</label><input class="fc" id="ip_tgross" readonly></div><div class="fg"><label class="fl">Total CIF</label><input class="fc" id="ip_tcif" readonly></div><div class="fg"><label class="fl">CIF in Rs.</label><input class="fc" id="ip_rscif" readonly></div></div>'+
+        '<div class="fr"><div class="fg" style="flex:2"><label class="fl">Words</label><input class="fc" id="ip_words" readonly></div><div class="fg"><label class="fl">Package range</label>'+inp("ip_range", d.package_range)+'</div><div class="fg"><label class="fl">FRT</label>'+inp("ip_frt", d.frt, 'type="number" step="0.01"')+'</div><div class="fg"><label class="fl">INS</label>'+inp("ip_ins", d.ins, 'type="number" step="0.01"')+'</div><div class="fg"><label class="fl">FOB</label><input class="fc" id="ip_fob" readonly></div><div class="fg"><label class="fl">FOB in Rs.</label><input class="fc" id="ip_rsfob" readonly></div></div>'+
+        '<div class="fr"><div class="fg" style="flex:1"><label class="fl">Shipping marks</label>'+inp("ip_marks", d.shipping_marks)+'</div><div class="fg" style="flex:2"><label class="fl">Remarks</label>'+inp("ip_remarks", d.remarks)+'</div></div></div></div>';
+    if(window.renderIcons) renderIcons(root); paintTotals();
+  }
+  function collect(){
+    const d = {exporter_ref:val("ip_exref"), buyer_order:val("ip_buyord"), other_ref:val("ip_otherref"), invoice_name:val("ip_invname"), currency:(val("ip_cur") || "USD").toUpperCase(), cur_value:val("ip_curvalue"), add_pct:val("ip_addpct"), package_range:val("ip_range"),
+      frt:val("ip_frt"), ins:val("ip_ins"), shipping_marks:val("ip_marks"), remarks:val("ip_remarks")};
+    GEN.forEach(g=>{ d[g[0]] = val("ip_"+g[0]); });
+    d.lines = S.lines.filter(l=> l.description || l.pkgs || l.qty).map(l=>{ const c = lineCalc(l); return Object.assign({}, l, {net_wt:String(c.net), gross_wt:String(c.gross), amount:String(c.amount)}); });
+    return {invoice_no:val("ip_no").trim(), invoice_date:val("ip_date") || null, job_number:val("ip_job").trim() || null, data:d};
+  }
+  async function save(){
+    const b = collect(); if(!b.invoice_no){ MK.util.say("Invoice number required", "Enter the invoice number", "warn"); return null; }
+    try{ const r = S.rec ? await api("PUT", "/api/cha/invoice-packing/"+S.rec.id, b) : await api("POST", "/api/cha/invoice-packing", b); S.rec = r; MK.util.say("Saved", "Invoice & Packing List "+r.invoice_no); if(window.markSaved) try{ markSaved(el("ipSave")); }catch(e){} return r; }
+    catch(e){ MK.util.say("Could not save", e.message, "error"); return null; }
+  }
+
+  /* ---------- documents ---------- */
+  async function company(){ if(S.co) return S.co; try{ const prof = await api("GET", "/api/company/doc-profile"); S.co = {name:prof.name, logo:prof.logo, profile:prof.print_profile || prof.profile || {}}; }catch(e){ S.co = {name:"", profile:{}}; } return S.co; }
+  function ctx(rec){
+    const d = rec.data || {}, lines = (d.lines || []).map(l=>{ const pct = num(d.add_pct), net = l.net_wt !== "" && l.net_wt != null ? num(l.net_wt) : ((l.qty_unit || "KG") === "KG" ? num(l.qty) : 0), gross = l.gross_wt !== "" && l.gross_wt != null ? num(l.gross_wt) : net * (1 + pct / 100) + num(l.spl);
+      return Object.assign({}, l, {_net:net, _gross:gross, _amt: l.amount !== "" && l.amount != null ? num(l.amount) : num(l.qty) * num(l.rate)}); });
+    const t = {pkgs:0, net:0, gross:0, qty:0, cif:0}; lines.forEach(l=>{ t.pkgs += num(l.pkgs); t.net += l._net; t.gross += l._gross; t.qty += num(l.qty); t.cif += l._amt; });
+    const frt = num(d.frt), ins = num(d.ins); t.frt = frt; t.ins = ins; t.total = r2(t.cif + 0); t.fob = r2(t.cif - frt - ins);
+    return {rec, d, lines, t, cur:d.currency || rec.currency || "USD"};
+  }
+  const NAVY = H.NAVY, LINE = H.LINE, SOFT = H.SOFT;
+  const cell = (k, v, extra)=> '<div style="border:1px solid '+LINE+';padding:4px 6px;'+(extra || "")+'"><div style="font-size:7.8px;font-weight:700;color:'+NAVY+';text-transform:uppercase;letter-spacing:.3px">'+esc(k)+'</div><div style="font-size:10px;line-height:1.35;margin-top:1px">'+v+'</div></div>';
+  const txt = v=> { const l = H.lines(v); return l.length ? '<b>'+esc(l[0])+'</b>'+(l.length > 1 ? '<br>'+l.slice(1).map(esc).join('<br>') : "") : '<span style="color:#8896ab">&nbsp;</span>'; };
+  const plain = v=> v ? esc(v) : '&nbsp;';
+  const th = (t, al)=> '<th style="background:'+NAVY+';color:#fff;padding:5px 5px;font-size:8.6px;text-align:'+(al || "center")+';border:1px solid #fff">'+t+'</th>';
+  const td = (t, al, b)=> '<td style="padding:5px 5px;font-size:9.5px;border:1px solid '+LINE+';text-align:'+(al || "left")+';vertical-align:top'+(b ? ";font-weight:700" : "")+'">'+t+'</td>';
+  function head(c){
+    const d = c.d, r = c.rec;
+    return '<div style="display:grid;grid-template-columns:1.25fr 1fr;gap:6px;margin-bottom:6px">'+cell("Exporter", txt(d.exporter))+
+      '<div style="display:grid;grid-template-columns:1fr;gap:0">'+cell("Invoice No. & Date", esc(r.invoice_no)+(r.invoice_date ? "  Dt. "+esc(H.dmy(r.invoice_date)) : ""))+cell("Exporter's Ref. (IEC / PAN)", plain(d.exporter_ref))+cell("Buyer's Order No. & Date", plain(d.buyer_order))+cell("Other Reference(s)", plain(d.other_ref))+'</div></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+cell("Consignee", txt(d.consignee))+cell("Buyer (if other than consignee)", txt(d.buyer || d.consignee))+cell("Country of Origin of Goods", plain(d.origin_country))+cell("Country of Final Destination", plain(d.dest_country))+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'+cell("Pre-Carriage by", plain(d.pre_carriage))+cell("Place of Receipt by Pre-Carrier", plain(d.place_of_receipt))+cell("Terms of Delivery and Payment", plain(d.terms))+cell("Vessel / Flight No.", plain(d.vessel_flight))+cell("Port of Loading", plain(d.port_of_loading))+cell("Port of Discharge", plain(d.port_of_discharge))+'</div>';
+  }
+  function plHead(c){
+    const d = c.d, r = c.rec;
+    return '<div style="display:grid;grid-template-columns:1.25fr 1fr;gap:6px;margin-bottom:6px">'+cell("Exporter", txt(d.exporter))+'<div>'+cell("Packing List No.", esc("PL/"+r.invoice_no))+cell("Date", esc(H.dmy(r.invoice_date)))+cell("Invoice No.", esc(r.invoice_no))+'</div></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+cell("Consignee", txt(d.consignee))+cell("Buyer (if other than consignee)", txt(d.buyer || d.consignee))+cell("Country of Origin", plain(d.origin_country))+cell("Country of Destination", plain(d.dest_country))+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'+cell("Shipment Mode / Flight / Vessel", plain([d.pre_carriage, d.vessel_flight].filter(Boolean).join(" · ")))+cell("Port of Loading", plain(d.port_of_loading))+cell("Port of Discharge", plain(d.port_of_discharge))+'</div>';
+  }
+  const sign = (c, withSign)=> { const P = (c.co.profile || {}), imgs = withSign ? ((P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:52px;max-width:150px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:60px;max-width:90px;margin-left:8px">' : "")) : "";
+    return '<div style="text-align:center;min-width:210px"><div style="font-weight:700;font-size:9.5px">For '+esc(P.legal_name || c.co.name || "")+'</div><div style="min-height:'+(withSign ? 58 : 66)+'px;margin:2px 0">'+imgs+'</div><div style="border-top:1px solid #333;padding-top:2px;font-weight:700;font-size:9.5px">Authorised Signatory</div></div>'; };
+  const DECL = ["We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.", "This shipment is in accordance with the terms and conditions of the contract."];
+  function invoiceTail(c, withSign){
+    const t = c.t, d = c.d, cur = c.cur;
+    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div>'+cell("Freight", esc(cur)+" "+H.fmt(t.frt, 2))+cell("Insurance", esc(cur)+" "+H.fmt(t.ins, 2))+cell("FOB value", esc(cur)+" "+H.fmt(t.fob, 2))+'</div>'+
+      '<div style="border:1px solid '+LINE+';background:'+SOFT+';padding:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:'+NAVY+'">INVOICE VALUE (CIF)</div><div style="font-size:17px;font-weight:800;margin:3px 0">'+esc(cur)+' '+H.fmt(t.cif, 2)+'</div><div style="font-size:8.5px">('+esc(DocKit.words ? DocKit.words(t.cif, cur) : "")+')</div>'+(num(d.cur_value) ? '<div style="font-size:8.5px;margin-top:3px">Rs. '+H.fmt(t.cif * num(d.cur_value), 2)+' @ '+esc(d.cur_value)+'</div>' : "")+'</div></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px"><div style="font-size:8.6px;max-width:60%"><b>Declaration :</b><ol style="margin:3px 0 0 14px;padding:0">'+DECL.map(x=>'<li>'+x+'</li>').join("")+'</ol></div>'+sign(c, withSign)+'</div>';
+  }
+  function invoiceTable(c, rows){
+    return '<table style="width:100%;border-collapse:collapse"><thead><tr>'+th("Marks &amp; Nos.")+th("No. &amp; Kind of Packages")+th("Description of Goods")+th("HS Code")+th("Quantity")+th("Unit Price")+th("Amount")+'</tr></thead><tbody>'+
+      rows.map(l=>'<tr>'+td(plain(l.marks), "left")+td(esc((l.pkgs || "")+" "+(l.pkg_unit || "")), "center")+td(esc(l.description || ""), "left", true)+td(plain(l.hs), "center")+td(esc((l.qty || "")+" "+(l.qty_unit || "")), "right")+td(l.rate ? H.fmt(l.rate, 2) : "", "right")+td(H.fmt(l._amt, 2), "right")+'</tr>').join("")+'</tbody></table>';
+  }
+  function plTable(c, rows){
+    return '<table style="width:100%;border-collapse:collapse"><thead><tr>'+th("Marks &amp; Nos.")+th("No. &amp; Kind of Packages")+th("Description of Goods")+th("Net Weight (KGS)")+th("Gross Weight (KGS)")+th("Dimensions")+'</tr></thead><tbody>'+
+      rows.map(l=>'<tr>'+td(plain(l.marks), "left")+td(esc((l.pkgs || "")+" "+(l.pkg_unit || "")), "center")+td(esc(l.description || ""), "left", true)+td(H.fmt(l._net, 3), "right")+td(H.fmt(l._gross, 3), "right")+td(plain(l.dims), "center")+'</tr>').join("")+'</tbody></table>';
+  }
+  function plTail(c, withSign){
+    const t = c.t, d = c.d;
+    return '<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:8px;margin-top:8px"><div>'+cell("Shipping Marks", plain(d.shipping_marks || d.package_range))+cell("Remarks", plain(d.remarks || "Goods are packed as described; package counts and weights must match the physical shipment."))+'</div>'+
+      '<div style="border:1px solid '+LINE+';background:'+SOFT+';padding:8px;font-size:10.5px;line-height:1.7"><b>Total Packages</b> : '+esc(String(t.pkgs))+' PKG<br><b>Net Weight</b> : '+H.fmt(t.net, 3)+' KGS<br><b>Gross Weight</b> : '+H.fmt(t.gross, 3)+' KGS</div></div>'+
+      '<div style="display:flex;justify-content:flex-end;margin-top:12px">'+sign(c, withSign)+'</div>';
+  }
+  function combinedTable(c, rows){
+    return '<table style="width:100%;border-collapse:collapse"><thead><tr>'+th("Marks &amp; Nos.")+th("Pkgs")+th("Description of Goods")+th("HS Code")+th("Qty")+th("Net Wt (KGS)")+th("Gross Wt (KGS)")+th("Unit Price")+th("Amount")+'</tr></thead><tbody>'+
+      rows.map(l=>'<tr>'+td(plain(l.marks), "left")+td(esc((l.pkgs || "")+" "+(l.pkg_unit || "")), "center")+td(esc(l.description || ""), "left", true)+td(plain(l.hs), "center")+td(esc((l.qty || "")+" "+(l.qty_unit || "")), "right")+td(H.fmt(l._net, 3), "right")+td(H.fmt(l._gross, 3), "right")+td(l.rate ? H.fmt(l.rate, 2) : "", "right")+td(H.fmt(l._amt, 2), "right")+'</tr>').join("")+'</tbody></table>';
+  }
+  const totBar = (c, cols)=> '<div style="background:'+NAVY+';color:#fff;font-weight:700;font-size:10px;padding:5px 8px;display:flex;justify-content:space-between"><span>TOTAL</span><span>'+cols+'</span></div>';
+  /* one document = one page when the lines fit, otherwise the lines continue on the next page and the totals / signature stay on the last one */
+  function paged(c, title, headHtml, tableFn, tail, totalHtml){
+    const rows = c.lines.length ? c.lines : [{_net:0, _gross:0, _amt:0}], FIRST = 8, NEXT = 22, chunks = [rows.slice(0, FIRST)]; for(let i = FIRST; i < rows.length; i += NEXT) chunks.push(rows.slice(i, i + NEXT));
+    return chunks.map((ch, i)=> (i === 0 ? H.header(c.co, true)+H.titleBar(title)+headHtml : H.header(c.co, true)+H.titleBar(title+" (continued)"))+tableFn(c, ch)+(i === chunks.length - 1 ? totalHtml+tail : ""));
+  }
+  function build(c, kind, withSign){
+    const note = "Invoice "+c.rec.invoice_no, pages = [];
+    const invT = totBar(c, esc(c.cur)+" "+H.fmt(c.t.cif, 2)), plT = totBar(c, esc(String(c.t.pkgs))+" PKG &nbsp;·&nbsp; "+H.fmt(c.t.net, 3)+" / "+H.fmt(c.t.gross, 3)+" KGS");
+    if(kind === "invoice" || kind === "both") pages.push(...paged(c, "INTERNATIONAL COMMERCIAL INVOICE", head(c), invoiceTable, invoiceTail(c, withSign), invT));
+    if(kind === "packing" || kind === "both") pages.push(...paged(c, "PACKING LIST", plHead(c), plTable, plTail(c, withSign), plT));
+    if(kind === "combined") pages.push(...paged(c, "INVOICE CUM PACKING LIST", head(c), combinedTable, invoiceTail(c, withSign).replace(/<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div>/, '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div><div style="border:1px solid '+LINE+';padding:4px 6px;font-size:9.5px"><b>Total Packages</b> : '+esc(String(c.t.pkgs))+' &nbsp; <b>Net</b> : '+H.fmt(c.t.net, 3)+' KGS &nbsp; <b>Gross</b> : '+H.fmt(c.t.gross, 3)+' KGS</div>'), invT));
+    return H.wrapPages(pages, c.co, note);
+  }
+  function printHtml(title, html){
+    const w = window.open("", "_blank"); if(!w){ MK.util.say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
+    w.document.write("<!doctype html><title>"+esc(title)+"</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.pg{margin:0!important;box-shadow:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>"+html); w.document.close();
+    w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 900);
+  }
+  async function printDialog(rec){
+    const co = await company(); let withSign = true, kind = "both";
+    const draw = ()=> { const c = ctx(rec); c.co = co; const host = el("ipPreview"); if(host) host.innerHTML = '<div style="background:#e5e7eb;padding:10px;overflow:auto;max-height:62vh"><div style="display:flex;flex-direction:column;gap:10px;align-items:center;transform-origin:top center">'+build(c, kind, withSign)+'</div></div>'; };
+    openModal({title:"Print — Invoice & Packing List "+esc(rec.invoice_no), size:"lg", bodyHTML:'<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px">'+
+      [["both", "Invoice + Packing List"], ["packing", "Packing List alone"], ["invoice", "Invoice alone"], ["combined", "Invoice-cum-Packing List"]].map(x=>'<label style="display:flex;gap:6px;align-items:center"><input type="radio" name="ipKind" value="'+x[0]+'"'+(x[0] === kind ? " checked" : "")+'> '+x[1]+'</label>').join("")+
+      '<label style="display:flex;gap:6px;align-items:center;margin-left:auto"><input type="checkbox" id="ipSign" checked> Print with signature and seal</label></div><div id="ipPreview"></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button><button class="btn btn-out" type="button" id="ipDoXlsx">Download Excel</button><button class="btn btn-out" type="button" id="ipDoPdf">Download PDF</button><button class="btn btn-pri" type="button" id="ipDoPrint">Print</button>'});
+    document.querySelectorAll('input[name="ipKind"]').forEach(r=> r.addEventListener("change", ()=>{ kind = r.value; draw(); }));
+    el("ipSign").addEventListener("change", e=>{ withSign = e.target.checked; draw(); });
+    el("ipDoPdf").addEventListener("click", async ()=>{ const b = el("ipDoPdf"); b.disabled = true; b.textContent = "Preparing PDF…"; try{ saveBlob(await makePdf(rec, kind, withSign), fileName(rec, kind, "pdf")); }catch(e){ MK.util.say("PDF not created", e.message, "error"); } b.disabled = false; b.textContent = "Download PDF"; });
+    el("ipDoXlsx").addEventListener("click", async ()=>{ const b = el("ipDoXlsx"); b.disabled = true; try{ saveBlob(new Blob([await makeXlsx(rec, kind, withSign)], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), fileName(rec, kind, "xlsx")); }catch(e){ MK.util.say("Excel not created", e.message, "error"); } b.disabled = false; });
+    el("ipDoPrint").addEventListener("click", ()=>{ const c = ctx(rec); c.co = co; printHtml("Invoice "+rec.invoice_no, build(c, kind, withSign)); });
+    draw();
+  }
+  /* ---------- downloads: PDF and Excel ---------- */
+  const libs = {};
+  const loadLib = url=> libs[url] || (libs[url] = new Promise((ok, no)=>{ const t = document.createElement("script"); t.src = url; t.onload = ok; t.onerror = ()=> no(new Error("Could not load "+url)); document.head.appendChild(t); }));
+  const KIND_NAME = {both:"Invoice and Packing List", packing:"Packing List", invoice:"Invoice", combined:"Invoice cum Packing List"};
+  async function makePdf(rec, kind, withSign){
+    await loadLib("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadLib("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const c = ctx(rec); c.co = await company();
+    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-12000px;top:0;background:#fff;width:794px"; host.innerHTML = build(c, kind, withSign); document.body.appendChild(host);
+    try{
+      const pdf = new window.jspdf.jsPDF({unit:"mm", format:"a4", orientation:"portrait"}), pages = Array.from(host.querySelectorAll(".pg"));
+      for(let i = 0; i < pages.length; i++){ const cv = await window.html2canvas(pages[i], {scale:2, backgroundColor:"#fff", useCORS:true}); if(i) pdf.addPage(); pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297); }
+      return pdf.output("blob");
+    } finally { host.remove(); }
+  }
+  /* the Excel file keeps the figures as numbers, so it can be edited and re-used */
+  async function makeXlsx(rec, kind, withSign){
+    await loadLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+    const c = ctx(rec), d = c.d, t = c.t, X = window.XLSX, wb = X.utils.book_new(), co = (await company()), P = co.profile || {};
+    const name = P.legal_name || co.name || "", cur = c.cur, n = v=> { const x = num(v); return x ? x : ""; };
+    const ln = txt=> H.lines(txt).join(", ");
+    const top = title=> [[name], [(P.address || "").replace(/\n/g, ", ")], [[P.gstin ? "GSTIN: "+P.gstin : "", P.email || "", P.phone || ""].filter(Boolean).join("   ")], [], [title], []];
+    const head = [["Exporter", ln(d.exporter), "", "Invoice No. & Date", c.rec.invoice_no + (c.rec.invoice_date ? "  Dt. "+H.dmy(c.rec.invoice_date) : "")], ["Exporter's Ref. (IEC / PAN)", d.exporter_ref || "", "", "Buyer's Order No. & Date", d.buyer_order || ""],
+      ["Consignee", ln(d.consignee), "", "Buyer (if other than consignee)", ln(d.buyer || d.consignee)], ["Country of Origin", d.origin_country || "", "", "Country of Final Destination", d.dest_country || ""],
+      ["Pre-Carriage by", d.pre_carriage || "", "", "Place of Receipt by Pre-Carrier", d.place_of_receipt || ""], ["Vessel / Flight No.", d.vessel_flight || "", "", "Port of Loading", d.port_of_loading || ""],
+      ["Port of Discharge", d.port_of_discharge || "", "", "Final Destination", d.final_destination || ""], ["Terms of Delivery and Payment", d.terms || "", "", "Currency", cur], []];
+    const sheet = (rows, widths)=> { const ws = X.utils.aoa_to_sheet(rows); ws["!cols"] = widths.map(w=>({wch:w})); return ws; };
+    const sign = [[], ["For "+name], [], [withSign ? "Authorised Signatory (signed)" : "Authorised Signatory"]];
+    if(kind === "invoice" || kind === "both"){
+      const rows = top("INTERNATIONAL COMMERCIAL INVOICE").concat(head, [["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Amount"]],
+        c.lines.map((l, i)=>[i + 1, l.marks || "", l.description || "", l.hs || "", n(l.pkgs), n(l.qty), l.qty_unit || "", n(l._net), n(l._gross), n(l.rate), l._amt]),
+        [["", "", "TOTAL", "", t.pkgs, "", "", r3(t.net), r3(t.gross), "", r2(t.cif)], [], ["", "", "", "", "", "", "", "", "", "Freight", n(t.frt)], ["", "", "", "", "", "", "", "", "", "Insurance", n(t.ins)], ["", "", "", "", "", "", "", "", "", "FOB value", r2(t.fob)], ["", "", "", "", "", "", "", "", "", "Invoice value ("+cur+")", r2(t.cif)],
+          [], ["Amount in words: "+(DocKit.words ? DocKit.words(t.cif, cur) : "")], ["Declaration: "+DECL.join(" ")]], sign);
+      X.utils.book_append_sheet(wb, sheet(rows, [6, 18, 34, 12, 10, 10, 8, 12, 12, 12, 14]), "Invoice");
+    }
+    if(kind === "packing" || kind === "both"){
+      const rows = top("PACKING LIST").concat([["Exporter", ln(d.exporter), "", "Packing List No.", "PL/"+c.rec.invoice_no], ["Invoice No.", c.rec.invoice_no, "", "Date", H.dmy(c.rec.invoice_date)], ["Consignee", ln(d.consignee), "", "Buyer (if other than consignee)", ln(d.buyer || d.consignee)],
+        ["Country of Origin", d.origin_country || "", "", "Country of Destination", d.dest_country || ""], ["Shipment Mode / Flight", [d.pre_carriage, d.vessel_flight].filter(Boolean).join(" · "), "", "Port of Loading / Discharge", [d.port_of_loading, d.port_of_discharge].filter(Boolean).join(" / ")], []],
+        [["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Package Type", "Net Wt (kg)", "Gross Wt (kg)", "Dimensions"]],
+        c.lines.map((l, i)=>[i + 1, l.marks || "", l.description || "", l.hs || "", n(l.pkgs), l.pkg_unit || "", n(l._net), n(l._gross), l.dims || ""]),
+        [["", "", "TOTAL", "", t.pkgs, "", r3(t.net), r3(t.gross), ""], [], ["Shipping marks: "+(d.shipping_marks || d.package_range || "")], ["Remarks: "+(d.remarks || "")]], sign);
+      X.utils.book_append_sheet(wb, sheet(rows, [6, 18, 34, 12, 10, 14, 12, 12, 16]), "Packing List");
+    }
+    if(kind === "combined"){
+      const rows = top("INVOICE CUM PACKING LIST").concat(head, [["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Amount"]],
+        c.lines.map((l, i)=>[i + 1, l.marks || "", l.description || "", l.hs || "", n(l.pkgs), n(l.qty), l.qty_unit || "", n(l._net), n(l._gross), n(l.rate), l._amt]),
+        [["", "", "TOTAL", "", t.pkgs, "", "", r3(t.net), r3(t.gross), "", r2(t.cif)], [], ["Amount in words: "+(DocKit.words ? DocKit.words(t.cif, cur) : "")], ["Declaration: "+DECL.join(" ")]], sign);
+      X.utils.book_append_sheet(wb, sheet(rows, [6, 18, 34, 12, 10, 10, 8, 12, 12, 12, 14]), "Invoice cum Packing List");
+    }
+    return X.write(wb, {bookType:"xlsx", type:"array"});
+  }
+  const saveBlob = (blob, fname)=> { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
+  const fileName = (rec, kind, ext)=> (KIND_NAME[kind] + " " + rec.invoice_no).replace(/[^A-Za-z0-9 _.-]+/g, "-") + "." + ext;
+  window.ChaInvPl = {S, build, ctx, printDialog, makePdf, makeXlsx, open:()=>{ ensureScreen(); loadList(); }};
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", async e=>{
+    const b = e.target.closest("[data-ip], #ipNew, #ipSave, #ipExit, #ipPrint, #ipGet"); if(!b || !el("ipRoot") || !el("ipRoot").contains(b)) return;
+    if(b.id === "ipNew"){ formView(null); return; }
+    if(b.id === "ipExit"){ loadList(); return; }
+    if(b.id === "ipSave"){ await save(); return; }
+    if(b.id === "ipPrint"){ const r = await save(); if(r) printDialog(r); return; }
+    if(b.id === "ipGet"){ const jn = window.prompt("Job number to fill from (parties, route and cargo):", val("ip_job")); if(!jn) return;
+      try{ const r = await api("GET", "/api/cha/invoice-packing/from-job/"+encodeURIComponent(jn.trim())); const d = r.data; GEN.forEach(g=>{ if(d[g[0]] && el("ip_"+g[0])) el("ip_"+g[0]).value = d[g[0]]; }); el("ip_job").value = r.job_number; if((d.lines || []).length && !S.lines.some(l=>l.description)){ S.lines = d.lines; el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals(); } MK.util.say("Filled from the job", r.job_number); }
+      catch(err){ MK.util.say("Could not get the job", err.message, "warn"); } return; }
+    const a = (b.dataset.ip || "").split(":"), k = a[0], v = a[1];
+    if(k === "tab"){ S.tab = v; el("ipGeneral").style.display = v === "general" ? "" : "none"; el("ipCharge").style.display = v === "charge" ? "" : "none"; document.querySelectorAll('#ipRoot [data-ip^="tab:"]').forEach(x=> x.classList.toggle("on", x.dataset.ip === "tab:"+v)); e.preventDefault(); return; }
+    if(k === "add"){ S.lines.push({}); el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals(); return; }
+    if(k === "rm"){ e.preventDefault(); S.lines.splice(Number(v), 1); if(!S.lines.length) S.lines = [{}]; el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals(); return; }
+    if(k === "edit" || k === "print"){ try{ const r = await api("GET", "/api/cha/invoice-packing/"+v); if(k === "edit") formView(r); else printDialog(r); }catch(err){ MK.util.say("Could not open", err.message, "error"); } return; }
+    if(k === "del"){ if(!confirm("Delete this Invoice & Packing List?")) return; try{ await api("DELETE", "/api/cha/invoice-packing/"+v); MK.util.say("Deleted", ""); loadList(); }catch(err){ MK.util.say("Could not delete", err.message, "error"); } }
+  });
+  document.addEventListener("input", e=>{
+    const t = e.target; if(!t.closest || !el("ipRoot") || !el("ipRoot").contains(t)) return;
+    if(t.id === "ipSearch"){ clearTimeout(S.tm); S.tm = setTimeout(()=>{ S.q = t.value; loadList(); }, 350); return; }
+    if(t.dataset && t.dataset.ipl){ const [i, k] = t.dataset.ipl.split(":"); S.lines[Number(i)][k] = t.value; paintTotals(); return; }
+    if(/^ip_(addpct|frt|ins|curvalue|cur)$/.test(t.id)) paintTotals();
+  });
+  document.addEventListener("change", e=>{ const t = e.target; if(t.dataset && t.dataset.ipl && el("ipRoot") && el("ipRoot").contains(t)){ const [i, k] = t.dataset.ipl.split(":"); S.lines[Number(i)][k] = t.value; paintTotals(); } });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev.apply(this, arguments); if(screen === "cha-invpl"){ ensureScreen(); loadList(); } };
+  ensureScreen();
 })();
 </script>
 </body>

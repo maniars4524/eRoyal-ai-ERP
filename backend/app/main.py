@@ -40,6 +40,7 @@ from .crm_api import router as crm_router
 from .org_ext_api import router as org_ext_router
 from .jobs_lifecycle_api import router as jobs_lifecycle_router
 from .routing_api import router as routing_router
+from .cha_invpl_api import router as cha_invpl_router
 from .outdocs_api import router as outdocs_router
 from .notifications_api import router as notifications_router
 from .sequences_api import router as sequences_router
@@ -138,6 +139,7 @@ app.include_router(org_ext_router)
 app.include_router(jobs_lifecycle_router)
 app.include_router(routing_router)
 app.include_router(outdocs_router)
+app.include_router(cha_invpl_router)
 app.include_router(notifications_router)
 app.include_router(sequences_router)
 
