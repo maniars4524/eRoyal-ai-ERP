@@ -21,7 +21,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const ops = top("Operations"), svc = top("Logistics & Customs");
   const opsKids = kids(ops), svcKids = kids(svc);
   check("Operations holds All Jobs and Job / Shipment only", opsKids.join("|") === "All Jobs|Job / Shipment", opsKids.join("|"));
-  check("Logistics & Customs holds Booking, CHA, Transport and Warehouse", svcKids.join("|") === "Booking|CHA|Transport|Warehouse", svcKids.join("|"));
+  check("Logistics & Customs holds Booking, CHA, NVOCC, Transport and Warehouse", svcKids.join("|") === "Booking|CHA|NVOCC|Transport|Warehouse", svcKids.join("|"));
   const js = Array.from(ops.querySelectorAll(".tn-item")).find(x => x.querySelector(".tn-row .tn-label").textContent.trim() === "Job / Shipment");
   const jsKids = kids(js);
   check("Job / Shipment has Import, Export and Shipment Console (third, after Export)", jsKids.indexOf("Import") >= 0 && jsKids.indexOf("Export") === jsKids.indexOf("Import") + 1 && jsKids.indexOf("Shipment Console") === jsKids.indexOf("Export") + 1, jsKids.join("|"));

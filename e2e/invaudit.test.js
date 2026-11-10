@@ -30,7 +30,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   for (const e of detailless) {
     await page.evaluate(g => document.querySelector('.tn-row[data-go="' + g + '"]').click(), e.go); await sleep(1100);
     const r = await page.evaluate(g => { const s = document.getElementById("s-" + g); const t = s.innerText; return { on: s.classList.contains("on"), bc: document.getElementById("bc").innerText, title: document.title, junk: /undefined|\[object|NaN/.test(t), blank: t.trim().length < 20, onlyOne: document.querySelectorAll(".scr.on").length === 1 }; }, e.go);
-    if (!(r.on && r.onlyOne && !r.junk && !r.blank && /Inventory|Container Type|Masters/.test(r.bc) && /eSway ERP 2.0 — /.test(r.title))) bad.push(e.go + ":" + JSON.stringify(r));
+    if (!(r.on && r.onlyOne && !r.junk && !r.blank && /Inventory|Container Type|Masters|NVOCC/.test(r.bc) && /eSway ERP 2.0 — /.test(r.title))) bad.push(e.go + ":" + JSON.stringify(r));
   }
   check("every Inventory screen opens from the menu with a title, a breadcrumb and no undefined / [object / NaN text", bad.length === 0, bad.slice(0, 3).join(" ; "));
 
