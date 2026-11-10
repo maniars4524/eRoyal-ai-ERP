@@ -7542,7 +7542,7 @@ function jcFromServerRaw(l){
   return {id: jcRowSeq++, selected:false, drCr:l.dr_cr === "CR" ? "CR" : "DR", chargeName:l.charge_name, desc:l.description, uom:l.uom, qty:Number(l.qty), hsn:l.hsn || ((JC_CHARGE_MASTER.find(c=>c.name===l.charge_name) || {}).code || ""),
     buy:{ccy:l.buy.ccy, exch:Number(l.buy.exch), rate:Number(l.buy.rate), taxType:l.buy.tax_type, taxPct:Number(l.buy.tax_pct), vendor:l.buy.party},
     sell:{ccy:l.sell.ccy, exch:Number(l.sell.exch), rate:Number(l.sell.rate), taxType:l.sell.tax_type, taxPct:Number(l.sell.tax_pct), client:l.sell.party},
-    useVendor:l.buy.use_party, useClient:l.sell.use_party, qtyManual:!!l.qty_manual,
+    useVendor:l.buy.use_party, useClient:l.sell.use_party, qtyManual:!!l.qty_manual, pctBase:l.pct_base || null,
     breakup:(l.breakup || []).map(b=>({type:b.type, qty:Number(b.qty), sell:Number(b.sell), buy:Number(b.buy)}))};
 }
 /* a percentage line comes back as one unit at the calculated amount, the percentage kept beside it: the grid shows the percentage and remembers the amount */
@@ -7552,7 +7552,7 @@ function jcPercentFromServer(r, l){
 }
 function jcToServer(r){
   const n = v=> String(Number(v)||0);
-  return {dr_cr:r.drCr === "CR" ? "CR" : "DR", charge_name:r.chargeName||"", description:r.desc||"", uom:r.uom||"Per Shipment", qty:n(r.qty), qty_manual:!!r.qtyManual && JC_BASIS.indexOf(r.uom) > -1, hsn:r.hsn||"",
+  return {dr_cr:r.drCr === "CR" ? "CR" : "DR", charge_name:r.chargeName||"", description:r.desc||"", uom:r.uom||"Per Shipment", qty:n(r.qty), qty_manual:!!r.qtyManual && JC_BASIS.indexOf(r.uom) > -1, pct_base:r.uom === "% of Other Charges" ? (r.pctBase || null) : null, hsn:r.hsn||"",
     buy:{ccy:r.buy.ccy, exch:n(r.buy.exch), rate:n(r.buy.rate), tax_type:r.buy.taxType, tax_pct:n(r.buy.taxPct), party:r.buy.vendor||"", use_party:!!r.useVendor},
     sell:{ccy:r.sell.ccy, exch:n(r.sell.exch), rate:n(r.sell.rate), tax_type:r.sell.taxType, tax_pct:n(r.sell.taxPct), party:r.sell.client||"", use_party:!!r.useClient},
     breakup:(r.breakup || []).filter(b=>Number(b.qty) > 0).map(b=>({type:b.type||"", qty:n(b.qty), sell:n(b.sell), buy:n(b.buy)}))};
@@ -7689,16 +7689,35 @@ function jcSetField(id, path, value){
 
 /* ---- Basis on the job cost: the quantity and the percentage amounts come from the backend service (POST .../basis-calc) using the job's own measurements ---- */
 let jcBasisTimer = null, jcBasisSeq = 0; const jcBasisShown = new Set();
+/* "% of Other Charges": the user ticks which charges of the job (freight too: the air or sea freight amount) the percentage is taken from */
+function jcChooseBase(id){
+  const st = jcGetState(jcCurrentJob), r = st.rows.find(x=>x.id === Number(id)); if(!r) return;
+  const others = st.rows.filter(x=>x.id !== r.id && x.chargeName && JC_BASIS.indexOf(x.uom) !== 5 && JC_BASIS.indexOf(x.uom) !== 6);
+  if(!others.length){ if(window.toast) toast("No other charges yet", "Enter the other charges (freight and the rest) first, then choose which of them the percentage is taken from", "warn"); return; }
+  const have = r.pctBase || [];
+  const amt = x=>{ const c = jcRowCalc(x); return c.sellAmt || c.buyAmt || 0; };
+  openModal({title:"Which charges is the "+esc(r.chargeName || "")+" percentage taken from?", bodyHTML:'<div style="font-size:12px;color:var(--g6);margin-bottom:8px">Tick the charges of this job (for example the Air Freight or Sea Freight amount). The percentage is calculated on the total of the ticked charges, on the cost and on the sell side.</div>'+
+    others.map((x, i)=>'<label style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:0.5px solid var(--g1)"><input type="checkbox" data-jcpb="'+i+'"'+(have.indexOf(x.chargeName) > -1 ? " checked" : "")+'> <span style="flex:1">'+esc(x.chargeName)+'</span><span style="color:var(--g5);font-size:11.5px">'+esc(x.sell.ccy)+' '+jcFmtNum(amt(x))+'</span></label>').join(""),
+    footHTML:'<button class="btn btn-out" onclick="closeModal()">Cancel</button><button class="btn btn-pri" id="jcpbApply">Apply</button>'});
+  document.getElementById("jcpbApply").addEventListener("click", ()=>{
+    const names = Array.from(document.querySelectorAll("[data-jcpb]")).filter(c=>c.checked).map(c=>others[Number(c.dataset.jcpb)].chargeName);
+    if(!names.length){ if(window.toast) toast("Choose at least one charge", "Tick the charges the percentage is taken from", "warn"); return; }
+    r.pctBase = Array.from(new Set(names)); closeModal(); jcBasisPreview(true);
+  });
+}
+window.jcChooseBase = jcChooseBase;
+document.addEventListener("click", e=>{ const b = e.target.closest && e.target.closest("[data-jc-base]"); if(b){ e.preventDefault(); jcChooseBase(b.dataset.jcBase); } });
 function jcBasisAfterEdit(r, path){
   if(path === "qty" && JC_BASIS.indexOf(r.uom) > -1){ r.qtyManual = true; }
-  if(path === "uom"){ r.qtyManual = false; if(JC_BASIS.indexOf(r.uom) < 5 || JC_BASIS.indexOf(r.uom) > 6){ delete r.buy.pctAmt; delete r.sell.pctAmt; } }
+  if(path === "uom"){ r.qtyManual = false; if(JC_BASIS.indexOf(r.uom) < 5 || JC_BASIS.indexOf(r.uom) > 6){ delete r.buy.pctAmt; delete r.sell.pctAmt; }
+    if(r.uom !== "% of Other Charges") r.pctBase = null; else if(!(r.pctBase || []).length){ setTimeout(()=>jcChooseBase(r.id), 50); } }
   if(path === "uom" || path === "chargeName" || /\.(rate|ccy|exch)$/.test(path)) { clearTimeout(jcBasisTimer); jcBasisTimer = setTimeout(()=>jcBasisPreview(path === "uom"), 300); }
 }
 async function jcBasisPreview(explain){
   if(!jcCurrentJob || !jcTok()) return;
   const st = jcGetState(jcCurrentJob); const rows = st.rows; if(!rows.some(r=>JC_BASIS.indexOf(r.uom) > -1)) return;
   const my = ++jcBasisSeq, lines = [];
-  rows.forEach(r=>["BUY", "SELL"].forEach(side=>{ const k = side === "BUY" ? r.buy : r.sell; lines.push({id:r.id+":"+side, side, basis:(r.breakup || []).length ? "" : r.uom, rate:Number(k.rate) || 0, qty:(r.uom === "Per Shipment" && !r.qtyManual) ? 0 : (Number(r.qty) || 0), name:r.chargeName || "", ccy:k.ccy, exch:Number(k.exch) || 1}); }));
+  rows.forEach(r=>["BUY", "SELL"].forEach(side=>{ const k = side === "BUY" ? r.buy : r.sell; lines.push({id:r.id+":"+side, side, basis:(r.breakup || []).length ? "" : r.uom, rate:Number(k.rate) || 0, qty:(r.uom === "Per Shipment" && !r.qtyManual) ? 0 : (Number(r.qty) || 0), name:r.chargeName || "", include:r.uom === "% of Other Charges" ? (r.pctBase || null) : null, ccy:k.ccy, exch:Number(k.exch) || 1}); }));
   let res; try{ res = await jcApi("POST", "/api/shipments/by-number/"+encodeURIComponent(jcCurrentJob)+"/basis-calc", {lines}); }catch(e){ if(explain && window.toast) toast("Basis not calculated", e.message, "warn"); return; }
   if(my !== jcBasisSeq) return;
   const by = {}; res.lines.forEach(x=>{ by[x.id] = x; });
@@ -7816,7 +7835,7 @@ function jcRenderRows(){
         <button class="ta" title="Add new charge to master" data-jc-newcharge="${r.id}" style="flex-shrink:0;font-weight:700">+</button>
       </div></td>
       <td style="min-width:140px"><input class="fc" data-jc-f="desc" data-jc-id="${r.id}" value="${esc(r.desc)}" placeholder="Enter remarks" title="${esc(r.desc)}">${(r.breakup||[]).length ? `<div style="font-size:10.5px;color:var(--g6);margin-top:2px;line-height:1.35">${(r.breakup||[]).map(b=>esc(b.type||"Container")+" x"+b.qty+(Number(b.sell)>0?" · sell "+b.sell:"")+(Number(b.buy)>0?" · buy "+b.buy:"")).join("<br>")}</div>` : ""}</td>
-      <td><select class="fc" data-jc-f="uom" data-jc-id="${r.id}">${uomOpts}</select></td>
+      <td><select class="fc" data-jc-f="uom" data-jc-id="${r.id}">${uomOpts}</select>${r.uom==="% of Other Charges" ? `<div style="font-size:10.5px;margin-top:2px"><a href="#" data-jc-base="${r.id}" title="Choose the charges this percentage is taken from">${(r.pctBase||[]).length ? "Base: "+esc((r.pctBase||[]).join(", ")) : "Choose base charges"} ▾</a></div>` : ""}</td>
       <td><input class="fc" type="number" min="0" style="width:55px" data-jc-f="qty" data-jc-id="${r.id}" value="${r.qty}" ${(r.breakup||[]).length?"disabled title=\"Quantity comes from the container break-up\"":""}>${!airJob && (r.uom==="Per Container" || (r.breakup||[]).length) ? `<button class="btn btn-out btn-sm" style="margin-top:3px;white-space:nowrap" data-jc-bu="${r.id}" title="Container-wise break-up of this charge">Break-up${(r.breakup||[]).length ? " ("+r.breakup.length+")" : ""}</button>` : ""}</td>
 ${firstCells}${secondCells}
       <td class="mono"><input class="fc" style="width:72px" data-jc-f="hsn" data-jc-id="${r.id}" value="${esc(r.hsn)}" placeholder="HSN/SAC"></td>
