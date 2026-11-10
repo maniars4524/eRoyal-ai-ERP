@@ -22,7 +22,7 @@ def codes(h, j):
 
 
 def test_each_category_lists_its_own_reports_and_nothing_is_generated(h):
-    assert codes(h, mk(h, "Air", "Export")) == ["hawb", "mawb", "loading_confirmation", "pre_alert", "stuffing_report", "transshipment_confirmation", "export_declaration"]
+    assert codes(h, mk(h, "Air", "Export")) == ["hawb", "mawb", "loading_confirmation", "pre_alert", "stuffing_report", "transshipment_confirmation", "export_declaration", "air_cargo_manifest", "screening_letter", "security_declaration"]
     assert codes(h, mk(h, "Air", "Import")) == ["arrival_notice", "delivery_order", "destuffing_report", "pod", "air_manifest"]
     assert codes(h, mk(h, "Sea", "Export", "FCL")) == ["hbl", "mbl", "sailing_confirmation", "shipment_summary", "pl_report", "pre_alert"]
     assert codes(h, mk(h, "Sea", "Export", "LCL"))[-1] == "stuffing_report"

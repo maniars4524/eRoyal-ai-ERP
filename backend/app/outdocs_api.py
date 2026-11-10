@@ -27,7 +27,8 @@ R = lambda code, name, typ, optional=False, variants=(), restricted=False, lcl=F
 CATALOG = {
     ("Air", "Export"): [R("hawb", "HAWB / HAWBL", "Transport document"), R("mawb", "MAWB / MAWABL", "Transport document", optional=True), R("loading_confirmation", "Shipment Loading Confirmation", "Confirmation"),
                         R("pre_alert", "Pre-alert", "Notice"), R("stuffing_report", "Stuffing Report", "Operational", ops=True), R("transshipment_confirmation", "Transshipment Confirmation", "Confirmation"),
-                        R("export_declaration", "Export Declaration", "Statutory")],
+                        R("export_declaration", "Export Declaration", "Statutory"), R("air_cargo_manifest", "Air Cargo Manifest", "Manifest"), R("screening_letter", "Screening of Cargo Letter (to airline security)", "Letter"),
+                        R("security_declaration", "Cargo Security Declaration", "Statutory")],
     ("Air", "Import"): [R("arrival_notice", "Arrival Notice", "Notice"), R("delivery_order", "Delivery Order Preparation", "Release document"), R("destuffing_report", "Destuffing Report (Unloading)", "Operational", ops=True),
                         R("pod", "Proof of Delivery (POD)", "Operational", ops=True), R("air_manifest", "Air Manifest", "Manifest")],
     ("Sea", "Export"): [R("hbl", "HBL (House Bill of Lading)", "Transport document"), R("mbl", "MBL (Master Bill of Lading)", "Transport document", optional=True), R("sailing_confirmation", "Sailing Confirmation", "Confirmation"),
