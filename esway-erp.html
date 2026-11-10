@@ -3859,19 +3859,19 @@ tbody tr:hover{background:var(--g0)}
 <div class="g2">
   <div class="card" style="margin:0"><div class="ch" style="background:#17A6C4;color:#fff"><div class="ct" style="color:#fff">Customer</div></div><div class="cb">
     <div class="fg" style="margin-bottom:8px"><label class="fl">Customer <span class="r">*</span></label><select class="fc" id="bk_customer"><option value="">--Select Customer--</option></select></div>
-    <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_customerAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
+    <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_customerAddr" rows="3" readonly style="background:var(--g0)"></textarea><input type="hidden" id="bk_customerBranchId"></div>
   </div></div>
   <div class="card" style="margin:0"><div class="ch" style="background:#1FB6A8;color:#fff"><div class="ct" style="color:#fff">Shipper</div></div><div class="cb">
     <div class="fg" style="margin-bottom:8px"><label class="fl">Shipper</label><select class="fc" id="bk_shipper"><option value="">--Select Shipper--</option></select></div>
-    <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_shipperAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
+    <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_shipperAddr" rows="3" readonly style="background:var(--g0)"></textarea><input type="hidden" id="bk_shipperBranchId"></div>
   </div></div>
   <div class="card" style="margin:0"><div class="ch" style="background:#3FAE6A;color:#fff"><div class="ct" style="color:#fff">Consignee</div></div><div class="cb">
     <div class="fg" style="margin-bottom:8px"><label class="fl">Consignee</label><select class="fc" id="bk_consignee"><option value="">--Select Consignee--</option></select></div>
-    <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_consigneeAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
+    <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_consigneeAddr" rows="3" readonly style="background:var(--g0)"></textarea><input type="hidden" id="bk_consigneeBranchId"></div>
   </div></div>
   <div class="card" style="margin:0"><div class="ch" style="background:#C7C233;color:#fff"><div class="ct" style="color:#fff">Notify</div></div><div class="cb">
     <div class="fg" style="margin-bottom:8px"><label class="fl">Notify</label><select class="fc" id="bk_notify"><option value="">--Select Notify--</option><option>Same as Consignee</option></select></div>
-    <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_notifyAddr" rows="3" readonly style="background:var(--g0)"></textarea></div>
+    <div class="fg"><label class="fl">Address</label><textarea class="fc" id="bk_notifyAddr" rows="3" readonly style="background:var(--g0)"></textarea><input type="hidden" id="bk_notifyBranchId"></div>
   </div></div>
 </div>
 </div>
@@ -17701,7 +17701,7 @@ if(document.readyState !== "loading") initChatWidget();
     ["bk_bookdate","booking_date","col"], ["bk_carrier","carrier","col"], ["bk_carrierref","carrier_booking_no","col"], ["bk_vessel","vessel","col"], ["bk_pol","pol","col"], ["bk_pod","pod","col"],
     ["bk_etd","etd","col"], ["bk_eta","eta","col"], ["bk_sicutoff","si_cutoff","col"], ["bk_vgmcutoff","vgm_cutoff","col"],
     ["bk_brn","branch","data"], ["bk_freightpp","freight_pp","data"], ["bk_svctype","service_type","data"], ["bk_por","place_of_receipt","data"], ["bk_pod2","place_of_delivery","data"], ["bk_marks","marks","data"], ["bk_notes","notes","data"],
-    ["bk_customerAddr","customer_address","data"], ["bk_shipper","shipper","data"], ["bk_shipperAddr","shipper_address","data"], ["bk_consignee","consignee","data"], ["bk_consigneeAddr","consignee_address","data"], ["bk_notify","notify","data"], ["bk_notifyAddr","notify_address","data"],
+    ["bk_customerAddr","customer_address","data"], ["bk_customerBranchId","customer_branch","data"], ["bk_shipper","shipper","data"], ["bk_shipperAddr","shipper_address","data"], ["bk_shipperBranchId","shipper_branch","data"], ["bk_consignee","consignee","data"], ["bk_consigneeAddr","consignee_address","data"], ["bk_consigneeBranchId","consignee_branch","data"], ["bk_notifyBranchId","notify_branch","data"], ["bk_notify","notify","data"], ["bk_notifyAddr","notify_address","data"],
     ["bk_iata","iata_agent","data"], ["bk_stock","stock_line","data"], ["bk_cfs","cfs","data"], ["bk_pcs","pcs","data"], ["bk_packtype","pack_type","data"], ["bk_conttype","container_type","data"], ["bk_contno","container_no","data"], ["bk_pallet","pallet","data"], ["bk_qty","container_qty","data"], ["bk_teu","teu","data"],
     ["bk_chgwt","chargeable_weight","data"], ["bk_uld","uld_type","data"], ["bk_vehicle","vehicle_type","data"], ["bk_vehqty","vehicle_qty","data"],
     ["bk_gwt","gwt","data"], ["bk_gwtunit","gwt_unit","data"], ["bk_nwt","nwt","data"], ["bk_nwtunit","nwt_unit","data"], ["bk_vwt","vwt","data"], ["bk_vwtunit","vwt_unit","data"], ["bk_vol","volume","data"], ["bk_chgunit","chargeable_unit","data"],
@@ -17775,10 +17775,11 @@ if(document.readyState !== "loading") initChatWidget();
   const PARTY = {customer:{sel:"bk_customer", addr:"bk_customerAddr"}, shipper:{sel:"bk_shipper", addr:"bk_shipperAddr"}, consignee:{sel:"bk_consignee", addr:"bk_consigneeAddr"}, notify:{sel:"bk_notify", addr:"bk_notifyAddr"}};
   async function fillAddress(key, customer, branchId){
     const cfg = PARTY[key]; const area = el(cfg.addr); if(!area) return;
-    if(!customer){ area.value = ""; const old = el("bk_"+key+"Branch"); if(old) old.remove(); return; }
+    if(!customer){ area.value = ""; const hid0 = el("bk_"+key+"BranchId"); if(hid0) hid0.value = ""; const old = el("bk_"+key+"Branch"); if(old) old.remove(); return; }
     const rows = await branchesOf(customer.id);
     const head = rows.find(b=>String(b.id) === String(branchId)) || rows.find(b=>/head|regist|corporate|primary/i.test(b.branch_type || "")) || rows[0];
     area.value = head ? branchText(customer, head) : masterText(customer);
+    { const hid = el("bk_"+key+"BranchId"); if(hid) hid.value = head ? String(head.id) : ""; }
     let pick = el("bk_"+key+"Branch");
     if(rows.length > 1){
       if(!pick){ pick = document.createElement("select"); pick.className = "fc"; pick.id = "bk_"+key+"Branch"; pick.style.marginBottom = "6px"; pick.dataset.party = key; area.parentNode.insertBefore(pick, area); }
@@ -17789,7 +17790,7 @@ if(document.readyState !== "loading") initChatWidget();
   const clientBy = (key, v)=> key === "customer" ? BKG.m.clients.find(c=>String(c.id) === String(v)) : BKG.m.clients.find(c=>c.name === v);
   document.addEventListener("change", async e=>{
     const t = e.target; if(!t.closest || !t.closest("#s-booking-new")) return;
-    if(t.dataset && t.dataset.party){ const c = BKG.m.clients.find(x=>String(x.id) === t.dataset.cust); const b = (BKG.branches[t.dataset.cust] || []).find(x=>String(x.id) === t.value); if(c && b) el(PARTY[t.dataset.party].addr).value = branchText(c, b); return; }
+    if(t.dataset && t.dataset.party){ const c = BKG.m.clients.find(x=>String(x.id) === t.dataset.cust); const b = (BKG.branches[t.dataset.cust] || []).find(x=>String(x.id) === t.value); if(c && b){ el(PARTY[t.dataset.party].addr).value = branchText(c, b); const hid = el("bk_"+t.dataset.party+"BranchId"); if(hid){ hid.value = String(b.id); hid.dispatchEvent(new Event("input", {bubbles:true})); } } return; }
     if(t.id === "bk_customer"){
       const c = clientBy("customer", t.value); await fillAddress("customer", c);
       if(c && !el("bk_shipper").value && (c.roles||[]).includes("shipper")){ setVal("bk_shipper", c.name); await fillAddress("shipper", c); }
@@ -17800,11 +17801,11 @@ if(document.readyState !== "loading") initChatWidget();
   });
   async function refreshAddresses(rec){
     const d = rec.data || {};
-    const c = clientBy("customer", rec.customer_id); if(c && !d.customer_address) await fillAddress("customer", c);
-    const s = clientBy("shipper", d.shipper); if(s && !d.shipper_address) await fillAddress("shipper", s);
-    const k = clientBy("consignee", d.consignee); if(k && !d.consignee_address) await fillAddress("consignee", k);
+    const c = clientBy("customer", rec.customer_id); if(c && (!d.customer_address || d.customer_branch)) await fillAddress("customer", c, d.customer_branch);
+    const s = clientBy("shipper", d.shipper); if(s && (!d.shipper_address || d.shipper_branch)) await fillAddress("shipper", s, d.shipper_branch);
+    const k = clientBy("consignee", d.consignee); if(k && (!d.consignee_address || d.consignee_branch)) await fillAddress("consignee", k, d.consignee_branch);
     if(d.notify === "Same as Consignee" && !d.notify_address) el("bk_notifyAddr").value = el("bk_consigneeAddr").value;
-    else { const n = clientBy("notify", d.notify); if(n && !d.notify_address) await fillAddress("notify", n); }
+    else { const n = clientBy("notify", d.notify); if(n && (!d.notify_address || d.notify_branch)) await fillAddress("notify", n, d.notify_branch); }
   }
 
   /* ---------- costing: what the quotation approved, with the vendor for every buy charge ---------- */
@@ -25577,7 +25578,7 @@ body.job-readonly #jlBanner{display:flex}
   const note = t=> '<div style="padding:7px 10px;font-size:10px;line-height:1.5;min-height:26px">'+(t ? esc(t).replace(/\n/g, "<br>") : '<span style="color:#8896ab">—</span>')+'</div>';
   const partyBox = (t, txt)=> sec(t, '<div style="padding:7px 10px;font-size:10px;line-height:1.45;min-height:34px"><b>'+esc(lines(txt)[0] || "")+'</b>'+(lines(txt).length > 1 ? "<br>"+lines(txt).slice(1).map(esc).join("<br>") : "")+'</div>');
   function signBlock(c){
-    const P = c.P || {}, imgs = c.sign === false ? "" : (P.sign_image ? '<img class="od-simg" src="'+P.sign_image+'" style="max-height:54px;max-width:150px">' : "")+(P.seal_image ? '<img class="od-simg" src="'+P.seal_image+'" style="max-height:62px;max-width:90px;margin-left:8px">' : "");
+    const P = c.P || {}, imgs = (c.sign !== false && P.sign_image ? '<img class="od-simg" src="'+P.sign_image+'" style="max-height:54px;max-width:150px">' : "")+(c.seal !== false && P.seal_image ? '<img class="od-simg" src="'+P.seal_image+'" style="max-height:62px;max-width:90px;margin-left:8px">' : "");
     return '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;border-top:1px solid '+LINE+';padding-top:8px;font-size:9.5px"><div style="line-height:1.8"><div><b>Generated On</b> : '+esc(dt(c.now))+'</div><div><b>Generated By</b> : '+esc(c.by)+'</div></div>'+
       '<div style="text-align:center;min-width:210px"><div style="font-weight:700">For '+esc(P.legal_name || c.co.name || "")+'</div><div style="min-height:58px;margin:2px 0">'+imgs+'</div><div style="border-top:1px solid #333;padding-top:2px;font-weight:700">Authorized Signatory</div></div></div>'; }
   function paginateMulti(c, title, blocks){
@@ -25692,7 +25693,7 @@ body.job-readonly #jlBanner{display:flex}
   const letterFoot = c=> { const P = c.P || {}; const cont = [P.mobile ? "Mobile: "+esc(P.mobile) : "", P.phone ? "Telephone: "+esc(P.phone) : "", P.email ? "Email: "+esc(P.email) : "", P.web ? "URL: "+esc(P.web) : ""].filter(Boolean).join(" &nbsp; ");
     return '<div style="position:absolute;left:0;right:0;bottom:34px;text-align:center;border-top:1px solid #999;padding-top:6px"><div style="font-size:15px;font-weight:700;letter-spacing:.3px">'+esc(P.legal_name || c.co.name || "")+'</div><div style="font-size:8.5px;line-height:1.4">'+nl2br(P.address || "")+'</div><div style="font-size:8.5px">'+cont+'</div></div>'; };
   const logoTop = c=> '<div style="min-height:70px">'+(c.co.logo ? '<img src="'+c.co.logo+'" style="max-height:64px;max-width:150px;object-fit:contain">' : "")+'</div>';
-  const signImgs = c=> c.sign === false ? "" : (((c.P || {}).sign_image ? '<img class="od-simg" src="'+c.P.sign_image+'" style="max-height:54px;max-width:150px">' : "")+((c.P || {}).seal_image ? '<img class="od-simg" src="'+c.P.seal_image+'" style="max-height:62px;max-width:90px;margin-left:8px">' : ""));
+  const signImgs = c=> ((c.sign !== false && (c.P || {}).sign_image) ? '<img class="od-simg" src="'+c.P.sign_image+'" style="max-height:54px;max-width:150px">' : "")+((c.seal !== false && (c.P || {}).seal_image) ? '<img class="od-simg" src="'+c.P.seal_image+'" style="max-height:62px;max-width:90px;margin-left:8px">' : "");
   R.air_cargo_manifest = {need:c=> miss(["Shipper", nm(parties(c).shipper)], ["Consignee", nm(parties(c).consignee)], ["Master AWB number (BL / AWB tab)", c.f.mbl]),
     build:c=> { const th = (t, al)=> '<th style="padding:7px 8px;text-align:'+(al || "center")+';font-weight:400;font-size:11px">'+t+'</th>', td = (t, al)=> '<td style="padding:6px 8px;text-align:'+(al || "left")+';vertical-align:top;font-size:11px">'+t+'</td>';
       const kv = (k, v)=> '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:9px;font-size:11px"><span style="min-width:120px;text-align:right">'+esc(k)+'</span><span>:</span><b style="min-width:150px">'+esc(v || "")+'</b></div>';
@@ -25785,13 +25786,13 @@ body.job-readonly #jlBanner{display:flex}
     return new Promise(resolve=>{
       const fields = spec.inputs || []; if(!fields.length && !spec.std){ resolve({}); return; }
       const body = fields.map(f=>{ const val = esc((prior || {})[f.k] || ""); const ctl = f.type === "textarea" ? '<textarea class="fc" rows="3" data-od-in="'+f.k+'">'+val+'</textarea>' : '<input class="fc" '+(f.type ? 'type="'+f.type+'" ' : "")+(f.type === "number" ? 'min="0" ' : "")+'data-od-in="'+f.k+'" value="'+val+'">';
-        return '<div class="fg"><label class="fl">'+esc(f.label)+(f.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+'</div>'; }).join("")+(spec.std ? '<label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12.5px"><input type="checkbox" data-od-sign'+((prior || {}).sign === false ? "" : " checked")+'> Print with signature and seal <span style="color:var(--g5);font-size:11px">(untick to leave room for a wet signature)</span></label>' : "");
+        return '<div class="fg"><label class="fl">'+esc(f.label)+(f.req ? ' <span class="r">*</span>' : "")+'</label>'+ctl+'</div>'; }).join("")+(spec.std ? '<label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12.5px"><input type="checkbox" data-od-sign'+((prior || {}).sign === false ? "" : " checked")+'> Print with signature</label><label style="display:flex;gap:8px;align-items:center;margin-top:4px;font-size:12.5px"><input type="checkbox" data-od-seal'+((prior || {}).seal === false ? "" : " checked")+'> Print with seal <span style="color:var(--g5);font-size:11px">(untick to leave room for a wet signature / stamp)</span></label>' : "");
       let done = false;
       openModal({title:rep.name, size:"sm", bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">'+(rep.ops ? "Enter or confirm the actual details for this report." : "Add anything you want on the report.")+'</div>'+body, footHTML:'<button class="btn btn-out" type="button" id="odInCancel">Cancel</button><button class="btn btn-pri" type="button" id="odInGo">Generate</button>'});
       document.getElementById("odInCancel").addEventListener("click", ()=>{ done = true; closeModal(); resolve(null); });
       document.getElementById("odInGo").addEventListener("click", ()=>{
         const v = {}; document.querySelectorAll("[data-od-in]").forEach(e=>{ v[e.dataset.odIn] = e.value.trim(); });
-        const sg = document.querySelector("[data-od-sign]"); if(sg) v.sign = sg.checked;
+        const sg = document.querySelector("[data-od-sign]"); if(sg) v.sign = sg.checked; const sl = document.querySelector("[data-od-seal]"); if(sl) v.seal = sl.checked;
         const bad = fields.filter(f=> f.req && !v[f.k]).map(f=> f.label); if(bad.length){ say("Missing information", bad.join(", "), "warn"); return; }
         done = true; closeModal(); resolve(v);
       });
@@ -25844,7 +25845,7 @@ body.job-readonly #jlBanner{display:flex}
       if(code === "can"){ const a = await askCan(rep, c, variant); if(!a) return; variant = a.variant; inp = variant === "with_rates" ? {charges:a.charges} : {}; }
       else { let prior = {}; const g = rep.generated[variant]; if(g && (spec.inputs || spec.std)){ try{ prior = (await api("GET", "/api/jobs/"+enc(O.job)+"/outdocs/"+g.id)).inputs || {}; }catch(e){} }
         inp = await askInputs(rep, spec, prior); if(inp === null) return; }
-      c.sign = inp.sign !== false;
+      c.sign = inp.sign !== false; c.seal = inp.seal !== false;
       if(variant === "with_rates" && code === "shipment_summary") c.charges = await api("GET", "/api/shipments/by-number/"+enc(O.job)+"/charges");
       let out = await spec.build(c, inp, variant), html = out, title = rep.name+" "+O.job;
       if(out && typeof out === "object"){ html = out.html; title = out.title || title; }
@@ -26113,7 +26114,7 @@ body.job-readonly #jlBanner{display:flex}
   function listView(){
     const root = el("ipRoot"); if(!root) return;
     root.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Invoice &amp; Packing List</div><div class="ps">Commercial invoice and packing list prepared by the CHA on behalf of the shipper</div></div>'+
-      '<div class="pa"><input class="fc" id="ipSearch" placeholder="Search invoice no, exporter, consignee, job" style="width:260px" value="'+esc(S.q)+'"><button class="btn btn-pri btn-sm" id="ipNew"><svg class="ic" data-icon="plus"></svg> New</button></div></div>'+
+      '<div class="pa"><input class="fc" id="ipSearch" placeholder="Search invoice no, exporter, consignee, job" style="width:260px" value="'+esc(S.q)+'"><button class="btn btn-out btn-sm" id="ipTpl" title="Download the Excel template, fill it and import it">Excel Template</button><button class="btn btn-out btn-sm" id="ipImp" title="Create a new Invoice & Packing List from an Excel or PDF file">Import Excel / PDF</button><input type="file" id="ipFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none"><button class="btn btn-pri btn-sm" id="ipNew"><svg class="ic" data-icon="plus"></svg> New</button></div></div>'+
       '<div class="card"><div class="tw"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Exporter</th><th>Consignee</th><th>Job</th><th>Currency</th><th style="text-align:right">Invoice value</th><th></th></tr></thead><tbody id="ipRows">'+
       (S.list.length ? S.list.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc(r.invoice_no)+'</td><td>'+esc(H.dmy(r.invoice_date))+'</td><td>'+esc(r.exporter)+'</td><td>'+esc(r.consignee)+'</td><td class="mono">'+esc(r.job_number || "")+'</td><td>'+esc(r.currency)+'</td><td style="text-align:right">'+esc(H.fmt(r.total, 2))+'</td>'+
         '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-ip="edit:'+r.id+'">Edit</button> <button class="btn btn-out btn-sm" data-ip="print:'+r.id+'">Print</button> <button class="btn btn-out btn-sm" data-ip="del:'+r.id+'">Delete</button></td></tr>').join("")
@@ -26125,8 +26126,8 @@ body.job-readonly #jlBanner{display:flex}
     const f = (k, w, extra)=> '<input class="fc" data-ipl="'+i+':'+k+'" value="'+esc(l[k] == null ? "" : l[k])+'" style="width:'+w+'px"'+(extra || "")+'>';
     const u = (k, list)=> '<select class="fc" data-ipl="'+i+':'+k+'" style="width:78px">'+list.map(x=>'<option'+(x === (l[k] || list[0]) ? " selected" : "")+'>'+x+'</option>').join("")+'</select>';
     const c = lineCalc(l);
-    return '<tr><td>'+(i + 1)+'</td><td>'+f("marks", 90)+'</td><td>'+f("pkgs", 56)+'</td><td>'+u("pkg_unit", UNITS_PK)+'</td><td>'+f("description", 190)+'</td><td>'+f("hs", 80)+'</td><td>'+f("qty", 64)+'</td><td>'+u("qty_unit", UNITS_Q)+'</td><td>'+f("box", 48)+'</td><td>'+u("box_unit", UNITS_B)+'</td>'+
-      '<td><b data-ipc="'+i+':net">'+H.fmt(c.net, 2)+'</b></td><td>'+f("spl", 60)+'</td><td data-ipc="'+i+':gross">'+H.fmt(c.gross, 2)+'</td><td>'+f("dims", 90)+'</td><td>'+f("rate", 70)+'</td><td><b data-ipc="'+i+':amt">'+H.fmt(c.amount, 2)+'</b></td><td><a href="#" data-ip="rm:'+i+'">Del</a></td></tr>';
+    return '<tr><td class="ip-del"><button type="button" class="ip-x" data-ip="rm:'+i+'" title="Delete this item">&#10005;</button></td><td>'+(i + 1)+'</td><td>'+f("marks", 90)+'</td><td>'+f("pkgs", 56)+'</td><td>'+u("pkg_unit", UNITS_PK)+'</td><td>'+f("description", 190)+'</td><td>'+f("hs", 80)+'</td><td>'+f("qty", 64)+'</td><td>'+u("qty_unit", UNITS_Q)+'</td><td>'+f("box", 48)+'</td><td>'+u("box_unit", UNITS_B)+'</td>'+
+      '<td><b data-ipc="'+i+':net">'+H.fmt(c.net, 2)+'</b></td><td>'+f("spl", 60)+'</td><td data-ipc="'+i+':gross">'+H.fmt(c.gross, 2)+'</td><td>'+f("dims", 90)+'</td><td>'+f("rate", 70)+'</td><td><b data-ipc="'+i+':amt">'+H.fmt(c.amount, 2)+'</b></td></tr>';
   }
   /* net = the weight typed (or the quantity when the quantity is in KG); gross = net + the common additional % + the special additional; amount = quantity x rate */
   function lineCalc(l){
@@ -26146,35 +26147,76 @@ body.job-readonly #jlBanner{display:flex}
     set("ip_words", DocKit.words ? DocKit.words(t.cif, val("ip_cur") || "USD") : "");
     S.lines.forEach((l, i)=>{ const c = lineCalc(l); [["net", c.net], ["gross", c.gross], ["amt", c.amount]].forEach(([k, v])=>{ const n = document.querySelector('[data-ipc="'+i+':'+k+'"]'); if(n) n.textContent = H.fmt(v, k === "amt" ? 2 : 2); }); });
   }
+  const STYLE = '.ip-wrap{background:linear-gradient(135deg,#e8f2fd,#f8fbff 60%,#eaf3fc);border:1.5px solid #8fbbe8;border-radius:14px;overflow:hidden;box-shadow:0 6px 22px rgba(10,60,120,.10)}'+
+    '.ip-tabs{background:linear-gradient(90deg,#052f66,#0a5db5 70%,#1c7fd6);padding:6px 12px 0;display:flex;gap:6px}.ip-tabs button{background:transparent;color:#d4e6fb;border:0;padding:11px 24px;font:700 14px inherit;cursor:pointer;border-radius:10px 10px 0 0}.ip-tabs button.on{background:#e8f2fd;color:#052f66}'+
+    '.ip-top{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 22px;padding:16px 22px 6px}.ip-top .fg{margin:0}'+
+    '.ip-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 38px;padding:18px 22px 22px}'+
+    '.ip-f{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:start}.ip-f>label{font-weight:700;color:#0a2a52;padding-top:9px;font-size:13px;line-height:1.25}'+
+    '.ip-wrap .fc{border:1.5px solid #4a90d9;border-radius:8px;background:#fbfdff;font-size:13px}.ip-wrap textarea.fc{resize:vertical}.ip-wrap .fc:focus{outline:0;border-color:#0a5db5;box-shadow:0 0 0 3px rgba(10,93,181,.15)}'+
+    '.ip-sec{grid-column:1 / -1;font-weight:800;color:#052f66;font-size:12px;letter-spacing:.6px;text-transform:uppercase;border-bottom:2px solid #b9d6f3;padding-bottom:4px;margin-top:4px}'+
+    '.ip-nums{display:flex;gap:14px;align-items:center;font-size:12px;margin-bottom:4px;color:#0a2a52}.ip-nums label{display:flex;gap:5px;align-items:center;font-weight:600}'+
+    '.ip-items td,.ip-items th{padding:5px 4px;white-space:nowrap}.ip-del{width:34px;position:sticky;left:0;background:#fff}.ip-x{border:0;background:#fde8e8;color:#b91c1c;border-radius:6px;width:26px;height:26px;cursor:pointer;font-weight:700}.ip-x:hover{background:#b91c1c;color:#fff}'+
+    '.ip-links{display:flex;gap:6px;align-items:center;font-size:11.5px;color:#52627d}.ip-links button{padding:3px 9px}'+
+    '#ipFull{position:fixed;inset:0;z-index:99999;background:#525659;overflow:auto}#ipFull .bar{position:sticky;top:0;background:#202124;color:#fff;display:flex;gap:10px;align-items:center;padding:8px 16px;z-index:2}#ipFull .bar b{flex:1}#ipFull .pgs{display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 0 40px}';
+  const partyBlock = (key, label)=> '<div class="ip-f"><label>'+label+'</label><div><input class="fc" list="ipPartyList" data-ipp="'+key+'" placeholder="Select from the Party Master, or type" autocomplete="off"><select class="fc" data-ipb="'+key+'" style="display:none;margin-top:6px" title="Branch / location of this party"></select><textarea class="fc" id="ip_'+key+'" rows="4" style="margin-top:6px" placeholder="Name and address"></textarea></div></div>';
   function formView(rec){
     S.rec = rec || null; const d = (rec && rec.data) || {}; S.lines = (d.lines || []).map(x=>Object.assign({}, x)); if(!S.lines.length) S.lines = [{}];
-    S.addpct = d.add_pct == null ? "2" : d.add_pct; S.tab = "general";
+    S.addpct = d.add_pct == null ? "2" : d.add_pct; S.tab = "general"; S.auto = !rec;
     const root = el("ipRoot"), inp = (id, v, extra)=> '<input class="fc" id="'+id+'" value="'+esc(v == null ? "" : v)+'" '+(extra || "")+'>';
-    root.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Packing List &amp; Invoice</div><div class="ps">'+(rec ? "Edit "+esc(rec.invoice_no) : "New — prepared on behalf of the shipper")+'</div></div>'+
-      '<div class="pa"><button class="btn btn-out btn-sm" id="ipGet" title="Fill the parties, route and cargo from a job">Get Bill</button><button class="btn btn-out btn-sm" id="ipExit">Exit</button><button class="btn btn-out btn-sm" id="ipPrint">Print…</button><button class="btn btn-pri btn-sm" id="ipSave"><svg class="ic" data-icon="check"></svg> Save</button></div></div>'+
-      '<div class="card"><div class="cb"><div class="fr"><div class="fg"><label class="fl">Invoice No <span class="r">*</span></label>'+inp("ip_no", rec && rec.invoice_no)+'</div><div class="fg"><label class="fl">Invoice Date</label>'+inp("ip_date", rec && rec.invoice_date || new Date().toISOString().slice(0, 10), 'type="date"')+'</div>'+
-        '<div class="fg"><label class="fl">Exporter\'s Ref. (IEC / PAN)</label>'+inp("ip_exref", d.exporter_ref)+'</div><div class="fg"><label class="fl">Buyer Order No &amp; Date</label>'+inp("ip_buyord", d.buyer_order)+'</div></div>'+
-        '<div class="fr"><div class="fg"><label class="fl">Other References</label>'+inp("ip_otherref", d.other_ref)+'</div><div class="fg"><label class="fl">Invoice Name</label>'+inp("ip_invname", d.invoice_name)+'</div><div class="fg"><label class="fl">Job (optional)</label>'+inp("ip_job", rec && rec.job_number || "", 'placeholder="e.g. AIREXP-26-000001"')+'</div></div></div></div>'+
-      '<div class="tabs" style="margin:8px 0"><button class="tbb on" data-ip="tab:general">General</button><button class="tbb" data-ip="tab:charge">Charge details</button></div>'+
-      '<div class="card" id="ipGeneral"><div class="cb"><div class="fr" style="flex-wrap:wrap">'+GEN.map(g=>'<div class="fg" style="min-width:300px;flex:1 1 45%"><label class="fl">'+g[1]+'</label>'+(g[2] === "area" ? '<textarea class="fc" id="ip_'+g[0]+'" rows="3">'+esc(d[g[0]] || "")+'</textarea>' : inp("ip_"+g[0], d[g[0]]))+'</div>').join("")+'</div></div></div>'+
-      '<div class="card" id="ipCharge" style="display:none"><div class="cb"><div class="fr"><div class="fg"><label class="fl">Currency</label>'+inp("ip_cur", d.currency || "USD", 'maxlength="3" style="text-transform:uppercase;width:90px"')+'</div><div class="fg"><label class="fl">Cur. value (1 unit = Rs.)</label>'+inp("ip_curvalue", d.cur_value, 'type="number" step="0.0001"')+'</div><div class="fg"><label class="fl">Net wt common additional %</label>'+inp("ip_addpct", S.addpct, 'type="number" step="0.01"')+'</div></div>'+
-        '<div class="tw"><table><thead><tr><th>S.No</th><th>Marks &amp; Nos</th><th>Pkgs</th><th>Unit</th><th>Description</th><th>HS code</th><th>Qty</th><th>Unit</th><th>Box</th><th>Unit</th><th>NT.wt</th><th>Spl. additional</th><th>GR.wt</th><th>Dimensions</th><th>Rate</th><th>Amount</th><th></th></tr></thead><tbody id="ipLines">'+S.lines.map(lineRow).join("")+'</tbody></table></div>'+
-        '<div style="margin:6px 0"><button class="btn btn-out btn-sm" data-ip="add">Add New</button></div>'+
+    const txtf = (id, label, key, list, ph)=> '<div class="ip-f"><label>'+label+'</label><input class="fc" id="ip_'+id+'" value="'+esc(d[key || id] || "")+'"'+(list ? ' list="'+list+'"' : "")+(list === "ipPorts" ? ' data-ipport="1"' : "")+' placeholder="'+esc(ph || "")+'" autocomplete="off"></div>';
+    root.innerHTML = '<datalist id="ipPartyList"></datalist><datalist id="ipPorts"></datalist><datalist id="ipCountries"></datalist><datalist id="ipCarriage"><option>AIR</option><option>SEA</option><option>ROAD</option><option>RAIL</option></datalist>'+
+      '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Commercial Invoice &amp; Packing List</div><div class="ps">'+(rec ? "Edit "+esc(rec.invoice_no) : "New — prepared on behalf of the shipper")+'</div></div>'+
+      '<div class="pa"><span class="ip-links">Masters: <button class="btn btn-out btn-sm" type="button" data-go="org-list">Party Master</button><button class="btn btn-out btn-sm" type="button" data-go="port-master">Port Master</button><button class="btn btn-out btn-sm" type="button" data-go="country-master">Country Master</button></span>'+
+      '<button class="btn btn-out btn-sm" id="ipGet" title="Fill the parties, route and cargo from a job">Get Bill</button><button class="btn btn-out btn-sm" id="ipTpl">Excel Template</button><button class="btn btn-out btn-sm" id="ipImp">Import Excel / PDF</button><input type="file" id="ipFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none"><button class="btn btn-out btn-sm" id="ipExit">Exit</button><button class="btn btn-out btn-sm" id="ipPrint">Print / Download…</button><button class="btn btn-pri btn-sm" id="ipSave"><svg class="ic" data-icon="check"></svg> Save</button></div></div>'+
+      '<div class="ip-wrap"><div class="ip-top"><div class="fg"><label class="fl">Invoice No &amp; Date <span class="r">*</span></label><div class="ip-nums"><label><input type="radio" name="ipNoMode" value="auto"'+(S.auto ? " checked" : "")+'> Auto</label><label><input type="radio" name="ipNoMode" value="manual"'+(S.auto ? "" : " checked")+'> Manual</label></div><div style="display:flex;gap:6px">'+inp("ip_no", rec && rec.invoice_no, (S.auto ? 'readonly placeholder="Assigned when saved"' : 'placeholder="Type the invoice number"')+' style="flex:2"')+inp("ip_date", rec && rec.invoice_date || new Date().toISOString().slice(0, 10), 'type="date" style="flex:1.2"')+'</div></div>'+
+        '<div class="fg"><label class="fl">Exporter\'s Ref. (IEC / PAN)</label>'+inp("ip_exref", d.exporter_ref)+'</div><div class="fg"><label class="fl">Buyer Order No &amp; Date</label>'+inp("ip_buyord", d.buyer_order)+'</div><div class="fg"><label class="fl">Other References</label>'+inp("ip_otherref", d.other_ref)+'</div>'+
+        '<div class="fg"><label class="fl">Invoice Name</label>'+inp("ip_invname", d.invoice_name)+'</div><div class="fg"><label class="fl">Job (optional)</label>'+inp("ip_job", rec && rec.job_number || "", 'placeholder="e.g. AIREXP-26-000001"')+'</div></div>'+
+      '<div class="ip-tabs"><button type="button" class="on" data-ip="tab:general">General</button><button type="button" data-ip="tab:charge">Charge details</button></div>'+
+      '<div id="ipGeneral"><div class="ip-grid"><div class="ip-sec">Parties</div>'+partyBlock("exporter", "Exporter (Manufacturer)")+partyBlock("buyer", "Buyer (other than consignee)")+partyBlock("consignee", "Consignee")+partyBlock("notify", "Notify")+
+        '<div class="ip-sec">Shipment &amp; route</div>'+txtf("pre_carriage", "Pre-carriage by", "", "ipCarriage", "AIR / SEA / ROAD")+txtf("place_of_receipt", "Place of Receipt by pre-carrier", "", "ipPorts", "Search the Port Master")+
+        txtf("vessel_flight", "Vessel / Flight", "", "", "Vessel or flight number")+txtf("port_of_loading", "Port of Loading", "", "ipPorts", "Search the Port Master")+
+        txtf("port_of_discharge", "Port of Discharge", "", "ipPorts", "Search the Port Master")+txtf("final_destination", "Final Destination", "", "ipPorts", "Search the Port Master")+
+        txtf("origin_country", "Country of Origin of Goods", "", "ipCountries", "Country Master")+txtf("dest_country", "Country of Final Destination", "", "ipCountries", "Country Master")+
+        '<div class="ip-f" style="grid-column:1 / -1"><label>Terms of Delivery and Payment</label><textarea class="fc" id="ip_terms" rows="3" placeholder="Incoterm, named place, payment terms">'+esc(d.terms || "")+'</textarea></div></div></div>'+
+      '<div id="ipCharge" style="display:none"><div style="padding:16px 22px"><div class="fr"><div class="fg"><label class="fl">Currency</label>'+inp("ip_cur", d.currency || "USD", 'maxlength="3" style="text-transform:uppercase;width:90px"')+'</div><div class="fg"><label class="fl">Cur. value (1 unit = Rs.)</label>'+inp("ip_curvalue", d.cur_value, 'type="number" step="0.0001"')+'</div><div class="fg"><label class="fl">Net wt common additional %</label>'+inp("ip_addpct", S.addpct, 'type="number" step="0.01"')+'</div></div>'+
+        '<div class="tw"><table class="ip-items"><thead><tr><th></th><th>S.No</th><th>Marks &amp; Nos</th><th>Pkgs</th><th>Unit</th><th>Description</th><th>HS code</th><th>Qty</th><th>Unit</th><th>Box</th><th>Unit</th><th>NT.wt</th><th>Spl. additional</th><th>GR.wt</th><th>Dimensions</th><th>Rate</th><th>Amount</th></tr></thead><tbody id="ipLines">'+S.lines.map(lineRow).join("")+'</tbody></table></div>'+
+        '<div style="margin:8px 0"><button class="btn btn-out btn-sm" type="button" data-ip="add">&#65291; Add Item</button></div>'+
         '<div class="fr"><div class="fg"><label class="fl">Total Pkgs</label><input class="fc" id="ip_tpkgs" readonly></div><div class="fg"><label class="fl">Total Net wt</label><input class="fc" id="ip_tnet" readonly></div><div class="fg"><label class="fl">Total Gross wt</label><input class="fc" id="ip_tgross" readonly></div><div class="fg"><label class="fl">Total CIF</label><input class="fc" id="ip_tcif" readonly></div><div class="fg"><label class="fl">CIF in Rs.</label><input class="fc" id="ip_rscif" readonly></div></div>'+
         '<div class="fr"><div class="fg" style="flex:2"><label class="fl">Words</label><input class="fc" id="ip_words" readonly></div><div class="fg"><label class="fl">Package range</label>'+inp("ip_range", d.package_range)+'</div><div class="fg"><label class="fl">FRT</label>'+inp("ip_frt", d.frt, 'type="number" step="0.01"')+'</div><div class="fg"><label class="fl">INS</label>'+inp("ip_ins", d.ins, 'type="number" step="0.01"')+'</div><div class="fg"><label class="fl">FOB</label><input class="fc" id="ip_fob" readonly></div><div class="fg"><label class="fl">FOB in Rs.</label><input class="fc" id="ip_rsfob" readonly></div></div>'+
-        '<div class="fr"><div class="fg" style="flex:1"><label class="fl">Shipping marks</label>'+inp("ip_marks", d.shipping_marks)+'</div><div class="fg" style="flex:2"><label class="fl">Remarks</label>'+inp("ip_remarks", d.remarks)+'</div></div></div></div>';
-    if(window.renderIcons) renderIcons(root); paintTotals();
+        '<div class="fr"><div class="fg" style="flex:1"><label class="fl">Shipping marks</label>'+inp("ip_marks", d.shipping_marks)+'</div><div class="fg" style="flex:2"><label class="fl">Remarks</label>'+inp("ip_remarks", d.remarks)+'</div></div></div></div></div>';
+    ["exporter", "buyer", "consignee", "notify"].forEach(k=>{ const t = el("ip_"+k); if(t) t.value = d[k] || ""; const i = root.querySelector('[data-ipp="'+k+'"]'); if(i) i.value = H.lines(d[k])[0] || ""; });
+    if(S.auto) api("GET", "/api/cha/invoice-packing/next-number").then(r=>{ const n = el("ip_no"); if(n && S.auto) n.placeholder = r.invoice_no+"  (assigned when saved)"; }).catch(()=>{});
+    loadMasters(); if(window.renderIcons) renderIcons(root); paintTotals();
+  }
+  /* ---------- masters: parties (with branches), ports, countries ---------- */
+  const M = {cust:null, br:{}, countries:null};
+  async function loadMasters(){
+    try{ if(!M.cust) M.cust = (await api("GET", "/api/customers")) || []; const dl = el("ipPartyList"); if(dl) dl.innerHTML = M.cust.map(c=>'<option value="'+esc(c.name)+'"></option>').join(""); }catch(e){ M.cust = M.cust || []; }
+    try{ if(!M.countries) M.countries = ((await api("GET", "/api/masters/country?status=ACTIVE&limit=1000")) || []).map(r=>r.name); const dl = el("ipCountries"); if(dl) dl.innerHTML = M.countries.map(n=>'<option value="'+esc(n)+'"></option>').join(""); }catch(e){ M.countries = M.countries || []; }
+  }
+  const branchesOf = async id=> M.br[id] || (M.br[id] = ((await api("GET", "/api/customers/"+id+"/branches").catch(()=>[])) || []).filter(b=> !b.status || b.status === "ACTIVE"));
+  const partyText = (name, b)=> { const lines = [name]; if(b){ const city = [b.city, b.pincode].filter(Boolean).join(" "); [b.address, b.address2, city, b.state, b.country].forEach(x=>{ if(x) lines.push(x); }); if(b.phone) lines.push("TEL: "+b.phone); if(b.gstin) lines.push("GSTIN: "+b.gstin); } return lines.join("\n"); };
+  async function pickParty(key, name){
+    const c = (M.cust || []).find(x=> x.name === name), sel = document.querySelector('[data-ipb="'+key+'"]'), box = el("ip_"+key); if(!c || !box) return;
+    const rows = await branchesOf(c.id); const head = rows.find(b=> /head|regist|corporate|primary/i.test(b.branch_type || "")) || rows[0];
+    box.value = partyText(c.name, head);
+    if(sel){ if(rows.length > 1){ sel.style.display = ""; sel.dataset.cust = c.id; sel.innerHTML = rows.map(b=>'<option value="'+b.id+'"'+(head && b.id === head.id ? " selected" : "")+'>'+esc((b.code ? b.code+" — " : "")+(b.city || b.name || "Branch")+(b.address ? " · "+b.address : ""))+'</option>').join(""); } else { sel.style.display = "none"; sel.innerHTML = ""; } }
+  }
+  let portTm = null;
+  async function suggestPorts(q){
+    try{ const r = await api("GET", "/api/ports?q="+encodeURIComponent(q)+"&limit=25"); const rows = Array.isArray(r) ? r : (r.items || []); const dl = el("ipPorts"); if(dl) dl.innerHTML = rows.map(p=>'<option value="'+esc(((p.unlocode || p.code || "")+"("+(p.name || "")+")").toUpperCase())+'"></option>').join(""); }catch(e){ /* the list stays as it was */ }
   }
   function collect(){
     const d = {exporter_ref:val("ip_exref"), buyer_order:val("ip_buyord"), other_ref:val("ip_otherref"), invoice_name:val("ip_invname"), currency:(val("ip_cur") || "USD").toUpperCase(), cur_value:val("ip_curvalue"), add_pct:val("ip_addpct"), package_range:val("ip_range"),
       frt:val("ip_frt"), ins:val("ip_ins"), shipping_marks:val("ip_marks"), remarks:val("ip_remarks")};
     GEN.forEach(g=>{ d[g[0]] = val("ip_"+g[0]); });
     d.lines = S.lines.filter(l=> l.description || l.pkgs || l.qty).map(l=>{ const c = lineCalc(l); return Object.assign({}, l, {net_wt:String(c.net), gross_wt:String(c.gross), amount:String(c.amount)}); });
-    return {invoice_no:val("ip_no").trim(), invoice_date:val("ip_date") || null, job_number:val("ip_job").trim() || null, data:d};
+    const auto = (document.querySelector('input[name="ipNoMode"]:checked') || {}).value === "auto" && !S.rec;
+    return {invoice_no:auto ? "" : val("ip_no").trim(), auto_number:auto, invoice_date:val("ip_date") || null, job_number:val("ip_job").trim() || null, data:d};
   }
   async function save(){
-    const b = collect(); if(!b.invoice_no){ MK.util.say("Invoice number required", "Enter the invoice number", "warn"); return null; }
-    try{ const r = S.rec ? await api("PUT", "/api/cha/invoice-packing/"+S.rec.id, b) : await api("POST", "/api/cha/invoice-packing", b); S.rec = r; MK.util.say("Saved", "Invoice & Packing List "+r.invoice_no); if(window.markSaved) try{ markSaved(el("ipSave")); }catch(e){} return r; }
+    const b = collect(); if(!b.invoice_no && !b.auto_number){ MK.util.say("Invoice number required", "Type the invoice number, or choose Auto", "warn"); return null; }
+    try{ const r = S.rec ? await api("PUT", "/api/cha/invoice-packing/"+S.rec.id, b) : await api("POST", "/api/cha/invoice-packing", b); S.rec = r; { const n = el("ip_no"); if(n){ n.value = r.invoice_no; n.readOnly = false; } const m = document.querySelector('input[name="ipNoMode"][value="manual"]'); if(m) m.checked = true; } MK.util.say("Saved", "Invoice & Packing List "+r.invoice_no); if(window.markSaved) try{ markSaved(el("ipSave")); }catch(e){} return r; }
     catch(e){ MK.util.say("Could not save", e.message, "error"); return null; }
   }
 
@@ -26206,8 +26248,8 @@ body.job-readonly #jlBanner{display:flex}
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+cell("Consignee", txt(d.consignee))+cell("Buyer (if other than consignee)", txt(d.buyer || d.consignee))+cell("Country of Origin", plain(d.origin_country))+cell("Country of Destination", plain(d.dest_country))+'</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">'+cell("Shipment Mode / Flight / Vessel", plain([d.pre_carriage, d.vessel_flight].filter(Boolean).join(" · ")))+cell("Port of Loading", plain(d.port_of_loading))+cell("Port of Discharge", plain(d.port_of_discharge))+'</div>';
   }
-  const sign = (c, withSign)=> { const P = (c.co.profile || {}), imgs = withSign ? ((P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:52px;max-width:150px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:60px;max-width:90px;margin-left:8px">' : "")) : "";
-    return '<div style="text-align:center;min-width:210px"><div style="font-weight:700;font-size:9.5px">For '+esc(P.legal_name || c.co.name || "")+'</div><div style="min-height:'+(withSign ? 58 : 66)+'px;margin:2px 0">'+imgs+'</div><div style="border-top:1px solid #333;padding-top:2px;font-weight:700;font-size:9.5px">Authorised Signatory</div></div>'; };
+  const sign = (c, withSign)=> { const ws = withSign || {}, P = (c.co.profile || {}), imgs = (ws.sign && P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:52px;max-width:150px">' : "")+(ws.seal && P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:60px;max-width:90px;margin-left:8px">' : "");
+    return '<div style="text-align:center;min-width:210px"><div style="font-weight:700;font-size:9.5px">For '+esc(P.legal_name || c.co.name || "")+'</div><div style="min-height:'+((ws.sign || ws.seal) ? 58 : 66)+'px;margin:2px 0">'+imgs+'</div><div style="border-top:1px solid #333;padding-top:2px;font-weight:700;font-size:9.5px">Authorised Signatory</div></div>'; };
   const DECL = ["We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.", "This shipment is in accordance with the terms and conditions of the contract."];
   function invoiceTail(c, withSign){
     const t = c.t, d = c.d, cur = c.cur;
@@ -26242,7 +26284,7 @@ body.job-readonly #jlBanner{display:flex}
   function build(c, kind, withSign){
     const note = "Invoice "+c.rec.invoice_no, pages = [];
     const invT = totBar(c, esc(c.cur)+" "+H.fmt(c.t.cif, 2)), plT = totBar(c, esc(String(c.t.pkgs))+" PKG &nbsp;·&nbsp; "+H.fmt(c.t.net, 3)+" / "+H.fmt(c.t.gross, 3)+" KGS");
-    if(kind === "invoice" || kind === "both") pages.push(...paged(c, "INTERNATIONAL COMMERCIAL INVOICE", head(c), invoiceTable, invoiceTail(c, withSign), invT));
+    if(kind === "invoice" || kind === "both") pages.push(...paged(c, "COMMERCIAL INVOICE", head(c), invoiceTable, invoiceTail(c, withSign), invT));
     if(kind === "packing" || kind === "both") pages.push(...paged(c, "PACKING LIST", plHead(c), plTable, plTail(c, withSign), plT));
     if(kind === "combined") pages.push(...paged(c, "INVOICE CUM PACKING LIST", head(c), combinedTable, invoiceTail(c, withSign).replace(/<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div>/, '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div><div style="border:1px solid '+LINE+';padding:4px 6px;font-size:9.5px"><b>Total Packages</b> : '+esc(String(c.t.pkgs))+' &nbsp; <b>Net</b> : '+H.fmt(c.t.net, 3)+' KGS &nbsp; <b>Gross</b> : '+H.fmt(c.t.gross, 3)+' KGS</div>'), invT));
     return H.wrapPages(pages, c.co, note);
@@ -26253,14 +26295,18 @@ body.job-readonly #jlBanner{display:flex}
     w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 900);
   }
   async function printDialog(rec){
-    const co = await company(); let withSign = true, kind = "both";
-    const draw = ()=> { const c = ctx(rec); c.co = co; const host = el("ipPreview"); if(host) host.innerHTML = '<div style="background:#e5e7eb;padding:10px;overflow:auto;max-height:62vh"><div style="display:flex;flex-direction:column;gap:10px;align-items:center;transform-origin:top center">'+build(c, kind, withSign)+'</div></div>'; };
-    openModal({title:"Print — Invoice & Packing List "+esc(rec.invoice_no), size:"lg", bodyHTML:'<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px">'+
+    const co = await company(); let withSign = {sign:true, seal:true}, kind = "both";
+    const draw = ()=> { const c = ctx(rec); c.co = co; const host = el("ipPreview"); if(host){ const z = Math.min(1, Math.max(0.4, (host.clientWidth - 30) / 794)); host.innerHTML = '<div style="background:#e5e7eb;padding:10px;overflow:auto;max-height:62vh"><div style="display:flex;flex-direction:column;gap:10px;align-items:center;zoom:'+z.toFixed(3)+'">'+build(c, kind, withSign)+'</div></div>'; } };
+    openModal({title:"Print — Invoice & Packing List "+esc(rec.invoice_no), size:"full", bodyHTML:'<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px">'+
       [["both", "Invoice + Packing List"], ["packing", "Packing List alone"], ["invoice", "Invoice alone"], ["combined", "Invoice-cum-Packing List"]].map(x=>'<label style="display:flex;gap:6px;align-items:center"><input type="radio" name="ipKind" value="'+x[0]+'"'+(x[0] === kind ? " checked" : "")+'> '+x[1]+'</label>').join("")+
-      '<label style="display:flex;gap:6px;align-items:center;margin-left:auto"><input type="checkbox" id="ipSign" checked> Print with signature and seal</label></div><div id="ipPreview"></div>',
-      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button><button class="btn btn-out" type="button" id="ipDoXlsx">Download Excel</button><button class="btn btn-out" type="button" id="ipDoPdf">Download PDF</button><button class="btn btn-pri" type="button" id="ipDoPrint">Print</button>'});
+      '<span style="display:flex;gap:16px;align-items:center;margin-left:auto"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ipSign" checked> Signature</label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ipSeal" checked> Seal</label></span></div><div id="ipPreview"></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button><button class="btn btn-out" type="button" id="ipFullBtn">Full page view</button><button class="btn btn-out" type="button" id="ipDoXlsx">Download Excel</button><button class="btn btn-out" type="button" id="ipDoPdf">Download PDF</button><button class="btn btn-pri" type="button" id="ipDoPrint">Print</button>'});
     document.querySelectorAll('input[name="ipKind"]').forEach(r=> r.addEventListener("change", ()=>{ kind = r.value; draw(); }));
-    el("ipSign").addEventListener("change", e=>{ withSign = e.target.checked; draw(); });
+    el("ipSign").addEventListener("change", e=>{ withSign = Object.assign({}, withSign, {sign:e.target.checked}); draw(); });
+    el("ipSeal").addEventListener("change", e=>{ withSign = Object.assign({}, withSign, {seal:e.target.checked}); draw(); });
+    el("ipFullBtn").addEventListener("click", ()=>{ const c = ctx(rec); c.co = co; const o = document.createElement("div"); o.id = "ipFull"; const z = Math.min(1.35, Math.max(0.5, (window.innerWidth - 40) / 794));
+      o.innerHTML = '<div class="bar"><b>Invoice & Packing List '+esc(rec.invoice_no)+' — '+KIND_NAME[kind]+(withSign.sign && withSign.seal ? "" : withSign.sign ? " (without seal)" : withSign.seal ? " (without signature)" : " (without signature and seal)")+'</b><button class="btn btn-out btn-sm" id="ipFullPrint">Print</button><button class="btn btn-out btn-sm" id="ipFullClose">Close ✕</button></div><div class="pgs" style="zoom:'+z.toFixed(3)+'">'+build(c, kind, withSign)+'</div>';
+      document.body.appendChild(o); el("ipFullClose").onclick = ()=> o.remove(); el("ipFullPrint").onclick = ()=> printHtml("Invoice "+rec.invoice_no, build(c, kind, withSign)); });
     el("ipDoPdf").addEventListener("click", async ()=>{ const b = el("ipDoPdf"); b.disabled = true; b.textContent = "Preparing PDF…"; try{ saveBlob(await makePdf(rec, kind, withSign), fileName(rec, kind, "pdf")); }catch(e){ MK.util.say("PDF not created", e.message, "error"); } b.disabled = false; b.textContent = "Download PDF"; });
     el("ipDoXlsx").addEventListener("click", async ()=>{ const b = el("ipDoXlsx"); b.disabled = true; try{ saveBlob(new Blob([await makeXlsx(rec, kind, withSign)], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), fileName(rec, kind, "xlsx")); }catch(e){ MK.util.say("Excel not created", e.message, "error"); } b.disabled = false; });
     el("ipDoPrint").addEventListener("click", ()=>{ const c = ctx(rec); c.co = co; printHtml("Invoice "+rec.invoice_no, build(c, kind, withSign)); });
@@ -26292,9 +26338,9 @@ body.job-readonly #jlBanner{display:flex}
       ["Pre-Carriage by", d.pre_carriage || "", "", "Place of Receipt by Pre-Carrier", d.place_of_receipt || ""], ["Vessel / Flight No.", d.vessel_flight || "", "", "Port of Loading", d.port_of_loading || ""],
       ["Port of Discharge", d.port_of_discharge || "", "", "Final Destination", d.final_destination || ""], ["Terms of Delivery and Payment", d.terms || "", "", "Currency", cur], []];
     const sheet = (rows, widths)=> { const ws = X.utils.aoa_to_sheet(rows); ws["!cols"] = widths.map(w=>({wch:w})); return ws; };
-    const sign = [[], ["For "+name], [], [withSign ? "Authorised Signatory (signed)" : "Authorised Signatory"]];
+    const sign = [[], ["For "+name], [], [(withSign && withSign.sign) ? "Authorised Signatory (signed)" : "Authorised Signatory"]];
     if(kind === "invoice" || kind === "both"){
-      const rows = top("INTERNATIONAL COMMERCIAL INVOICE").concat(head, [["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Amount"]],
+      const rows = top("COMMERCIAL INVOICE").concat(head, [["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Amount"]],
         c.lines.map((l, i)=>[i + 1, l.marks || "", l.description || "", l.hs || "", n(l.pkgs), n(l.qty), l.qty_unit || "", n(l._net), n(l._gross), n(l.rate), l._amt]),
         [["", "", "TOTAL", "", t.pkgs, "", "", r3(t.net), r3(t.gross), "", r2(t.cif)], [], ["", "", "", "", "", "", "", "", "", "Freight", n(t.frt)], ["", "", "", "", "", "", "", "", "", "Insurance", n(t.ins)], ["", "", "", "", "", "", "", "", "", "FOB value", r2(t.fob)], ["", "", "", "", "", "", "", "", "", "Invoice value ("+cur+")", r2(t.cif)],
           [], ["Amount in words: "+(DocKit.words ? DocKit.words(t.cif, cur) : "")], ["Declaration: "+DECL.join(" ")]], sign);
@@ -26318,18 +26364,111 @@ body.job-readonly #jlBanner{display:flex}
   }
   const saveBlob = (blob, fname)=> { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
   const fileName = (rec, kind, ext)=> (KIND_NAME[kind] + " " + rec.invoice_no).replace(/[^A-Za-z0-9 _.-]+/g, "-") + "." + ext;
-  window.ChaInvPl = {S, build, ctx, printDialog, makePdf, makeXlsx, open:()=>{ ensureScreen(); loadList(); }};
+  /* ---------- import: Excel template, an existing Excel invoice / packing list, or a PDF ---------- */
+  const norm = v=> String(v == null ? "" : v).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const FIELD_LABELS = [
+    ["invoice_no", /^invoice no( date)?$|^invoice number$|^inv no/], ["invoice_date", /^invoice date$|^date$/], ["exporter_ref", /^exporter s? ?ref|^exporter ref|^iec/], ["buyer_order", /^buyer s? ?order|^buyer order/], ["other_ref", /^other ref/],
+    ["exporter", /^exporter( manufacturer| manufacturer shipper)?$|^shipper$/], ["buyer", /^buyer( if (other than consignee|different))?$|^buyer other than consignee/], ["consignee", /^consignee( buyer)?$/], ["notify", /^notify/],
+    ["pre_carriage", /^pre carriage/], ["place_of_receipt", /^place of receipt/], ["vessel_flight", /^vessel|^flight/], ["port_of_loading", /^port( airport)? of loading|^loading/], ["port_of_discharge", /^port( airport)? of discharge|^discharge/],
+    ["origin_country", /^country of origin/], ["dest_country", /^country( of)? final destination|^country of destination/], ["final_destination", /^final destination$/], ["terms", /^terms|^incoterms|^delivery payment|^delivery terms/],
+    ["currency", /^currency$/], ["cur_value", /^cur value|^currency value|^exchange rate/], ["add_pct", /^net wt common|^common additional/], ["frt", /^freight$/], ["ins", /^insurance$/], ["package_range", /^package range/], ["shipping_marks", /^shipping marks|^marks numbers$/], ["remarks", /^remarks$/]];
+  const COLS = [["marks", /^marks/], ["description", /^description|^goods$|^item$/], ["hs", /^hs/], ["pkgs", /^(no of )?(pkgs|packages)$|^pieces|^packages$/], ["pkg_unit", /^package type|^pkg type/], ["qty", /^qty$|^quantity$/], ["qty_unit", /^unit$/], ["net_wt", /^net wt|^nt wt|^net weight/], ["gross_wt", /^gross wt|^gr wt|^gross weight/], ["rate", /^(unit )?(rate|price)( per kg)?$|^unit rate|^rate/], ["amount", /^amount$|^total$|^cif$|^line amount/], ["dims", /^dimensions?/]];
+  const cleanVal = v=> { v = String(v == null ? "" : v).trim(); return /^\[.*\]$/.test(v) ? "" : v; };
+  const toIso = v=> { v = String(v || "").trim(); let m = /(\d{4})-(\d{2})-(\d{2})/.exec(v); if(m) return m[0]; m = /(\d{1,2})[-\/. ]([A-Za-z]{3,9}|\d{1,2})[-\/. ](\d{4})/.exec(v); if(!m) return ""; const MON = {jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12}; const mo = isNaN(m[2]) ? MON[m[2].slice(0, 3).toLowerCase()] : Number(m[2]); return mo ? m[3]+"-"+String(mo).padStart(2, "0")+"-"+String(m[1]).padStart(2, "0") : ""; };
+  function applyField(d, key, v, rec){
+    v = cleanVal(v); if(!v) return;
+    if(key === "invoice_no"){ const date = toIso(v); const no = v.replace(/\s*(dt\.?|dated|date)\b.*$/i, "").replace(/\s*[^\w\/\-.]+\s*\d{1,4}[-\/. ][A-Za-z0-9]{1,9}[-\/. ]\d{2,4}.*$/, "").trim(); if(no) rec.invoice_no = no; if(date && !rec.invoice_date) rec.invoice_date = date; return; }
+    if(key === "invoice_date"){ const date = toIso(v); if(date) rec.invoice_date = date; return; }
+    d[key] = v;
+  }
+  /* rows = an array of arrays (a sheet); the label is read from the first filled cell of a row, its value is the next filled cell */
+  function parseRows(rows){
+    const d = {lines:[]}, rec = {data:d}; let hdr = -1, map = {};
+    for(let i = 0; i < rows.length; i++){
+      const cells = rows[i].map(x=> String(x == null ? "" : x).trim());
+      const nonEmpty = cells.filter(Boolean); if(!nonEmpty.length) continue;
+      if(hdr < 0){
+        const hit = cells.map(c=> COLS.findIndex(k=> k[1].test(norm(c))));
+        if(cells.some(c=> /^description/.test(norm(c))) && hit.filter(x=> x > -1).length >= 3){ hdr = i; hit.forEach((k, ci)=>{ if(k > -1 && !(COLS[k][0] in map)) map[COLS[k][0]] = ci; }); continue; }
+        for(let a = 0; a < cells.length; a++){ if(!cells[a]) continue; const lab = norm(cells[a]), f = FIELD_LABELS.find(x=> x[1].test(lab)); if(f){ let v = ""; for(let b = a + 1; b < cells.length; b++){ if(cells[b]){ v = cells[b]; break; } } applyField(d, f[0], v, rec); if(f[0] === "invoice_no" && !rec.invoice_date){ const dt = toIso(v); if(dt) rec.invoice_date = dt; } a = cells.length; } }
+      } else {
+        const first = norm(cells.find(Boolean)); if(/^total\b/.test(first) || /^(freight|insurance|amount in words|declaration)/.test(first)) { if(/^total\b/.test(first)) hdr = -2; if(hdr === -2) { /* totals row: the table is finished */ } if(hdr === -2) break; }
+        const g = k=> map[k] == null ? "" : cleanVal(cells[map[k]]);
+        if(!g("description") && !g("pkgs") && !g("qty")) continue;
+        const ln = {}; Object.keys(map).forEach(k=>{ if(k !== "amount") { const v = g(k); if(v !== "") ln[k] = v; } });
+        const amt = g("amount"); if(amt && !g("rate") && num(g("qty"))) ln.rate = String(r2(num(amt) / num(g("qty"))));
+        d.lines.push(ln);
+      }
+    }
+    return rec;
+  }
+  async function readXlsx(file){ await loadLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"); const wb = window.XLSX.read(await file.arrayBuffer(), {type:"array", cellDates:false}); const out = {data:{lines:[]}}; for(const name of wb.SheetNames){ const r = parseRows(window.XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, raw:false, defval:""})); if((r.data.lines || []).length || Object.keys(r.data).length > 1){ Object.assign(out.data, r.data, {lines:(out.data.lines || []).length ? out.data.lines : r.data.lines}); if(r.invoice_no) out.invoice_no = r.invoice_no; if(r.invoice_date) out.invoice_date = r.invoice_date; } } return out; }
+  /* a PDF: its text is read with pdf.js, lines are rebuilt from the text positions, then the same labels / table are looked for (best effort: always review before saving) */
+  async function readPdf(file){
+    await loadLib("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); const lib = window["pdfjs-dist/build/pdf"] || window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const pdf = await lib.getDocument({data:await file.arrayBuffer()}).promise, rows = [];
+    for(let pn = 1; pn <= pdf.numPages; pn++){ const tc = await (await pdf.getPage(pn)).getTextContent(), by = {}; tc.items.forEach(it=>{ const y = Math.round(it.transform[5] / 3); (by[y] = by[y] || []).push({x:it.transform[4], t:it.str}); });
+      Object.keys(by).map(Number).sort((a, b)=> b - a).forEach(y=>{ const parts = by[y].sort((a, b)=> a.x - b.x); const cells = []; let lastX = null; parts.forEach(p=>{ if(!p.t.trim()) return; if(lastX != null && p.x - lastX > 14) cells.push(p.t.trim()); else if(cells.length) cells[cells.length - 1] += " "+p.t.trim(); else cells.push(p.t.trim()); lastX = p.x + p.t.length * 4; }); if(cells.length) rows.push(cells); }); }
+    const rec = parseRows(rows);
+    if(!(rec.data.lines || []).length){   /* no header row found: take numbered lines that end with amounts */
+      rows.forEach(cells=>{ const line = cells.join(" "); const m = /^\s*0?(\d{1,2})\s+(.+?)\s+((?:[\d,]+(?:\.\d+)?\s*){2,})$/.exec(line); if(m){ const nums = m[3].trim().split(/\s+/); const ln = {description:m[2].replace(/\s+[A-Za-z]{2,5}$/, "")}; ln.rate = nums[nums.length - 2].replace(/,/g, ""); ln.qty = nums[0].replace(/,/g, ""); rec.data.lines.push(ln); } });
+    }
+    return rec;
+  }
+  function templateXlsx(){
+    const X = window.XLSX, rows = [["COMMERCIAL INVOICE & PACKING LIST - TEMPLATE"], ["Fill the Value column and the item table, save the file and upload it with Import. Dates: YYYY-MM-DD. Do not rename the labels in column A."], [],
+      ["Invoice No", ""], ["Invoice Date", ""], ["Exporter's Ref. (IEC / PAN)", ""], ["Buyer Order No & Date", ""], ["Other References", ""], ["Exporter", ""], ["Buyer (if other than consignee)", ""], ["Consignee", ""], ["Notify", ""],
+      ["Pre-carriage by", ""], ["Place of Receipt by pre-carrier", ""], ["Vessel / Flight", ""], ["Port of Loading", ""], ["Port of Discharge", ""], ["Final Destination", ""], ["Country of Origin of Goods", ""], ["Country of Final Destination", ""], ["Terms of Delivery and Payment", ""],
+      ["Currency", "USD"], ["Currency Value", ""], ["Freight", ""], ["Insurance", ""], ["Package Range", ""], ["Shipping Marks", ""], ["Remarks", ""], [],
+      ["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Package Type", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Dimensions"]];
+    for(let i = 1; i <= 10; i++) rows.push([i, "", "", "", "", "PKG", "", "KG", "", "", "", ""]);
+    const ws = X.utils.aoa_to_sheet(rows); ws["!cols"] = [30, 36, 36, 12, 10, 12, 10, 8, 12, 12, 12, 16].map(w=>({wch:w})); const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Invoice and Packing List"); return X.write(wb, {bookType:"xlsx", type:"array"});
+  }
+  async function importFile(file){
+    try{
+      const ext = (file.name.split(".").pop() || "").toLowerCase(); const rec = ext === "pdf" ? await readPdf(file) : await readXlsx(file);
+      const n = (rec.data.lines || []).length, got = Object.keys(rec.data).filter(k=> k !== "lines" && rec.data[k]).length + (rec.invoice_no ? 1 : 0);
+      if(!n && !got){ MK.util.say("Nothing could be read", "No invoice or packing list details were found in "+file.name+". Use the template to fill the details.", "warn"); return; }
+      formView(null); const d = rec.data;
+      Object.keys(d).forEach(k=>{ const e = el("ip_"+(k === "exporter_ref" ? "exref" : k === "buyer_order" ? "buyord" : k === "other_ref" ? "otherref" : k === "cur_value" ? "curvalue" : k === "add_pct" ? "addpct" : k === "currency" ? "cur" : k === "package_range" ? "range" : k === "shipping_marks" ? "marks" : k)); if(e && typeof d[k] === "string") e.value = d[k]; });
+      ["exporter", "buyer", "consignee", "notify"].forEach(k=>{ const i = document.querySelector('[data-ipp="'+k+'"]'); if(i && d[k]) i.value = H.lines(d[k])[0] || ""; });
+      if(rec.invoice_no){ const m = document.querySelector('input[name="ipNoMode"][value="manual"]'); if(m){ m.checked = true; m.dispatchEvent(new Event("change", {bubbles:true})); } el("ip_no").value = rec.invoice_no; }
+      if(rec.invoice_date) el("ip_date").value = rec.invoice_date;
+      S.lines = n ? d.lines : [{}]; el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals();
+      MK.util.say("Imported from "+file.name, n+" item line"+(n === 1 ? "" : "s")+" and "+got+" detail"+(got === 1 ? "" : "s")+" read. Check them, then press Save to create the Invoice & Packing List.");
+    }catch(e){ MK.util.say("Could not read the file", e.message, "error"); }
+  }
+  window.ChaInvPl = {S, build, ctx, printDialog, makePdf, makeXlsx, parseRows, templateXlsx, importFile, open:()=>{ ensureScreen(); loadList(); }};
 
+  /* Get Bill: pick a job from a list; its parties (with the branch chosen on the job), route, flight and cargo fill the form */
+  async function fillFromJob(jn){
+    try{ const r = await api("GET", "/api/cha/invoice-packing/from-job/"+encodeURIComponent(jn)), d = r.data;
+      GEN.forEach(g=>{ if(d[g[0]] && el("ip_"+g[0])) el("ip_"+g[0]).value = d[g[0]]; });
+      ["exporter", "buyer", "consignee", "notify"].forEach(k=>{ const i = document.querySelector('[data-ipp="'+k+'"]'); if(i && d[k]) i.value = H.lines(d[k])[0] || ""; });
+      el("ip_job").value = r.job_number;
+      if((d.lines || []).length){ S.lines = d.lines; el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals(); }
+      MK.util.say("Filled from job "+r.job_number, "Parties, route and cargo are in. Add the rates, check the figures and save.");
+    }catch(err){ MK.util.say("Could not get the job", err.message, "warn"); }
+  }
+  async function getBill(){
+    let rows = []; try{ rows = (await api("GET", "/api/shipments")) || []; }catch(e){ /* the list stays empty */ }
+    openModal({title:"Get Bill — choose the job to fill from", bodyHTML:'<input class="fc" id="ipJobQ" placeholder="Search job number, customer, consignee, port" autocomplete="off"><div id="ipJobList" style="max-height:52vh;overflow:auto;margin-top:8px;border:1px solid var(--g2);border-radius:8px"></div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button>'});
+    const draw = ()=>{ const q = norm(val("ipJobQ")); const hit = rows.filter(r=> !q || norm([r.job_number, r.mode, r.direction, r.consignee, r.customer, r.party_name, r.pol, r.pod].join(" ")).indexOf(q) > -1).slice(0, 60);
+      el("ipJobList").innerHTML = hit.length ? hit.map(r=>'<div data-ipjob="'+esc(r.job_number)+'" style="padding:9px 12px;border-bottom:1px solid var(--g1);cursor:pointer;display:grid;grid-template-columns:170px 1fr 1fr;gap:8px;font-size:12.5px"><b class="mono">'+esc(r.job_number)+'</b><span>'+esc([r.mode, r.direction].filter(Boolean).join(" "))+' · '+esc(r.pol || "")+' → '+esc(r.pod || "")+'</span><span>'+esc(r.consignee || r.customer || r.party_name || "")+'</span></div>').join("") : '<div style="padding:18px;text-align:center;color:var(--g5)">No job found.</div>'; };
+    draw(); el("ipJobQ").addEventListener("input", draw); el("ipJobQ").focus();
+    el("ipJobList").addEventListener("click", e=>{ const r = e.target.closest("[data-ipjob]"); if(!r) return; closeModal(); fillFromJob(r.dataset.ipjob); });
+  }
+  (function(){ if(!document.getElementById("ipStyleG")){ const st = document.createElement("style"); st.id = "ipStyleG"; st.textContent = STYLE; document.head.appendChild(st); } })();
   /* ---------- events ---------- */
   document.addEventListener("click", async e=>{
-    const b = e.target.closest("[data-ip], #ipNew, #ipSave, #ipExit, #ipPrint, #ipGet"); if(!b || !el("ipRoot") || !el("ipRoot").contains(b)) return;
+    const b = e.target.closest("[data-ip], #ipNew, #ipSave, #ipExit, #ipPrint, #ipGet, #ipTpl, #ipImp"); if(!b || !el("ipRoot") || !el("ipRoot").contains(b)) return;
+    if(b.id === "ipTpl"){ try{ await loadLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"); saveBlob(new Blob([templateXlsx()], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), "Invoice and Packing List Template.xlsx"); }catch(err){ MK.util.say("Template not created", err.message, "error"); } return; }
+    if(b.id === "ipImp"){ el("ipFile").click(); return; }
     if(b.id === "ipNew"){ formView(null); return; }
     if(b.id === "ipExit"){ loadList(); return; }
     if(b.id === "ipSave"){ await save(); return; }
     if(b.id === "ipPrint"){ const r = await save(); if(r) printDialog(r); return; }
-    if(b.id === "ipGet"){ const jn = window.prompt("Job number to fill from (parties, route and cargo):", val("ip_job")); if(!jn) return;
-      try{ const r = await api("GET", "/api/cha/invoice-packing/from-job/"+encodeURIComponent(jn.trim())); const d = r.data; GEN.forEach(g=>{ if(d[g[0]] && el("ip_"+g[0])) el("ip_"+g[0]).value = d[g[0]]; }); el("ip_job").value = r.job_number; if((d.lines || []).length && !S.lines.some(l=>l.description)){ S.lines = d.lines; el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals(); } MK.util.say("Filled from the job", r.job_number); }
-      catch(err){ MK.util.say("Could not get the job", err.message, "warn"); } return; }
+    if(b.id === "ipGet"){ getBill(); return; }
     const a = (b.dataset.ip || "").split(":"), k = a[0], v = a[1];
     if(k === "tab"){ S.tab = v; el("ipGeneral").style.display = v === "general" ? "" : "none"; el("ipCharge").style.display = v === "charge" ? "" : "none"; document.querySelectorAll('#ipRoot [data-ip^="tab:"]').forEach(x=> x.classList.toggle("on", x.dataset.ip === "tab:"+v)); e.preventDefault(); return; }
     if(k === "add"){ S.lines.push({}); el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals(); return; }
@@ -26337,16 +26476,72 @@ body.job-readonly #jlBanner{display:flex}
     if(k === "edit" || k === "print"){ try{ const r = await api("GET", "/api/cha/invoice-packing/"+v); if(k === "edit") formView(r); else printDialog(r); }catch(err){ MK.util.say("Could not open", err.message, "error"); } return; }
     if(k === "del"){ if(!confirm("Delete this Invoice & Packing List?")) return; try{ await api("DELETE", "/api/cha/invoice-packing/"+v); MK.util.say("Deleted", ""); loadList(); }catch(err){ MK.util.say("Could not delete", err.message, "error"); } }
   });
+  document.addEventListener("change", e=>{ const t = e.target; if(t && t.id === "ipFile" && t.files && t.files[0]){ const f = t.files[0]; t.value = ""; importFile(f); } });
   document.addEventListener("input", e=>{
     const t = e.target; if(!t.closest || !el("ipRoot") || !el("ipRoot").contains(t)) return;
     if(t.id === "ipSearch"){ clearTimeout(S.tm); S.tm = setTimeout(()=>{ S.q = t.value; loadList(); }, 350); return; }
     if(t.dataset && t.dataset.ipl){ const [i, k] = t.dataset.ipl.split(":"); S.lines[Number(i)][k] = t.value; paintTotals(); return; }
     if(/^ip_(addpct|frt|ins|curvalue|cur)$/.test(t.id)) paintTotals();
   });
+  document.addEventListener("change", async e=>{
+    const t = e.target; if(!t.closest || !el("ipRoot") || !el("ipRoot").contains(t)) return;
+    if(t.name === "ipNoMode"){ const n = el("ip_no"); if(t.value === "auto"){ S.auto = true; n.readOnly = true; n.value = ""; n.placeholder = "Assigned when saved"; } else { S.auto = false; n.readOnly = false; n.focus(); } return; }
+    if(t.dataset && t.dataset.ipp){ await pickParty(t.dataset.ipp, t.value); return; }
+    if(t.dataset && t.dataset.ipb){ const c = (M.cust || []).find(x=> String(x.id) === t.dataset.cust), b = (M.br[t.dataset.cust] || []).find(x=> String(x.id) === t.value); if(c && b) el("ip_"+t.dataset.ipb).value = partyText(c.name, b); return; }
+  });
+  document.addEventListener("input", e=>{ const t = e.target; if(t.dataset && t.dataset.ipport && el("ipRoot") && el("ipRoot").contains(t) && t.value.length >= 2){ clearTimeout(portTm); portTm = setTimeout(()=>suggestPorts(t.value), 250); } });
   document.addEventListener("change", e=>{ const t = e.target; if(t.dataset && t.dataset.ipl && el("ipRoot") && el("ipRoot").contains(t)){ const [i, k] = t.dataset.ipl.split(":"); S.lines[Number(i)][k] = t.value; paintTotals(); } });
   const prev = MK.onScreen;
   MK.onScreen = function(screen, opts){ prev.apply(this, arguments); if(screen === "cha-invpl"){ ensureScreen(); loadList(); } };
   ensureScreen();
+})();
+</script>
+<script>
+/* PARTY BRANCH KIT (job): a party that has several branches / locations under the same name gets a Branch list on the job's Parties tab.
+   The branch chosen is saved with the parties and its address is what every document of the job prints (the server reads <party>Branch). */
+(function(){
+  "use strict";
+  if(!window.MK || !window.pcSnapshot || !window.pcApplySaved) return;
+  const FIELDS = ["shipper", "consignee", "notify1", "notify2", "originAgent", "deliveryAgent", "coloader", "coloaderShipper", "coloaderConsignee", "billTo"];
+  const api = (m, p, b)=> MK.util.api(m, p, b), esc = MK.util.esc2, BS = {};
+  const jobNo = ()=> (window.JobDetailKit && JobDetailKit.job) || window.__lastJobNo || "";
+  const oldSnap = window.pcSnapshot, oldApply = window.pcApplySaved;
+  window.pcSnapshot = function(j){ const r = oldSnap.apply(this, arguments), b = BS[j || jobNo()] || {}; Object.keys(b).forEach(k=>{ if(b[k]) r.parties[k] = b[k]; }); return r; };
+  window.pcApplySaved = function(j, parties, cargo){ const b = BS[j] = BS[j] || {}; FIELDS.forEach(f=>{ const k = f+"Branch"; if(parties && k in parties) b[k] = parties[k]; }); return oldApply.apply(this, arguments); };
+  let cust = null; const br = {};
+  const branchesOf = async id=> br[id] || (br[id] = ((await api("GET", "/api/customers/"+id+"/branches").catch(()=>[])) || []).filter(b=> !b.status || b.status === "ACTIVE"));
+  const line = b=> [b.address, b.address2, [b.city, b.pincode].filter(Boolean).join(" "), b.state, b.country].filter(Boolean).join(", ");
+  let busy = false;
+  async function refresh(){
+    if(busy) return; const root = document.getElementById("jtpc"); if(!root || root.offsetParent === null) return; busy = true;
+    try{
+      if(!cust) cust = (await api("GET", "/api/customers").catch(()=>[])) || [];
+      const j = jobNo(), st = BS[j] = BS[j] || {};
+      for(const s of root.querySelectorAll("select[data-pc-f]")){
+        const f = s.dataset.pcF; if(FIELDS.indexOf(f) < 0) continue;
+        let holder = s.parentElement.querySelector('[data-pcb="'+f+'"]'); const name = s.value;
+        const c = name && !name.startsWith("__") ? cust.find(x=> x.name === name) : null;
+        if(!c){ if(holder) holder.remove(); continue; }
+        const rows = await branchesOf(c.id);
+        if(rows.length < 2){ if(holder) holder.remove(); delete st[f+"Branch"]; continue; }
+        if(!holder){ holder = document.createElement("div"); holder.dataset.pcb = f; holder.innerHTML = '<select class="fc" style="margin-top:4px" title="Branch / location of this party"></select><div style="font-size:10.5px;color:var(--g6);margin-top:2px"></div>'; s.insertAdjacentElement("afterend", holder); }
+        const sel = holder.querySelector("select"), key = c.id+":"+rows.length;
+        if(holder.dataset.key !== key){ holder.dataset.key = key; sel.innerHTML = rows.map(b=>'<option value="'+b.id+'">'+esc((b.code ? b.code+" — " : "")+(b.city || b.name || "Branch"))+'</option>').join(""); }
+        const def = rows.find(b=> b.address) || rows[0], cur = st[f+"Branch"] && rows.some(b=> String(b.id) === String(st[f+"Branch"])) ? String(st[f+"Branch"]) : String(def.id);
+        if(sel.value !== cur) sel.value = cur;
+        holder.lastChild.textContent = line(rows.find(b=> String(b.id) === sel.value) || def);
+      }
+    }finally{ busy = false; }
+  }
+  document.addEventListener("change", e=>{
+    const sel = e.target, holder = sel.closest && sel.closest("[data-pcb]"); if(!holder) return;
+    const j = jobNo(), st = BS[j] = BS[j] || {}, f = holder.dataset.pcb; st[f+"Branch"] = sel.value;
+    const ps = document.querySelector('select[data-pc-f="'+f+'"]'), c = ps && cust && cust.find(x=> x.name === ps.value);
+    if(c && br[c.id]){ const b = br[c.id].find(x=> String(x.id) === sel.value); if(b) holder.lastChild.textContent = line(b); }
+    holder.dispatchEvent(new Event("input", {bubbles:true}));            // the tab is now changed: Save is offered
+  });
+  setInterval(refresh, 1500); setTimeout(refresh, 1200);
+  window.PartyBranchKit = {refresh, state:BS};
 })();
 </script>
 </body>

@@ -11,7 +11,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session
 
 from .auth import permission_required
@@ -23,7 +23,8 @@ router = APIRouter(prefix="/api/cha/invoice-packing", tags=["cha invoice packing
 
 
 class InvPlIn(BaseModel):
-    invoice_no: str = Field(min_length=1, max_length=60)
+    invoice_no: str = Field(default="", max_length=60)
+    auto_number: bool = False          # the server issues the next running number (CI/26-27/0001) when the record is new
     invoice_date: date | None = None
     job_number: str | None = Field(default=None, max_length=40)
     data: dict[str, Any] = Field(default_factory=dict)
@@ -40,6 +41,23 @@ def _dec(v: Any) -> Decimal:
         return Decimal(str(v).replace(",", "").strip() or "0")
     except InvalidOperation:
         return Decimal(0)
+
+
+def _fy(d: date) -> str:
+    y = d.year if d.month >= 4 else d.year - 1
+    return f"{y % 100:02d}-{(y + 1) % 100:02d}"
+
+
+def _next_number(db: Session, org_id: int, on: date | None = None) -> str:
+    """CI/<financial year>/<running number>, taken from the highest number already issued in that year (gap-free enough for a draft number; the caller holds a lock)."""
+    pref = f"CI/{_fy(on or date.today())}/"
+    last = 0
+    for (no,) in db.execute(select(ChaInvoicePacking.invoice_no).where(ChaInvoicePacking.organization_id == org_id, ChaInvoicePacking.invoice_no.like(pref + "%"))):
+        try:
+            last = max(last, int(no[len(pref):]))
+        except ValueError:
+            pass
+    return f"{pref}{last + 1:04d}"
 
 
 def _clean(body: InvPlIn) -> dict:
@@ -96,6 +114,12 @@ def list_records(q: str = "", limit: int = Query(default=50, ge=1, le=200), offs
     return {"total": total, "items": [_out(r) for r in rows]}
 
 
+@router.get("/next-number")
+def next_number(user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    """The number the next automatic Invoice & Packing List will get."""
+    return {"invoice_no": _next_number(db, _tenant(user))}
+
+
 @router.get("/from-job/{job_number:path}")
 def from_job(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """"Get Bill": the parties, route, flight and cargo of a job, as the starting point of a new invoice and packing list."""
@@ -106,7 +130,10 @@ def from_job(job_number: str, user: User = Depends(permission_required("shipment
     det = db.scalar(select(JobDetail).where(JobDetail.shipment_id == job.id))
     p = (det.parties if det else None) or {}
     c = (det.cargo if det else None) or {}
-    data = {"exporter": p.get("shipper") or "", "consignee": p.get("consignee") or "", "notify": p.get("notify1") or "", "port_of_loading": job.pol or "", "port_of_discharge": job.pod or "",
+    from .jobs_lifecycle_api import party_text
+
+    txt = lambda k: party_text(db, org_id, p.get(k), None, p.get(k + "Branch")) if p.get(k) else ""           # name and address, with the branch chosen on the job
+    data = {"exporter": txt("shipper"), "consignee": txt("consignee"), "notify": txt("notify1"), "port_of_loading": job.pol or "", "port_of_discharge": job.pod or "",
             "final_destination": job.pod or "", "pre_carriage": "AIR" if job.mode == "Air" else "SEA" if job.mode == "Sea" else (job.mode or ""), "lines": []}
     if c.get("cargoDesc") or c.get("pkgs") or c.get("gwt"):
         data["lines"] = [{"pkgs": c.get("pkgs") or "", "pkg_unit": c.get("pkgType") or "PKG", "description": c.get("cargoDesc") or "", "net_wt": c.get("nwt") or "", "gross_wt": c.get("gwt") or ""}]
@@ -122,7 +149,11 @@ def get_record(rid: int, user: User = Depends(permission_required("shipment.read
 def create_record(body: InvPlIn, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     d = _clean(body)
-    r = ChaInvoicePacking(organization_id=org_id, invoice_no=body.invoice_no.strip(), invoice_date=body.invoice_date, job_number=(body.job_number or "").strip() or None, exporter=str(d.get("exporter") or "").split("\n")[0][:200],
+    no = body.invoice_no.strip()
+    if body.auto_number or not no:
+        db.execute(text("select pg_advisory_xact_lock(:k)"), {"k": 6810000 + org_id})            # two people saving at once never get the same number
+        no = _next_number(db, org_id, body.invoice_date)
+    r = ChaInvoicePacking(organization_id=org_id, invoice_no=no, invoice_date=body.invoice_date, job_number=(body.job_number or "").strip() or None, exporter=str(d.get("exporter") or "").split("\n")[0][:200],
                           consignee=str(d.get("consignee") or "").split("\n")[0][:200], currency=d["currency"], total=_total(d), data=d, created_by=user.id)
     db.add(r)
     db.flush()
@@ -137,6 +168,8 @@ def update_record(rid: int, body: InvPlIn, user: User = Depends(permission_requi
     org_id = _tenant(user)
     r = _get(db, org_id, rid)
     d = _clean(body)
+    if not body.invoice_no.strip():
+        raise HTTPException(422, "Invoice number is required")
     r.invoice_no, r.invoice_date, r.job_number = body.invoice_no.strip(), body.invoice_date, (body.job_number or "").strip() or None
     r.exporter, r.consignee = str(d.get("exporter") or "").split("\n")[0][:200], str(d.get("consignee") or "").split("\n")[0][:200]
     r.currency, r.total, r.data = d["currency"], _total(d), d

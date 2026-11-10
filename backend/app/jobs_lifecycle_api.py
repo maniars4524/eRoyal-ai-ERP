@@ -165,7 +165,7 @@ def party_block(db: Session, job: Shipment, b) -> dict:
     d = (b.data if b else {}) or {}
     names = {"shipper": o.get("shipper"), "consignee": o.get("consignee"), "notify1": o.get("notify1"), "notify2": o.get("notify2"), "deliveryAgent": o.get("deliveryAgent"), "originAgent": o.get("originAgent")}
     book_addr = {"shipper": d.get("shipper_address"), "consignee": d.get("consignee_address"), "notify1": d.get("notify_address")}
-    return {k: party_text(db, job.organization_id, v, book_addr.get(k)) for k, v in names.items()}
+    return {k: party_text(db, job.organization_id, v, book_addr.get(k), o.get(k + "Branch")) for k, v in names.items()}
 
 
 def job_detail_snapshot(db: Session, job: Shipment) -> dict:
@@ -175,14 +175,21 @@ def job_detail_snapshot(db: Session, job: Shipment) -> dict:
     return {k: o[k] for k in ("parties", "cargo", "containers", "dims", "bl", "impdocs")}
 
 
-def party_text(db: Session, org_id: int, name: str | None, fallback: str | None = None) -> str:
+def party_text(db: Session, org_id: int, name: str | None, fallback: str | None = None, branch_id: int | str | None = None) -> str:
     """Name and address lines of a party, from the Organization Master (first active branch with an address), else what the booking carried."""
     from .models import Customer, OrgBranch
 
     if not name or name.startswith("__"):
         return ""
     c = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == name))
-    b = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.address.is_not(None), OrgBranch.address != "").order_by(OrgBranch.sl_no, OrgBranch.id)) if c else None
+    b = None
+    if c and branch_id not in (None, ""):                      # the branch chosen on the job / booking (a party can have the same name at several places)
+        try:
+            b = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.id == int(branch_id)))
+        except (TypeError, ValueError):
+            b = None
+    if c and b is None:
+        b = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.address.is_not(None), OrgBranch.address != "").order_by(OrgBranch.sl_no, OrgBranch.id))
     lines = [name]
     if b:
         city = " ".join(x for x in (b.city, b.pincode) if x)

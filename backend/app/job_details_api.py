@@ -104,6 +104,8 @@ def booking_defaults(db: Session, job: Shipment) -> dict:
     if notify.strip().lower() == "same as consignee":
         notify = consignee
     parties = {"shipper": d.get("shipper") or b.party_name or "", "consignee": consignee, "notify1": notify, "billTo": b.party_name or ""}
+    parties.update({"shipperBranch": d.get("shipper_branch") or "", "consigneeBranch": d.get("consignee_branch") or "", "notify1Branch": d.get("notify_branch") or "", "billToBranch": d.get("customer_branch") or ""})
+    parties.update({"shipperBranch": d.get("shipper_branch") or "", "consigneeBranch": d.get("consignee_branch") or "", "notify1Branch": d.get("notify_branch") or "", "billToBranch": d.get("customer_branch") or ""})
     cargo = {"commodity": d.get("commodity") or d.get("marks") or "", "pkgs": d.get("pcs") or "", "pkgType": d.get("pack_type") or "", "gwt": d.get("gwt") or "", "nwt": d.get("nwt") or "", "vol": d.get("volume") or "", "marks": d.get("marks") or "", "cargoDesc": d.get("cargo_description") or ""}
     containers = []
     if d.get("container_no"):
@@ -730,11 +732,11 @@ def issue_do(job_number: str, user: User = Depends(permission_required("shipment
 
 
 @company.get("/party-text")
-def party_text_api(name: str, user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+def party_text_api(name: str, branch_id: int | None = None, user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
     from .jobs_lifecycle_api import party_text
     from .models import Customer, OrgBranch
 
     org_id = _tenant(user)
     c = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == name))
-    b = db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.address.is_not(None), OrgBranch.address != "").order_by(OrgBranch.sl_no, OrgBranch.id)) if c else None
-    return {"text": party_text(db, org_id, name), "gstin": (b.gstin if b and b.gstin else (c.gstin if c else None)) or "", "phone": (b.phone if b else (c.data or {}).get("phone") if c else "") or ""}
+    b = (db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.id == branch_id)) if c and branch_id else None) or (db.scalar(select(OrgBranch).where(OrgBranch.customer_id == c.id, OrgBranch.address.is_not(None), OrgBranch.address != "").order_by(OrgBranch.sl_no, OrgBranch.id)) if c else None)
+    return {"text": party_text(db, org_id, name, None, branch_id), "gstin": (b.gstin if b and b.gstin else (c.gstin if c else None)) or "", "phone": (b.phone if b else (c.data or {}).get("phone") if c else "") or ""}

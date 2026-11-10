@@ -27,7 +27,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.evaluate(() => window.go("cha-invpl")); await sleep(1500);
   check("the screen opens with the list and New", /Invoice & Packing List/.test(await text("#s-cha-invpl")) && /No invoice and packing list yet/.test(await text("#s-cha-invpl")), (await text("#s-cha-invpl")).slice(0, 200));
   await page.evaluate(() => document.getElementById("ipNew").click()); await sleep(800);
-  await setv("#ip_no", "1333"); await setv("#ip_exref", "AAGCE4436R"); await setv("#ip_buyord", "buy ord no.009");
+  await page.evaluate(() => { const r = document.querySelector('input[name="ipNoMode"][value="manual"]'); r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }); await setv("#ip_no", "1333"); await setv("#ip_exref", "AAGCE4436R"); await setv("#ip_buyord", "buy ord no.009");
   await setv("#ip_exporter", "PSR EXPORTERS\n2 C, 202 Damodar Park, Mumbai"); await setv("#ip_consignee", "SYED TRADING CO. LLC\nP.O. Box 12345, Dubai"); await setv("#ip_port_of_loading", "Bengaluru, India"); await setv("#ip_port_of_discharge", "Dubai"); await setv("#ip_vessel_flight", "EK-215");
   await page.evaluate(() => document.querySelector('[data-ip="tab:charge"]').click()); await sleep(400);
   await setv("#ip_cur", "USD"); await setv("#ip_curvalue", "74.45"); await setv("#ip_addpct", "2");
@@ -40,15 +40,23 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.evaluate(() => document.getElementById("ipSave").click()); await sleep(1800);
   const saved = (await j("GET", "/api/cha/invoice-packing", null, token)).body.items;
   check("Save stores the record with the CIF total", saved.length === 1 && saved[0].invoice_no === "1333" && saved[0].total === "430.00", JSON.stringify(saved));
+  // auto numbering, delete at the start of the row, masters, import
+  check("each item row has its Delete button as the first cell", await page.evaluate(() => { const tr = document.querySelector("#ipLines tr"); return !!tr && !!tr.cells[0].querySelector('[data-ip^="rm:"]'); }));
+  const pd = await page.evaluate(() => ({ ports: !!document.getElementById("ipPorts"), cc: document.getElementById("ipCountries").options.length, nav: !!document.querySelector('[data-go="port-master"]') && !!document.querySelector('[data-go="org-list"]') && !!document.querySelector('[data-go="country-master"]') }));
+  check("the Port / Country master lists and the master links are on the form", pd.ports && pd.nav && pd.cc > 5, JSON.stringify(pd));
+  const imp = await page.evaluate(() => { const rows = [["Invoice No", "psr/01/26 • 15-Feb-2026"], ["Exporter", "PSR EXPORTERS"], ["Consignee", "SYED"], ["Country of Origin", "INDIA"], ["Currency", "INR"], [], ["Sr.", "Description of Goods", "HS Code", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Amount"], ["01", "ONION", "[Enter]", "1650", "KGS", "1650", "1650", "17", "28050"], ["02", "[Add item description]", "[HS code]"], ["TOTAL", "", "", "", "", "", "", "", "28050"]]; const r = window.ChaInvPl.parseRows(rows); return { no: r.invoice_no, date: r.invoice_date, exp: r.data.exporter, lines: r.data.lines.length, desc: r.data.lines[0].description, rate: r.data.lines[0].rate }; });
+  check("an Excel invoice is read: number, date, parties and item lines", imp.no === "psr/01/26" && imp.date === "2026-02-15" && imp.exp === "PSR EXPORTERS" && imp.lines === 1 && imp.desc === "ONION" && imp.rate === "17", JSON.stringify(imp));
+  const tpl = await page.evaluate(async () => { await new Promise(r => { const t = document.createElement("script"); t.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; t.onload = r; document.head.appendChild(t); }); const buf = window.ChaInvPl.templateXlsx(); const wb = window.XLSX.read(buf, { type: "array" }); const rows = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" }); const back = window.ChaInvPl.parseRows(rows.map(r => r.slice())); return { rows: rows.length, lines: back.data.lines.length }; });
+  check("the Excel template downloads and reads back empty", tpl.rows > 30 && tpl.lines === 0, JSON.stringify(tpl));
   // print options
   await page.evaluate(() => document.getElementById("ipPrint").click()); await sleep(2500);
   const pages = async () => page.evaluate(() => document.querySelectorAll("#ipPreview .pg").length);
   const body = async () => (await text("#ipPreview")).replace(/\s+/g, " ");
   let bd = await body();
-  check("Invoice + Packing List: two pages with both titles", (await pages()) === 2 && /INTERNATIONAL COMMERCIAL INVOICE/.test(bd) && /PACKING LIST/.test(bd) && /GARMENTS/.test(bd) && /PSR EXPORTERS/.test(bd), bd.slice(0, 200));
+  check("Invoice + Packing List: two pages with both titles", (await pages()) === 2 && /COMMERCIAL INVOICE/.test(bd) && /PACKING LIST/.test(bd) && /GARMENTS/.test(bd) && /PSR EXPORTERS/.test(bd), bd.slice(0, 200));
   const pick = async v => { await page.evaluate(v => { const r = document.querySelector('input[name="ipKind"][value="' + v + '"]'); r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }, v); await sleep(700); };
   await pick("packing"); bd = await body();
-  check("Packing List alone: one page, no invoice title, weights shown", (await pages()) === 1 && !/INTERNATIONAL COMMERCIAL INVOICE/.test(bd) && /Net Weight/.test(bd) && /5\.100/.test(bd), bd.slice(0, 160));
+  check("Packing List alone: one page, no invoice title, weights shown", (await pages()) === 1 && !/COMMERCIAL INVOICE/.test(bd) && /Net Weight/.test(bd) && /5\.100/.test(bd), bd.slice(0, 160));
   await pick("invoice"); bd = await body();
   check("Invoice alone: one page with the invoice value and the declaration", (await pages()) === 1 && /INVOICE VALUE \(CIF\)/.test(bd) && /Declaration/.test(bd) && /430\.00/.test(bd) && !/Gross Weight \(KGS\)/.test(bd), bd.slice(0, 160));
   await pick("combined"); bd = await body();
@@ -58,7 +66,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const pdf = await page.evaluate(async () => { const rec = window.ChaInvPl.S.rec; const bl = await window.ChaInvPl.makePdf(rec, "both", true); return { size: bl.size, type: bl.type }; });
   check("the PDF download is a real PDF of both pages", pdf.size > 8000 && /pdf/.test(pdf.type), JSON.stringify(pdf));
   check("Download PDF and Download Excel buttons are in the dialog", await page.evaluate(() => !!document.getElementById("ipDoPdf") && !!document.getElementById("ipDoXlsx")));
-  await page.evaluate(() => { const c = document.getElementById("ipSign"); c.checked = false; c.dispatchEvent(new Event("change", { bubbles: true })); }); await sleep(600);
+  await page.evaluate(() => { for (const id of ["ipSign", "ipSeal"]) { const c = document.getElementById(id); c.checked = false; c.dispatchEvent(new Event("change", { bubbles: true })); } }); await sleep(600);
   check("without signature the preview still draws (blank signature space)", (await pages()) === 1 && /Authorised Signatory/.test(await body()));
   await page.evaluate(() => closeModal()); await sleep(400);
   // list, edit

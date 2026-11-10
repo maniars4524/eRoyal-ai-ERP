@@ -29,10 +29,20 @@ def test_create_list_update_delete(h):
     assert client.get(f"/api/cha/invoice-packing/{rec['id']}", headers=h).status_code == 404
 
 
+def test_automatic_invoice_numbers_run_in_order(h):
+    n = client.get("/api/cha/invoice-packing/next-number", headers=h).json()["invoice_no"]
+    assert n.startswith("CI/") and n.endswith("0001") or n[-4:].isdigit()
+    a = client.post("/api/cha/invoice-packing", json={"invoice_date": "2026-11-10", "auto_number": True, "data": {"currency": "USD", "lines": []}}, headers=h).json()
+    b = client.post("/api/cha/invoice-packing", json={"invoice_date": "2026-11-10", "auto_number": True, "data": {"currency": "USD", "lines": []}}, headers=h).json()
+    assert a["invoice_no"].startswith("CI/26-27/") and int(b["invoice_no"][-4:]) == int(a["invoice_no"][-4:]) + 1
+    man = client.post("/api/cha/invoice-packing", json={"invoice_no": "MY-001", "data": {"lines": []}}, headers=h).json()
+    assert man["invoice_no"] == "MY-001"                                                  # manual numbers stay as typed
+    assert client.put(f"/api/cha/invoice-packing/{a['id']}", json={"invoice_no": "", "data": {"lines": []}}, headers=h).status_code == 422
+
+
 def test_refuses_bad_lines_and_other_companies_cannot_see_it(h, world):
     bad = body("BAD"); bad["data"]["lines"][0]["qty"] = "-1"
     assert client.post("/api/cha/invoice-packing", json=bad, headers=h).status_code == 422
-    assert client.post("/api/cha/invoice-packing", json={"invoice_no": "", "data": {}}, headers=h).status_code == 422
     rec = client.post("/api/cha/invoice-packing", json=body("PRIV"), headers=h).json()
     other = hdr(world["demo"], world["demo_license"])
     assert client.get(f"/api/cha/invoice-packing/{rec['id']}", headers=other).status_code in (403, 404)

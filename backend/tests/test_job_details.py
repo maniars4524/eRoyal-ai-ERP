@@ -208,3 +208,19 @@ def test_dimensions_give_the_chargeable_weight_that_reaches_the_job_cost_lines(h
     assert air_weight.round_up_half(100.01) == 100.5 and air_weight.round_up_half(99.5) == 99.5
     assert air_weight.compute({"unit": "in_lbs", "rows": [{"pkg": "1", "l": "40", "w": "20", "h": "20", "awt": "30"}]})["actual_kg"] == round(30 * 0.45359237, 3)
     assert air_weight.compute({"unit": "cbm", "rows": [{"pkg": "1", "l": "100", "w": "100", "h": "100", "awt": "10"}]})["volumetric_kg"] == 167.0
+
+
+def test_a_party_with_two_branches_prints_the_branch_chosen_on_the_job(h):
+    import uuid
+
+    tag = uuid.uuid4().hex[:6].upper()
+    c = client.post("/api/customers", json={"code": "BR" + tag, "name": "Branchy " + tag}, headers=h).json()
+    mk = lambda code, city, addr: client.post(f"/api/customers/{c['id']}/branches", json={"code": code, "name": city, "address": addr, "city": city, "country": "India", "state": "Tamil Nadu", "pincode": "600001"}, headers=h).json()
+    b1, b2 = mk("MAA", "Chennai", "1 Mount Road"), mk("CJB", "Coimbatore", "22 Avinashi Road")
+    j = job(h)
+    client.put(f"/api/jobs/{j}/details/parties", json={"data": {"shipper": c["name"], "consignee": c["name"], "consigneeBranch": b2["id"]}}, headers=h)
+    pt = client.get(f"/api/jobs/{j}/report-data", headers=h).json()["party_text"]
+    assert "1 Mount Road" in pt["shipper"] and "22 Avinashi Road" not in pt["shipper"]        # no branch chosen: the first one, as before
+    assert "22 Avinashi Road" in pt["consignee"] and "Coimbatore" in pt["consignee"]        # the branch chosen on the job
+    one = client.get(f"/api/company/party-text?name={c['name']}&branch_id={b2['id']}", headers=h).json()
+    assert "22 Avinashi Road" in one["text"]
