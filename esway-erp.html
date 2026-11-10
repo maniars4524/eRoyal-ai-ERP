@@ -26392,7 +26392,8 @@ body.job-readonly #jlBanner{display:flex}
   }
   /* ---------- downloads: PDF and Excel ---------- */
   const libs = {};
-  const loadLib = url=> libs[url] || (libs[url] = new Promise((ok, no)=>{ const t = document.createElement("script"); t.src = url; t.onload = ok; t.onerror = ()=> no(new Error("Could not load "+url)); document.head.appendChild(t); }));
+  const loadLib = url=> libs[url] || (libs[url] = new Promise((ok, no)=>{ const one = (src, bad)=>{ const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = ()=>{ t.remove(); bad(); }; document.head.appendChild(t); };
+    one("/vendor/"+url.split("/").pop(), ()=> one(url, ()=>{ delete libs[url]; no(new Error("Could not load "+url)); })); }));       // this server first, the CDN only as a fallback
   const KIND_NAME = {both:"Invoice and Packing List", packing:"Packing List", invoice:"Invoice", combined:"Invoice cum Packing List"};
   async function makePdf(rec, kind, withSign, fmt){
     await loadLib("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadLib("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
@@ -26483,7 +26484,7 @@ body.job-readonly #jlBanner{display:flex}
   async function readXlsx(file){ await loadLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"); const wb = window.XLSX.read(await file.arrayBuffer(), {type:"array", cellDates:false}); const out = {data:{lines:[]}}; for(const name of wb.SheetNames){ const r = parseRows(window.XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, raw:false, defval:""})); if((r.data.lines || []).length || Object.keys(r.data).length > 1){ Object.assign(out.data, r.data, {lines:(out.data.lines || []).length ? out.data.lines : r.data.lines}); if(r.invoice_no) out.invoice_no = r.invoice_no; if(r.invoice_date) out.invoice_date = r.invoice_date; } } return out; }
   /* a PDF: its text is read with pdf.js, lines are rebuilt from the text positions, then the same labels / table are looked for (best effort: always review before saving) */
   async function readPdf(file){
-    await loadLib("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); const lib = window["pdfjs-dist/build/pdf"] || window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    await loadLib("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); const lib = window["pdfjs-dist/build/pdf"] || window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = "/vendor/pdf.worker.min.js";
     const pdf = await lib.getDocument({data:await file.arrayBuffer()}).promise, rows = [];
     for(let pn = 1; pn <= pdf.numPages; pn++){ const tc = await (await pdf.getPage(pn)).getTextContent(), by = {}; tc.items.forEach(it=>{ const y = Math.round(it.transform[5] / 3); (by[y] = by[y] || []).push({x:it.transform[4], t:it.str}); });
       Object.keys(by).map(Number).sort((a, b)=> b - a).forEach(y=>{ const parts = by[y].sort((a, b)=> a.x - b.x); const cells = []; let lastX = null; parts.forEach(p=>{ if(!p.t.trim()) return; if(lastX != null && p.x - lastX > 14) cells.push(p.t.trim()); else if(cells.length) cells[cells.length - 1] += " "+p.t.trim(); else cells.push(p.t.trim()); lastX = p.x + p.t.length * 4; }); if(cells.length) rows.push(cells); }); }

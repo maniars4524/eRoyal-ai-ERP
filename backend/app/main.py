@@ -232,6 +232,18 @@ _UI_GZ: dict = {}
 _allowed = [p for p in ("erp", "developer") if not PUBLIC_PORTALS or p in PUBLIC_PORTALS]
 
 
+VENDOR_DIR = Path(__file__).resolve().parents[2] / "vendor"
+VENDOR_FILES = ("html2canvas.min.js", "jspdf.umd.min.js", "xlsx.full.min.js", "pdf.min.js", "pdf.worker.min.js")
+
+
+@app.get("/vendor/{name}", include_in_schema=False)
+def vendor_file(name: str) -> FileResponse:
+    """The PDF / Excel libraries of the document downloads, served from here so they work without internet access to a CDN (a fixed list of five files)."""
+    if name not in VENDOR_FILES or not (VENDOR_DIR / name).is_file():
+        raise HTTPException(404, "Not found")
+    return FileResponse(VENDOR_DIR / name, media_type="application/javascript", headers={"Cache-Control": "public, max-age=604800"})
+
+
 @app.get("/brand/{name}", include_in_schema=False)
 def brand_file(name: str) -> FileResponse:
     """The SWAY logo images used by the login page and the header (a fixed list of two files; nothing else is served from here)."""
