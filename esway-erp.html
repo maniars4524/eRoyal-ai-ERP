@@ -22844,8 +22844,9 @@ function makePrintFit(){
     ".uni .u-more{padding:6px 16px 6px 38px}.uni .u-foot{padding:10px 16px;font-size:12px;color:var(--g5);border-top:0.5px solid var(--g2)}.uni .u-hide{display:none}"+
     "@media (max-width:760px){.uni .u-row{grid-template-columns:1fr 1fr;padding-left:20px}.uni .u-row span:nth-child(n+4){display:none}.gs-results.uni{top:56px}}";
   document.head.appendChild(ust);
-  const U = {items:[], sources:[], total:0, q:"", f:{department:"", division:"", mode:"", service:"", category:"", party:"", status:"", date_from:"", date_to:""}, shut:new Set(), facets:null};
+  const U = {items:[], sources:[], total:0, q:"", f:{department:"", division:"", mode:"", service:"", category:"", party:"", status:"", date_from:"", date_to:"", created_by:""}, shut:new Set(), facets:null};
   let seq = 0, flat = [], sel = -1, timer = null;
+  const CAT_LIST = {"Jobs":"job-list", "Bookings":"booking", "Quotations":"quotation", "Leads":"crm-lead", "Enquiries":"crm-enquiry", "Opportunities":"crm-opportunity", "Invoices":"invoice-list", "Debit Notes":"debit-note-list", "Vendor Bills":"purchase-invoice-list", "Receipts":"receipt-voucher", "Payments":"payment-voucher"};
   const FIL = [["department", "Department", "departments"], ["division", "Import / Export", "divisions"], ["mode", "Air / Sea / Road", "modes"], ["service", "Service type", "services"], ["category", "Transaction type", "categories"]];
   function close(){ box.classList.remove("on"); sel = -1; }
   const qs = extra=>{ const p = new URLSearchParams({q:U.q}); Object.entries(U.f).forEach(([k, v])=>{ if(v) p.set(k, v); }); Object.entries(extra || {}).forEach(([k, v])=>p.set(k, v)); return p.toString(); };
@@ -22863,7 +22864,7 @@ function makePrintFit(){
         h += '<div class="u-div">'+esc3(v)+' ('+dn+')</div>';
         Object.keys(by[d][v]).sort().forEach(sv=>Object.keys(by[d][v][sv]).forEach(c=>{
           const rows = by[d][v][sv][c];
-          h += '<div class="u-svc">'+(sv !== "Not applicable" ? esc3(sv)+' \u203A ' : "")+esc3(c)+' ('+rows.length+')</div>';
+          h += '<div class="u-svc">'+(sv !== "Not applicable" ? esc3(sv)+' \u203A ' : "")+esc3(c)+' ('+rows.length+')'+(CAT_LIST[c] ? ' <a href="#" data-uall="'+CAT_LIST[c]+'" style="margin-left:8px;font-weight:600">View all \u203A</a>' : "")+'</div>';
           rows.forEach(it=>{ flat.push(it); h += '<div class="u-row" data-gs="'+(flat.length - 1)+'"><b title="'+esc3(it.ref)+'">'+esc3(it.ref)+'</b><span><i class="u-tag">'+esc3(it.type)+'</i></span><span title="'+esc3(it.party)+'">'+esc3(it.party || "\u2014")+'</span><span title="'+esc3(it.reference)+'">'+esc3(it.reference || "")+'</span><span>'+esc3(it.date || "")+'</span><span>'+esc3(it.status || "")+'</span><span class="u-open">Open \u2192</span></div>'; });
         }));
       });
@@ -22880,7 +22881,7 @@ function makePrintFit(){
     box.className = "gs-results uni on";
     box.innerHTML = '<div class="u-head"><b>Search results for \u201C'+esc3(U.q)+'\u201D</b><span>Showing '+U.items.length+' of '+U.total+' results</span></div>'+
       '<div class="u-fil">'+FIL.map(x=>sel_(x[0], x[1], x[2])).join("")+'<input data-uf="party" placeholder="Customer / vendor" value="'+esc3(U.f.party)+'"><input data-uf="status" placeholder="Status" value="'+esc3(U.f.status)+'">'+
-      '<input type="date" data-uf="date_from" title="From date" value="'+esc3(U.f.date_from)+'"><input type="date" data-uf="date_to" title="To date" value="'+esc3(U.f.date_to)+'">'+(anyF ? '<button class="btn btn-out btn-sm" type="button" data-uclear>Clear filters</button>' : "")+'</div>'+
+      '<input type="date" data-uf="date_from" title="From date" value="'+esc3(U.f.date_from)+'"><input type="date" data-uf="date_to" title="To date" value="'+esc3(U.f.date_to)+'">'+((fac.users || []).length ? '<select data-uf="created_by" title="Created by"><option value="">Created by: all</option>'+fac.users.map(u=>'<option value="'+u.id+'"'+(String(U.f.created_by) === String(u.id) ? " selected" : "")+'>'+esc3(u.name)+'</option>').join("")+'</select>' : "")+(anyF ? '<button class="btn btn-out btn-sm" type="button" data-uclear>Clear filters</button>' : "")+'</div>'+
       body+'<div class="u-foot">Searches the jobs, bookings, quotations, CRM, accounts, masters and users you are allowed to open. Numbers match with or without dashes and prefixes (JOB-0001 = JOB0001).</div>';
     box.scrollTop = keep; sel = -1;
     if(fk){ const n = box.querySelector('[data-uf="'+fk+'"]'); if(n){ n.focus(); try{ n.setSelectionRange(n.value.length, n.value.length); }catch(e){ /* date / select */ } } }
@@ -22931,6 +22932,7 @@ function makePrintFit(){
   }, true);
   box.addEventListener("mousedown", e=>{
     const i = e.target.closest("[data-gs]"); if(i){ e.preventDefault(); open(flat[Number(i.dataset.gs)]); return; }
+    const all = e.target.closest("[data-uall]"); if(all){ e.preventDefault(); const q = U.q; close(); window.go(all.dataset.uall); setTimeout(()=>{ const s = document.querySelector("#s-"+all.dataset.uall+" input[type=text], #s-"+all.dataset.uall+" input[type=search], #s-"+all.dataset.uall+" .fc[placeholder*=earch]"); if(s){ s.value = q; s.dispatchEvent(new Event("input", {bubbles:true})); } }, 700); return; }
     const dep = e.target.closest("[data-udep]"); if(dep){ e.preventDefault(); const k = dep.dataset.udep; if(U.shut.has(k)) U.shut.delete(k); else U.shut.add(k); render(); return; }
     const mo = e.target.closest("[data-umore]"); if(mo){ e.preventDefault(); const m = U.sources.find(x=>x.source === mo.dataset.umore); if(m) run({source:m.source, offset:m.shown}); return; }
     const cl = e.target.closest("[data-uclear]"); if(cl){ e.preventDefault(); Object.keys(U.f).forEach(k=>{ U.f[k] = ""; }); run(); }

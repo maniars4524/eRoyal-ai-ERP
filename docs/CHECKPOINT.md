@@ -685,3 +685,7 @@ On hold by the owner: customer approval workflow, role/CEO dashboards, licence/c
 - Cargo summary on the job screen has Total Volume and a read-only Chargeable Weight (Air) / Chargeable Revenue Ton (LCL).
 - Reports read these figures: output-document cargo block (adds the chargeable line), Cargo Arrival Notice (chargeable column, a proper cargo line while there is no container number), HAWB already used the dimensions.
 - Tests: `test_cargo_jobs.py` (2 new), `e2e/dimsreports.test.js`, `e2e/cargodims.test.js` still pass.
+
+## Search: Created by filter + View all (2026-11-10)
+- Universal search panel: new "Created by" filter (the company's users; a person without the user-list right sees only themselves) and a "View all" link on each category line that opens the matching list screen (jobs, bookings, quotations, leads, enquiries, opportunities, invoices, debit notes, vendor bills, receipts, payments). Backend `universal_search._creators`, masters / ledgers / users are not offered when a creator is chosen (they carry no creator). Tests: `test_universal_search.py` (1 new), `e2e/searchcb.test.js`.
+- STILL TO DO from the go-ahead list: branch / placement / assignment screens; rows-per-page on the other lists (ListKit covers quotation, invoice, job, lead, enquiry, opportunity, booking, purchase invoice, debit note); inventory stores/dashboards/reports/accounting/audit/alerts; cargo-dimension phases 5-8; static-screen honesty walk; refresh old tests.

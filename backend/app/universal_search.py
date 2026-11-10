@@ -381,6 +381,14 @@ def _containers_note(db: Session, items: list[dict], term: str, tn: str) -> None
                     i["reference"] = "; ".join(hits[:2])
 
 
+def _creators(db, user) -> list[dict]:
+    """The people the "Created by" filter offers: the company's active users (a person without the user-list right only sees themselves)."""
+    q = select(User).where(User.organization_id == user.organization_id, User.status == "ACTIVE").order_by(User.first_name, User.username)
+    if not has_permission(user, "user.read"):
+        q = q.where(User.id == user.id)
+    return [{"id": u.id, "name": ((u.first_name or "") + " " + (u.last_name or "")).strip() or u.username} for u in db.scalars(q.limit(300))]
+
+
 @router.get("/universal")
 def universal(q: str = Query(min_length=2, max_length=80), department: str = "", division: str = "", mode: str = "", service: str = "", category: str = "", party: str = "", status: str = "",
               date_from: date | None = None, date_to: date | None = None, created_by: int | None = None, source: str = "", offset: int = Query(default=0, ge=0), limit: int = Query(default=CAP, ge=1, le=100),
@@ -403,6 +411,8 @@ def universal(q: str = Query(min_length=2, max_length=80), department: str = "",
         if f.category and f.category not in SOURCE_CATEGORIES.get(key, set()):
             continue
         if not any(has_permission(user, p) for p in perms):                       # a module the user may not open is never searched
+            continue
+        if f.created_by and key in ("ledgers", "masters", "airlines", "sealines", "ports", "users"):          # records that carry no creator cannot match "Created by"
             continue
         built = build(db, org, term, tn, f)
         if not built:
@@ -439,4 +449,4 @@ def universal(q: str = Query(min_length=2, max_length=80), department: str = "",
         i.pop("_job", None)
         i.pop("_jobid", None)
     return {"query": q, "total": sum(m["total"] for m in meta), "shown": len(items), "sources": meta, "items": items,
-            "facets": {"departments": DEPARTMENTS, "divisions": DIVISIONS, "services": SERVICES, "categories": CATEGORIES, "modes": ["Sea", "Air", "Road"]}}
+            "facets": {"departments": DEPARTMENTS, "divisions": DIVISIONS, "services": SERVICES, "categories": CATEGORIES, "modes": ["Sea", "Air", "Road"], "users": _creators(db, user)}}

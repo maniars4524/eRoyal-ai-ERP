@@ -142,3 +142,14 @@ def test_a_number_with_fewer_leading_zeros_still_finds_the_record(h):
     for typed in (ref, f"LEAD/26-27/00{digits}", f"lead/26-27/{digits}", f"LEAD2627{digits}"):
         res = client.get("/api/search/universal", params={"q": typed}, headers=h).json()
         assert ref in {i["ref"] for i in res["items"]}, typed
+
+
+def test_created_by_filter_and_the_creators_list(h, data):
+    r = client.get("/api/search/universal", params={"q": data["tag"]}, headers=h).json()
+    users = r["facets"]["users"]
+    me = client.get("/api/auth/me", headers=h).json()
+    assert users and any(u["id"] == me["id"] for u in users)
+    mine = client.get("/api/search/universal", params={"q": data["tag"], "created_by": me["id"]}, headers=h).json()
+    assert mine["total"] > 0 and any(i["ref"] == data["sea"] for i in mine["items"])
+    other = client.get("/api/search/universal", params={"q": data["tag"], "created_by": me["id"] + 99999}, headers=h).json()
+    assert other["total"] == 0 and other["items"] == []
