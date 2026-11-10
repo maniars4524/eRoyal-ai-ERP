@@ -36,6 +36,13 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.evaluate(() => { document.querySelectorAll("[data-jcpb]").forEach(c => { c.checked = true; }); document.getElementById("jcpbApply").click(); }); await sleep(1800);
   const row = await page.evaluate(() => { const a = document.querySelector("[data-jc-base]"); return a ? a.textContent : ""; });
   check("ticking both charges updates the base", /Sea Freight/.test(row) && /Documentation/.test(row), row);
+  // the user types the percentage: the amount follows it
+  const amt = async () => page.evaluate(() => { const tr = Array.from(document.querySelectorAll("#jc_tbody tr[data-jc-row]")).find(t => /% of Other/.test(t.innerHTML) || t.querySelector("[data-jc-base]")); const st = window.JCX.state(window.JCX.cur()); const r = st.rows.find(x => x.uom === "% of Other Charges"); return r ? { rate: r.sell.rate, amt: r.sell.pctAmt } : null; });
+  const before = await amt();
+  await page.evaluate(() => { const tr = document.querySelector("[data-jc-base]").closest("tr"); const i = tr.querySelector('[data-jc-f="sell.rate"]'); i.focus(); i.value = "20"; i.dispatchEvent(new Event("input", { bubbles: true })); i.dispatchEvent(new Event("change", { bubbles: true })); }); await sleep(1800);
+  const after = await amt();
+  console.log("before", JSON.stringify(before), "after", JSON.stringify(after));
+  check("changing the percentage recalculates the amount (20% of Sea Freight + Documentation = 2,100)", after && Number(after.rate) === 20 && Number(after.amt) === 2100, JSON.stringify(after));
   check("no script errors", errs.length === 0, errs.join(" | "));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })();

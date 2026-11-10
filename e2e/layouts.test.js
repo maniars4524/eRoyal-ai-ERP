@@ -33,6 +33,8 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const ln = (name, rate, tt, pct) => ({ charge_name: name, description: "d", uom: "Per Container", qty: "1", hsn: "996512", buy: { ccy: "INR", exch: "1", rate: "0", tax_type: "Non-Taxable", tax_pct: "0", party: "", use_party: false }, sell: { ccy: "INR", exch: "1", rate, tax_type: tt, tax_pct: pct, party: "", use_party: false } });
   const all = async tag => { const codes = await page.evaluate(() => [...document.querySelectorAll('[data-od2="gen"]')].map(b => b.dataset.code)); console.log(tag, "offers:", codes.join(","));
     for (const c of codes) { if (c === "can" || c === "hbl" || c === "hawb") continue; await gen(c); await finish(tag + "_" + c); } };
+  const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAAjzRLnAAAAKUlEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAvg0hAAABmN0mTAAAAABJRU5ErkJggg==";
+  console.log("logo", (await j("PUT", "/api/company/logo", { data_url: PNG }, token)).status, "profile", (await j("PUT", "/api/company/doc-profile", { address: "5/41 5th Cross Street, Balaji Nagar, Chennai - 600032", phone: "044 1234 5678", email: "ops@example.com", gstin: "33AAACI3746A2Z5" }, token)).status);
   // ---- sea export
   const sea = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA(CHENNAI)", pod: "NLRTM(ROTTERDAM)", etd: "2030-05-01", eta: "2030-05-30" }, token)).body.job_number;
   await put(sea, "parties", { shipper: "ABC Trading Co", consignee: "Global Importers Ltd", notify1: "Global Importers Ltd" });
