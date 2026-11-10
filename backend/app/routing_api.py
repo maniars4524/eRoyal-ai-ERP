@@ -22,7 +22,7 @@ from .models import Booking, Customer, JobRoutingHistory, JobRoutingLeg, Shipmen
 
 router = APIRouter(tags=["job routing"])
 
-STAGES = ("PLANNED", "CONFIRMED")
+STAGES = ("PLANNED", "CONFIRMED", "ARRIVED")
 TRACKED = ("carrier", "voyage", "pol", "pod", "etd", "eta", "stage", "follow_up", "remarks")
 LABEL = {"carrier": "Airline / Vessel", "voyage": "Flight / Voyage", "pol": "POL", "pod": "POD", "etd": "ETD", "eta": "ETA", "stage": "Stage", "follow_up": "Follow-up required", "remarks": "Remarks"}
 
@@ -113,7 +113,7 @@ def _clean(body: LegIn, kind: str) -> dict:
     v = body.model_dump(exclude={"reason", "source"})
     v["stage"] = (v["stage"] or "").upper()
     if v["stage"] not in STAGES:
-        raise HTTPException(422, "Stage must be Planned or Confirmed")
+        raise HTTPException(422, "Stage must be Planned, Confirmed or Arrived")
     for k in ("carrier", "voyage", "pol", "pod", "remarks"):
         v[k] = (v[k] or "").strip() or None
     if kind == "SEA":
@@ -292,11 +292,17 @@ def compute_alerts(user: User, db: Session, etd_lead: timedelta, eta_lead: timed
             recent.setdefault(h.leg_id, set()).add(LABEL.get(h.field, h.field))
     names = {c.id: c.name for c in db.scalars(select(Customer).where(Customer.organization_id == user.organization_id))}
     out = []
+    later = {}                                   # a leg is "moved on" when a later leg of the same job is already confirmed or arrived: its own ETA no longer needs attention
+    for l2, j2 in rows:
+        if l2.stage in ("CONFIRMED", "ARRIVED"):
+            later[j2.id] = max(later.get(j2.id, 0), l2.seq)
     for leg, job in rows:
         flags = []
+        if leg.stage == "ARRIVED" or (leg.stage == "CONFIRMED" and later.get(job.id, 0) > leg.seq):
+            continue                                                 # arrived, or the cargo has moved on to a later confirmed leg: nothing to chase on this leg
         if leg.etd and dd(leg.etd) < today and leg.stage == "PLANNED":
             flags.append(("OVERDUE", 0, "ETD has passed and the leg is still Planned"))
-        if leg.eta and dd(leg.eta) < today:
+        if leg.eta and dd(leg.eta) < today and job.direction != "Export" and leg.stage == "PLANNED":            # critical only while the leg is still a plan: once it is Confirmed (or Arrived) there is nothing to chase            # an export job ends when the cargo has sailed: the arrival at the other end is not tracked here
             flags.append(("OVERDUE", 0, "ETA has passed"))
         if leg.follow_up and leg.follow_up_status == "OPEN" and leg.stage == "PLANNED":
             flags.append(("FOLLOW_UP", 1, "Follow-up required" + (f": {leg.follow_up_note}" if leg.follow_up_note else "")))
@@ -304,7 +310,7 @@ def compute_alerts(user: User, db: Session, etd_lead: timedelta, eta_lead: timed
             flags.append(("PLANNED", 2, "Planned - confirmation pending"))
         if leg.etd and dd(leg.etd) >= today and leg.etd - etd_lead <= now:               # ETD / ETA are dates (midnight): the alert starts "lead" before that date begins
             flags.append(("ETD", 3, "ETD coming up"))
-        if leg.eta and dd(leg.eta) >= today and leg.eta - eta_lead <= now:
+        if leg.eta and dd(leg.eta) >= today and leg.eta - eta_lead <= now and job.direction != "Export":
             flags.append(("ETA", 3, "ETA coming up"))
         if leg.id in recent and leg.stage == "PLANNED":                                    # once the plan is confirmed (or the ETA corrected and acted on) the change is taken care of: no "schedule changed" line
             flags.append(("CHANGED", 4, "Schedule changed (" + ", ".join(sorted(recent[leg.id])) + ")"))

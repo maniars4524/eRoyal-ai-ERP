@@ -139,3 +139,29 @@ def test_names_used_before_are_offered_as_suggestions(h):
     names = client.get("/api/routing/names?kind=SEA", headers=h).json()
     assert "Suggest Ship One" in names
     assert "Suggest Ship One" not in client.get("/api/routing/names?kind=AIR", headers=h).json()
+
+
+def test_critical_only_while_the_leg_is_planned(h):
+    j = mk(h, direction="Import")
+    one = client.post(f"/api/jobs/{j}/routing/legs", json=sea(stage="PLANNED", etd=iso(-20), eta=iso(-3)), headers=h).json()
+    ids = lambda: {a["leg_id"]: a for a in client.get("/api/routing/alerts", headers=h).json()}
+    assert "OVERDUE" in ids()[one["id"]]["flags"]                                                  # still a plan and the dates passed: critical
+    up = client.put(f"/api/jobs/{j}/routing/legs/{one['id']}", json=sea(stage="CONFIRMED", etd=iso(-20), eta=iso(-3)), headers=h)
+    assert up.status_code == 200
+    assert one["id"] not in ids()                                                                  # confirmed: no critical
+    up = client.put(f"/api/jobs/{j}/routing/legs/{one['id']}", json=sea(stage="ARRIVED", etd=iso(-20), eta=iso(-3)), headers=h)
+    assert up.status_code == 200 and up.json()["stage"] == "ARRIVED" and one["id"] not in ids()
+
+
+def test_an_export_job_never_chases_the_eta_of_a_sailed_leg(h):
+    j = mk(h)                                                                                        # Export
+    one = client.post(f"/api/jobs/{j}/routing/legs", json=sea(stage="CONFIRMED", etd=iso(-20), eta=iso(-3)), headers=h).json()
+    assert one["id"] not in {a["leg_id"] for a in client.get("/api/routing/alerts", headers=h).json()}
+
+
+def test_every_notification_says_what_to_do(h):
+    j = mk(h, direction="Import")
+    client.post(f"/api/jobs/{j}/routing/legs", json=sea(stage="PLANNED", etd=iso(-20), eta=iso(-3)), headers=h)
+    items = client.get("/api/notifications", headers=h).json()["items"]
+    mine = [x for x in items if x["link"].get("jobNo") == j]
+    assert mine and "Confirmed" in mine[0]["todo"] and all(x["todo"] for x in items)

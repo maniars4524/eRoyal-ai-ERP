@@ -25224,7 +25224,7 @@ body.job-readonly #jlBanner{display:flex}
   const show = v=> { if(!v) return "—"; const m = String(v).slice(0, 10).split("-"); return m.length === 3 ? m[2]+" "+MON[Number(m[1]) - 1]+" "+m[0] : "—"; };
   const say = (t, m, k)=> { if(window.toast) toast(t, m, k); };
   const jobNo = ()=> { const t = ((document.getElementById("jobDetailNo") || {}).textContent || "").trim(); return /^[A-Z0-9-]{5,}$/.test(t) && t !== "—" ? t : null; };
-  const stageChip = st=> st === "CONFIRMED" ? '<span class="b b-gr">Confirmed</span>' : '<span class="b b-am">Planned</span>';
+  const stageChip = st=> st === "ARRIVED" ? '<span class="b b-bl">Arrived</span>' : st === "CONFIRMED" ? '<span class="b b-gr">Confirmed</span>' : '<span class="b b-am">Planned</span>';
 
   async function lists(){
     if(R.ports === null) R.ports = [];                                  /* ports come from the Port Master as the user types (the master holds ~21,000 ports) */
@@ -25250,7 +25250,7 @@ body.job-readonly #jlBanner{display:flex}
       '<td>'+inp("carrier", l.carrier, sea ? ' list="rtVessels" placeholder="Vessel name"' : ' list="rtAirlines" placeholder="Airline"')+'</td><td>'+inp("voyage", l.voyage, ' placeholder="'+(sea ? "Voyage" : "Flight no.")+'"')+'</td>'+
       (sea ? '<td>'+inp("pol", l.pol, ' list="rtPorts" placeholder="POL"')+'</td><td>'+inp("pod", l.pod, ' list="rtPorts" placeholder="POD"')+'</td>' : "")+
       '<td>'+dt("etd")+'</td><td>'+dt("eta")+'</td>'+
-      '<td><select class="fc" data-f="stage"'+dis+'><option value="PLANNED"'+(l.stage === "PLANNED" ? " selected" : "")+'>Planned</option><option value="CONFIRMED"'+(l.stage === "CONFIRMED" ? " selected" : "")+'>Confirmed</option></select></td>'+
+      '<td><select class="fc" data-f="stage"'+dis+'><option value="PLANNED"'+(l.stage === "PLANNED" ? " selected" : "")+'>Planned</option><option value="CONFIRMED"'+(l.stage === "CONFIRMED" ? " selected" : "")+'>Confirmed</option><option value="ARRIVED"'+(l.stage === "ARRIVED" ? " selected" : "")+(R.data && R.data.direction === "Import" || l.stage === "ARRIVED" ? "" : " hidden disabled")+'>Arrived</option></select></td>'+
       '<td data-fu-cell="1"><div data-fu-wrap="1" style="'+(l.stage === "PLANNED" ? "" : "display:none")+'"><select class="fc" data-f="follow_up"'+dis+' title="Follow-up required (planned legs only)"><option value="0"'+(l.follow_up ? "" : " selected")+'>No</option><option value="1"'+(l.follow_up ? " selected" : "")+'>Yes</option></select>'+done+'</div><span data-fu-none="1" style="color:var(--g5);'+(l.stage === "PLANNED" ? "display:none" : "")+'">—</span></td>'+
       '<td>'+inp("remarks", l.remarks, ' placeholder="Remarks"')+'</td>'+
       '<td style="white-space:nowrap">'+(!ed ? "" : locked ? '<button class="btn btn-pri btn-sm btn-saved" type="button" data-rt="saved:'+key+'" title="Saved. Press Edit to change it">&#10003; Saved</button> <button class="btn btn-out btn-sm" data-rt="edit:'+key+'">Edit</button> <button class="btn btn-out btn-sm" data-rt="remove:'+key+'">Remove</button>'
@@ -25398,7 +25398,11 @@ body.job-readonly #jlBanner{display:flex}
     };
     TICK.raf = requestAnimationFrame(step);
   }
-  function openItem(a){
+  /* touching a notice first says what to do about it; "Open" then goes to the place */
+  function openItem(a, go){
+    if(a.todo && !go && window.openModal){ const sv = SEV[a.severity] || SEV[3];
+      openModal({title:a.title, bodyHTML:'<div style="font-size:12px;margin-bottom:6px"><span class="b" style="background:'+sv[2]+';color:'+sv[1]+'">'+esc(sv[0] || "")+'</span> <span style="color:var(--g5)">'+esc(a.category)+'</span></div><div style="margin-bottom:12px">'+esc(a.text || "")+'</div><div class="ib ib-bl"><b>What to do</b><br>'+esc(a.todo)+'</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button> <button class="btn btn-pri" type="button" id="ncGoBtn">Open</button>'});
+      const b = document.getElementById("ncGoBtn"); if(b) b.addEventListener("click", ()=>{ closeModal(); openItem(a, true); }); markRead([a.id]); return; }
     markRead([a.id]);
     const l = a.link || {}; if(window.closeModal && document.getElementById("ncList")) closeModal();
     const pop = document.getElementById("notifPop"); if(pop) pop.classList.remove("on");

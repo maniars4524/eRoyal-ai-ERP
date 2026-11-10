@@ -61,8 +61,19 @@ def _receives(user: User, cfg: dict, category: str) -> bool:
     return any("admin" in r for r in mine) or any(r.lower() in mine for r in a["roles"])             # company administrators always receive everything
 
 
-def item(key, category, severity, title, text="", at=None, link=None) -> dict:
-    return {"id": f"{category}:{key}", "category": category, "severity": severity, "title": title, "text": text, "at": at, "link": link or {}}
+def item(key, category, severity, title, text="", at=None, link=None, todo="") -> dict:
+    """`todo` = what the user has to do (and what makes the notice go away): shown when the notice is touched."""
+    return {"id": f"{category}:{key}", "category": category, "severity": severity, "title": title, "text": text, "at": at, "link": link or {}, "todo": todo}
+
+
+ROUTING_TODO = {
+    "OVERDUE": "The leg is still only a PLAN and its date has passed. Open the job > Routing tab. If the carrier has confirmed the sailing / flight, set the Stage to Confirmed. If the dates changed, correct the ETD / ETA and then confirm. Save the leg: this notice goes away as soon as the leg is Confirmed.",
+    "FOLLOW_UP": "Follow up with the carrier / airline for this planned leg. When they have answered, press Follow-up done on the leg, or set the Stage to Confirmed.",
+    "PLANNED": "This leg is still a plan. Once the carrier confirms, open the job > Routing tab and set the Stage to Confirmed. The notice goes away when you save.",
+    "ETD": "Departure is close. Check that documents and cut-off dates are ready. No change is needed in the system; the notice goes away after the ETD, or when the leg is Confirmed.",
+    "ETA": "Arrival is close. Check that the arrival documents and the consignee are ready. No change is needed in the system; the notice goes away after the ETA, or when the leg is Confirmed.",
+    "CHANGED": "The schedule of this leg was changed recently. Check the new dates with the customer and confirm the leg on the Routing tab. The notice goes away when the leg is Confirmed (or after a few days).",
+}
 
 
 def _money(v) -> str:
@@ -90,8 +101,9 @@ def p_routing(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
     out = []
     for a in compute_alerts(user, db, _lead(r["etd_lead_value"], r["etd_lead_unit"]), _lead(r["eta_lead_value"], r["eta_lead_unit"]), r["planned_lead_days"], r["changed_days"]):
         what = ("AIR" if a["kind"] == "AIR" else "SEA") + ": Job " + a["job_number"] + (" - " + a["carrier"] if a["carrier"] else "") + (" - " + ("Flight " if a["kind"] == "AIR" else "Voyage ") + a["voyage"] if a["voyage"] else "")
+        todo = " ".join(ROUTING_TODO[f] for f in sorted(a["flags"], key=lambda f: sev.get(f, 3))[:2] if f in ROUTING_TODO)
         out.append(item(f"routing:{a['leg_id']}", "Shipments", min(sev.get(f, 3) for f in a["flags"]), what, a["message"] + (f" - {a['customer']}" if a["customer"] else ""), a["etd"] or a["eta"],
-                        {"go": "job-detail", "jobNo": a["job_number"], "tab": "routing"}))
+                        {"go": "job-detail", "jobNo": a["job_number"], "tab": "routing"}, todo))
     return out
 
 
@@ -108,7 +120,8 @@ def p_invoices(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
         what = "Proforma invoice waiting for confirmation" if d.status == "DRAFT" else "Proforma confirmed - tax invoice not generated yet"
         ref = (d.header or {}).get("proforma_no") or d.doc_number or "draft"
         out.append(item(f"inv:{d.id}", "Approvals", 1 if age >= cfg["approvals"]["escalate_after_days"] else 2, f"Invoice approval pending: {ref}", f"{what} - {d.party_name or ''} - {_money(d.grand_total)}" + (f" - Job {d.job_number}" if d.job_number else ""),
-                        datetime.combine(d.doc_date, datetime.min.time(), tzinfo=timezone.utc) if d.doc_date else None, {"go": "invoice-list"}))
+                        datetime.combine(d.doc_date, datetime.min.time(), tzinfo=timezone.utc) if d.doc_date else None, {"go": "invoice-list"},
+                        "Open the proforma and press Confirm Proforma." if d.status == "DRAFT" else "The proforma is confirmed: open it and press Generate Tax Invoice. The notice goes away when the tax invoice is posted."))
     return out
 
 
@@ -117,7 +130,8 @@ def p_quotations(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
         return []
     out = []
     for qt in db.scalars(select(Quotation).where(Quotation.organization_id == user.organization_id, Quotation.approval_status == "SUBMITTED").order_by(Quotation.id).limit(60)):
-        out.append(item(f"qt:{qt.id}", "Approvals", 1, f"Quotation approval pending: {qt.number or 'draft'}", f"{qt.party_name or ''} - submitted for approval", qt.updated_at if hasattr(qt, "updated_at") else None, {"go": "quotation"}))
+        out.append(item(f"qt:{qt.id}", "Approvals", 1, f"Quotation approval pending: {qt.number or 'draft'}", f"{qt.party_name or ''} - submitted for approval", qt.updated_at if hasattr(qt, "updated_at") else None, {"go": "quotation"},
+                        "Open the quotation and Approve or Reject it. The notice goes away when you decide."))
     return out
 
 
@@ -125,7 +139,7 @@ def p_containers(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
     if not has_permission(user, "container.approve"):
         return []
     n = db.scalar(select(func.count()).select_from(ContainerMovement).where(ContainerMovement.organization_id == user.organization_id, ContainerMovement.status == "DRAFT")) or 0
-    return [item("cm", "Approvals", 1, f"Container movements waiting for approval: {n}", "Approve or reject them in Container Movement Management", None, {"go": "inv-movements"})] if n else []
+    return [item("cm", "Approvals", 1, f"Container movements waiting for approval: {n}", "Approve or reject them in Container Movement Management", None, {"go": "inv-movements"}, "Open Container Movement Management and Approve or Reject each movement.")] if n else []
 
 
 def p_purchase_bills(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
@@ -206,6 +220,8 @@ def p_tasks(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
     return out
 
 
+DEFAULT_TODO = [("Payments:pb:", "Pay this vendor bill (Accounts > Payment Voucher) or, if it is wrong, correct it. The notice goes away when the bill is paid."), ("Approvals:cf:", "Open Approvals and Approve or Reject the credit application."), ("Approvals:cr:", "Open Approvals and Approve or Reject the credit request."),
+                ("Tasks:task:", "Do the task, then mark it done in CRM > Engagement. The notice goes away when it is marked done."), ("People:", "Wish them! No action is needed; the notice goes away after the day."), ("Messages:", "Read the message. It goes away when it expires or is withdrawn.")]
 PROVIDERS = [p_routing, p_invoices, p_quotations, p_credit, p_containers, p_purchase_bills, p_tasks, p_birthdays, p_messages]
 
 
@@ -222,6 +238,9 @@ def notifications(user: User = Depends(get_current_user), db: Session = Depends(
             items.extend(x for x in prov(db, user, today, cfg) if _receives(user, cfg, x["category"]))
         except Exception:                              # one broken source must never hide the others
             db.rollback()
+    for x in items:                                    # a notice always says what to do
+        if not x.get("todo"):
+            x["todo"] = next((t for pre, t in DEFAULT_TODO if x["id"].startswith(pre)), "Open it to see the details. The notice goes away when the item is dealt with.")
     items.sort(key=lambda x: (x["severity"], str(x["at"] or "")))
     ids = [x["id"] for x in items]
     done = set(db.scalars(select(NotificationRead.item_id).where(NotificationRead.user_id == user.id, NotificationRead.item_id.in_(ids)))) if ids else set()
