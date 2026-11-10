@@ -73,6 +73,7 @@ def _clean(body: InvPlIn) -> dict:
         for k in ("pkgs", "qty", "net_wt", "gross_wt", "rate", "amount"):
             if ln.get(k) not in (None, "") and _dec(ln.get(k)) < 0:
                 raise HTTPException(422, f"Item line {i}: {k.replace('_', ' ')} cannot be negative")
+    d["direction"] = "Import" if str(d.get("direction") or "").strip().lower() == "import" else "Export"
     d["lines"] = lines
     cur = str(d.get("currency") or "USD").upper()[:3]
     d["currency"] = cur
@@ -89,7 +90,7 @@ def _total(d: dict) -> Decimal:
 
 def _out(r: ChaInvoicePacking, full: bool = False) -> dict:
     out = {"id": r.id, "invoice_no": r.invoice_no, "invoice_date": r.invoice_date, "job_number": r.job_number, "exporter": r.exporter, "consignee": r.consignee, "currency": r.currency,
-           "total": str(r.total or 0), "updated_at": r.updated_at}
+           "total": str(r.total or 0), "updated_at": r.updated_at, "direction": (r.data or {}).get("direction") or "Export"}
     if full:
         out["data"] = r.data or {}
     return out

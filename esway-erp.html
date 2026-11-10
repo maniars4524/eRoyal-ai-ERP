@@ -26131,10 +26131,10 @@ body.job-readonly #jlBanner{display:flex}
     const root = el("ipRoot"); if(!root) return;
     root.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Invoice &amp; Packing List</div><div class="ps">Commercial invoice and packing list prepared by the CHA on behalf of the shipper</div></div>'+
       '<div class="pa"><input class="fc" id="ipSearch" placeholder="Search invoice no, exporter, consignee, job" style="width:260px" value="'+esc(S.q)+'"><button class="btn btn-out btn-sm" id="ipTpl" title="Download the Excel template, fill it and import it">Excel Template</button><button class="btn btn-out btn-sm" id="ipImp" title="Create a new Invoice & Packing List from an Excel or PDF file">Import Excel / PDF</button><input type="file" id="ipFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none"><button class="btn btn-pri btn-sm" id="ipNew"><svg class="ic" data-icon="plus"></svg> New</button></div></div>'+
-      '<div class="card"><div class="tw"><table><thead><tr><th>Invoice No</th><th>Date</th><th>Exporter</th><th>Consignee</th><th>Job</th><th>Currency</th><th style="text-align:right">Invoice value</th><th></th></tr></thead><tbody id="ipRows">'+
-      (S.list.length ? S.list.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc(r.invoice_no)+'</td><td>'+esc(H.dmy(r.invoice_date))+'</td><td>'+esc(r.exporter)+'</td><td>'+esc(r.consignee)+'</td><td class="mono">'+esc(r.job_number || "")+'</td><td>'+esc(r.currency)+'</td><td style="text-align:right">'+esc(H.fmt(r.total, 2))+'</td>'+
+      '<div class="card"><div class="tw"><table><thead><tr><th>Invoice No</th><th>Type</th><th>Date</th><th>Exporter</th><th>Consignee</th><th>Job</th><th>Currency</th><th style="text-align:right">Invoice value</th><th></th></tr></thead><tbody id="ipRows">'+
+      (S.list.length ? S.list.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc(r.invoice_no)+'</td><td>'+esc(r.direction || "Export")+'</td><td>'+esc(H.dmy(r.invoice_date))+'</td><td>'+esc(r.exporter)+'</td><td>'+esc(r.consignee)+'</td><td class="mono">'+esc(r.job_number || "")+'</td><td>'+esc(r.currency)+'</td><td style="text-align:right">'+esc(H.fmt(r.total, 2))+'</td>'+
         '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-ip="edit:'+r.id+'">Edit</button> <button class="btn btn-out btn-sm" data-ip="print:'+r.id+'">Print</button> <button class="btn btn-out btn-sm" data-ip="del:'+r.id+'">Delete</button></td></tr>').join("")
-        : '<tr><td colspan="8" style="text-align:center;color:var(--g5);padding:22px;font-style:italic">No invoice and packing list yet. Press New to prepare one for a shipper.</td></tr>')+'</tbody></table></div></div>';
+        : '<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:22px;font-style:italic">No invoice and packing list yet. Press New to prepare one for a shipper.</td></tr>')+'</tbody></table></div></div>';
     if(window.renderIcons) renderIcons(root);
   }
   async function loadList(){ try{ const r = await api("GET", "/api/cha/invoice-packing?limit=100&q="+encodeURIComponent(S.q)); S.list = r.items; S.total = r.total; }catch(e){ S.list = []; } listView(); }
@@ -26191,7 +26191,7 @@ body.job-readonly #jlBanner{display:flex}
       '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Commercial Invoice &amp; Packing List</div><div class="ps">'+(rec ? "Edit "+esc(rec.invoice_no) : "New — prepared on behalf of the shipper")+'</div></div>'+
       '<div class="pa">'+
       '<button class="btn btn-out btn-sm" id="ipGet" title="Fill the parties, route and cargo from a job">Get Bill</button><button class="btn btn-out btn-sm" id="ipTpl">Excel Template</button><button class="btn btn-out btn-sm" id="ipImp">Import Excel / PDF</button><input type="file" id="ipFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none"><button class="btn btn-out btn-sm" id="ipExit">Exit</button><button class="btn btn-out btn-sm" id="ipPrint">Print / Download…</button><button class="btn btn-pri btn-sm" id="ipSave"><svg class="ic" data-icon="check"></svg> Save</button></div></div>'+
-      '<div class="ip-wrap"><div class="ip-top"><div class="fg"><label class="fl">Invoice No &amp; Date <span class="r">*</span></label><div class="ip-nums"><label><input type="radio" name="ipNoMode" value="auto"'+(S.auto ? " checked" : "")+'> Auto</label><label><input type="radio" name="ipNoMode" value="manual"'+(S.auto ? "" : " checked")+'> Manual</label></div><div style="display:flex;gap:6px">'+inp("ip_no", rec && rec.invoice_no, (S.auto ? 'readonly placeholder="Assigned when saved"' : 'placeholder="Type the invoice number"')+' style="flex:2"')+inp("ip_date", rec && rec.invoice_date || new Date().toISOString().slice(0, 10), 'type="date" style="flex:1.2"')+'</div></div>'+
+      '<div class="ip-wrap"><div class="ip-top"><div class="fg"><label class="fl">Type</label><div class="ip-nums"><label><input type="radio" name="ipDir" value="Export"'+(d.direction === "Import" ? "" : " checked")+'> Export</label><label><input type="radio" name="ipDir" value="Import"'+(d.direction === "Import" ? " checked" : "")+'> Import</label></div></div><div class="fg"><label class="fl">Invoice No &amp; Date <span class="r">*</span></label><div class="ip-nums"><label><input type="radio" name="ipNoMode" value="auto"'+(S.auto ? " checked" : "")+'> Auto</label><label><input type="radio" name="ipNoMode" value="manual"'+(S.auto ? "" : " checked")+'> Manual</label></div><div style="display:flex;gap:6px">'+inp("ip_no", rec && rec.invoice_no, (S.auto ? 'readonly placeholder="Assigned when saved"' : 'placeholder="Type the invoice number"')+' style="flex:2"')+inp("ip_date", rec && rec.invoice_date || new Date().toISOString().slice(0, 10), 'type="date" style="flex:1.2"')+'</div></div>'+
         '<div class="fg"><label class="fl">Exporter\'s Ref. (IEC / PAN)</label>'+inp("ip_exref", d.exporter_ref)+'</div><div class="fg"><label class="fl">Buyer Order No &amp; Date</label>'+inp("ip_buyord", d.buyer_order)+'</div><div class="fg"><label class="fl">Other References</label>'+inp("ip_otherref", d.other_ref)+'</div>'+
         '<div class="fg"><label class="fl">Invoice Name</label>'+inp("ip_invname", d.invoice_name)+'</div><div class="fg"><label class="fl">Job (optional)</label>'+inp("ip_job", rec && rec.job_number || "", 'placeholder="e.g. AIREXP-26-000001"')+'</div></div>'+
       '<div class="ip-tabs"><button type="button" class="on" data-ip="tab:general">General</button><button type="button" data-ip="tab:charge">Charge details</button></div>'+
@@ -26234,6 +26234,7 @@ body.job-readonly #jlBanner{display:flex}
   function collect(){
     const d = {exporter_ref:val("ip_exref"), buyer_order:val("ip_buyord"), other_ref:val("ip_otherref"), invoice_name:val("ip_invname"), currency:(val("ip_cur") || "USD").toUpperCase(), cur_value:val("ip_curvalue"), add_pct:val("ip_addpct"), package_range:val("ip_range"),
       frt:val("ip_frt"), ins:val("ip_ins"), shipping_marks:val("ip_marks"), remarks:val("ip_remarks")};
+    d.direction = (document.querySelector('input[name="ipDir"]:checked') || {}).value || "Export";
     GEN.forEach(g=>{ d[g[0]] = val("ip_"+g[0]); }); XF.concat(XA).forEach(x=>{ d[x[0]] = val("ip_x_"+x[0]); });
     d.lines = S.lines.filter(l=> l.description || l.pkgs || l.qty).map(l=>{ const c = lineCalc(l); return Object.assign({}, l, {net_wt:String(c.net), gross_wt:String(c.gross), amount:String(c.amount)}); });
     const auto = (document.querySelector('input[name="ipNoMode"]:checked') || {}).value === "auto" && !S.rec;
@@ -26406,6 +26407,14 @@ body.job-readonly #jlBanner{display:flex}
     } finally { host.remove(); }
   }
   /* the Excel file keeps the figures as numbers, so it can be edited and re-used */
+  /* the extra item columns (grade, part no., lot ...) and the "more details" are added to the Excel sheets whenever they are filled */
+  function xlExtras(rows, c, d){
+    const used = XC.filter(x=> c.lines.some(l=> l[x[0]])), hi = rows.findIndex(r=> r[0] === "Sr." && r[1] === "Marks & Nos." && r.length > 9);
+    if(used.length && hi > -1){ used.forEach(x=> rows[hi].push(x[1])); let k = hi + 1, li = 0; while(k < rows.length && li < c.lines.length && rows[k][0] === li + 1){ used.forEach(x=> rows[k].push(c.lines[li][x[0]] || "")); k++; li++; } }
+    const more = XF.concat(XA).filter(x=> d[x[0]]); if(more.length){ rows.push([], ["More details"]); more.forEach(x=> rows.push([x[1], d[x[0]]])); }
+    if(d.direction) rows.push([], ["Type", d.direction]);
+    return rows;
+  }
   async function makeXlsx(rec, kind, withSign){
     await loadLib("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
     const c = ctx(rec), d = c.d, t = c.t, X = window.XLSX, wb = X.utils.book_new(), co = (await company()), P = co.profile || {};
@@ -26423,7 +26432,7 @@ body.job-readonly #jlBanner{display:flex}
         c.lines.map((l, i)=>[i + 1, l.marks || "", l.description || "", l.hs || "", n(l.pkgs), n(l.qty), l.qty_unit || "", n(l._net), n(l._gross), n(l.rate), l._amt]),
         [["", "", "TOTAL", "", t.pkgs, "", "", r3(t.net), r3(t.gross), "", r2(t.cif)], [], ["", "", "", "", "", "", "", "", "", "Freight", n(t.frt)], ["", "", "", "", "", "", "", "", "", "Insurance", n(t.ins)], ["", "", "", "", "", "", "", "", "", "FOB value", r2(t.fob)], ["", "", "", "", "", "", "", "", "", "Invoice value ("+cur+")", r2(t.cif)],
           [], ["Amount in words: "+(DocKit.words ? DocKit.words(t.cif, cur) : "")], ["Declaration: "+DECL.join(" ")]], sign);
-      X.utils.book_append_sheet(wb, sheet(rows, [6, 18, 34, 12, 10, 10, 8, 12, 12, 12, 14]), "Invoice");
+      X.utils.book_append_sheet(wb, sheet(xlExtras(rows, c, d), [6, 18, 34, 12, 10, 10, 8, 12, 12, 12, 14].concat(XC.map(()=>16))), "Invoice");
     }
     if(kind === "packing" || kind === "both"){
       const rows = top("PACKING LIST").concat([["Exporter", ln(d.exporter), "", "Packing List No.", "PL/"+c.rec.invoice_no], ["Invoice No.", c.rec.invoice_no, "", "Date", H.dmy(c.rec.invoice_date)], ["Consignee", ln(d.consignee), "", "Buyer (if other than consignee)", ln(d.buyer || d.consignee)],
@@ -26437,7 +26446,7 @@ body.job-readonly #jlBanner{display:flex}
       const rows = top("INVOICE CUM PACKING LIST").concat(head, [["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Amount"]],
         c.lines.map((l, i)=>[i + 1, l.marks || "", l.description || "", l.hs || "", n(l.pkgs), n(l.qty), l.qty_unit || "", n(l._net), n(l._gross), n(l.rate), l._amt]),
         [["", "", "TOTAL", "", t.pkgs, "", "", r3(t.net), r3(t.gross), "", r2(t.cif)], [], ["Amount in words: "+(DocKit.words ? DocKit.words(t.cif, cur) : "")], ["Declaration: "+DECL.join(" ")]], sign);
-      X.utils.book_append_sheet(wb, sheet(rows, [6, 18, 34, 12, 10, 10, 8, 12, 12, 12, 14]), "Invoice cum Packing List");
+      X.utils.book_append_sheet(wb, sheet(xlExtras(rows, c, d), [6, 18, 34, 12, 10, 10, 8, 12, 12, 12, 14].concat(XC.map(()=>16))), "Invoice cum Packing List");
     }
     return X.write(wb, {bookType:"xlsx", type:"array"});
   }
@@ -26445,13 +26454,13 @@ body.job-readonly #jlBanner{display:flex}
   const fileName = (rec, kind, ext)=> (KIND_NAME[kind] + " " + rec.invoice_no).replace(/[^A-Za-z0-9 _.-]+/g, "-") + "." + ext;
   /* ---------- import: Excel template, an existing Excel invoice / packing list, or a PDF ---------- */
   const norm = v=> String(v == null ? "" : v).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
-  const FIELD_LABELS = [
+  const FIELD_LABELS = [["direction", /^type( export import)?$/]].concat(XF.concat(XA).map(x=>[x[0], new RegExp("^"+norm(x[1]).replace(/[.*+?^${}()|[\]\\]/g, "")+"$")])).concat([
     ["invoice_no", /^invoice no( date)?$|^invoice number$|^inv no/], ["invoice_date", /^invoice date$|^date$/], ["exporter_ref", /^exporter s? ?ref|^exporter ref|^iec/], ["buyer_order", /^buyer s? ?order|^buyer order/], ["other_ref", /^other ref/],
     ["exporter", /^exporter( manufacturer| manufacturer shipper)?$|^shipper$/], ["buyer", /^buyer( if (other than consignee|different))?$|^buyer other than consignee/], ["consignee", /^consignee( buyer)?$/], ["notify", /^notify/],
     ["pre_carriage", /^pre carriage/], ["place_of_receipt", /^place of receipt/], ["vessel_flight", /^vessel|^flight/], ["port_of_loading", /^port( airport)? of loading|^loading/], ["port_of_discharge", /^port( airport)? of discharge|^discharge/],
     ["origin_country", /^country of origin/], ["dest_country", /^country( of)? final destination|^country of destination/], ["final_destination", /^final destination$/], ["terms", /^terms|^incoterms|^delivery payment|^delivery terms/],
-    ["currency", /^currency$/], ["cur_value", /^cur value|^currency value|^exchange rate/], ["add_pct", /^net wt common|^common additional/], ["frt", /^freight$/], ["ins", /^insurance$/], ["package_range", /^package range/], ["shipping_marks", /^shipping marks|^marks numbers$/], ["remarks", /^remarks$/]];
-  const COLS = [["marks", /^marks/], ["description", /^description|^goods$|^item$/], ["hs", /^hs/], ["pkgs", /^(no of )?(pkgs|packages)$|^pieces|^packages$/], ["pkg_unit", /^package type|^pkg type/], ["qty", /^qty$|^quantity$/], ["qty_unit", /^unit$/], ["net_wt", /^net wt|^nt wt|^net weight/], ["gross_wt", /^gross wt|^gr wt|^gross weight/], ["rate", /^(unit )?(rate|price)( per kg)?$|^unit rate|^rate/], ["amount", /^amount$|^total$|^cif$|^line amount/], ["dims", /^dimensions?/], ["part_no", /^part (no|number)/], ["lot_serial", /^lot/], ["exp_date", /^exp/], ["coo", /^coo$/], ["po_no", /^cust po|^po (no|number)/], ["po_date", /^po date/], ["grade", /^grades?$/]];
+    ["currency", /^currency$/], ["cur_value", /^cur value|^currency value|^exchange rate/], ["add_pct", /^net wt common|^common additional/], ["frt", /^freight$/], ["ins", /^insurance$/], ["package_range", /^package range/], ["shipping_marks", /^shipping marks|^marks numbers$/], ["remarks", /^remarks$/]]);
+  const COLS = [["marks", /^marks/], ["description", /^description|^goods$|^item$/], ["hs", /^hs/], ["pkgs", /^(no of )?(pkgs|packages)$|^pieces|^packages$/], ["pkg_unit", /^package type|^pkg type/], ["qty", /^qty$|^quantity$/], ["qty_unit", /^unit$/], ["net_wt", /^net wt|^nt wt|^net weight/], ["gross_wt", /^gross wt|^gr wt|^gross weight/], ["rate", /^(unit )?(rate|price)( per kg)?$|^unit rate|^rate/], ["amount", /^amount$|^total$|^cif$|^line amount/], ["dims", /^dimensions?/], ["part_no", /^part (no|number)/], ["lot_serial", /^lot/], ["exp_date", /^exp/], ["coo", /^coo$/], ["po_no", /^cust po|^po (no|number)/], ["po_date", /^po date/], ["grade", /^grades?$/], ["order_no", /^order|^bci order|^delivery no/], ["loc_box", /^loc|^box no/]];
   const cleanVal = v=> { v = String(v == null ? "" : v).trim(); return /^\[.*\]$/.test(v) ? "" : v; };
   const toIso = v=> { v = String(v || "").trim(); let m = /(\d{4})-(\d{2})-(\d{2})/.exec(v); if(m) return m[0]; m = /(\d{1,2})[-\/. ]([A-Za-z]{3,9}|\d{1,2})[-\/. ](\d{4})/.exec(v); if(!m) return ""; const MON = {jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12}; const mo = isNaN(m[2]) ? MON[m[2].slice(0, 3).toLowerCase()] : Number(m[2]); return mo ? m[3]+"-"+String(mo).padStart(2, "0")+"-"+String(m[1]).padStart(2, "0") : ""; };
   function applyField(d, key, v, rec){
@@ -26467,11 +26476,11 @@ body.job-readonly #jlBanner{display:flex}
       const cells = rows[i].map(x=> String(x == null ? "" : x).trim());
       const nonEmpty = cells.filter(Boolean); if(!nonEmpty.length) continue;
       if(hdr < 0){
-        const hit = cells.map(c=> COLS.findIndex(k=> k[1].test(norm(c))));
-        if(cells.some(c=> /^description/.test(norm(c))) && hit.filter(x=> x > -1).length >= 3){ hdr = i; hit.forEach((k, ci)=>{ if(k > -1 && !(COLS[k][0] in map)) map[COLS[k][0]] = ci; }); continue; }
+        const hit = hdr === -3 ? [] : cells.map(c=> COLS.findIndex(k=> k[1].test(norm(c))));
+        if(hdr !== -3 && cells.some(c=> /^description/.test(norm(c))) && hit.filter(x=> x > -1).length >= 3){ hdr = i; hit.forEach((k, ci)=>{ if(k > -1 && !(COLS[k][0] in map)) map[COLS[k][0]] = ci; }); continue; }
         for(let a = 0; a < cells.length; a++){ if(!cells[a]) continue; const lab = norm(cells[a]), f = FIELD_LABELS.find(x=> x[1].test(lab)); if(f){ let v = ""; for(let b = a + 1; b < cells.length; b++){ if(cells[b]){ v = cells[b]; break; } } applyField(d, f[0], v, rec); if(f[0] === "invoice_no" && !rec.invoice_date){ const dt = toIso(v); if(dt) rec.invoice_date = dt; } a = cells.length; } }
       } else {
-        const first = norm(cells.find(Boolean)); if(/^total\b/.test(first) || /^(freight|insurance|amount in words|declaration)/.test(first)) { if(/^total\b/.test(first)) hdr = -2; if(hdr === -2) { /* totals row: the table is finished */ } if(hdr === -2) break; }
+        const first = norm(cells.find(Boolean)); if(/^total\b/.test(first) || /^(freight|insurance|amount in words|declaration)/.test(first)) { if(/^total\b/.test(first)) hdr = -2; if(hdr === -2) { /* totals row: the table is finished */ } if(hdr === -2){ hdr = -3; continue; } }       // after the totals only the labelled rows (more details, type, freight) are read
         const g = k=> map[k] == null ? "" : cleanVal(cells[map[k]]);
         if(!g("description") && !g("pkgs") && !g("qty")) continue;
         const ln = {}; Object.keys(map).forEach(k=>{ if(k !== "amount") { const v = g(k); if(v !== "") ln[k] = v; } });
@@ -26496,12 +26505,12 @@ body.job-readonly #jlBanner{display:flex}
   }
   function templateXlsx(){
     const X = window.XLSX, rows = [["COMMERCIAL INVOICE & PACKING LIST - TEMPLATE"], ["Fill the Value column and the item table, save the file and upload it with Import. Dates: YYYY-MM-DD. Do not rename the labels in column A."], [],
-      ["Invoice No", ""], ["Invoice Date", ""], ["Exporter's Ref. (IEC / PAN)", ""], ["Buyer Order No & Date", ""], ["Other References", ""], ["Exporter", ""], ["Buyer (if other than consignee)", ""], ["Consignee", ""], ["Notify", ""],
+      ["Type (Export / Import)", "Export"], ["Invoice No", ""], ["Invoice Date", ""], ["Exporter's Ref. (IEC / PAN)", ""], ["Buyer Order No & Date", ""], ["Other References", ""], ["Exporter", ""], ["Buyer (if other than consignee)", ""], ["Consignee", ""], ["Notify", ""],
       ["Pre-carriage by", ""], ["Place of Receipt by pre-carrier", ""], ["Vessel / Flight", ""], ["Port of Loading", ""], ["Port of Discharge", ""], ["Final Destination", ""], ["Country of Origin of Goods", ""], ["Country of Final Destination", ""], ["Terms of Delivery and Payment", ""],
-      ["Currency", "USD"], ["Currency Value", ""], ["Freight", ""], ["Insurance", ""], ["Package Range", ""], ["Shipping Marks", ""], ["Remarks", ""], [],
-      ["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Package Type", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Dimensions"]];
-    for(let i = 1; i <= 10; i++) rows.push([i, "", "", "", "", "PKG", "", "KG", "", "", "", ""]);
-    const ws = X.utils.aoa_to_sheet(rows); ws["!cols"] = [30, 36, 36, 12, 10, 12, 10, 8, 12, 12, 12, 16].map(w=>({wch:w})); const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Invoice and Packing List"); return X.write(wb, {bookType:"xlsx", type:"array"});
+      ["Currency", "USD"], ["Currency Value", ""], ["Freight", ""], ["Insurance", ""], ["Package Range", ""], ["Shipping Marks", ""], ["Remarks", ""]].concat(XF.concat(XA).map(x=>[x[1], ""]), [[],
+      ["Sr.", "Marks & Nos.", "Description of Goods", "HS Code", "Packages", "Package Type", "Quantity", "Unit", "Net Wt (kg)", "Gross Wt (kg)", "Unit Rate", "Dimensions"].concat(XC.map(x=>x[1]))]);
+    for(let i = 1; i <= 10; i++) rows.push([i, "", "", "", "", "PKG", "", "KG", "", "", "", ""].concat(XC.map(()=>"")));
+    const ws = X.utils.aoa_to_sheet(rows); ws["!cols"] = [30, 36, 36, 12, 10, 12, 10, 8, 12, 12, 12, 16].concat(XC.map(()=>16)).map(w=>({wch:w})); const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Invoice and Packing List"); return X.write(wb, {bookType:"xlsx", type:"array"});
   }
   async function importFile(file){
     try{

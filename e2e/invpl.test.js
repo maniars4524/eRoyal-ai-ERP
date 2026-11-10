@@ -71,6 +71,10 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const fmtPick = async v => { await page.evaluate(v => { const r = document.querySelector('input[name="ipFmt"][value="' + v + '"]'); r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }, v); await sleep(800); };
   await fmtPick("export"); bd = await body();
   check("Export format: grades, cartons, FOB and the declaration box", /INVOICE CUM PACKING LIST/.test(bd) && /Grades/.test(bd) && /Cartons/.test(bd) && /FOB/.test(bd) && /Authorised Signatory/.test(bd) && /Rate \/ Kg/.test(bd), bd.slice(0, 200));
+  const rt = await page.evaluate(async () => { const rec = JSON.parse(JSON.stringify(window.ChaInvPl.S.rec)); rec.data.direction = "Import"; rec.data.approval_no = "AP-77"; rec.data.lines[0].part_no = "PN-9"; rec.data.lines[0].grade = "A1";
+    const buf = await window.ChaInvPl.makeXlsx(rec, "invoice", true); const wb = window.XLSX.read(buf, { type: "array" }); const rows = window.XLSX.utils.sheet_to_json(wb.Sheets["Invoice"], { header: 1, defval: "" }); const r = window.ChaInvPl.parseRows(rows); return { dir: r.data.direction, ap: r.data.approval_no, pn: (r.data.lines[0] || {}).part_no, gr: (r.data.lines[0] || {}).grade }; });
+  check("Excel download carries Type, more details and the extra columns, and reads back", rt.dir === "Import" && rt.ap === "AP-77" && rt.pn === "PN-9" && rt.gr === "A1", JSON.stringify(rt));
+  check("the form has the Export / Import type", await page.evaluate(() => document.querySelectorAll('input[name="ipDir"]').length === 2));
   const dlDir = require("path").join(require("os").tmpdir(), "ipdl" + Date.now()); fs.mkdirSync(dlDir, { recursive: true });
   const cdp = await page.createCDPSession(); await cdp.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: dlDir });
   for (const f of ["std", "export", "part"]) {
