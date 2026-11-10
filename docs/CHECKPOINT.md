@@ -724,3 +724,16 @@ On hold by the owner: customer approval workflow, role/CEO dashboards, licence/c
 ## 2026-11-10 — Invoice & Packing List formats, Exporter/Importer view, notifications
 - Done + live: Export (seafood) and Part-number (commercial) print formats with extra fields; party address falls back to the party record; Masters shortcut row removed; Pre-carriage dropdown (Sea/Air/Road/Rail); "View as Exporter / Importer" (limited menu, Accounts job category lists Invoice & Packing Lists, other categories frozen); dashboard notices refresh after job actions; "Schedule changed" only while a leg is Planned.
 - Pending: Excel template/import columns for the new formats; paper/PDF look check of both new layouts; direct-URL block for Exporter view; rows-per-page on other lists; branch/placement/assignment screens; inventory programme; cargo phases 6/7/8; refresh old JSDOM tests. On hold: approval workflow, role dashboards, onboarding, SMTP, paper-print check, Brotli/staging/CI.
+
+## 2026-11-10 (late) — owner's go-ahead queue and the new CHA <-> Exporter/Importer requirement
+Done and live: PDF/Excel libraries served from /vendor (CDN only a fallback; tests run with CDN blocked); Invoice & Packing List Export/Import type; Excel download + template + import carry the extra columns and "More details".
+Backend change (cha_invpl_api: `direction` in list rows) needs a live restart to take effect.
+Owner said START (in this order): (1) layouts: compare both new formats with the samples and improve; (2) block direct-link access to other screens in the Exporter view; (3) rows-per-page on the other lists; (4) branch / placement / assignment screens; (5) licence + company onboarding; (6) Brotli, staging, CI, splitting the HTML file.
+WAIT: inventory programme; cargo phases 6/7/8; refresh old JSDOM tests (list them first, then do). NOT NOW: role/CEO dashboards, real SMTP, paper-print check, customer approval workflow.
+NEW requirement (pasted spec) — Invoice & Packing List <-> CHA Job:
+1. Approve / Revoke approval on an Invoice & Packing List (by exporter/importer name + permission). Plan: keep in `data` (approval_status, approved_by, approved_at), endpoints POST /{id}/approve and /{id}/revoke, audit; no migration.
+2. CHA Job creation: "Get Invoice Details (Import / Export)": pick Exporter/Importer, then an APPROVED invoice no (or other reference) -> fill job parties, route, invoice value, item lines (description, part no, HSN, qty, packages, gross/net weight ...). Reuse /from-job mapping in reverse.
+3. CHA Job creation: "Upload Excel" to create a job from an Excel file (reuse the Invoice & Packing List Excel template/parser).
+4. Job categories Import/Export x Air/Sea with right job types.
+5. Internal portal: CHA users get the Invoice & Packing List option (view + select only, assigned parties), search by invoice no/reference, and create the CHA checklist from it.
+Resume point: start with the approve/revoke endpoints + buttons, then Get Invoice Details on the CHA job screen.
