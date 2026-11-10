@@ -470,9 +470,9 @@ def create_cha_job(body: NewChaIn, user: User = Depends(permission_required("shi
         from .cha_invpl_api import cha_fields
         from .models import ChaInvoicePacking, JobDetail
 
-        inv = db.scalar(select(ChaInvoicePacking).where(ChaInvoicePacking.id == body.invoice_id, ChaInvoicePacking.organization_id == org))
-        if not inv:
-            raise HTTPException(404, "Invoice & Packing List not found")
+        from .cha_invpl_api import _get as _get_inv
+
+        inv = _get_inv(db, org, body.invoice_id, user)            # a limited user can only use invoices of the parties assigned to them
         f = cha_fields(inv)
         if f["approval"] != "APPROVED" and not body.allow_unapproved:
             raise HTTPException(409, "This invoice is not approved yet")

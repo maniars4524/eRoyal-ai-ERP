@@ -22168,8 +22168,10 @@ function makePrintFit(){
     el("chaNIFile").addEventListener("change", async e=>{ const file = e.target.files[0]; if(!file) return;
       try{ if(!window.ChaInvPl || !window.ChaInvPl.readXlsx) throw new Error("The Invoice & Packing List reader is not loaded"); const rec = await window.ChaInvPl.readXlsx(file);
         if(!(rec.data.lines || []).length) throw new Error("No item lines were found in this file. Use the Excel template of Invoice & Packing List.");
+        const fd = window.ChaInvPlFound ? window.ChaInvPlFound(rec) : null; let askedParty = "";
+        if(!rec.data.exporter && !rec.data.consignee){ askedParty = (prompt("The file does not show the "+(dir === "Import" ? "importer" : "exporter")+" name. Type it (as in the Organization Master):", el("chaNIParty").value || "") || "").trim(); if(!askedParty) throw new Error("The party name is needed to keep this invoice against an exporter / importer."); rec.data[dir === "Import" ? "consignee" : "exporter"] = askedParty; }
         const d = Object.assign({currency:"USD"}, rec.data, {direction:dir}), made = await api("POST", "/api/cha/invoice-packing", {invoice_no:rec.invoice_no || "", auto_number:!rec.invoice_no, invoice_date:rec.invoice_date || null, data:d});
-        await get(made.id, true); say("Excel read", made.invoice_no+" was saved in Invoice & Packing List and its details are in this job form."); }
+        await get(made.id, true); say("Excel read", made.invoice_no+" saved in Invoice & Packing List. "+(fd ? fd.items+" item(s); columns read: "+(fd.cols.join(", ") || "description only")+(fd.miss.length ? ". Not in the file: "+fd.miss.join(", ") : "") : "")); }
       catch(err){ say("Could not read the Excel", err.message, "error"); } e.target.value = ""; });
   }
   /* Ports and airports come from the Port master as you type (about 21,000 records) */
@@ -26157,6 +26159,7 @@ body.job-readonly #jlBanner{display:flex}
     const d = document.createElement("div"); d.id = "s-cha-invpl"; d.className = "scr"; d.innerHTML = '<div id="ipRoot"></div>'; host.appendChild(d);
   }
   const SEL = (id, list, v)=> '<select class="fc" id="'+id+'">'+list.map(x=>'<option'+(x === v ? " selected" : "")+'>'+x+'</option>').join("")+'</select>';
+  const can = code=> { const u = window.SESSION_USER; return !u || u.is_super_admin || !Array.isArray(u.permissions) || u.permissions.includes(code); };
   function listView(){
     const root = el("ipRoot"); if(!root) return;
     root.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Invoice &amp; Packing List</div><div class="ps">Commercial invoice and packing list prepared by the CHA on behalf of the shipper</div></div>'+
@@ -26164,14 +26167,14 @@ body.job-readonly #jlBanner{display:flex}
       dashHtml(S.dash)+(S.fApproved || S.fDraft || S.fDir ? '<div style="margin-bottom:8px">Showing '+esc(S.fApproved ? "approved" : S.fDraft ? "waiting for approval" : S.fDir)+' only <button class="btn btn-out btn-sm" data-ipd="clear">Show all</button></div>' : "")+
       '<div class="card"><div class="tw"><table><thead><tr><th>Invoice No</th><th>Type</th><th>Approval</th><th>Date</th><th>Exporter</th><th>Consignee</th><th>Job</th><th>Currency</th><th style="text-align:right">Invoice value</th><th></th></tr></thead><tbody id="ipRows">'+
       (S.list.length ? S.list.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc(r.invoice_no)+'</td><td>'+esc(r.direction || "Export")+'</td><td>'+(r.approval === "APPROVED" ? '<span class="b b-gr dot" title="Approved by '+esc(r.approved_by || "")+'">Approved</span>' : '<span class="b b-gy dot">Draft</span>')+'</td><td>'+esc(H.dmy(r.invoice_date))+'</td><td>'+esc(r.exporter)+'</td><td>'+esc(r.consignee)+'</td><td class="mono">'+esc(r.job_number || "")+'</td><td>'+esc(r.currency)+'</td><td style="text-align:right">'+esc(H.fmt(r.total, 2))+'</td>'+
-        '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-ip="edit:'+r.id+'">Edit</button> <button class="btn btn-out btn-sm" data-ip="print:'+r.id+'">Print</button> '+(r.approval === "APPROVED" ? '<button class="btn btn-out btn-sm" data-ip="revoke:'+r.id+'">Revoke approval</button>' : '<button class="btn btn-out btn-sm" data-ip="approve:'+r.id+'">Approve</button>')+' <button class="btn btn-out btn-sm" data-ip="del:'+r.id+'">Delete</button></td></tr>').join("")
+        '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-ip="edit:'+r.id+'">Edit</button> <button class="btn btn-out btn-sm" data-ip="print:'+r.id+'">Print</button> '+(!can("invpl.approve") ? "" : r.approval === "APPROVED" ? '<button class="btn btn-out btn-sm" data-ip="revoke:'+r.id+'">Revoke approval</button>' : '<button class="btn btn-out btn-sm" data-ip="approve:'+r.id+'">Approve</button>')+(can("invpl.manage") ? ' <button class="btn btn-out btn-sm" data-ip="del:'+r.id+'">Delete</button>' : "")+'</td></tr>').join("")
         : '<tr><td colspan="10" style="text-align:center;color:var(--g5);padding:22px;font-style:italic">No invoice and packing list yet. Press New to prepare one for a shipper.</td></tr>')+'</tbody></table></div></div>';
     if(window.renderIcons) renderIcons(root);
   }
   function paintApproval(){
     const b = el("ipApprove"), st = el("ipApprStat"); if(!b || !st) return; const ok = !!S.rec && S.rec.approval === "APPROVED";
     st.textContent = !S.rec ? "Not saved" : ok ? "Approved" : "Draft"; st.className = "b dot "+(ok ? "b-gr" : "b-gy");
-    b.style.display = S.rec ? "" : "none"; b.textContent = ok ? "Revoke approval" : "Approve"; b.dataset.ip = (ok ? "revoke:" : "approve:")+(S.rec ? S.rec.id : "");
+    b.style.display = S.rec && can("invpl.approve") ? "" : "none"; b.textContent = ok ? "Revoke approval" : "Approve"; b.dataset.ip = (ok ? "revoke:" : "approve:")+(S.rec ? S.rec.id : "");
   }
   /* the dashboard above the list: counts, value, six months, busiest parties and what still waits for approval */
   function dashHtml(D){
@@ -26509,7 +26512,7 @@ body.job-readonly #jlBanner{display:flex}
     ["pre_carriage", /^pre carriage/], ["place_of_receipt", /^place of receipt/], ["vessel_flight", /^vessel|^flight/], ["port_of_loading", /^port( airport)? of loading|^loading/], ["port_of_discharge", /^port( airport)? of discharge|^discharge/],
     ["origin_country", /^country of origin/], ["dest_country", /^country( of)? final destination|^country of destination/], ["final_destination", /^final destination$/], ["terms", /^terms|^incoterms|^delivery payment|^delivery terms/],
     ["currency", /^currency$/], ["cur_value", /^cur value|^currency value|^exchange rate/], ["add_pct", /^net wt common|^common additional/], ["frt", /^freight$/], ["ins", /^insurance$/], ["package_range", /^package range/], ["shipping_marks", /^shipping marks|^marks numbers$/], ["remarks", /^remarks$/]]);
-  const COLS = [["marks", /^marks/], ["description", /^description|^goods$|^item$/], ["hs", /^hs/], ["pkgs", /^(no of )?(pkgs|packages)$|^pieces|^packages$/], ["pkg_unit", /^package type|^pkg type/], ["qty", /^qty$|^quantity$/], ["qty_unit", /^unit$/], ["net_wt", /^net wt|^nt wt|^net weight/], ["gross_wt", /^gross wt|^gr wt|^gross weight/], ["rate", /^(unit )?(rate|price)( per kg)?$|^unit rate|^rate/], ["amount", /^amount$|^total$|^cif$|^line amount/], ["dims", /^dimensions?/], ["part_no", /^part (no|number)/], ["lot_serial", /^lot/], ["exp_date", /^exp/], ["coo", /^coo$/], ["po_no", /^cust po|^po (no|number)/], ["po_date", /^po date/], ["grade", /^grades?$/], ["order_no", /^order|^bci order|^delivery no/], ["loc_box", /^loc|^box no/]];
+  const COLS = [["marks", /^marks/], ["description", /^(item |product |goods )?description|^goods$|^item$|^particulars|^product|^commodity|^material|^article/], ["hs", /^hs|^hsn|^tariff|^ritc|^cth/], ["pkgs", /^(no of |total )?(pkgs|packages|cartons|boxes|ctns)$|^pieces|^packages$|^no of (pkgs|packages|cartons)/], ["pkg_unit", /^package type|^pkg type/], ["qty", /^qty$|^quantity|^units$|^qty in/], ["qty_unit", /^unit$|^uom$|^unit of measure|^qty unit/], ["net_wt", /^net wt|^nt wt|^net weight|^net$/], ["gross_wt", /^gross wt|^gr wt|^gross weight|^gross$/], ["rate", /^(unit )?(rate|price)( per kg)?$|^unit rate|^rate|^unit price|^price/], ["amount", /^amount|^total( value)?$|^value$|^cif$|^line amount|^fob value/], ["dims", /^dimensions?/], ["part_no", /^part (no|number)/], ["lot_serial", /^lot/], ["exp_date", /^exp/], ["coo", /^coo$|^country of origin$|^origin$/], ["po_no", /^cust po|^po (no|number)/], ["po_date", /^po date/], ["grade", /^grades?$/], ["order_no", /^order|^bci order|^delivery no/], ["loc_box", /^loc|^box no/]];
   const cleanVal = v=> { v = String(v == null ? "" : v).trim(); return /^\[.*\]$/.test(v) ? "" : v; };
   const toIso = v=> { v = String(v || "").trim(); let m = /(\d{4})-(\d{2})-(\d{2})/.exec(v); if(m) return m[0]; m = /(\d{1,2})[-\/. ]([A-Za-z]{3,9}|\d{1,2})[-\/. ](\d{4})/.exec(v); if(!m) return ""; const MON = {jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12}; const mo = isNaN(m[2]) ? MON[m[2].slice(0, 3).toLowerCase()] : Number(m[2]); return mo ? m[3]+"-"+String(mo).padStart(2, "0")+"-"+String(m[1]).padStart(2, "0") : ""; };
   function applyField(d, key, v, rec){
@@ -26526,7 +26529,7 @@ body.job-readonly #jlBanner{display:flex}
       const nonEmpty = cells.filter(Boolean); if(!nonEmpty.length) continue;
       if(hdr < 0){
         const hit = hdr === -3 ? [] : cells.map(c=> COLS.findIndex(k=> k[1].test(norm(c))));
-        if(hdr !== -3 && cells.some(c=> /^description/.test(norm(c))) && hit.filter(x=> x > -1).length >= 3){ hdr = i; hit.forEach((k, ci)=>{ if(k > -1 && !(COLS[k][0] in map)) map[COLS[k][0]] = ci; }); continue; }
+        if(hdr !== -3 && cells.some(c=> COLS[1][1].test(norm(c))) && hit.filter(x=> x > -1).length >= 3){ hdr = i; hit.forEach((k, ci)=>{ if(k > -1 && !(COLS[k][0] in map)) map[COLS[k][0]] = ci; }); continue; }
         for(let a = 0; a < cells.length; a++){ if(!cells[a]) continue; const lab = norm(cells[a]), f = FIELD_LABELS.find(x=> x[1].test(lab)); if(f){ let v = ""; for(let b = a + 1; b < cells.length; b++){ if(cells[b]){ v = cells[b]; break; } } applyField(d, f[0], v, rec); if(f[0] === "invoice_no" && !rec.invoice_date){ const dt = toIso(v); if(dt) rec.invoice_date = dt; } a = cells.length; } }
       } else {
         const first = norm(cells.find(Boolean)); if(/^total\b/.test(first) || /^(freight|insurance|amount in words|declaration)/.test(first)) { if(/^total\b/.test(first)) hdr = -2; if(hdr === -2) { /* totals row: the table is finished */ } if(hdr === -2){ hdr = -3; continue; } }       // after the totals only the labelled rows (more details, type, freight) are read
@@ -26561,6 +26564,9 @@ body.job-readonly #jlBanner{display:flex}
     for(let i = 1; i <= 10; i++) rows.push([i, "", "", "", "", "PKG", "", "KG", "", "", "", ""].concat(XC.map(()=>"")));
     const ws = X.utils.aoa_to_sheet(rows); ws["!cols"] = [30, 36, 36, 12, 10, 12, 10, 8, 12, 12, 12, 16].concat(XC.map(()=>16)).map(w=>({wch:w})); const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Invoice and Packing List"); return X.write(wb, {bookType:"xlsx", type:"array"});
   }
+  const FOUND_NAMES = {invoice_no:"invoice no", invoice_date:"date", exporter:"exporter", consignee:"consignee", buyer:"buyer", port_of_loading:"port of loading", port_of_discharge:"port of discharge", currency:"currency", terms:"terms"};
+  window.ChaInvPlFound = rec=> { const d = (rec && rec.data) || {}, got = [], miss = []; Object.keys(FOUND_NAMES).forEach(k=>{ ((k === "invoice_no" || k === "invoice_date") ? rec[k] : d[k]) ? got.push(FOUND_NAMES[k]) : miss.push(FOUND_NAMES[k]); });
+    const ln = d.lines || [], cols = ["part_no", "hs", "qty", "rate", "gross_wt", "net_wt", "pkgs"].filter(k=> ln.some(l=> l[k])); return {items:ln.length, got, miss, cols}; };
   async function importFile(file){
     try{
       const ext = (file.name.split(".").pop() || "").toLowerCase(); const rec = ext === "pdf" ? await readPdf(file) : await readXlsx(file);

@@ -1,7 +1,7 @@
 """CHA > Invoice & Packing List: records are kept per company, totals are computed on the server, and "Get Bill" starts one from a job."""
 import pytest
 
-from tests.test_bookings import client, hdr
+from tests.test_bookings import PASSWORD, client, hdr
 from tests.test_job_details import job
 
 
@@ -93,3 +93,44 @@ def test_dashboard_summary(h):
     r = client.get("/api/cha/invoice-packing/summary", headers=h).json()
     c = r["counts"]
     assert c["total"] == c["approved"] + c["draft"] == c["export"] + c["import"] and len(r["months"]) == 6 and isinstance(r["value"], list) and isinstance(r["top_parties"], list)
+
+
+def _login_user(world, label, role_key):
+    import uuid
+    from app.db import SessionLocal
+    from app.models import Organization, User
+    from app.roles import ensure_role
+    from app.security import hash_password
+
+    db = SessionLocal()
+    org = db.get(Organization, world["erp_org"])
+    tag = uuid.uuid4().hex[:6]
+    u = User(email=f"{label}-{tag}@users.test", username=f"{label}{tag}", password_hash=hash_password(PASSWORD), first_name=label, organization_id=org.id, status="ACTIVE")
+    u.roles.append(ensure_role(db, org.id, role_key))
+    db.add(u)
+    db.commit()
+    out = (u.id, hdr(u.username, org.license_number))
+    db.close()
+    return out
+
+
+def test_party_limited_access_and_approver_permission(world, h):
+    import uuid
+
+    tag = uuid.uuid4().hex[:5].upper()
+    mine, other = f"ALPHA EXPORTS {tag}", f"BETA TRADERS {tag}"
+    cust = client.post("/api/customers", json={"code": f"AX{tag}", "name": mine, "customer_type": "Client"}, headers=h)
+    assert cust.status_code in (200, 201), cust.text
+    cid = cust.json()["id"]
+    exp_id, eh = _login_user(world, "exp", "EXPORTER_IMPORTER")
+    ops_id, oh = _login_user(world, "ops", "OPERATIONS")
+    assert client.put(f"/api/access/customers/{cid}/assignments", json={"user_ids": [exp_id]}, headers=h).status_code == 200
+    a = client.post("/api/cha/invoice-packing", json={"invoice_no": f"A-{tag}", "data": {"exporter": mine, "consignee": "X", "lines": [{"description": "G", "qty": "1", "rate": "5"}]}}, headers=h).json()
+    b = client.post("/api/cha/invoice-packing", json={"invoice_no": f"B-{tag}", "data": {"exporter": other, "consignee": "X", "lines": [{"description": "G", "qty": "1", "rate": "5"}]}}, headers=h).json()
+    seen = [x["invoice_no"] for x in client.get("/api/cha/invoice-packing?limit=200", headers=eh).json()["items"]]
+    assert f"A-{tag}" in seen and f"B-{tag}" not in seen                                              # only the assigned party
+    assert client.get(f"/api/cha/invoice-packing/{b['id']}", headers=eh).status_code == 404
+    assert client.post(f"/api/cha/invoice-packing/{b['id']}/approve", headers=eh).status_code == 404
+    assert client.post(f"/api/cha/invoice-packing/{a['id']}/approve", headers=oh).status_code == 403   # an Operations (CHA) user cannot approve
+    assert client.post(f"/api/cha/invoice-packing/{a['id']}/approve", headers=eh).json()["approval"] == "APPROVED"
+    assert client.get(f"/api/cha/invoice-packing/{a['id']}/for-cha", headers=oh).status_code == 200  # the CHA user (Operations) can fetch the approved invoice

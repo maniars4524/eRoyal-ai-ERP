@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session
 
-from .auth import permission_required
+from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
 from .models import ChaInvoicePacking, JobDetail, Shipment, User
@@ -92,15 +92,38 @@ def _total(d: dict) -> Decimal:
 def _out(r: ChaInvoicePacking, full: bool = False) -> dict:
     out = {"id": r.id, "invoice_no": r.invoice_no, "invoice_date": r.invoice_date, "job_number": r.job_number, "exporter": r.exporter, "consignee": r.consignee, "currency": r.currency,
            "total": str(r.total or 0), "updated_at": r.updated_at, "direction": (r.data or {}).get("direction") or "Export", "approval": ((r.data or {}).get("approval") or {}).get("status") or "DRAFT",
-           "approved_by": ((r.data or {}).get("approval") or {}).get("by") or "", "approved_at": ((r.data or {}).get("approval") or {}).get("at") or None}
+           "approved_by": ((r.data or {}).get("approval") or {}).get("by") or "", "created_by": r.created_by, "approved_at": ((r.data or {}).get("approval") or {}).get("at") or None}
     if full:
         out["data"] = r.data or {}
     return out
 
 
-def _get(db: Session, org_id: int, rid: int) -> ChaInvoicePacking:
+def _party_limited(db: Session, user: User) -> tuple[bool, set[str], set[int]]:
+    """(limited?, party names assigned to the user, user ids whose own records count). A placed user (salesperson, team, branch role) and an Exporter / Importer user see only the parties assigned to them (Organization Master >
+    Assign) plus what they or their team created; everyone else (admin, executive, no placement) sees all."""
+    from .access import _assigned, scope_for
+    from .models import Customer
+
+    scope = scope_for(db, user)
+    exp_role = any(r.name == "EXPORTER_IMPORTER" for r in user.roles)
+    if scope.unrestricted and not exp_role:
+        return False, set(), set()
+    ids = {user.id} | set(scope.user_ids or set())
+    names = {" ".join((n or "").upper().split()) for n in db.scalars(select(Customer.name).where(Customer.organization_id == user.organization_id, Customer.id.in_(_assigned(ids))))}
+    return True, names, ids
+
+
+def _visible(r: ChaInvoicePacking, lim: tuple[bool, set[str], set[int]]) -> bool:
+    limited, names, ids = lim
+    if not limited:
+        return True
+    norm = lambda t: " ".join((t or "").upper().split())
+    return r.created_by in ids or norm(r.exporter) in names or norm(r.consignee) in names
+
+
+def _get(db: Session, org_id: int, rid: int, user: User | None = None) -> ChaInvoicePacking:
     r = db.scalar(select(ChaInvoicePacking).where(ChaInvoicePacking.id == rid, ChaInvoicePacking.organization_id == org_id))
-    if not r:
+    if not r or (user is not None and not _visible(r, _party_limited(db, user))):
         raise HTTPException(404, "Invoice & Packing List not found")
     return r
 
@@ -115,7 +138,8 @@ def list_records(q: str = "", party: str = "", direction: str = "", approved: bo
     if party.strip():
         like = f"%{party.strip()}%"
         stmt = stmt.where(or_(ChaInvoicePacking.exporter.ilike(like), ChaInvoicePacking.consignee.ilike(like)))
-    rows = db.scalars(stmt.order_by(ChaInvoicePacking.id.desc())).all()
+    lim = _party_limited(db, user)
+    rows = [r for r in db.scalars(stmt.order_by(ChaInvoicePacking.id.desc())).all() if _visible(r, lim)]
     if direction.strip():
         rows = [r for r in rows if ((r.data or {}).get("direction") or "Export").lower() == direction.strip().lower()]
     if approved:
@@ -153,7 +177,8 @@ def from_job(job_number: str, user: User = Depends(permission_required("shipment
 def summary(user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """The dashboard of the Invoice & Packing List screen: counts by approval and type, value by currency, the last six months and the busiest parties."""
     org_id = _tenant(user)
-    rows = db.scalars(select(ChaInvoicePacking).where(ChaInvoicePacking.organization_id == org_id)).all()
+    lim = _party_limited(db, user)
+    rows = [r for r in db.scalars(select(ChaInvoicePacking).where(ChaInvoicePacking.organization_id == org_id)).all() if _visible(r, lim)]
     today = date.today()
     months = []
     for i in range(5, -1, -1):
@@ -188,11 +213,11 @@ def summary(user: User = Depends(permission_required("shipment.read")), db: Sess
 
 @router.get("/{rid}")
 def get_record(rid: int, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
-    return _out(_get(db, _tenant(user), rid), True)
+    return _out(_get(db, _tenant(user), rid, user), True)
 
 
 @router.post("", status_code=201)
-def create_record(body: InvPlIn, user: User = Depends(permission_required("shipment.create")), db: Session = Depends(get_db)):
+def create_record(body: InvPlIn, user: User = Depends(permission_required("invpl.manage")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
     d = _clean(body)
     no = body.invoice_no.strip()
@@ -210,9 +235,9 @@ def create_record(body: InvPlIn, user: User = Depends(permission_required("shipm
 
 
 @router.put("/{rid}")
-def update_record(rid: int, body: InvPlIn, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+def update_record(rid: int, body: InvPlIn, user: User = Depends(permission_required("invpl.manage")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
-    r = _get(db, org_id, rid)
+    r = _get(db, org_id, rid, user)
     d = _clean(body)
     if not body.invoice_no.strip():
         raise HTTPException(422, "Invoice number is required")
@@ -234,9 +259,9 @@ def update_record(rid: int, body: InvPlIn, user: User = Depends(permission_requi
 
 
 @router.post("/{rid}/approve")
-def approve_record(rid: int, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+def approve_record(rid: int, user: User = Depends(permission_required("invpl.approve")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
-    r = _get(db, org_id, rid)
+    r = _get(db, org_id, rid, user)
     d = dict(r.data or {})
     if not (d.get("lines") or []):
         raise HTTPException(422, "Add at least one item line before approving")
@@ -251,9 +276,9 @@ def approve_record(rid: int, user: User = Depends(permission_required("shipment.
 
 
 @router.post("/{rid}/revoke")
-def revoke_record(rid: int, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+def revoke_record(rid: int, user: User = Depends(permission_required("invpl.approve")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
-    r = _get(db, org_id, rid)
+    r = _get(db, org_id, rid, user)
     d = dict(r.data or {})
     if (d.get("approval") or {}).get("status") != "APPROVED":
         raise HTTPException(409, "This invoice is not approved")
@@ -308,7 +333,7 @@ def cha_fields(r: ChaInvoicePacking) -> dict:
 @router.get("/{rid}/for-cha")
 def for_cha(rid: int, allow_unapproved: bool = False, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     """"Get Invoice Details" on the CHA job screen: only an approved invoice can be fetched (a CHA user's own upload is the exception)."""
-    r = _get(db, _tenant(user), rid)
+    r = _get(db, _tenant(user), rid, user)
     out = cha_fields(r)
     if out["approval"] != "APPROVED" and not allow_unapproved:
         raise HTTPException(409, "This invoice is not approved yet: ask the exporter / importer to approve it")
@@ -316,9 +341,9 @@ def for_cha(rid: int, allow_unapproved: bool = False, user: User = Depends(permi
 
 
 @router.delete("/{rid}", status_code=204)
-def delete_record(rid: int, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
+def delete_record(rid: int, user: User = Depends(permission_required("invpl.manage")), db: Session = Depends(get_db)):
     org_id = _tenant(user)
-    r = _get(db, org_id, rid)
+    r = _get(db, org_id, rid, user)
     record_audit(db, "CHA_INVPL_DELETED", "CHA", user, org_id, "ChaInvoicePacking", str(r.id), {"invoice_no": r.invoice_no})
     db.delete(r)
     db.commit()

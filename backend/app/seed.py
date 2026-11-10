@@ -82,6 +82,8 @@ PERMISSIONS = [
     ("shipment.create", "Create shipment jobs", "shipment", "create"),
     ("shipment.update", "Update shipment jobs", "shipment", "update"),
     ("shipment.delete", "Delete shipment jobs", "shipment", "delete"),
+    ("invpl.manage", "Create, edit, import and delete Invoice & Packing Lists", "invpl", "manage"),
+    ("invpl.approve", "Approve and revoke approval of Invoice & Packing Lists (for the parties assigned to the user)", "invpl", "approve"),
 ]
 
 
