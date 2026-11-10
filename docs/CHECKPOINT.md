@@ -662,3 +662,14 @@ Manual per-report Generate (never automatic) by mode+direction: Air Export (HAWB
 - Navigation: all 172 screens open with no script error (`e2e/navall.test.js`); only record-dependent detail screens show empty when opened without a record.
 - Left as is on the owner's instruction: job numbers 8/9/10. On hold: HBL terms text, paper-print check, real SMTP (no fake mail).
 - Stale tests (not live bugs): opsmenu, menuops, stdmasters, jobwizard SCAC, savebuttons (JSDOM; real-Chrome `savechk.test.js` passes), newtab selector, mobile manifest start_url (fixed in test).
+
+## Owner go-ahead list, first part (2026-11-10)
+Done:
+- Job cost "% of Other Charges" chooser: the charge shows "Base: ..." with a link; the chooser lists the job's other charges including the freight amount; saved in `job_charges.pct_base` (backend already supported it). Test `e2e/jcbase.test.js`.
+- Cargo Arrival Notice with mixed taxable / non-taxable charges previewed (two sections with totals).
+- Layout check of MAWB, air manifest, stuffing, destuffing, POD, delivery order, sailing confirmation, pre-alert, MBL, P&L report: all render on one page with real data, no junk text; reports that need data the job lacks (flight, MAWB number, ...) show the "Some information is missing" list as designed. Script `e2e/layouts.test.js` (pictures in scratch/layouts).
+- Uploaded documents are stored INSIDE the database (LargeBinary in `models.py`), so a database dump carries them. No upload folder to copy.
+- IATA logo: no image file in the repo; waiting for the owner's file.
+- Missing weight / volume messages for By Gross Wt/Volume already come from `basis_calc.quantity` and show as a warning.
+Still to do from the go-ahead list: branch/placement/assignment screens; search "created by" filter + "View all"; rows-per-page on the other lists; inventory stores/dashboards/reports/accounting/audit/alerts; cargo-dimension phases (job-costing display + override audit, verification, admin config, real consolidation master/house); static-screen honesty walk (`e2e/honesty.test.js` passes today); refresh old tests.
+On hold by the owner: customer approval workflow, role/CEO dashboards, licence/company onboarding, Brotli/staging/CI/splitting, real SMTP, IATA logo file, HBL terms text, paper printing, Save & New on org/port/charge masters (not needed).

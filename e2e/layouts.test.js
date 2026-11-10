@@ -26,6 +26,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const gen = async code => { await page.evaluate(c => { const b = document.querySelector('[data-od2="gen"][data-code="' + c + '"]'); if (b) b.click(); }, code); await sleep(4500); };
   const shot = async name => { const h = await page.$("#modalBody"); if (h) { await h.screenshot({ path: "../scratch/layouts/" + name + ".png" }); } };
   const finish = async name => { // press whichever confirm button the dialog shows
+    await page.evaluate(() => { document.querySelectorAll("#modalBody input, #modalBody textarea").forEach(e => { if (e.type === "checkbox" || e.type === "radio" || e.value) return; e.value = e.type === "date" ? "2030-06-01" : e.type === "number" ? "5" : "Test value"; e.dispatchEvent(new Event("input", { bubbles: true })); }); });
     for (const id of ["odInGo", "odVarGo", "odCanGo"]) { const ok = await page.evaluate(id => { const b = document.getElementById(id); if (b) { b.click(); return true; } return false; }, id); if (ok) { await sleep(4500); break; } }
     const t = await text("#modalBody"); const pages = await page.evaluate(() => document.querySelectorAll("#modalBody .pg").length);
     await shot(name); console.log(name, "pages=" + pages, "len=" + t.length, /undefined|\[object|NaN/.test(t) ? "JUNK" : "clean"); await page.evaluate(() => closeModal()); await sleep(500); };
@@ -54,11 +55,11 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   // ---- air export / import
   const air = (await j("POST", "/api/shipments", { mode: "Air", direction: "Export", container_mode: "Air", pol: "MAA", pod: "SIN" }, token)).body.job_number;
   await put(air, "parties", { shipper: "Natural Remedies Pvt Ltd", consignee: "AGRO TRADE SRL" });
-  await put(air, "cargo", { pkgs: "1", gwt: "678", cargoDesc: "TEST" });
+  await put(air, "cargo", { pkgs: "1", gwt: "678", cargoDesc: "TEST" }); await put(air, "bl", { mblNo: "176-12345675", mblDate: "2030-05-02", hblNo: "RTS000123", bookingType: "House" });
   await openOD(air);
   await all("air_exp");
   const airi = (await j("POST", "/api/shipments", { mode: "Air", direction: "Import", container_mode: "Air", pol: "SIN", pod: "MAA" }, token)).body.job_number;
-  await put(airi, "parties", { shipper: "Overseas Seller", consignee: "Chennai Buyer" }); await put(airi, "cargo", { pkgs: "3", gwt: "120", cargoDesc: "Parts" });
+  await put(airi, "bl", { mblNo: "176-99999991", mblDate: "2030-05-02", hblNo: "RTS000999", bookingType: "House" }); await put(airi, "parties", { shipper: "Overseas Seller", consignee: "Chennai Buyer" }); await put(airi, "cargo", { pkgs: "3", gwt: "120", cargoDesc: "Parts" });
   await openOD(airi);
   await all("air_imp");
   console.log("errors:", errs.length, errs.join(" | ").slice(0, 400));
