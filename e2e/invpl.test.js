@@ -68,6 +68,12 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("Download PDF and Download Excel buttons are in the dialog", await page.evaluate(() => !!document.getElementById("ipDoPdf") && !!document.getElementById("ipDoXlsx")));
   await page.evaluate(() => { for (const id of ["ipSign", "ipSeal"]) { const c = document.getElementById(id); c.checked = false; c.dispatchEvent(new Event("change", { bubbles: true })); } }); await sleep(600);
   check("without signature the preview still draws (blank signature space)", (await pages()) === 1 && /Authorised Signatory/.test(await body()));
+  const fmtPick = async v => { await page.evaluate(v => { const r = document.querySelector('input[name="ipFmt"][value="' + v + '"]'); r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }, v); await sleep(800); };
+  await fmtPick("export"); bd = await body();
+  check("Export format: grades, cartons, FOB and the declaration box", /INVOICE CUM PACKING LIST/.test(bd) && /Grades/.test(bd) && /Cartons/.test(bd) && /FOB/.test(bd) && /Authorised Signatory/.test(bd) && /Rate \/ Kg/.test(bd), bd.slice(0, 200));
+  await fmtPick("part"); bd = await body();
+  check("Part-number format: part number, lot / serial, COO, Total Net", /COMMERCIAL INVOICE/.test(bd) && /Part Number/.test(bd) && /Lot\/Serial/.test(bd) && /Total Net/.test(bd), bd.slice(0, 200));
+  check("the old Masters shortcut row is gone", await page.evaluate(() => !document.querySelector(".ip-links")));
   await page.evaluate(() => closeModal()); await sleep(400);
   // list, edit
   await page.evaluate(() => window.go("cha-invpl")); await sleep(1200);
