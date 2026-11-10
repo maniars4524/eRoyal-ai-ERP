@@ -290,6 +290,32 @@ def basis_preview(job_number: str, payload: PreviewPayload, user: User = Depends
     return bc.calc_lines(lines, m)
 
 
+def _audit_quantity_overrides(db: Session, job: Shipment, det: JobDetail | None, lines: list, old_typed: dict, user: User) -> None:
+    """A quantity typed over the one the engine calculates from the job's dimensions is recorded: who, which charge, the calculated and the typed quantity (only when it is new or changed)."""
+    try:
+        m = job_measures(db, job, det)
+    except bc.BasisError:
+        return
+    found = []
+    for l in lines:
+        if not l.qty_manual or l.uom not in bc.BASES or l.uom in bc.PERCENT_BASES or l.uom == bc.PER_SHIPMENT or (l.breakup or []):
+            continue
+        try:
+            calc_q, unit = bc.quantity(l.uom, m)
+        except bc.BasisError:
+            continue
+        typed = Decimal(str(l.qty))
+        if abs(typed - calc_q) <= Decimal("0.0005"):
+            continue
+        if old_typed.get((l.charge_name, l.uom)) == typed:
+            continue
+        found.append({"charge": l.charge_name, "basis": l.uom, "calculated": str(calc_q), "typed": str(typed), "unit": unit})
+    if not found:
+        return
+    record_audit(db, "JOB_CHARGE_QTY_OVERRIDDEN", "SHIPMENT", user, job.organization_id, "Shipment", str(job.id), {"job_number": job.job_number, "lines": found[:20]})
+    jl.log_event(db, job, user, "CHARGE_QTY_OVERRIDDEN", "FINANCE", "Charge quantity typed over the calculated one: " + "; ".join(f"{x['charge']} {x['typed']} (calculated {x['calculated']} {x['unit']})" for x in found[:5]), detail={"lines": found[:20]})
+
+
 @router.put("/by-number/{job_number:path}/charges")
 def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depends(permission_required("shipment.update")), db: Session = Depends(get_db)):
     """Replace all charge lines of a job atomically; the server recalculates every amount."""
@@ -303,7 +329,9 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
         for side in (line.buy, line.sell):
             if side.ccy != "INR" and side.exch <= 0:
                 raise HTTPException(status_code=422, detail="Exchange rate must be greater than zero for non-INR charges")
-    old_basis = {(r.charge_name, r.uom, bool(r.qty_manual)) for r in db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id))}
+    old_rows = list(db.scalars(select(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id)))
+    old_basis = {(r.charge_name, r.uom, bool(r.qty_manual)) for r in old_rows}
+    old_typed = {(r.charge_name, r.uom): Decimal(str(r.qty or 0)) for r in old_rows if r.qty_manual}
     db.execute(delete(JobCharge).where(JobCharge.shipment_id == job.id, JobCharge.organization_id == job.organization_id))
     from . import air_weight
 
@@ -345,6 +373,7 @@ def replace_charges(job_number: str, payload: ChargesPayload, user: User = Depen
         db.add(row)
         rows.append(row)
     db.flush()
+    _audit_quantity_overrides(db, job, det, payload.lines, old_typed, user)
     result = _response(rows)
     new_basis = {(r.charge_name, r.uom, bool(r.qty_manual)) for r in rows}
     changed = sorted(f"{n}: {u}{' (quantity typed)' if m else ''}" for n, u, m in new_basis - old_basis if u in bc.BASES)

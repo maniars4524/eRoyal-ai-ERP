@@ -7586,6 +7586,7 @@ function jcLoadJob(jobNo){
     jcApplyTotals(resp);
     jcSetSaveState("Saved", "ok");
     jcRefreshDocs(jobNo);
+    setTimeout(()=>{ try{ jcBasisPreview(false); }catch(e){ /* the caption appears after the next edit */ } }, 400);
   }).catch(err=>{ jcSetSaveState("Not loaded: "+err.message, "err"); });
 }
 function jcSchedulePersist(){
@@ -7724,12 +7725,12 @@ async function jcBasisPreview(explain){
   const by = {}; res.lines.forEach(x=>{ by[x.id] = x; });
   rows.forEach(r=>{
     if(JC_BASIS.indexOf(r.uom) < 0 || (r.breakup || []).length) return;
-    const pct = JC_BASIS.indexOf(r.uom) > 4 && JC_BASIS.indexOf(r.uom) < 7;
+    const pct = JC_BASIS.indexOf(r.uom) > 4 && JC_BASIS.indexOf(r.uom) < 7; if(!pct) r.calcQty = null;
     ["BUY", "SELL"].forEach(side=>{
       const x = by[r.id+":"+side], k = side === "BUY" ? r.buy : r.sell; if(!x) return;
       if(x.error){ const priced = Number(k.rate) > 0; if(priced && explain && !jcBasisShown.has(x.error) && window.toast){ jcBasisShown.add(x.error); toast((r.chargeName || "Charge")+" — "+r.uom, x.error, "warn"); } if(pct) k.pctAmt = 0; return; }
       if(pct){ k.pctAmt = Number(x.amount); }
-      else if(side === "SELL" && !r.qtyManual){ r.qty = Number(x.quantity); }
+      else { if(side === "SELL" || r.calcQty == null){ r.calcQty = Number(x.quantity); r.calcUnit = x.unit || ""; } if(side === "SELL" && !r.qtyManual){ r.qty = Number(x.quantity); } }
     });
     if(!pct && !r.qtyManual){ const b = by[r.id+":BUY"]; if(b && !b.error && !Number(r.qty)) r.qty = Number(b.quantity); }
   });
@@ -7837,7 +7838,7 @@ function jcRenderRows(){
       </div></td>
       <td style="min-width:140px"><input class="fc" data-jc-f="desc" data-jc-id="${r.id}" value="${esc(r.desc)}" placeholder="Enter remarks" title="${esc(r.desc)}">${(r.breakup||[]).length ? `<div style="font-size:10.5px;color:var(--g6);margin-top:2px;line-height:1.35">${(r.breakup||[]).map(b=>esc(b.type||"Container")+" x"+b.qty+(Number(b.sell)>0?" · sell "+b.sell:"")+(Number(b.buy)>0?" · buy "+b.buy:"")).join("<br>")}</div>` : ""}</td>
       <td><select class="fc" data-jc-f="uom" data-jc-id="${r.id}">${uomOpts}</select>${r.uom==="% of Other Charges" ? `<div style="font-size:10.5px;margin-top:2px"><a href="#" data-jc-base="${r.id}" title="Choose the charges this percentage is taken from">${(r.pctBase||[]).length ? "Base: "+esc((r.pctBase||[]).join(", ")) : "Choose base charges"} ▾</a></div>` : ""}</td>
-      <td><input class="fc" type="number" min="0" style="width:55px" data-jc-f="qty" data-jc-id="${r.id}" value="${r.qty}" ${(r.breakup||[]).length?"disabled title=\"Quantity comes from the container break-up\"":""}>${!airJob && (r.uom==="Per Container" || (r.breakup||[]).length) ? `<button class="btn btn-out btn-sm" style="margin-top:3px;white-space:nowrap" data-jc-bu="${r.id}" title="Container-wise break-up of this charge">Break-up${(r.breakup||[]).length ? " ("+r.breakup.length+")" : ""}</button>` : ""}</td>
+      <td><input class="fc" type="number" min="0" style="width:55px" data-jc-f="qty" data-jc-id="${r.id}" value="${r.qty}" ${(r.breakup||[]).length?"disabled title=\"Quantity comes from the container break-up\"":""}>${(r.calcQty != null && JC_BASIS.indexOf(r.uom) > -1 && r.uom !== "Per Shipment" && !(r.breakup||[]).length) ? `<div style="font-size:9.5px;margin-top:2px;white-space:nowrap;color:${r.qtyManual && Math.abs(Number(r.qty) - r.calcQty) > 0.0005 ? "#b45309" : "var(--g5)"}" title="Quantity calculated from the job dimensions and measurements">${r.qtyManual && Math.abs(Number(r.qty) - r.calcQty) > 0.0005 ? "typed; calculated " : "calculated "}${jcFmtNum(r.calcQty)} ${esc(r.calcUnit || "")}</div>` : ""}${!airJob && (r.uom==="Per Container" || (r.breakup||[]).length) ? `<button class="btn btn-out btn-sm" style="margin-top:3px;white-space:nowrap" data-jc-bu="${r.id}" title="Container-wise break-up of this charge">Break-up${(r.breakup||[]).length ? " ("+r.breakup.length+")" : ""}</button>` : ""}</td>
 ${firstCells}${secondCells}
       <td class="mono"><input class="fc" style="width:72px" data-jc-f="hsn" data-jc-id="${r.id}" value="${esc(r.hsn)}" placeholder="HSN/SAC"></td>
       <td><button class="ta" data-jc-removerow="${r.id}" title="Remove row">✕</button></td>

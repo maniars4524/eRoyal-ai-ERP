@@ -161,3 +161,24 @@ def test_air_dimensions_give_the_cargo_figures_and_the_chargeable_weight(h):
     put_dims(h, j, [{"packages": 2, "length": 100, "width": 80, "height": 60, "gross": 100}])
     c = client.get(f"/api/jobs/{j}/details", headers=h).json()["cargo"]
     assert c["pkgs"] == "2" and c["gwt"] == "100" and c["vol"] == "0.96" and c["chgWt"] == "160" and c["volWt"] == "160"
+
+
+def test_a_quantity_typed_over_the_calculated_one_is_audited(h):
+    from sqlalchemy import select
+    from app.db import SessionLocal
+    from app.models import AuditLog
+
+    j = job(h, mode="Air", pol="MAA(CHENNAI)", pod="FRA(FRANKFURT)")
+    put_dims(h, j, [{"packages": 2, "length": 100, "width": 80, "height": 60, "gross": 100}])
+    line = {"charge_name": "Air Freight", "qty": "200", "qty_manual": True, "uom": "By Chg Wt", "sell": side("150"), "buy": side("120")}
+    r = client.put(f"/api/shipments/by-number/{j}/charges", json={"lines": [line]}, headers=h)
+    assert r.status_code == 200, r.text
+    ev = client.get(f"/api/jobs/{j}/events", headers=h)
+    text = ev.text if ev.status_code == 200 else ""
+    with SessionLocal() as db:
+        rows = list(db.scalars(select(AuditLog).where(AuditLog.action == "JOB_CHARGE_QTY_OVERRIDDEN")))
+    assert any(j in str(x.new_value) and "160" in str(x.new_value) and "200" in str(x.new_value) for x in rows)
+    n = len(rows)
+    client.put(f"/api/shipments/by-number/{j}/charges", json={"lines": [line]}, headers=h)          # saved again unchanged: not logged twice
+    with SessionLocal() as db:
+        assert len(list(db.scalars(select(AuditLog).where(AuditLog.action == "JOB_CHARGE_QTY_OVERRIDDEN")))) == n
