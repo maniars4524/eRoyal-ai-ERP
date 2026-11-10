@@ -6234,7 +6234,11 @@ function go(screen, opts){
 
   if(screen==="org-detail" && opts.orgName) populateOrgDetail(opts.orgName);
   if(screen==="job-detail" && opts.jobNo) populateJobDetail(opts.jobNo);
-  if(screen==="rate-sheet-detail" && opts.rateNo) populateRateSheetDetail(opts.rateNo);
+  if(screen==="rate-sheet-detail" && opts.rateNo && typeof RATE_SHEETS !== "undefined" && RATE_SHEETS[opts.rateNo]) populateRateSheetDetail(opts.rateNo);
+  else if(screen==="rate-sheet-detail"){   /* the fixed sample charge lines of the prototype are never shown as if they were a real rate sheet */
+    const t = document.querySelector("#s-rate-sheet-detail tbody"); if(t) t.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:16px;font-style:italic">No rate sheet selected. Rate sheets are created in the Rate Master.</td></tr>';
+    document.querySelectorAll("#s-rate-sheet-detail *").forEach(n=>{ if(!n.children.length && /Total Buying/.test(n.textContent)) n.textContent = ""; });
+  }
   if(screen==="dashboard") renderDashChart("volume");
   if(screen==="port-master" && window.renderPortRows) renderPortRows();
   if(screen==="job-list" && window.renderJobRows) renderJobRows();
