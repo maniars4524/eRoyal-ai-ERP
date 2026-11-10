@@ -6201,7 +6201,7 @@ const SCREEN_META = {
   "crm-engagement":{title:"Engagement", crumb:"eSway ERP 2.0 / CRM / <strong>Engagement</strong>", menu:"crm-engagement"},
   "svc-console":{title:"Shipment Console", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Shipment Console</strong>", menu:"svc-console"},
   "svc-cha":{title:"CHA", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>CHA</strong>", menu:"svc-cha"},
-  "cha-invpl":{title:"Invoice & Packing List", crumb:"eSway ERP 2.0 / Logistics & Customs / CHA / <strong>Invoice & Packing List</strong>", menu:"svc-cha"},
+  "cha-invpl":{title:"Invoice & Packing List", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Invoice & Packing List</strong>", menu:"svc-cha"},
   "svc-transport":{title:"Transport", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Transport</strong>", menu:"svc-transport"},
   "svc-warehouse":{title:"Warehouse", crumb:"eSway ERP 2.0 / Logistics & Customs / <strong>Warehouse</strong>", menu:"svc-warehouse"},
   "sequence-setting":{title:"Sequence Setting", crumb:"eSway ERP 2.0 / Settings / <strong>Sequence Setting</strong>", menu:"sequence-setting"},
@@ -6493,6 +6493,7 @@ const TOPNAV_MENU = [
     {label:"Quotation", icon:"file-text", go:"quotation"},
   ]},
   {id:"svcops", label:"Logistics & Customs", icon:"truck", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
+    {label:"Invoice & Packing List", icon:"file-text", go:"cha-invpl", roles:["Admin","Operations","CHA"]},
     {label:"Booking", module:"booking", icon:"calendar-check", roles:["Admin","Operations","Sales","CHA","Transport"], children:[
       {label:"Create Booking", icon:"plus", go:"booking-new"},
       {label:"Booking Status", icon:"calendar-check", go:"booking"},
@@ -6504,7 +6505,6 @@ const TOPNAV_MENU = [
       {label:"Sea Import", icon:"ship", go:"svc-cha", chadir:"Import", chamode:"Sea"},
       {label:"Air Export", icon:"plane", go:"svc-cha", chadir:"Export", chamode:"Air"},
       {label:"Air Import", icon:"plane", go:"svc-cha", chadir:"Import", chamode:"Air"},
-      {label:"Invoice & Packing List", icon:"file-text", go:"cha-invpl"},
     ]},
     {label:"NVOCC", icon:"ship", roles:["Admin","Operations"], children:[
       {label:"Inventory Dashboard", icon:"dashboard", go:"inv-dashboard"},
@@ -22114,6 +22114,7 @@ function makePrintFit(){
     const f = id=> (el(id) ? el(id).value.trim() : "");
     const body = {job_type:dir, mode, exporter:f("chaNExp"), importer:f("chaNImp"), pol:f("chaNPol"), pod:f("chaNPod"), etd:f("chaNEtd") || null, eta:f("chaNEta") || null, hbl:f("chaNHbl"), mbl:f("chaNMbl"), containers:f("chaNCont"), file_ref:f("chaNRef"),
       customs_location:f("chaNLoc"), freight_job_number:f("chaNFj"), booking_number:f("chaNBk"), exception_reason:f("chaNWhy")};
+    if(window.ChaKit.inv){ body.invoice_id = window.ChaKit.inv.id; body.allow_unapproved = !!window.ChaKit.inv.allow; }
     try { const j = await api("POST", "/api/cha/jobs", body); closeModal(); say("CHA job created", j.cha_job_number+" is at stage "+j.customs_status); await render(); }
     catch(e){
       const d = e.detail;
@@ -22128,6 +22129,7 @@ function makePrintFit(){
     const pill = (kind, val, label, on)=> '<button type="button" class="btn btn-sm '+(on ? "btn-pri" : "btn-out")+'" data-cha-pick="'+kind+'|'+val+'" style="min-width:110px">'+label+'</button>';
     openModal({title:"Create CHA job — "+mode+" "+dir, size:"lg", bodyHTML:'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--g5);margin-bottom:4px">1. TRANSPORT MODE</div><div style="display:flex;gap:6px;margin-bottom:8px">'+pill("mode", "Sea", "Sea Freight", mode === "Sea")+pill("mode", "Air", "Air Freight", mode === "Air")+'</div>'+
       '<div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--g5);margin-bottom:4px">2. DIRECTION</div><div style="display:flex;gap:6px">'+pill("dir", "Export", "Export", exp)+pill("dir", "Import", "Import", !exp)+'</div></div><div id="chaNMsg" style="display:none;background:#fff4e5;border:1px solid #f0b46a;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px"></div>'+
+      '<div class="ib ib-bl" style="margin-bottom:10px"><div style="font-weight:700;margin-bottom:6px">Get Invoice Details ('+dir+')</div><div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end"><div><label>'+(exp ? "Exporter" : "Importer")+' name</label><input id="chaNIParty" class="fi" list="chaIParties" autocomplete="off" placeholder="Select the party"></div><div><label>Approved invoice no / reference</label><input id="chaNINo" class="fi" list="chaINos" autocomplete="off" placeholder="Invoice number"></div><button type="button" class="btn btn-pri btn-sm" id="chaNIGet">Get details</button><span><button type="button" class="btn btn-out btn-sm" id="chaNIUp">Upload Excel</button><input type="file" id="chaNIFile" accept=".xlsx,.xls,.csv" style="display:none"></span></div><div id="chaNIInfo" style="margin-top:6px;font-size:12px"></div><div style="font-size:11px;color:var(--g5);margin-top:4px">Only invoices the '+(exp ? "exporter" : "importer")+' has approved can be fetched. All invoice and item details (value, description, part no, HSN, quantity, packages, weights) come into the job; nothing is typed again. Or upload an Excel file to create the job from it.</div></div>'+
       '<div style="margin-bottom:10px"><label>Booking number <span style="color:var(--rd,#C0392B)">*</span></label><select id="chaNBk" class="fi" style="width:100%"><option value="">Loading bookings…</option></select>'+
       '<div style="font-size:11px;color:var(--g5);margin-top:4px">Bookings that include the CHA service (CHA, CHA + Freight, CHA + Transport …). Everything on the booking is carried into the CHA job. '+(exp ? "Export: the CHA job comes first and the freight job follows after clearance." : "Import: the freight job comes first and the CHA job follows.")+'</div></div>'+
       '<div id="chaNBkInfo" style="display:none" class="ib ib-bl"></div><div id="chaNPartyInfo" style="display:none;margin-bottom:8px;font-size:12px" class="ib ib-gr"></div>'+
@@ -22141,6 +22143,34 @@ function makePrintFit(){
     orgPick(dir);
     bookingPick(dir, mode);
     portPick(mode);
+    invoicePick(dir, mode);
+  }
+  /* Get Invoice Details / Upload Excel: the job is filled from an approved Invoice & Packing List (or an uploaded Excel, kept as the CHA's own record) */
+  async function invoicePick(dir, mode){
+    window.ChaKit.inv = null; const body = el("modalBody"); if(!body || !el("chaNIGet")) return;
+    let all = []; try{ all = (await api("GET", "/api/cha/invoice-packing?approved=true&direction="+dir+"&limit=200")).items || []; }catch(e){ all = []; }
+    const partyOf = r=> dir === "Import" ? r.consignee : r.exporter;
+    const dl = (id, vals)=> { let o = el(id); if(!o){ o = document.createElement("datalist"); o.id = id; body.appendChild(o); } o.innerHTML = vals.map(v=>'<option value="'+esc2(v)+'"></option>').join(""); };
+    dl("chaIParties", Array.from(new Set(all.map(partyOf).filter(Boolean))));
+    const refresh = ()=> { const p = el("chaNIParty").value.trim().toUpperCase(); dl("chaINos", all.filter(r=> !p || String(partyOf(r) || "").toUpperCase() === p).map(r=>r.invoice_no)); };
+    refresh(); el("chaNIParty").addEventListener("input", refresh);
+    const fill = f=> {
+      const set = (id, v)=> { const e = el(id); if(e && v){ e.value = v; e.readOnly = false; } };
+      set("chaNExp", f.exporter); set("chaNImp", f.importer); set("chaNPol", f.pol); set("chaNPod", f.pod); set("chaNCont", f.containers);
+      window.ChaKit.inv = {id:f.invoice_id, allow:f.approval !== "APPROVED"};
+      el("chaNIInfo").innerHTML = '<b>'+esc2(f.invoice_no)+'</b> · '+esc2(f.direction)+' · '+f.lines+' item(s) · '+esc2(f.currency)+' <b>'+esc2(f.invoice_value)+'</b> · packages '+esc2(f.cargo.pkgs || "—")+' · gross '+esc2(f.cargo.gwt || "—")+' kg · net '+esc2(f.cargo.nwt || "—")+' kg'+(f.mode && f.mode !== mode ? '<br><span style="color:#b45309">The invoice says pre-carriage by '+esc2(f.mode)+'; this job is '+esc2(mode)+'.</span>' : "")+'<br>Details will be added to the job when you press Create job.';
+    };
+    const get = async (id, allow)=> { try{ fill(await api("GET", "/api/cha/invoice-packing/"+id+"/for-cha"+(allow ? "?allow_unapproved=true" : ""))); }catch(e){ say("Could not get the invoice", e.message, "error"); } };
+    el("chaNIGet").addEventListener("click", ()=>{ const no = el("chaNINo").value.trim().toUpperCase(), p = el("chaNIParty").value.trim().toUpperCase();
+      const hit = all.filter(r=> String(r.invoice_no).toUpperCase() === no && (!p || String(partyOf(r) || "").toUpperCase() === p));
+      if(!hit.length){ say("No approved invoice found", "Check the party and the invoice number. The exporter / importer must approve the invoice first.", "warn"); return; } get(hit[0].id, false); });
+    el("chaNIUp").addEventListener("click", ()=> el("chaNIFile").click());
+    el("chaNIFile").addEventListener("change", async e=>{ const file = e.target.files[0]; if(!file) return;
+      try{ if(!window.ChaInvPl || !window.ChaInvPl.readXlsx) throw new Error("The Invoice & Packing List reader is not loaded"); const rec = await window.ChaInvPl.readXlsx(file);
+        if(!(rec.data.lines || []).length) throw new Error("No item lines were found in this file. Use the Excel template of Invoice & Packing List.");
+        const d = Object.assign({currency:"USD"}, rec.data, {direction:dir}), made = await api("POST", "/api/cha/invoice-packing", {invoice_no:rec.invoice_no || "", auto_number:!rec.invoice_no, invoice_date:rec.invoice_date || null, data:d});
+        await get(made.id, true); say("Excel read", made.invoice_no+" was saved in Invoice & Packing List and its details are in this job form."); }
+      catch(err){ say("Could not read the Excel", err.message, "error"); } e.target.value = ""; });
   }
   /* Ports and airports come from the Port master as you type (about 21,000 records) */
   function portPick(mode){
@@ -26131,11 +26161,16 @@ body.job-readonly #jlBanner{display:flex}
     const root = el("ipRoot"); if(!root) return;
     root.innerHTML = '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Invoice &amp; Packing List</div><div class="ps">Commercial invoice and packing list prepared by the CHA on behalf of the shipper</div></div>'+
       '<div class="pa"><input class="fc" id="ipSearch" placeholder="Search invoice no, exporter, consignee, job" style="width:260px" value="'+esc(S.q)+'"><button class="btn btn-out btn-sm" id="ipTpl" title="Download the Excel template, fill it and import it">Excel Template</button><button class="btn btn-out btn-sm" id="ipImp" title="Create a new Invoice & Packing List from an Excel or PDF file">Import Excel / PDF</button><input type="file" id="ipFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none"><button class="btn btn-pri btn-sm" id="ipNew"><svg class="ic" data-icon="plus"></svg> New</button></div></div>'+
-      '<div class="card"><div class="tw"><table><thead><tr><th>Invoice No</th><th>Type</th><th>Date</th><th>Exporter</th><th>Consignee</th><th>Job</th><th>Currency</th><th style="text-align:right">Invoice value</th><th></th></tr></thead><tbody id="ipRows">'+
-      (S.list.length ? S.list.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc(r.invoice_no)+'</td><td>'+esc(r.direction || "Export")+'</td><td>'+esc(H.dmy(r.invoice_date))+'</td><td>'+esc(r.exporter)+'</td><td>'+esc(r.consignee)+'</td><td class="mono">'+esc(r.job_number || "")+'</td><td>'+esc(r.currency)+'</td><td style="text-align:right">'+esc(H.fmt(r.total, 2))+'</td>'+
-        '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-ip="edit:'+r.id+'">Edit</button> <button class="btn btn-out btn-sm" data-ip="print:'+r.id+'">Print</button> <button class="btn btn-out btn-sm" data-ip="del:'+r.id+'">Delete</button></td></tr>').join("")
-        : '<tr><td colspan="9" style="text-align:center;color:var(--g5);padding:22px;font-style:italic">No invoice and packing list yet. Press New to prepare one for a shipper.</td></tr>')+'</tbody></table></div></div>';
+      '<div class="card"><div class="tw"><table><thead><tr><th>Invoice No</th><th>Type</th><th>Approval</th><th>Date</th><th>Exporter</th><th>Consignee</th><th>Job</th><th>Currency</th><th style="text-align:right">Invoice value</th><th></th></tr></thead><tbody id="ipRows">'+
+      (S.list.length ? S.list.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc(r.invoice_no)+'</td><td>'+esc(r.direction || "Export")+'</td><td>'+(r.approval === "APPROVED" ? '<span class="b b-gr dot" title="Approved by '+esc(r.approved_by || "")+'">Approved</span>' : '<span class="b b-gy dot">Draft</span>')+'</td><td>'+esc(H.dmy(r.invoice_date))+'</td><td>'+esc(r.exporter)+'</td><td>'+esc(r.consignee)+'</td><td class="mono">'+esc(r.job_number || "")+'</td><td>'+esc(r.currency)+'</td><td style="text-align:right">'+esc(H.fmt(r.total, 2))+'</td>'+
+        '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-ip="edit:'+r.id+'">Edit</button> <button class="btn btn-out btn-sm" data-ip="print:'+r.id+'">Print</button> '+(r.approval === "APPROVED" ? '<button class="btn btn-out btn-sm" data-ip="revoke:'+r.id+'">Revoke approval</button>' : '<button class="btn btn-out btn-sm" data-ip="approve:'+r.id+'">Approve</button>')+' <button class="btn btn-out btn-sm" data-ip="del:'+r.id+'">Delete</button></td></tr>').join("")
+        : '<tr><td colspan="10" style="text-align:center;color:var(--g5);padding:22px;font-style:italic">No invoice and packing list yet. Press New to prepare one for a shipper.</td></tr>')+'</tbody></table></div></div>';
     if(window.renderIcons) renderIcons(root);
+  }
+  function paintApproval(){
+    const b = el("ipApprove"), st = el("ipApprStat"); if(!b || !st) return; const ok = !!S.rec && S.rec.approval === "APPROVED";
+    st.textContent = !S.rec ? "Not saved" : ok ? "Approved" : "Draft"; st.className = "b dot "+(ok ? "b-gr" : "b-gy");
+    b.style.display = S.rec ? "" : "none"; b.textContent = ok ? "Revoke approval" : "Approve"; b.dataset.ip = (ok ? "revoke:" : "approve:")+(S.rec ? S.rec.id : "");
   }
   async function loadList(){ try{ const r = await api("GET", "/api/cha/invoice-packing?limit=100&q="+encodeURIComponent(S.q)); S.list = r.items; S.total = r.total; }catch(e){ S.list = []; } listView(); }
   /* extra item columns for the export (grade / box) and part-number formats */
@@ -26190,7 +26225,7 @@ body.job-readonly #jlBanner{display:flex}
     root.innerHTML = '<datalist id="ipPartyList"></datalist><datalist id="ipPorts"></datalist><datalist id="ipCountries"></datalist><datalist id="ipCarriage"><option>AIR</option><option>SEA</option><option>ROAD</option><option>RAIL</option></datalist>'+
       '<div class="ph"><div><div class="pt"><svg class="ic" data-icon="file-text" style="color:var(--bl)"></svg>Commercial Invoice &amp; Packing List</div><div class="ps">'+(rec ? "Edit "+esc(rec.invoice_no) : "New — prepared on behalf of the shipper")+'</div></div>'+
       '<div class="pa">'+
-      '<button class="btn btn-out btn-sm" id="ipGet" title="Fill the parties, route and cargo from a job">Get Bill</button><button class="btn btn-out btn-sm" id="ipTpl">Excel Template</button><button class="btn btn-out btn-sm" id="ipImp">Import Excel / PDF</button><input type="file" id="ipFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none"><button class="btn btn-out btn-sm" id="ipExit">Exit</button><button class="btn btn-out btn-sm" id="ipPrint">Print / Download…</button><button class="btn btn-pri btn-sm" id="ipSave"><svg class="ic" data-icon="check"></svg> Save</button></div></div>'+
+      '<button class="btn btn-out btn-sm" id="ipGet" title="Fill the parties, route and cargo from a job">Get Bill</button><button class="btn btn-out btn-sm" id="ipTpl">Excel Template</button><button class="btn btn-out btn-sm" id="ipImp">Import Excel / PDF</button><input type="file" id="ipFile" accept=".xlsx,.xls,.csv,.pdf" style="display:none"><button class="btn btn-out btn-sm" id="ipExit">Exit</button><button class="btn btn-out btn-sm" id="ipPrint">Print / Download…</button><span id="ipApprStat" class="b b-gy dot" style="align-self:center"></span><button class="btn btn-out btn-sm" id="ipApprove" type="button" style="display:none"></button><button class="btn btn-pri btn-sm" id="ipSave"><svg class="ic" data-icon="check"></svg> Save</button></div></div>'+
       '<div class="ip-wrap"><div class="ip-top"><div class="fg"><label class="fl">Type</label><div class="ip-nums"><label><input type="radio" name="ipDir" value="Export"'+(d.direction === "Import" ? "" : " checked")+'> Export</label><label><input type="radio" name="ipDir" value="Import"'+(d.direction === "Import" ? " checked" : "")+'> Import</label></div></div><div class="fg"><label class="fl">Invoice No &amp; Date <span class="r">*</span></label><div class="ip-nums"><label><input type="radio" name="ipNoMode" value="auto"'+(S.auto ? " checked" : "")+'> Auto</label><label><input type="radio" name="ipNoMode" value="manual"'+(S.auto ? "" : " checked")+'> Manual</label></div><div style="display:flex;gap:6px">'+inp("ip_no", rec && rec.invoice_no, (S.auto ? 'readonly placeholder="Assigned when saved"' : 'placeholder="Type the invoice number"')+' style="flex:2"')+inp("ip_date", rec && rec.invoice_date || new Date().toISOString().slice(0, 10), 'type="date" style="flex:1.2"')+'</div></div>'+
         '<div class="fg"><label class="fl">Exporter\'s Ref. (IEC / PAN)</label>'+inp("ip_exref", d.exporter_ref)+'</div><div class="fg"><label class="fl">Buyer Order No &amp; Date</label>'+inp("ip_buyord", d.buyer_order)+'</div><div class="fg"><label class="fl">Other References</label>'+inp("ip_otherref", d.other_ref)+'</div>'+
         '<div class="fg"><label class="fl">Invoice Name</label>'+inp("ip_invname", d.invoice_name)+'</div><div class="fg"><label class="fl">Job (optional)</label>'+inp("ip_job", rec && rec.job_number || "", 'placeholder="e.g. AIREXP-26-000001"')+'</div></div>'+
@@ -26210,7 +26245,7 @@ body.job-readonly #jlBanner{display:flex}
         '<div class="fr"><div class="fg" style="flex:1"><label class="fl">Shipping marks</label>'+inp("ip_marks", d.shipping_marks)+'</div><div class="fg" style="flex:2"><label class="fl">Remarks</label>'+inp("ip_remarks", d.remarks)+'</div></div></div></div></div>';
     ["exporter", "buyer", "consignee", "notify"].forEach(k=>{ const t = el("ip_"+k); if(t) t.value = d[k] || ""; const i = root.querySelector('[data-ipp="'+k+'"]'); if(i) i.value = H.lines(d[k])[0] || ""; });
     if(S.auto) api("GET", "/api/cha/invoice-packing/next-number").then(r=>{ const n = el("ip_no"); if(n && S.auto) n.placeholder = r.invoice_no+"  (assigned when saved)"; }).catch(()=>{});
-    loadMasters(); if(window.renderIcons) renderIcons(root); paintTotals();
+    loadMasters(); if(window.renderIcons) renderIcons(root); paintTotals(); paintApproval();
   }
   /* ---------- masters: parties (with branches), ports, countries ---------- */
   const M = {cust:null, br:{}, countries:null};
@@ -26242,7 +26277,7 @@ body.job-readonly #jlBanner{display:flex}
   }
   async function save(){
     const b = collect(); if(!b.invoice_no && !b.auto_number){ MK.util.say("Invoice number required", "Type the invoice number, or choose Auto", "warn"); return null; }
-    try{ const r = S.rec ? await api("PUT", "/api/cha/invoice-packing/"+S.rec.id, b) : await api("POST", "/api/cha/invoice-packing", b); S.rec = r; { const n = el("ip_no"); if(n){ n.value = r.invoice_no; n.readOnly = false; } const m = document.querySelector('input[name="ipNoMode"][value="manual"]'); if(m) m.checked = true; } MK.util.say("Saved", "Invoice & Packing List "+r.invoice_no); if(window.markSaved) try{ markSaved(el("ipSave")); }catch(e){} return r; }
+    try{ const r = S.rec ? await api("PUT", "/api/cha/invoice-packing/"+S.rec.id, b) : await api("POST", "/api/cha/invoice-packing", b); S.rec = r; paintApproval(); { const n = el("ip_no"); if(n){ n.value = r.invoice_no; n.readOnly = false; } const m = document.querySelector('input[name="ipNoMode"][value="manual"]'); if(m) m.checked = true; } MK.util.say("Saved", "Invoice & Packing List "+r.invoice_no); if(window.markSaved) try{ markSaved(el("ipSave")); }catch(e){} return r; }
     catch(e){ MK.util.say("Could not save", e.message, "error"); return null; }
   }
 
@@ -26526,7 +26561,7 @@ body.job-readonly #jlBanner{display:flex}
       MK.util.say("Imported from "+file.name, n+" item line"+(n === 1 ? "" : "s")+" and "+got+" detail"+(got === 1 ? "" : "s")+" read. Check them, then press Save to create the Invoice & Packing List.");
     }catch(e){ MK.util.say("Could not read the file", e.message, "error"); }
   }
-  window.ChaInvPl = {S, build, ctx, printDialog, makePdf, makeXlsx, parseRows, templateXlsx, importFile, open:()=>{ ensureScreen(); loadList(); }};
+  window.ChaInvPl = {readXlsx, S, build, ctx, printDialog, makePdf, makeXlsx, parseRows, templateXlsx, importFile, open:()=>{ ensureScreen(); loadList(); }};
 
   /* Get Bill: pick a job from a list; its parties (with the branch chosen on the job), route, flight and cargo fill the form */
   async function fillFromJob(jn){
@@ -26562,6 +26597,7 @@ body.job-readonly #jlBanner{display:flex}
     if(k === "add"){ S.lines.push({}); el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals(); return; }
     if(k === "rm"){ e.preventDefault(); S.lines.splice(Number(v), 1); if(!S.lines.length) S.lines = [{}]; el("ipLines").innerHTML = S.lines.map(lineRow).join(""); paintTotals(); return; }
     if(k === "edit" || k === "print"){ try{ const r = await api("GET", "/api/cha/invoice-packing/"+v); if(k === "edit") formView(r); else printDialog(r); }catch(err){ MK.util.say("Could not open", err.message, "error"); } return; }
+    if(k === "approve" || k === "revoke"){ if(k === "revoke" && !confirm("Revoke the approval? The CHA can no longer fetch this invoice until it is approved again.")) return; try{ const r = await api("POST", "/api/cha/invoice-packing/"+v+"/"+k); MK.util.say(k === "approve" ? "Approved" : "Approval revoked", "Invoice "+r.invoice_no); if(S.rec && S.rec.id === r.id) S.rec = r; if(el("ipApprove")) paintApproval(); else loadList(); }catch(err){ MK.util.say("Could not "+k, err.message, "error"); } return; }
     if(k === "del"){ if(!confirm("Delete this Invoice & Packing List?")) return; try{ await api("DELETE", "/api/cha/invoice-packing/"+v); MK.util.say("Deleted", ""); loadList(); }catch(err){ MK.util.say("Could not delete", err.message, "error"); } }
   });
   document.addEventListener("change", e=>{ const t = e.target; if(t && t.id === "ipFile" && t.files && t.files[0]){ const f = t.files[0]; t.value = ""; importFile(f); } });

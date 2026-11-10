@@ -23,7 +23,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const setv = (sel, val) => page.evaluate((sel, val) => { const e = document.querySelector(sel); e.value = val; e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true })); }, sel, val);
   // the menu
   const menu = await page.evaluate(() => { const rows = Array.from(document.querySelectorAll(".tn-row, .mn-sub-item")); return rows.map(r => (r.querySelector(".tn-label") || r).textContent.trim()); });
-  check("CHA has the Invoice & Packing List entry after Air Import", menu.includes("Invoice & Packing List") && menu.indexOf("Invoice & Packing List") > menu.indexOf("Air Import"), menu.filter(x => /Air Import|Invoice/.test(x)).join("|"));
+  check("Logistics & Customs has Invoice & Packing List as its first entry", menu.includes("Invoice & Packing List") && menu.indexOf("Invoice & Packing List") < menu.indexOf("Booking"), menu.filter(x => /Air Import|Invoice/.test(x)).join("|"));
   await page.evaluate(() => window.go("cha-invpl")); await sleep(1500);
   check("the screen opens with the list and New", /Invoice & Packing List/.test(await text("#s-cha-invpl")) && /No invoice and packing list yet/.test(await text("#s-cha-invpl")), (await text("#s-cha-invpl")).slice(0, 200));
   await page.evaluate(() => document.getElementById("ipNew").click()); await sleep(800);
@@ -93,6 +93,14 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("the saved record is in the list", /1333/.test(await text("#s-cha-invpl")) && /430\.00/.test(await text("#s-cha-invpl")));
   await page.evaluate(() => document.querySelector('[data-ip^="edit:"]').click()); await sleep(1200);
   check("Edit reopens the saved lines", (await page.evaluate(() => document.querySelector('[data-ipl="0:description"]').value)) === "GARMENTS");
+  await page.evaluate(() => window.go("cha-invpl")); await sleep(1200);
+  await page.evaluate(() => document.querySelector('[data-ip^="approve:"]').click()); await sleep(1200);
+  check("Approve marks the invoice Approved in the list and offers Revoke", /Approved/.test(await text("#s-cha-invpl")) && await page.evaluate(() => !!document.querySelector('[data-ip^="revoke:"]')));
+  await page.evaluate(() => window.ChaKit.createModal("Export", "Sea")); await sleep(2000);
+  await setv("#chaNIParty", "PSR EXPORTERS"); await setv("#chaNINo", "1333"); await click("#chaNIGet"); await sleep(1500);
+  const gi = await page.evaluate(() => ({ info: document.getElementById("chaNIInfo").innerText, exp: document.getElementById("chaNExp").value }));
+  check("CHA job: Get Invoice Details fetches the approved invoice and fills the job form", /1333/.test(gi.info) && /USD/.test(gi.info) && gi.exp === "PSR EXPORTERS", JSON.stringify(gi));
+  await page.evaluate(() => closeModal()); await sleep(300);
   check("no script errors", errs.length === 0, errs.join(" | "));
   await browserClose();
   async function browserClose() { await page.browser().close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0); }

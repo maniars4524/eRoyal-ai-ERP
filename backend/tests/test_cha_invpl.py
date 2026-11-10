@@ -59,3 +59,31 @@ def test_get_bill_fills_from_the_job(h):
     assert d["exporter"] == "PSR EXPORTERS" and d["consignee"] == "SYED" and d["port_of_loading"].startswith("MAA") and d["pre_carriage"] == "AIR"
     assert d["lines"][0]["description"] == "ONION" and d["lines"][0]["pkgs"] == "1650"
     assert client.get("/api/cha/invoice-packing/from-job/NOPE-1", headers=h).status_code == 404
+
+
+def test_approve_revoke_and_cha_job_from_invoice(h):
+    b = body("APR-1"); b["data"]["direction"] = "Export"; b["data"]["port_of_loading"] = "INMAA(Chennai)"; b["data"]["port_of_discharge"] = "USNYC(New York)"; b["data"]["pre_carriage"] = "SEA"
+    b["data"]["lines"][0].update({"hs": "6109", "part_no": "PN-1", "gross_wt": "2.5", "qty_unit": "PCS"})
+    rec = client.post("/api/cha/invoice-packing", json=b, headers=h).json()
+    assert rec["approval"] == "DRAFT"
+    assert client.get(f"/api/cha/invoice-packing/{rec['id']}/for-cha", headers=h).status_code == 409                      # not approved: cannot be fetched
+    assert not client.get("/api/cha/invoice-packing?approved=true&q=APR-1", headers=h).json()["items"]
+    ap = client.post(f"/api/cha/invoice-packing/{rec['id']}/approve", headers=h).json()
+    assert ap["approval"] == "APPROVED" and ap["approved_by"]
+    forged = body("APR-1"); forged["data"]["approval"] = {"status": "APPROVED"}
+    assert client.post("/api/cha/invoice-packing", json=forged, headers=h).json()["approval"] == "DRAFT"                    # approval cannot be sent by the client
+    f = client.get(f"/api/cha/invoice-packing/{rec['id']}/for-cha", headers=h).json()
+    assert f["direction"] == "Export" and f["data"]["items"][0]["part_no"] == "PN-1" and f["data"]["items"][0]["ritc_no"] == "6109" and f["data"]["invoices"][0]["invoice_value"] == "430.00" and f["cargo"]["gwt"] == "2.5"
+    j = client.post("/api/cha/jobs", json={"job_type": "Export", "mode": "Sea", "exporter": f["exporter"], "importer": f["importer"], "pol": f["pol"], "pod": f["pod"], "invoice_id": rec["id"]}, headers=h)
+    assert j.status_code == 201, j.text
+    jn = j.json()["cha_job_number"]
+    full = client.get(f"/api/cha/jobs/{jn}", headers=h).json()
+    assert full["data"]["items"][0]["description"] == "GARMENTS" and full["data"]["invoices"][0]["invoice_no"] == "APR-1"
+    assert client.get(f"/api/cha/invoice-packing/{rec['id']}", headers=h).json()["job_number"] == jn
+    up = body("APR-1"); up["data"]["direction"] = "Export"; up["data"]["lines"][0]["qty"] = "9"
+    assert client.put(f"/api/cha/invoice-packing/{rec['id']}", json=up, headers=h).json()["approval"] == "DRAFT"           # edited after approval: approve again
+    client.post(f"/api/cha/invoice-packing/{rec['id']}/approve", headers=h)
+    assert client.post(f"/api/cha/invoice-packing/{rec['id']}/revoke", headers=h).json()["approval"] == "DRAFT"
+    assert client.post(f"/api/cha/invoice-packing/{rec['id']}/revoke", headers=h).status_code == 409
+    imp = client.post("/api/cha/jobs", json={"job_type": "Import", "mode": "Sea", "exporter": "X", "importer": "Y", "invoice_id": rec["id"], "allow_unapproved": True}, headers=h)
+    assert imp.status_code == 409                                                                                           # an export invoice cannot create an import job

@@ -414,6 +414,8 @@ class NewChaIn(BaseModel):
     freight_job_number: str = Field(default="", max_length=40)
     booking_number: str = Field(default="", max_length=40)
     exception_reason: str = Field(default="", max_length=300)
+    invoice_id: int | None = None                  # "Get Invoice Details": the Invoice & Packing List this job is created from
+    allow_unapproved: bool = False                 # the CHA user's own Excel upload
 
 
 @router.post("/api/cha/jobs", status_code=201)
@@ -464,6 +466,30 @@ def create_cha_job(body: NewChaIn, user: User = Depends(permission_required("shi
     cha.cha_info = {**(cha.cha_info or {}), **{k: v for k, v in given.items() if v}}
     if body.hbl or body.mbl:
         cha.bl_awb = body.hbl or body.mbl
+    if body.invoice_id:
+        from .cha_invpl_api import cha_fields
+        from .models import ChaInvoicePacking, JobDetail
+
+        inv = db.scalar(select(ChaInvoicePacking).where(ChaInvoicePacking.id == body.invoice_id, ChaInvoicePacking.organization_id == org))
+        if not inv:
+            raise HTTPException(404, "Invoice & Packing List not found")
+        f = cha_fields(inv)
+        if f["approval"] != "APPROVED" and not body.allow_unapproved:
+            raise HTTPException(409, "This invoice is not approved yet")
+        if f["direction"] != body.job_type:
+            raise HTTPException(409, f"The invoice is an {f['direction']} invoice; choose an {f['direction']} CHA job")
+        cur = dict((cha.cha_info or {}).get("data") or {})
+        cur["invoices"], cur["items"] = f["data"]["invoices"], f["data"]["items"]
+        cha.cha_info = {**(cha.cha_info or {}), "data": cur, "invoice_ref": {"invoice_id": inv.id, "invoice_no": inv.invoice_no, "invoice_value": f["invoice_value"], "currency": f["currency"], "pkgs": f["cargo"]["pkgs"], "gross_wt": f["cargo"]["gwt"], "net_wt": f["cargo"]["nwt"]}}
+        det = db.scalar(select(JobDetail).where(JobDetail.shipment_id == cha.id))
+        if not det:
+            det = JobDetail(organization_id=org, shipment_id=cha.id, parties={}, cargo={}, containers=[], dims={}, bl={}, saved_sections={}, version=1, updated_by=user.id)
+            db.add(det)
+        det.parties = {**(det.parties or {}), **{k: v for k, v in f["parties"].items() if v and not (det.parties or {}).get(k)}}
+        det.cargo = {**(det.cargo or {}), **{k: v for k, v in f["cargo"].items() if v}}
+        if not inv.job_number:
+            inv.job_number = cha.job_number
+        jl.log_event(db, cha, user, "CHA_FROM_INVOICE", "OPERATIONS", f"Created from Invoice & Packing List {inv.invoice_no}: {len(f['data']['items'])} item(s), {f['currency']} {f['invoice_value']}", detail={"invoice_id": inv.id})
     db.commit()
     return get_cha_job(cha.job_number, user, db)
 
