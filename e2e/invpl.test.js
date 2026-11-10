@@ -71,6 +71,15 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const fmtPick = async v => { await page.evaluate(v => { const r = document.querySelector('input[name="ipFmt"][value="' + v + '"]'); r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }, v); await sleep(800); };
   await fmtPick("export"); bd = await body();
   check("Export format: grades, cartons, FOB and the declaration box", /INVOICE CUM PACKING LIST/.test(bd) && /Grades/.test(bd) && /Cartons/.test(bd) && /FOB/.test(bd) && /Authorised Signatory/.test(bd) && /Rate \/ Kg/.test(bd), bd.slice(0, 200));
+  const dlDir = require("path").join(require("os").tmpdir(), "ipdl" + Date.now()); fs.mkdirSync(dlDir, { recursive: true });
+  const cdp = await page.createCDPSession(); await cdp.send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: dlDir });
+  for (const f of ["std", "export", "part"]) {
+    await fmtPick(f); fs.readdirSync(dlDir).forEach(x => fs.unlinkSync(require("path").join(dlDir, x)));
+    await click("#ipDoPdf"); let got = []; for (let i = 0; i < 40 && !got.some(x => /\.pdf$/.test(x)); i++) { await sleep(500); got = fs.readdirSync(dlDir); }
+    check("clicking Download PDF saves a PDF file (" + f + ")", got.some(x => /\.pdf$/.test(x)), got.join(","));
+    await click("#ipDoXlsx"); for (let i = 0; i < 30 && !fs.readdirSync(dlDir).some(x => /\.xlsx$/.test(x)); i++) await sleep(500);
+    check("clicking Download Excel saves an Excel file (" + f + ")", fs.readdirSync(dlDir).some(x => /\.xlsx$/.test(x)), fs.readdirSync(dlDir).join(","));
+  }
   await fmtPick("part"); bd = await body();
   check("Part-number format: part number, lot / serial, COO, Total Net", /COMMERCIAL INVOICE/.test(bd) && /Part Number/.test(bd) && /Lot\/Serial/.test(bd) && /Total Net/.test(bd), bd.slice(0, 200));
   check("the old Masters shortcut row is gone", await page.evaluate(() => !document.querySelector(".ip-links")));
