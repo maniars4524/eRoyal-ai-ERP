@@ -35,6 +35,13 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("the Calendar tab lists the dated items grouped by day (ETD, follow-up)", /ETD: Job/.test(cal) && /Centre Ship/.test(cal) && /Call: Centre Co|Call/.test(cal), cal.replace(/\s+/g, " ").slice(0, 240));
   await page.evaluate(() => document.querySelector('#ncList [data-nc-cal^="ETD"]').click()); await sleep(4000);
   check("clicking a calendar entry opens that job on its Routing tab", await page.evaluate(() => { const t = document.getElementById("rtBody"); return !!t && t.offsetParent !== null; }));
+  await page.evaluate(() => { window.__fetchCacheClear(); go("dashboard"); window.__rtAlerts(); }); await sleep(3000);
+  await page.evaluate(() => document.querySelector("#rtDash [data-nc-all]").click()); await sleep(2000);
+  await page.evaluate(() => [...document.querySelectorAll("#ncTabs button")].find(b => b.textContent.trim().startsWith("Shipments")).click()); await sleep(600);
+  await page.evaluate(() => document.querySelector('#ncList [data-nc-open^="Shipments:routing"]').click()); await sleep(1000);
+  check("touching a notice shows What to do with an Open button", /What to do/.test(await text("#modalBody")) && await page.evaluate(() => !!document.getElementById("ncGoBtn")), (await text("#modalBody")).slice(0, 120));
+  await click("#ncGoBtn"); await sleep(4000);
+  check("Open on the notice goes to that job's Routing tab", await page.evaluate(() => { const t = document.getElementById("rtBody"); return !!t && t.offsetParent !== null; }));
   check("no script errors", errs.length === 0, errs.join(" | ").slice(0, 300));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

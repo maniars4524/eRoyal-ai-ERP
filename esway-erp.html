@@ -25399,8 +25399,8 @@ body.job-readonly #jlBanner{display:flex}
     TICK.raf = requestAnimationFrame(step);
   }
   /* touching a notice first says what to do about it; "Open" then goes to the place */
-  function openItem(a, go){
-    if(a.todo && !go && window.openModal){ const sv = SEV[a.severity] || SEV[3];
+  function openItem(a, proceed){
+    if(a.todo && !proceed && window.openModal){ const sv = SEV[a.severity] || SEV[3];
       openModal({title:a.title, bodyHTML:'<div style="font-size:12px;margin-bottom:6px"><span class="b" style="background:'+sv[2]+';color:'+sv[1]+'">'+esc(sv[0] || "")+'</span> <span style="color:var(--g5)">'+esc(a.category)+'</span></div><div style="margin-bottom:12px">'+esc(a.text || "")+'</div><div class="ib ib-bl"><b>What to do</b><br>'+esc(a.todo)+'</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button> <button class="btn btn-pri" type="button" id="ncGoBtn">Open</button>'});
       const b = document.getElementById("ncGoBtn"); if(b) b.addEventListener("click", ()=>{ closeModal(); openItem(a, true); }); markRead([a.id]); return; }
     markRead([a.id]);
