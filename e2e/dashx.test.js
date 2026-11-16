@@ -26,7 +26,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("welcome banner names the user", /Welcome back, Mani/i.test(await text("#dashXTop")));
   check("notification strip is still above the cards", await vis("#rtDash"));
   check("Admin sees nothing locked", (await page.evaluate(() => document.querySelectorAll("#dashXBody .dx-locked").length)) === 0);
-  check("the gaps are filled with real data (recent job, lanes)", await page.evaluate(n => { const t = document.querySelector("#dxFill").innerText; return t.indexOf(n) >= 0 && /INMAA/.test(t); }, jobNo), await text("#dxFill"));
+  check("lanes shown, recent jobs removed from the category card; card and slide are equal width", await page.evaluate(() => { const t = document.querySelector("#dxFill").innerText, a = document.querySelector("#dxCat").offsetWidth, b = document.querySelector("#dxSlot").offsetWidth; return /INMAA/.test(t) && !/Recent jobs/i.test(t) && Math.abs(a - b) < 20; }), await text("#dxFill"));
   check("the slideshow sits in the dashboard (Shipment Mix and Quick Actions are gone)", await page.evaluate(() => !!document.querySelector("#dxSlot #dashCarousel") && !/Shipment Mix|Quick Actions/.test(document.querySelector("#dashXBody").innerText)));
   const slideTxt = await page.evaluate(() => document.querySelector("#dashCarousel").innerText);
   check("slide controls are there", /Revenue|Jobs/i.test(slideTxt) && await vis("#dashNextBtn"), slideTxt.slice(0, 80));

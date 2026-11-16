@@ -223,7 +223,7 @@ body[data-screen="dashboard"] .bc-bar{display:none}
 .dx-banner p{margin:2px 0 0;color:var(--g5);font-size:13px}
 .dx-grid{display:grid;gap:14px;margin-bottom:14px}
 .dx-kpis{grid-template-columns:repeat(4,1fr)}
-.dx-r2{grid-template-columns:1fr 1.4fr}
+.dx-r2{grid-template-columns:1fr 1fr}
 .dx-r3{grid-template-columns:1.1fr 1.1fr 1fr}
 .dx-open{grid-column:1/-1}
 .dx-r2.dx-exp #dxSlot{grid-column:1/-1}
@@ -16730,7 +16730,7 @@ if(document.readyState !== "loading") initChatWidget();
         kpi("finance", "AR Outstanding", money(m.ar_outstanding), lockedFin ? "Overdue ₹1,85,000" : (od ? "Overdue "+inr((d.alerts||{}).overdue_amount) : "Nothing overdue"), "alert", "linear-gradient(150deg,#F28B5B,var(--rd))", "var(--rd)", null, "invoice-list")+
       '</div>'+
       '<div class="dx-grid dx-r2'+(window.__dxOpen ? " dx-exp" : "")+'">'+
-        '<div class="dx-card'+(window.__dxOpen ? " dx-open" : "")+'" id="dxCat" style="padding:12px 14px;overflow:visible"><h4>Active Jobs by Category <a data-dx-open="jobs">'+(window.__dxOpen ? "Close ✕" : "View Details →")+'</a></h4><div id="dxCatRow" style="display:'+(window.__dxOpen ? "none" : "grid")+';grid-template-columns:repeat(3,1fr);gap:8px">'+cat("freight", "operations", "Freight Jobs", "ship", "var(--bl)", c.freight || {})+cat("cha", "cha", "CHA Jobs", "license", "var(--pu)", c.cha || {})+cat("transport", "transport", "Transport Jobs", "truck", "var(--tl)", c.transport || {})+'</div><div id="dxFill" style="display:'+(window.__dxOpen ? "none" : "block")+'">'+recentJobs(j)+lanes(j)+'</div><div id="dxCatPanel" style="display:none;margin-top:12px;border:1px solid var(--g2);border-radius:12px;overflow:hidden"></div></div>'+
+        '<div class="dx-card'+(window.__dxOpen ? " dx-open" : "")+'" id="dxCat" style="padding:12px 14px;overflow:visible"><h4>Active Jobs by Category <a data-dx-open="jobs">'+(window.__dxOpen ? "Close ✕" : "View Details →")+'</a></h4><div id="dxCatRow" style="display:'+(window.__dxOpen ? "none" : "grid")+';grid-template-columns:repeat(3,1fr);gap:8px">'+cat("freight", "operations", "Freight Jobs", "ship", "var(--bl)", c.freight || {})+cat("cha", "cha", "CHA Jobs", "license", "var(--pu)", c.cha || {})+cat("transport", "transport", "Transport Jobs", "truck", "var(--tl)", c.transport || {})+'</div><div id="dxFill" style="display:'+(window.__dxOpen ? "none" : "block")+'">'+lanes(j)+'</div><div id="dxCatPanel" style="display:none;margin-top:12px;border:1px solid var(--g2);border-radius:12px;overflow:hidden"></div></div>'+
         '<div class="dx-card'+(lockedOps ? " dx-locked" : "")+'" id="dxSlot" style="padding:0;border:0;box-shadow:none;background:transparent;overflow:visible"><div class="dx-in" id="dxSlotIn"></div><div class="dx-lockmsg">'+MSG+'</div></div>'+
       '</div>'+
       '<div class="dx-grid dx-r3">'+
