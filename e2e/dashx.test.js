@@ -37,6 +37,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.screenshot({ path: "../scratch/dashx_open.png" });
   await page.evaluate(() => document.querySelector("#dxCat h4 a").click()); await sleep(400);
   check("Close folds the panel", !(await vis("#dxCatPanel")));
+  check("date line and breadcrumb are gone; switch sits after Refresh; global refresh button exists", await page.evaluate(() => !/FY 20/.test(document.querySelector("#dashXTop").innerText) && document.querySelector(".bc-bar").offsetParent === null && !!document.querySelector("#dashXTop #dxRefresh + .dx-switch .dxsw") && !!document.querySelector("#globalRefresh")));
   await page.screenshot({ path: "../scratch/dashx_admin.png" });
   await page.evaluate(() => document.querySelector('.hdr-menu-item[data-role="Operations"]').click()); await sleep(2500);
   const locked = await page.evaluate(() => [...document.querySelectorAll("#dashXBody .dx-locked h4, #dashXBody .dx-locked .dx-lbl")].map(e => e.innerText.trim()));
@@ -49,7 +50,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("Exporter view locks everything", (await page.evaluate(() => document.querySelectorAll("#dashXBody .dx-card.dx-locked").length)) >= 6);
   await page.evaluate(() => document.querySelector('.hdr-menu-item[data-role="Admin"]').click()); await sleep(1500);
   await page.evaluate(() => window.go("dashboard")); await sleep(1500);
-  await page.evaluate(() => document.querySelector('#dashXSwitch button[data-dv="classic"]').click()); await sleep(500);
+  await page.evaluate(() => document.querySelector('.dxsw[data-dv="classic"]').click()); await sleep(500);
   check("Classic dashboard is one click away and shows", await vis("#s-dashboard .dash-body-grid") && !(await vis("#dashXBody")), "");
   check("the slideshow goes back to the classic dashboard", await page.evaluate(() => !!document.querySelector(".dash-r1 #dashCarousel")));
   check("no script errors", errs.length === 0, errs.join(" | "));

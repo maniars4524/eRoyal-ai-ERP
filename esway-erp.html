@@ -210,11 +210,17 @@ svg{display:block}
 .dx-switch{display:flex;gap:6px;align-items:center;justify-content:flex-end;font-size:11.5px;color:var(--g5);margin-bottom:8px}
 .dx-switch button{border:1px solid var(--g2);background:var(--g0);border-radius:14px;padding:3px 12px;cursor:pointer;font-size:11.5px;color:var(--g6,#475569)}
 .dx-switch button.on{background:var(--bl);color:#fff;border-color:var(--bl)}
-#s-dashboard[data-dv="new"] > .ph, #s-dashboard[data-dv="new"] > .dash-body-grid{display:none!important}
+#s-dashboard[data-dv="new"] > .ph, #s-dashboard[data-dv="new"] > .dash-body-grid, #s-dashboard[data-dv="new"] #dashXSwitch{display:none!important}
+body[data-screen="dashboard"] .bc-bar{display:none}
+.dx-banner .dx-switch{margin:0 0 0 10px}
+.dx-banner-r{display:flex;align-items:center;gap:6px}
+#globalRefresh{position:fixed;left:86px;bottom:34px;width:36px;height:36px;border-radius:50%;border:1px solid var(--g2);background:var(--card,#fff);color:var(--bl);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.18);z-index:60}
+#globalRefresh:hover{background:var(--blt)}
+#globalRefresh .ic{width:18px;height:18px}
 #s-dashboard[data-dv="classic"] #dashXTop, #s-dashboard[data-dv="classic"] #dashXBody{display:none!important}
-.dx-banner{border-radius:16px;padding:18px 22px;margin-bottom:12px;background:linear-gradient(100deg,var(--blt) 0%,#fff 55%,var(--blt) 130%);border:1px solid var(--g2);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.dx-banner h2{margin:0;font-size:24px;font-weight:800;color:var(--n)}
-.dx-banner p{margin:4px 0 0;color:var(--g5);font-size:13px}
+.dx-banner{border-radius:16px;padding:12px 20px;margin-bottom:12px;background:linear-gradient(100deg,var(--blt) 0%,#fff 55%,var(--blt) 130%);border:1px solid var(--g2);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.dx-banner h2{margin:0;font-size:26px;font-weight:900;color:var(--n)}
+.dx-banner p{margin:2px 0 0;color:var(--g5);font-size:13px}
 .dx-grid{display:grid;gap:14px;margin-bottom:14px}
 .dx-kpis{grid-template-columns:repeat(4,1fr)}
 .dx-r2{grid-template-columns:1.5fr 1.25fr .9fr .75fr}
@@ -1864,7 +1870,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 <!-- ====== DASHBOARD ====== -->
 <div id="s-dashboard" class="scr on" data-dv="new">
-<div id="dashXSwitch" class="dx-switch"><span>Dashboard view</span><button type="button" data-dv="new">New</button><button type="button" data-dv="classic">Classic</button></div>
+<div id="dashXSwitch" class="dx-switch"><span>Dashboard view</span><button type="button" class="dxsw" data-dv="new">New</button><button type="button" class="dxsw" data-dv="classic">Classic</button></div>
 <div class="ph" style="padding-bottom:10px">
   <div>
     <div class="pt"><svg class="ic" data-icon="dashboard" style="color:var(--bl)"></svg>Dashboard</div>
@@ -5928,6 +5934,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="toast-stack" id="toastStack"></div>
 
 <!-- ================= AI SUPPORT CHAT WIDGET (independent component, persistent across all screens) ================= -->
+<button type="button" id="globalRefresh" title="Refresh this page" aria-label="Refresh this page" onclick="location.reload()"><svg class="ic" data-icon="refresh-cw"></svg></button>
 <div id="chatLauncher" class="chat-launcher" title="Support Chat">
   <svg class="ic" data-icon="message-circle"></svg>
   <span class="chat-badge" id="chatBadge" style="display:none">1</span>
@@ -16710,7 +16717,7 @@ if(document.readyState !== "loading") initChatWidget();
     const ag = m.ageing || {}, od = Number((d.alerts || {}).overdue_invoices) || 0;
     const qa = (label, icon, allow, go)=> '<button type="button" class="dx-qa" '+(allow ? 'data-dx-go="'+go+'"' : 'disabled title="You do not have the permission. Check with Admin"')+'><svg class="ic" data-icon="'+icon+'" style="width:17px;height:17px;color:var(--bl)"></svg>'+label+(allow ? "" : ' 🔒')+'</button>';
     const fn = window.SESSION_USER ? ((window.SESSION_USER.first_name || window.SESSION_USER.username || "") + "") : "";
-    const top = '<div class="dx-banner"><div><h2>Welcome back, '+esc2(fn.replace(/\b\w/g, x=>x.toUpperCase()))+'!</h2><p>Here’s what’s happening with your business today.</p><p style="margin-top:8px">'+new Date().toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"})+'  •  FY '+esc2(d.fiscal_year)+'</p></div><button type="button" class="btn btn-pri btn-sm" id="dxRefresh"><svg class="ic" data-icon="refresh-cw"></svg> Refresh</button></div>';
+    const top = '<div class="dx-banner"><div><h2>Welcome back, '+esc2(fn.replace(/\b\w/g, x=>x.toUpperCase()))+'!</h2><p>Here’s what’s happening with your business today.</p></div><div class="dx-banner-r"><button type="button" class="btn btn-pri btn-sm" id="dxRefresh"><svg class="ic" data-icon="refresh-cw"></svg> Refresh</button><div class="dx-switch"><span>Dashboard view</span><button type="button" class="dxsw" data-dv="new">New</button>'+(d.locks.finance ? "" : '<button type="button" class="dxsw" data-dv="classic">Classic</button>')+'</div></div></div>';
     const body =
       '<div class="dx-grid dx-kpis">'+
         kpi("operations", "Active Jobs", lockedOps ? dummy.jobs : j.active, lockedOps ? "↑ +12% vs last month" : chg(last.jobs, prev.jobs), "package", "linear-gradient(150deg,#3D9BE9,var(--bl))", "var(--bl)", mon.map(x=>x.jobs), "@jobs")+
@@ -16731,7 +16738,8 @@ if(document.readyState !== "loading") initChatWidget();
     const T = document.getElementById("dashXTop"), B = document.getElementById("dashXBody"); if(!T || !B) return;
     parkCarousel(); T.innerHTML = top; B.innerHTML = body; if(window.renderIcons){ renderIcons(T); renderIcons(B); }
     attachCarousel(); paintCat();
-    const cb = document.querySelector('#dashXSwitch button[data-dv="classic"]'); if(cb) cb.style.display = d.locks.finance ? "none" : "";       /* the classic view still shows revenue: not offered to a user who is locked out of finance */
+    const cb = document.querySelector('#dashXSwitch .dxsw[data-dv="classic"]'); if(cb) cb.style.display = d.locks.finance ? "none" : "";
+    mode(scr() ? scr().dataset.dv : "new");       /* the classic view still shows revenue: not offered to a user who is locked out of finance */
     if(d.locks.finance && scr() && scr().dataset.dv === "classic") mode("new");
   }
   /* the classic slideshow card moves into the slot (all its slides, arrows and play controls keep working) and goes back when the classic view is chosen */
@@ -16761,9 +16769,9 @@ if(document.readyState !== "loading") initChatWidget();
     if(!sessionStorage.getItem("esway_access_token")) return;
     try{ build(await api("GET", "/api/dashboard/executive")); }catch(e){ const B = document.getElementById("dashXBody"); if(B) B.innerHTML = '<div class="dx-card"><div class="dx-sub">'+(e.status === 403 ? "Platform administrators have no company dashboard. Sign in to the ERP to see one." : "Could not load the dashboard: "+esc2(e.message || ""))+'</div></div>'; }
   }
-  function mode(m){ const s = scr(); if(!s) return; s.dataset.dv = m; if(m === "classic") parkCarousel(); else attachCarousel(); try{ localStorage.setItem("esway_dash_view", m); }catch(e){} document.querySelectorAll("#dashXSwitch button").forEach(b=> b.classList.toggle("on", b.dataset.dv === m)); }
+  function mode(m){ const s = scr(); if(!s) return; s.dataset.dv = m; if(m === "classic") parkCarousel(); else attachCarousel(); try{ localStorage.setItem("esway_dash_view", m); }catch(e){} document.querySelectorAll(".dxsw").forEach(b=> b.classList.toggle("on", b.dataset.dv === m)); }
   document.addEventListener("click", e=>{
-    const b = e.target.closest && e.target.closest("#dashXSwitch button"); if(b){ mode(b.dataset.dv); return; }
+    const b = e.target.closest && e.target.closest(".dxsw"); if(b){ mode(b.dataset.dv); return; }
     if(e.target.closest && e.target.closest("#dxRefresh")){ load(); return; }
     const o = e.target.closest && e.target.closest("#dashXBody [data-dx-open]"); if(o && !o.closest(".dx-locked")){ openCat(o.dataset.dxOpen); return; }
     const g = e.target.closest && e.target.closest("#dashXBody [data-dx-go]"); if(!g || g.disabled || g.closest(".dx-locked")) return;
