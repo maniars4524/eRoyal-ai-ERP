@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from .models import Permission, Role
 
 # Role templates available to tenant administrators. Each tenant gets its own Role row per template.
-ROLE_LABELS = {"ERP_ADMIN": "Admin", "OPERATIONS": "Operations", "ACCOUNTS": "Accounts", "VIEWER": "Viewer", "EXPORTER_IMPORTER": "Exporter / Importer"}
+ROLE_LABELS = {"ERP_ADMIN": "Admin", "OPERATIONS": "Operations", "ACCOUNTS": "Accounts", "VIEWER": "Viewer", "EXPORTER_IMPORTER": "Exporter / Importer", "SALES": "Sales", "CHA": "CHA", "TRANSPORT": "Transport"}
 ROLE_PERMISSIONS = {
     "ERP_ADMIN": "ALL",
     "OPERATIONS": ["fleet.read", "fleet.create", "container.read", "container.create", "organization.read", "customer.read", "customer.create", "customer.update", "shipment.read", "shipment.create", "shipment.update", "master.read", "billing.read", "billing.create", "quote.read", "quote.create", "quote.send", "quote.view_cost", "booking.read", "booking.create", "booking.confirm", "credit.read", "credit.request", "job.view_history", "job.change_stage", "job.close", "sequence.view", "sequence.test", "invpl.manage", "dashboard.operations", "dashboard.cha", "dashboard.transport"],
@@ -13,6 +13,11 @@ ROLE_PERMISSIONS = {
     "EXPORTER_IMPORTER": ["organization.read", "customer.read", "shipment.read", "master.read", "invpl.manage", "invpl.approve", "billing.read"],      # sees and approves only the parties assigned to the user
     "VIEWER": ["fleet.read", "container.read", "organization.read", "customer.read", "shipment.read", "master.read", "user.read", "billing.read", "payment.read", "quote.read", "booking.read", "credit.read", "job.view_history", "sequence.view", "dashboard.operations"],
 }
+# Sales, CHA and Transport users work like Operations; what differs is which dashboard cards they may open (the rest are locked on the dashboard)
+_OPS_BASE = [c for c in ROLE_PERMISSIONS["OPERATIONS"] if not c.startswith("dashboard.")]
+ROLE_PERMISSIONS["SALES"] = _OPS_BASE + ["dashboard.operations"]
+ROLE_PERMISSIONS["CHA"] = _OPS_BASE + ["dashboard.operations", "dashboard.cha"]
+ROLE_PERMISSIONS["TRANSPORT"] = _OPS_BASE + ["dashboard.operations", "dashboard.transport"]
 PLATFORM_ONLY = {"organization.create", "organization.activate", "license.manage", "dashboard.ceo"}   # never part of a template role; dashboard.ceo is granted one user at a time
 
 

@@ -6657,7 +6657,7 @@ const TOPNAV_MENU = [
       {label:"Financial Year Closing", icon:"calendar-check", go:"gl-reports", gltab:"fy"},
     ]},
   ]},
-  {id:"reports", module:"reports", label:"Insights & Reports", icon:"report", children:[
+  {id:"reports", label:"Insights & Reports", icon:"report", children:[
 
     {label:"Dashboards", icon:"dashboard", children:[
       {label:"Executive Dashboard", icon:"dashboard", go:"dashboard"},
@@ -6672,7 +6672,7 @@ const TOPNAV_MENU = [
       {label:"Financial KPI", icon:"cash", go:"reports"},
       {label:"Business Analytics", icon:"chart-pie", go:"reports"},
     ]},
-    {label:"Operations", icon:"package", children:[
+    {module:"reports", label:"Operations", icon:"package", children:[
       {label:"Shipment Pre Alert", icon:"alert-triangle", go:"reports", report:"shipment-pre-alert"},
       {label:"Job Closer Report", icon:"check-circle", go:"reports", report:"job-closer"},
       {label:"CHA Job Register", icon:"license", go:"reports", report:"cha-jobs"},
@@ -6680,7 +6680,7 @@ const TOPNAV_MENU = [
       {label:"Performance Report", icon:"chart-bar", go:"reports", report:"performance"},
       {label:"Report Center", icon:"report", go:"reports"},
     ]},
-    {label:"General Accounts", icon:"book", children:[
+    {module:"reports", label:"General Accounts", icon:"book", children:[
       {label:"Sales Book", icon:"book", go:"reports", report:"sales-book"},
       {label:"AR/AP Combined Summary", icon:"alert", go:"pr-ledger"},
       {label:"Customer Ledger", icon:"user", go:"pr-ledger", prltype:"RECEIVABLE"},
@@ -6715,7 +6715,7 @@ const TOPNAV_MENU = [
         {label:"A/R Outstanding - Audit", icon:"alert", go:"reports", report:"ar-audit"},
       ]},
     ]},
-    {label:"GST & Tax Reports", icon:"receipt", roles:["Admin","Accounts"], children:[
+    {module:"reports", label:"GST & Tax Reports", icon:"receipt", roles:["Admin","Accounts"], children:[
       {label:"GST Reports", icon:"receipt", go:"gl-reports", gltab:"gst"},
       {label:"GSTR-1 (Outward Supply)", icon:"receipt", go:"gl-reports", gltab:"gst"},
       {label:"GSTR-2 (Inward Supply)", icon:"receipt", go:"gl-reports", gltab:"gst"},
@@ -6739,12 +6739,12 @@ const TOPNAV_MENU = [
       {label:"ITC Mismatch Report", icon:"alert", go:"gl-reports", gltab:"itc"},
       {label:"GST Filing Calendar", icon:"calendar-check", go:"gl-reports", gltab:"cal"},
     ]},
-    {label:"Sales & Marketing", icon:"trending-up", children:[
+    {module:"reports", label:"Sales & Marketing", icon:"trending-up", children:[
       {label:"Salesperson Performance", icon:"user", go:"mis", gltab:"sales"},
       {label:"Customer Portfolio", icon:"trending-up", go:"mis", gltab:"port"},
       {label:"Revenue Analysis", icon:"chart-bar", go:"mis", gltab:"rev"},
     ]},
-    {label:"MIS", icon:"chart-pie", children:[
+    {module:"reports", label:"MIS", icon:"chart-pie", children:[
       {label:"Customer Profitability", icon:"chart-pie", go:"mis", gltab:"cust"},
       {label:"Job Profitability", icon:"trending-up", go:"job-pl-report"},
       {label:"GP Analysis", icon:"chart-bar", go:"mis", gltab:"gp"},
@@ -6753,13 +6753,13 @@ const TOPNAV_MENU = [
       {label:"Executive MIS", icon:"report", go:"mis", gltab:"exec"},
       {label:"Carrier Wise TEUs", icon:"package", go:"mis", gltab:"teu"},
     ]},
-    {label:"Audit", icon:"user", roles:["Admin"], children:[
+    {module:"reports", label:"Audit", icon:"user", roles:["Admin"], children:[
       {label:"User Activity", icon:"user", go:"reports", report:"audit-user"},
       {label:"Login History", icon:"clock", go:"reports", report:"audit-login"},
       {label:"Document Audit", icon:"book", go:"reports", report:"audit-document"},
       {label:"System Logs", icon:"book2", go:"reports", report:"audit-system"},
     ]},
-    {label:"SOPs", icon:"book2", children:[
+    {module:"reports", label:"SOPs", icon:"book2", children:[
       {label:"SOPs & Guides", icon:"book2", go:"sop"},
     ]},
   ]},
@@ -13861,7 +13861,7 @@ if(document.readyState !== "loading") initChatWidget();
     const initials = ((user.first_name || "") + " " + (user.last_name || "")).trim().split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
     if(av)    av.textContent  = initials || "ER";
     if(uname) uname.textContent = [user.first_name,user.last_name].filter(Boolean).join(" ");
-    const ROLE_NAMES = {ERP_ADMIN:"Admin", OPERATIONS:"Operations", ACCOUNTS:"Accounts", VIEWER:"Viewer", EXPORTER_IMPORTER:"Exporter / Importer", DEMO_USER:"Demo User", LICENSE_SUPER_ADMIN:"Super Admin"};
+    const ROLE_NAMES = {ERP_ADMIN:"Admin", OPERATIONS:"Operations", ACCOUNTS:"Accounts", VIEWER:"Viewer", EXPORTER_IMPORTER:"Exporter / Importer", SALES:"Sales", CHA:"CHA", TRANSPORT:"Transport", DEMO_USER:"Demo User", LICENSE_SUPER_ADMIN:"Super Admin"};
     const roleLine = (user.is_super_admin ? ["Super Admin"] : (user.roles || []).map(r=>ROLE_NAMES[r] || r)).concat(user.license_admin && !(user.roles || []).includes("LICENSE_SUPER_ADMIN") ? ["Super Admin"] : []).join(" · ") || "ERP User";
     const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "";
     if(urole) urole.textContent = roleLine;
