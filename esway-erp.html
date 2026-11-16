@@ -16758,7 +16758,6 @@ if(document.readyState !== "loading") initChatWidget();
     const box = document.getElementById("dxCatPanel"); if(!box || !DATA) return;
     box.style.display = window.__dxOpen ? "" : "none"; if(!window.__dxOpen) return;
     box.innerHTML = window.dashPanelHtml ? (window.dashPanelHtml("jobs", DATA) || "") : "";
-    if(window.__dashCat) box.querySelectorAll("button[data-dash-cat]").forEach(b=>{ if(b.dataset.dashCat !== window.__dashCat) b.style.display = "none"; });         /* a category chosen: only that category is listed */
     const row = document.getElementById("dxCatRow"); if(row) row.style.display = "none";
     const fill = document.getElementById("dxFill"); if(fill) fill.style.display = "none";
     if(window.renderIcons) renderIcons(box);

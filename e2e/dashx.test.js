@@ -37,7 +37,11 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.evaluate(() => document.querySelector('#dxCatPanel [data-dash-cat="freight"]').click()); await sleep(600);
   check("choosing Freight shows its breakup in the same card", /Shipment Type Wise Breakup|No freight jobs yet/i.test(await text("#dxCatPanel")), (await text("#dxCatPanel")).slice(0, 150));
   const tiles = await page.evaluate(() => [...document.querySelectorAll('#dxCatPanel button[data-dash-cat]')].filter(b => b.offsetParent !== null).map(b => b.dataset.dashCat));
-  check("choosing Freight lists only Freight (one tile, the small row is hidden)", tiles.length === 1 && tiles[0] === "freight" && !(await vis("#dxCatRow")), tiles.join(","));
+  check("with Freight chosen all three tiles stay so CHA / Transport can be picked; the small row is hidden", tiles.join() === "freight,cha,transport" && !(await vis("#dxCatRow")), tiles.join(","));
+  await page.evaluate(() => document.querySelector('#dxCatPanel button[data-dash-cat="cha"]').click()); await sleep(500);
+  check("choosing CHA lists CHA only", /CHA Jobs . Operational Breakup|No CHA jobs yet/i.test(await text("#dxCatPanel")) && !/Shipment Type Wise Breakup/i.test(await text("#dxCatPanel")), (await text("#dxCatPanel")).slice(0, 200));
+  await page.evaluate(() => document.querySelector('#dxCatPanel button[data-dash-cat="transport"]').click()); await sleep(500);
+  check("choosing Transport lists Transport only", /Transport Jobs . Operational Breakup|No transport jobs yet/i.test(await text("#dxCatPanel")), (await text("#dxCatPanel")).slice(0, 200));
   await page.evaluate(() => document.querySelector('#dxCatPanel a[data-dash-cat=""]').click()); await sleep(500);
   const back = await page.evaluate(() => [...document.querySelectorAll('#dxCatPanel button[data-dash-cat]')].filter(b => b.offsetParent !== null).length);
   check("Back to Active Jobs shows the three again", back === 3, String(back));
