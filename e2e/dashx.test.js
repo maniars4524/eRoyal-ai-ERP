@@ -34,6 +34,12 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("Active Jobs opens the category panel and stays on the dashboard", await vis("#dxCatPanel") && /Select Job Category/i.test(await text("#dxCatPanel")) && await vis("#dashXBody"), await text("#dxCatPanel"));
   await page.evaluate(() => document.querySelector('#dxCatPanel [data-dash-cat="freight"]').click()); await sleep(600);
   check("choosing Freight shows its breakup in the same card", /Shipment Type Wise Breakup|No freight jobs yet/i.test(await text("#dxCatPanel")), (await text("#dxCatPanel")).slice(0, 150));
+  const tiles = await page.evaluate(() => [...document.querySelectorAll('#dxCatPanel button[data-dash-cat]')].filter(b => b.offsetParent !== null).map(b => b.dataset.dashCat));
+  check("choosing Freight lists only Freight (one tile, the small row is hidden)", tiles.length === 1 && tiles[0] === "freight" && !(await vis("#dxCatRow")), tiles.join(","));
+  await page.evaluate(() => document.querySelector('#dxCatPanel a[data-dash-cat=""]').click()); await sleep(500);
+  const back = await page.evaluate(() => [...document.querySelectorAll('#dxCatPanel button[data-dash-cat]')].filter(b => b.offsetParent !== null).length);
+  check("Back to Active Jobs shows the three again", back === 3, String(back));
+  await page.evaluate(() => document.querySelector('#dxCatPanel button[data-dash-cat="freight"]').click()); await sleep(400);
   await page.screenshot({ path: "../scratch/dashx_open.png" });
   await page.evaluate(() => document.querySelector("#dxCat h4 a").click()); await sleep(400);
   check("Close folds the panel", !(await vis("#dxCatPanel")));

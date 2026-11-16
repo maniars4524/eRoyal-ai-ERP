@@ -16724,7 +16724,7 @@ if(document.readyState !== "loading") initChatWidget();
         kpi("finance", "AR Outstanding", money(m.ar_outstanding), lockedFin ? "Overdue ₹1,85,000" : (od ? "Overdue "+inr((d.alerts||{}).overdue_amount) : "Nothing overdue"), "alert", "linear-gradient(150deg,#F28B5B,var(--rd))", "var(--rd)", null, "invoice-list")+
       '</div>'+
       '<div class="dx-grid dx-r2'+(window.__dxOpen ? " dx-exp" : "")+'">'+
-        '<div class="dx-card'+(window.__dxOpen ? " dx-open" : "")+'" id="dxCat" style="padding:12px 14px;overflow:visible"><h4>Active Jobs by Category <a data-dx-open="jobs">'+(window.__dxOpen ? "Close ✕" : "View Details →")+'</a></h4><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+cat("freight", "operations", "Freight Jobs", "ship", "var(--bl)", c.freight || {})+cat("cha", "cha", "CHA Jobs", "license", "var(--pu)", c.cha || {})+cat("transport", "transport", "Transport Jobs", "truck", "var(--tl)", c.transport || {})+'</div><div id="dxCatPanel" style="display:none;margin-top:12px;border:1px solid var(--g2);border-radius:12px;overflow:hidden"></div></div>'+
+        '<div class="dx-card'+(window.__dxOpen ? " dx-open" : "")+'" id="dxCat" style="padding:12px 14px;overflow:visible"><h4>Active Jobs by Category <a data-dx-open="jobs">'+(window.__dxOpen ? "Close ✕" : "View Details →")+'</a></h4><div id="dxCatRow" style="display:'+(window.__dxOpen ? "none" : "grid")+';grid-template-columns:repeat(3,1fr);gap:8px">'+cat("freight", "operations", "Freight Jobs", "ship", "var(--bl)", c.freight || {})+cat("cha", "cha", "CHA Jobs", "license", "var(--pu)", c.cha || {})+cat("transport", "transport", "Transport Jobs", "truck", "var(--tl)", c.transport || {})+'</div><div id="dxCatPanel" style="display:none;margin-top:12px;border:1px solid var(--g2);border-radius:12px;overflow:hidden"></div></div>'+
         '<div class="dx-card'+(lockedOps ? " dx-locked" : "")+'" id="dxSlot" style="padding:0;border:0;box-shadow:none;background:transparent;overflow:visible"><div class="dx-in" id="dxSlotIn"></div><div class="dx-lockmsg">'+MSG+'</div></div>'+
       '</div>'+
       '<div class="dx-grid dx-r3">'+
@@ -16753,13 +16753,17 @@ if(document.readyState !== "loading") initChatWidget();
   function paintCat(){
     const box = document.getElementById("dxCatPanel"); if(!box || !DATA) return;
     box.style.display = window.__dxOpen ? "" : "none"; if(!window.__dxOpen) return;
-    box.innerHTML = window.dashPanelHtml ? (window.dashPanelHtml("jobs", DATA) || "") : ""; if(window.renderIcons) renderIcons(box);
+    box.innerHTML = window.dashPanelHtml ? (window.dashPanelHtml("jobs", DATA) || "") : "";
+    if(window.__dashCat) box.querySelectorAll("button[data-dash-cat]").forEach(b=>{ if(b.dataset.dashCat !== window.__dashCat) b.style.display = "none"; });         /* a category chosen: only that category is listed */
+    const row = document.getElementById("dxCatRow"); if(row) row.style.display = "none";
+    if(window.renderIcons) renderIcons(box);
   }
   function openCat(which){
     if(locked("operations")) return;
     window.__dxOpen = which === "jobs" ? !window.__dxOpen : true;
     if(which !== "jobs") window.__dashCat = which; else if(window.__dxOpen) window.__dashCat = "";
     const dx = document.getElementById("dxCat"); if(dx){ dx.classList.toggle("dx-open", !!window.__dxOpen); const g = dx.parentNode; if(g) g.classList.toggle("dx-exp", !!window.__dxOpen); const a = dx.querySelector("h4 a"); if(a) a.textContent = window.__dxOpen ? "Close ✕" : "View Details →"; }
+    const row = document.getElementById("dxCatRow"); if(row) row.style.display = window.__dxOpen ? "none" : "grid";
     paintCat(); if(window.__dxOpen && dx) dx.scrollIntoView({behavior:"smooth", block:"start"});
   }
   async function load(){
