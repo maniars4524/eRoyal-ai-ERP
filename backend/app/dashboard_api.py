@@ -244,3 +244,29 @@ def side_lists(limit: int = Query(default=6, ge=1, le=300), user: User = Depends
     for k in ("tasks", "approvals", "notifications", "activity"):
         out[k] = out[k][:limit]
     return out
+
+
+# ---------------------------------------------------------------- the new executive dashboard: the same numbers, locked per user
+LOCK_CODES = {"operations": "dashboard.operations", "cha": "dashboard.cha", "transport": "dashboard.transport", "finance": "dashboard.finance"}
+
+
+@router.get("/executive")
+def executive(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """The new dashboard. It reads the existing summary and then withholds whatever this user has no permission for (the server never sends a locked number)."""
+    data = summary(user, db)
+    locks = {k: not _has(user, code) for k, code in LOCK_CODES.items()}
+    if locks["operations"]:
+        j = data["jobs"]
+        data["jobs"] = {**j, "active": 0, "total": 0, "mix": [], "by_status": {}, "top_lanes": [], "recent": [], "matrix": {}, "stage_split": {}}
+        data["alerts"] = {**data["alerts"], "jobs_arriving_7d": []}
+    cats = data["jobs"].get("categories") or {}
+    for key, cat in (("freight", "operations"), ("cha", "cha"), ("transport", "transport")):
+        if locks[cat] and key in cats:
+            cats[key] = {"active": 0, "closed_mtd": 0, "pending": 0, "billing_pending": 0}
+    if locks["finance"]:
+        data["money"] = {"revenue_mtd": "0", "cost_mtd": "0", "gp_mtd": "0", "gp_pct": "0", "revenue_by_mode": {}, "gp_by_mode": {}, "ar_outstanding": "0", "ageing": {k: "0" for k in ("not_due", "d1_30", "d31_60", "d61_90", "d90_plus")}, "top_overdue": []}
+        data["monthly"] = [{**m, "revenue": "0"} for m in data["monthly"]]
+        data["alerts"] = {**data["alerts"], "overdue_invoices": 0, "overdue_amount": "0", "draft_documents": 0}
+    data["locks"] = locks
+    data["can"] = {"shipment_create": _has(user, "shipment.create"), "billing_create": _has(user, "billing.create"), "billing_read": _has(user, "billing.read"), "shipment_read": _has(user, "shipment.read")}
+    return data

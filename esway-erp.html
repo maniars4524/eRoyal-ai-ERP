@@ -207,6 +207,43 @@ svg{display:block}
 .kpi-icon-3d::before{content:'';position:absolute;inset:-4px;border-radius:50%;background:inherit;opacity:.18;filter:blur(6px);z-index:-1}
 .kpi-icon-3d .ic{position:relative;z-index:1;color:#fff!important;filter:drop-shadow(0 1px 1px rgba(0,0,0,.15))}
 #s-dashboard .card{animation:dashCardIn .45s var(--ease) backwards}
+.dx-switch{display:flex;gap:6px;align-items:center;justify-content:flex-end;font-size:11.5px;color:var(--g5);margin-bottom:8px}
+.dx-switch button{border:1px solid var(--g2);background:var(--g0);border-radius:14px;padding:3px 12px;cursor:pointer;font-size:11.5px;color:var(--g6,#475569)}
+.dx-switch button.on{background:var(--bl);color:#fff;border-color:var(--bl)}
+#s-dashboard[data-dv="new"] > .ph, #s-dashboard[data-dv="new"] > .dash-body-grid{display:none!important}
+#s-dashboard[data-dv="classic"] #dashXTop, #s-dashboard[data-dv="classic"] #dashXBody{display:none!important}
+.dx-banner{border-radius:16px;padding:18px 22px;margin-bottom:12px;background:linear-gradient(100deg,var(--blt) 0%,#fff 55%,var(--blt) 130%);border:1px solid var(--g2);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.dx-banner h2{margin:0;font-size:24px;font-weight:800;color:var(--n)}
+.dx-banner p{margin:4px 0 0;color:var(--g5);font-size:13px}
+.dx-grid{display:grid;gap:14px;margin-bottom:14px}
+.dx-kpis{grid-template-columns:repeat(4,1fr)}
+.dx-r2{grid-template-columns:1.5fr 1.25fr .9fr .75fr}
+.dx-r3{grid-template-columns:1.1fr 1.1fr 1fr}
+@media(max-width:1200px){.dx-kpis{grid-template-columns:repeat(2,1fr)}.dx-r2,.dx-r3{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.dx-kpis,.dx-r2,.dx-r3{grid-template-columns:1fr}}
+.dx-card{position:relative;background:var(--card,#fff);border:1px solid var(--g2);border-radius:16px;padding:14px 16px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 14px 34px -18px rgba(15,23,42,.22);overflow:hidden;min-width:0}
+.dx-card h4{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--n);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dx-card h4 a{font-size:11px;font-weight:600;color:var(--bl);cursor:pointer;text-decoration:none}
+.dx-kpi{display:flex;gap:12px;align-items:center;cursor:pointer}
+.dx-ico{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.dx-lbl{font-size:12px;font-weight:600;color:var(--g6,#475569)}
+.dx-val{font-size:28px;font-weight:800;color:var(--n);line-height:1.15}
+.dx-sub{font-size:11.5px;color:var(--g5)}
+.dx-up{color:#15803d;font-weight:700}.dx-dn{color:#b91c1c;font-weight:700}
+.dx-cat{border:1px solid var(--g2);border-radius:12px;padding:10px;position:relative;overflow:hidden;cursor:pointer}
+.dx-bar{height:6px;border-radius:4px;background:var(--g2);margin-top:8px;overflow:hidden}.dx-bar i{display:block;height:100%;border-radius:4px}
+.dx-qa{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--g2);border-radius:20px;background:var(--g0);cursor:pointer;font-size:12.5px;font-weight:600;color:var(--n);margin-bottom:8px;width:100%;text-align:left}
+.dx-qa:hover{background:var(--blt)}
+.dx-qa[disabled]{opacity:.45;cursor:not-allowed}
+.dx-ins{display:flex;gap:10px;align-items:center;border:1px solid var(--g2);border-radius:12px;padding:10px}
+.dx-age{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.dx-age div{border-radius:10px;padding:10px 6px;text-align:center;background:var(--g1)}
+.dx-age b{display:block;font-size:15px;margin-top:4px}
+.dx-locked > .dx-in{filter:blur(7px);pointer-events:none;user-select:none}
+.dx-lockmsg{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:12px;background:rgba(255,255,255,.35);color:var(--n);font-size:12.5px;font-weight:700;z-index:3}
+.dx-locked > .dx-lockmsg{display:flex}
+.dx-lockmsg svg{width:26px;height:26px}
+.dx-lockmsg span{font-weight:500;font-size:11.5px;color:var(--g6,#475569)}
 #s-dashboard .kpi-clickable:nth-child(1){animation-delay:.02s}
 #s-dashboard .kpi-clickable:nth-child(2){animation-delay:.08s}
 #s-dashboard .kpi-clickable:nth-child(3){animation-delay:.14s}
@@ -1822,7 +1859,8 @@ tbody tr:hover{background:var(--g0)}
   </div>
 </div>
 <!-- ====== DASHBOARD ====== -->
-<div id="s-dashboard" class="scr on">
+<div id="s-dashboard" class="scr on" data-dv="new">
+<div id="dashXSwitch" class="dx-switch"><span>Dashboard view</span><button type="button" data-dv="new">New</button><button type="button" data-dv="classic">Classic</button></div>
 <div class="ph" style="padding-bottom:10px">
   <div>
     <div class="pt"><svg class="ic" data-icon="dashboard" style="color:var(--bl)"></svg>Dashboard</div>
@@ -1831,6 +1869,8 @@ tbody tr:hover{background:var(--g0)}
   </div>
 </div>
 
+<div id="dashXTop"></div>
+<div id="dashXBody"></div>
 <!-- ── DASHBOARD BODY: main column + right sidebar (sidebar is new; everything in the main column below is unchanged) ── -->
 <div style="display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start" class="dash-body-grid">
 <div class="dash-main-col" style="min-width:0">
@@ -7055,6 +7095,7 @@ $all(".hdr-menu-item[data-role]").forEach(item=>{
     const role = item.dataset.role;
     currentRole = role;
     if(window.dashRoleRefresh) dashRoleRefresh();
+    try{ window.dispatchEvent(new Event("esway-viewrole")); }catch(e){}
     $("#userRoleLbl").textContent = (role === "Exporter" ? "Exporter / Importer" : role)+" · Chennai";
     $("#userPop").classList.remove("on");
     renderTopNav();
@@ -16602,6 +16643,107 @@ if(document.readyState !== "loading") initChatWidget();
 </script>
 <script>
 /* ============================================================
+   NEW DASHBOARD KIT (Executive): reads GET /api/dashboard/executive. Every card can be locked for a user
+   (blurred, lock sign, "You do not have the permission"); the classic dashboard is untouched and one click away.
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, esc2} = U;
+  const scr = ()=> document.getElementById("s-dashboard");
+  const inr = v=> "₹" + (Number(v)||0).toLocaleString("en-IN", {maximumFractionDigits:0});
+  const MSG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>You do not have the permission<span>Check with Admin</span>';
+  let DATA = null;
+
+  /* the "View as ..." role switch also limits what the dashboard shows (a preview of what that kind of user sees) */
+  const VIEW_ALLOW = {Operations:["operations", "cha", "transport"], Accounts:["finance", "operations"], Sales:["operations"], CHA:["operations", "cha"], Transport:["operations", "transport"], Exporter:[]};
+  function locked(key){
+    if(!DATA) return false;
+    if(DATA.locks[key]) return true;
+    const r = window.getViewRole ? window.getViewRole() : "Admin"; const allow = VIEW_ALLOW[r];
+    return !!allow && allow.indexOf(key) < 0;
+  }
+  const card = (key, html, extra)=> { const l = locked(key); return '<div class="dx-card'+(l ? " dx-locked" : "")+'" '+(extra || "")+'><div class="dx-in">'+html+'</div><div class="dx-lockmsg">'+MSG+'</div></div>'; };
+  const dummy = {jobs:"27", money:"₹3,48,828"};
+
+  function spark(vals, color){
+    const v = vals.map(Number), mx = Math.max.apply(null, v.concat([1])), n = v.length; if(n < 2) return "";
+    const pts = v.map((x, i)=> (i*(100/(n-1)))+","+(30-(x/mx*26))).join(" ");
+    return '<svg viewBox="0 0 100 34" preserveAspectRatio="none" style="width:110px;height:44px"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  function chg(cur, prev){ cur = Number(cur) || 0; prev = Number(prev) || 0; if(!prev) return cur ? '<span class="dx-up">new this month</span>' : '<span class="dx-sub">no change yet</span>'; const p = Math.round((cur - prev)/prev*100); return '<span class="'+(p >= 0 ? "dx-up" : "dx-dn")+'">'+(p >= 0 ? "↑ +" : "↓ ")+p+"%</span> vs last month"; }
+  const ico = (name, grad)=> '<div class="dx-ico" style="background:'+grad+'"><svg class="ic" data-icon="'+name+'" style="width:24px;height:24px"></svg></div>';
+  const kpi = (key, label, val, sub, icon, grad, color, series, goto)=> card(key, '<div class="dx-kpi" '+(goto ? 'data-dx-go="'+goto+'"' : "")+'>'+ico(icon, grad)+'<div style="flex:1;min-width:0"><div class="dx-lbl">'+label+'</div><div class="dx-val">'+val+'</div><div class="dx-sub">'+sub+'</div></div>'+(series ? spark(series, color) : "")+'</div>');
+
+  function line(months, vals){
+    const mx = Math.max.apply(null, vals.concat([1])), W = 420, H = 150, pad = 26, n = vals.length;
+    const x = i=> pad + i*((W-pad-8)/Math.max(n-1, 1)), y = v=> H-20-(v/mx)*(H-44);
+    const pts = vals.map((v, i)=> x(i)+","+y(v)).join(" ");
+    return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:170px"><g stroke="var(--g2)" stroke-width="1">'+[0, .5, 1].map(f=>'<line x1="'+pad+'" x2="'+(W-8)+'" y1="'+(H-20-f*(H-44))+'" y2="'+(H-20-f*(H-44))+'"/>').join("")+'</g>'+
+      '<polyline points="'+pts+'" fill="none" stroke="var(--bl)" stroke-width="2.5"/>'+vals.map((v, i)=>'<circle cx="'+x(i)+'" cy="'+y(v)+'" r="4" fill="#fff" stroke="var(--bl)" stroke-width="2"><title>'+esc2(months[i])+": "+inr(v)+'</title></circle>').join("")+
+      months.map((m, i)=>'<text x="'+x(i)+'" y="'+(H-4)+'" text-anchor="middle" font-size="10.5" fill="var(--g5)">'+esc2(m)+'</text>').join("")+'<text x="2" y="14" font-size="10" fill="var(--g5)">'+inr(mx)+'</text></svg>';
+  }
+  const COL = ["var(--bl)", "var(--gr)", "var(--pu)", "var(--am)", "var(--tl)", "var(--rd)"];
+  function donut(items){
+    const total = items.reduce((a, i)=>a+i.count, 0), R = 52, C = 2*Math.PI*R; if(!total) return '<div class="dx-sub" style="padding:30px 0;text-align:center">No shipments yet</div>';
+    let off = 0; const arcs = items.slice(0, 6).map((i, k)=>{ const len = i.count/total*C, a = '<circle cx="70" cy="70" r="'+R+'" fill="none" stroke="'+COL[k]+'" stroke-width="20" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 70 70)"/>'; off += len; return a; }).join("");
+    return '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><svg viewBox="0 0 140 140" style="width:130px;height:130px"><g>'+arcs+'</g><text x="70" y="68" text-anchor="middle" font-size="24" font-weight="800" fill="var(--n)">'+total+'</text><text x="70" y="86" text-anchor="middle" font-size="11" fill="var(--g5)">Shipments</text></svg>'+
+      '<div style="font-size:12px;line-height:1.9;flex:1;min-width:110px">'+items.slice(0, 6).map((i, k)=>'<div style="display:flex;justify-content:space-between;gap:8px"><span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+COL[k]+';margin-right:6px"></i>'+esc2(i.label)+'</span><b>'+Math.round(i.count/total*100)+'%</b></div>').join("")+'</div></div>';
+  }
+
+  function build(d){
+    DATA = d; const j = d.jobs, m = d.money, c = j.categories || {}, mon = d.monthly || [], n = mon.length;
+    const last = mon[n-1] || {jobs:0, revenue:0}, prev = mon[n-2] || {jobs:0, revenue:0};
+    const lockedFin = locked("finance"), lockedOps = locked("operations");
+    const catMax = Math.max(1, (c.freight||{}).active || 0, (c.cha||{}).active || 0, (c.transport||{}).active || 0);
+    const cat = (key, lock, label, icon, col, o)=> '<div class="dx-card'+(locked(lock) ? " dx-locked" : "")+'" style="padding:10px;box-shadow:none"><div class="dx-in dx-cat" data-dx-go="'+(key === "cha" ? "svc-cha" : key === "transport" ? "svc-transport" : "job-list")+'" style="border:0;padding:4px"><div style="display:flex;gap:8px;align-items:center"><span class="dx-ico" style="width:34px;height:34px;background:'+col+'"><svg class="ic" data-icon="'+icon+'" style="width:17px;height:17px"></svg></span><span class="dx-lbl">'+label+'</span></div><div class="dx-val" style="font-size:24px;margin-top:6px">'+(locked(lock) ? "15" : (o.active || 0))+'</div><div class="dx-bar"><i style="width:'+Math.round((locked(lock) ? 7 : (o.active||0))/catMax*100)+'%;background:'+col+'"></i></div></div><div class="dx-lockmsg" style="font-size:11px">'+MSG+'</div></div>';
+    const money = x=> lockedFin ? dummy.money : inr(x);
+    const stat = j.by_status || {}, statTot = Object.values(stat).reduce((a, b)=>a+b, 0) || 0, STC = {"In Transit":"var(--gr)", "Delivered":"var(--bl)", "Pending":"var(--am)", "Delayed":"var(--rd)"};
+    const ag = m.ageing || {}, od = Number((d.alerts || {}).overdue_invoices) || 0;
+    const qa = (label, icon, allow, go)=> '<button type="button" class="dx-qa" '+(allow ? 'data-dx-go="'+go+'"' : 'disabled title="You do not have the permission. Check with Admin"')+'><svg class="ic" data-icon="'+icon+'" style="width:17px;height:17px;color:var(--bl)"></svg>'+label+(allow ? "" : ' 🔒')+'</button>';
+    const fn = window.SESSION_USER ? ((window.SESSION_USER.first_name || window.SESSION_USER.username || "") + "") : "";
+    const top = '<div class="dx-banner"><div><h2>Welcome back, '+esc2(fn.replace(/\b\w/g, x=>x.toUpperCase()))+'!</h2><p>Here’s what’s happening with your business today.</p><p style="margin-top:8px">'+new Date().toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"})+'  •  FY '+esc2(d.fiscal_year)+'</p></div><button type="button" class="btn btn-pri btn-sm" id="dxRefresh"><svg class="ic" data-icon="refresh-cw"></svg> Refresh</button></div>';
+    const body =
+      '<div class="dx-grid dx-kpis">'+
+        kpi("operations", "Active Jobs", lockedOps ? dummy.jobs : j.active, lockedOps ? "↑ +12% vs last month" : chg(last.jobs, prev.jobs), "package", "linear-gradient(150deg,#3D9BE9,var(--bl))", "var(--bl)", mon.map(x=>x.jobs), "job-list")+
+        kpi("finance", "Revenue MTD", money(m.revenue_mtd), lockedFin ? "↑ +18% vs last month" : chg(last.revenue, prev.revenue), "rupee", "linear-gradient(150deg,#3FBF7F,var(--gr))", "var(--gr)", mon.map(x=>Number(x.revenue)), "mis")+
+        kpi("finance", "Gross Profit MTD", money(m.gp_mtd), lockedFin ? "Gross Margin 75%" : (Number(m.revenue_mtd) ? "Gross Margin "+m.gp_pct+"%" : "No billing yet"), "trending-up", "linear-gradient(150deg,#B084F0,var(--pu))", "var(--pu)", null, "mis")+
+        kpi("finance", "AR Outstanding", money(m.ar_outstanding), lockedFin ? "Overdue ₹1,85,000" : (od ? "Overdue "+inr((d.alerts||{}).overdue_amount) : "Nothing overdue"), "alert", "linear-gradient(150deg,#F28B5B,var(--rd))", "var(--rd)", null, "invoice-list")+
+      '</div>'+
+      '<div class="dx-grid dx-r2">'+
+        '<div class="dx-card" style="padding:12px 14px"><h4>Active Jobs by Category <a data-dx-go="job-list">View Details →</a></h4><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+cat("freight", "operations", "Freight Jobs", "ship", "var(--bl)", c.freight || {})+cat("cha", "cha", "CHA Jobs", "license", "var(--pu)", c.cha || {})+cat("transport", "transport", "Transport Jobs", "truck", "var(--tl)", c.transport || {})+'</div></div>'+
+        card("finance", '<h4>Revenue Trend</h4>'+line(mon.map(x=>x.label), lockedFin ? [1, 2, 2, 3, 3, 4] : mon.map(x=>Number(x.revenue))))+
+        card("operations", '<h4>Shipment Mix</h4>'+donut(lockedOps ? [{label:"Air", count:6}, {label:"Sea", count:6}, {label:"Land", count:3}] : j.mix || []))+
+        '<div class="dx-card" style="background:var(--n);color:#fff"><h4 style="color:#fff">Quick Actions ⚡</h4>'+qa("Create Shipment", "ship", d.can.shipment_create, "job-new")+qa("Create Invoice", "file-text", d.can.billing_create, "invoice-list")+qa("Create Job", "package", d.can.shipment_create, "job-new")+qa("View Reports", "chart-bar", d.can.billing_read || d.can.shipment_read, "mis")+'</div>'+
+      '</div>'+
+      '<div class="dx-grid dx-r3">'+
+        card("finance", '<h4>Key Insights</h4><div style="display:grid;gap:8px"><div class="dx-ins">'+ico("trending-up", "var(--gr)")+'<div><b>'+(lockedFin ? "Revenue up by 18%" : "Revenue "+(Number(prev.revenue) ? (Number(last.revenue) >= Number(prev.revenue) ? "up by " : "down by ")+Math.abs(Math.round((Number(last.revenue)-Number(prev.revenue))/Number(prev.revenue)*100))+"%" : "this month "+inr(last.revenue)))+'</b><div class="dx-sub">compared to last month</div></div></div><div class="dx-ins">'+ico("check-circle", "var(--pu)")+'<div><b>'+(lockedFin ? "Profitability at 75.3%" : "Profitability at "+m.gp_pct+"%")+'</b><div class="dx-sub">gross margin this month</div></div></div><div class="dx-ins">'+ico("alert", "var(--am)")+'<div><b>'+(lockedFin ? "2 Invoices Overdue" : od+" Invoice"+(od === 1 ? "" : "s")+" Overdue")+'</b><div class="dx-sub">total '+(lockedFin ? "₹1,85,000" : inr((d.alerts||{}).overdue_amount))+'</div></div></div></div>')+
+        card("operations", '<h4>Shipment Status <a data-dx-go="job-list">View Details →</a></h4>'+(lockedOps ? '<div class="dx-bar" style="height:14px"><i style="width:60%;background:var(--gr)"></i></div>' : statTot ? '<div style="display:flex;height:14px;border-radius:8px;overflow:hidden;background:var(--g2)">'+Object.entries(stat).map(([k, v], i)=>'<i title="'+esc2(k)+" "+v+'" style="width:'+(v/statTot*100)+'%;background:'+(STC[k] || COL[i%6])+'"></i>').join("")+'</div><div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12px">'+Object.entries(stat).map(([k, v], i)=>'<span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+(STC[k] || COL[i%6])+';margin-right:5px"></i>'+esc2(k)+' <b>'+v+'</b></span>').join("")+'</div>' : '<div class="dx-sub" style="padding:18px 0">No active shipments</div>'))+
+        card("finance", '<h4>Overdue AR Aging <a data-dx-go="invoice-list">View Details →</a></h4><div class="dx-age">'+[["Not due", ag.not_due, "var(--gr)"], ["1–30 days", ag.d1_30, "var(--am)"], ["31–60 days", ag.d31_60, "var(--am)"], ["61–90 days", ag.d61_90, "var(--rd)"], ["> 90 days", ag.d90_plus, "var(--rd)"]].map(([k, v, col])=>'<div><span class="dx-sub">'+k+'</span><b style="color:'+col+'">'+(lockedFin ? "₹48,000" : inr(v))+'</b></div>').join("")+'</div>')+
+      '</div>';
+    const T = document.getElementById("dashXTop"), B = document.getElementById("dashXBody"); if(!T || !B) return;
+    T.innerHTML = top; B.innerHTML = body; if(window.renderIcons){ renderIcons(T); renderIcons(B); }
+  }
+  async function load(){
+    if(!sessionStorage.getItem("esway_access_token")) return;
+    try{ build(await api("GET", "/api/dashboard/executive")); }catch(e){ const B = document.getElementById("dashXBody"); if(B) B.innerHTML = '<div class="dx-card"><div class="dx-sub">'+(e.status === 403 ? "Platform administrators have no company dashboard. Sign in to the ERP to see one." : "Could not load the dashboard: "+esc2(e.message || ""))+'</div></div>'; }
+  }
+  function mode(m){ const s = scr(); if(!s) return; s.dataset.dv = m; try{ localStorage.setItem("esway_dash_view", m); }catch(e){} document.querySelectorAll("#dashXSwitch button").forEach(b=> b.classList.toggle("on", b.dataset.dv === m)); }
+  document.addEventListener("click", e=>{
+    const b = e.target.closest && e.target.closest("#dashXSwitch button"); if(b){ mode(b.dataset.dv); return; }
+    if(e.target.closest && e.target.closest("#dxRefresh")){ load(); return; }
+    const g = e.target.closest && e.target.closest("#dashXBody [data-dx-go]"); if(!g || g.disabled || g.closest(".dx-locked")) return;
+    go(g.dataset.dxGo);
+  });
+  let saved = "new"; try{ saved = localStorage.getItem("esway_dash_view") || "new"; }catch(e){}
+  mode(saved === "classic" ? "classic" : "new");
+  const prevOn = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prevOn(screen, opts); if(screen === "dashboard") load(); };
+  window.addEventListener("esway-viewrole", load);
+  window.dashXLoad = load;
+})();
+</script>
+<script>
+/* ============================================================
    QUOTE KIT v2: Quotation Preparation (CRM > Quotation)
    Sell Cost (left) / Buy Cost (right), live margin & cost sheet, container-wise rates,
    approval workflow with audit trail, revisions, customer-safe preview. Server (/api/quotations) is authoritative.
@@ -25332,7 +25474,7 @@ body.job-readonly #jlBanner{display:flex}
   function dashCard(){
     let c = document.getElementById("rtDash"); if(c) return c;
     const scr = document.getElementById("s-dashboard"), grid = scr && scr.querySelector(".dash-body-grid"); if(!grid) return null;
-    c = document.createElement("div"); c.id = "rtDash"; c.className = "card"; c.style.marginBottom = "12px"; grid.parentNode.insertBefore(c, grid); return c;
+    c = document.createElement("div"); c.id = "rtDash"; c.className = "card"; c.style.marginBottom = "12px"; grid.parentNode.insertBefore(c, document.getElementById("dashXBody") || grid); return c;
   }
   const line = a=> a.title+(a.text ? " - "+a.text : "");
   function paintAlerts(){
@@ -26173,6 +26315,7 @@ body.job-readonly #jlBanner{display:flex}
       (S.list.length ? S.list.map(r=>'<tr><td class="mono" style="font-weight:700">'+esc(r.invoice_no)+'</td><td>'+esc(r.direction || "Export")+'</td><td>'+(r.approval === "APPROVED" ? '<span class="b b-gr dot" title="Approved by '+esc(r.approved_by || "")+'">Approved</span>' : '<span class="b b-gy dot">Draft</span>')+'</td><td>'+esc(H.dmy(r.invoice_date))+'</td><td>'+esc(r.exporter)+'</td><td>'+esc(r.consignee)+'</td><td class="mono">'+esc(r.job_number || "")+'</td><td>'+esc(r.currency)+'</td><td style="text-align:right">'+esc(H.fmt(r.total, 2))+'</td>'+
         '<td style="white-space:nowrap"><button class="btn btn-out btn-sm" data-ip="edit:'+r.id+'">Edit</button> <button class="btn btn-out btn-sm" data-ip="print:'+r.id+'">Print</button> '+(!can("invpl.approve") ? "" : r.approval === "APPROVED" ? '<button class="btn btn-out btn-sm" data-ip="revoke:'+r.id+'">Revoke approval</button>' : '<button class="btn btn-out btn-sm" data-ip="approve:'+r.id+'">Approve</button>')+(can("invpl.manage") ? ' <button class="btn btn-out btn-sm" data-ip="del:'+r.id+'">Delete</button>' : "")+'</td></tr>').join("")
         : '<tr><td colspan="10" style="text-align:center;color:var(--g5);padding:22px;font-style:italic">No invoice and packing list yet. Press New to prepare one for a shipper.</td></tr>')+'</tbody></table></div></div>';
+    if(!can("invpl.manage")) ["ipNew", "ipImp", "ipTpl"].forEach(id=>{ if(el(id)) el(id).style.display = "none"; });
     if(window.renderIcons) renderIcons(root);
   }
   function paintApproval(){
@@ -26265,6 +26408,7 @@ body.job-readonly #jlBanner{display:flex}
     ["exporter", "buyer", "consignee", "notify"].forEach(k=>{ const t = el("ip_"+k); if(t) t.value = d[k] || ""; const i = root.querySelector('[data-ipp="'+k+'"]'); if(i) i.value = H.lines(d[k])[0] || ""; });
     if(S.auto) api("GET", "/api/cha/invoice-packing/next-number").then(r=>{ const n = el("ip_no"); if(n && S.auto) n.placeholder = r.invoice_no+"  (assigned when saved)"; }).catch(()=>{});
     loadMasters(); if(window.renderIcons) renderIcons(root); paintTotals(); paintApproval();
+    if(!can("invpl.manage")) ["ipSave", "ipImp", "ipTpl", "ipGet"].forEach(id=>{ if(el(id)) el(id).style.display = "none"; });
   }
   /* ---------- masters: parties (with branches), ports, countries ---------- */
   const M = {cust:null, br:{}, countries:null};

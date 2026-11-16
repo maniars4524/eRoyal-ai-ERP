@@ -84,6 +84,10 @@ PERMISSIONS = [
     ("shipment.delete", "Delete shipment jobs", "shipment", "delete"),
     ("invpl.manage", "Create, edit, import and delete Invoice & Packing Lists", "invpl", "manage"),
     ("invpl.approve", "Approve and revoke approval of Invoice & Packing Lists (for the parties assigned to the user)", "invpl", "approve"),
+    ("dashboard.operations", "Dashboard: Active Jobs, Freight Jobs, Shipment Mix and Shipment Status", "dashboard", "operations"),
+    ("dashboard.cha", "Dashboard: CHA Jobs", "dashboard", "cha"),
+    ("dashboard.transport", "Dashboard: Transport Jobs", "dashboard", "transport"),
+    ("dashboard.finance", "Dashboard: Revenue, Gross Profit, AR Outstanding, Revenue Trend and Overdue AR Aging", "dashboard", "finance"),
 ]
 
 
