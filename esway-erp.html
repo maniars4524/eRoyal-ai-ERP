@@ -16774,9 +16774,10 @@ if(document.readyState !== "loading") initChatWidget();
   }
   const ckey = ()=> { const u = window.SESSION_USER; return u && u.id ? "esway_dx_"+u.id : ""; };
   function paintCached(){ if(DATA) return; const k = ckey(); if(!k) return; try{ const c = JSON.parse(localStorage.getItem(k) || "null"); if(c && c.jobs && c.money) build(c); }catch(e){} }
+  let tries = 0;
   async function load(){
-    if(!sessionStorage.getItem("esway_access_token")) return;
-    paintCached();
+    if(!sessionStorage.getItem("esway_access_token")){ if(tries++ < 40) setTimeout(load, 250); return; }          /* right after sign-in the token is stored a moment later: try again instead of staying on the skeleton */
+    tries = 0; paintCached();
     try{ const d = await api("GET", "/api/dashboard/executive"); build(d); try{ const k = ckey(); if(k) localStorage.setItem(k, JSON.stringify(d)); }catch(e){} }catch(e){ const B = document.getElementById("dashXBody"); if(B) B.innerHTML = '<div class="dx-card"><div class="dx-sub">'+(e.status === 403 ? "Platform administrators have no company dashboard. Sign in to the ERP to see one." : "Could not load the dashboard: "+esc2(e.message || ""))+'</div></div>'; }
   }
   function mode(m){ const s = scr(); if(!s) return; s.dataset.dv = m; if(m === "classic"){ parkCarousel(); if(window.dashKitLoad) window.dashKitLoad(); } else attachCarousel(); try{ localStorage.setItem("esway_dash_view", m); }catch(e){} document.querySelectorAll(".dxsw").forEach(b=> b.classList.toggle("on", b.dataset.dv === m)); }
@@ -16794,6 +16795,9 @@ if(document.readyState !== "loading") initChatWidget();
   MK.onScreen = function(screen, opts){ prevOn(screen, opts); if(screen === "dashboard") load(); };
   window.addEventListener("esway-viewrole", load);
   window.dashXLoad = load;
+  /* sign-in calls dashKitLoad: in the new view that loads the new dashboard first and the classic one a moment later */
+  const classicLoad = window.dashKitLoad;
+  window.dashKitLoad = ()=>{ const sd = scr(); if(sd && sd.dataset.dv === "new"){ load(); setTimeout(()=>{ if(classicLoad) classicLoad(); }, 1800); } else if(classicLoad) classicLoad(); };
 })();
 </script>
 <script>
