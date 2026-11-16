@@ -14714,7 +14714,8 @@ if(document.readyState !== "loading") initChatWidget();
   const calc = l=>{
     const qty = Number(l.qty)||0, rate = Number(l.rate)||0, exch = l.ccy === "INR" ? 1 : (Number(l.exch)||0);
     const amount = Math.round(qty*rate*exch*100)/100;
-    const tax = l.tax_type === "Taxable" ? Math.round(amount*(Number(l.tax_pct)||0))/100 : 0;
+    const exportSupply = /outside\s+india|overseas|foreign|export/i.test(((S && S.head) || {}).place_of_supply || "");          /* export of services: no GST on any line */
+    const tax = l.tax_type === "Taxable" && !exportSupply ? Math.round(amount*(Number(l.tax_pct)||0))/100 : 0;
     return {amount, tax, total: amount+tax};
   };
 
@@ -14760,11 +14761,12 @@ if(document.readyState !== "loading") initChatWidget();
       const inp = (f,w,ty)=> '<input class="fc" data-bkl="'+i+'" data-f="'+f+'" '+(ty?'type="'+ty+'" ':'')+'style="'+(w?'width:'+w+'px':'min-width:90px')+'" value="'+esc2(l[f])+'"'+dis+'>';
       return '<tr><td>'+(i+1)+'</td><td><input class="fc" list="bkCharges_'+S.screen+'" data-bkl="'+i+'" data-f="charge_name" style="min-width:140px" value="'+esc2(l.charge_name)+'"'+dis+'>'+(l.job_number && l.job_number !== S.head.job_number ? '<div style="font-size:10px;color:var(--bl);font-weight:700">Job '+esc2(l.job_number)+'</div>' : "")+((l.breakup || []).length ? '<button class="btn btn-out btn-sm" type="button" data-bk-bu="'+i+'" style="margin-top:3px;padding:1px 7px;font-size:10.5px" title="Container-wise breakup of this charge">📦 '+(l.breakup || []).length+' types</button>' : "")+'</td><td>'+inp("description")+'</td><td>'+inp("hsn",74)+'</td><td>'+inp("qty",58,"number")+'</td><td>'+inp("uom",92)+'</td>'+
         '<td><select class="fc" data-bkl="'+i+'" data-f="ccy" style="width:66px"'+dis+'>'+["INR","USD","EUR","GBP","AED","SGD","JPY"].map(x=>opt(x,x,x===l.ccy)).join("")+'</select></td><td>'+inp("exch",70,"number")+'</td><td>'+inp("rate",84,"number")+'</td>'+
-        '<td><select class="fc" data-bkl="'+i+'" data-f="tax_type" style="width:96px"'+dis+'>'+["Taxable","Non-Taxable","Pure Agent","RCM"].map(x=>opt(x,x,x===l.tax_type)).join("")+'</select></td><td>'+inp("tax_pct",52,"number")+'</td>'+
+        '<td><select class="fc" data-bkl="'+i+'" data-f="tax_type" style="width:96px"'+dis+'>'+["Taxable","Non-Taxable","Exempt","Pure Agent","RCM"].map(x=>opt(x,x,x===l.tax_type)).join("")+'</select></td><td>'+inp("tax_pct",52,"number")+'</td>'+
         '<td class="mono" style="text-align:right">'+inr(c.amount)+'</td><td class="mono" style="text-align:right">'+inr(c.tax)+'</td><td class="mono" style="text-align:right;font-weight:600">'+inr(c.total)+'</td><td>'+(editable?'<button class="ta" data-bkdel="'+i+'">✕</button>':'')+'</td></tr>';
     }).join("");
     const sub = S.lines.reduce((a,l)=>a+calc(l).amount,0), tax = S.lines.reduce((a,l)=>a+calc(l).tax,0);
-    const preTotal = sub + tax, preRound = h.no_round_off ? 0 : Math.round(preTotal) - preTotal;
+    const lineCcys = new Set(S.lines.map(l=>l.ccy)), foreignOnly = lineCcys.size === 1 && !lineCcys.has("INR");          /* a document in one foreign currency keeps its exact total; INR rounds to the rupee */
+    const preTotal = sub + tax, preRound = (h.no_round_off || foreignOnly) ? 0 : Math.round(preTotal) - preTotal;
     const shown = d && !editable ? d : {subtotal:sub, tax_total:tax, round_off:preRound, grand_total:preTotal + preRound, paid_amount:0, credited_amount:0, outstanding:preTotal + preRound, tax_breakup: h.supply_type==="intra" ? {cgst:tax/2, sgst:tax/2, igst:0} : {cgst:0, sgst:0, igst:tax}};
     const br = shown.tax_breakup || {};
     const money = v=> inr(v);
@@ -19376,23 +19378,163 @@ function makePrintFit(){
     else if(kind === "do"){ html = DK.deliveryOrder(rd); title = "Delivery Order "+(((rd.details || {}).impdocs || {}).do_no || rd.job_number); }
     else {
       if(doc.doc_type === "purchase_invoice" || doc.doc_type === "purchase_credit_note"){ const vt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(doc.party_name || "")).catch(()=>({text:""})); html = DK.purchaseInvoice(doc, rd, vt.text); title = "Purchase Invoice "+(doc.doc_number || ""); }
-      else if(doc.doc_type === "debit_note" || doc.doc_type === "credit_note"){ const bt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(doc.party_name || "")).catch(()=>({text:""})); html = DK.debitNote(doc, rd, bt.text); title = (doc.doc_type === "credit_note" ? "Credit Note " : "Debit Note ")+(doc.doc_number || ""); }
+      else if(doc.doc_type === "debit_note" || doc.doc_type === "credit_note"){ const bt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(doc.party_name || "")).catch(()=>({text:""})); html = (opt && opt.tpl === "two") ? (doc.doc_type === "credit_note" ? DK.note2(doc, rd, {billTo:Object.assign({gstin:doc.party_gstin}, bt)}) : DK.invoice2(doc, rd, {billTo:Object.assign({gstin:doc.party_gstin}, bt)})) : DK.debitNote(doc, rd, bt.text); title = (doc.doc_type === "credit_note" ? "Credit Note " : "Debit Note ")+(doc.doc_number || ""); }
       else {
         const pt = async n=> n ? await api("GET", "/api/company/party-text?name="+encodeURIComponent(n)).catch(()=>({text:"", gstin:"", phone:""})) : {text:"", gstin:"", phone:""};
         const shipperName = (((rd.details || {}).parties) || {}).shipper;
         const [bt, sp] = await Promise.all([pt(doc.party_name), pt(shipperName)]);
-        html = DK.invoice(doc, rd, {billTo:bt, shipper:sp.text ? sp : undefined}); title = DK.invoiceTitle(doc)+" "+(doc.doc_number || (doc.header || {}).proforma_no || ""); }
+        html = (opt && opt.tpl === "two") ? DK.invoice2(doc, rd, {billTo:Object.assign({gstin:doc.party_gstin}, bt), shipper:sp.text ? sp : undefined}) : DK.invoice(doc, rd, {billTo:bt, shipper:sp.text ? sp : undefined}); title = DK.invoiceTitle(doc)+" "+(doc.doc_number || (doc.header || {}).proforma_no || ""); }
     }
     return {html, title, rd, doc, kind, opt};
   };
+  /* ============================================================
+     TEMPLATE TWO: Interport-style Tax Invoice / Debit Note (INR, foreign currency, export under LUT) and Credit Note.
+     Template one (everything above) is untouched; the preview chooses between them.
+     ============================================================ */
+  const BD = "1px solid #111";
+  const dmy3 = v=> { if(!v) return ""; const d = new Date(String(v).slice(0, 10)+"T00:00:00"); return isNaN(d) ? "" : d.toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}).replace(/ /g, "-"); };
+  const words2 = (v, ccy)=> { let w = DK.words(v, ccy); if(!ccy || ccy === "INR") w = w.replace(/^Indian Rupees\s+/, ""); else { const nm = CCY_NAME[ccy]; if(nm){ w = w.replace(nm[0], ccy).replace(new RegExp(nm[1]+"\\b"), nm[1].replace(/s$/, "")); } } return w+"."; };
+  const EXPORT_RE = /outside\s+india|overseas|foreign|export/i;
+  const TCODE2 = {"Taxable":"T", "Non-Taxable":"N", "Pure Agent":"P", "RCM":"R", "Exempt":"E"};
+  const PG2 = PG.replace("padding:20px 28px 34px", "padding:18px 26px 30px").replace("font-size:9.5px", "font-size:9px").replace(/color:#14213d/, "color:#000");
+  const foot2 = (n, N, mid)=> '<div style="position:absolute;left:26px;right:26px;bottom:8px;display:flex;justify-content:space-between;font-size:8.5px"><span style="flex:1"></span><b style="flex:1;text-align:center;text-decoration:underline">'+esc2(mid || "")+'</b><span style="flex:1;text-align:right">Page : '+n+' / '+N+'</span></div>';
+  const wrap2 = (pages, mid)=> { const N = pages.length; return pages.map((h, i)=>'<div '+PG2+'>'+h+foot2(i + 1, N, mid)+'</div>').join(""); };
+  const lab = (k, v, w)=> '<div style="display:flex;gap:4px;line-height:1.5"><b style="min-width:'+(w || 86)+'px">'+k+'</b><span>: '+(v == null || v === "" ? "" : v)+'</span></div>';
+  const rlab = (k, v, big)=> '<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.55;'+(big ? "font-size:12px;" : "")+'"><b>'+k+' :</b><span style="'+(big ? "font-weight:800;" : "")+'">'+(v == null ? "" : v)+'</span></div>';
+  function head2(co, title, sub, ei, posted){
+    const P = co.profile || {}; const tel = [P.phone ? "Tel. No.-"+esc2(P.phone) : "", P.fax ? "Fax No.-"+esc2(P.fax) : ""].filter(Boolean).join(", ");
+    const qr = ei && posted && ei.qr ? '<img src="'+ei.qr+'" style="width:92px;height:92px;image-rendering:pixelated">' : "";
+    return '<div style="text-align:center;font-size:15px;font-weight:800;letter-spacing:.3px">'+esc2(title)+'</div>'+(sub ? '<div style="text-align:center;font-size:7.8px">'+esc2(sub)+'</div>' : "")+
+      '<div style="border:'+BD+';margin-top:3px"><div style="display:flex;align-items:center;gap:10px;padding:6px 8px;min-height:92px"><div style="width:110px">'+(co.logo ? '<img src="'+co.logo+'" style="max-width:104px;max-height:88px;object-fit:contain">' : "")+'</div>'+
+      '<div style="flex:1;text-align:center"><div style="font-size:15px;font-weight:800">'+esc2(P.legal_name || co.name || "")+'</div><div style="font-size:8.6px;margin-top:4px;line-height:1.35">'+nl2br(P.address)+(tel ? "<br>"+tel : "")+(P.email ? "<br>Email -"+esc2(P.email) : "")+'</div></div><div style="width:100px;text-align:right">'+qr+'</div></div>'+
+      '<div style="text-align:right;padding:0 8px 4px;font-size:8.6px;line-height:1.5">'+(P.state ? '<b>State :</b> ['+esc2(P.state_code || "")+'] '+esc2(String(P.state).toUpperCase())+' &nbsp;&nbsp;' : "")+(P.gstin ? '<b>GSTIN :</b> '+esc2(P.gstin) : "")+'<br>'+(P.cin ? '<b>CIN No :</b> '+esc2(P.cin)+' &nbsp;&nbsp;' : "")+(P.pan ? '<b>PAN No :</b> '+esc2(P.pan) : "")+'</div></div>';
+  }
+  const contList = f=> f.conts.map(x=>esc2(x.container_no+(x.type ? " "+x.type : ""))).join(", ");
+  const shipGrid = (rd, f, hd, ls)=> {
+    const sb = (rd.shipping_bills || []).map(b=>esc2(b.bill_no)+(b.bill_date ? "  Date : "+dmy3(b.bill_date) : "")).join(", ");
+    const be = (rd.bills_of_entry || []).map(b=>esc2(b.bill_no)+(b.bill_date ? "  Date : "+dmy3(b.bill_date) : "")).join(", ");
+    const nm = t=> esc2(lines(t)[0] || "");
+    const cs = (function(){ const m = {}; f.conts.forEach(x=>{ const k = (x.type || "").replace(/\s*(HC|DC|GP|HQ)\s*$/i, "") || "—"; m[k] = (m[k] || 0) + 1; }); return Object.keys(m).map(k=>m[k]+" x "+k).join(", "); })();
+    const L = [["Cargo Type", esc2(f.bk.container_mode || "")], ["MBL No.", esc2(f.mbl)+(f.mblDate ? "  &nbsp; <b>Date :</b> "+dmy3(f.mblDate) : "")], [f.air ? "HAWB No." : "HBL No.", esc2(f.hbl)+(f.hblDate ? "  &nbsp; <b>Date :</b> "+dmy3(f.hblDate) : "")], [(rd.direction === "Import" ? "BE No." : "SB No."), rd.direction === "Import" ? be : sb],
+      ["Packages", f.pkgs ? esc2(fmt(f.pkgs, 0)+" "+(f.pkgType || "")) : ""], ["Volume", f.vol ? fmt(f.vol, 3)+" CBM" : ""], ["Gross Wt.", f.gw ? fmt(f.gw, 3)+" KGS" : ""], ["Net Wt.", f.nw ? fmt(f.nw, 3)+" KGS" : ""], [f.air ? "Flight" : "Vessel/Voy", esc2(f.vessel)], [f.air ? "Airline" : "Shipping Line", esc2(f.carrier)], ["No. of Containers", cs]];
+    const R = [["Shipper Ref.", esc2(hd.customer_ref || hd.reference || "")], ["IncoTerms", esc2(f.bk.incoterm || "")], ["Shipper", nm(f.party.shipper || f.p.shipper)], ["Consignee", nm(f.party.consignee || f.p.consignee)], ["Place of Receipt", esc2(f.por === f.pol ? "" : f.por)], ["Loading Port", esc2(f.pol)], ["Discharge Port", esc2(f.pod)], ["Place of Delivery", esc2(f.pld === f.pod ? "" : f.pld)], ["Destination Port", esc2(f.pld || f.pod)]];
+    return '<div style="display:flex;border:'+BD+';border-top:0;font-size:8.6px"><div style="flex:1.15;padding:3px 8px">'+L.filter(r=>r[1] !== "").map(r=>lab(r[0], r[1], 84)).join("")+'</div><div style="flex:1;padding:3px 8px;border-left:'+BD+'">'+R.filter(r=>r[1] !== "").map(r=>lab(r[0], r[1], 92)).join("")+'</div></div>'+
+      (f.conts.length ? '<div style="border:'+BD+';border-top:0;padding:3px 8px;font-size:8.6px"><b>Containers :</b> &nbsp; '+contList(f)+'</div>' : "");
+  };
+
+  /* ---------- TAX INVOICE / DEBIT NOTE ---------- */
+  DK.invoice2 = function(doc, rd, extra){
+    extra = extra || {}; const co = rd.company || {}, P = co.profile || {}, f = facts(rd), hd = doc.header || {}, ei = hd.einvoice || null;
+    const posted = doc.status === "POSTED", intra = doc.supply_type === "intra", debit = doc.doc_type === "debit_note";
+    const ls = docLines(doc), ccys = Array.from(new Set(ls.map(l=>l.ccy))); const foreign = ccys.length === 1 && ccys[0] !== "INR"; const ccy = foreign ? ccys[0] : "INR";
+    const exportSupply = EXPORT_RE.test(doc.place_of_supply || ""); const kind = kindOf(doc);
+    const title = debit ? "DEBIT NOTE" : DK.invoiceTitle(doc);
+    const sub = exportSupply ? "(SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING WITHOUT PAYMENT OF INTEGRATED TAX)" : (kind !== "TAX" && KIND[kind] ? KIND[kind].sub : "");
+    const exch0 = foreign ? (ls[0] || {}).exch || 1 : 1;
+    /* amounts of a line in the document currency (a foreign-currency document is shown whole in that currency) */
+    ls.forEach(l=>{ l.a = foreign ? l.fc : l.inr; l.tx = foreign ? (l.exch ? Math.round(l.igst / l.exch * 100) / 100 : 0) : l.cgst + l.sgst + l.igst; l.tot = (l.tax_type === "RCM" ? l.a : l.a + l.tx); });
+    const sum = k=> ls.reduce((a, l)=>a + (l[k] || 0), 0);
+    const before = sum("a"), gst = sum("tx"); const received = (num(doc.paid_amount) + num(doc.credited_amount)) / (foreign ? exch0 : 1);
+    const gt = foreign ? before + gst : num(doc.grand_total); const roundOff = foreign ? 0 : num(hd.round_off != null ? hd.round_off : 0); const net = Math.max(0, gt - received);
+    const rcm = ls.reduce((a, l)=>a + (l.tax_type === "RCM" ? (foreign ? l.fc : l.inr) * l.pct / 100 : 0), 0);
+    const docNo = posted ? (doc.doc_number || "") : (hd.proforma_no || "Draft"), docDate = posted ? doc.doc_date : (hd.proforma_date || doc.doc_date);
+    const bt = extra.billTo || {}; const bl = lines(bt.text || ""); const name = bl[0] || doc.party_name || ""; const gstin = bt.gstin || doc.party_gstin || "";
+    const stateTxt = doc.place_of_supply ? esc2(doc.place_of_supply.replace(/^(\d{2})-?\s*/, (m, c)=>"["+c+"] ")) : "";
+    const jobs = Array.from(new Set(ls.map(l=>l.job_number || rd.job_number).filter(Boolean)));
+    const top = head2(co, title, sub, ei, posted)+
+      '<div style="display:flex;border:'+BD+';border-top:0;font-size:8.8px"><div style="flex:1;padding:4px 8px"><b>Recipient :</b><div style="font-size:11px;font-weight:800;margin-top:2px">'+esc2(name)+'</div><div style="line-height:1.35">'+bl.slice(1).map(esc2).join("<br>")+'</div>'+
+        '<div style="margin-top:3px"><b>PAN No :</b> '+esc2(gstin ? gstin.slice(2, 12) : "")+'</div><div><b>GSTIN :</b> '+esc2(gstin)+' &nbsp;&nbsp;<b>State :</b> '+stateTxt+'</div></div>'+
+        '<div style="width:300px;padding:4px 8px">'+rlab(debit ? "Debit Note No." : posted ? "Invoice No." : "Proforma No.", "<b>"+esc2(docNo)+"</b>", true)+rlab("Invoice Date", dmy3(docDate))+rlab("Due Date", dmy3(doc.due_date))+rlab("Place of Supply", stateTxt || esc2(doc.place_of_supply || ""))+rlab("Shipment No.", esc2(jobs.join(", ")))+rlab("Shipment Type", esc2([rd.mode, rd.direction].filter(Boolean).join(" ")))+'</div></div>'+
+      shipGrid(rd, f, hd, ls);
+    /* ---------- charges table ---------- */
+    const th = (t, x)=> '<th '+(x || "")+' style="border:'+BD+';padding:2px 3px;font-size:7.2px;font-weight:700;text-transform:none;letter-spacing:0;background:#fff;color:#000;text-align:center;vertical-align:middle">'+t+'</th>';
+    const td = (v, a, x)=> '<td style="border-left:'+BD+';border-right:'+BD+';padding:1.5px 3px;font-size:7.8px;text-align:'+(a || "right")+';vertical-align:top;'+(x || "")+'">'+v+'</td>';
+    const cur = foreign ? ccy : "INR";
+    const head = '<tr>'+th("Sr<br>No", 'rowspan="2"')+th("Description", 'rowspan="2" style="text-align:left"')+th("SAC/<br>HSN", 'rowspan="2"')+th("Cur", 'rowspan="2"')+th("Rate", 'rowspan="2"')+th("Quantity", 'rowspan="2"')+th("Amount<br>(Cur)", 'rowspan="2"')+(foreign ? "" : th("Ex.<br>Rate", 'rowspan="2"'))+th("Tax<br>Type", 'rowspan="2"')+
+      (foreign ? "" : th("Non GST<br>Exempt Value<br>(INR)", 'rowspan="2"')+th("Taxable<br>Value<br>(INR)", 'rowspan="2"'))+(foreign || !intra ? th("IGST", 'colspan="2"') : th("CGST", 'colspan="2"')+th("SGST", 'colspan="2"'))+th("Total<br>("+esc2(cur)+")", 'rowspan="2"')+'</tr><tr>'+(foreign || !intra ? th("%")+th("Tax") : th("%")+th("Tax")+th("%")+th("Tax"))+'</tr>';
+    const pc = l=> l.tx ? fmt(l.pct, 2) : "";
+    const row = (l, n)=> '<tr style="page-break-inside:avoid">'+td(n, "center")+td(esc2(l.charge_name)+(l.description ? '<div style="font-size:7px">'+esc2(l.description)+'</div>' : ""), "left")+td(esc2(l.hsn), "center")+td(esc2(l.ccy), "center")+td(num(l.rate).toFixed(3), "right")+td(fmt(l.qty, 3), "right")+td(fmt(l.fc), "right")+(foreign ? "" : td(fmt(l.exch, 4), "right"))+td(TCODE2[l.tax_type] || "T", "center")+
+      (foreign ? "" : td(["Non-Taxable", "Exempt", "Pure Agent"].includes(l.tax_type) ? fmt(l.inr) : "", "right")+td(["Taxable", "RCM"].includes(l.tax_type) ? fmt(l.inr) : "", "right"))+
+      (foreign || !intra ? td(pc(l), "center")+td(l.tx ? fmt(l.tx) : "", "right") : td(l.tx ? fmt(l.pct / 2, 2) : "", "center")+td(l.tx ? fmt(l.cgst) : "", "right")+td(l.tx ? fmt(l.pct / 2, 2) : "", "center")+td(l.tx ? fmt(l.sgst) : "", "right"))+td(fmt(l.tot), "right")+'</tr>';
+    const nonGst = ls.reduce((a, l)=>a + (["Non-Taxable", "Exempt", "Pure Agent"].includes(l.tax_type) ? l.inr : 0), 0), taxableV = ls.reduce((a, l)=>a + (["Taxable", "RCM"].includes(l.tax_type) ? l.inr : 0), 0);
+    const cols = foreign ? 11 : (intra ? 16 : 14), firstSpan = foreign ? 8 : 11;
+    const tbl = (g, start, last)=> '<table style="width:100%;border-collapse:collapse;border:'+BD+';border-top:0"><thead>'+head+'</thead><tbody>'+g.map((l, i)=>row(l, start + i + 1)).join("")+
+      '<tr><td colspan="'+firstSpan+'" style="border:'+BD+';height:'+(last ? Math.max(24, 150 - g.length * 18) : 24)+'px"></td><td colspan="'+(cols - firstSpan)+'" style="border:'+BD+'"></td></tr></tbody></table>'+
+      (last ? '<table style="width:100%;border-collapse:collapse;border:'+BD+';border-top:0;font-size:7.4px"><tr><td style="padding:2px 4px;width:48%"><b>T:</b> Taxable &nbsp; <b>P:</b>Pure Agent &nbsp; <b>E:</b>Exemption &nbsp; <b>R:</b>Reverse Charge &nbsp; <b>N:</b>Non Taxable</td><td style="padding:2px 4px;text-align:right;font-weight:800;font-size:8.6px">Sub Total</td>'+
+        (foreign ? '<td style="border-left:'+BD+';padding:2px 4px;text-align:right;font-weight:800">'+fmt(before)+'</td><td style="border-left:'+BD+';padding:2px 4px;text-align:right;font-weight:800">'+(gst ? fmt(gst) : "")+'</td><td style="border-left:'+BD+';padding:2px 4px;text-align:right;font-weight:800;width:70px">'+fmt(before + gst)+'</td>'
+          : '<td style="border-left:'+BD+';padding:2px 4px;text-align:right;font-weight:800">'+(nonGst ? fmt(nonGst) : "")+'</td><td style="border-left:'+BD+';padding:2px 4px;text-align:right;font-weight:800">'+fmt(taxableV)+'</td><td style="border-left:'+BD+';padding:2px 4px;text-align:right;font-weight:800">'+fmt(intra ? sum("cgst") : sum("igst"))+'</td>'+(intra ? '<td style="border-left:'+BD+';padding:2px 4px;text-align:right;font-weight:800">'+fmt(sum("sgst"))+'</td>' : "")+'<td style="border-left:'+BD+';padding:2px 4px;text-align:right;font-weight:800;width:70px">'+fmt(sum("tot"))+'</td>')+'</tr></table>' : "");
+    /* ---------- payment details and totals ---------- */
+    const bankLines = foreign ? [["Beneficiary", P.bank_beneficiary || P.legal_name || co.name], ["Bank", P.usd_bank_name], ["Bank A/c. No", P.usd_bank_account], ["Swift Code", P.usd_bank_swift], ["Bank Address", P.usd_bank_address], ["Intermediary", P.usd_bank_intermediary]] : [["", "Online RTGS/NEFT/IMPS transfer :"], ["", P.bank_beneficiary || P.legal_name || co.name], ["", [P.bank_name, P.bank_branch].filter(Boolean).join(" ")], ["", "Bank A/c. No : "+(P.bank_account || "")+(P.bank_ifsc ? "   IFSC Code : "+P.bank_ifsc : "")]];
+    const pay = '<div style="flex:1.05;padding:3px 8px;font-size:8.3px;line-height:1.45"><b>Payment Details :</b><br>'+bankLines.filter(r=>r[1]).map(r=>(r[0] ? "<b>"+esc2(r[0])+" :</b> " : "")+esc2(r[1])).join("<br>")+(ei && posted && ei.irn ? '<div style="margin-top:8px;font-size:7.4px;word-break:break-all"><b>IRN :</b> '+esc2(ei.irn)+'</div>' : "")+'</div>';
+    const vr = (k, v, b)=> '<div style="display:flex;justify-content:space-between;gap:6px;padding:.5px 6px;font-size:8.7px;'+(b ? "font-weight:800;" : "")+'"><span>'+k+'</span><span style="display:flex;gap:18px"><b>'+esc2(cur)+'</b><span style="min-width:74px;text-align:right">'+fmt(v)+'</span></span></div>';
+    const tot = '<div style="flex:1;border-left:'+BD+';padding:2px 0">'+vr("<b>Total Amount Before Tax</b>", before)+vr("<b>Add : GST</b>", gst)+vr("<b>Total Invoice Value</b>", gt)+vr("<b>Less : Advance Received</b>", received)+vr("<b>Round-Off</b>", roundOff)+vr("<b>Net Payable</b>", net, true)+vr("<b>Tax Payable on Reverse Charges</b>", rcm)+
+      (foreign ? '<div style="padding:1px 6px;font-size:7.4px;color:#222">INR equivalent @ ₹ '+fmt(exch0, 4)+" : <b>₹ "+fmt(doc.grand_total)+'</b></div>' : "")+'</div>';
+    const terms = lines(P.invoice_terms);
+    const closing = ['<div style="display:flex;border:'+BD+';border-top:0">'+pay+tot+'</div>'+
+      '<div style="border:'+BD+';border-top:0;padding:3px 8px;font-size:8.8px"><b>Net Payable In Words ('+esc2(cur)+')</b> &nbsp; '+esc2(words2(net, cur))+'</div><div style="border:'+BD+';border-top:0;padding:3px 8px;font-size:8.8px;min-height:20px"><b>Remarks :</b> '+esc2(doc.remarks || "")+'</div>',
+      '<div style="display:flex;border:'+BD+';border-top:0;min-height:150px"><div style="flex:1.5;padding:3px 8px;font-size:7.6px"><b style="font-size:8.6px">Terms &amp; Conditions :</b>'+(terms.length ? '<ul style="margin:2px 0 0;padding-left:12px;line-height:1.3">'+terms.map(t=>"<li>"+esc2(t.replace(/^\d+[\.\)]\s*/, ""))+"</li>").join("")+'</ul>' : "")+'<div style="margin-top:34px;font-size:8.8px;font-weight:700">E &amp; O.E</div></div>'+
+      '<div style="flex:1;padding:3px 8px;text-align:right;display:flex;flex-direction:column;justify-content:space-between"><b style="font-size:9.6px">For '+esc2(P.legal_name || co.name || "")+'</b><div style="min-height:48px">'+(posted ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:46px;max-width:140px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:46px;max-width:60px;margin-left:6px">' : "") : "")+'</div><b style="font-size:9.2px">Authorised Signatory</b></div></div>'];
+    const closingH = [150, 130 + Math.max(0, terms.length - 4) * 11];
+    const per = 12, chunks = chunk(ls, per), pages = [];
+    chunks.forEach((g, gi)=>{ pages.push({html:top+tbl(g, gi * per, gi === chunks.length - 1), used:470 + g.length * 22}); });
+    place(pages, closing, closingH, top);
+    return wrap2(pages.map(p=>p.html), posted ? "Original for Recipient" : "Proforma - not a tax invoice");
+  };
+
+  /* ---------- CREDIT NOTE ---------- */
+  DK.note2 = function(doc, rd, extra){
+    extra = extra || {}; const co = rd.company || {}, P = co.profile || {}, f = facts(rd), hd = doc.header || {}; const posted = doc.status === "POSTED";
+    const ls = docLines(doc), ccys = Array.from(new Set(ls.map(l=>l.ccy))); const foreign = ccys.length === 1 && ccys[0] !== "INR"; const cur = foreign ? ccys[0] : "INR";
+    ls.forEach(l=>{ l.a = foreign ? l.fc : l.inr; l.tx = foreign ? (l.exch ? Math.round((l.cgst + l.sgst + l.igst) / l.exch * 100) / 100 : 0) : l.cgst + l.sgst + l.igst; });
+    const subT = ls.reduce((a, l)=>a + l.a, 0), gst = ls.reduce((a, l)=>a + l.tx, 0); const roundOff = foreign ? 0 : num(hd.round_off != null ? hd.round_off : 0); const grand = foreign ? subT + gst : num(doc.grand_total);
+    const bl = lines((extra.billTo || {}).text || ""); const name = bl[0] || doc.party_name || "";
+    const days = doc.due_date && doc.doc_date ? Math.round((new Date(doc.due_date) - new Date(doc.doc_date)) / 86400000) : 0;
+    const cell = (k, v, last)=> '<div style="padding:3px 6px;'+(last ? "" : "border-bottom:"+BD+";")+'"><b style="font-size:9.4px">'+k+'</b><div style="font-size:8.6px;min-height:11px">'+(v == null ? "" : v)+'</div></div>';
+    const col2 = c=> '<div style="flex:1">'+c.join("")+'</div>';
+    const head = head2(co, "CREDIT NOTE", "", null, posted);
+    const info = '<div style="display:flex;border:'+BD+';border-top:0"><div style="flex:1.1;border-right:'+BD+';display:flex;flex-direction:column;justify-content:space-between"><div style="padding:3px 6px;font-size:8.8px;line-height:1.35"><b>M/s</b> '+esc2(name)+'<br>'+bl.slice(1).map(esc2).join("<br>")+'</div>'+
+      '<div><div style="padding:3px 6px;border-top:'+BD+'"><b style="font-size:9.2px">Container No. &amp; Size</b><div style="font-size:8.6px">'+(f.conts.length ? f.conts.map(x=>esc2(x.container_no+" "+(x.type || ""))).join("<br>") : "")+'</div></div><div style="padding:3px 6px;font-size:8.8px;margin-top:20px"><b>No. Of Pkg</b> &nbsp; '+(f.pkgs ? esc2(fmt(f.pkgs, 3)+" "+(f.pkgType || "")) : "")+'</div></div></div>'+
+      '<div style="flex:1.5;display:flex"><div style="flex:1;border-right:'+BD+'">'+cell("Credit Note No.", esc2(posted ? doc.doc_number || "" : (hd.proforma_no || "Draft")))+cell("Cycle", esc2([rd.mode, rd.direction].filter(Boolean).join(" ")))+cell("Freight Status", esc2(f.freight || ""))+cell("Destination", esc2(f.pld || f.pod))+cell("Credit Days", days+" days")+cell("Shipper Inv. No. &amp; Date", esc2(hd.customer_ref || hd.reference || "")+(hd.ref_invoice_date ? "&nbsp; <b>Dt.</b> "+dmy3(hd.ref_invoice_date) : ""))+cell("MBL No.", esc2(f.mbl), true)+'</div>'+
+      '<div style="flex:1">'+cell("Dated", dmy3(doc.doc_date))+cell(f.air ? "Flight" : "Vessel Name", esc2(f.vessel))+cell("Voyage", "")+cell("Cont./ Cargo Type", esc2(f.bk.container_mode || ""))+cell(f.air ? "HAWB No." : "HBL No.", esc2(f.hbl))+cell("Load Port", esc2(f.pol), true)+'</div></div></div>';
+    const th = (t, w)=> '<th style="border:'+BD+';padding:5px;font-size:9.5px;font-weight:700;text-transform:none;letter-spacing:0;background:#fff;color:#000;'+(w ? "width:"+w+"px;" : "")+'">'+t+'</th>';
+    const td = (v, a)=> '<td style="border-left:'+BD+';border-right:'+BD+';padding:2px 6px;font-size:8.8px;text-align:'+(a || "left")+';vertical-align:top">'+v+'</td>';
+    const rows = ls.map((l, i)=>'<tr>'+td(i + 1, "center")+td(esc2(l.charge_name)+(l.description ? '<br><span style="font-size:8px">('+esc2(l.description)+' )</span>' : ""))+td(esc2(l.ccy), "center")+td(num(l.a).toFixed(2), "right")+'</tr>').join("");
+    const table = '<table style="width:100%;border-collapse:collapse;border:'+BD+';border-top:0"><thead><tr>'+th("#", 34)+th("PARTICULARS")+th("CURR", 70)+th("AMOUNT", 90)+'</tr></thead><tbody>'+rows+'<tr><td style="border-left:'+BD+';height:150px"></td><td></td><td></td><td style="border-left:'+BD+';border-right:'+BD+'"></td></tr></tbody></table>';
+    const trow = (k, v, b)=> '<div style="display:flex;justify-content:flex-end;border-top:'+BD+';font-size:9.4px;font-weight:800"><div style="padding:3px 8px;width:200px;text-align:right">'+k+'</div><div style="padding:3px 6px;width:90px;text-align:right;border-left:'+BD+'">'+v+'</div></div>';
+    const sums = '<div style="border:'+BD+';border-top:0">'+trow("Sub Total", num(subT).toFixed(2))+(gst ? trow("GST", num(gst).toFixed(2)) : "")+(roundOff ? trow("Round-Off", num(roundOff).toFixed(2)) : "")+trow("Grand Total", num(grand).toFixed(2))+'</div>'+
+      '<div style="border:'+BD+';border-top:0;padding:3px 8px;font-size:9px"><span style="margin-right:12px">'+esc2(cur)+'</span> '+esc2(words2(grand, cur).replace(/^[A-Z]{3}\s+/, ""))+'</div>';
+    const bankLines = foreign ? [["Bank A/c No", P.usd_bank_account], ["Beneficiary", P.bank_beneficiary || P.legal_name || co.name], ["Intermediary Swift Code", P.usd_bank_intermediary], ["Bank", P.usd_bank_name], ["Swift Code", P.usd_bank_swift], ["Address", P.usd_bank_address]] : [["Bank A/c No", P.bank_account], ["Beneficiary", P.bank_beneficiary || P.legal_name || co.name], ["Bank", [P.bank_name, P.bank_branch].filter(Boolean).join(" ")], ["IFSC Code", P.bank_ifsc]];
+    const terms = lines(P.invoice_terms);
+    const notes = '<div style="display:flex;border:'+BD+';border-top:0;min-height:170px"><div style="flex:1.4;padding:3px 8px;font-size:7.6px;line-height:1.4"><b style="font-size:8.8px">Note :</b><ol style="margin:2px 0 0;padding-left:14px">'+terms.map(t=>"<li>"+esc2(t.replace(/^\d+[\.\)]\s*/, ""))+"</li>").join("")+(bankLines.some(r=>r[1]) ? '<li>Details for On-Line '+esc2(cur)+' by RTGS/Wire Transfer :<br>'+bankLines.filter(r=>r[1]).map(r=>"<b>"+esc2(r[0])+" :</b> "+esc2(r[1])).join("<br>")+'</li>' : "")+'</ol></div>'+
+      '<div style="flex:1;padding:3px 8px;text-align:right;display:flex;flex-direction:column;justify-content:space-between"><b style="font-size:9.4px"><i style="font-weight:400">E &amp; O.E.</i><br><br>For '+esc2(P.legal_name || co.name || "")+'</b><div>'+(posted ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:46px;max-width:140px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:46px;max-width:60px;margin-left:6px">' : "") : "")+'</div><b style="font-size:9.2px">Authorised Signatory</b></div></div>';
+    return wrap2([head+info+table+sums+notes], posted ? "" : "Draft - not issued");
+  };
+
   const stash = {cur:null};
+  /* ---------- template chooser (print preview): Template one = the existing format, Template two = the Interport-style layouts ---------- */
+  DK.tplNames = {one:"Template one", two:"Template two"};
+  DK.loadNames = async function(){ try{ DK.tplNames = await api("GET", "/api/company/template-names"); }catch(e){} };
+  DK.tplBar = function(b){
+    if(!b || b.kind !== "doc" || !b.doc || !["invoice", "debit_note", "credit_note"].includes(b.doc.doc_type)) return "";
+    const cur = (b.opt && b.opt.tpl === "two") ? "two" : "one";
+    return '<div id="dkTplBar" class="no-print" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--g2);background:var(--g0)"><b style="font-size:12px">Print template</b><select id="dkTpl" class="fc" style="width:auto;min-width:190px">'+
+      ["one", "two"].map(k=>'<option value="'+k+'"'+(k === cur ? " selected" : "")+'>'+esc2(DK.tplNames[k])+'</option>').join("")+'</select><button type="button" class="btn btn-out btn-sm" id="dkTplName">Rename templates</button><span style="font-size:11px;color:var(--g5)">Print, PDF and Send use the template shown here.</span></div>';
+  };
+  document.addEventListener("change", e=>{ const t = e.target.closest && e.target.closest("#dkTpl"); const k = window.__docKind; if(!t || !k) return; k.opt = Object.assign({}, k.opt, {tpl:t.value}); DK.show(); });
+  document.addEventListener("click", e=>{
+    if(!(e.target.closest && e.target.closest("#dkTplName"))) return;
+    const f = (id, label, v)=> '<div class="fg"><label class="fl">'+label+'</label><input class="fc" id="'+id+'" maxlength="40" value="'+esc2(v)+'"></div>';
+    openModal({title:"Name the print templates", bodyHTML:'<div class="fr">'+f("dkTn1", "Template one (the existing format)", DK.tplNames.one)+f("dkTn2", "Template two (Interport-style layouts)", DK.tplNames.two)+'</div><div style="font-size:11px;color:var(--g5)">The names show in the template list of every invoice, debit note and credit note preview of your company.</div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="dkTnSave">Save names</button>'});
+    el("dkTnSave").addEventListener("click", async ()=>{ try{ DK.tplNames = await api("PUT", "/api/company/template-names", {one:el("dkTn1").value, two:el("dkTn2").value}); closeModal(); say("Template names saved", DK.tplNames.one+" / "+DK.tplNames.two); DK.show(); }catch(err){ say("Could not save the names", err.message, "error"); } });
+  });
   DK.view = async function(kind, opt){
     window.__docKind = {kind, opt}; go("doc-view");
   };
   DK.show = async function(){
     const zone = el("docViewZone"); if(!zone) return; const k = window.__docKind; if(!k){ zone.innerHTML = '<div style="padding:22px;color:var(--g5)">Open a document from the job\'s Output Docs.</div>'; return; }
     zone.innerHTML = '<div style="padding:22px;color:var(--g5)">Preparing the document…</div>';
-    try{ const b = await DK.build(k.kind, k.opt); stash.cur = b; el("docViewTitle").textContent = b.title; zone.innerHTML = '<div style="overflow:auto;background:#d9dee7;padding:10px"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>'; const ed = el("docEditBtn"); if(ed) ed.style.display = (k.kind === "do" || k.kind === "can") ? "" : "none"; }
+    try{ await DK.loadNames(); const b = await DK.build(k.kind, k.opt); stash.cur = b; el("docViewTitle").textContent = b.title; zone.innerHTML = DK.tplBar(b)+'<div style="overflow:auto;background:#d9dee7;padding:10px"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>'; const ed = el("docEditBtn"); if(ed) ed.style.display = (k.kind === "do" || k.kind === "can") ? "" : "none"; }
     catch(e){ zone.innerHTML = '<div class="ib ib-am" style="margin:16px">'+esc2(e.message)+'</div>'; }
   };
   function loadScript(src){ return new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(s); }); }

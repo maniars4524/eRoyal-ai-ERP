@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
@@ -32,7 +33,7 @@ class LineIn(BaseModel):
     ccy: str = Field(default="INR", pattern="^[A-Z]{3}$")
     exch: Decimal = Field(default=Decimal("1"), ge=0, max_digits=14, decimal_places=6)
     rate: Decimal = Field(default=Decimal("0"), ge=0, max_digits=16, decimal_places=4)
-    tax_type: str = Field(default="Taxable", pattern="^(Taxable|Non-Taxable|Pure Agent|RCM)$")
+    tax_type: str = Field(default="Taxable", pattern="^(Taxable|Non-Taxable|Pure Agent|RCM|Exempt)$")
     tax_pct: Decimal = Field(default=Decimal("0"), ge=0, le=100, max_digits=6, decimal_places=2)
     job_number: str | None = Field(default=None, max_length=40)
 
@@ -135,6 +136,14 @@ def _assert_not_double_billed(doc: Document, lines: list[LineIn], session: Sessi
             raise HTTPException(status_code=409, detail=f"{charge} of job {job} is already billed on {number or (header or {}).get('proforma_no') or 'draft #' + str(did)}. A charge is billed once: cancel that document first, or remove the line here.")
 
 
+_OUTSIDE_INDIA = re.compile(r"outside\s+india|overseas|foreign|export", re.I)
+
+
+def is_export_supply(place_of_supply: str | None) -> bool:
+    """Place of Supply outside India = export of services: no GST is charged (supply under LUT)."""
+    return bool(_OUTSIDE_INDIA.search(place_of_supply or ""))
+
+
 def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
     for line in lines:
         if line.ccy != "INR" and line.exch <= 0:
@@ -148,14 +157,17 @@ def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
         raise HTTPException(status_code=422, detail="Pure Agent (reimbursement) and RCM entries are billed on their own invoice. Keep Taxable / Non-Taxable entries together and move the Pure Agent or RCM entries to a separate invoice")
     subtotal = tax = Decimal(0)
     for index, line in enumerate(lines, start=1):
-        c = calc_line(line.qty, line.ccy, Decimal(1) if line.ccy == "INR" else line.exch, line.rate, line.tax_type, line.tax_pct if line.tax_type == "Taxable" else Decimal(0))
-        doc.lines.append(DocumentLine(line_no=index, job_number=(line.job_number or None), charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=line.tax_pct if line.tax_type in ("Taxable", "RCM") else Decimal(0),
+        export = is_export_supply(doc.place_of_supply) and doc.doc_type in ("invoice", "debit_note", "credit_note")      # export of services: GST is nil on every line (the tax type each line carries is kept)
+        c = calc_line(line.qty, line.ccy, Decimal(1) if line.ccy == "INR" else line.exch, line.rate, line.tax_type, Decimal(0) if export else (line.tax_pct if line.tax_type == "Taxable" else Decimal(0)))
+        doc.lines.append(DocumentLine(line_no=index, job_number=(line.job_number or None), charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=Decimal(0) if is_export_supply(doc.place_of_supply) and doc.doc_type in ("invoice", "debit_note", "credit_note") else (line.tax_pct if line.tax_type in ("Taxable", "RCM") else Decimal(0)),
                                    breakup=_clean_breakup(line.breakup), **c))
         subtotal += c["amount"]
         tax += c["tax_amount"]
     total = subtotal + tax
     header = dict(doc.header or {})
-    rounding = doc.doc_type in ("invoice", "debit_note", "credit_note", "purchase_invoice", "purchase_credit_note") and not header.get("no_round_off")
+    ccys = {l.ccy for l in lines}
+    foreign_only = len(ccys) == 1 and "INR" not in ccys                      # a document in one foreign currency (USD ...) keeps its exact 2-decimal total; INR documents round to the whole rupee
+    rounding = doc.doc_type in ("invoice", "debit_note", "credit_note", "purchase_invoice", "purchase_credit_note") and not header.get("no_round_off") and not foreign_only
     round_off = (Decimal(round(total)) - total) if rounding else Decimal(0)
     header["round_off"] = str(q2(round_off))
     doc.header = header
@@ -225,6 +237,8 @@ def party_defaults(db: Session, org_id: int, name: str, doc_type: str) -> dict:
         gstin = ""
     out.update({"party_gstin": gstin, "state_code": sc, "place_of_supply": (pos_sc + ("-" + pos_state if pos_state else "")) if pos_sc else "",
                 "supply_type": (("intra" if from_sc == pos_sc else "inter") if from_sc and pos_sc else None), "gst_applicable": gst_applicable})
+    if sale and foreign and not sc:
+        out.update({"place_of_supply": "Outside India", "supply_type": "inter"})
     return out
 
 

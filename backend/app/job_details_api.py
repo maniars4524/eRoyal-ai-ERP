@@ -602,6 +602,37 @@ def get_profile(user: User = Depends(permission_required("master.read")), db: Se
     return {"profile": prof, "hbl_scac": [c for c in str(prof.get("hbl_scac_codes") or "").split() if c], "print_profile": print_profile(db, org.id), "name": org.legal_name or org.name, "logo": org.logo, "company_code": company_code(org)}
 
 
+TEMPLATE_DEFAULTS = {"one": "Template one", "two": "Template two"}
+
+
+@company.get("/template-names")
+def get_template_names(user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+    """The names the company gave to its two print templates (Template one = the existing format, Template two = the Interport-style layouts)."""
+    p = db.scalar(select(CompanyDocProfile).where(CompanyDocProfile.organization_id == _tenant(user)))
+    saved = ((p.data if p else {}) or {}).get("template_names") or {}
+    return {k: (str(saved.get(k) or "").strip() or v) for k, v in TEMPLATE_DEFAULTS.items()}
+
+
+@company.put("/template-names")
+def put_template_names(body: dict, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
+    org_id = _tenant(user)
+    p = db.scalar(select(CompanyDocProfile).where(CompanyDocProfile.organization_id == org_id))
+    data = dict((p.data if p else {}) or {})
+    names = {}
+    for k in TEMPLATE_DEFAULTS:
+        v = " ".join(str(body.get(k) or "").split())
+        if len(v) > 40:
+            raise HTTPException(422, "A template name can have at most 40 characters")
+        names[k] = v
+    data["template_names"] = names
+    if p:
+        p.data = data
+    else:
+        db.add(CompanyDocProfile(organization_id=org_id, data=data))
+    db.commit()
+    return {k: (names[k] or v) for k, v in TEMPLATE_DEFAULTS.items()}
+
+
 @company.put("/doc-profile")
 def put_profile(body: dict, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
     import base64

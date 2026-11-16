@@ -1,0 +1,54 @@
+// Print preview: Template one (existing) / Template two (Interport style) for an INR tax invoice, a USD export invoice and a USD credit note
+const puppeteer = require("puppeteer-core");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); let b = null; try { b = await r.json(); } catch (e) {} return { status: r.status, body: b }; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let failures = 0;
+const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "" : " -> " + (x || ""))); if (!ok) failures++; };
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36).toUpperCase().slice(-5);
+  const org = await j("POST", "/api/organizations", { code: "T2" + tag, name: "Tpl " + tag, admin_email: `t2${tag}@t.test`, admin_username: "t2" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Mani", admin_last_name: "Rs" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "t2" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const job = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INTUT", pod: "USNYC" }, token)).body.job_number;
+  const inr = [["TERMINAL HANDLING CHARGES", "9500", "996711"], ["BILL OF LADING CHARGES", "4200", "996799"], ["SEAL CHARGES", "550", "996799"], ["MANDATORY USER CHARGES", "165", "996799"], ["HANDLING CHARGES", "1300", "996799"], ["HAZ CARGO DOCUMENTATION", "2000", "996799"]].map(([n, r, h]) => ({ charge_name: n, rate: r, tax_pct: "18", hsn: h, job_number: job }));
+  const d1 = (await j("POST", "/api/documents", { doc_type: "invoice", party_name: "THE BELL MATCH COMPANY", job_number: job, supply_type: "intra", place_of_supply: "33-Tamilnadu", party_gstin: "33AABFT7390K1ZV", lines: inr }, token)).body;
+  const d2 = (await j("POST", "/api/documents", { doc_type: "debit_note", party_name: "INTERPORT GLOBAL LOGISTICS USA INC", job_number: job, supply_type: "inter", place_of_supply: "Outside India", lines: [{ charge_name: "OCEAN FREIGHT", ccy: "USD", exch: "83", rate: "7125", tax_type: "Exempt", hsn: "996521", job_number: job }, { charge_name: "DELIVERY ORDER CHARGES", ccy: "USD", exch: "83", rate: "75", tax_type: "Taxable", tax_pct: "18", hsn: "996799", job_number: job }] }, token)).body;
+  const d3 = (await j("POST", "/api/documents", { doc_type: "credit_note", party_name: "INTERPORT GLOBAL LOGISTICS USA INC", job_number: job, lines: [{ charge_name: "OCEAN FREIGHT", ccy: "USD", exch: "83", rate: "6806", tax_type: "Non-Taxable", job_number: job }, { charge_name: "HANDLING CHARGES", ccy: "USD", exch: "83", rate: "75", tax_type: "Non-Taxable", job_number: job }, { charge_name: "MESSENGER FEES", ccy: "USD", exch: "83", rate: "22.25", tax_type: "Non-Taxable", job_number: job }] }, token)).body;
+  check("documents created", !!(d1 && d1.id && d2 && d2.id && d3 && d3.id), JSON.stringify([d1, d2, d3]).slice(0, 300));
+  const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
+  const page = await b.newPage(); await page.setViewport({ width: 1500, height: 1200 }); const errs = [];
+  page.on("pageerror", e => errs.push(String(e.stack || e.message).split(String.fromCharCode(10)).slice(0, 3).join(" <- ")));
+  page.on("dialog", d => d.accept());
+  await page.goto(BASE + "/erp/login", { waitUntil: "networkidle2" }); await page.evaluate(t => localStorage.setItem("esway_persistent_token", t), token); await page.reload({ waitUntil: "networkidle2" }); await sleep(3000);
+  const text = sel => page.evaluate(sel => (document.querySelector(sel) || { innerText: "" }).innerText, sel);
+  const open = async id => { await page.evaluate(i => window.DocKit.view("doc", { docId: i }), id); await sleep(2500); };
+  const pick = async v => { await page.select("#dkTpl", v); await sleep(2500); };
+
+  await open(d1.id);
+  check("preview offers Template one / Template two (one is the default)", await page.evaluate(() => { const s = document.querySelector("#dkTpl"); return !!s && s.value === "one" && [...s.options].map(o => o.text).join() === "Template one,Template two"; }));
+  const t1 = await text("#docViewZone");
+  check("Template one still shows the existing layout", /HSN \/ SAC WISE TAX SUMMARY|INVOICE VALUE SUMMARY/i.test(t1), t1.slice(0, 120));
+  await pick("two");
+  const t2 = await text("#docViewZone");
+  check("Template two INR invoice: sample numbers (taxable 17,715.00, CGST/SGST 1,594.35, GST 3,188.70, total 20,904.00, round-off 0.30)", ["17,715.00", "1,594.35", "3,188.70", "20,904.00", "0.30"].every(x => t2.includes(x)), t2.slice(-700));
+  check("Template two INR invoice: layout parts", /Recipient/.test(t2) && /Sub Total/.test(t2) && /Total Amount Before Tax/.test(t2) && /Net Payable In Words \(INR\)/.test(t2) && /Twenty Thousand Nine Hundred Four Only\./.test(t2) && /Original for Recipient|Proforma/.test(t2) && /CGST/.test(t2) && /SGST/.test(t2), t2.slice(0, 300));
+  await page.screenshot({ path: "../scratch/tpl2_invoice.png", fullPage: false });
+  await open(d2.id); await pick("two");
+  const t3 = await text("#docViewZone");
+  check("Template two export invoice: USD totals, LUT wording, no IGST, INR equivalent", ["7,200.00", "SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING"].every(x => t3.includes(x)) && /USD/.test(t3) && /Seven Thousand Two Hundred Only\./.test(t3) && /INR equivalent/.test(t3) && /DEBIT NOTE/.test(t3), t3.slice(0, 400));
+  await page.screenshot({ path: "../scratch/tpl2_export.png", fullPage: false });
+  await open(d3.id); await pick("two");
+  const t4 = await text("#docViewZone");
+  check("Template two credit note: 6903.25 and words in USD", /6903\.25/.test(t4) && /USD Six Thousand Nine Hundred Three and Twenty Five Cent Only\./.test(t4) && /CREDIT NOTE/.test(t4) && /PARTICULARS/.test(t4), t4.slice(-500));
+  await page.screenshot({ path: "../scratch/tpl2_credit.png", fullPage: false });
+  // rename the templates
+  await page.evaluate(() => document.querySelector("#dkTplName").click()); await sleep(600);
+  await page.evaluate(() => { document.querySelector("#dkTn1").value = "Standard"; document.querySelector("#dkTn2").value = "Interport style"; document.querySelector("#dkTnSave").click(); }); await sleep(2500);
+  check("renamed templates show in the list", await page.evaluate(() => [...document.querySelector("#dkTpl").options].map(o => o.text).join() === "Standard,Interport style"));
+  check("choice stays Template two while the preview is open", await page.evaluate(() => document.querySelector("#dkTpl").value === "two"));
+  check("no script errors", errs.length === 0, errs.join(" | "));
+  await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})();
