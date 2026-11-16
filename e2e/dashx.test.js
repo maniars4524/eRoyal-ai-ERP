@@ -12,6 +12,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const tag = Date.now().toString(36).toUpperCase().slice(-5);
   const org = await j("POST", "/api/organizations", { code: "DX" + tag, name: "Dash " + tag, admin_email: `dx${tag}@t.test`, admin_username: "dx" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Mani", admin_last_name: "Rs" }, dev.body.access_token);
   const token = (await j("POST", "/api/auth/login", { identifier: "dx" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const jobNo = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA", pod: "SGSIN" }, token)).body.job_number;
   const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
   const page = await b.newPage(); await page.setViewport({ width: 1600, height: 1000 }); const errs = [];
   page.on("pageerror", e => errs.push(String(e.stack || e.message).split(String.fromCharCode(10)).slice(0, 3).join(" <- ")));
@@ -25,6 +26,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("welcome banner names the user", /Welcome back, Mani/i.test(await text("#dashXTop")));
   check("notification strip is still above the cards", await vis("#rtDash"));
   check("Admin sees nothing locked", (await page.evaluate(() => document.querySelectorAll("#dashXBody .dx-locked").length)) === 0);
+  check("the gaps are filled with real data (recent job, lanes)", await page.evaluate(n => { const t = document.querySelector("#dxFill").innerText; return t.indexOf(n) >= 0 && /INMAA/.test(t); }, jobNo), await text("#dxFill"));
   check("the slideshow sits in the dashboard (Shipment Mix and Quick Actions are gone)", await page.evaluate(() => !!document.querySelector("#dxSlot #dashCarousel") && !/Shipment Mix|Quick Actions/.test(document.querySelector("#dashXBody").innerText)));
   const slideTxt = await page.evaluate(() => document.querySelector("#dashCarousel").innerText);
   check("slide controls are there", /Revenue|Jobs/i.test(slideTxt) && await vis("#dashNextBtn"), slideTxt.slice(0, 80));
