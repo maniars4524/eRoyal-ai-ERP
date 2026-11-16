@@ -223,12 +223,10 @@ body[data-screen="dashboard"] .bc-bar{display:none}
 .dx-banner p{margin:2px 0 0;color:var(--g5);font-size:13px}
 .dx-grid{display:grid;gap:14px;margin-bottom:14px}
 .dx-kpis{grid-template-columns:repeat(4,1fr)}
-.dx-r2{grid-template-columns:1.5fr 1.25fr .9fr .75fr}
+.dx-r2{grid-template-columns:1fr 1.4fr}
 .dx-r3{grid-template-columns:1.1fr 1.1fr 1fr}
 .dx-open{grid-column:1/-1}
-.dx-r2.dx-exp #dxRev{grid-column:1/3}
-.dx-r2.dx-exp #dxSlot{grid-column:3/5}
-#dxSlot{grid-column:span 2}
+.dx-r2.dx-exp #dxSlot{grid-column:1/-1}
 @media(max-width:1200px){.dx-kpis{grid-template-columns:repeat(2,1fr)}.dx-r2,.dx-r3{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.dx-kpis,.dx-r2,.dx-r3{grid-template-columns:1fr}}
 .dx-card{position:relative;background:var(--card,#fff);border:1px solid var(--g2);border-radius:16px;padding:14px 16px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 14px 34px -18px rgba(15,23,42,.22);overflow:hidden;min-width:0}
@@ -16727,7 +16725,6 @@ if(document.readyState !== "loading") initChatWidget();
       '</div>'+
       '<div class="dx-grid dx-r2'+(window.__dxOpen ? " dx-exp" : "")+'">'+
         '<div class="dx-card'+(window.__dxOpen ? " dx-open" : "")+'" id="dxCat" style="padding:12px 14px;overflow:visible"><h4>Active Jobs by Category <a data-dx-open="jobs">'+(window.__dxOpen ? "Close ✕" : "View Details →")+'</a></h4><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+cat("freight", "operations", "Freight Jobs", "ship", "var(--bl)", c.freight || {})+cat("cha", "cha", "CHA Jobs", "license", "var(--pu)", c.cha || {})+cat("transport", "transport", "Transport Jobs", "truck", "var(--tl)", c.transport || {})+'</div><div id="dxCatPanel" style="display:none;margin-top:12px;border:1px solid var(--g2);border-radius:12px;overflow:hidden"></div></div>'+
-        card("finance", '<h4>Revenue Trend</h4>'+line(mon.map(x=>x.label), lockedFin ? [1, 2, 2, 3, 3, 4] : mon.map(x=>Number(x.revenue))), 'id="dxRev"')+
         '<div class="dx-card'+(lockedOps ? " dx-locked" : "")+'" id="dxSlot" style="padding:0;border:0;box-shadow:none;background:transparent;overflow:visible"><div class="dx-in" id="dxSlotIn"></div><div class="dx-lockmsg">'+MSG+'</div></div>'+
       '</div>'+
       '<div class="dx-grid dx-r3">'+

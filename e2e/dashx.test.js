@@ -41,7 +41,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.screenshot({ path: "../scratch/dashx_admin.png" });
   await page.evaluate(() => document.querySelector('.hdr-menu-item[data-role="Operations"]').click()); await sleep(2500);
   const locked = await page.evaluate(() => [...document.querySelectorAll("#dashXBody .dx-locked h4, #dashXBody .dx-locked .dx-lbl")].map(e => e.innerText.trim()));
-  check("Operations view locks Revenue, Gross Profit, AR, Revenue Trend, Insights, Aging", ["Revenue MTD", "Gross Profit MTD", "AR Outstanding", "Revenue Trend", "Key Insights"].every(x => locked.some(l => l.indexOf(x) === 0)) && locked.some(l => /Overdue AR Aging/.test(l)), locked.join(","));
+  check("Operations view locks Revenue, Gross Profit, AR, Insights, Aging", ["Revenue MTD", "Gross Profit MTD", "AR Outstanding", "Key Insights"].every(x => locked.some(l => l.indexOf(x) === 0)) && locked.some(l => /Overdue AR Aging/.test(l)), locked.join(","));
   check("Operations keeps Active Jobs unlocked", !locked.includes("Active Jobs") && !locked.includes("Shipment Mix"), locked.join(","));
   check("lock message is shown", /You do not have the permission/.test(await page.evaluate(() => document.querySelector("#dashXBody .dx-locked .dx-lockmsg").innerText)));
   await page.screenshot({ path: "../scratch/dashx_ops.png" });
