@@ -45,7 +45,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.screenshot({ path: "../scratch/dashx_open.png" });
   await page.evaluate(() => document.querySelector("#dxCat h4 a").click()); await sleep(400);
   check("Close folds the panel", !(await vis("#dxCatPanel")));
-  check("date line and breadcrumb are gone; switch sits after Refresh; global refresh button exists", await page.evaluate(() => !/FY 20/.test(document.querySelector("#dashXTop").innerText) && document.querySelector(".bc-bar").offsetParent === null && !!document.querySelector("#dashXTop #dxRefresh + .dx-switch .dxsw") && !!document.querySelector("#globalRefresh")));
+  check("date line and breadcrumb are gone; switch sits after Refresh; global refresh button exists", await page.evaluate(() => !/FY 20/.test(document.querySelector("#dashXTop").innerText) && document.querySelector(".bc-bar").offsetParent === null && !!document.querySelector("#dashXTop #dxRefresh + .dx-switch .dxsw") && !!document.querySelector("#hdrRefreshBtn") && !document.querySelector("#globalRefresh")));
   await page.screenshot({ path: "../scratch/dashx_admin.png" });
   await page.evaluate(() => document.querySelector('.hdr-menu-item[data-role="Operations"]').click()); await sleep(2500);
   const locked = await page.evaluate(() => [...document.querySelectorAll("#dashXBody .dx-locked h4, #dashXBody .dx-locked .dx-lbl")].map(e => e.innerText.trim()));

@@ -214,9 +214,6 @@ svg{display:block}
 body[data-screen="dashboard"] .bc-bar{display:none}
 .dx-banner .dx-switch{margin:0 0 0 10px}
 .dx-banner-r{display:flex;align-items:center;gap:6px}
-#globalRefresh{position:fixed;left:86px;bottom:34px;width:36px;height:36px;border-radius:50%;border:1px solid var(--g2);background:var(--card,#fff);color:var(--bl);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.18);z-index:60}
-#globalRefresh:hover{background:var(--blt)}
-#globalRefresh .ic{width:18px;height:18px}
 #s-dashboard[data-dv="classic"] #dashXTop, #s-dashboard[data-dv="classic"] #dashXBody{display:none!important}
 .dx-banner{border-radius:16px;padding:12px 20px;margin-bottom:12px;background:linear-gradient(100deg,var(--blt) 0%,#fff 55%,var(--blt) 130%);border:1px solid var(--g2);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .dx-banner h2{margin:0;font-size:26px;font-weight:900;color:var(--n)}
@@ -226,6 +223,8 @@ body[data-screen="dashboard"] .bc-bar{display:none}
 .dx-r2{grid-template-columns:1fr 1fr}
 .dx-r3{grid-template-columns:1.1fr 1.1fr 1fr}
 .dx-open{grid-column:1/-1}
+.dx-skel{height:96px;background:linear-gradient(90deg,var(--g1) 25%,var(--g0) 50%,var(--g1) 75%);background-size:200% 100%;animation:dxsk 1.2s infinite linear}
+@keyframes dxsk{to{background-position:-200% 0}}
 .dx-r2.dx-exp #dxSlot{grid-column:1/-1}
 @media(max-width:1200px){.dx-kpis{grid-template-columns:repeat(2,1fr)}.dx-r2,.dx-r3{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.dx-kpis,.dx-r2,.dx-r3{grid-template-columns:1fr}}
@@ -1878,7 +1877,7 @@ tbody tr:hover{background:var(--g0)}
 </div>
 
 <div id="dashXTop"></div>
-<div id="dashXBody"></div>
+<div id="dashXBody"><div class="dx-grid dx-kpis"><div class="dx-card dx-skel"></div><div class="dx-card dx-skel"></div><div class="dx-card dx-skel"></div><div class="dx-card dx-skel"></div></div><div class="dx-grid dx-r2"><div class="dx-card dx-skel" style="height:260px"></div><div class="dx-card dx-skel" style="height:260px"></div></div></div>
 <!-- ── DASHBOARD BODY: main column + right sidebar (sidebar is new; everything in the main column below is unchanged) ── -->
 <div style="display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start" class="dash-body-grid">
 <div class="dash-main-col" style="min-width:0">
@@ -5932,7 +5931,6 @@ tbody tr:hover{background:var(--g0)}
 <div class="toast-stack" id="toastStack"></div>
 
 <!-- ================= AI SUPPORT CHAT WIDGET (independent component, persistent across all screens) ================= -->
-<button type="button" id="globalRefresh" title="Refresh this page" aria-label="Refresh this page" onclick="location.reload()"><svg class="ic" data-icon="refresh-cw"></svg></button>
 <div id="chatLauncher" class="chat-launcher" title="Support Chat">
   <svg class="ic" data-icon="message-circle"></svg>
   <span class="chat-badge" id="chatBadge" style="display:none">1</span>
@@ -16650,7 +16648,7 @@ if(document.readyState !== "loading") initChatWidget();
     }
   }
   const prev = MK.onScreen;
-  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "dashboard"){ load(); loadSide(); } fillPages(screen); };
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "dashboard"){ const sd = dash(); if(sd && sd.dataset.dv === "new") setTimeout(()=>{ load(); loadSide(); }, 1800); else { load(); loadSide(); } } fillPages(screen); };
   const refresh = document.getElementById("dashRefreshBtn"); if(refresh) refresh.addEventListener("click", load);
   window.dashKitLoad = ()=>{ load(); loadSide(); };
 })();
@@ -16774,11 +16772,14 @@ if(document.readyState !== "loading") initChatWidget();
     const fill = document.getElementById("dxFill"); if(fill) fill.style.display = window.__dxOpen ? "none" : "block";
     paintCat(); if(window.__dxOpen && dx) dx.scrollIntoView({behavior:"smooth", block:"start"});
   }
+  const ckey = ()=> { const u = window.SESSION_USER; return u && u.id ? "esway_dx_"+u.id : ""; };
+  function paintCached(){ if(DATA) return; const k = ckey(); if(!k) return; try{ const c = JSON.parse(localStorage.getItem(k) || "null"); if(c && c.jobs && c.money) build(c); }catch(e){} }
   async function load(){
     if(!sessionStorage.getItem("esway_access_token")) return;
-    try{ build(await api("GET", "/api/dashboard/executive")); }catch(e){ const B = document.getElementById("dashXBody"); if(B) B.innerHTML = '<div class="dx-card"><div class="dx-sub">'+(e.status === 403 ? "Platform administrators have no company dashboard. Sign in to the ERP to see one." : "Could not load the dashboard: "+esc2(e.message || ""))+'</div></div>'; }
+    paintCached();
+    try{ const d = await api("GET", "/api/dashboard/executive"); build(d); try{ const k = ckey(); if(k) localStorage.setItem(k, JSON.stringify(d)); }catch(e){} }catch(e){ const B = document.getElementById("dashXBody"); if(B) B.innerHTML = '<div class="dx-card"><div class="dx-sub">'+(e.status === 403 ? "Platform administrators have no company dashboard. Sign in to the ERP to see one." : "Could not load the dashboard: "+esc2(e.message || ""))+'</div></div>'; }
   }
-  function mode(m){ const s = scr(); if(!s) return; s.dataset.dv = m; if(m === "classic") parkCarousel(); else attachCarousel(); try{ localStorage.setItem("esway_dash_view", m); }catch(e){} document.querySelectorAll(".dxsw").forEach(b=> b.classList.toggle("on", b.dataset.dv === m)); }
+  function mode(m){ const s = scr(); if(!s) return; s.dataset.dv = m; if(m === "classic"){ parkCarousel(); if(window.dashKitLoad) window.dashKitLoad(); } else attachCarousel(); try{ localStorage.setItem("esway_dash_view", m); }catch(e){} document.querySelectorAll(".dxsw").forEach(b=> b.classList.toggle("on", b.dataset.dv === m)); }
   document.addEventListener("click", e=>{
     const b = e.target.closest && e.target.closest(".dxsw"); if(b){ mode(b.dataset.dv); return; }
     if(e.target.closest && e.target.closest("#dxRefresh")){ load(); return; }
@@ -23215,14 +23216,10 @@ function makePrintFit(){
   if(panel && head) drag(panel, head, "panel", ".chat-head-btn");
   restore();
   window.addEventListener("resize", ()=>{ if(launcher && launcher.style.left) place(launcher, launcher.offsetLeft, launcher.offsetTop); if(panel && panel.style.left && panel.style.display !== "none") place(panel, panel.offsetLeft, panel.offsetTop); });
-  const hb = document.createElement("button"); hb.type = "button"; hb.id = "hdrChatBtn"; hb.className = "hdr-chat-btn"; hb.title = "Chat with support";
-  hb.innerHTML = '<svg class="ic" data-icon="message-circle"></svg>';
+  const hb = document.createElement("button"); hb.type = "button"; hb.id = "hdrRefreshBtn"; hb.className = "hdr-chat-btn"; hb.title = "Refresh this page"; hb.setAttribute("aria-label", "Refresh this page");
+  hb.innerHTML = '<svg class="ic" data-icon="refresh-cw"></svg>';
   input.closest(".hdr-search").insertAdjacentElement("afterend", hb); if(window.renderIcons) window.renderIcons(hb);
-  hb.addEventListener("click", ()=>{
-    if(!panel) return;
-    if(launcher && launcher.classList.contains("gone")) setHidden(false);
-    if(panel.style.display === "none"){ if(launcher) launcher.click(); } else { panel.style.display = "none"; }
-  });
+  hb.addEventListener("click", e=>{ if(e.shiftKey && launcher){ setHidden(false); launcher.classList.remove("gone"); return; } location.reload(); });          /* Shift + click brings back a hidden support-chat button */
 })();
 
 /* ============================================================
