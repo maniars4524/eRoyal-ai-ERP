@@ -14678,7 +14678,7 @@ if(document.readyState !== "loading") initChatWidget();
   const TYPES = {
     invoice:{label:"Tax Invoice", screen:"invoice-new", list:"invoice-list", party:"Bill To", ar:true},
     debit_note:{label:"Debit Note", screen:"debit-note-new", list:"debit-note-list", party:"Bill To", ar:true, ref:"invoice"},
-    credit_note:{label:"Credit Note", screen:"debit-note-new", list:"debit-note-list", party:"Bill To", ar:true, ref:"invoice", refRequired:true},
+    credit_note:{label:"Credit Note", screen:"debit-note-new", list:"debit-note-list", party:"Bill To", ar:true, ref:"invoice", refRequired:false},          /* against an invoice, or against the job (then the job number is filled in) */
     purchase_invoice:{label:"Purchase Invoice", screen:"purchase-invoice-new", list:"purchase-invoice-list", party:"Vendor", ar:false},
     purchase_credit_note:{label:"Purchase Credit Note", screen:"purchase-invoice-new", list:"purchase-invoice-list", party:"Vendor", ar:false, ref:"purchase_invoice", refRequired:true},
   };
@@ -14714,7 +14714,7 @@ if(document.readyState !== "loading") initChatWidget();
   const calc = l=>{
     const qty = Number(l.qty)||0, rate = Number(l.rate)||0, exch = l.ccy === "INR" ? 1 : (Number(l.exch)||0);
     const amount = Math.round(qty*rate*exch*100)/100;
-    const exportSupply = /outside\s+india|overseas|foreign|export/i.test(((S && S.head) || {}).place_of_supply || "");          /* export of services: no GST on any line */
+    const exportSupply = /outside\s+india|overseas|foreign|export/i.test(((BK.state && BK.state.head) || {}).place_of_supply || "");          /* export of services: no GST on any line */
     const tax = l.tax_type === "Taxable" && !exportSupply ? Math.round(amount*(Number(l.tax_pct)||0))/100 : 0;
     return {amount, tax, total: amount+tax};
   };
@@ -14937,7 +14937,10 @@ if(document.readyState !== "loading") initChatWidget();
         if(!window.confirm("Cancel this document? This cannot be undone.")) return;
         S.doc = await api("POST","/api/documents/"+S.doc.id+"/cancel"); renderEditor(); say("Document cancelled", S.doc.doc_number || "Draft"); return;
       }
-      if(name === "note"){ BK.openNew(S.type === "invoice" ? "credit_note" : "purchase_credit_note", {party_name:S.doc.party_name, ref_document_id:S.doc.id, job_number:S.doc.job_number, lines:[blankLine()]}); return; }
+      if(name === "note"){
+        const k = S.type === "invoice" ? "credit_note" : "purchase_credit_note";
+        if(S.doc.job_number && window.VoucherKit && window.VoucherKit.start){ window.VoucherKit.start(k, S.doc.job_number, S.doc.id); return; }          /* the chooser: difference amount, chosen entries, full, or the job only */
+        BK.openNew(k, {party_name:S.doc.party_name, ref_document_id:S.doc.id, job_number:S.doc.job_number, lines:[blankLine()]}); return; }
       if(name === "receipt" || name === "pay"){ BK.openPayment(name === "receipt" ? "RECEIPT" : "PAYMENT", S.doc); return; }
       if(name === "print"){ window.print(); return; }
     }catch(e){ say("Could not complete the action", e.message); }
@@ -19146,7 +19149,7 @@ function makePrintFit(){
   DK.debitNote = function(doc, rd, billTo){
     const co = rd.company || {}, P = co.profile || {}, f = facts(rd); const ls = docLines(doc); const ccy = (ls[0] || {}).ccy || "INR"; const credit = doc.doc_type === "credit_note"; const label = credit ? "CREDIT NOTE" : "DEBIT NOTE"; const intl = ccy !== "INR";
     const hd = doc.header || {};
-    const refInv = hd.ref_invoice_no || hd.invoice_no || ""; const refDate = hd.ref_invoice_date || hd.invoice_date || "";
+    const refInv = hd.ref_invoice_no || hd.invoice_no || doc.ref_doc_number || ""; const refDate = hd.ref_invoice_date || hd.invoice_date || "";
     const grid = (rows)=> '<div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid '+LINE+'">'+rows.map(([k, v], i)=>'<div style="display:flex;border-bottom:1px solid '+LINE+(i % 2 === 0 ? ";border-right:1px solid "+LINE : "")+'"><div style="width:42%;padding:3px 6px;font-weight:700;background:#f6f8fc">'+esc2(k)+'</div><div style="flex:1;padding:3px 6px">'+(v || "")+'</div></div>').join("")+'</div>';
     const metaBox = '<div style="border:1px solid '+LINE+';min-width:230px">'+[[label+" No.", doc.doc_number || "Draft"], [label+" Date", dmy(doc.doc_date)], ["Invoice No. (Ref.)", refInv], ["Invoice Date (Ref.)", dmy(refDate)]].map(([k, v])=>'<div style="display:flex;border-bottom:1px solid '+LINE+'"><div style="width:48%;padding:4px 6px;font-weight:700">'+k+'</div><div style="flex:1;padding:4px 6px;border-left:1px solid '+LINE+'">'+esc2(v)+'</div></div>').join("")+'</div>';
     const ship = [["MBL No. / Date", esc2([f.mbl, dmy(f.mblDate)].filter(Boolean).join(" / "))], ["ETD (Estimated Time of Departure)", esc2(dmy(f.etd))], ["HBL No. / Date", esc2([f.hbl, dmy(f.hblDate)].filter(Boolean).join(" / "))], ["ETA (Estimated Time of Arrival)", esc2(dmy(f.eta))], ["Vessel / Voyage", esc2(f.vessel)], ["Commodity", esc2(f.desc)], ["POL (Port of Loading)", esc2(f.pol)], ["", ""], ["POD (Port of Discharge)", esc2(f.pod)], ["", ""]].filter((r, i, a)=> r[0] || a[i - 1] && a[i - 1][0]);
@@ -19494,7 +19497,7 @@ function makePrintFit(){
     const head = head2(co, "CREDIT NOTE", "", null, posted);
     const info = '<div style="display:flex;border:'+BD+';border-top:0"><div style="flex:1.1;border-right:'+BD+';display:flex;flex-direction:column;justify-content:space-between"><div style="padding:3px 6px;font-size:8.8px;line-height:1.35"><b>M/s</b> '+esc2(name)+'<br>'+bl.slice(1).map(esc2).join("<br>")+'</div>'+
       '<div><div style="padding:3px 6px;border-top:'+BD+'"><b style="font-size:9.2px">Container No. &amp; Size</b><div style="font-size:8.6px">'+(f.conts.length ? f.conts.map(x=>esc2(x.container_no+" "+(x.type || ""))).join("<br>") : "")+'</div></div><div style="padding:3px 6px;font-size:8.8px;margin-top:20px"><b>No. Of Pkg</b> &nbsp; '+(f.pkgs ? esc2(fmt(f.pkgs, 3)+" "+(f.pkgType || "")) : "")+'</div></div></div>'+
-      '<div style="flex:1.5;display:flex"><div style="flex:1;border-right:'+BD+'">'+cell("Credit Note No.", esc2(posted ? doc.doc_number || "" : (hd.proforma_no || "Draft")))+cell("Cycle", esc2([rd.mode, rd.direction].filter(Boolean).join(" ")))+cell("Freight Status", esc2(f.freight || ""))+cell("Destination", esc2(f.pld || f.pod))+cell("Credit Days", days+" days")+cell("Shipper Inv. No. &amp; Date", esc2(hd.customer_ref || hd.reference || "")+(hd.ref_invoice_date ? "&nbsp; <b>Dt.</b> "+dmy3(hd.ref_invoice_date) : ""))+cell("MBL No.", esc2(f.mbl), true)+'</div>'+
+      '<div style="flex:1.5;display:flex"><div style="flex:1;border-right:'+BD+'">'+cell("Credit Note No.", esc2(posted ? doc.doc_number || "" : (hd.proforma_no || "Draft")))+cell("Cycle", esc2([rd.mode, rd.direction].filter(Boolean).join(" ")))+cell("Freight Status", esc2(f.freight || ""))+cell("Destination", esc2(f.pld || f.pod))+cell("Credit Days", days+" days")+cell("Against Invoice No. &amp; Date", esc2(hd.ref_invoice_no || doc.ref_doc_number || "")+(hd.ref_invoice_date || doc.ref_doc_date ? "&nbsp; <b>Dt.</b> "+dmy3(hd.ref_invoice_date || doc.ref_doc_date) : ""))+cell("Shipper Inv. No. &amp; Date", esc2(hd.customer_ref || hd.reference || ""))+cell("MBL No.", esc2(f.mbl), true)+'</div>'+
       '<div style="flex:1">'+cell("Dated", dmy3(doc.doc_date))+cell(f.air ? "Flight" : "Vessel Name", esc2(f.vessel))+cell("Voyage", "")+cell("Cont./ Cargo Type", esc2(f.bk.container_mode || ""))+cell(f.air ? "HAWB No." : "HBL No.", esc2(f.hbl))+cell("Load Port", esc2(f.pol), true)+'</div></div></div>';
     const th = (t, w)=> '<th style="border:'+BD+';padding:5px;font-size:9.5px;font-weight:700;text-transform:none;letter-spacing:0;background:#fff;color:#000;'+(w ? "width:"+w+"px;" : "")+'">'+t+'</th>';
     const td = (v, a)=> '<td style="border-left:'+BD+';border-right:'+BD+';padding:2px 6px;font-size:8.8px;text-align:'+(a || "left")+';vertical-align:top">'+v+'</td>';
@@ -19753,18 +19756,52 @@ function makePrintFit(){
 
   /* ---- raising documents for the job ---- */
   const fromInvoice = d=> d.lines.map(l=>({charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:l.qty, ccy:l.ccy, exch:l.exch, rate:l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct}));
+  async function jobCredit(job){
+    let names = []; try{ names = (await api("GET", "/api/customers")).map(c=>c.name); }catch(e){}
+    openModal({title:"Credit Note against job "+esc2(job), bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">This job has no posted invoice. The credit note is raised against the job itself (for example the net credit of the DR / CR statement) and goes to the party\'s ledger.</div><div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Party (customer / overseas agent)</label><input class="fc" id="vkParty" list="vkPartyList" autocomplete="off"><datalist id="vkPartyList">'+names.map(n=>'<option value="'+esc2(n)+'"></option>').join("")+'</datalist></div></div>',
+      footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="vkJobGo">Continue</button>'});
+    el("vkJobGo").addEventListener("click", ()=>{ const n = el("vkParty").value.trim(); if(!n){ say("Choose the party", "The credit note goes to this party's ledger", "warn"); return; } closeModal(); window.BK.openNew("credit_note", {party_name:n, job_number:job, lines:[{charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:"Taxable", tax_pct:"18"}]}); });
+  }
   function pickInvoice(kind, job, preId){
     const srcType = kind === "credit_note" ? "invoice" : "purchase_invoice"; const label2 = kind === "credit_note" ? "invoice" : "purchase invoice";
     const cands = VK.docs.filter(d=>d.doc_type === srcType && posted(d) && Number(d.outstanding) + Number(d.credited_amount || 0) >= 0);
-    if(!cands.length){ say("No "+label2+" to credit", "A credit note is issued against a posted "+label2+" of this job. Post one first", "warn"); return; }
+    if(!cands.length){
+      if(kind !== "credit_note"){ say("No "+label2+" to credit", "A purchase credit note is issued against a posted purchase invoice of this job. Post one first", "warn"); return; }
+      return jobCredit(job);                                                                       /* no invoice yet: the credit note is raised against the job */
+    }
     const sel = preId ? cands.find(d=>d.id === preId) : null;
     const go2 = async (d, full)=> { closeModal(); let src = d; if(full){ try{ src = await api("GET", "/api/documents/"+d.id); }catch(e){ say("Could not read the document", e.message, "error"); return; } } window.BK.openNew(kind, {party_name:d.party_name, ref_document_id:d.id, job_number:job, lines:full ? fromInvoice(src) : undefined}); };
     if(sel){ choose(sel); return; }
     function choose(d){
-      openModal({title:(kind === "credit_note" ? "Credit Note" : "Purchase Credit Note")+" against "+esc2(number(d)), bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">Use this when a '+label2+' was raised wrongly or part of it must be reversed. The credit note is linked to '+esc2(number(d))+' ('+esc2(d.party_name)+', total '+fmt(d.grand_total)+', outstanding '+fmt(d.outstanding)+').</div>'+
-        '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Credit</label><select class="fc" id="vkMode"><option value="full">The full '+label2+' (all lines are copied; edit if needed)</option><option value="part">Only some lines (start with an empty note)</option></select></div></div>',
+      const isCn = kind === "credit_note";
+      openModal({title:(isCn ? "Credit Note" : "Purchase Credit Note")+" against "+esc2(number(d)), bodyHTML:'<div class="ib ib-bl" style="margin-bottom:8px">Use this when a '+label2+' was raised wrongly or '+(isCn ? "part of it must be reversed" : "more was entered than the original value")+'. The note is linked to '+esc2(number(d))+' ('+esc2(d.party_name)+', total '+fmt(d.grand_total)+', outstanding '+fmt(d.outstanding)+').</div>'+
+        '<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Credit</label><select class="fc" id="vkMode"><option value="diff">Only the difference amount</option><option value="entries">Chosen entries of the '+label2+'</option><option value="full">The full '+label2+' (all lines are copied; edit if needed)</option><option value="part">Only some lines (start with an empty note)</option>'+(isCn ? '<option value="job">Against the job only (no '+label2+')</option>' : "")+'</select></div></div><div id="vkExtra"></div>',
         footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="vkGo">Continue</button>'});
-      el("vkGo").addEventListener("click", ()=> go2(d, el("vkMode").value === "full"));
+      let src = null;
+      const need = async ()=> { if(!src){ try{ src = await api("GET", "/api/documents/"+d.id); }catch(e){ say("Could not read the document", e.message, "error"); } } return src; };
+      const paint = async ()=> {
+        const m = el("vkMode").value, box = el("vkExtra"); if(m === "diff" || m === "entries"){ if(!await need()) return; }
+        if(m === "diff"){ const ln = src.lines.find(l=>l.tax_type === "Taxable") || src.lines[0] || {}; box.innerHTML = '<div class="fr"><div class="fg"><label class="fl">Difference amount ('+esc2(ln.ccy || "INR")+', before GST)</label><input class="fc" id="vkAmt" type="number" step="0.01" min="0" placeholder="0.00"></div><div class="fg"><label class="fl">GST %</label><input class="fc" id="vkPct" type="number" step="0.01" min="0" value="'+esc2(ln.tax_type === "Taxable" ? ln.tax_pct : "0")+'"></div><div class="fg"><label class="fl">Reason</label><input class="fc" id="vkWhy" placeholder="e.g. rate difference"></div></div>'; }
+        else if(m === "entries"){ box.innerHTML = '<div class="tw"><table><thead><tr><th></th><th>Entry</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate</th><th>Cur</th></tr></thead><tbody>'+src.lines.map((l, i)=>'<tr><td><input type="checkbox" data-vke="'+i+'"></td><td>'+esc2(l.charge_name)+'</td><td><input class="fc" style="width:70px" type="number" step="0.001" data-vkq="'+i+'" value="'+esc2(l.qty)+'"></td><td><input class="fc" style="width:90px" type="number" step="0.01" data-vkr="'+i+'" value="'+esc2(l.rate)+'"></td><td>'+esc2(l.ccy)+'</td></tr>').join("")+'</tbody></table></div><div style="font-size:11px;color:var(--g5);margin-top:4px">Tick the entries to credit and set the quantity and rate to be credited.</div>'; }
+        else box.innerHTML = "";
+      };
+      el("vkMode").addEventListener("change", paint); paint();
+      el("vkGo").addEventListener("click", async ()=>{
+        const m = el("vkMode").value;
+        if(m === "full" || m === "part") return go2(d, m === "full");
+        if(m === "job"){ closeModal(); return window.BK.openNew("credit_note", {party_name:d.party_name, job_number:job || d.job_number, lines:[{charge_name:"", description:"", hsn:"", uom:"Per Shipment", qty:"1", ccy:"INR", exch:"1", rate:"0", tax_type:"Taxable", tax_pct:"18"}]}); }
+        if(!await need()) return;
+        let lines;
+        if(m === "diff"){
+          const amt = parseFloat(el("vkAmt").value), pct = parseFloat(el("vkPct").value) || 0; if(!(amt > 0)){ say("Enter the difference amount", "The amount to credit, before GST", "warn"); return; }
+          const ln = src.lines.find(l=>l.tax_type === "Taxable") || src.lines[0] || {};
+          lines = [{charge_name:"Credit for difference", description:el("vkWhy").value.trim(), hsn:ln.hsn || "", uom:"Per Shipment", qty:"1", ccy:ln.ccy || "INR", exch:ln.exch || "1", rate:String(amt), tax_type:pct > 0 ? "Taxable" : (ln.tax_type === "Taxable" ? "Non-Taxable" : ln.tax_type), tax_pct:String(pct)}];
+        } else {
+          lines = []; document.querySelectorAll("[data-vke]").forEach(c=>{ if(!c.checked) return; const i = Number(c.dataset.vke), l = src.lines[i]; lines.push({charge_name:l.charge_name, description:l.description, hsn:l.hsn, uom:l.uom, qty:document.querySelector('[data-vkq="'+i+'"]').value || l.qty, ccy:l.ccy, exch:l.exch, rate:document.querySelector('[data-vkr="'+i+'"]').value || l.rate, tax_type:l.tax_type, tax_pct:l.tax_pct}); });
+          if(!lines.length){ say("Tick at least one entry", "Choose the entries to credit", "warn"); return; }
+        }
+        closeModal(); window.BK.openNew(kind, {party_name:d.party_name, ref_document_id:d.id, job_number:job || d.job_number, lines});
+      });
     }
     if(cands.length === 1){ choose(cands[0]); return; }
     openModal({title:"Choose the "+label2+" to credit", bodyHTML:'<div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">'+(kind === "credit_note" ? "Invoice" : "Purchase invoice")+'</label><select class="fc" id="vkInv">'+cands.map(d=>'<option value="'+d.id+'">'+esc2(number(d))+" — "+esc2(d.party_name)+" — "+fmt(d.grand_total)+" ("+esc2(stat(d))+")</option>").join("")+'</select></div></div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Cancel</button><button class="btn btn-pri" type="button" id="vkPick">Next</button>'});
