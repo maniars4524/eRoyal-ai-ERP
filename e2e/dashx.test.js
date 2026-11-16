@@ -65,6 +65,8 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.evaluate(() => document.querySelector('.dxsw[data-dv="classic"]').click()); await sleep(500);
   check("Classic dashboard is one click away and shows", await vis("#s-dashboard .dash-body-grid") && !(await vis("#dashXBody")), "");
   check("the slideshow goes back to the classic dashboard", await page.evaluate(() => !!document.querySelector(".dash-r1 #dashCarousel")));
+  await page.evaluate(() => document.querySelector("#hdrChatBtn").click()); await sleep(600);
+  check("header: Refresh then Chat; the chat button opens the support chat", await page.evaluate(() => document.querySelector("#hdrRefreshBtn").nextElementSibling === document.querySelector("#hdrChatBtn")) && await page.evaluate(() => { const p = document.querySelector("#chatPanel"); return !!p && p.style.display !== "none"; }));
   check("no script errors", errs.length === 0, errs.join(" | "));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })();

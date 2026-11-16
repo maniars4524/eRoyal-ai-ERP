@@ -23222,7 +23222,15 @@ function makePrintFit(){
   const hb = document.createElement("button"); hb.type = "button"; hb.id = "hdrRefreshBtn"; hb.className = "hdr-chat-btn"; hb.title = "Refresh this page"; hb.setAttribute("aria-label", "Refresh this page");
   hb.innerHTML = '<svg class="ic" data-icon="refresh-cw"></svg>';
   input.closest(".hdr-search").insertAdjacentElement("afterend", hb); if(window.renderIcons) window.renderIcons(hb);
-  hb.addEventListener("click", e=>{ if(e.shiftKey && launcher){ setHidden(false); launcher.classList.remove("gone"); return; } location.reload(); });          /* Shift + click brings back a hidden support-chat button */
+  hb.addEventListener("click", ()=> location.reload());
+  const hc = document.createElement("button"); hc.type = "button"; hc.id = "hdrChatBtn"; hc.className = "hdr-chat-btn"; hc.title = "Chat with support"; hc.setAttribute("aria-label", "Chat with support");          /* the support chat button, right after Refresh */
+  hc.innerHTML = '<svg class="ic" data-icon="message-circle"></svg>';
+  hb.insertAdjacentElement("afterend", hc); if(window.renderIcons) window.renderIcons(hc);
+  hc.addEventListener("click", ()=>{
+    if(!panel) return;
+    if(launcher && launcher.classList.contains("gone")) setHidden(false);
+    if(panel.style.display === "none"){ if(launcher) launcher.click(); } else { panel.style.display = "none"; }
+  });
 })();
 
 /* ============================================================
