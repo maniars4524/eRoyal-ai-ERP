@@ -38,7 +38,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await page.screenshot({ path: "../scratch/tpl2_invoice.png", fullPage: false });
   await open(d2.id); await pick("two");
   const t3 = await text("#docViewZone");
-  check("Template two export invoice: USD totals, LUT wording, no IGST, INR equivalent", ["7,200.00", "SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING"].every(x => t3.includes(x)) && /USD/.test(t3) && /Seven Thousand Two Hundred Only\./.test(t3) && /INR equivalent/.test(t3) && /DEBIT NOTE/.test(t3), t3.slice(0, 400));
+  check("Template two export invoice: USD totals, LUT wording, no IGST, INR equivalent", ["7,200.00", "SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING"].every(x => t3.includes(x)) && /USD/.test(t3) && /Seven Thousand Two Hundred Only\./.test(t3) && /INR equivalent/.test(t3) && /DEBIT NOTE/.test(t3) && !/TAX INVOICE/i.test(t3) && /Debit Note Date/.test(t3) && /Total Debit Note Value/.test(t3) && !/Invoice Date|Total Invoice Value/.test(t3), t3.match(/.{0,30}(tax invoice|Invoice Date|Total Invoice Value).{0,30}/i) + " :: " + t3.slice(0, 120));
   await page.screenshot({ path: "../scratch/tpl2_export.png", fullPage: false });
   await open(d3.id); await pick("two");
   const t4 = await text("#docViewZone");

@@ -19444,7 +19444,7 @@ function makePrintFit(){
     const top = head2(co, title, sub, ei, posted)+
       '<div style="display:flex;border:'+BD+';border-top:0;font-size:8.8px"><div style="flex:1;padding:4px 8px"><b>Recipient :</b><div style="font-size:11px;font-weight:800;margin-top:2px">'+esc2(name)+'</div><div style="line-height:1.35">'+bl.slice(1).map(esc2).join("<br>")+'</div>'+
         '<div style="margin-top:3px"><b>PAN No :</b> '+esc2(gstin ? gstin.slice(2, 12) : "")+'</div><div><b>GSTIN :</b> '+esc2(gstin)+' &nbsp;&nbsp;<b>State :</b> '+stateTxt+'</div></div>'+
-        '<div style="width:300px;padding:4px 8px">'+rlab(debit ? "Debit Note No." : posted ? "Invoice No." : "Proforma No.", "<b>"+esc2(docNo)+"</b>", true)+rlab("Invoice Date", dmy3(docDate))+rlab("Due Date", dmy3(doc.due_date))+rlab("Place of Supply", stateTxt || esc2(doc.place_of_supply || ""))+rlab("Shipment No.", esc2(jobs.join(", ")))+rlab("Shipment Type", esc2([rd.mode, rd.direction].filter(Boolean).join(" ")))+'</div></div>'+
+        '<div style="width:300px;padding:4px 8px">'+rlab(debit ? "Debit Note No." : posted ? "Invoice No." : "Proforma No.", "<b>"+esc2(docNo)+"</b>", true)+rlab(debit ? "Debit Note Date" : "Invoice Date", dmy3(docDate))+rlab("Due Date", dmy3(doc.due_date))+rlab("Place of Supply", stateTxt || esc2(doc.place_of_supply || ""))+rlab("Shipment No.", esc2(jobs.join(", ")))+rlab("Shipment Type", esc2([rd.mode, rd.direction].filter(Boolean).join(" ")))+'</div></div>'+
       shipGrid(rd, f, hd, ls);
     /* ---------- charges table ---------- */
     const th = (t, x)=> '<th '+(x || "")+' style="border:'+BD+';padding:2px 3px;font-size:7.2px;font-weight:700;text-transform:none;letter-spacing:0;background:#fff;color:#000;text-align:center;vertical-align:middle">'+t+'</th>';
@@ -19467,7 +19467,7 @@ function makePrintFit(){
     const bankLines = foreign ? [["Beneficiary", P.bank_beneficiary || P.legal_name || co.name], ["Bank", P.usd_bank_name], ["Bank A/c. No", P.usd_bank_account], ["Swift Code", P.usd_bank_swift], ["Bank Address", P.usd_bank_address], ["Intermediary", P.usd_bank_intermediary]] : [["", "Online RTGS/NEFT/IMPS transfer :"], ["", P.bank_beneficiary || P.legal_name || co.name], ["", [P.bank_name, P.bank_branch].filter(Boolean).join(" ")], ["", "Bank A/c. No : "+(P.bank_account || "")+(P.bank_ifsc ? "   IFSC Code : "+P.bank_ifsc : "")]];
     const pay = '<div style="flex:1.05;padding:3px 8px;font-size:8.3px;line-height:1.45"><b>Payment Details :</b><br>'+bankLines.filter(r=>r[1]).map(r=>(r[0] ? "<b>"+esc2(r[0])+" :</b> " : "")+esc2(r[1])).join("<br>")+(ei && posted && ei.irn ? '<div style="margin-top:8px;font-size:7.4px;word-break:break-all"><b>IRN :</b> '+esc2(ei.irn)+'</div>' : "")+'</div>';
     const vr = (k, v, b)=> '<div style="display:flex;justify-content:space-between;gap:6px;padding:.5px 6px;font-size:8.7px;'+(b ? "font-weight:800;" : "")+'"><span>'+k+'</span><span style="display:flex;gap:18px"><b>'+esc2(cur)+'</b><span style="min-width:74px;text-align:right">'+fmt(v)+'</span></span></div>';
-    const tot = '<div style="flex:1;border-left:'+BD+';padding:2px 0">'+vr("<b>Total Amount Before Tax</b>", before)+vr("<b>Add : GST</b>", gst)+vr("<b>Total Invoice Value</b>", gt)+vr("<b>Less : Advance Received</b>", received)+vr("<b>Round-Off</b>", roundOff)+vr("<b>Net Payable</b>", net, true)+vr("<b>Tax Payable on Reverse Charges</b>", rcm)+
+    const tot = '<div style="flex:1;border-left:'+BD+';padding:2px 0">'+vr("<b>Total Amount Before Tax</b>", before)+vr("<b>Add : GST</b>", gst)+vr("<b>"+(debit ? "Total Debit Note Value" : "Total Invoice Value")+"</b>", gt)+vr("<b>Less : Advance Received</b>", received)+vr("<b>Round-Off</b>", roundOff)+vr("<b>Net Payable</b>", net, true)+vr("<b>Tax Payable on Reverse Charges</b>", rcm)+
       (foreign ? '<div style="padding:1px 6px;font-size:7.4px;color:#222">INR equivalent @ ₹ '+fmt(exch0, 4)+" : <b>₹ "+fmt(doc.grand_total)+'</b></div>' : "")+'</div>';
     const terms = lines(P.invoice_terms);
     const closing = ['<div style="display:flex;border:'+BD+';border-top:0">'+pay+tot+'</div>'+
@@ -19478,7 +19478,7 @@ function makePrintFit(){
     const per = 12, chunks = chunk(ls, per), pages = [];
     chunks.forEach((g, gi)=>{ pages.push({html:top+tbl(g, gi * per, gi === chunks.length - 1), used:470 + g.length * 22}); });
     place(pages, closing, closingH, top);
-    return wrap2(pages.map(p=>p.html), posted ? "Original for Recipient" : "Proforma - not a tax invoice");
+    return wrap2(pages.map(p=>p.html), posted ? "Original for Recipient" : (debit ? "Draft - not issued" : "Proforma - not a tax invoice"));
   };
 
   /* ---------- CREDIT NOTE ---------- */

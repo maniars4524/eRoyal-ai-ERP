@@ -40,3 +40,27 @@ def test_template_names_can_be_renamed_per_company(h):
     assert client.put("/api/company/template-names", json={"one": "x" * 41}, headers=h).status_code == 422
     client.put("/api/company/template-names", json={"one": "", "two": ""}, headers=h)
     assert client.get("/api/company/template-names", headers=h).json() == {"one": "Template one", "two": "Template two"}
+
+
+def test_overseas_debit_and_credit_notes_have_their_own_number_series(h):
+    inr = [{"charge_name": "x", "rate": "100", "tax_pct": "18"}]
+    usd = [{"charge_name": "x", "ccy": "USD", "exch": "83", "rate": "100", "tax_type": "Non-Taxable"}]
+
+    inv = {}
+    for k, ls in (("inr", inr), ("usd", usd)):
+        i = _doc(h, party_name="Series Co " + k, lines=ls)
+        assert client.post(f"/api/documents/{i['id']}/post", headers=h).status_code == 200
+        inv[k] = i["id"]
+
+    def posted(doc_type, lines):
+        ref = {"ref_document_id": inv["usd" if lines is usd else "inr"]} if doc_type == "credit_note" else {}
+        d = _doc(h, doc_type=doc_type, party_name="Series Co " + ("usd" if lines is usd else "inr"), lines=lines, **ref)
+        r = client.post(f"/api/documents/{d['id']}/post", headers=h)
+        assert r.status_code == 200, r.text
+        return r.json()["doc_number"]
+    dn_inr, dn_usd, cn_inr, cn_usd = posted("debit_note", inr), posted("debit_note", usd), posted("credit_note", inr), posted("credit_note", usd)
+    assert dn_inr.startswith("DN/") and cn_inr.startswith("CN/")
+    assert dn_usd.startswith("ODN/") and cn_usd.startswith("OCN/")
+    assert posted("debit_note", usd) != dn_usd                                       # and they keep counting
+    seqs = {s["doc_type"] for s in client.get("/api/sequences?limit=500", headers=h).json()["items"]}
+    assert {"debit_note_overseas", "credit_note_overseas"} <= seqs                     # visible and configurable in Sequence Setting
