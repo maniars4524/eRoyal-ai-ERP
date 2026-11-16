@@ -755,3 +755,9 @@ RESUME (owner order): (1) Exporter/Importer view tied to a party (Accounts lists
 - New dashboard: Active Jobs card and the category cards open the "Select Job Category" panel inside Active Jobs by Category (no jump to the job list). The classic slideshow card moves into the new dashboard (after Revenue Trend) in place of Shipment Mix + Quick Actions, and returns to the classic view on switching back. Classic switch is hidden for users locked out of finance.
 - test_currency_master passes in the full run (167+ backend tests green, 2026-11-16).
 - Tests: e2e/expreal.test.js, e2e/dashx.test.js, test_cha_invpl party-limit test.
+
+## 2026-11-16 (evening) - dashboard polish, loading fix, menu
+- New dashboard: banner without date/breadcrumb, view switch after Refresh; category card and slideshow 50/50; Revenue Trend card removed (slideshow carries it); recent jobs removed from the category card (trade lanes, arrivals in 7 days and top overdue customers fill the cards); category panel keeps all three tiles (Freight / CHA / Transport) and lists the chosen one.
+- Loading: skeleton at once, last dashboard repainted from localStorage (esway_dx_<userid>), sign-in calls dashKitLoad which now loads the new dashboard first (classic 1.8 s later); loader retries while the token is not stored. Real-login test: e2e/dashlogin.test.js.
+- Header: Refresh button then Chat button (gear icon removed). Top menu: Performance + Reports merged into "Insights & Reports" (still tied to the Reports licence module).
+- Open points: Sales / CHA / Transport real roles (only "View as" previews today); classic dashboard hidden for users locked out of finance; test server 8010 must be restarted by hand after a live restart.
