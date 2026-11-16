@@ -26,6 +26,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await j("POST", "/api/jobs/" + job + "/routing/legs", { carrier: "Centre Ship", voyage: "CS1", pol: "Chennai", pod: "Singapore", etd: soon + "T00:00:00Z", stage: "CONFIRMED" }, token);
   await j("POST", "/api/notifications/messages", { title: "Centre notice", body: "hello" }, token);
   await page.evaluate(() => { window.__fetchCacheClear(); go("dashboard"); window.__rtAlerts(); }); await sleep(3500);
+  await page.evaluate(() => document.querySelector('#dashXSwitch button[data-dv="classic"]').click()); await sleep(400);
   check("the dashboard no longer has the right-hand sidebar and the main area uses the full width", await page.evaluate(() => { const c = document.querySelector(".dash-side-col"); const g = document.querySelector(".dash-body-grid"); return (!c || c.offsetParent === null) && g.firstElementChild.getBoundingClientRect().width > g.getBoundingClientRect().width * 0.95; }));
   await page.evaluate(() => document.querySelector("#rtDash [data-nc-all]").click()); await sleep(2500);
   check("View all opens the centre; Tasks lists the follow-up due today", /Notifications & Alerts/.test(await text("#modalTitle")) && await page.evaluate(() => { const t = [...document.querySelectorAll("#ncTabs button")].find(b => b.textContent.trim().startsWith("Tasks")); t.click(); return true; }));

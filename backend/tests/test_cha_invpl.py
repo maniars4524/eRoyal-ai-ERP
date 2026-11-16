@@ -134,3 +134,16 @@ def test_party_limited_access_and_approver_permission(world, h):
     assert client.post(f"/api/cha/invoice-packing/{a['id']}/approve", headers=oh).status_code == 403   # an Operations (CHA) user cannot approve
     assert client.post(f"/api/cha/invoice-packing/{a['id']}/approve", headers=eh).json()["approval"] == "APPROVED"
     assert client.get(f"/api/cha/invoice-packing/{a['id']}/for-cha", headers=oh).status_code == 200  # the CHA user (Operations) can fetch the approved invoice
+
+
+def test_exporter_importer_user_sees_only_assigned_parties_everywhere(world, h):
+    """Not only Invoice & Packing List: the customer list, the job list and direct links are limited to the assigned party too."""
+    import uuid
+
+    tag = uuid.uuid4().hex[:5].upper()
+    mine = client.post("/api/customers", json={"code": f"MX{tag}", "name": f"MINE EXPORTS {tag}", "customer_type": "Client"}, headers=h).json()
+    other = client.post("/api/customers", json={"code": f"OX{tag}", "name": f"OTHER TRADERS {tag}", "customer_type": "Client"}, headers=h).json()
+    exp_id, eh = _login_user(world, "expx", "EXPORTER_IMPORTER")
+    assert client.put(f"/api/access/customers/{mine['id']}/assignments", json={"user_ids": [exp_id]}, headers=h).status_code == 200
+    names = [c["name"] for c in client.get("/api/customers", headers=eh).json()]
+    assert f"MINE EXPORTS {tag}" in names and f"OTHER TRADERS {tag}" not in names

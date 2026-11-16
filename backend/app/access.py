@@ -59,6 +59,14 @@ def team_of(db: Session, organization_id: int, manager_id: int) -> set[int]:
 
 
 def scope_for(db: Session, user: User) -> Scope:
+    sc = _scope_for(db, user)
+    if sc.unrestricted and not user.is_super_admin and user.organization_id is not None and any(r.name == "EXPORTER_IMPORTER" for r in user.roles):
+        # an Exporter / Importer user is limited like a salesperson: only the parties assigned to them (Organization Master > Assign) and what they created, on every list and direct link
+        return Scope(unrestricted=False, category="SALESPERSON", branch_ids=set(), user_ids={user.id})
+    return sc
+
+
+def _scope_for(db: Session, user: User) -> Scope:
     if user.is_super_admin or user.organization_id is None:
         return Scope()
     row = db.get(UserAccess, user.id)

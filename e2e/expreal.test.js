@@ -1,0 +1,37 @@
+// A real Exporter / Importer user: limited menu from login, only the assigned party, direct links to other data blocked
+const puppeteer = require("puppeteer-core");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); let b = null; try { b = await r.json(); } catch (e) {} return { status: r.status, body: b }; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let failures = 0;
+const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "" : " -> " + (x || ""))); if (!ok) failures++; };
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36).toUpperCase().slice(-5), lic = {};
+  const org = await j("POST", "/api/organizations", { code: "XE" + tag, name: "Exp " + tag, admin_email: `xe${tag}@t.test`, admin_username: "xe" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Boss", admin_last_name: "One" }, dev.body.access_token);
+  const L = org.body.organization.license_number;
+  const adm = (await j("POST", "/api/auth/login", { identifier: "xe" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: L })).body.access_token;
+  const mine = (await j("POST", "/api/customers", { code: "M" + tag, name: "MINE EXPORTS " + tag, customer_type: "Client" }, adm)).body;
+  await j("POST", "/api/customers", { code: "O" + tag, name: "OTHER TRADERS " + tag, customer_type: "Client" }, adm);
+  const u = await j("POST", "/api/users", { username: "ex" + tag.toLowerCase(), email: `ex${tag}@t.test`, password: "Ui-Test-Passw0rd-1", first_name: "Exporter", role: "EXPORTER_IMPORTER" }, adm);
+  check("exporter user created", u.status === 201, JSON.stringify(u.body));
+  const as = await j("PUT", `/api/access/customers/${mine.id}/assignments`, { user_ids: [u.body.id] }, adm);
+  check("party assigned", as.status === 200, JSON.stringify(as.body));
+  const tok = (await j("POST", "/api/auth/login", { identifier: "ex" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: L })).body.access_token;
+  const names = (await j("GET", "/api/customers", null, tok)).body.map(c => c.name);
+  check("only the assigned party is visible", names.includes("MINE EXPORTS " + tag) && !names.includes("OTHER TRADERS " + tag), names.join(","));
+  const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
+  const page = await b.newPage(); await page.setViewport({ width: 1500, height: 1000 }); const errs = [];
+  page.on("pageerror", e => errs.push(String(e.stack || e.message).split(String.fromCharCode(10)).slice(0, 3).join(" <- ")));
+  page.on("dialog", d => d.accept());
+  await page.goto(BASE + "/erp/login", { waitUntil: "networkidle2" }); await page.evaluate(t => localStorage.setItem("esway_persistent_token", t), tok); await page.reload({ waitUntil: "networkidle2" }); await sleep(4000);
+  const top = await page.evaluate(() => [...document.querySelectorAll("#topnavMenu > .tn-item > .tn-row")].map(r => r.innerText.trim()));
+  check("limited menu from login (no Operations / Reports / Settings)", top.length >= 3 && top.length <= 5 && !top.some(t => /Operations|Reports|Settings|Performance/.test(t)), top.join(","));
+  check("lands on Invoice & Packing List", /Invoice & Packing List/.test(await page.evaluate(() => (document.querySelector("#s-cha-invpl") || { innerText: "" }).innerText)));
+  const hidden = await page.evaluate(() => [...document.querySelectorAll(".hdr-menu-item[data-role]")].filter(i => i.style.display !== "none").map(i => i.dataset.role));
+  check("no 'View as' other roles", hidden.length === 1 && hidden[0] === "Exporter", hidden.join(","));
+  check("no script errors", errs.length === 0, errs.join(" | "));
+  await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})();

@@ -749,3 +749,9 @@ RESUME (owner order): (1) Exporter/Importer view tied to a party (Accounts lists
 - Locked cards are blurred with a lock and "You do not have the permission - Check with Admin". "View as ..." roles preview the same locks.
 - Fill gaps done: New / Import / Excel Template / Get Bill / Save hidden for users without `invpl.manage`.
 - Tests: backend/tests/test_dashboard_executive.py, e2e/dashx.test.js.
+
+## 2026-11-16 (later) - fill gaps + dashboard tweaks
+- Exporter / Importer role is now party-limited everywhere (access.scope_for): customers, jobs, invoices, quotations and direct links show only the parties assigned to the user. A real Exporter / Importer user gets the limited menu from login and cannot "view as" other roles. Assign: Settings > Users > role "Exporter / Importer", then Organization Master > Assign the parties.
+- New dashboard: Active Jobs card and the category cards open the "Select Job Category" panel inside Active Jobs by Category (no jump to the job list). The classic slideshow card moves into the new dashboard (after Revenue Trend) in place of Shipment Mix + Quick Actions, and returns to the classic view on switching back. Classic switch is hidden for users locked out of finance.
+- test_currency_master passes in the full run (167+ backend tests green, 2026-11-16).
+- Tests: e2e/expreal.test.js, e2e/dashx.test.js, test_cha_invpl party-limit test.
