@@ -1580,7 +1580,6 @@ tbody tr:hover{background:var(--g0)}
     </div>
     <button class="hdr-btn" title="Toggle dark mode" id="darkBtn"><svg class="ic" data-icon="moon"></svg></button>
     <div style="position:relative">
-      <button class="hdr-btn" title="Settings" id="settingsBtn"><svg class="ic" data-icon="settings"></svg></button>
     </div>
   </div>
   <div class="hdr-div"></div>
@@ -6658,7 +6657,8 @@ const TOPNAV_MENU = [
       {label:"Financial Year Closing", icon:"calendar-check", go:"gl-reports", gltab:"fy"},
     ]},
   ]},
-  {id:"perf", label:"Performance", icon:"chart-pie", children:[
+  {id:"reports", module:"reports", label:"Insights & Reports", icon:"report", children:[
+
     {label:"Dashboards", icon:"dashboard", children:[
       {label:"Executive Dashboard", icon:"dashboard", go:"dashboard"},
       {label:"Revenue Dashboard", icon:"trending-up", go:"pnl"},
@@ -6672,8 +6672,6 @@ const TOPNAV_MENU = [
       {label:"Financial KPI", icon:"cash", go:"reports"},
       {label:"Business Analytics", icon:"chart-pie", go:"reports"},
     ]},
-  ]},
-  {id:"reports", module:"reports", label:"Reports", icon:"report", children:[
     {label:"Operations", icon:"package", children:[
       {label:"Shipment Pre Alert", icon:"alert-triangle", go:"reports", report:"shipment-pre-alert"},
       {label:"Job Closer Report", icon:"check-circle", go:"reports", report:"job-closer"},
@@ -7114,9 +7112,6 @@ $all(".hdr-menu-item[data-role]").forEach(item=>{
 /* ---------------- DARK MODE TOGGLE (demo placeholder) ---------------- */
 let darkOn = false;
 $("#darkBtn").addEventListener("click", ()=> go("themes"));
-$("#settingsBtn").addEventListener("click", ()=>{
-  toast("Settings", "System configuration panel — numbering, tax, COA defaults", "success");
-});
 
 /* ---------------- CLOCK ---------------- */
 function tickClock(){

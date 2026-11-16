@@ -67,6 +67,9 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("the slideshow goes back to the classic dashboard", await page.evaluate(() => !!document.querySelector(".dash-r1 #dashCarousel")));
   await page.evaluate(() => document.querySelector("#hdrChatBtn").click()); await sleep(600);
   check("header: Refresh then Chat; the chat button opens the support chat", await page.evaluate(() => document.querySelector("#hdrRefreshBtn").nextElementSibling === document.querySelector("#hdrChatBtn")) && await page.evaluate(() => { const p = document.querySelector("#chatPanel"); return !!p && p.style.display !== "none"; }));
+  const top = await page.evaluate(() => [...document.querySelectorAll("#topnavMenu > .tn-item > .tn-row")].map(r => r.innerText.trim()));
+  const gear = await page.evaluate(() => !!document.querySelector("#settingsBtn"));
+  check("Performance + Reports merged into Insights & Reports; header gear removed; Settings menu kept", top.includes("Insights & Reports") && !top.includes("Performance") && !top.includes("Reports") && top.includes("Settings") && !gear, top.join(",") + " gear=" + gear);
   check("no script errors", errs.length === 0, errs.join(" | "));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })();
