@@ -19092,20 +19092,34 @@ function makePrintFit(){
         '<script>var fitSheet='+BD.fitSheet.toString()+';window.onload=function(){document.querySelectorAll(".bl-sheet").forEach(function(s){fitSheet(s,'+IN_W+','+IN_H+');});setTimeout(function(){window.focus();window.print();},400);};<\/script>'); w.document.close();
     }catch(e){ say("Could not prepare the document", e.message, "error"); }
   };
-  function loadScript(src){ return new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(s); }); }
+  /* the PDF libraries: this server first (/vendor), the CDN only as a fallback, and never wait for ever */
+  window.__loadLib = window.__loadLib || (function(){ const cache = {};
+    const one = (src, ms)=> new Promise((ok, bad)=>{ const t = document.createElement("script"); let done = false; const tm = setTimeout(()=>{ if(!done){ done = true; t.remove(); bad(new Error("timeout")); } }, ms); t.src = src; t.onload = ()=>{ if(!done){ done = true; clearTimeout(tm); ok(); } }; t.onerror = ()=>{ if(!done){ done = true; clearTimeout(tm); t.remove(); bad(new Error("failed")); } }; document.head.appendChild(t); });
+    return function(url){ if(cache[url]) return cache[url]; const name = url.split("/").pop(); const known = name.indexOf("html2canvas") === 0 ? "html2canvas" : name.indexOf("jspdf") === 0 ? "jspdf" : "";
+      if(known && window[known === "jspdf" ? "jspdf" : "html2canvas"]) return Promise.resolve();
+      cache[url] = one("/vendor/"+name, 20000).catch(()=> one(url, 25000)).catch(()=>{ delete cache[url]; throw new Error("Could not load the PDF library. Check the network connection and try again"); }); return cache[url]; }; })();
+  /* PDF render host: an off-screen frame holding only the pages (html2canvas clones the whole document it is given, and the full ERP screen made every page take ~11 s; a small one takes ~0.3 s) */
+  window.__pdfDoc = window.__pdfDoc || async function(html, width){
+    const fr = document.createElement("iframe"); fr.setAttribute("aria-hidden", "true"); fr.style.cssText = "position:fixed;left:-14000px;top:0;border:0;width:"+(width || 1400)+"px;height:1400px;visibility:hidden";
+    document.body.appendChild(fr); const d = fr.contentDocument; d.open();
+    d.write("<!doctype html><html><head><meta charset=\"utf-8\">"+[...document.querySelectorAll("style")].map(x=>x.outerHTML).join("")+"</head><body style=\"margin:0;background:#fff;padding:0\">"+html+"</body></html>"); d.close();
+    await new Promise(r=>setTimeout(r, 120));
+    return {root:d.body, done:()=>fr.remove()};
+  };
+  function loadScript(src){ return window.__loadLib(src); }
   BD.pdf = async function(){
     const b = await BD.build(jobNo());
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-12000px;top:0;background:#fff;padding:0;width:"+SHEET_W+"px"; host.innerHTML = b.sheets; document.body.appendChild(host);
+    const fx = await window.__pdfDoc(b.sheets, SHEET_W + 40), host = fx.root;
     try{
       BD.fitAll(host);
       const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4", compress:true}); const sheets = host.querySelectorAll(".bl-sheet");
       for(let i = 0; i < sheets.length; i++){
-        const canvas = await window.html2canvas(sheets[i], {scale:3.6, backgroundColor:"#fff", useCORS:true, width:SHEET_W, height:SHEET_H, windowWidth:SHEET_W});
-        if(i) pdf.addPage("a4"); pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST");
+        await new Promise(r=>setTimeout(r, 0)); const canvas = await window.html2canvas(sheets[i], {scale:2.6, backgroundColor:"#fff", useCORS:true, logging:false, width:SHEET_W, height:SHEET_H, windowWidth:SHEET_W});
+        if(i) pdf.addPage("a4"); pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297, undefined, "FAST");
       }
       return {pdf, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf", title:b.title};
-    } finally { host.remove(); }
+    } finally { fx.done(); }
   };
   BD.download = async function(){ try{ const r = await BD.pdf(); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); }catch(e){ say("Could not make the PDF", e.message+" You can use Print and choose Save as PDF", "error"); } };
   BD.mail = async function(){
@@ -20006,16 +20020,16 @@ function makePrintFit(){
     try{ await DK.loadNames(); const b = await DK.build(k.kind, k.opt); stash.cur = b; el("docViewTitle").textContent = b.title; zone.innerHTML = DK.tplBar(b)+'<div style="overflow:auto;background:#d9dee7;padding:10px"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>'; const ed = el("docEditBtn"); if(ed) ed.style.display = (k.kind === "do" || k.kind === "can") ? "" : "none"; }
     catch(e){ zone.innerHTML = '<div class="ib ib-am" style="margin:16px">'+esc2(e.message)+'</div>'; }
   };
-  function loadScript(src){ return new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(s); }); }
+  function loadScript(src){ return window.__loadLib(src); }
   DK.print = function(b){ const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
     w.document.write('<!doctype html><title>'+esc2(window.DocName ? window.DocName.fromTitle(b.title) : b.title)+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.pg{margin:0!important;box-shadow:none!important}</style>'+b.html); w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 700); };
   DK.pdf = async function(b){
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-10000px;top:0;background:#fff"; host.innerHTML = b.html; document.body.appendChild(host);
+    const fx = await window.__pdfDoc(b.html, 900), host = fx.root;
     try{ const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4"}); const pages = host.querySelectorAll(".pg");
-      for(let i = 0; i < pages.length; i++){ const c = await window.html2canvas(pages[i], {scale:2, backgroundColor:"#fff", useCORS:true}); if(i) pdf.addPage("a4"); pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297); }
+      for(let i = 0; i < pages.length; i++){ await new Promise(r=>setTimeout(r, 0)); const c = await window.html2canvas(pages[i], {scale:2, backgroundColor:"#fff", useCORS:true, logging:false}); if(i) pdf.addPage("a4"); pdf.addImage(c.toDataURL("image/jpeg", 0.9), "JPEG", 0, 0, 210, 297); }
       return {pdf, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf"};
-    } finally { host.remove(); }
+    } finally { fx.done(); }
   };
   DK.mail = async function(b){
     const f = (id, label, val)=> '<div class="fg" style="grid-column:span 3"><label class="fl">'+label+'</label><input class="fc" id="'+id+'" value="'+esc2(val || "")+'"></div>'; const p = ((b.rd && b.rd.details) || {}).parties || {};
@@ -22318,7 +22332,7 @@ function makePrintFit(){
   }
 
   /* ---------------- license information sheet (PDF handed to the company) ---------------- */
-  const loadScript = src=> new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(t); });
+  const loadScript = src=> window.__loadLib(src);
   const imgData = url=> fetch(url).then(r=>r.blob()).then(b=>new Promise(ok=>{ const f = new FileReader(); f.onload = ()=>ok(f.result); f.readAsDataURL(b); })).catch(()=>null);
   const sheetDate = v=> v ? new Date(v).toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"}) : "—";
   async function buildSheetPdf(d, known){
@@ -26780,14 +26794,14 @@ body.job-readonly #jlBanner{display:flex}
     const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
     w.document.write("<!doctype html><title>"+esc(b.title)+"</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.bl-sheet{margin:0!important;box-shadow:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>"+b.html); w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 900);
   }
-  const loadJs = src=> new Promise((ok, bad)=>{ if(document.querySelector('script[src="'+src+'"]')) return ok(); const x = document.createElement("script"); x.src = src; x.onload = ok; x.onerror = ()=>bad(new Error("Could not load "+src)); document.head.appendChild(x); });
+  const loadJs = src=> window.__loadLib(src);
   async function pdfSheets(b){
     await loadJs("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadJs("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-12000px;top:0;background:#fff;padding:0"; host.innerHTML = b.html; document.body.appendChild(host);
+    const fx = await window.__pdfDoc(b.html, 1400), host = fx.root;
     try{ const sheets = host.querySelectorAll(".bl-sheet"), W = sheets[0].offsetWidth, Hh = sheets[0].offsetHeight; const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4", compress:true});
-      for(let i = 0; i < sheets.length; i++){ const canvas = await window.html2canvas(sheets[i], {scale:3.6, backgroundColor:"#fff", useCORS:true, width:W, height:Hh, windowWidth:W}); if(i) pdf.addPage("a4"); pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST"); }
+      for(let i = 0; i < sheets.length; i++){ await new Promise(r=>setTimeout(r, 0)); const canvas = await window.html2canvas(sheets[i], {scale:2.6, backgroundColor:"#fff", useCORS:true, logging:false, width:W, height:Hh, windowWidth:W}); if(i) pdf.addPage("a4"); pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297, undefined, "FAST"); }
       return {pdf, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf"};
-    } finally { host.remove(); }
+    } finally { fx.done(); }
   }
 
   /* BL and HAWB printing as the company's operators know it: Draft print, A4 print (original), Pre print (only the typed data, no margins, lines or printed text, for pre-printed stationery) and
@@ -27322,12 +27336,12 @@ body.job-readonly #jlBanner{display:flex}
   async function makePdf(rec, kind, withSign, fmt){
     await loadLib("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadLib("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const c = ctx(rec); c.co = await company();
-    const host = document.createElement("div"); host.style.cssText = "position:fixed;left:-12000px;top:0;background:#fff;width:794px"; host.innerHTML = build(c, kind, withSign, fmt); document.body.appendChild(host);
+    const fx = await window.__pdfDoc(build(c, kind, withSign, fmt), 840), host = fx.root;
     try{
       const pdf = new window.jspdf.jsPDF({unit:"mm", format:"a4", orientation:"portrait"}), pages = Array.from(host.querySelectorAll(".pg"));
       for(let i = 0; i < pages.length; i++){ const cv = await window.html2canvas(pages[i], {scale:2, backgroundColor:"#fff", useCORS:true}); if(i) pdf.addPage(); pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297); }
       return pdf.output("blob");
-    } finally { host.remove(); }
+    } finally { fx.done(); }
   }
   /* the Excel file keeps the figures as numbers, so it can be edited and re-used */
   /* the extra item columns (grade, part no., lot ...) and the "more details" are added to the Excel sheets whenever they are filled */
