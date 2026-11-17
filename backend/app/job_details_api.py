@@ -633,6 +633,45 @@ def put_template_names(body: dict, user: User = Depends(permission_required("mas
     return {k: (names[k] or v) for k, v in TEMPLATE_DEFAULTS.items()}
 
 
+HAWB_FORMATS = {"std": "Existing layout", "one": "Format one", "two": "Format two", "three": "Format three"}
+
+
+def _hawb_out(saved: dict) -> dict:
+    names = saved.get("names") or {}
+    default = saved.get("default") if saved.get("default") in HAWB_FORMATS else "std"
+    return {"names": {k: (str(names.get(k) or "").strip() or v) for k, v in HAWB_FORMATS.items()}, "default": default}
+
+
+@company.get("/hawb-formats")
+def get_hawb_formats(user: User = Depends(permission_required("master.read")), db: Session = Depends(get_db)):
+    """The names the company gave to its House Air Waybill print formats and the one printed by default."""
+    p = db.scalar(select(CompanyDocProfile).where(CompanyDocProfile.organization_id == _tenant(user)))
+    return _hawb_out(((p.data if p else {}) or {}).get("hawb_formats") or {})
+
+
+@company.put("/hawb-formats")
+def put_hawb_formats(body: dict, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
+    org_id = _tenant(user)
+    p = db.scalar(select(CompanyDocProfile).where(CompanyDocProfile.organization_id == org_id))
+    data = dict((p.data if p else {}) or {})
+    names = {}
+    for k in HAWB_FORMATS:
+        v = " ".join(str((body.get("names") or {}).get(k) or "").split())
+        if len(v) > 40:
+            raise HTTPException(422, "A format name can have at most 40 characters")
+        names[k] = v
+    default = body.get("default") or "std"
+    if default not in HAWB_FORMATS:
+        raise HTTPException(422, "Unknown format")
+    data["hawb_formats"] = {"names": names, "default": default}
+    if p:
+        p.data = data
+    else:
+        db.add(CompanyDocProfile(organization_id=org_id, data=data))
+    db.commit()
+    return _hawb_out(data["hawb_formats"])
+
+
 @company.put("/doc-profile")
 def put_profile(body: dict, user: User = Depends(permission_required("master.update")), db: Session = Depends(get_db)):
     import base64

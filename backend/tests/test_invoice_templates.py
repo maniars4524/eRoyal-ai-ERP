@@ -64,3 +64,14 @@ def test_overseas_debit_and_credit_notes_have_their_own_number_series(h):
     assert posted("debit_note", usd) != dn_usd                                       # and they keep counting
     seqs = {s["doc_type"] for s in client.get("/api/sequences?limit=500", headers=h).json()["items"]}
     assert {"debit_note_overseas", "credit_note_overseas"} <= seqs                     # visible and configurable in Sequence Setting
+
+
+def test_hawb_format_names_and_default_are_saved_per_company(h):
+    base = client.get("/api/company/hawb-formats", headers=h).json()
+    assert base == {"names": {"std": "Existing layout", "one": "Format one", "two": "Format two", "three": "Format three"}, "default": "std"}
+    r = client.put("/api/company/hawb-formats", json={"names": {"one": "Sri Lankan", "two": "Typed", "three": "System"}, "default": "two"}, headers=h)
+    assert r.status_code == 200 and r.json()["names"]["one"] == "Sri Lankan" and r.json()["default"] == "two"
+    assert client.get("/api/company/hawb-formats", headers=h).json()["default"] == "two"
+    assert client.put("/api/company/hawb-formats", json={"default": "nine"}, headers=h).status_code == 422
+    assert client.put("/api/company/hawb-formats", json={"names": {"one": "x" * 41}}, headers=h).status_code == 422
+    client.put("/api/company/hawb-formats", json={"names": {}, "default": "std"}, headers=h)
