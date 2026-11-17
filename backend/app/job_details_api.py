@@ -413,7 +413,7 @@ def awb_stock(db: Session, job: Shipment, bl: dict | None, limit: int = 200) -> 
     used: dict[str, str] = {}
     for row, jn in db.execute(select(JobDetail, Shipment.job_number).join(Shipment, Shipment.id == JobDetail.shipment_id).where(JobDetail.organization_id == job.organization_id, Shipment.id != job.id)):
         m = (row.bl or {}).get("mblNo")
-        if m and not (this_house and str((row.bl or {}).get("bookingType") or "") == "House"):
+        if m and ((row.bl or {}).get("awb") or {}).get("mawbApplied") is not False and not (this_house and str((row.bl or {}).get("bookingType") or "") == "House"):
             used[_serial_of(prefix, m)] = jn
     out["has_stock"] = bool(lines)
     for ln in lines:
@@ -444,7 +444,7 @@ def _check_master_stock(db: Session, job: Shipment, row: JobDetail, data: dict) 
         this_house = str(data.get("bookingType") or "") == "House"
         for orow, jn in db.execute(select(JobDetail, Shipment.job_number).join(Shipment, Shipment.id == JobDetail.shipment_id).where(JobDetail.organization_id == job.organization_id, Shipment.id != job.id)):
             ob = orow.bl or {}
-            if _digits(ob.get("mblNo")) == _digits(mawb) and _digits(mawb) and not (this_house and str(ob.get("bookingType") or "") == "House"):
+            if _digits(ob.get("mblNo")) == _digits(mawb) and _digits(mawb) and (ob.get("awb") or {}).get("mawbApplied") is not False and not (this_house and str(ob.get("bookingType") or "") == "House"):
                 raise HTTPException(409, f"Master AWB {mawb} is already used on job {jn}")
         return
     sr = _serial_of(st["prefix"], mawb)

@@ -51,6 +51,8 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("choosing manual entry lets the number be typed", await page.evaluate(() => !document.querySelector("#jobAwb_mawb").readOnly));
   await page.select("#jobAwb_mawbPick", "603-60134702"); await sleep(400);
   check("choosing a number fills the Master AWB No (and it cannot be typed freehand)", await page.evaluate(() => { const i = document.querySelector("#jobAwb_mawb"); return i.value === "603-60134702" && i.readOnly; }));
+  await page.evaluate(() => document.querySelector("#jobAwbMawbApply").click()); await sleep(3000);
+  check("Apply shows the state Applied", /Applied/.test(await text("#jobAwbMawbState")), await text("#jobAwbMawbState"));
   check("the dimensions of the Cargo tab are reflected on the BL", /21/.test(await text("#jobAwbDims")) && /42/.test(await text("#jobAwbDims")) && /56/.test(await text("#jobAwbDims")) && /Val/i.test(await text("#jobAwbDims")), await text("#jobAwbDims"));
   const row0 = await page.evaluate(() => [...document.querySelectorAll('#jobAwbLinesBody tr:first-child input, #jobAwbLinesBody tr:first-child select')].map(i => i.value).join("|"));
   check("the first rate line is filled from the cargo (pieces 1, gross 678)", /^1\|678\b/.test(row0), row0);
