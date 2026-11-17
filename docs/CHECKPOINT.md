@@ -803,3 +803,4 @@ RESUME (owner order): (1) Exporter/Importer view tied to a party (Accounts lists
 - Owner decisions: Buy/Sell rates NOT on the BL; volume weight stays cm/6000 (21x42x56 = 8.23 kg); "Copy Job" undefined (only Duplicate Job exists).
 - Open: owner's "Copy Job" meaning; old pending list (rows-per-page, branch/placement screens, licence onboarding, Brotli/CI/splitting HTML).
 - Master AWB Apply / Revoke (air BL): picking or typing a number is "Not applied" until Apply; Apply saves it, puts it on the House Air Waybill (head "618 MAA 760243451") and takes it from the stock; Revoke clears it and gives it back. Saved as bl.awb.mawbApplied (older jobs without the flag count as applied). Test: e2e/mawb_apply.test.js.
+- 2026-11-17 end of day: everything above is pushed and live (port 8000). Resume from: owner's answer on "Copy Job"; old queue (rows-per-page, branch/placement/assignment screens, licence + company onboarding, Brotli/CI/splitting HTML).
