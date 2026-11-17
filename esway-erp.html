@@ -18683,15 +18683,17 @@ function makePrintFit(){
   JD.awbStock = async function(){
     if(!isAirExp() || !JD.job) return; const pick = el("jobAwb_mawbPick"), info = el("jobAwb_stockInfo"), inp = el("jobAwb_mawb"); if(!pick || !inp) return;
     let st; try{ st = await api("GET", "/api/jobs/"+encodeURIComponent(JD.job)+"/awb-stock?airline="+encodeURIComponent((el("jobAwb_airline") || {}).value || "")); }catch(e){ return; }
-    const cur = inp.value.trim(); const opts = (st.available || []).slice(); if(cur && opts.indexOf(cur) < 0) opts.unshift(cur);
-    pick.innerHTML = '<option value="">— Pick from the Air Stock —</option>'+opts.map(o=>'<option'+(o === cur ? " selected" : "")+'>'+esc2(o)+'</option>').join("");
-    inp.readOnly = !!st.has_stock;                                              /* with stock, the number cannot be typed freehand */
-    pick.style.display = st.has_stock ? "" : "none";
-    if(info) info.textContent = !st.airline ? "Enter the airline (Airline / First carrier) to see its Air Stock." : !st.has_stock ? "No Master stock for "+st.airline.name+" in the Airline Stock Line Master: type the number, or add a range there." : st.ranges.map(r=>r.from_awb+" – "+r.to_awb+": "+r.free+" free of "+r.count).join(" \u00B7 ")+" \u00B7 "+(st.available || []).length+" number(s) shown";
+    const cur = inp.value.trim(); const opts = (st.available || []).slice(); if(cur && opts.indexOf(cur) < 0){ opts.unshift(cur); if(st.has_stock && (st.available || []).indexOf(cur) < 0) JD._manual = true; }
+    pick.innerHTML = '<option value="">— Pick from the Air Stock —</option>'+opts.map(o=>'<option'+(o === cur && !JD._manual ? " selected" : "")+'>'+esc2(o)+'</option>').join("")+'<option value="__manual"'+(JD._manual ? " selected" : "")+'>— Type the number manually —</option>';
+    inp.readOnly = (!!st.has_stock && !JD._manual) || !st.airline;                                /* with stock, or before an airline is chosen, the number cannot be typed freehand */
+    pick.style.display = st.has_stock ? "" : "none"; if(opts.length === 0 && !st.airline){ /* nothing to pick yet */ }
+    if(info) info.textContent = !st.airline ? "Choose the airline (Airline / First carrier) to see its Air Stock." : !st.has_stock ? "No Master stock for "+st.airline.name+" in the Airline Stock Line Master: type the number, or add a range there." : st.ranges.map(r=>r.from_awb+" – "+r.to_awb+": "+r.free+" free of "+r.count).join(" \u00B7 ")+" \u00B7 "+(st.available || []).length+" number(s) shown";
   };
-  document.addEventListener("change", e=>{ if(e.target && e.target.id === "jobAwb_mawbPick"){ const i = el("jobAwb_mawb"); if(i){ i.value = e.target.value; i.dispatchEvent(new Event("input", {bubbles:true})); } } });
+  document.addEventListener("change", e=>{ if(e.target && e.target.id === "jobAwb_mawbPick"){ const i = el("jobAwb_mawb"); if(!i) return;
+    if(e.target.value === "__manual"){ JD._manual = true; i.readOnly = false; i.focus(); return; }                       /* manual entry: type any number (it still cannot be one another job has taken) */
+    JD._manual = false; i.readOnly = true; i.value = e.target.value; i.dispatchEvent(new Event("input", {bubbles:true})); } });
   document.addEventListener("input", e=>{ if(e.target && e.target.id === "jobAwb_airline" && isAirExp()){ clearTimeout(stockTimer); stockTimer = setTimeout(()=>JD.awbStock(), 500); } });
-  document.addEventListener("change", e=>{ if(e.target && e.target.id === "jobAwb_airline" && isAirExp()){ const i = el("jobAwb_mawb"); if(i && !i.readOnly === false){ /* a different airline: the earlier pick no longer applies */ } JD.awbStock(); } });
+  document.addEventListener("change", e=>{ if(e.target && e.target.id === "jobAwb_airline" && isAirExp()){ const i = el("jobAwb_mawb"); JD._manual = false; if(i){ i.value = ""; i.dispatchEvent(new Event("input", {bubbles:true})); } JD.awbStock(); } });   /* a different airline: the earlier number no longer applies, pick from its stock */
   /* what the extra fields save into the waybill's data (air export only; other jobs save exactly what they did before) */
   JD.collectAwbExp = function(){
     if(!isAirExp() || !el("jobAwbExp")) return {}; const g = id=> ((el(id) || {}).value || "").trim();

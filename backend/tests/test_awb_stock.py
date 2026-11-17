@@ -40,10 +40,13 @@ def test_master_awb_comes_from_the_air_stock_and_is_used_once(h):
     r = put_bl(h, b, "603 60134701", code)
     assert r.status_code == 409 and a in r.text                                                           # taking it twice is refused
     r = put_bl(h, b, "603-99999999", code)
-    assert r.status_code == 422 and "Air Stock" in r.text                                                 # a number outside the stock is refused
+    assert r.status_code == 200                                                                           # a number outside the stock may be typed by hand (manual entry)
+    r = put_bl(h, mk_air(h), "603-99999999", code)
+    assert r.status_code == 409                                                                           # ... but not one another job has taken
     assert put_bl(h, a, "603-60134701", code).status_code == 200                                         # saving the same number again is fine
     # consol: House jobs may share one Master AWB with each other, but not with a Direct job
     c1, c2 = mk_air(h), mk_air(h)
+    assert put_bl(h, mk_air(h), "603-60134702", "").status_code == 422                                  # no airline chosen: no number
     assert put_bl(h, c1, "603-60134703", code, "House").status_code == 200
     assert put_bl(h, c2, "603-60134703", code, "House").status_code == 200
     assert put_bl(h, b, "603-60134703", code).status_code == 409

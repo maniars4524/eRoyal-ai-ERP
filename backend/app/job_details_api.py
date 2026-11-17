@@ -436,14 +436,20 @@ def _check_master_stock(db: Session, job: Shipment, row: JobDetail, data: dict) 
     if not mawb or mawb == str((row.bl or {}).get("mblNo") or "").strip():
         return
     st = awb_stock(db, job, data, limit=0)
-    if not st["airline"] or not st["has_stock"]:
+    if not str(((data or {}).get("awb") or {}).get("airline") or "").strip():
+        b = db.get(Booking, job.booking_id) if job.booking_id else None
+        if not str((b.carrier if b else "") or "").strip():
+            raise HTTPException(422, "Select the airline first, then choose the Master AWB from its Air Stock")
+    if not st["airline"] or not st["has_stock"]:                          # typed by hand for an airline without stock: still never the same number as another job
+        this_house = str(data.get("bookingType") or "") == "House"
+        for orow, jn in db.execute(select(JobDetail, Shipment.job_number).join(Shipment, Shipment.id == JobDetail.shipment_id).where(JobDetail.organization_id == job.organization_id, Shipment.id != job.id)):
+            ob = orow.bl or {}
+            if _digits(ob.get("mblNo")) == _digits(mawb) and _digits(mawb) and not (this_house and str(ob.get("bookingType") or "") == "House"):
+                raise HTTPException(409, f"Master AWB {mawb} is already used on job {jn}")
         return
     sr = _serial_of(st["prefix"], mawb)
-    if any(len(r["from_awb"]) == len(sr) and sr.isdigit() and int(r["from_awb"]) <= int(sr) <= int(r["to_awb"]) for r in st["ranges"]):
-        if sr in st["_used"]:
-            raise HTTPException(409, f"Master AWB {mawb} is already used on job {st['_used'][sr]}")
-        return
-    raise HTTPException(422, f"Master AWB {mawb} is not in the Air Stock of {st['airline']['name']}. Choose a number from the stock or add the range in Airline Stock Line Master")
+    if sr in st["_used"]:                                                  # picked from the stock or typed by hand: a number another job has taken is never accepted twice
+        raise HTTPException(409, f"Master AWB {mawb} is already used on job {st['_used'][sr]}")
 
 
 @router.get("/{job_number:path}/awb-stock")

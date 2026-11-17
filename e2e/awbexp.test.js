@@ -44,8 +44,11 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("air EXPORT: Master AWB title says Air Stock and the extra block shows", /Air Stock/i.test(await text("#jobAwbMasterTitle")) && await vis("#jobAwbExp"));
   await setv("#jobAwb_airline", "Test Air " + tag); await sleep(1800);
   const opts = await page.evaluate(() => [...document.querySelectorAll("#jobAwb_mawbPick option")].map(o => o.value).filter(Boolean));
-  check("the picker offers the free numbers of the airline's Air Stock", opts.join() === ["603-60134700", "603-60134701", "603-60134702", "603-60134703", "603-60134704"].join(), opts.join());
+  check("the picker offers the free numbers of the airline's Air Stock", opts.filter(o => o !== "__manual").join() === ["603-60134700", "603-60134701", "603-60134702", "603-60134703", "603-60134704"].join(), opts.join());
+  check("the picker also offers manual entry", opts.includes("__manual"));
   check("the stock summary says how many are free", /5 free of 5/.test(await text("#jobAwb_stockInfo")), await text("#jobAwb_stockInfo"));
+  await page.select("#jobAwb_mawbPick", "__manual"); await sleep(300);
+  check("choosing manual entry lets the number be typed", await page.evaluate(() => !document.querySelector("#jobAwb_mawb").readOnly));
   await page.select("#jobAwb_mawbPick", "603-60134702"); await sleep(400);
   check("choosing a number fills the Master AWB No (and it cannot be typed freehand)", await page.evaluate(() => { const i = document.querySelector("#jobAwb_mawb"); return i.value === "603-60134702" && i.readOnly; }));
   check("the dimensions of the Cargo tab are reflected on the BL", /21/.test(await text("#jobAwbDims")) && /42/.test(await text("#jobAwbDims")) && /56/.test(await text("#jobAwbDims")) && /Val/i.test(await text("#jobAwbDims")), await text("#jobAwbDims"));

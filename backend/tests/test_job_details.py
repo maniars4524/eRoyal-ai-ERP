@@ -167,7 +167,7 @@ def test_air_job_gets_a_house_awb_number_company_hawb_running_pol_pod(h):
     assert client.post(f"/api/jobs/{j}/hbl", json={"hbl_type": "HAWB"}, headers=h).json()["existing"] is True
     sea = job(h)
     assert client.post(f"/api/jobs/{sea}/hbl", json={"hbl_type": "HAWB"}, headers=h).status_code == 422     # an air type on a sea job
-    saved = client.put(f"/api/jobs/{j}/details/bl", json={"data": {"bookingType": "House", "mblNo": "020-12345678", "awb": {"rate": "185.5", "payment": "Prepaid"}}}, headers=h).json()
+    saved = client.put(f"/api/jobs/{j}/details/bl", json={"data": {"bookingType": "House", "mblNo": "020-12345678", "awb": {"airline": "Lufthansa", "rate": "185.5", "payment": "Prepaid"}}}, headers=h).json()
     assert saved["bl"]["hblNo"] == no and saved["bl"]["awb"]["rate"] == "185.5" and saved["bl"]["mblNo"] == "020-12345678"
 
 
