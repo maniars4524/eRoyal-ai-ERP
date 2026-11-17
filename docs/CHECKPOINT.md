@@ -794,3 +794,11 @@ RESUME (owner order): (1) Exporter/Importer view tied to a party (Accounts lists
 - Charges entered in the job's Charges tab appear in the House Air Waybill boxes (weight, valuation, tax, due agent, due carrier, other-charges text, totals); the BL form lists them with a "On the waybill as" choice (Auto by name, or move / hide). Tests: e2e/awbcharges.test.js.
 - Output Docs: Regenerate only regenerates (no preview popup); Preview only previews. The HAWB preview has Print option: Final / Draft / Pre-print / Multiple; list Print / PDF / Mail ask the option. Test: e2e/outdocs_hawb.test.js.
 - Waiting on owner: Copy Job meaning, Buy/Sell rate on BL, volume-weight divisor (cm/6000 vs 366).
+
+## 2026-11-17 (later) - Air export/import BL, stock, charges pop-up
+- Airline on the air BL is a list from the Airline master; Master AWB: pick from the airline's Air Stock or "type manually" (air export); air import is manual only. A number another job has taken is refused (409); House (consol) jobs may share one Master AWB. Airline must be chosen first; changing it clears the number.
+- HAWB preview / Output Docs: no saved "Final print"; A4 / Draft / Multiple / Pre-print are all built from the job in a waybill format (chosen format, else Format three). Regenerate no longer opens the preview.
+- HBL clauses hidden on air jobs. Rate lines: Item type General / Leather / Garments / As agreed; R/C M / N / Q; Valuation Type Rate (chwt x rate) or Charge (amount itself). "Nature and Quantity of Goods" has its own box (blank = cargo description + marks + notification + dimensions).
+- Air charges pop-up (BL form): 14 rows (description, type, A due agent / C due carrier, prepaid / collect), add row, take from the Charges tab; prints in the due agent / due carrier boxes (prepaid left, collect right), names under Other Charges, totals. Saved in bl.awb.airCharges. Tests: e2e/aircharges_popup.test.js.
+- Owner decisions: Buy/Sell rates NOT on the BL; volume weight stays cm/6000 (21x42x56 = 8.23 kg); "Copy Job" undefined (only Duplicate Job exists).
+- Open: owner's "Copy Job" meaning; old pending list (rows-per-page, branch/placement screens, licence onboarding, Brotli/CI/splitting HTML).

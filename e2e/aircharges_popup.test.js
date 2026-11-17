@@ -1,0 +1,66 @@
+// Air export: the Air charges pop-up (A/C, prepaid/collect) prints in the waybill boxes; the Nature and Quantity box; A4 print = the waybill format; no HBL clauses on air jobs
+const puppeteer = require("puppeteer-core");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); let b = null; try { b = await r.json(); } catch (e) {} return { status: r.status, body: b }; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let failures = 0;
+const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "" : " -> " + (x || ""))); if (!ok) failures++; };
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36).toUpperCase().slice(-5);
+  const org = await j("POST", "/api/organizations", { code: "AP" + tag, name: "Ap " + tag, admin_email: `ap${tag}@t.test`, admin_username: "ap" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Mani", admin_last_name: "Rs" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "ap" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  await j("PUT", "/api/company/doc-profile", { legal_name: "TRIO SHIPPING SERVICES PVT LTD", address: "CHENNAI" }, token);
+  const job = (await j("POST", "/api/shipments", { mode: "Air", direction: "Export", pol: "INMAA", pod: "MVMLE" }, token)).body.job_number;
+  const put = async (sec, data) => (await j("PUT", `/api/jobs/${encodeURIComponent(job)}/details/${sec}`, { data }, token)).status;
+  await put("parties", { shipper: "MANITOU SOUTH ASIA PVT LTD\nCHENNAI", consignee: "WASTE MANAGEMENT\nMALE" });
+  await put("cargo", { pkgs: "1", gwt: "55", cargoDesc: "SPARE PARTS" });
+  await put("bl", { bookingType: "House", awb: { airline: "UL", payment: "Prepaid", routingTo: "MLE", currency: "INR", flight: "UL1", rate: "100", chargeableWt: "55" } });
+
+  const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
+  const page = await b.newPage(); await page.setViewport({ width: 1500, height: 1400 }); const errs = [];
+  page.on("pageerror", e => errs.push(String(e.stack || e.message).split(String.fromCharCode(10)).slice(0, 3).join(" <- ")));
+  page.on("dialog", d => d.accept());
+  await page.goto(BASE + "/erp/login", { waitUntil: "networkidle2" }); await page.evaluate(t => localStorage.setItem("esway_persistent_token", t), token); await page.reload({ waitUntil: "networkidle2" }); await sleep(3000);
+  const vis = sel => page.evaluate(sel => { const e = document.querySelector(sel); return !!e && e.offsetParent !== null; }, sel);
+  await page.evaluate(n => window.go("job-detail", { jobNo: n }), job); await sleep(2500); await page.evaluate(() => document.querySelector('.tbb[data-tab="jt3"]').click()); await sleep(2500);
+  check("no HBL clauses section on an air job", !(await vis("#hblClausesWrap")));
+  check("the Air charges button and the Nature box are on the BL form", await vis("#jobAwbAirChOpen") && await vis("#jobAwb_natureText"));
+  await page.evaluate(() => document.querySelector("#jobAwbAirChOpen").click()); await sleep(800);
+  const n = await page.evaluate(() => document.querySelectorAll("#airChBody tr").length);
+  check("the pop-up lists the 14 charges of the owner's screen", n === 14, String(n));
+  const first = await page.evaluate(() => { const r = document.querySelector("#airChBody tr"); return r.querySelector('[data-f="desc"]').value + "|" + r.querySelector('[data-f="code"]').value + "|" + r.querySelector('[data-f="ac"]').value; });
+  check("first row AIR WAYBILL CHARGES / AWB / A", first === "AIR WAYBILL CHARGES|AWB|A", first);
+  await page.evaluate(() => {
+    const rows = document.querySelectorAll("#airChBody tr"); const set = (r, f, v) => { const i = rows[r].querySelector('[data-f="' + f + '"]'); i.value = v; };
+    set(0, "pre", "10000"); set(1, "pre", "3000"); set(5, "pre", "3000"); set(8, "col", "500");
+  });
+  await page.evaluate(() => document.querySelector("#airChAdd").click());
+  await page.evaluate(() => { const rows = document.querySelectorAll("#airChBody tr"); const r = rows[rows.length - 1]; r.querySelector('[data-f="desc"]').value = "CUSTOM FEE"; r.querySelector('[data-f="ac"]').value = "C"; r.querySelector('[data-f="pre"]').value = "75"; });
+  await page.evaluate(() => document.querySelector("#airChOk").click()); await sleep(600);
+  check("the summary shows the entered charges", /5 charge\(s\): prepaid 16075\.00, collect 500\.00/.test(await page.evaluate(() => document.querySelector("#jobAwbAirChSum").textContent)), await page.evaluate(() => document.querySelector("#jobAwbAirChSum").textContent));
+  await page.evaluate(() => { const t = document.querySelector("#jobAwb_natureText"); t.value = "1 BOX SPARE PARTS\nDIMS 21X42X56 CMS"; t.dispatchEvent(new Event("input", { bubbles: true })); });
+  const opts = await page.evaluate(() => [...document.querySelectorAll('#jobAwbLinesBody select[data-f="itemType"] option')].map(o => o.textContent).join("|") + " / " + [...document.querySelectorAll('#jobAwbLinesBody select[data-f="rc"] option')].map(o => o.textContent).join("|") + " / " + [...document.querySelectorAll("#jobAwb_valType option")].map(o => o.value).join("|"));
+  check("Item type General / Leather / Garments / As agreed, R/C M / N / Q, Valuation type Rate / Charge", opts === "General|Leather|Garments|As agreed / M|N|Q / Rate|Charge", opts);
+  await page.evaluate(() => { const set = (sel, v) => { const n = document.querySelector(sel); n.value = v; n.dispatchEvent(new Event("input", { bubbles: true })); n.dispatchEvent(new Event("change", { bubbles: true })); };
+    set("#jobAwb_valType", "Charge"); set('#jobAwbLinesBody select[data-f="itemType"]', "Leather"); set('#jobAwbLinesBody select[data-f="rc"]', "N"); set('#jobAwbLinesBody input[data-f="chwt"]', "55"); set('#jobAwbLinesBody input[data-f="rate"]', "1000"); });
+  await sleep(300);
+  check("with Valuation Type Charge the line total is the amount entered", await page.evaluate(() => document.querySelector("[data-awbl-total]").value === "1000"), await page.evaluate(() => document.querySelector("[data-awbl-total]").value));
+  await page.evaluate(() => document.querySelector('[data-jd-save="jt3"]').click()); await sleep(2500);
+  const saved = (await j("GET", `/api/jobs/${encodeURIComponent(job)}/details`, null, token)).body.bl.awb;
+  check("the charges and the nature text are saved with the waybill", (saved.airCharges || []).filter(r => Number(r.pre) || Number(r.col)).length === 5 && saved.natureText.includes("SPARE PARTS"), JSON.stringify(saved.airCharges));
+  const fmtText = async (fk, mode) => page.evaluate(async (jn, fk, mode) => (await window.DocKit.build("awb", { job: jn, fmt: "three", mode })).html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "), job, fk, mode);
+  const t = await fmtText("three", "a4");
+  check("the waybill shows the names under Other Charges", /AIR WAYBILL CHARGES : 10000\/-/.test(t) && /PROCESSING CHARGES : 3000\/-/.test(t) && /CUSTOM FEE : 75\/-/.test(t), t.slice(0, 600));
+  check("due agent prepaid 16,000.00, due carrier prepaid 75.00 and collect 500.00", t.includes("16,000.00") && t.includes("75.00") && t.includes("500.00"), t.slice(-900));
+  check("Total Prepaid = weight 1,000 + 16,000 + 75 = 17,075.00 and Total Collect 500.00", t.includes("17,075.00"), t.slice(-900));
+  check("the Nature and Quantity box prints the typed text", /1 BOX SPARE PARTS/.test(t) && /DIMS 21X42X56 CMS/.test(t));
+  // A4 print = the waybill format, the same as Draft print without the DRAFT mark
+  const draft = await fmtText("three", "draft");
+  const norm = x => x.replace(/DRAFT COPY|ORIGINAL 3 \( FOR SHIPPER \)|DRAFT/g, '').replace(/\s+/g, '');
+  check('A4 print is the waybill format, the same as Draft print (only the draft marks differ)', norm(t) === norm(draft) && t.length > 5000, t.length + ' vs ' + draft.length);
+  check("no script errors", errs.length === 0, errs.join(" | "));
+  await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})();

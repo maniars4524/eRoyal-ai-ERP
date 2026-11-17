@@ -3155,12 +3155,15 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr"><div class="fg"><label class="fl">2nd flight no.</label><input class="fc" id="jobAwb_flight2"></div><div class="fg"><label class="fl">2nd flight date</label><input class="fc" id="jobAwb_flightDate2" type="date"></div></div>
 <div class="fr"><div class="fg"><label class="fl">CHGS code</label><select class="fc" id="jobAwb_chgsCode"><option value="">Follows Charges (PP / CC)</option><option>PP</option><option>CC</option><option>PC</option><option>CP</option></select></div><div class="fg"><label class="fl">WT/VAL</label><select class="fc" id="jobAwb_wtval"><option value="">Follows Charges</option><option value="PP">PPD (prepaid)</option><option value="CC">COLL (collect)</option></select></div><div class="fg"><label class="fl">Other charges</label><select class="fc" id="jobAwb_otherFlag"><option value="">Follows Charges</option><option value="PP">PPD (prepaid)</option><option value="CC">COLL (collect)</option></select></div><div class="fg"><label class="fl">Valuation type</label><select class="fc" id="jobAwb_valuation"><option>Rate</option><option>As agreed</option></select></div></div>
 <div class="fsec">Rate lines <span style="font-weight:400;font-size:11px;color:var(--g5)">(the weight charge is the total of the lines)</span></div>
+<div class="fr"><div class="fg"><label class="fl">Valuation Type</label><select class="fc" id="jobAwb_valType"><option value="Rate">Rate (chargeable weight x rate)</option><option value="Charge">Charge (the amount entered is the charge)</option></select></div></div>
 <div class="tw"><table><thead><tr><th>SL</th><th>N.Pcs</th><th>Gr.Wt</th><th>K/L</th><th>R/C</th><th>Item type</th><th>Item No</th><th>Chr Wt</th><th>Rate/Chrg</th><th>Total</th><th></th></tr></thead><tbody id="jobAwbLinesBody"></tbody></table></div>
 <div style="margin:6px 0 10px"><button type="button" class="btn btn-out btn-sm" id="jobAwbAddLine">Add Row</button></div>
 <div class="fsec">Dimensions <span style="font-weight:400;font-size:11px;color:var(--g5)">(from the Cargo / Dimensions tab; they print on the waybill)</span></div>
 <div id="jobAwbDims"></div>
 <div class="fsec">Charges <span style="font-weight:400;font-size:11px;color:var(--g5)">(taken from the Charges tab; choose the box of the waybill each one goes to, or leave Auto)</span></div>
 <div id="jobAwbCharges"></div>
+<div class="fr" style="margin-top:8px"><div class="fg" style="grid-column:span 3"><label class="fl">Nature and Quantity of Goods (Incl. Dimensions or Volume) - as printed; leave blank to use the Cargo description, marks, additional notification and dimensions</label><textarea class="fc" id="jobAwb_natureText" rows="4"></textarea></div></div>
+<div class="fr" style="margin-top:8px"><div class="fg" style="grid-column:span 3"><label class="fl">Air charges</label><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn btn-out btn-sm" id="jobAwbAirChOpen">Air charges (prepaid / collect)...</button><span id="jobAwbAirChSum" style="font-size:12px;color:var(--g5)"></span></div></div></div>
 <div class="fr" style="margin-top:8px"><div class="fg" style="grid-column:span 3"><label class="fl">Additional notification</label><textarea class="fc" id="jobAwb_addNotif" rows="2"></textarea></div></div>
 </div>
 </div>
@@ -18596,7 +18599,7 @@ function makePrintFit(){
   };
   JD.airMode = function(){
     const d = JD.data, air = d && d.mode === "Air", b = d.bl || {}, a = b.awb || {}; const show = (id, on)=>{ const n = el(id); if(n) n.style.display = on ? "" : "none"; };
-    show("jobAwbBlock", air);
+    show("jobAwbBlock", air); show("hblClausesWrap", !air);          /* HBL clauses are for sea only */
     if(!air) return;
     const typeRow = el("jobBlBookingType") && el("jobBlBookingType").closest(".fr"); if(typeRow) typeRow.style.display = "none";
     ["jobBlDirectWrap", "jobBlHouseWrap", "jobBlHbltypeWrap", "jobBlScacWrap", "jobBlBookingTypeNote", "jobBlGenericRow"].forEach(id=> show(id, false));
@@ -18620,26 +18623,30 @@ function makePrintFit(){
     { const n = el("jobAwb_commodityNo"), g = n && n.closest(".fg"); if(g) g.style.display = on ? "none" : ""; }
     if(!on) return;
     const a = ((JD.data.bl || {}).awb) || {}; const set = (id, v)=>{ const n = el(id); if(n) n.value = v == null ? "" : v; };
-    [["shipperLc", "jobAwb_shipperLc"], ["consigneeLc", "jobAwb_consigneeLc"], ["to2", "jobAwb_to2"], ["by2", "jobAwb_by2"], ["to3", "jobAwb_to3"], ["by3", "jobAwb_by3"], ["flight2", "jobAwb_flight2"], ["flightDate2", "jobAwb_flightDate2"], ["addNotif", "jobAwb_addNotif"]].forEach(([k, id])=> set(id, a[k]));
+    [["shipperLc", "jobAwb_shipperLc"], ["consigneeLc", "jobAwb_consigneeLc"], ["to2", "jobAwb_to2"], ["by2", "jobAwb_by2"], ["to3", "jobAwb_to3"], ["by3", "jobAwb_by3"], ["flight2", "jobAwb_flight2"], ["flightDate2", "jobAwb_flightDate2"], ["addNotif", "jobAwb_addNotif"], ["natureText", "jobAwb_natureText"], ["valType", "jobAwb_valType"]].forEach(([k, id])=> set(id, a[k]));
     set("jobAwb_chgsCode", a.chgsCode || ""); set("jobAwb_wtval", a.wtval || ""); set("jobAwb_otherFlag", a.otherFlag || ""); set("jobAwb_valuation", a.valuation || "Rate");
     const cg = JD.data.cargo || {}, tt = window.AIR_DIMS;
     JD._awbLines = (a.lines && a.lines.length ? a.lines : [{pcs:cg.pkgs || "", gwt:cg.gwt || "", kl:"K", rc:a.rateClass || "Q", itemType:"Rate", itemNo:a.commodityNo || "", chwt:a.chargeableWt || (tt && tt.chargeable_kg) || cg.chgWt || "", rate:a.rate || ""}]).map(l=>Object.assign({}, l));
-    JD._chargeMap = Object.assign({}, a.chargeMap || {}); JD.awbLinesPaint(); JD.awbDims(); JD.awbStock(); JD.awbCharges();
+    JD._chargeMap = Object.assign({}, a.chargeMap || {}); JD._airCh = (a.airCharges || []).map(r=>Object.assign({}, r)); JD.airChPaint(); JD.awbLinesPaint(); JD.awbDims(); JD.awbStock(); JD.awbCharges();
     { const o = el("jobAwb_other"), ot = el("jobAwb_otherText"); const lb = n=> n && n.previousElementSibling; if(lb(o)) lb(o).textContent = "Other charges due agent (blank = from the Charges tab)"; if(lb(ot)) lb(ot).textContent = "Other charges (as printed; blank = built from the Charges tab)"; }
   };
-  const lineTotal = l=> l.itemType === "As agreed" ? "" : String(Math.round((Number(l.chwt) || 0) * (Number(l.rate) || 0) * 100) / 100);
+  const valChg = ()=> (el("jobAwb_valType") || {}).value === "Charge";                        /* Valuation Type: Rate (weight x rate) or Charge (the amount itself) */
+  const lineTotal = l=> l.itemType === "As agreed" ? "" : String(Math.round((valChg() ? (Number(l.rate) || 0) : (Number(l.chwt) || 0) * (Number(l.rate) || 0)) * 100) / 100);
+  const ITEM_TYPES = ["General", "Leather", "Garments", "As agreed"], RCS = ["M", "N", "Q"];
   JD.awbLinesPaint = function(){
     const body = el("jobAwbLinesBody"); if(!body) return;
     const inp = (i, f, w, ty)=> '<input class="fc" data-awbl="'+i+'" data-f="'+f+'" style="width:'+w+'px"'+(ty ? ' type="'+ty+'" step="any"' : "")+' value="'+esc2((JD._awbLines[i] || {})[f] == null ? "" : (JD._awbLines[i] || {})[f])+'">';
-    body.innerHTML = JD._awbLines.map((l, i)=>'<tr><td>'+(i + 1)+'</td><td>'+inp(i, "pcs", 56, "number")+'</td><td>'+inp(i, "gwt", 84, "number")+'</td><td><select class="fc" data-awbl="'+i+'" data-f="kl" style="width:56px"><option'+(l.kl === "L" ? "" : " selected")+'>K</option><option'+(l.kl === "L" ? " selected" : "")+'>L</option></select></td><td>'+inp(i, "rc", 54)+'</td><td><select class="fc" data-awbl="'+i+'" data-f="itemType" style="width:104px"><option'+(l.itemType === "As agreed" ? "" : " selected")+'>Rate</option><option'+(l.itemType === "As agreed" ? " selected" : "")+'>As agreed</option></select></td><td>'+inp(i, "itemNo", 70)+'</td><td>'+inp(i, "chwt", 84, "number")+'</td><td>'+inp(i, "rate", 74, "number")+'</td><td><input class="fc" readonly data-awbl-total="'+i+'" style="width:94px;background:var(--g0)" value="'+esc2(l.itemType === "As agreed" ? "AS AGREED" : lineTotal(l))+'"></td><td>'+(JD._awbLines.length > 1 ? '<button type="button" class="ta" data-awbl-del="'+i+'">\u2715</button>' : "")+'</td></tr>').join("");
+    body.innerHTML = JD._awbLines.map((l, i)=>'<tr><td>'+(i + 1)+'</td><td>'+inp(i, "pcs", 56, "number")+'</td><td>'+inp(i, "gwt", 84, "number")+'</td><td><select class="fc" data-awbl="'+i+'" data-f="kl" style="width:56px"><option'+(l.kl === "L" ? "" : " selected")+'>K</option><option'+(l.kl === "L" ? " selected" : "")+'>L</option></select></td><td><select class="fc" data-awbl="'+i+'" data-f="rc" style="width:60px">'+(l.rc && RCS.indexOf(l.rc) < 0 ? '<option selected>'+esc2(l.rc)+'</option>' : "")+RCS.map(c=>'<option'+(c === (l.rc || "Q") ? " selected" : "")+'>'+c+'</option>').join("")+'</select></td><td><select class="fc" data-awbl="'+i+'" data-f="itemType" style="width:110px">'+ITEM_TYPES.map(c=>'<option'+(c === (!l.itemType || l.itemType === "Rate" ? "General" : l.itemType) ? " selected" : "")+'>'+c+'</option>').join("")+'</select></td><td>'+inp(i, "itemNo", 70)+'</td><td>'+inp(i, "chwt", 84, "number")+'</td><td>'+inp(i, "rate", 74, "number")+'</td><td><input class="fc" readonly data-awbl-total="'+i+'" style="width:94px;background:var(--g0)" value="'+esc2(l.itemType === "As agreed" ? "AS AGREED" : lineTotal(l))+'"></td><td>'+(JD._awbLines.length > 1 ? '<button type="button" class="ta" data-awbl-del="'+i+'">\u2715</button>' : "")+'</td></tr>').join("");
   };
   document.addEventListener("input", e=>{
     const n = e.target; if(!n || n.dataset.awbl === undefined || !isAirExp()) return; const i = Number(n.dataset.awbl), l = JD._awbLines[i]; if(!l) return; l[n.dataset.f] = n.value;
     const t = document.querySelector('[data-awbl-total="'+i+'"]'); if(t) t.value = l.itemType === "As agreed" ? "AS AGREED" : lineTotal(l);
   });
-  document.addEventListener("change", e=>{ const n = e.target; if(n && n.dataset.awbl !== undefined && n.dataset.f === "itemType" && isAirExp()){ JD._awbLines[Number(n.dataset.awbl)].itemType = n.value; JD.awbLinesPaint(); } });
+  document.addEventListener("change", e=>{ const n = e.target; if(n && n.dataset.awbl !== undefined && n.dataset.f === "itemType" && isAirExp()){ JD._awbLines[Number(n.dataset.awbl)].itemType = n.value; JD.awbLinesPaint(); }
+    if(n && n.dataset.awbl !== undefined && n.dataset.f === "rc" && isAirExp()){ JD._awbLines[Number(n.dataset.awbl)].rc = n.value; }
+    if(n && n.id === "jobAwb_valType" && isAirExp()){ JD.awbLinesPaint(); } });
   document.addEventListener("click", e=>{
-    if(e.target.closest && e.target.closest("#jobAwbAddLine")){ JD._awbLines.push({pcs:"", gwt:"", kl:"K", rc:"Q", itemType:"Rate", itemNo:"", chwt:"", rate:""}); JD.awbLinesPaint(); return; }
+    if(e.target.closest && e.target.closest("#jobAwbAddLine")){ JD._awbLines.push({pcs:"", gwt:"", kl:"K", rc:"Q", itemType:"General", itemNo:"", chwt:"", rate:""}); JD.awbLinesPaint(); return; }
     const d = e.target.closest && e.target.closest("[data-awbl-del]"); if(d){ JD._awbLines.splice(Number(d.dataset.awblDel), 1); JD.awbLinesPaint(); }
     if(e.target.closest && e.target.closest('.tbb[data-tab="jt3"]')) setTimeout(()=>{ JD.awbDims(); }, 50);
   });
@@ -18659,6 +18666,33 @@ function makePrintFit(){
   document.addEventListener("click", e=>{
     if(e.target.closest && e.target.closest("#jobAwbChargesOpen")){ const t = document.querySelector('.tbb[data-tab="jt5"]'); if(t) t.click(); }
     if(e.target.closest && e.target.closest('.tbb[data-tab="jt3"]')) setTimeout(()=>{ JD.awbCharges(); }, 80);
+  });
+
+  /* AIR CHARGES pop-up: description, type, A (due agent) / C (due carrier), prepaid and collect amounts; they print in the waybill boxes */
+  JD._airCh = [];
+  const AIR_DEFAULT = [["AIR WAYBILL CHARGES","AWB","A"],["PROCESSING CHARGES","PCA","A"],["TRANSPORT CHARGES","POC","A"],["DUE AGENT","DA","A"],["CUSTOM HOUSE AGENT","CHA","A"],["HANDLING CHARGES","HC","A"],["AIRPORT HANDLING CHARGES","AHS","A"],["SERVICE TAX","S.TAX","A"],["FUEL SURCHARGE CHARGES","MYC","C"],["SCREENING CHARGES","SSC","C"],["SCANNING CHARGES","SCN","C"],["MISCELLANEOUS","MISC","C"],["LANDING CHARGES","MOC","C"],["HOUSE CHARGES","AMS","C"]];
+  const airChSum = ()=>{ const n = el("jobAwbAirChSum"); if(!n) return; const rows = (JD._airCh || []).filter(r=>Number(r.pre) || Number(r.col)); const pre = rows.reduce((x, r)=>x + (Number(r.pre) || 0), 0), col = rows.reduce((x, r)=>x + (Number(r.col) || 0), 0); n.textContent = rows.length ? rows.length+" charge(s): prepaid "+pre.toFixed(2)+", collect "+col.toFixed(2)+" (printed on the waybill; press Save to keep)" : "None entered (the charges of the Charges tab are used)"; };
+  JD.airChPaint = airChSum;
+  const airChRows = rows=> rows.map((r, i)=>'<tr data-airch="'+i+'"><td>'+(i + 1)+'</td><td><input class="fc" data-f="desc" value="'+esc2(r.desc || "")+'"></td><td><input class="fc" data-f="code" value="'+esc2(r.code || "")+'" style="width:80px"></td><td><select class="fc" data-f="ac" style="width:64px"><option value="A"'+(r.ac !== "C" ? " selected" : "")+'>A</option><option value="C"'+(r.ac === "C" ? " selected" : "")+'>C</option></select></td><td><input class="fc" data-f="pre" type="number" step="0.01" value="'+esc2(r.pre || "")+'" style="width:120px;text-align:right"></td><td><input class="fc" data-f="col" type="number" step="0.01" value="'+esc2(r.col || "")+'" style="width:120px;text-align:right"></td><td><button type="button" class="ta" data-airch-del="'+i+'" title="Remove">&times;</button></td></tr>').join("");
+  const airChAll = ()=> [...document.querySelectorAll("#airChBody tr")].map(tr=>{ const g = f=> (tr.querySelector('[data-f="'+f+'"]') || {}).value || ""; return {desc:g("desc").trim(), code:g("code").trim(), ac:g("ac") === "C" ? "C" : "A", pre:g("pre"), col:g("col")}; });
+  const airChRead = ()=> airChAll().filter(r=>r.desc || Number(r.pre) || Number(r.col));
+  JD.airChOpen = function(){
+    const rows = (JD._airCh && JD._airCh.length) ? JD._airCh.map(r=>Object.assign({}, r)) : AIR_DEFAULT.map(d=>({desc:d[0], code:d[1], ac:d[2], pre:"", col:""}));
+    openModal({title:"Air charges", size:"lg", bodyHTML:'<div style="font-size:12px;color:var(--g5);margin-bottom:6px">A = due agent, C = due carrier. Prepaid and collect amounts print in the waybill boxes; the names print under Other Charges. Change a name, or add a row for your own.</div><div class="tw" style="max-height:60vh;overflow:auto"><table><thead><tr><th>SL</th><th>Description</th><th>Type</th><th>A/C</th><th style="text-align:right">Prepaid</th><th style="text-align:right">Collect</th><th></th></tr></thead><tbody id="airChBody">'+airChRows(rows)+'</tbody></table></div><div style="margin-top:8px;display:flex;gap:8px"><button type="button" class="btn btn-out btn-sm" id="airChAdd">Add row</button><button type="button" class="btn btn-out btn-sm" id="airChFromTab">Take from the Charges tab</button></div>',
+      footHTML:'<button class="btn btn-out" type="button" id="airChNo">Cancel</button><button class="btn btn-pri" type="button" id="airChOk">Apply to the waybill</button>'});
+  };
+  document.addEventListener("click", async e=>{
+    const t = e.target; if(!t.closest) return;
+    if(t.closest("#jobAwbAirChOpen")) return JD.airChOpen();
+    if(t.closest("#airChNo")) return closeModal();
+    if(t.closest("#airChAdd")){ const rows = airChAll(); rows.push({desc:"", code:"", ac:"A", pre:"", col:""}); el("airChBody").innerHTML = airChRows(rows); return; }
+    const d = t.closest("[data-airch-del]"); if(d){ const idx = Number(d.dataset.airchDel); el("airChBody").innerHTML = airChRows(airChAll().filter((r, i)=> i !== idx)); return; }
+    if(t.closest("#airChFromTab")){
+      try{ const r = await api("GET", "/api/shipments/by-number/"+encodeURIComponent(JD.job)+"/charges"); const have = airChAll(); const K = window.DocKit;
+        (r.lines || []).filter(l=> Number((l.sell || {}).rate) > 0).forEach(l=>{ const amt = (Number(l.qty) || 0) * (Number(l.sell.rate) || 0) * (l.sell.ccy && l.sell.ccy !== "INR" ? (Number(l.sell.exch) || 1) : 1); const cls = K && K.awbCls ? K.awbCls(l.charge_name, {}) : "AGENT"; if(cls === "WEIGHT" || cls === "VALUATION") return; const hit = have.find(h=>h.desc.toLowerCase() === String(l.charge_name).toLowerCase()); if(hit){ hit.pre = String(Math.round(amt * 100) / 100); } else have.push({desc:String(l.charge_name).toUpperCase(), code:"", ac:cls === "CARRIER" ? "C" : "A", pre:String(Math.round(amt * 100) / 100), col:""}); });
+        el("airChBody").innerHTML = airChRows(have); }catch(err){ say("Could not read the Charges tab", err.message, "error"); }
+      return; }
+    if(t.closest("#airChOk")){ JD._airCh = airChRead(); closeModal(); airChSum(); say("Air charges applied", "Press Save on the BL to keep them."); }
   });
   /* the package dimensions of the Cargo / Dimensions tab, reflected here (read only) */
   JD.awbDims = function(){
@@ -18697,13 +18731,13 @@ function makePrintFit(){
   /* what the extra fields save into the waybill's data (air export only; other jobs save exactly what they did before) */
   JD.collectAwbExp = function(){
     if(!isAirExp() || !el("jobAwbExp")) return {}; const g = id=> ((el(id) || {}).value || "").trim();
-    const lines = JD._awbLines.filter(l=> l.pcs || l.gwt || l.chwt || l.rate || l.itemNo).map(l=>({pcs:l.pcs, gwt:l.gwt, kl:l.kl || "K", rc:l.rc, itemType:l.itemType || "Rate", itemNo:l.itemNo, chwt:l.chwt, rate:l.rate, total:lineTotal(l)}));
+    const lines = JD._awbLines.filter(l=> l.pcs || l.gwt || l.chwt || l.rate || l.itemNo).map(l=>({pcs:l.pcs, gwt:l.gwt, kl:l.kl || "K", rc:l.rc, itemType:l.itemType && l.itemType !== "Rate" ? l.itemType : "General", itemNo:l.itemNo, chwt:l.chwt, rate:l.rate, total:lineTotal(l)}));
     { const lr0 = g("jobAwb_rate"), lw0 = ((el("jobAwb_chg") || {}).dataset || {}).manual ? g("jobAwb_chg") : ""; if(!lines.length && (lr0 || lw0)) lines.push({pcs:"", gwt:"", kl:"K", rc:g("jobAwb_rateClass"), itemType:"Rate", itemNo:"", chwt:lw0, rate:lr0, total:""}); }
     if(lines[0]){ const f0 = lines[0]; const lr = g("jobAwb_rate"), lc = g("jobAwb_rateClass"), lw = ((el("jobAwb_chg") || {}).dataset || {}).manual ? g("jobAwb_chg") : "";          /* a value typed in the single-line fields (older screens, imports) fills a blank first line */
       if(!f0.rate && lr) f0.rate = lr; if(!f0.rc && lc) f0.rc = lc; if(!f0.chwt && lw) f0.chwt = lw; if(f0.itemType !== "As agreed") f0.total = String(Math.round((Number(f0.chwt) || 0) * (Number(f0.rate) || 0) * 100) / 100); }
     const f = lines[0] || {};
     return {shipperLc:g("jobAwb_shipperLc"), consigneeLc:g("jobAwb_consigneeLc"), to2:g("jobAwb_to2"), by2:g("jobAwb_by2"), to3:g("jobAwb_to3"), by3:g("jobAwb_by3"), flight2:g("jobAwb_flight2"), flightDate2:g("jobAwb_flightDate2"),
-      chgsCode:g("jobAwb_chgsCode"), wtval:g("jobAwb_wtval"), otherFlag:g("jobAwb_otherFlag"), valuation:g("jobAwb_valuation"), chargeMap:Object.assign({}, JD._chargeMap), addNotif:(el("jobAwb_addNotif") || {}).value || "", lines,
+      chgsCode:g("jobAwb_chgsCode"), wtval:g("jobAwb_wtval"), otherFlag:g("jobAwb_otherFlag"), valuation:g("jobAwb_valuation"), chargeMap:Object.assign({}, JD._chargeMap), addNotif:(el("jobAwb_addNotif") || {}).value || "", natureText:(el("jobAwb_natureText") || {}).value || "", valType:(el("jobAwb_valType") || {}).value || "Rate", airCharges:(JD._airCh || []).map(r=>Object.assign({}, r)), lines,
       rateClass:f.rc || "", rate:f.itemType === "As agreed" ? "" : (f.rate || ""), commodityNo:f.itemNo || ""};          /* the first line also feeds the single-line fields the rest of the system reads */
   };
   JD.docs = function(){
@@ -19549,22 +19583,23 @@ function makePrintFit(){
     const wt = DK.awbWeights(f.d), gross0 = num(first(f.gw, wt.act)), chargeable = num(first(a.chargeableWt, wt.chg || Math.max(gross0, wt.vol))), rate = num(a.rate), other = num(a.otherCharges);
     const pc = (a.payment || "Prepaid") === "Prepaid", AG = a.totalMode === "agreed" || a.valuation === "As agreed", agreed = v=> AG || !v ? "AS AGREED" : fmt(v);
     /* air export: the rate lines of the waybill (several commodities / rate classes); without lines the single rate line is used as before */
-    const rateLines = (Array.isArray(a.lines) ? a.lines : []).filter(l=> l && (l.pcs || l.gwt || l.chwt || l.rate || l.itemNo)).map(l=>({pcs:num(l.pcs), gwt:num(l.gwt), kl:l.kl || "K", rc:l.rc || "", itemType:l.itemType || "Rate", itemNo:l.itemNo || "", chwt:num(l.chwt), rate:num(l.rate), total:l.itemType === "As agreed" ? 0 : (num(l.total) || num(l.chwt) * num(l.rate))}));
+    const rateLines = (Array.isArray(a.lines) ? a.lines : []).filter(l=> l && (l.pcs || l.gwt || l.chwt || l.rate || l.itemNo)).map(l=>({pcs:num(l.pcs), gwt:num(l.gwt), kl:l.kl || "K", rc:l.rc || "", itemType:l.itemType && l.itemType !== "Rate" ? l.itemType : "General", itemNo:l.itemNo || "", chwt:num(l.chwt), rate:num(l.rate), total:l.itemType === "As agreed" ? 0 : (a.valType === "Charge" ? num(l.rate) : (num(l.chwt) * num(l.rate) || num(l.total)))}));
     const sumL = k=> rateLines.reduce((x, l)=>x + l[k], 0);
     /* air export: the charges of the job's Charges tab (sell side) are put in the boxes of the waybill they belong to */
-    const exp = rd.mode === "Air" && rd.direction === "Export", cur = a.currency || "INR", cls = {WEIGHT:0, VALUATION:0, TAX:0, AGENT:0, CARRIER:0}, chItems = [];
-    if(exp) (rd.job_charges || []).forEach(c=>{ const k = DK.awbCls(c.name, a.chargeMap); if(k === "NONE") return; let amt = num(c.amount); if((c.ccy || "INR") !== cur){ if(cur === "INR") amt = amt * (num(c.exch) || 1); else return; } cls[k] += amt; if(k === "AGENT" || k === "CARRIER") chItems.push({name:String(c.name || "").trim(), amt, k}); });
+    const exp = rd.mode === "Air" && rd.direction === "Export", acRows = exp && Array.isArray(a.airCharges) ? a.airCharges.filter(r=> r && (num(r.pre) || num(r.col))) : [], acMode = acRows.length > 0, cur = a.currency || "INR", cls = {WEIGHT:0, VALUATION:0, TAX:0, AGENT:0, CARRIER:0}, chItems = [];
+    if(exp) (rd.job_charges || []).forEach(c=>{ const k = DK.awbCls(c.name, a.chargeMap); if(k === "NONE") return; let amt = num(c.amount); if((c.ccy || "INR") !== cur){ if(cur === "INR") amt = amt * (num(c.exch) || 1); else return; } if(acMode && (k === "AGENT" || k === "CARRIER")) return; cls[k] += amt; if(k === "AGENT" || k === "CARRIER") chItems.push({name:String(c.name || "").trim(), amt, k}); });
     const gross = rateLines.length ? sumL("gwt") : gross0, linesTotal = rateLines.length ? sumL("total") : 0;
     const wtCharge = linesTotal > 0 ? linesTotal : (cls.WEIGHT > 0 ? cls.WEIGHT : rate * chargeable);
-    const agent = other || cls.AGENT, carrier = cls.CARRIER, valuation = cls.VALUATION, tax = cls.TAX;
+    const sumAc = (c, k)=> acRows.filter(r=>r.ac === c).reduce((x, r)=>x + num(r[k]), 0), agP = sumAc("A", "pre"), agC = sumAc("A", "col"), caP = sumAc("C", "pre"), caC = sumAc("C", "col");
+    const agent = acMode ? agP + agC : other || cls.AGENT, carrier = acMode ? caP + caC : cls.CARRIER, valuation = cls.VALUATION, tax = cls.TAX;
     const wtPC0 = a.wtval ? a.wtval === "PP" : pc, otPC0 = a.otherFlag ? a.otherFlag === "PP" : pc;
-    const sideSum = (pre)=> (wtPC0 === pre ? wtCharge + valuation + tax : 0) + (otPC0 === pre ? agent + carrier : 0);
+    const sideSum = (pre)=> (wtPC0 === pre ? wtCharge + valuation + tax : 0) + (acMode ? (pre ? agP + caP : agC + caC) : (otPC0 === pre ? agent + carrier : 0));
     const amtTxt = x=> Number.isInteger(Math.round(x * 100) / 100) ? String(Math.round(x * 100) / 100) : fmt(x);
-    const autoOther = chItems.length ? chItems.map(c=>c.name.toUpperCase()+" : "+amtTxt(c.amt)+"/-").join("  ") : "";
+    const autoOther = acMode ? acRows.map(r=>String(r.desc || r.code || "").toUpperCase()+" : "+amtTxt(num(r.pre) + num(r.col))+"/-").join("  ") : chItems.length ? chItems.map(c=>c.name.toUpperCase()+" : "+amtTxt(c.amt)+"/-").join("  ") : "";
     const code3 = v=> { const m = String(v || "").match(/([A-Z]{3})(?:\(|$)/); return m ? m[1] : String(v || "").slice(0, 3).toUpperCase(); };
     const place = v=> String(v || "").replace(/^[A-Z]{5}\(?/, "").replace(/\)$/, "") || String(v || "");
     const dimsRows = wt.rows.filter(r=>r.l || r.w || r.h);
-    const nature = [first(f.desc), f.marks].filter(Boolean).map(esc2).join("<br>")+(a.addNotif ? "<br>"+nl2br(a.addNotif) : "")+(dimsRows.length ? "<br>DIM IN "+(wt.lbs ? "INCHES" : "CMS")+"<br>"+dimsRows.map(r=>esc2(r.l+"X"+r.w+"X"+r.h+"("+(r.pkg || 1)+")")).join("<br>")+(wt.vol ? "<br>VOL WT:"+Math.round(wt.vol)+"KGS" : "") : "");
+    const nature = a.natureText ? nl2br(esc2(a.natureText)) : [first(f.desc), f.marks].filter(Boolean).map(esc2).join("<br>")+(a.addNotif ? "<br>"+nl2br(a.addNotif) : "")+(dimsRows.length ? "<br>DIM IN "+(wt.lbs ? "INCHES" : "CMS")+"<br>"+dimsRows.map(r=>esc2(r.l+"X"+r.w+"X"+r.h+"("+(r.pkg || 1)+")")).join("<br>")+(wt.vol ? "<br>VOL WT:"+Math.round(wt.vol)+"KGS" : "") : "");
     const m = String(f.mbl || "").match(/^(\d{3})[-\s]?(\d{4})\s?(\d{4})$/), m8 = String(f.mbl || "").match(/^(\d{3})[-\s]?(\d{8})$/);
     return {co, P, f, bl, a, stage, wt, gross, chargeable, rate, wtCharge, other, pc, agreed, code3, place, nature,
       hawb: f.hbl || "", mawb: String(f.mbl || ""), mawbSpaced: m ? m[1]+"-"+m[2]+" "+m[3] : m8 ? m8[1]+"-"+m8[2].slice(0, 4)+" "+m8[2].slice(4) : String(f.mbl || ""), mawbPlain: m8 ? m8[1]+" "+m8[2] : String(f.mbl || ""),
@@ -19573,7 +19608,7 @@ function makePrintFit(){
       dep: place(f.pol), toCode: a.routingTo || code3(f.pod), carrier: a.airline || f.carrier || "", dest: place(f.pod), flight: [a.flight, a.flightDate ? dmy(a.flightDate) : ""].filter(Boolean).join("  ")+(a.flight2 || a.flightDate2 ? " / "+[a.flight2, a.flightDate2 ? dmy(a.flightDate2) : ""].filter(Boolean).join("  ") : ""),
       currency: a.currency || "INR", declC: a.declCarriage || "NVD", declCu: a.declCustoms || "NCV", insurance: a.insurance || "XXX", handling: a.handling || "", sci: a.sci || "",
       pieces: rateLines.length ? String(sumL("pcs")) : (first(f.pkgs, wt.pk) || ""), lines: rateLines, wtPC: wtPC0, otherPC: otPC0, chgs: a.chgsCode || (pc ? "PP" : "CC"),
-      to2: a.to2 || "", by2: a.by2 || "", to3: a.to3 || "", by3: a.by3 || "", lc1: a.shipperLc || "", lc2: a.consigneeLc || "", acct1: a.shipperAccount || "", acct2: a.consigneeAccount || "", unit: wt.lbs ? "L" : "K", rateClass: a.rateClass || "Q", commodityNo: a.commodityNo || "", total: wtCharge + agent + carrier + valuation + tax, agentAmt: agent, carrierAmt: carrier, valAmt: valuation, taxAmt: tax, totPrepaid: sideSum(true), totCollect: sideSum(false),
+      to2: a.to2 || "", by2: a.by2 || "", to3: a.to3 || "", by3: a.by3 || "", lc1: a.shipperLc || "", lc2: a.consigneeLc || "", acct1: a.shipperAccount || "", acct2: a.consigneeAccount || "", unit: wt.lbs ? "L" : "K", rateClass: a.rateClass || "Q", commodityNo: a.commodityNo || "", total: wtCharge + agent + carrier + valuation + tax, agentAmt: agent, carrierAmt: carrier, acMode, agentPre: agP, agentCol: agC, carrierPre: caP, carrierCol: caC, valAmt: valuation, taxAmt: tax, totPrepaid: sideSum(true), totCollect: sideSum(false),
       otherText: a.otherText || autoOther || (other ? "AWB : "+fmt(other)+" /-" : ""), accounting: a.accounting || (pc ? "FREIGHT PREPAID" : "FREIGHT COLLECT"), optional: a.optional || "",
       execDate: dmy(a.execDate || bl.hblDate), execPlace: a.place || bl.place || "", executedBy: a.executedBy || "", signer: P.legal_name || co.name || "",
       issuedAddr: [P.address].filter(Boolean).join(" ") + (P.phone ? " Phone:"+P.phone : ""),
@@ -19649,8 +19684,8 @@ function makePrintFit(){
       row(30, [[1, '<div style="padding:3px 6px">'+lab("Prepaid")+(M.pc ? val(money(M.wtCharge), "margin-top:2px") : "")+'</div>'], [1, tabc("Weight Charge")], [1, '<div style="padding:3px 6px">'+lab("Collect")+(M.pc ? "" : val(money(M.wtCharge), "margin-top:2px"))+'</div>']])+
       row(24, [[1, '<div style="padding:2px 6px">'+(M.valAmt && M.wtPC ? val(fmt(M.valAmt)) : "")+'</div>'], [1, tabc("Valuation Charge", 110)], [1, '<div style="padding:2px 6px;text-align:right">'+(M.valAmt && !M.wtPC ? val(fmt(M.valAmt)) : "")+'</div>']])+
       row(24, [[1, '<div style="padding:2px 6px">'+(M.taxAmt && M.wtPC ? val(fmt(M.taxAmt)) : "")+'</div>'], [1, tabc("Tax", 70)], [1, '<div style="padding:2px 6px;text-align:right">'+(M.taxAmt && !M.wtPC ? val(fmt(M.taxAmt)) : "")+'</div>']])+
-      row(40, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Agent", 176)+(M.agentAmt ? val(fmt(M.agentAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
-      row(30, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Carrier", 176)+(M.carrierAmt ? val(fmt(M.carrierAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
+      row(40, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Agent", 176)+(M.acMode ? '<div style="display:flex;justify-content:space-between">'+(M.agentPre ? val(fmt(M.agentPre)) : "<span></span>")+(M.agentCol ? val(fmt(M.agentCol)) : "")+'</div>' : M.agentAmt ? val(fmt(M.agentAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
+      row(30, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Carrier", 176)+(M.acMode ? '<div style="display:flex;justify-content:space-between">'+(M.carrierPre ? val(fmt(M.carrierPre)) : "<span></span>")+(M.carrierCol ? val(fmt(M.carrierCol)) : "")+'</div>' : M.carrierAmt ? val(fmt(M.carrierAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
       row(44, [[1, '<div style="padding:3px 6px">'+tabc("Total Prepaid", 100)+(M.totPrepaid ? val(M.agreed(M.totPrepaid), "margin-top:2px") : (M.pc ? val("AS AGREED", "margin-top:2px") : ""))+'</div>'], [1, '<div style="padding:3px 6px">'+tabc("Total Collect", 100)+(M.totCollect ? val(M.agreed(M.totCollect), "margin-top:2px") : "")+'</div>']])+
       row(24, [[1, tabc("Currency Conversion Rates", 130)], [1, tabc("CC Charges in Dest. Currency", 140)]])+
       row(40, [[1, cell("For Carrier's Use only<br>at Destination", "")], [1, tabc("Charges at Destination", 130)], [1, tabc("Total Collect Charges", 120)]])+
@@ -26720,7 +26755,7 @@ body.job-readonly #jlBanner{display:flex}
         bodyHTML:(code === "hawb" ? '<div id="odHawbBar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--g2);border-radius:8px;margin-bottom:6px;background:var(--g0)"><b style="font-size:12px">Print option</b><select class="fc" id="odHawbMode" style="width:auto;min-width:170px">'+Object.keys(DK.awbModes).map(k=>'<option value="'+k+'">'+esc(DK.awbModes[k].replace(/ \(.*/, ""))+'</option>').join("")+'</select><span style="font-size:11px;color:var(--g5)">All options are made from the job as it is now, in the format chosen for the House Air Waybill; Print, Download and Send use the option shown.</span></div>' : "")+'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
         footHTML:(/class="od-simg"/.test(b.html) ? '<span style="margin-right:12px;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">Signature:<button class="btn btn-sm btn-pri" type="button" data-od2="sig" data-v="1">With</button><button class="btn btn-sm btn-out" type="button" data-od2="sig" data-v="0">Without</button></span>' : "")+(code === "can" ? '<span style="margin-right:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">View:'+["with_rates", "without_rates"].map(v=>'<button class="btn btn-sm '+((variant || "") === v ? "btn-pri" : "btn-out")+'" type="button" data-od2="canv" data-code="can" data-var="'+v+'">'+(v === "with_rates" ? "With Charges" : "Without Charges")+'</button>').join("")+'</span>' : "")+
           '<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="mailp">Send by email</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
-      if(code === "hawb"){ try{ const html = (await DK.build("awb", {job:O.job, mode:"a4"})).html; O.prev.b = Object.assign({}, b, {html}); const box = document.querySelector("#modalBody .dk-pages"); if(box) box.innerHTML = html; }catch(e){} }
+      if(code === "hawb"){ try{ const html = (await DK.build("awb", {job:O.job, fmt:await hawbFmt(), mode:"a4"})).html; O.prev.b = Object.assign({}, b, {html}); const box = document.querySelector("#modalBody .dk-pages"); if(box) box.innerHTML = html; }catch(e){} }
     }catch(e){ say("Could not open the report", e.message, "error"); }
   }
   const withSig = pv=> pv.nosign ? Object.assign({}, pv.b, {html:pv.b.html.replace(/<img class="od-simg"[^>]*>/g, "")}) : pv.b;     /* the choice made in the preview applies to Download and Print */
@@ -26804,10 +26839,12 @@ body.job-readonly #jlBanner{display:flex}
         footHTML:'<button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
     }catch(e){ say("Could not load the history", e.message, "error"); }
   }
+  /* Output Docs: the HAWB is always in a waybill format (the chosen one, else Format three), never the old plain layout */
+  const hawbFmt = async ()=>{ await DK.loadAwbFormats(); return DK.awbDefault === "std" || !DK.awbDefault ? "three" : DK.awbDefault; };
   /* HAWB preview: switch between the saved final print and the Draft / Pre-print / Multiple print made from the job as it is now */
   document.addEventListener("change", async e=>{
     const m = e.target.closest && e.target.closest("#odHawbMode"); if(!m || !O.prev) return;
-    try{ const html = (await DK.build("awb", {job:O.job, mode:m.value})).html; O.prev.b = Object.assign({}, O.prev.orig, {html}); const box = document.querySelector("#modalBody .dk-pages"); if(box) box.innerHTML = html; }
+    try{ const html = (await DK.build("awb", {job:O.job, fmt:await hawbFmt(), mode:m.value})).html; O.prev.b = Object.assign({}, O.prev.orig, {html}); const box = document.querySelector("#modalBody .dk-pages"); if(box) box.innerHTML = html; }
     catch(err){ say("Could not prepare the print option", err.message, "error"); }
   });
   document.addEventListener("click", async e=>{
@@ -26824,7 +26861,7 @@ body.job-readonly #jlBanner{display:flex}
     if(act === "pdfp"){ if(O.prev) download(withSig(O.prev)); return; }
     if(act === "printp"){ if(O.prev) printDoc(withSig(O.prev)); return; }
     if(act === "pdf" || act === "print" || act === "mail"){ if(!id) return; try{ let rec = await record(id);
-        if(code === "hawb"){ const mode = await DK.askAwbMode("a4"); if(!mode) return; rec = Object.assign({}, rec, {html:(await DK.build("awb", {job:O.job, mode})).html}); }          /* always made from the job as it is now, in the chosen format */
+        if(code === "hawb"){ const mode = await DK.askAwbMode("a4"); if(!mode) return; rec = Object.assign({}, rec, {html:(await DK.build("awb", {job:O.job, fmt:await hawbFmt(), mode})).html}); }          /* always made from the job as it is now, in the chosen format */
         act === "pdf" ? download(rec) : act === "mail" ? mailDoc(rec) : printDoc(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
   });
   const closeModalIf = ()=> {};

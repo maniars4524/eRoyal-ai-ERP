@@ -1,0 +1,21 @@
+const puppeteer = require("puppeteer-core"); const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (m, p, b, t) => { const r = await fetch(BASE + p, { method: m, headers: { "Content-Type": "application/json", ...(t ? { Authorization: "Bearer " + t } : {}) }, body: b ? JSON.stringify(b) : undefined }); let x = null; try { x = await r.json(); } catch (e) {} return { status: r.status, body: x }; };
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36).toUpperCase().slice(-5);
+  const org = await j("POST", "/api/organizations", { code: "RG" + tag, name: "Reg " + tag, admin_email: `rg${tag}@t.test`, admin_username: "rg" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "M", admin_last_name: "R" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "rg" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const mk = async (type, party, rate, ref) => { const d = (await j("POST", "/api/documents", { doc_type: type, party_name: party, supply_type: "intra", ref_document_id: ref, lines: [{ charge_name: "X", qty: "1", rate, tax_type: "Taxable", tax_pct: "18" }] }, token)).body; return (await j("POST", `/api/documents/${d.id}/post`, null, token)).body; };
+  const i1 = await mk("invoice", "ALPHA " + tag, "10000"); const i2 = await mk("invoice", "BETA " + tag, "20000"); await mk("credit_note", "ALPHA " + tag, "1000", i1.id); await mk("debit_note", "BETA " + tag, "500"); await mk("purchase_invoice", "VENDOR " + tag, "4000"); const rc = await j("POST", "/api/payments", { direction: "RECEIPT", party_name: "BETA " + tag, amount: "5000", allocations: [{ document_id: i2.id, amount: "5000" }] }, token); console.log("receipt", rc.status);
+  await j("POST", "/api/payments", { direction: "RECEIPT", party_name: "BETA " + tag, amount: "5000", allocations: [{ document_id: i2.id, amount: "5000" }] }, token);
+  const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
+  const page = await b.newPage(); await page.setViewport({ width: 1500, height: 1000 });
+  page.on("pageerror", e => console.log("PAGEERR", e.message));
+  await page.goto(BASE + "/erp/login", { waitUntil: "networkidle2" }); await page.evaluate(t => localStorage.setItem("esway_persistent_token", t), token); await page.reload({ waitUntil: "networkidle2" }); await new Promise(r => setTimeout(r, 3000));
+  await page.evaluate(() => window.go("invoice-list")); await new Promise(r => setTimeout(r, 3500));
+  await page.screenshot({ path: "../scratch/register.png" });
+  console.log(await page.evaluate(() => document.querySelector("#s-invoice-list").innerText.slice(0, 700)));
+  await b.close();
+})();
