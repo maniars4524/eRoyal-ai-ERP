@@ -3159,6 +3159,8 @@ tbody tr:hover{background:var(--g0)}
 <div style="margin:6px 0 10px"><button type="button" class="btn btn-out btn-sm" id="jobAwbAddLine">Add Row</button></div>
 <div class="fsec">Dimensions <span style="font-weight:400;font-size:11px;color:var(--g5)">(from the Cargo / Dimensions tab; they print on the waybill)</span></div>
 <div id="jobAwbDims"></div>
+<div class="fsec">Charges <span style="font-weight:400;font-size:11px;color:var(--g5)">(taken from the Charges tab; choose the box of the waybill each one goes to, or leave Auto)</span></div>
+<div id="jobAwbCharges"></div>
 <div class="fr" style="margin-top:8px"><div class="fg" style="grid-column:span 3"><label class="fl">Additional notification</label><textarea class="fc" id="jobAwb_addNotif" rows="2"></textarea></div></div>
 </div>
 </div>
@@ -18622,7 +18624,8 @@ function makePrintFit(){
     set("jobAwb_chgsCode", a.chgsCode || ""); set("jobAwb_wtval", a.wtval || ""); set("jobAwb_otherFlag", a.otherFlag || ""); set("jobAwb_valuation", a.valuation || "Rate");
     const cg = JD.data.cargo || {}, tt = window.AIR_DIMS;
     JD._awbLines = (a.lines && a.lines.length ? a.lines : [{pcs:cg.pkgs || "", gwt:cg.gwt || "", kl:"K", rc:a.rateClass || "Q", itemType:"Rate", itemNo:a.commodityNo || "", chwt:a.chargeableWt || (tt && tt.chargeable_kg) || cg.chgWt || "", rate:a.rate || ""}]).map(l=>Object.assign({}, l));
-    JD.awbLinesPaint(); JD.awbDims(); JD.awbStock();
+    JD._chargeMap = Object.assign({}, a.chargeMap || {}); JD.awbLinesPaint(); JD.awbDims(); JD.awbStock(); JD.awbCharges();
+    { const o = el("jobAwb_other"), ot = el("jobAwb_otherText"); const lb = n=> n && n.previousElementSibling; if(lb(o)) lb(o).textContent = "Other charges due agent (blank = from the Charges tab)"; if(lb(ot)) lb(ot).textContent = "Other charges (as printed; blank = built from the Charges tab)"; }
   };
   const lineTotal = l=> l.itemType === "As agreed" ? "" : String(Math.round((Number(l.chwt) || 0) * (Number(l.rate) || 0) * 100) / 100);
   JD.awbLinesPaint = function(){
@@ -18639,6 +18642,23 @@ function makePrintFit(){
     if(e.target.closest && e.target.closest("#jobAwbAddLine")){ JD._awbLines.push({pcs:"", gwt:"", kl:"K", rc:"Q", itemType:"Rate", itemNo:"", chwt:"", rate:""}); JD.awbLinesPaint(); return; }
     const d = e.target.closest && e.target.closest("[data-awbl-del]"); if(d){ JD._awbLines.splice(Number(d.dataset.awblDel), 1); JD.awbLinesPaint(); }
     if(e.target.closest && e.target.closest('.tbb[data-tab="jt3"]')) setTimeout(()=>{ JD.awbDims(); }, 50);
+  });
+
+  /* the charges of the Charges tab, and the waybill box each one goes to (Auto decides by the charge name) */
+  JD._chargeMap = {};
+  JD.awbCharges = async function(){
+    const box = el("jobAwbCharges"); if(!box || !isAirExp() || !JD.job) return;
+    let r; try{ r = await api("GET", "/api/shipments/by-number/"+encodeURIComponent(JD.job)+"/charges"); }catch(e){ box.innerHTML = '<div class="ib ib-am">Could not read the Charges tab: '+esc2(e.message)+'</div>'; return; }
+    const lines = (r.lines || []).filter(l=> Number((l.sell || {}).rate) > 0), K = window.DocKit && window.DocKit.awbCls ? window.DocKit : null, classes = K ? K.awbClasses : {AUTO:"Auto"}, map = JD._chargeMap;
+    box.innerHTML = (lines.length ? '<div class="tw"><table><thead><tr><th>Charge</th><th style="text-align:right">Amount</th><th>On the waybill as</th></tr></thead><tbody>'+lines.map(l=>{
+      const k = String(l.charge_name || "").trim().toLowerCase(), amt = (Number(l.qty) || 0) * (Number(l.sell.rate) || 0), cur = map[k] || "AUTO", auto = K ? K.awbCls(l.charge_name, {}) : "AGENT";
+      return '<tr><td>'+esc2(l.charge_name)+'</td><td style="text-align:right">'+esc2(l.sell.ccy)+' '+(Math.round(amt * 100) / 100)+'</td><td><select class="fc" data-awbch="'+esc2(k)+'" style="width:260px">'+Object.keys(classes).map(c=>'<option value="'+c+'"'+(c === cur ? " selected" : "")+'>'+esc2(classes[c]+(c === "AUTO" ? " ("+(classes[auto] || "")+")" : ""))+'</option>').join("")+'</select></td></tr>'; }).join("")+'</tbody></table></div>'
+      : '<div style="color:var(--g5);font-size:12px">No sell charges in the Charges tab yet. Charges entered there appear on the waybill automatically.</div>')+'<div style="margin-top:6px"><button type="button" class="btn btn-out btn-sm" id="jobAwbChargesOpen">Open the Charges tab</button></div>';
+  };
+  document.addEventListener("change", e=>{ const n = e.target; if(n && n.dataset && n.dataset.awbch !== undefined){ if(n.value === "AUTO") delete JD._chargeMap[n.dataset.awbch]; else JD._chargeMap[n.dataset.awbch] = n.value; } });
+  document.addEventListener("click", e=>{
+    if(e.target.closest && e.target.closest("#jobAwbChargesOpen")){ const t = document.querySelector('.tbb[data-tab="jt5"]'); if(t) t.click(); }
+    if(e.target.closest && e.target.closest('.tbb[data-tab="jt3"]')) setTimeout(()=>{ JD.awbCharges(); }, 80);
   });
   /* the package dimensions of the Cargo / Dimensions tab, reflected here (read only) */
   JD.awbDims = function(){
@@ -18672,7 +18692,7 @@ function makePrintFit(){
       if(!f0.rate && lr) f0.rate = lr; if(!f0.rc && lc) f0.rc = lc; if(!f0.chwt && lw) f0.chwt = lw; if(f0.itemType !== "As agreed") f0.total = String(Math.round((Number(f0.chwt) || 0) * (Number(f0.rate) || 0) * 100) / 100); }
     const f = lines[0] || {};
     return {shipperLc:g("jobAwb_shipperLc"), consigneeLc:g("jobAwb_consigneeLc"), to2:g("jobAwb_to2"), by2:g("jobAwb_by2"), to3:g("jobAwb_to3"), by3:g("jobAwb_by3"), flight2:g("jobAwb_flight2"), flightDate2:g("jobAwb_flightDate2"),
-      chgsCode:g("jobAwb_chgsCode"), wtval:g("jobAwb_wtval"), otherFlag:g("jobAwb_otherFlag"), valuation:g("jobAwb_valuation"), addNotif:(el("jobAwb_addNotif") || {}).value || "", lines,
+      chgsCode:g("jobAwb_chgsCode"), wtval:g("jobAwb_wtval"), otherFlag:g("jobAwb_otherFlag"), valuation:g("jobAwb_valuation"), chargeMap:Object.assign({}, JD._chargeMap), addNotif:(el("jobAwb_addNotif") || {}).value || "", lines,
       rateClass:f.rc || "", rate:f.itemType === "As agreed" ? "" : (f.rate || ""), commodityNo:f.itemNo || ""};          /* the first line also feeds the single-line fields the rest of the system reads */
   };
   JD.docs = function(){
@@ -19503,6 +19523,16 @@ function makePrintFit(){
      Format two: the typed (Courier) HAWB with the logo and boxed numbers; Format three: the system layout with slanted labels and the conditions page).
      All three print the same data (awbModel); DK.awb above stays as the "Existing layout".
      ============================================================ */
+  /* which box of the waybill a charge of the Charges tab belongs to: Weight charge, Valuation charge, Tax, Total other charges due agent / due carrier, or not on the waybill. The user can override it on the BL form (awb.chargeMap) */
+  DK.awbClasses = {AUTO:"Auto", WEIGHT:"Weight charge", VALUATION:"Valuation charge", TAX:"Tax", AGENT:"Total other charges due agent", CARRIER:"Total other charges due carrier", NONE:"Not on the waybill"};
+  DK.awbCls = function(name, map){
+    const k = String(name || "").trim().toLowerCase(); const m = map && map[k]; if(m && m !== "AUTO" && DK.awbClasses[m]) return m;
+    if(/valuation/.test(k)) return "VALUATION";
+    if(/^(service )?(tax|gst|igst|cgst|sgst)\b/.test(k)) return "TAX";
+    if(/(^|\b)(air ?freight|a\/f|weight charge|awb freight|freight)(\b|$)/.test(k) && !/(surcharge|fuel|security)/.test(k)) return "WEIGHT";
+    if(/fuel|fsc|ssc|\bsc\b|security|mcc|cgc|surcharge|carrier|war risk|screening|x-?ray|due carrier/.test(k)) return "CARRIER";
+    return "AGENT";
+  };
   DK.awbModel = function(rd){
     const co = rd.company || {}, P = co.profile || {}, f = facts(rd), bl = f.bl || {}, a = bl.awb || {}, stage = bl.blStage || "Draft";
     const wt = DK.awbWeights(f.d), gross0 = num(first(f.gw, wt.act)), chargeable = num(first(a.chargeableWt, wt.chg || Math.max(gross0, wt.vol))), rate = num(a.rate), other = num(a.otherCharges);
@@ -19510,7 +19540,16 @@ function makePrintFit(){
     /* air export: the rate lines of the waybill (several commodities / rate classes); without lines the single rate line is used as before */
     const rateLines = (Array.isArray(a.lines) ? a.lines : []).filter(l=> l && (l.pcs || l.gwt || l.chwt || l.rate || l.itemNo)).map(l=>({pcs:num(l.pcs), gwt:num(l.gwt), kl:l.kl || "K", rc:l.rc || "", itemType:l.itemType || "Rate", itemNo:l.itemNo || "", chwt:num(l.chwt), rate:num(l.rate), total:l.itemType === "As agreed" ? 0 : (num(l.total) || num(l.chwt) * num(l.rate))}));
     const sumL = k=> rateLines.reduce((x, l)=>x + l[k], 0);
-    const gross = rateLines.length ? sumL("gwt") : gross0, wtCharge = rateLines.length ? sumL("total") : rate * chargeable;
+    /* air export: the charges of the job's Charges tab (sell side) are put in the boxes of the waybill they belong to */
+    const exp = rd.mode === "Air" && rd.direction === "Export", cur = a.currency || "INR", cls = {WEIGHT:0, VALUATION:0, TAX:0, AGENT:0, CARRIER:0}, chItems = [];
+    if(exp) (rd.job_charges || []).forEach(c=>{ const k = DK.awbCls(c.name, a.chargeMap); if(k === "NONE") return; let amt = num(c.amount); if((c.ccy || "INR") !== cur){ if(cur === "INR") amt = amt * (num(c.exch) || 1); else return; } cls[k] += amt; if(k === "AGENT" || k === "CARRIER") chItems.push({name:String(c.name || "").trim(), amt, k}); });
+    const gross = rateLines.length ? sumL("gwt") : gross0, linesTotal = rateLines.length ? sumL("total") : 0;
+    const wtCharge = linesTotal > 0 ? linesTotal : (cls.WEIGHT > 0 ? cls.WEIGHT : rate * chargeable);
+    const agent = other || cls.AGENT, carrier = cls.CARRIER, valuation = cls.VALUATION, tax = cls.TAX;
+    const wtPC0 = a.wtval ? a.wtval === "PP" : pc, otPC0 = a.otherFlag ? a.otherFlag === "PP" : pc;
+    const sideSum = (pre)=> (wtPC0 === pre ? wtCharge + valuation + tax : 0) + (otPC0 === pre ? agent + carrier : 0);
+    const amtTxt = x=> Number.isInteger(Math.round(x * 100) / 100) ? String(Math.round(x * 100) / 100) : fmt(x);
+    const autoOther = chItems.length ? chItems.map(c=>c.name.toUpperCase()+" : "+amtTxt(c.amt)+"/-").join("  ") : "";
     const code3 = v=> { const m = String(v || "").match(/([A-Z]{3})(?:\(|$)/); return m ? m[1] : String(v || "").slice(0, 3).toUpperCase(); };
     const place = v=> String(v || "").replace(/^[A-Z]{5}\(?/, "").replace(/\)$/, "") || String(v || "");
     const dimsRows = wt.rows.filter(r=>r.l || r.w || r.h);
@@ -19522,9 +19561,9 @@ function makePrintFit(){
       agent: P.legal_name || co.name || "", agentCity: [P.city, P.country].filter(Boolean).join(", ") || P.state || "", iata: a.iata || P.iata_code || P.iata || "", agentAcct: a.agentAccount || "",
       dep: place(f.pol), toCode: a.routingTo || code3(f.pod), carrier: a.airline || f.carrier || "", dest: place(f.pod), flight: [a.flight, a.flightDate ? dmy(a.flightDate) : ""].filter(Boolean).join("  ")+(a.flight2 || a.flightDate2 ? " / "+[a.flight2, a.flightDate2 ? dmy(a.flightDate2) : ""].filter(Boolean).join("  ") : ""),
       currency: a.currency || "INR", declC: a.declCarriage || "NVD", declCu: a.declCustoms || "NCV", insurance: a.insurance || "XXX", handling: a.handling || "", sci: a.sci || "",
-      pieces: rateLines.length ? String(sumL("pcs")) : (first(f.pkgs, wt.pk) || ""), lines: rateLines, wtPC: a.wtval ? a.wtval === "PP" : pc, otherPC: a.otherFlag ? a.otherFlag === "PP" : pc, chgs: a.chgsCode || (pc ? "PP" : "CC"),
-      to2: a.to2 || "", by2: a.by2 || "", to3: a.to3 || "", by3: a.by3 || "", lc1: a.shipperLc || "", lc2: a.consigneeLc || "", acct1: a.shipperAccount || "", acct2: a.consigneeAccount || "", unit: wt.lbs ? "L" : "K", rateClass: a.rateClass || "Q", commodityNo: a.commodityNo || "", total: wtCharge + other,
-      otherText: a.otherText || (other ? "AWB : "+fmt(other)+" /-" : ""), accounting: a.accounting || (pc ? "FREIGHT PREPAID" : "FREIGHT COLLECT"), optional: a.optional || "",
+      pieces: rateLines.length ? String(sumL("pcs")) : (first(f.pkgs, wt.pk) || ""), lines: rateLines, wtPC: wtPC0, otherPC: otPC0, chgs: a.chgsCode || (pc ? "PP" : "CC"),
+      to2: a.to2 || "", by2: a.by2 || "", to3: a.to3 || "", by3: a.by3 || "", lc1: a.shipperLc || "", lc2: a.consigneeLc || "", acct1: a.shipperAccount || "", acct2: a.consigneeAccount || "", unit: wt.lbs ? "L" : "K", rateClass: a.rateClass || "Q", commodityNo: a.commodityNo || "", total: wtCharge + agent + carrier + valuation + tax, agentAmt: agent, carrierAmt: carrier, valAmt: valuation, taxAmt: tax, totPrepaid: sideSum(true), totCollect: sideSum(false),
+      otherText: a.otherText || autoOther || (other ? "AWB : "+fmt(other)+" /-" : ""), accounting: a.accounting || (pc ? "FREIGHT PREPAID" : "FREIGHT COLLECT"), optional: a.optional || "",
       execDate: dmy(a.execDate || bl.hblDate), execPlace: a.place || bl.place || "", executedBy: a.executedBy || "", signer: P.legal_name || co.name || "",
       issuedAddr: [P.address].filter(Boolean).join(" ") + (P.phone ? " Phone:"+P.phone : ""),
       sign: stage === "Released" && bl.digitalSign ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:34px;max-width:140px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:38px;max-width:80px;margin-left:6px">' : "") : "",
@@ -19597,10 +19636,11 @@ function makePrintFit(){
     const money = M.agreed;
     const chargeL = '<div style="width:'+w+'%;border-right:'+B+'">'+
       row(30, [[1, '<div style="padding:3px 6px">'+lab("Prepaid")+(M.pc ? val(money(M.wtCharge), "margin-top:2px") : "")+'</div>'], [1, tabc("Weight Charge")], [1, '<div style="padding:3px 6px">'+lab("Collect")+(M.pc ? "" : val(money(M.wtCharge), "margin-top:2px"))+'</div>']])+
-      row(24, [[1, tabc("Valuation Charge", 130)]])+row(24, [[1, tabc("Tax", 70)]])+
-      row(40, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Agent", 176)+(M.other ? val(fmt(M.other), "text-align:left;margin-top:2px") : "")+'</div>']])+
-      row(30, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Carrier", 176)+'</div>']])+
-      row(44, [[1, '<div style="padding:3px 6px">'+tabc("Total Prepaid", 100)+(M.pc ? val(M.agreed(M.total), "margin-top:2px") : "")+'</div>'], [1, '<div style="padding:3px 6px">'+tabc("Total Collect", 100)+(M.pc ? "" : val(M.agreed(M.total), "margin-top:2px"))+'</div>']])+
+      row(24, [[1, '<div style="padding:2px 6px">'+(M.valAmt && M.wtPC ? val(fmt(M.valAmt)) : "")+'</div>'], [1, tabc("Valuation Charge", 110)], [1, '<div style="padding:2px 6px;text-align:right">'+(M.valAmt && !M.wtPC ? val(fmt(M.valAmt)) : "")+'</div>']])+
+      row(24, [[1, '<div style="padding:2px 6px">'+(M.taxAmt && M.wtPC ? val(fmt(M.taxAmt)) : "")+'</div>'], [1, tabc("Tax", 70)], [1, '<div style="padding:2px 6px;text-align:right">'+(M.taxAmt && !M.wtPC ? val(fmt(M.taxAmt)) : "")+'</div>']])+
+      row(40, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Agent", 176)+(M.agentAmt ? val(fmt(M.agentAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
+      row(30, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Carrier", 176)+(M.carrierAmt ? val(fmt(M.carrierAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
+      row(44, [[1, '<div style="padding:3px 6px">'+tabc("Total Prepaid", 100)+(M.totPrepaid ? val(M.agreed(M.totPrepaid), "margin-top:2px") : (M.pc ? val("AS AGREED", "margin-top:2px") : ""))+'</div>'], [1, '<div style="padding:3px 6px">'+tabc("Total Collect", 100)+(M.totCollect ? val(M.agreed(M.totCollect), "margin-top:2px") : "")+'</div>']])+
       row(24, [[1, tabc("Currency Conversion Rates", 130)], [1, tabc("CC Charges in Dest. Currency", 140)]])+
       row(40, [[1, cell("For Carrier's Use only<br>at Destination", "")], [1, tabc("Charges at Destination", 130)], [1, tabc("Total Collect Charges", 120)]])+
     '</div>';
@@ -19621,7 +19661,7 @@ function makePrintFit(){
   };
   /* the print options: A4 print (the chosen format), Draft print (watermark), Multiple print (every copy with its own label, each followed by the conditions page) and Pre-print (only the data, for pre-printed stationery) */
   DK.awbCopies = [["ORIGINAL 3", "FOR SHIPPER"], ["COPY 8", "FOR AGENT"], ["ORIGINAL 1", "FOR ISSUING CARRIER"], ["ORIGINAL 2", "FOR CONSIGNEE"], ["COPY 4", "DELIVERY RECEIPT"], ["COPY 5", "EXTRA COPY"], ["COPY 6", "EXTRA COPY"], ["COPY 7", "EXTRA COPY"], ["COPY 9", "EXTRA COPY"], ["COPY 10", "EXTRA COPY"]];
-  DK.awbModes = {a4:"A4 print", draft:"Draft print", multiple:"Multiple print (every copy, each with the conditions page)", pre:"Pre-print (data only, for pre-printed stationery)"};
+  DK.awbModes = {a4:"Final print (A4)", draft:"Draft print", multiple:"Multiple print (every copy, each with the conditions page)", pre:"Pre-print (data only, for pre-printed stationery)"};
   DK.awbFace = function(rd, fk, mode){
     mode = mode || "a4"; const key = fk === "std" ? "three" : fk; const wrap = pages=> pages.map(h=>'<div '+PG+'>'+h+'</div>').join("");
     if(mode === "pre") return wrap([DK.awbFaceOne(rd, key, {pre:true})]);
@@ -26652,8 +26692,9 @@ body.job-readonly #jlBanner{display:flex}
       if(variant === "with_rates" && code === "shipment_summary") c.charges = await api("GET", "/api/shipments/by-number/"+enc(O.job)+"/charges");
       let out = await spec.build(c, inp, variant), html = out, title = rep.name+" "+O.job;
       if(out && typeof out === "object"){ html = out.html; title = out.title || title; }
+      const had = !!(rep.generated && rep.generated[variant]);                       /* a version exists: this is a Regenerate */
       const rec = await api("POST", "/api/jobs/"+enc(O.job)+"/outdocs", {code, variant, title, html, inputs:Object.keys(inp).length ? inp : null});
-      say(rep.name+" generated", "Version "+rec.version+" is saved"); await load(); preview(rec.id, code, variant);
+      say(rep.name+(had ? " regenerated" : " generated"), "Version "+rec.version+" is saved"+(had ? ". Press Preview to see it." : "")); await load(); if(!had) preview(rec.id, code, variant);
     }catch(e){ say("Could not generate", e.message || "Check the job details", "error"); }
   }
 
@@ -26665,7 +26706,7 @@ body.job-readonly #jlBanner{display:flex}
       const b = await record(id); O.prev = {id, code, variant:variant || "", b};
       const rep = O.data.reports.find(r=> r.code === code) || {name:code};
       openModal({title:esc(b.title)+' <span style="font-size:11px;font-weight:400;color:var(--g5)">version '+b.rec.version+'</span>', size:"full", expandable:true,
-        bodyHTML:'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
+        bodyHTML:(code === "hawb" ? '<div id="odHawbBar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--g2);border-radius:8px;margin-bottom:6px;background:var(--g0)"><b style="font-size:12px">Print option</b><select class="fc" id="odHawbMode" style="width:auto;min-width:170px">'+Object.keys(DK.awbModes).map(k=>'<option value="'+k+'">'+esc(DK.awbModes[k].replace(/ \(.*/, ""))+'</option>').join("")+'</select><span style="font-size:11px;color:var(--g5)">Final print is this saved version. Draft, Pre-print and Multiple are made from the job as it is now; Print, Download and Send use the option shown.</span></div>' : "")+'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
         footHTML:(/class="od-simg"/.test(b.html) ? '<span style="margin-right:12px;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">Signature:<button class="btn btn-sm btn-pri" type="button" data-od2="sig" data-v="1">With</button><button class="btn btn-sm btn-out" type="button" data-od2="sig" data-v="0">Without</button></span>' : "")+(code === "can" ? '<span style="margin-right:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">View:'+["with_rates", "without_rates"].map(v=>'<button class="btn btn-sm '+((variant || "") === v ? "btn-pri" : "btn-out")+'" type="button" data-od2="canv" data-code="can" data-var="'+v+'">'+(v === "with_rates" ? "With Charges" : "Without Charges")+'</button>').join("")+'</span>' : "")+
           '<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="mailp">Send by email</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
     }catch(e){ say("Could not open the report", e.message, "error"); }
@@ -26751,6 +26792,13 @@ body.job-readonly #jlBanner{display:flex}
         footHTML:'<button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
     }catch(e){ say("Could not load the history", e.message, "error"); }
   }
+  /* HAWB preview: switch between the saved final print and the Draft / Pre-print / Multiple print made from the job as it is now */
+  document.addEventListener("change", async e=>{
+    const m = e.target.closest && e.target.closest("#odHawbMode"); if(!m || !O.prev) return;
+    if(!O.prev.orig) O.prev.orig = O.prev.b;
+    try{ const html = m.value === "a4" ? O.prev.orig.html : (await DK.build("awb", {job:O.job, mode:m.value})).html; O.prev.b = Object.assign({}, O.prev.orig, {html}); const box = document.querySelector("#modalBody .dk-pages"); if(box) box.innerHTML = html; }
+    catch(err){ say("Could not prepare the print option", err.message, "error"); }
+  });
   document.addEventListener("click", async e=>{
     const b = e.target.closest && e.target.closest("[data-od2]"); if(!b) return;
     const act = b.dataset.od2, code = b.dataset.code, variant = b.dataset.var || "", id = b.dataset.id ? Number(b.dataset.id) : (code ? latestId(code, variant) : null);
@@ -26764,7 +26812,9 @@ body.job-readonly #jlBanner{display:flex}
     if(act === "mailp"){ if(O.prev) mailDoc(withSig(O.prev)); return; }
     if(act === "pdfp"){ if(O.prev) download(withSig(O.prev)); return; }
     if(act === "printp"){ if(O.prev) printDoc(withSig(O.prev)); return; }
-    if(act === "pdf" || act === "print" || act === "mail"){ if(!id) return; try{ const rec = await record(id); act === "pdf" ? download(rec) : act === "mail" ? mailDoc(rec) : printDoc(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
+    if(act === "pdf" || act === "print" || act === "mail"){ if(!id) return; try{ let rec = await record(id);
+        if(code === "hawb"){ const mode = await DK.askAwbMode("a4"); if(!mode) return; if(mode !== "a4") rec = Object.assign({}, rec, {html:(await DK.build("awb", {job:O.job, mode})).html}); }          /* Final print is the saved version; the others are made from the job as it is now */
+        act === "pdf" ? download(rec) : act === "mail" ? mailDoc(rec) : printDoc(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
   });
   const closeModalIf = ()=> {};
   document.addEventListener("click", e=>{ if(e.target.closest('.tbb[data-tab="jt7b"]')) setTimeout(load, 150); });

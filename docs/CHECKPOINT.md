@@ -789,3 +789,8 @@ RESUME (owner order): (1) Exporter/Importer view tied to a party (Accounts lists
 - NOT built (needs the owner): Copy Job; Buy/Sell rate on the BL (they live in the job's Charges tab); the Charges tab (air charges / other charges) of the owner's reference screen - waiting for the owner's list.
 - Open decision: volumetric weight for cm = L x W x H / 6000 (our rule, 21x42x56 = 8.2 kg); the owner's sample shows 135 kg (the inch divisor 366).
 - Tests: backend/tests/test_awb_stock.py, e2e/awbexp.test.js (+ hawb.test.js). Updated three stale expectations in awb.test.js / airflow.test.js. The JSDOM tests jobdetails / joblife / jobcostbasis / hblclauses are flaky (fail differently each run, also on older pages).
+
+## 2026-11-17 - Air export: charges on the waybill, Output Docs fix
+- Charges entered in the job's Charges tab appear in the House Air Waybill boxes (weight, valuation, tax, due agent, due carrier, other-charges text, totals); the BL form lists them with a "On the waybill as" choice (Auto by name, or move / hide). Tests: e2e/awbcharges.test.js.
+- Output Docs: Regenerate only regenerates (no preview popup); Preview only previews. The HAWB preview has Print option: Final / Draft / Pre-print / Multiple; list Print / PDF / Mail ask the option. Test: e2e/outdocs_hawb.test.js.
+- Waiting on owner: Copy Job meaning, Buy/Sell rate on BL, volume-weight divisor (cm/6000 vs 366).
