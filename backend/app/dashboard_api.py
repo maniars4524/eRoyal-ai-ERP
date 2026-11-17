@@ -202,7 +202,7 @@ def side_lists(limit: int = Query(default=6, ge=1, le=300), user: User = Depends
     for r in db.scalars(select(CrmRecord).where(CrmRecord.organization_id == org_id, CrmRecord.kind == "followup", CrmRecord.created_by == user.id).order_by(CrmRecord.id.desc())):
         d = r.data or {}
         due = str(d.get("due") or "")[:10]
-        if d.get("done") or not due or due > today.isoformat():
+        if d.get("done") or d.get("cancelled") or not due or due > today.isoformat():          # completed or cancelled engagements are not tasks any more
             continue
         out["tasks"].append({"ref": r.ref, "title": f"{d.get('type') or 'Follow-up'} — {d.get('relatedLabel') or r.company or ''}".strip(" —"), "due": due, "overdue": due < today.isoformat(), "notes": d.get("notes") or "", "go": "crm-engagement"})
     out["tasks"].sort(key=lambda t: t["due"])

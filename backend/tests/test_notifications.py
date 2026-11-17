@@ -168,3 +168,29 @@ def test_tasks_credit_and_calendar_are_part_of_the_centre(h):
     cal = client.get("/api/notifications/calendar?days=30", headers=h).json()
     assert any(e["category"] == "Shipments" and j in e["title"] and e["link"].get("tab") == "routing" for e in cal)
     assert [e["date"] for e in cal] == sorted(e["date"] for e in cal)
+
+
+def test_engagement_follow_ups_alert_and_respect_their_outcome(h):
+    """A follow-up due today or overdue alerts; completed or cancelled ones do not; a rescheduled one alerts on its new date."""
+    from datetime import date, timedelta
+    import uuid
+
+    tag = uuid.uuid4().hex[:5]
+    today, past, future = date.today(), date.today() - timedelta(days=2), date.today() + timedelta(days=3)
+
+    def put(ref, due, **extra):
+        r = client.put("/api/crm/followup", json={"ref": ref, "company": "Eng Co", "status": extra.get("status", "Open"), "data": {"type": "Online Meeting", "relatedLabel": "Enquiry - Eng Co " + ref, "due": f"{due.isoformat()}T11:22", "notes": "agenda", **extra}}, headers=h)
+        assert r.status_code in (200, 201), r.text
+    put(f"FU-T{tag}", today)
+    put(f"FU-O{tag}", past)
+    put(f"FU-D{tag}", today, done=True, status="Completed")
+    put(f"FU-C{tag}", today, cancelled=True, status="Cancelled", outcome="customer cancelled")
+    put(f"FU-R{tag}", future, status="Rescheduled", moves=1, outcome="customer asked")
+    items = {i["id"]: i for i in client.get("/api/notifications", headers=h).json()["items"]}
+    ids = [k for k in items if k.startswith("Tasks:task:")]
+    titles = " | ".join(items[k]["title"] for k in ids)
+    assert f"Due today 11:22: Online Meeting - Enquiry - Eng Co FU-T{tag}" in titles and f"Overdue: Online Meeting - Enquiry - Eng Co FU-O{tag}" in titles
+    assert f"FU-D{tag}" not in titles and f"FU-C{tag}" not in titles and f"FU-R{tag}" not in titles       # completed, cancelled and a future date do not alert
+    assert all("Complete" in items[k]["todo"] and "Reschedule" in items[k]["todo"] for k in ids)           # the notice says what to do
+    side = client.get("/api/dashboard/side?limit=300", headers=h).json()["tasks"]
+    assert not any(f"FU-C{tag}" in t["title"] or f"FU-D{tag}" in t["title"] for t in side)

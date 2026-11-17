@@ -13,6 +13,8 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const org = await j("POST", "/api/organizations", { code: "HW" + tag, name: "Hw " + tag, admin_email: `hw${tag}@t.test`, admin_username: "hw" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Mani", admin_last_name: "Rs" }, dev.body.access_token);
   const token = (await j("POST", "/api/auth/login", { identifier: "hw" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
   await j("PUT", "/api/company/doc-profile", { legal_name: "ISPEED FREIGHT ( INDIA ) PVT LTD", address: "No.3/30, 4th floor, Medavakkam main road, Chennai-600091.", phone: "+91 44 4554 2779", iata_code: "14-3-5076", city: "CHENNAI", country: "INDIA" }, token);
+  const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+  check("company logo saved", (await j("PUT", "/api/company/logo", { data_url: png }, token)).status === 200);
   const job = (await j("POST", "/api/shipments", { mode: "Air", direction: "Export", pol: "INMAA", pod: "SGSIN" }, token)).body.job_number;
   const put = async (sec, data) => (await j("PUT", `/api/jobs/${encodeURIComponent(job)}/details/${sec}`, { data }, token)).status;
   const s1 = await put("parties", { shipper: "Inflow Technology Pvt Ltd\nC/O CWC Import Pvt Ltd, No. 185/1, Adam Nagar,\nNagalkeni, Chennai - 600044.", consignee: "Allied Telesis Asia Pacific Pte Ltd\n11 Tai Seng Link 4th floor FSC department\nSingapore 534182\nContact person: Kelvin/Boon hock/ Irene" });
@@ -44,6 +46,29 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const pages = async () => page.evaluate(() => document.querySelectorAll("#docViewZone .pg").length);
   await pick("one"); const n1 = await pages(); await pick("two"); const n2 = await pages(); await pick("three"); const n3 = await pages();
   check("page counts: one = 1, two = 1, three = 2", n1 === 1 && n2 === 1 && n3 === 2, [n1, n2, n3].join());
+  // the company logo is on every layout
+  for (const fk of ["std", "one", "two", "three"]) { await pick(fk); check("logo on the air waybill: " + fk, await page.evaluate(() => { const f = document.querySelector("#docViewZone .pg"); return !!f && [...f.querySelectorAll("img")].some(i => /^data:image\/png/.test(i.src)); })); }
+  // print options
+  const modePick = async v => { await page.select("#dkMode", v); await sleep(3000); };
+  await pick("three");
+  await modePick("multiple"); const tm = await text("#docViewZone"); const pm = await pages();
+  const order = ["ORIGINAL 3 ( FOR SHIPPER )", "COPY 8 ( FOR AGENT )", "ORIGINAL 1 ( FOR ISSUING CARRIER )", "ORIGINAL 2 ( FOR CONSIGNEE )", "COPY 4 ( DELIVERY RECEIPT )", "COPY 5 ( EXTRA COPY )", "COPY 6 ( EXTRA COPY )", "COPY 7 ( EXTRA COPY )", "COPY 9 ( EXTRA COPY )", "COPY 10 ( EXTRA COPY )"];
+  let at = -1, inOrder = true; for (const o of order) { const i = tm.indexOf(o, at + 1); if (i < 0) { inOrder = false; break; } at = i; }
+  check("Multiple print: 10 copies, 20 pages (each copy + conditions), labels in the sample's order", pm === 20 && inOrder, pm + " pages; " + order.filter(o => !tm.includes(o)).join(", "));
+  check("every copy has its own conditions page", (tm.match(/IF THIS AIR WAY BILL IS ISSUED BY A FORWARDER/g) || []).length === 10);
+  await modePick("draft"); const td = await text("#docViewZone");
+  check("Draft print: DRAFT mark and copy line", /DRAFT/.test(td) && /DRAFT COPY/.test(td), td.slice(-200));
+  await modePick("pre"); const tp = await text("#docViewZone"); const pp = await pages();
+  check("Pre-print: only the data (no labels, no wording, no conditions page), one page", pp === 1 && /Inflow Technology/i.test(tp) && /Allied Telesis/i.test(tp) && !/Shipper's Name and Address|Not Negotiable|CONDITIONS OF CONTRACT|Handling Information|Air Waybill/i.test(tp), pp + " | " + tp.slice(0, 300));
+  await page.screenshot({ path: "../scratch/hawb_pre.png", fullPage: false });
+  await modePick("a4");
+  // pressing Print asks how to print
+  await page.evaluate(() => document.querySelector('[data-dk="print"]').click()); await sleep(900);
+  const asked = await page.evaluate(() => [...document.querySelectorAll('input[name="awbMode"]')].map(r => r.value).join());
+  check("Print asks: A4, Draft, Multiple or Pre-print", asked === "a4,draft,multiple,pre", asked);
+  await page.evaluate(() => { const r = document.querySelector('input[name="awbMode"][value="multiple"]'); r.checked = true; document.querySelector("#awbModeGo").click(); }); await sleep(3500);
+  check("the chosen option is used for the printout (Multiple print = 20 pages)", (await pages()) === 20 && await page.evaluate(() => window.__docKind.opt.mode === "multiple"), String(await pages()));
+  await modePick("a4");
   // name and save
   await page.evaluate(() => document.querySelector("#dkFmtName").click()); await sleep(700);
   await page.evaluate(() => { document.querySelector("#dkFn1").value = "Sri Lankan style"; document.querySelector("#dkFn2").value = "Typed with logo"; document.querySelector("#dkFn3").value = "System"; document.querySelector("#dkFnDef").value = "two"; document.querySelector("#dkFnSave").click(); }); await sleep(2800);

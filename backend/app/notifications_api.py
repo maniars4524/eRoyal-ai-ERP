@@ -213,15 +213,17 @@ def p_tasks(db: Session, user: User, today: date, cfg: dict) -> list[dict]:
     for r in db.scalars(select(CrmRecord).where(CrmRecord.organization_id == user.organization_id, CrmRecord.kind == "followup", CrmRecord.created_by == user.id).order_by(CrmRecord.id.desc()).limit(200)):
         d = r.data or {}
         due = str(d.get("due") or "")[:10]
-        if d.get("done") or not due or due > today.isoformat():
+        if d.get("done") or d.get("cancelled") or not due or due > today.isoformat():          # finished (completed / cancelled) engagements never alert; a rescheduled or postponed one alerts on its new date
             continue
+        at = str(d.get("due") or "")[11:16]
         what = f"{d.get('type') or 'Follow-up'} - {d.get('relatedLabel') or r.company or ''}".strip(" -")
-        out.append(item(f"task:{r.id}", "Tasks", 1 if due < today.isoformat() else 2, ("Overdue: " if due < today.isoformat() else "Due today: ") + what, (d.get("notes") or "") + f" (due {due})", None, {"go": "crm-engagement"}))
+        moved = f" ({d.get('status')} {d.get('moves') or 1}x)" if d.get("status") in ("Rescheduled", "Postponed") else ""
+        out.append(item(f"task:{r.id}", "Tasks", 1 if due < today.isoformat() else 2, ("Overdue: " if due < today.isoformat() else "Due today" + (f" {at}" if at else "") + ": ") + what + moved, (d.get("notes") or "") + f" (due {due}{' ' + at if at else ''})", None, {"go": "crm-engagement"}))
     return out
 
 
 DEFAULT_TODO = [("Payments:pb:", "Pay this vendor bill (Accounts > Payment Voucher) or, if it is wrong, correct it. The notice goes away when the bill is paid."), ("Approvals:cf:", "Open Approvals and Approve or Reject the credit application."), ("Approvals:cr:", "Open Approvals and Approve or Reject the credit request."),
-                ("Tasks:task:", "Do the task, then mark it done in CRM > Engagement. The notice goes away when it is marked done."), ("People:", "Wish them! No action is needed; the notice goes away after the day."), ("Messages:", "Read the message. It goes away when it expires or is withdrawn.")]
+                ("Tasks:task:", "Do the engagement, then open CRM > Engagement and press Complete. If it cannot happen, press Reschedule, Postpone or Cancel and say why. The notice goes away when it is completed or cancelled, or moves to its new date."), ("People:", "Wish them! No action is needed; the notice goes away after the day."), ("Messages:", "Read the message. It goes away when it expires or is withdrawn.")]
 PROVIDERS = [p_routing, p_invoices, p_quotations, p_credit, p_containers, p_purchase_bills, p_tasks, p_birthdays, p_messages]
 
 
@@ -400,7 +402,7 @@ def calendar(days: int = 30, user: User = Depends(get_current_user), db: Session
             dd = date.fromisoformat(due)
         except ValueError:
             continue
-        if not d.get("done") and today <= dd <= end:
+        if not d.get("done") and not d.get("cancelled") and today <= dd <= end:
             add(dd, "Tasks", f"{d.get('type') or 'Follow-up'}: {d.get('relatedLabel') or r.company or ''}".strip(": "), d.get("notes") or "", {"go": "crm-engagement"})
     ev.sort(key=lambda x: (x["date"], x["category"]))
     return ev[:300]

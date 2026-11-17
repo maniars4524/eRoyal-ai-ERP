@@ -19376,7 +19376,7 @@ function makePrintFit(){
     '</div>';
     const wtval = (lbl)=> c(lbl+'<div style="display:flex;justify-content:space-around;font-size:6px"><span>PPD</span><span>CLT</span></div>', '<div style="display:flex;justify-content:space-around;font-weight:700"><span>'+(pc ? "P" : "")+'</span><span>'+(pc ? "" : "C")+'</span></div>');
     const right = '<div style="border-top:'+B+';border-left:'+B+';display:flex;flex-direction:column">'+
-      grid("38% 62%", [c("Not Negotiable", '<span class="lbl"><b style="font-size:12px">Air Waybill</b><div style="font-size:8px;margin-top:4px">Issued By</div></span>', "min-height:58px"), c("", "<b>"+esc2(P.legal_name || co.name || "")+"</b><br>"+esc2(a.issuerCode || P.hawb_code || ""), "min-height:58px")])+
+      grid("38% 62%", [c("Not Negotiable", '<span class="lbl"><b style="font-size:12px">Air Waybill</b><div style="font-size:8px;margin-top:4px">Issued By</div></span>', "min-height:58px"), c("", (co.logo ? '<img src="'+co.logo+'" style="float:right;max-height:46px;max-width:90px;object-fit:contain;margin:0 0 0 6px">' : "")+"<b>"+esc2(P.legal_name || co.name || "")+"</b><br>"+esc2(a.issuerCode || P.hawb_code || ""), "min-height:58px")])+
       c("", '<span class="lbl" style="font-size:8px">Copies 1,2 and 3 of this Air Waybill are originals and have the same validity.</span>')+
       c("", '<div class="lbl" style="font-size:6.5px;line-height:1.28;text-align:justify">It is agreed that the goods described herein are accepted in apparent good order and condition (except as noted) for carriage SUBJECT TO THE CONDITIONS OF CONTRACT ON THE REVERSE HEREOF. ALL GOODS MAY BE CARRIED BY ANY OTHER MEANS INCLUDING ROAD OR ANY OTHER CARRIER UNLESS SPECIFIC CONTRARY INSTRUCTIONS ARE GIVEN HEREON BY THE SHIPPER, AND SHIPPER AGREES THAT THE SHIPMENT MAY BE CARRIED VIA INTERMEDIATE STOPPING PLACES WHICH THE CARRIER DEEMS APPROPRIATE. THE SHIPPER\'S ATTENTION IS DRAWN TO THE NOTICE CONCERNING CARRIER\'S LIMITATION OF LIABILITY. Shipper may increase such limitation of liability by declaring a higher value for carriage and paying a supplemental charge if required.</div>')+
       '<div style="flex:1;display:flex;flex-direction:column">'+c("Accounting Information", nl2br(a.accounting || (pc ? "FREIGHT PREPAID" : "FREIGHT COLLECT")), "flex:1;min-height:70px")+'</div>'+
@@ -19440,67 +19440,70 @@ function makePrintFit(){
       execDate: dmy(a.execDate || bl.hblDate), execPlace: a.place || bl.place || "", executedBy: a.executedBy || "", signer: P.legal_name || co.name || "",
       issuedAddr: [P.address].filter(Boolean).join(" ") + (P.phone ? " Phone:"+P.phone : ""),
       sign: stage === "Released" && bl.digitalSign ? (P.sign_image ? '<img src="'+P.sign_image+'" style="max-height:34px;max-width:140px">' : "")+(P.seal_image ? '<img src="'+P.seal_image+'" style="max-height:38px;max-width:80px;margin-left:6px">' : "") : "",
-      jobNo: rd.job_number};
+      issuerCode: a.issuerCode || P.hawb_code || "", jobNo: rd.job_number};
   };
   const AWB_SPEC = {
-    one:{name:"Format one", vf:"'Times New Roman',Times,serif", lf:"Arial,Helvetica,sans-serif", fp:6.7, vs:11, vw:400, ls:7, up:true, left:49, grey:true, tabs:"slant", top:"both", boxedAcct:true, logo:false, bottom:"ORIGINAL 3 (FOR SHIPPER)", cond:false, mawbMode:"plain"},
+    one:{name:"Format one", vf:"'Times New Roman',Times,serif", lf:"Arial,Helvetica,sans-serif", fp:6.7, vs:11, vw:400, ls:7, up:true, left:49, grey:true, tabs:"slant", top:"both", boxedAcct:true, logo:true, bottom:"ORIGINAL 3 (FOR SHIPPER)", cond:false, mawbMode:"plain"},
     two:{name:"Format two", vf:"'Courier New',Courier,monospace", lf:"'Courier New',Courier,monospace", fp:5.6, vs:9.6, vw:700, ls:7.4, up:false, left:46, grey:true, tabs:"box", top:"boxes", boxedAcct:true, logo:true, bottom:"", cond:false, mawbMode:"spaced"},
-    three:{name:"Format three", vf:"Arial,Helvetica,sans-serif", lf:"Arial,Helvetica,sans-serif", fp:6.7, vs:10, vw:400, ls:7.4, up:false, left:46, grey:false, tabs:"slant", top:"origin", boxedAcct:false, logo:false, bottom:"ORIGINAL 3 ( FOR SHIPPER )", cond:true, mawbMode:"plain"}};
+    three:{name:"Format three", vf:"Arial,Helvetica,sans-serif", lf:"Arial,Helvetica,sans-serif", fp:6.7, vs:10, vw:400, ls:7.4, up:false, left:46, grey:false, tabs:"slant", top:"origin", boxedAcct:false, logo:true, bottom:"ORIGINAL 3 ( FOR SHIPPER )", cond:true, mawbMode:"plain"}};
   const AWB_TXT = {
     one:{insurance:'Insurance : If Carrier offers insurance and such insurance is requested in accordance with the conditions on reverse hereof, indicate amount to be insured in figures in box marked "Amount of Insurance."', cert:"Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is property decribed by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Regulations."},
     two:{insurance:'INSURANCE - If Carrier offers Insurance, and such Insurance is requested in accordance with the conditions thereof, indicate amount to be insured in figures box marked "amount of insurance".', cert:"Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Registrations."},
     three:{insurance:'INSURANCE - If carrier offers insurance, and such insurance is requested in accordance with the conditions thereof, indicate amount to be insured in figures in box marked "Amount of Insurance".', cert:"Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Good Regulations."}};
   /* a slanted (\ /) label like the ones of the system sample, drawn as a small shape */
   const slant = (t, w, h)=> '<svg width="'+w+'" height="'+(h || 15)+'" style="display:block;margin:0 auto"><polygon points="0,0 '+w+',0 '+(w - 9)+','+(h || 15)+' 9,'+(h || 15)+'" fill="#fff" stroke="#111" stroke-width="1"/><text x="'+(w / 2)+'" y="'+((h || 15) - 4)+'" text-anchor="middle" font-family="Arial" font-size="8" fill="#111">'+esc2(t)+'</text></svg>';
-  DK.awbFace = function(rd, fk){
-    const S = AWB_SPEC[fk]; const M = DK.awbModel(rd); const B = "1px solid #111", TH = "1.5px solid #111";
+  DK.awbFaceOne = function(rd, fk, o){
+    o = o || {}; const S = AWB_SPEC[fk]; const M = DK.awbModel(rd); const PRE = !!o.pre, DRAFT = !!o.draft;
+    const B = PRE ? "1px solid transparent" : "1px solid #111", TH = PRE ? "1.5px solid transparent" : "1.5px solid #111", HID = PRE ? "visibility:hidden;" : "";
+    const slantx = (t, w, h)=> PRE ? '<div style="visibility:hidden">'+slant(t, w, h)+'</div>' : slant(t, w, h);
+    const L1 = PRE ? "" : "MAWB NO: ", L2 = PRE ? "" : "HAWB NO: ", L3 = PRE ? "" : "MAWB NO.: ", L4 = PRE ? "" : "HAWB No: ", L5 = PRE ? "" : "HAWB NO:<br>";
     const V = t=> { const s = String(t == null ? "" : t); return S.up && !/</.test(s) ? esc2(s).toUpperCase() : s; };                 // typed values: capitals in Format one
     const val = (t, x)=> '<div style="font-family:'+S.vf+';font-size:'+S.vs+'px;font-weight:'+S.vw+';line-height:1.28;'+(x || "")+'">'+t+'</div>';
-    const lab = (t, x)=> '<div style="font-family:'+S.lf+';font-size:'+S.ls+'px;line-height:1.15;color:#111;'+(x || "")+'">'+t+'</div>';
+    const lab = (t, x)=> '<div style="'+HID+'font-family:'+S.lf+';font-size:'+S.ls+'px;line-height:1.15;color:#111;'+(x || "")+'">'+t+'</div>';
     const cell = (label, inner, st)=> '<div style="box-sizing:border-box;padding:2px 5px;'+(st || "")+'">'+(label ? lab(label) : "")+(inner || "")+'</div>';
     const row = (h, cells, st)=> '<div style="display:flex;height:'+h+'px;border-top:'+B+';'+(st || "")+'">'+cells.map((c, i)=>'<div style="flex:'+c[0]+';min-width:0;'+(i ? "border-left:"+B+";" : "")+'overflow:hidden">'+c[1]+'</div>').join("")+'</div>';
     const ptxt = ls=> ls.length ? val("<b>"+V(ls[0])+"</b><br>"+ls.slice(1).map(x=>V(x)).join("<br>"), "font-weight:"+S.vw) : "";
-    const acctBox = t=> S.boxedAcct ? '<div style="position:absolute;right:0;top:0;border-left:'+B+';border-bottom:'+B+';padding:1px 6px;background:#fff;font-family:Arial;font-size:7.6px;font-weight:'+(fk === "two" ? 700 : 400)+'">'+t+'</div>' : "";
+    const acctBox = t=> S.boxedAcct && !PRE ? '<div style="position:absolute;right:0;top:0;border-left:'+B+';border-bottom:'+B+';padding:1px 6px;background:#fff;font-family:Arial;font-size:7.6px;font-weight:'+(fk === "two" ? 700 : 400)+'">'+t+'</div>' : "";
     const w = S.left, L = (100 - w) + "";
-    const head = S.top === "both" ? '<div style="display:flex;justify-content:space-between;font-family:'+S.vf+';font-weight:700;font-size:12px;margin:0 0 2px;padding:0 6px"><span>MAWB NO: '+esc2(S.mawbMode === "spaced" ? M.mawbSpaced : M.mawbPlain)+'</span><span>HAWB NO: '+esc2(M.hawb)+'</span></div>'
-      : S.top === "boxes" ? '<div style="display:flex;border:'+B+';border-bottom:0;font-family:'+S.vf+';font-size:10px"><div style="flex:'+w+';padding:3px 6px">MAWB NO.: <b>'+esc2(M.mawbSpaced)+'</b></div><div style="flex:'+L+';padding:3px 6px;border-left:'+B+'">HAWB No: <b>'+esc2(M.hawb)+'</b></div></div>'
-      : '<div style="display:flex;justify-content:space-between;align-items:flex-end;font-family:Arial;font-weight:800;font-size:15px;margin:0 0 3px"><span>'+esc2(M.origin)+'</span><span style="text-align:right;line-height:1.1;font-size:13px">HAWB NO:<br>'+esc2(M.hawb)+'</span></div>';
+    const head = S.top === "both" ? '<div style="display:flex;justify-content:space-between;font-family:'+S.vf+';font-weight:700;font-size:12px;margin:0 0 2px;padding:0 6px"><span>'+L1+esc2(S.mawbMode === "spaced" ? M.mawbSpaced : M.mawbPlain)+'</span><span>'+L2+esc2(M.hawb)+'</span></div>'
+      : S.top === "boxes" ? '<div style="display:flex;border:'+B+';border-bottom:0;font-family:'+S.vf+';font-size:10px"><div style="flex:'+w+';padding:3px 6px">'+L3+'<b>'+esc2(M.mawbSpaced)+'</b></div><div style="flex:'+L+';padding:3px 6px;border-left:'+B+'">'+L4+'<b>'+esc2(M.hawb)+'</b></div></div>'
+      : '<div style="display:flex;justify-content:space-between;align-items:flex-end;font-family:Arial;font-weight:800;font-size:15px;margin:0 0 3px"><span>'+esc2(M.origin)+'</span><span style="text-align:right;line-height:1.1;font-size:13px">'+L5+esc2(M.hawb)+'</span></div>';
     /* ---- left column ---- */
     const leftCol = '<div style="width:'+w+'%;border-right:'+B+'">'+
       '<div style="position:relative;height:100px">'+cell("Shipper's Name and Address", ptxt(M.shipper), "height:100%")+acctBox(fk === "two" ? "Shipper Account Number" : "Shipper's Account Number")+(S.boxedAcct ? "" : '<div style="position:absolute;right:6px;top:2px">'+lab("Shipper's Account Number")+"</div>")+'</div>'+
-      '<div style="position:relative;height:104px;border-top:'+B+'">'+cell("Consignee's Name and Address", ptxt(M.consignee), "height:100%")+(S.boxedAcct ? '<div style="position:absolute;right:0;top:0;border-left:'+B+';border-bottom:'+B+';padding:1px 6px;'+(S.grey ? "background:#d8d8d8;" : "background:#fff;")+'font-family:Arial;font-size:7.6px;font-weight:'+(fk === "two" ? 700 : 400)+'">'+(fk === "two" ? "Consignee Account Number" : "Consignee\'s Account Number")+'</div>' : '<div style="position:absolute;right:6px;top:2px">'+lab("Consignee's Account Number")+"</div>")+'</div>'+
+      '<div style="position:relative;height:104px;border-top:'+B+'">'+cell("Consignee's Name and Address", ptxt(M.consignee), "height:100%")+(S.boxedAcct ? '<div style="position:absolute;right:0;top:0;border-left:'+B+';border-bottom:'+B+';padding:1px 6px;'+HID+(S.grey ? "background:#d8d8d8;" : "background:#fff;")+'font-family:Arial;font-size:7.6px;font-weight:'+(fk === "two" ? 700 : 400)+'">'+(fk === "two" ? "Consignee Account Number" : "Consignee\'s Account Number")+'</div>' : '<div style="position:absolute;right:6px;top:2px">'+lab("Consignee's Account Number")+"</div>")+'</div>'+
       row(74, [[1, cell("Issuing Carrier's Agent Name and City", val("<b>"+V(M.agent)+"</b><br>"+V(M.agentCity)), "height:100%")]])+
       row(34, [[62, cell("Agent's IATA Code", val("<b>"+esc2(M.iata)+"</b>"))], [38, cell("Account No.", val(esc2(M.agentAcct)))]])+
       row(30, [[1, cell("Airport of Departure (Addr. of First Carrier) and Requested Routing", val(V(M.dep)))]])+
-      row(44, [[9, cell("To", val(V(M.toCode)))], [17, cell("By First Carrier", val(V(M.carrier)))], [20, cell(S.tabs === "slant" ? slant("Routing and Destination", 84, 12) + lab("to", "margin-top:1px") : "Routing &amp; Dest &nbsp;to", "")], [12, cell("by", "")], [12, cell("to", "")], [12, cell("by", "")]])+
-      row(46, [[58, cell("Airport of Destination", val("<b>"+V(M.dest)+"</b>", "text-align:center"))], [42, cell(S.tabs === "slant" ? slant("Requested Flight/Date", 100, 12) : "Flight/Date", val(V(M.flight)))]])+
+      row(44, [[9, cell("To", val(V(M.toCode)))], [17, cell("By First Carrier", val(V(M.carrier)))], [20, cell(S.tabs === "slant" ? slantx("Routing and Destination", 84, 12) + lab("to", "margin-top:1px") : "Routing &amp; Dest &nbsp;to", "")], [12, cell("by", "")], [12, cell("to", "")], [12, cell("by", "")]])+
+      row(46, [[58, cell("Airport of Destination", val("<b>"+V(M.dest)+"</b>", "text-align:center"))], [42, cell(S.tabs === "slant" ? slantx("Requested Flight/Date", 100, 12) : "Flight/Date", val(V(M.flight)))]])+
     '</div>';
     /* ---- right column ---- */
-    const wv = (t)=> '<div style="display:flex;justify-content:space-around;font-size:6px;font-family:Arial">'+t+'</div>';
+    const wv = (t)=> '<div style="'+HID+'display:flex;justify-content:space-around;font-size:6px;font-family:Arial">'+t+'</div>';
     const wvCell = (label, on)=> cell(label, wv("<span>PPD</span><span>COLL</span>")+'<div style="display:flex;justify-content:space-around;font-family:'+S.vf+';font-weight:700;font-size:'+S.vs+'px"><span>'+(M.pc ? on : "")+'</span><span>'+(M.pc ? "" : on)+'</span></div>');
-    const logo = S.logo && M.co.logo ? '<img src="'+M.co.logo+'" style="position:absolute;right:6px;top:4px;max-height:54px;max-width:130px;object-fit:contain">' : "";
+    const logo = S.logo && M.co.logo && !PRE ? '<img src="'+M.co.logo+'" style="position:absolute;right:6px;top:4px;max-height:54px;max-width:'+(fk === "three" ? 84 : 130)+'px;object-fit:contain">' : "";
     const rightCol = '<div style="width:'+L+'%;display:flex;flex-direction:column">'+
-      '<div style="position:relative;height:88px">'+cell("Not Negotiable", '<div style="font-family:Arial;font-weight:800;font-size:15px;line-height:1.1">Air Waybill'+(fk === "one" ? ' <span style="font-family:'+S.vf+';font-size:11px;vertical-align:2px;margin-left:8px">'+V(M.agent)+'</span>' : "")+'</div>'+lab("Issued By", "margin-top:4px")+(fk === "one" ? "" : val("<b>"+V(M.agent)+"</b><br>"+V(M.issuedAddr), "font-size:"+(S.vs - 0.6)+"px;max-width:62%")), "height:100%")+logo+'</div>'+
+      '<div style="position:relative;height:88px">'+cell("Not Negotiable", '<div style="font-family:Arial;font-weight:800;font-size:15px;line-height:1.1"><span style="'+HID+'">Air Waybill</span>'+(fk === "one" ? ' <span style="font-family:'+S.vf+';font-size:11px;vertical-align:2px;margin-left:8px">'+V(M.agent)+'</span>' : "")+'</div>'+lab("Issued By", "margin-top:4px")+(fk === "one" || fk === "three" ? "" : val("<b>"+V(M.agent)+"</b><br>"+V(M.issuedAddr), "font-size:"+(S.vs - 0.6)+"px;max-width:62%")), "height:100%")+logo+(fk === "three" ? '<div style="position:absolute;left:34%;right:92px;top:8px;text-align:center;font-family:Arial;font-weight:800;font-size:10.5px;line-height:1.3">'+V(M.agent)+(M.issuerCode ? "<br>"+esc2(M.issuerCode) : "")+'</div>' : "")+'</div>'+
       row(20, [[1, cell("", lab(fk === "two" ? "Copies 1,2 &amp; 3 of this AirWaybill are originals and have the same validity." : "Copies 1,2 and 3 of this Air Waybill are originals and have the same validity.", "font-size:7.4px"))]])+
       row(112, [[1, cell("", lab('It is agreed that the goods described herein are accepted in apparent good order and condition (except as noted) for carriage SUBJECT TO THE CONDITIONS OF CONTRACT ON THE REVERSE HEREOF. ALL GOODS MAY BE CARRIED BY ANY OTHER MEANS INCLUDING ROAD OR ANY OTHER CARRIER UNLESS SPECIFIC CONTRARY INSTRUCTIONS ARE GIVEN HEREON BY THE SHIPPER, AND SHIPPER AGREES THAT THE SHIPMENT MAY BE CARRIED VIA INTERMEDIATE STOPPING PLACES WHICH THE CARRIER DEEMS APPROPRIATE. THE SHIPPER\'S ATTENTION IS DRAWN TO THE NOTICE CONCERNING CARRIER\'S LIMITATION OF LIABILITY. Shipper may increase such limitation of liability by declaring a higher value for carriage and paying a supplemental charge if required.', "font-size:"+S.fp+"px;line-height:1.28;text-align:justify"))]])+
-      row(102, [[1, cell("Accounting Information", val(nl2br(M.accounting) + (fk === "two" ? '<div style="margin-top:14px">MAWB NO.: <b>'+esc2(M.mawbSpaced)+'</b></div>' : "")), "height:100%")]])+
-      row(28, [[38, cell("Reference Number", val(esc2(M.jobNo)))], [62, cell(S.tabs === "slant" ? slant("Optional Shipping Information", 150, 12) : "Optional Shipping Information", val(V(M.optional || (fk === "two" ? "TERMS:DDP" : ""))))]])+
+      row(102, [[1, cell("Accounting Information", val(nl2br(M.accounting) + (fk === "two" ? '<div style="margin-top:14px">'+L3+'<b>'+esc2(M.mawbSpaced)+'</b></div>' : "")), "height:100%")]])+
+      row(28, [[38, cell("Reference Number", val(esc2(M.jobNo)))], [62, cell(S.tabs === "slant" ? slantx("Optional Shipping Information", 150, 12) : "Optional Shipping Information", val(V(M.optional || (fk === "two" ? "TERMS:DDP" : ""))))]])+
       row(48, [[13, cell("Currency", val(V(M.currency)))], [11, cell("CHGS<br>Code", val(M.pc ? "PP" : "CC"))], [13, wvCell("WT/VAL", "X")], [13, wvCell("Other", "X")], [26, cell("Declared Value for Carriage", val(V(M.declC), "text-align:center"))], [24, cell("Declared Value for Customs", val(V(M.declCu), "text-align:center"))]])+
       row(36, [[36, cell("Amount of Insurance", val("<b>"+V(M.insurance)+"</b>", "text-align:center"))], [64, cell("", lab(AWB_TXT[fk].insurance, "font-size:"+(S.fp - 0.4)+"px;line-height:1.25"))]])+
     '</div>';
-    const handling = '<div style="position:relative;height:60px;border-top:'+B+'">'+cell("Handling Information", val(V(M.handling).replace(/\n/g, "<br>")), "height:100%")+(M.sci ? '<div style="position:absolute;right:6px;bottom:4px;border:'+B+';padding:1px 14px;font-family:Arial;font-size:7.6px">SCI '+esc2(M.sci)+'</div>' : '<div style="position:absolute;right:6px;bottom:4px;border:'+B+';padding:1px 14px;font-family:Arial;font-size:7.6px">SCI</div>')+'</div>';
+    const handling = '<div style="position:relative;height:60px;border-top:'+B+'">'+cell("Handling Information", val(V(M.handling).replace(/\n/g, "<br>")), "height:100%")+(M.sci ? '<div style="position:absolute;right:6px;bottom:4px;border:'+B+';padding:1px 14px;font-family:Arial;font-size:7.6px;'+HID+'">SCI '+esc2(M.sci)+'</div>' : '<div style="position:absolute;right:6px;bottom:4px;border:'+B+';padding:1px 14px;font-family:Arial;font-size:7.6px;'+HID+'">SCI</div>')+'</div>';
     /* ---- goods table ---- */
     const GR = S.grey ? "background:#bdbdbd;" : "background:#fff;border-left:"+B+";";
     const cols = [["No. of<br>Pieces<br>RCP", 8], ["Gross<br>Weight", 11], ["Kg<br>lb", 3.4], ["spacer", 1.6], ["Rate Class<br><span style=\"border-top:"+B+";display:block\">Commodity<br>Item No.</span>", 9.5], ["Chargeable<br>Weight", 12], ["spacer", 1.6], ["Rate<br>Charge", 10], ["spacer", 1.6], ["Total", 13.8], ["spacer", 1.6], ["Nature and Quantity of Goods<br>(Incl. Dimensions or Volume)", 26.4]];
     const tw = cols.map(c=>c[1]).join("% ")+"%";
-    const th = '<div style="display:grid;grid-template-columns:'+tw+';height:46px;border-top:'+B+'">'+cols.map(c=> c[0] === "spacer" ? '<div style="'+GR+'"></div>' : '<div style="padding:2px;text-align:center;font-family:'+S.lf+';font-size:'+S.ls+'px;line-height:1.15">'+c[0]+'</div>').join("")+'</div>';
+    const th = '<div style="display:grid;grid-template-columns:'+tw+';height:46px;border-top:'+B+'">'+cols.map(c=> c[0] === "spacer" ? '<div style="'+GR+'"></div>' : '<div style="'+HID+'padding:2px;text-align:center;font-family:'+S.lf+';font-size:'+S.ls+'px;line-height:1.15">'+c[0]+'</div>').join("")+'</div>';
     const tcell = (t, a)=> '<div style="padding:3px 4px;text-align:'+(a || "center")+';font-family:'+S.vf+';font-size:'+S.vs+'px;font-weight:'+S.vw+';line-height:1.3">'+t+'</div>';
     const sp = '<div style="'+GR+'"></div>';
     const body = '<div style="display:grid;grid-template-columns:'+tw+';height:150px;border-top:'+B+'">'+[tcell(esc2(M.pieces)), tcell(M.gross ? fmt(M.gross) : ""), tcell(M.unit), sp, tcell(esc2(M.rateClass)), tcell(M.chargeable ? fmt(M.chargeable) : ""), sp, tcell(M.rate ? fmt(M.rate) : "AS AGREED"), sp, tcell(M.agreed(M.wtCharge)), sp, tcell(M.nature.replace(/^$/, ""), "left").replace("font-weight:"+S.vw, "font-weight:"+S.vw)].join("")+'</div>'+
       '<div style="display:grid;grid-template-columns:'+tw+';height:26px;border-top:'+B+'">'+[tcell(esc2(M.pieces)), tcell(M.gross ? fmt(M.gross) : ""), tcell(""), sp, tcell(""), tcell(""), sp, tcell(""), sp, tcell(M.agreed(M.wtCharge)), sp, tcell("")].join("")+'</div>';
     /* ---- charges ---- */
     const t3 = (a, b, c, h)=> row(h || 32, [[1, a], [1, b], [1, c]]);
-    const tabc = (t, w)=> S.tabs === "slant" ? '<div style="padding-top:3px">'+slant(t, w || 92, 14)+'</div>' : '<div style="text-align:center;font-family:'+S.lf+';font-size:'+(S.ls + 0.6)+'px;padding-top:3px">'+t+'</div>';
+    const tabc = (t, w)=> S.tabs === "slant" ? '<div style="padding-top:3px">'+slantx(t, w || 92, 14)+'</div>' : '<div style="'+HID+'text-align:center;font-family:'+S.lf+';font-size:'+(S.ls + 0.6)+'px;padding-top:3px">'+t+'</div>';
     const money = M.agreed;
     const chargeL = '<div style="width:'+w+'%;border-right:'+B+'">'+
       row(30, [[1, '<div style="padding:3px 6px">'+lab("Prepaid")+(M.pc ? val(money(M.wtCharge), "margin-top:2px") : "")+'</div>'], [1, tabc("Weight Charge")], [1, '<div style="padding:3px 6px">'+lab("Collect")+(M.pc ? "" : val(money(M.wtCharge), "margin-top:2px"))+'</div>']])+
@@ -19514,22 +19517,34 @@ function makePrintFit(){
     const chargeR = '<div style="width:'+(100 - w)+'%">'+
       '<div style="height:86px;border-top:'+B+'">'+cell("Other Charges", val(V(M.otherText), "font-size:"+(S.vs + 2)+"px;font-weight:700"), "height:100%")+'</div>'+
       row(44, [[1, cell("", lab(AWB_TXT[fk].cert, "font-size:"+(S.fp - 0.2)+"px;line-height:1.28;text-align:justify"))]])+
-      row(44, [[1, '<div style="text-align:center;padding-top:6px">'+val("<b>"+V(M.signer)+"</b>", "font-size:"+(S.vs + 1.6)+"px")+'<div style="margin-top:2px">'+M.sign+'</div></div><div style="text-align:center;margin-top:-2px;border-top:1px dashed #666;margin:0 18px">'+lab("Signature of Shipper or his Agent")+'</div>']])+
+      row(44, [[1, '<div style="text-align:center;padding-top:6px">'+val("<b>"+V(M.signer)+"</b>", "font-size:"+(S.vs + 1.6)+"px")+'<div style="margin-top:2px">'+M.sign+'</div></div><div style="text-align:center;margin-top:-2px;border-top:1px dashed '+(PRE ? "transparent" : "#666")+';margin:0 18px">'+lab("Signature of Shipper or his Agent")+'</div>']])+
       row(32, [[1, cell("", val(esc2(M.execDate), "text-align:center;margin-top:6px"))], [1, cell("", val(V(M.execPlace), "text-align:center;margin-top:8px"))], [1, cell("", val(V(M.executedBy), "text-align:center;margin-top:8px"))]])+
       row(16, [[1, '<div style="display:flex;justify-content:space-around">'+lab("Executed on (Date)")+lab("at (Place)")+lab("Signature of Issuing Carrier or its Agent")+'</div>']])+
-      row(34, [[1, '<div style="text-align:right;padding:6px 8px;font-family:Arial;font-weight:800;font-size:12px">HAWB NO: '+esc2(M.hawb)+'</div>']])+
+      row(34, [[1, '<div style="text-align:right;padding:6px 8px;font-family:Arial;font-weight:800;font-size:12px">'+L2+esc2(M.hawb)+'</div>']])+
     '</div>';
-    const copy = M.stage === "Draft" && fk === "two" ? "Draft 3 (For Shipper)" : S.bottom;
-    const water = M.stage === "Draft" ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:120px;font-weight:700;color:rgba(0,0,0,.06);transform:rotate(-38deg)">DRAFT</div>' : "";
+    const copy = PRE ? "" : o.copy ? o.copy : (DRAFT ? (fk === "two" ? "Draft 3 (For Shipper)" : "DRAFT COPY") : (M.stage === "Draft" && fk === "two" ? "Draft 3 (For Shipper)" : S.bottom));
+    const water = !PRE && (DRAFT || M.stage === "Draft") ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:120px;font-weight:700;color:rgba(0,0,0,.06);transform:rotate(-38deg)">DRAFT</div>' : "";
     const face = '<div style="position:relative">'+water+head+'<div style="border:'+TH+'">'+
       '<div style="display:flex">'+leftCol+rightCol+'</div>'+handling+th+body+'<div style="display:flex;border-top:'+B+'">'+chargeL+chargeR+'</div></div>'+
       (copy ? '<div style="text-align:center;font-family:Arial;font-weight:800;font-size:'+(fk === "two" ? 9.4 : 10.5)+'px;margin-top:6px;'+(fk === "two" ? "font-family:'Courier New',monospace;" : "")+'">'+esc2(copy)+'</div>' : "")+'</div>';
-    const pages = [face].concat(S.cond ? [DK.awbConditions(rd)] : []);
-    return pages.map(h=>'<div '+PG+'>'+h+'</div>').join("");
+    return face;
+  };
+  /* the print options: A4 print (the chosen format), Draft print (watermark), Multiple print (every copy with its own label, each followed by the conditions page) and Pre-print (only the data, for pre-printed stationery) */
+  DK.awbCopies = [["ORIGINAL 3", "FOR SHIPPER"], ["COPY 8", "FOR AGENT"], ["ORIGINAL 1", "FOR ISSUING CARRIER"], ["ORIGINAL 2", "FOR CONSIGNEE"], ["COPY 4", "DELIVERY RECEIPT"], ["COPY 5", "EXTRA COPY"], ["COPY 6", "EXTRA COPY"], ["COPY 7", "EXTRA COPY"], ["COPY 9", "EXTRA COPY"], ["COPY 10", "EXTRA COPY"]];
+  DK.awbModes = {a4:"A4 print", draft:"Draft print", multiple:"Multiple print (every copy, each with the conditions page)", pre:"Pre-print (data only, for pre-printed stationery)"};
+  DK.awbFace = function(rd, fk, mode){
+    mode = mode || "a4"; const key = fk === "std" ? "three" : fk; const wrap = pages=> pages.map(h=>'<div '+PG+'>'+h+'</div>').join("");
+    if(mode === "pre") return wrap([DK.awbFaceOne(rd, key, {pre:true})]);
+    if(mode === "multiple"){
+      const title = t=> t.toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
+      const lbl = c=> key === "two" ? title(c[0])+" ("+title(c[1])+")" : key === "one" ? c[0]+" ("+c[1]+")" : c[0]+" ( "+c[1]+" )";
+      const pages = []; DK.awbCopies.forEach(c=>{ pages.push(DK.awbFaceOne(rd, key, {copy:lbl(c)}), DK.awbConditions(rd)); }); return wrap(pages);
+    }
+    return wrap([DK.awbFaceOne(rd, key, {draft:mode === "draft"})].concat(AWB_SPEC[key].cond || mode === "draft" && AWB_SPEC[key].cond ? [DK.awbConditions(rd)] : []));
   };
   DK.awbFormats = {std:"Existing layout", one:"Format one", two:"Format two", three:"Format three"};
   DK.awbNames = Object.assign({}, DK.awbFormats); DK.awbDefault = "std";
-  DK.awbRender = (rd, fk)=> fk === "one" || fk === "two" || fk === "three" ? DK.awbFace(rd, fk) : DK.awb(rd);
+  DK.awbRender = (rd, fk, mode)=> fk === "one" || fk === "two" || fk === "three" || (mode && mode !== "a4") ? DK.awbFace(rd, fk, mode) : DK.awb(rd);
 
   /* ---------- RECEIPT / PAYMENT VOUCHER ---------- */
   DK.receipt = function(v, rd, partyText){
@@ -19609,7 +19624,7 @@ function makePrintFit(){
     else if(kind === "can"){ html = DK.arrivalNotice(rd); title = "Cargo Arrival Notice "+rd.job_number; }
     else if(kind === "receipt"){ const v = await api("GET", "/api/payments/"+opt.paymentId+"/voucher"); const pt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(v.party_name || "")).catch(()=>({text:""})); html = DK.receipt(v, rd, pt.text); title = (v.direction === "RECEIPT" ? "Receipt Voucher " : "Payment Voucher ")+v.pay_number; }
     else if(kind === "pl"){ const pl = await api("GET", "/api/accounts/job/"+encodeURIComponent(job)+"/profit-loss"); html = DK.jobPL(pl, rd); title = "Job Profit and Loss "+rd.job_number; }
-    else if(kind === "awb"){ if(rd.mode !== "Air") throw new Error("The House Air Waybill is produced for air jobs. A sea job carries a Bill of Lading"); await DK.loadAwbFormats(); html = DK.awbRender(rd, (opt && opt.fmt) || DK.awbDefault); title = "HAWB "+((((rd.details || {}).bl) || {}).hblNo || rd.job_number); }
+    else if(kind === "awb"){ if(rd.mode !== "Air") throw new Error("The House Air Waybill is produced for air jobs. A sea job carries a Bill of Lading"); await DK.loadAwbFormats(); html = DK.awbRender(rd, (opt && opt.fmt) || DK.awbDefault, (opt && opt.mode) || "a4"); title = "HAWB "+((((rd.details || {}).bl) || {}).hblNo || rd.job_number); }
     else if(kind === "do"){ html = DK.deliveryOrder(rd); title = "Delivery Order "+(((rd.details || {}).impdocs || {}).do_no || rd.job_number); }
     else {
       if(doc.doc_type === "purchase_invoice" || doc.doc_type === "purchase_credit_note"){ const vt = await api("GET", "/api/company/party-text?name="+encodeURIComponent(doc.party_name || "")).catch(()=>({text:""})); html = DK.purchaseInvoice(doc, rd, vt.text); title = "Purchase Invoice "+(doc.doc_number || ""); }
@@ -19753,7 +19768,17 @@ function makePrintFit(){
   DK.awbBar = function(b){
     const cur = (b.opt && b.opt.fmt) || DK.awbDefault;
     return '<div id="dkFmtBar" class="no-print" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--g2);background:var(--g0)"><b style="font-size:12px">Print format</b><select id="dkFmt" class="fc" style="width:auto;min-width:200px">'+
-      ["std", "one", "two", "three"].map(k=>'<option value="'+k+'"'+(k === cur ? " selected" : "")+'>'+esc2(DK.awbNames[k] || DK.awbFormats[k])+(k === DK.awbDefault ? " (default)" : "")+'</option>').join("")+'</select><button type="button" class="btn btn-out btn-sm" id="dkFmtName">Name &amp; save formats</button><button type="button" class="btn btn-out btn-sm" id="dkFmtDefault">Use this one as the default</button><span style="font-size:11px;color:var(--g5)">Print, PDF and Send use the format shown here.</span></div>';
+      ["std", "one", "two", "three"].map(k=>'<option value="'+k+'"'+(k === cur ? " selected" : "")+'>'+esc2(DK.awbNames[k] || DK.awbFormats[k])+(k === DK.awbDefault ? " (default)" : "")+'</option>').join("")+'</select><b style="font-size:12px;margin-left:6px">Print option</b><select id="dkMode" class="fc" style="width:auto;min-width:150px">'+Object.keys(DK.awbModes).map(k=>'<option value="'+k+'"'+(k === ((b.opt && b.opt.mode) || "a4") ? " selected" : "")+'>'+esc2(DK.awbModes[k].replace(/ \(.*/, ""))+'</option>').join("")+'</select><button type="button" class="btn btn-out btn-sm" id="dkFmtName">Name &amp; save formats</button><button type="button" class="btn btn-out btn-sm" id="dkFmtDefault">Use this one as the default</button><span style="font-size:11px;color:var(--g5)">Print, PDF and Send use the format shown here.</span></div>';
+  };
+  document.addEventListener("change", e=>{ const m = e.target.closest && e.target.closest("#dkMode"); const kk = window.__docKind; if(m && kk){ kk.opt = Object.assign({}, kk.opt, {mode:m.value}); DK.show(); } });
+  /* pressing Print / PDF / Send on a House Air Waybill asks how to print it */
+  DK.askAwbMode = function(def){
+    return new Promise(res=>{
+      let done = false; const fin = v=> { if(done) return; done = true; res(v); };
+      openModal({title:"How do you want to print?", bodyHTML:'<div style="display:grid;gap:8px">'+Object.keys(DK.awbModes).map((k, i)=>'<label style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid var(--g2);border-radius:8px;cursor:pointer"><input type="radio" name="awbMode" value="'+k+'"'+(k === (def || "a4") ? " checked" : "")+' style="margin-top:3px"><span><b>'+esc2(DK.awbModes[k].replace(/ \(.*/, ""))+'</b><br><span style="font-size:11px;color:var(--g5)">'+esc2({a4:"One House Air Waybill on A4 in the chosen format.", draft:"The same page with a DRAFT mark across it.", multiple:"All 10 copies (Original 1, 2, 3, Copy 4 to 10), each followed by the conditions of contract.", pre:"Only the typed data, no boxes or wording, to print on pre-printed air waybill stationery."}[k])+'</span></span></label>').join("")+'</div>',
+        footHTML:'<button class="btn btn-out" type="button" id="awbModeNo">Cancel</button><button class="btn btn-pri" type="button" id="awbModeGo">Continue</button>'});
+      el("awbModeNo").addEventListener("click", ()=>{ closeModal(); fin(null); }); el("awbModeGo").addEventListener("click", ()=>{ const r = document.querySelector('input[name="awbMode"]:checked'); closeModal(); fin(r ? r.value : "a4"); });
+    });
   };
   document.addEventListener("change", e=>{ const t = e.target.closest && e.target.closest("#dkFmt"); const k = window.__docKind; if(!t || !k) return; k.opt = Object.assign({}, k.opt, {fmt:t.value}); DK.show(); });
   document.addEventListener("click", async e=>{
@@ -19810,6 +19835,7 @@ function makePrintFit(){
       }catch(e){ btn.disabled = false; btn.textContent = "Send"; say("Could not send the document", e.message, "error"); } });
   };
   async function act(kind, opt, what){
+    if(kind === "awb" && what !== "view" && !(opt && opt.asked)){ const m = await DK.askAwbMode(opt && opt.mode); if(!m) return; opt = Object.assign({}, opt, {mode:m, asked:true}); }
     try{ const b = (what === "view") ? null : await DK.build(kind, opt);
       if(what === "view") return DK.view(kind, opt);
       if(what === "print") DK.print(b); else if(what === "pdf"){ const r = await DK.pdf(b); r.pdf.save(r.filename); say("PDF Downloaded Successfully!", r.filename); } else if(what === "mail") DK.mail(b);
@@ -19822,6 +19848,7 @@ function makePrintFit(){
   document.addEventListener("click", e=>{ const bk = e.target.closest("#s-doc-view [data-go]"); const k = window.__docKind; if(bk && k && k.opt && k.opt.back === "bk" && window.BK){ e.stopImmediatePropagation(); e.preventDefault(); window.BK.openDoc(k.opt.docId); } }, true);
   document.addEventListener("click", e=>{
     const t = e.target.closest("[data-dk]"); if(!t || !stash.cur) return; const w = t.dataset.dk;
+    if(stash.cur.kind === "awb" && (w === "print" || w === "mail")){ (async ()=>{ const m = await DK.askAwbMode((stash.cur.opt || {}).mode); if(!m) return; const k = window.__docKind; k.opt = Object.assign({}, k.opt, {mode:m}); await DK.show(); const bb = stash.cur; if(!bb) return; if(w === "print") DK.print(bb); else DK.mail(bb); })(); return; }
     if(w === "print") DK.print(stash.cur); else if(w === "mail") DK.mail(stash.cur); else if(w === "pdf") act(stash.cur.kind, stash.cur.opt, "pdf"); else if(w === "edit") DK.editDetails();
   });
 
