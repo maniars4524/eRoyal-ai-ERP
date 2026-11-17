@@ -42,7 +42,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // the Air Waybill print
   const rd = await w.BLDocKit.data(job);
   const awb = w.DocKit.awb(rd);
-  check("the Air Waybill print shows the chargeable weight 100.0 and the dimensions", /100\.0/.test(awb) && /2 pcs/.test(awb), awb.length + " chars");
+  check("the Air Waybill print shows the chargeable weight 100.0 and the dimensions", /100\.0/.test(awb) && /X\d+\(2\)/.test(awb), awb.length + " chars");
   // job cost: a Per Chargeable KG line
   const side = rate => ({ ccy: "INR", exch: "1", rate, tax_type: "Non-Taxable", tax_pct: "0", party: "", use_party: false });
   const put2 = await j("PUT", `/api/shipments/by-number/${job}/charges`, { lines: [{ charge_name: "Air Freight", qty: "1", uom: "Per Chargeable KG", sell: { ...side("350"), party: "Acme", use_party: true }, buy: { ...side("300"), party: "Skyline", use_party: true } }] }, token);

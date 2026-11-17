@@ -8,14 +8,14 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from . import billing, job_lifecycle as jl
 from .auth import has_permission, permission_required
 from .auth_api import record_audit
 from .db import get_db
-from .models import Booking, CompanyDocProfile, Document, HblCounter, JobDetail, Organization, Quotation, Shipment, User
+from .models import Airline, AirlineStockLine, Booking, CompanyDocProfile, Document, HblCounter, JobDetail, Organization, Quotation, Shipment, User
 
 router = APIRouter(prefix="/api/jobs", tags=["job details"])
 
@@ -374,6 +374,89 @@ def _reflect(job: Shipment, row: JobDetail) -> None:
         job.bl_awb = str(ref)[:60]
 
 
+# ---------------------------------------------------------------- Master AWB numbers come from the Air Stock (Airline Stock Line Master)
+def _digits(v: Any) -> str:
+    return re.sub(r"\D", "", str(v or ""))
+
+
+def _stock_airline(db: Session, job: Shipment, bl: dict | None) -> Airline | None:
+    """The airline of the job: the one named on the House Air Waybill, else the booking's carrier."""
+    text = str(((bl or {}).get("awb") or {}).get("airline") or "").strip()
+    if not text and job.booking_id:
+        b = db.get(Booking, job.booking_id)
+        text = str((b.carrier if b else "") or "").strip()
+    if not text:
+        return None
+    t = text.lower()
+    rows = list(db.scalars(select(Airline).where(Airline.organization_id == job.organization_id, Airline.status == "ACTIVE")))
+    for a in rows:
+        if t in ((a.code or "").lower(), (a.name or "").lower(), (a.num_code or "").lower()):
+            return a
+    return next((a for a in rows if t in (a.name or "").lower() or (a.name or "").lower() in t), None)
+
+
+def _serial_of(prefix: str, number: Any) -> str:
+    d = _digits(number)
+    return d[len(prefix):] if prefix and d.startswith(prefix) and len(d) > len(prefix) else d
+
+
+def awb_stock(db: Session, job: Shipment, bl: dict | None, limit: int = 200) -> dict:
+    """The Master AWB numbers this job may use: the active MASTER ranges of its airline's stock, minus the numbers already used on other jobs."""
+    air = _stock_airline(db, job, bl)
+    out = {"airline": {"id": air.id, "code": air.code, "name": air.name, "num_code": air.num_code} if air else None, "prefix": (air.num_code or "") if air else "", "ranges": [], "available": [], "has_stock": False}
+    if not air:
+        return out
+    lines = list(db.scalars(select(AirlineStockLine).where(AirlineStockLine.organization_id == job.organization_id, AirlineStockLine.airline_id == air.id, AirlineStockLine.status == "ACTIVE", AirlineStockLine.bill_type == "MASTER").order_by(AirlineStockLine.from_awb)))
+    prefix = out["prefix"]
+    used: dict[str, str] = {}
+    for row, jn in db.execute(select(JobDetail, Shipment.job_number).join(Shipment, Shipment.id == JobDetail.shipment_id).where(JobDetail.organization_id == job.organization_id, Shipment.id != job.id)):
+        m = (row.bl or {}).get("mblNo")
+        if m and (row.bl or {}).get("bookingType") != "Direct":
+            used[_serial_of(prefix, m)] = jn
+    out["has_stock"] = bool(lines)
+    for ln in lines:
+        lo, hi, w = int(ln.from_awb), int(ln.to_awb), len(ln.from_awb)
+        used_n = sum(1 for sr in used if len(sr) == w and sr.isdigit() and lo <= int(sr) <= hi)
+        out["ranges"].append({"id": ln.id, "from_awb": ln.from_awb, "to_awb": ln.to_awb, "count": hi - lo + 1, "used": used_n, "free": hi - lo + 1 - used_n, "ref_no": ln.ref_no})
+        for n in range(lo, hi + 1):
+            if len(out["available"]) >= limit:
+                break
+            sr = str(n).zfill(w)
+            if sr not in used:
+                out["available"].append((prefix + "-" if prefix else "") + sr)
+    out["_used"] = used
+    return out
+
+
+def _check_master_stock(db: Session, job: Shipment, row: JobDetail, data: dict) -> None:
+    """Air export: the Master AWB number must be a number of the airline's Air Stock that no other job has taken. An existing number is left alone, and an airline without stock lines can still be typed."""
+    mawb = str(data.get("mblNo") or "").strip()
+    if not mawb or mawb == str((row.bl or {}).get("mblNo") or "").strip():
+        return
+    st = awb_stock(db, job, data, limit=0)
+    if not st["airline"] or not st["has_stock"]:
+        return
+    sr = _serial_of(st["prefix"], mawb)
+    if any(len(r["from_awb"]) == len(sr) and sr.isdigit() and int(r["from_awb"]) <= int(sr) <= int(r["to_awb"]) for r in st["ranges"]):
+        if sr in st["_used"]:
+            raise HTTPException(409, f"Master AWB {mawb} is already used on job {st['_used'][sr]}")
+        return
+    raise HTTPException(422, f"Master AWB {mawb} is not in the Air Stock of {st['airline']['name']}. Choose a number from the stock or add the range in Airline Stock Line Master")
+
+
+@router.get("/{job_number:path}/awb-stock")
+def get_awb_stock(job_number: str, airline: str = "", user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
+    job = _job(db, user, job_number)
+    row = _row(db, job)
+    bl = dict((row.bl if row else None) or {})
+    if airline.strip():                                                  # the airline typed on the screen, not saved yet
+        bl["awb"] = {**(bl.get("awb") or {}), "airline": airline.strip()}
+    out = awb_stock(db, job, bl)
+    out.pop("_used", None)
+    out["current"] = str(((row.bl if row else None) or {}).get("mblNo") or "")
+    return out
+
+
 @router.get("/{job_number:path}/details")
 def get_details(job_number: str, user: User = Depends(permission_required("shipment.read")), db: Session = Depends(get_db)):
     job = _job(db, user, job_number)
@@ -413,6 +496,8 @@ def save_section(job_number: str, section: str, body: SectionIn, user: User = De
         # an import job: the HBL / MBL numbers and dates are typed by the user and may be corrected; there is no generated number, no clause snapshot and no stage / release
         data = {k: v for k, v in data.items() if k not in ("clauses", "clausesSavedAt", "clauseVersion", "clauseHistory", "blStage", "releaseType", "digitalSign", "releasedAt", "releaseOverride", "hblType", "scac")}
     elif section == "bl":
+        if job.mode == "Air" and job.direction == "Export":
+            _check_master_stock(db, job, row, data)
         keep = {k: v for k, v in (row.bl or {}).items() if k in ("hblNo", "hblDate", "hblIssuedFor", "blStage", "releaseType", "digitalSign", "releasedAt", "releaseOverride") and not data.get(k)}
         keep.update({k: v for k, v in (row.bl or {}).items() if k in ("clauses", "clausesSavedAt", "clauseVersion", "clauseHistory")})        # the clause snapshot is only changed from the HBL Clauses section
         data = {**data, **keep}   # the House BL number belongs to the system: a save never erases or replaces it

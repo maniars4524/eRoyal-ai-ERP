@@ -40,7 +40,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check("Out Docs has the HAWB row with View / Print / PDF / Send", row.length === 4, row.length);
   row.find(b => b.dataset.act === "view").click(); await sleep(3500);
   const html = d.getElementById("docViewZone").innerHTML;
-  check("the House Air Waybill opens as an A4 form with its number, master AWB, rate, dimensions and weights", /HOUSE AIR WAYBILL/.test(html) && html.includes(no) && /020-12345678/.test(html) && /60×40×40/.test(html) && /185\.50/.test(html) && /class="pg"/.test(html), html.slice(0, 200));
+  check("the House Air Waybill opens as an A4 form with its number, master AWB, rate, dimensions and weights", /Air Waybill/i.test(html) && html.includes(no) && /020 [A-Z]{3} 12345678/.test(html) && /60X40X40/.test(html) && /185\.50/.test(html) && /class="pg"/.test(html), html.slice(0, 200));
   console.log(failures ? "\n" + failures + " FAILED" : "\nALL UI CHECKS PASSED");
   w.close(); process.exit(failures ? 1 : 0);
 })().catch(e => { console.error("ERROR", e); process.exit(2); });

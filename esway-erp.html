@@ -3134,8 +3134,8 @@ tbody tr:hover{background:var(--g0)}
 <div id="jobAwbBlock" style="display:none">
 <div class="fsec" style="margin-top:0">House Air Waybill (HAWB) — issued by us</div>
 <div class="fr"><div class="fg"><label class="fl">House AWB No</label><input class="fc" id="jobAwb_hawbNo" readonly placeholder="Not generated yet" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">House AWB Date</label><input class="fc" id="jobAwb_hawbDate" type="date"></div><div class="fg" style="display:flex;align-items:flex-end"><button class="btn btn-pri btn-sm" id="jobAwb_genBtn" type="button"><svg class="ic" data-icon="refresh-cw"></svg> Generate HAWB</button></div></div>
-<div class="fsec">Master AWB — from the airline (manual entry)</div>
-<div class="fr"><div class="fg"><label class="fl">Master AWB No</label><input class="fc" id="jobAwb_mawb" placeholder="e.g. 020-12345678" style="font-family:var(--font-mono)"></div><div class="fg"><label class="fl">Master AWB Date</label><input class="fc" id="jobAwb_mawbDate" type="date"></div><div class="fg"><label class="fl">Airline / First carrier</label><input class="fc" id="jobAwb_airline" ></div></div>
+<div class="fsec" id="jobAwbMasterTitle">Master AWB — from the airline (manual entry)</div>
+<div class="fr"><div class="fg"><label class="fl">Master AWB No</label><input class="fc" id="jobAwb_mawb" placeholder="e.g. 020-12345678" style="font-family:var(--font-mono)"><div id="jobAwbMawbPickWrap" style="display:none;margin-top:4px"><select class="fc" id="jobAwb_mawbPick" style="font-family:var(--font-mono)"><option value="">— Pick from the Air Stock —</option></select><div id="jobAwb_stockInfo" style="font-size:11px;color:var(--g5);margin-top:3px"></div></div></div><div class="fg"><label class="fl">Master AWB Date</label><input class="fc" id="jobAwb_mawbDate" type="date"></div><div class="fg"><label class="fl">Airline / First carrier</label><input class="fc" id="jobAwb_airline" ></div></div>
 <div class="fr"><div class="fg"><label class="fl">Routing: to (airport code)</label><input class="fc" id="jobAwb_to" ></div><div class="fg"><label class="fl">Flight No.</label><input class="fc" id="jobAwb_flight" ></div><div class="fg"><label class="fl">Flight date</label><input class="fc" id="jobAwb_flightDate" type="date"></div></div>
 <div class="fsec">Charges and declarations</div>
 <div class="fr"><div class="fg"><label class="fl">Declared value for carriage</label><input class="fc" id="jobAwb_declCarriage" value="NVD"></div><div class="fg"><label class="fl">Declared value for customs</label><input class="fc" id="jobAwb_declCustoms" value="NCV"></div><div class="fg"><label class="fl">Amount of insurance</label><input class="fc" id="jobAwb_insurance" value="NIL"></div></div>
@@ -3148,6 +3148,19 @@ tbody tr:hover{background:var(--g0)}
 <div class="fr"><div class="fg"><label class="fl">Place of issue</label><input class="fc" id="jobAwb_place" ></div><div class="fg"><label class="fl">Executed on</label><input class="fc" id="jobAwb_execDate" type="date"></div></div>
 <div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Handling information</label><textarea class="fc" id="jobAwb_handling" rows="2"></textarea></div></div>
 <div class="fr"><div class="fg" style="grid-column:span 3"><label class="fl">Accounting information</label><textarea class="fc" id="jobAwb_accounting" rows="2"></textarea></div></div>
+<div id="jobAwbExp" style="display:none">
+<div class="fsec">Air export — more House Air Waybill details</div>
+<div class="fr"><div class="fg"><label class="fl">Shipper LC No.</label><input class="fc" id="jobAwb_shipperLc"></div><div class="fg"><label class="fl">Consignee LC No.</label><input class="fc" id="jobAwb_consigneeLc"></div></div>
+<div class="fr"><div class="fg"><label class="fl">Routing: 2nd to</label><input class="fc" id="jobAwb_to2" style="width:90px"></div><div class="fg"><label class="fl">2nd by</label><input class="fc" id="jobAwb_by2" style="width:90px"></div><div class="fg"><label class="fl">3rd to</label><input class="fc" id="jobAwb_to3" style="width:90px"></div><div class="fg"><label class="fl">3rd by</label><input class="fc" id="jobAwb_by3" style="width:90px"></div></div>
+<div class="fr"><div class="fg"><label class="fl">2nd flight no.</label><input class="fc" id="jobAwb_flight2"></div><div class="fg"><label class="fl">2nd flight date</label><input class="fc" id="jobAwb_flightDate2" type="date"></div></div>
+<div class="fr"><div class="fg"><label class="fl">CHGS code</label><select class="fc" id="jobAwb_chgsCode"><option value="">Follows Charges (PP / CC)</option><option>PP</option><option>CC</option><option>PC</option><option>CP</option></select></div><div class="fg"><label class="fl">WT/VAL</label><select class="fc" id="jobAwb_wtval"><option value="">Follows Charges</option><option value="PP">PPD (prepaid)</option><option value="CC">COLL (collect)</option></select></div><div class="fg"><label class="fl">Other charges</label><select class="fc" id="jobAwb_otherFlag"><option value="">Follows Charges</option><option value="PP">PPD (prepaid)</option><option value="CC">COLL (collect)</option></select></div><div class="fg"><label class="fl">Valuation type</label><select class="fc" id="jobAwb_valuation"><option>Rate</option><option>As agreed</option></select></div></div>
+<div class="fsec">Rate lines <span style="font-weight:400;font-size:11px;color:var(--g5)">(the weight charge is the total of the lines)</span></div>
+<div class="tw"><table><thead><tr><th>SL</th><th>N.Pcs</th><th>Gr.Wt</th><th>K/L</th><th>R/C</th><th>Item type</th><th>Item No</th><th>Chr Wt</th><th>Rate/Chrg</th><th>Total</th><th></th></tr></thead><tbody id="jobAwbLinesBody"></tbody></table></div>
+<div style="margin:6px 0 10px"><button type="button" class="btn btn-out btn-sm" id="jobAwbAddLine">Add Row</button></div>
+<div class="fsec">Dimensions <span style="font-weight:400;font-size:11px;color:var(--g5)">(from the Cargo / Dimensions tab; they print on the waybill)</span></div>
+<div id="jobAwbDims"></div>
+<div class="fr" style="margin-top:8px"><div class="fg" style="grid-column:span 3"><label class="fl">Additional notification</label><textarea class="fc" id="jobAwb_addNotif" rows="2"></textarea></div></div>
+</div>
 </div>
 
 
@@ -18591,6 +18604,76 @@ function makePrintFit(){
     set("jobAwb_iata", a.iata); set("jobAwb_agentAcct", a.agentAccount); set("jobAwb_shipperAcct", a.shipperAccount); set("jobAwb_consigneeAcct", a.consigneeAccount); set("jobAwb_commodityNo", a.commodityNo); set("jobAwb_otherText", a.otherText); set("jobAwb_sci", a.sci); set("jobAwb_executedBy", a.executedBy); set("jobAwb_totalMode", a.totalMode || "calc");
     set("jobAwb_other", a.otherCharges); set("jobAwb_currency", a.currency); set("jobAwb_place", a.place); set("jobAwb_execDate", a.execDate); set("jobAwb_handling", a.handling); set("jobAwb_accounting", a.accounting);
     const gen = el("jobAwb_genBtn"); if(gen){ gen.disabled = !!b.hblNo; gen.style.opacity = b.hblNo ? ".5" : ""; }
+    JD.awbExp();
+  };
+
+  /* ---------- AIR EXPORT only: the Master AWB comes from the Air Stock; the extra House Air Waybill fields; the dimensions reflected ---------- */
+  const isAirExp = ()=> !!(JD.data && JD.data.mode === "Air" && JD.data.direction === "Export");
+  JD._awbLines = [];
+  JD.awbExp = function(){
+    const on = isAirExp(), blk = el("jobAwbExp"); if(blk) blk.style.display = on ? "" : "none";
+    const pick = el("jobAwbMawbPickWrap"); if(pick) pick.style.display = on ? "" : "none";
+    const t = el("jobAwbMasterTitle"); if(t) t.textContent = on ? "Master AWB — taken from the Air Stock (Airline Stock Line Master)" : "Master AWB — from the airline (manual entry)";
+    ["jobAwb_rateClass", "jobAwb_rate"].forEach(id=>{ const n = el(id), r = n && n.closest(".fr"); if(r) r.style.display = on ? "none" : ""; });         /* the rate lines below replace the single rate line */
+    { const n = el("jobAwb_commodityNo"), g = n && n.closest(".fg"); if(g) g.style.display = on ? "none" : ""; }
+    if(!on) return;
+    const a = ((JD.data.bl || {}).awb) || {}; const set = (id, v)=>{ const n = el(id); if(n) n.value = v == null ? "" : v; };
+    [["shipperLc", "jobAwb_shipperLc"], ["consigneeLc", "jobAwb_consigneeLc"], ["to2", "jobAwb_to2"], ["by2", "jobAwb_by2"], ["to3", "jobAwb_to3"], ["by3", "jobAwb_by3"], ["flight2", "jobAwb_flight2"], ["flightDate2", "jobAwb_flightDate2"], ["addNotif", "jobAwb_addNotif"]].forEach(([k, id])=> set(id, a[k]));
+    set("jobAwb_chgsCode", a.chgsCode || ""); set("jobAwb_wtval", a.wtval || ""); set("jobAwb_otherFlag", a.otherFlag || ""); set("jobAwb_valuation", a.valuation || "Rate");
+    const cg = JD.data.cargo || {}, tt = window.AIR_DIMS;
+    JD._awbLines = (a.lines && a.lines.length ? a.lines : [{pcs:cg.pkgs || "", gwt:cg.gwt || "", kl:"K", rc:a.rateClass || "Q", itemType:"Rate", itemNo:a.commodityNo || "", chwt:a.chargeableWt || (tt && tt.chargeable_kg) || cg.chgWt || "", rate:a.rate || ""}]).map(l=>Object.assign({}, l));
+    JD.awbLinesPaint(); JD.awbDims(); JD.awbStock();
+  };
+  const lineTotal = l=> l.itemType === "As agreed" ? "" : String(Math.round((Number(l.chwt) || 0) * (Number(l.rate) || 0) * 100) / 100);
+  JD.awbLinesPaint = function(){
+    const body = el("jobAwbLinesBody"); if(!body) return;
+    const inp = (i, f, w, ty)=> '<input class="fc" data-awbl="'+i+'" data-f="'+f+'" style="width:'+w+'px"'+(ty ? ' type="'+ty+'" step="any"' : "")+' value="'+esc2((JD._awbLines[i] || {})[f] == null ? "" : (JD._awbLines[i] || {})[f])+'">';
+    body.innerHTML = JD._awbLines.map((l, i)=>'<tr><td>'+(i + 1)+'</td><td>'+inp(i, "pcs", 56, "number")+'</td><td>'+inp(i, "gwt", 84, "number")+'</td><td><select class="fc" data-awbl="'+i+'" data-f="kl" style="width:56px"><option'+(l.kl === "L" ? "" : " selected")+'>K</option><option'+(l.kl === "L" ? " selected" : "")+'>L</option></select></td><td>'+inp(i, "rc", 54)+'</td><td><select class="fc" data-awbl="'+i+'" data-f="itemType" style="width:104px"><option'+(l.itemType === "As agreed" ? "" : " selected")+'>Rate</option><option'+(l.itemType === "As agreed" ? " selected" : "")+'>As agreed</option></select></td><td>'+inp(i, "itemNo", 70)+'</td><td>'+inp(i, "chwt", 84, "number")+'</td><td>'+inp(i, "rate", 74, "number")+'</td><td><input class="fc" readonly data-awbl-total="'+i+'" style="width:94px;background:var(--g0)" value="'+esc2(l.itemType === "As agreed" ? "AS AGREED" : lineTotal(l))+'"></td><td>'+(JD._awbLines.length > 1 ? '<button type="button" class="ta" data-awbl-del="'+i+'">\u2715</button>' : "")+'</td></tr>').join("");
+  };
+  document.addEventListener("input", e=>{
+    const n = e.target; if(!n || n.dataset.awbl === undefined || !isAirExp()) return; const i = Number(n.dataset.awbl), l = JD._awbLines[i]; if(!l) return; l[n.dataset.f] = n.value;
+    const t = document.querySelector('[data-awbl-total="'+i+'"]'); if(t) t.value = l.itemType === "As agreed" ? "AS AGREED" : lineTotal(l);
+  });
+  document.addEventListener("change", e=>{ const n = e.target; if(n && n.dataset.awbl !== undefined && n.dataset.f === "itemType" && isAirExp()){ JD._awbLines[Number(n.dataset.awbl)].itemType = n.value; JD.awbLinesPaint(); } });
+  document.addEventListener("click", e=>{
+    if(e.target.closest && e.target.closest("#jobAwbAddLine")){ JD._awbLines.push({pcs:"", gwt:"", kl:"K", rc:"Q", itemType:"Rate", itemNo:"", chwt:"", rate:""}); JD.awbLinesPaint(); return; }
+    const d = e.target.closest && e.target.closest("[data-awbl-del]"); if(d){ JD._awbLines.splice(Number(d.dataset.awblDel), 1); JD.awbLinesPaint(); }
+    if(e.target.closest && e.target.closest('.tbb[data-tab="jt3"]')) setTimeout(()=>{ JD.awbDims(); }, 50);
+  });
+  /* the package dimensions of the Cargo / Dimensions tab, reflected here (read only) */
+  JD.awbDims = function(){
+    const box = el("jobAwbDims"); if(!box || !isAirExp()) return; const dm = (JD.data && JD.data.dims) || {}, rows = (dm.rows || []).filter(r=> r.l || r.w || r.h), unit = dm.unit || "cm_kg";
+    const val = r=> { const p = Number(r.pkg) || 1, l = Number(r.l) || 0, w = Number(r.w) || 0, h = Number(r.h) || 0; return unit === "cm_kg" ? l * w * h / 6000 * p : unit === "in_lbs" ? l * w * h / 166 * p * 0.45359237 : l * w * h / 1000000 * 167 * p; };
+    const t = window.AIR_DIMS;
+    box.innerHTML = rows.length ? '<div style="font-size:11px;color:var(--g5);margin-bottom:4px">Units: <b>'+(unit === "in_lbs" ? "Inches" : unit === "cbm" ? "CBM (cm)" : "Cms")+'</b></div><div class="tw"><table><thead><tr><th>SL</th><th>L</th><th>B</th><th>H</th><th>P</th><th>Val (kg)</th></tr></thead><tbody>'+rows.map((r, i)=>'<tr><td>'+(i + 1)+'</td><td>'+esc2(r.l)+'</td><td>'+esc2(r.w)+'</td><td>'+esc2(r.h)+'</td><td>'+esc2(r.pkg || 1)+'</td><td>'+(Math.round(val(r) * 1000) / 1000)+'</td></tr>').join("")+'</tbody></table></div>'+
+      (t ? '<div style="margin-top:4px;font-size:12px">Actual <b>'+t.actual_kg+'</b> kg \u00B7 Volumetric <b>'+t.volumetric_kg+'</b> kg \u00B7 Chargeable <b>'+t.chargeable_kg+'</b> kg</div>' : "")+'<div style="margin-top:4px"><button type="button" class="btn btn-out btn-sm" id="jobAwbDimsEdit">Edit in the Dimensions tab</button></div>'
+      : '<div style="color:var(--g5);font-size:12px">No dimensions yet. Enter them in the Dimensions tab; they appear here and on the waybill.</div><div style="margin-top:4px"><button type="button" class="btn btn-out btn-sm" id="jobAwbDimsEdit">Open the Dimensions tab</button></div>';
+  };
+  document.addEventListener("click", e=>{ if(e.target.closest && e.target.closest("#jobAwbDimsEdit")){ const t = document.querySelector('.tbb[data-tab="jt2"]'); if(t) t.click(); } });
+  /* the Master AWB number is chosen from the airline's Air Stock (MASTER ranges of the Airline Stock Line Master); a number used on another job is not offered */
+  let stockTimer = null;
+  JD.awbStock = async function(){
+    if(!isAirExp() || !JD.job) return; const pick = el("jobAwb_mawbPick"), info = el("jobAwb_stockInfo"), inp = el("jobAwb_mawb"); if(!pick || !inp) return;
+    let st; try{ st = await api("GET", "/api/jobs/"+encodeURIComponent(JD.job)+"/awb-stock?airline="+encodeURIComponent((el("jobAwb_airline") || {}).value || "")); }catch(e){ return; }
+    const cur = inp.value.trim(); const opts = (st.available || []).slice(); if(cur && opts.indexOf(cur) < 0) opts.unshift(cur);
+    pick.innerHTML = '<option value="">— Pick from the Air Stock —</option>'+opts.map(o=>'<option'+(o === cur ? " selected" : "")+'>'+esc2(o)+'</option>').join("");
+    inp.readOnly = !!st.has_stock;                                              /* with stock, the number cannot be typed freehand */
+    pick.style.display = st.has_stock ? "" : "none";
+    if(info) info.textContent = !st.airline ? "Enter the airline (Airline / First carrier) to see its Air Stock." : !st.has_stock ? "No Master stock for "+st.airline.name+" in the Airline Stock Line Master: type the number, or add a range there." : st.ranges.map(r=>r.from_awb+" – "+r.to_awb+": "+r.free+" free of "+r.count).join(" \u00B7 ")+" \u00B7 "+(st.available || []).length+" number(s) shown";
+  };
+  document.addEventListener("change", e=>{ if(e.target && e.target.id === "jobAwb_mawbPick"){ const i = el("jobAwb_mawb"); if(i){ i.value = e.target.value; i.dispatchEvent(new Event("input", {bubbles:true})); } } });
+  document.addEventListener("input", e=>{ if(e.target && e.target.id === "jobAwb_airline" && isAirExp()){ clearTimeout(stockTimer); stockTimer = setTimeout(()=>JD.awbStock(), 500); } });
+  /* what the extra fields save into the waybill's data (air export only; other jobs save exactly what they did before) */
+  JD.collectAwbExp = function(){
+    if(!isAirExp() || !el("jobAwbExp")) return {}; const g = id=> ((el(id) || {}).value || "").trim();
+    const lines = JD._awbLines.filter(l=> l.pcs || l.gwt || l.chwt || l.rate || l.itemNo).map(l=>({pcs:l.pcs, gwt:l.gwt, kl:l.kl || "K", rc:l.rc, itemType:l.itemType || "Rate", itemNo:l.itemNo, chwt:l.chwt, rate:l.rate, total:lineTotal(l)}));
+    { const lr0 = g("jobAwb_rate"), lw0 = ((el("jobAwb_chg") || {}).dataset || {}).manual ? g("jobAwb_chg") : ""; if(!lines.length && (lr0 || lw0)) lines.push({pcs:"", gwt:"", kl:"K", rc:g("jobAwb_rateClass"), itemType:"Rate", itemNo:"", chwt:lw0, rate:lr0, total:""}); }
+    if(lines[0]){ const f0 = lines[0]; const lr = g("jobAwb_rate"), lc = g("jobAwb_rateClass"), lw = ((el("jobAwb_chg") || {}).dataset || {}).manual ? g("jobAwb_chg") : "";          /* a value typed in the single-line fields (older screens, imports) fills a blank first line */
+      if(!f0.rate && lr) f0.rate = lr; if(!f0.rc && lc) f0.rc = lc; if(!f0.chwt && lw) f0.chwt = lw; if(f0.itemType !== "As agreed") f0.total = String(Math.round((Number(f0.chwt) || 0) * (Number(f0.rate) || 0) * 100) / 100); }
+    const f = lines[0] || {};
+    return {shipperLc:g("jobAwb_shipperLc"), consigneeLc:g("jobAwb_consigneeLc"), to2:g("jobAwb_to2"), by2:g("jobAwb_by2"), to3:g("jobAwb_to3"), by3:g("jobAwb_by3"), flight2:g("jobAwb_flight2"), flightDate2:g("jobAwb_flightDate2"),
+      chgsCode:g("jobAwb_chgsCode"), wtval:g("jobAwb_wtval"), otherFlag:g("jobAwb_otherFlag"), valuation:g("jobAwb_valuation"), addNotif:(el("jobAwb_addNotif") || {}).value || "", lines,
+      rateClass:f.rc || "", rate:f.itemType === "As agreed" ? "" : (f.rate || ""), commodityNo:f.itemNo || ""};          /* the first line also feeds the single-line fields the rest of the system reads */
   };
   JD.docs = function(){
     const d = JD.data; if(!d || !window.showOutDocs) return;
@@ -18728,9 +18811,9 @@ function makePrintFit(){
     const g = id=> ((el(id) || {}).value || "").trim();
     if(JD.data && JD.data.mode === "Air"){
       return {bookingType:"House", mblNo:g("jobAwb_mawb"), mblDate:g("jobAwb_mawbDate"), hblDate:g("jobAwb_hawbDate"), originals:g("jobBl_originals"), terms:g("jobAwb_payment"), place:g("jobAwb_place"), released:g("jobBl_released"),
-        awb:{airline:g("jobAwb_airline"), routingTo:g("jobAwb_to"), flight:g("jobAwb_flight"), flightDate:g("jobAwb_flightDate"), declCarriage:g("jobAwb_declCarriage"), declCustoms:g("jobAwb_declCustoms"), insurance:g("jobAwb_insurance"), rateClass:g("jobAwb_rateClass"), rate:g("jobAwb_rate"), chargeableWt:((el("jobAwb_chg") || {}).dataset || {}).manual ? g("jobAwb_chg") : "",
+        awb:Object.assign({}, {airline:g("jobAwb_airline"), routingTo:g("jobAwb_to"), flight:g("jobAwb_flight"), flightDate:g("jobAwb_flightDate"), declCarriage:g("jobAwb_declCarriage"), declCustoms:g("jobAwb_declCustoms"), insurance:g("jobAwb_insurance"), rateClass:g("jobAwb_rateClass"), rate:g("jobAwb_rate"), chargeableWt:((el("jobAwb_chg") || {}).dataset || {}).manual ? g("jobAwb_chg") : "",
           iata:g("jobAwb_iata"), agentAccount:g("jobAwb_agentAcct"), shipperAccount:g("jobAwb_shipperAcct"), consigneeAccount:g("jobAwb_consigneeAcct"), commodityNo:g("jobAwb_commodityNo"), otherText:g("jobAwb_otherText"), sci:g("jobAwb_sci"), executedBy:g("jobAwb_executedBy"), totalMode:g("jobAwb_totalMode"),
-          payment:g("jobAwb_payment"), otherCharges:g("jobAwb_other"), currency:g("jobAwb_currency"), place:g("jobAwb_place"), execDate:g("jobAwb_execDate"), handling:(el("jobAwb_handling") || {}).value || "", accounting:(el("jobAwb_accounting") || {}).value || ""}};
+          payment:g("jobAwb_payment"), otherCharges:g("jobAwb_other"), currency:g("jobAwb_currency"), place:g("jobAwb_place"), execDate:g("jobAwb_execDate"), handling:(el("jobAwb_handling") || {}).value || "", accounting:(el("jobAwb_accounting") || {}).value || ""}, JD.collectAwbExp())};
     }
     const b = {bookingType:g("jobBlBookingType")};
     Object.assign(b, {hblType:g("jobBlHbltype"), scac:g("jobBlScac"), directNo:g("jobBl_directNo"), directDate:g("jobBl_directDate"), directStatus:g("blStatusSel"), mblNo:g("jobBl_mblNo"), mblDate:g("jobBl_mblDate"), mblStatus:g("jobBl_mblStatus"),
@@ -19422,20 +19505,25 @@ function makePrintFit(){
      ============================================================ */
   DK.awbModel = function(rd){
     const co = rd.company || {}, P = co.profile || {}, f = facts(rd), bl = f.bl || {}, a = bl.awb || {}, stage = bl.blStage || "Draft";
-    const wt = DK.awbWeights(f.d), gross = num(first(f.gw, wt.act)), chargeable = num(first(a.chargeableWt, wt.chg || Math.max(gross, wt.vol))), rate = num(a.rate), wtCharge = rate * chargeable, other = num(a.otherCharges);
-    const pc = (a.payment || "Prepaid") === "Prepaid", AG = a.totalMode === "agreed", agreed = v=> AG || !v ? "AS AGREED" : fmt(v);
+    const wt = DK.awbWeights(f.d), gross0 = num(first(f.gw, wt.act)), chargeable = num(first(a.chargeableWt, wt.chg || Math.max(gross0, wt.vol))), rate = num(a.rate), other = num(a.otherCharges);
+    const pc = (a.payment || "Prepaid") === "Prepaid", AG = a.totalMode === "agreed" || a.valuation === "As agreed", agreed = v=> AG || !v ? "AS AGREED" : fmt(v);
+    /* air export: the rate lines of the waybill (several commodities / rate classes); without lines the single rate line is used as before */
+    const rateLines = (Array.isArray(a.lines) ? a.lines : []).filter(l=> l && (l.pcs || l.gwt || l.chwt || l.rate || l.itemNo)).map(l=>({pcs:num(l.pcs), gwt:num(l.gwt), kl:l.kl || "K", rc:l.rc || "", itemType:l.itemType || "Rate", itemNo:l.itemNo || "", chwt:num(l.chwt), rate:num(l.rate), total:l.itemType === "As agreed" ? 0 : (num(l.total) || num(l.chwt) * num(l.rate))}));
+    const sumL = k=> rateLines.reduce((x, l)=>x + l[k], 0);
+    const gross = rateLines.length ? sumL("gwt") : gross0, wtCharge = rateLines.length ? sumL("total") : rate * chargeable;
     const code3 = v=> { const m = String(v || "").match(/([A-Z]{3})(?:\(|$)/); return m ? m[1] : String(v || "").slice(0, 3).toUpperCase(); };
     const place = v=> String(v || "").replace(/^[A-Z]{5}\(?/, "").replace(/\)$/, "") || String(v || "");
     const dimsRows = wt.rows.filter(r=>r.l || r.w || r.h);
-    const nature = [first(f.desc), f.marks].filter(Boolean).map(esc2).join("<br>")+(dimsRows.length ? "<br>DIM IN "+(wt.lbs ? "INCHES" : "CMS")+"<br>"+dimsRows.map(r=>esc2(r.l+"X"+r.w+"X"+r.h+"("+(r.pkg || 1)+")")).join("<br>")+(wt.vol ? "<br>VOL WT:"+Math.round(wt.vol)+"KGS" : "") : "");
+    const nature = [first(f.desc), f.marks].filter(Boolean).map(esc2).join("<br>")+(a.addNotif ? "<br>"+nl2br(a.addNotif) : "")+(dimsRows.length ? "<br>DIM IN "+(wt.lbs ? "INCHES" : "CMS")+"<br>"+dimsRows.map(r=>esc2(r.l+"X"+r.w+"X"+r.h+"("+(r.pkg || 1)+")")).join("<br>")+(wt.vol ? "<br>VOL WT:"+Math.round(wt.vol)+"KGS" : "") : "");
     const m = String(f.mbl || "").match(/^(\d{3})[-\s]?(\d{4})\s?(\d{4})$/), m8 = String(f.mbl || "").match(/^(\d{3})[-\s]?(\d{8})$/);
     return {co, P, f, bl, a, stage, wt, gross, chargeable, rate, wtCharge, other, pc, agreed, code3, place, nature,
       hawb: f.hbl || "", mawb: String(f.mbl || ""), mawbSpaced: m ? m[1]+"-"+m[2]+" "+m[3] : m8 ? m8[1]+"-"+m8[2].slice(0, 4)+" "+m8[2].slice(4) : String(f.mbl || ""), mawbPlain: m8 ? m8[1]+" "+m8[2] : String(f.mbl || ""),
       origin: code3(f.pol), shipper: lines(f.party.shipper || f.p.shipper), consignee: lines(f.party.consignee || f.p.consignee),
       agent: P.legal_name || co.name || "", agentCity: [P.city, P.country].filter(Boolean).join(", ") || P.state || "", iata: a.iata || P.iata_code || P.iata || "", agentAcct: a.agentAccount || "",
-      dep: place(f.pol), toCode: a.routingTo || code3(f.pod), carrier: a.airline || f.carrier || "", dest: place(f.pod), flight: [a.flight, a.flightDate ? dmy(a.flightDate) : ""].filter(Boolean).join("  "),
+      dep: place(f.pol), toCode: a.routingTo || code3(f.pod), carrier: a.airline || f.carrier || "", dest: place(f.pod), flight: [a.flight, a.flightDate ? dmy(a.flightDate) : ""].filter(Boolean).join("  ")+(a.flight2 || a.flightDate2 ? " / "+[a.flight2, a.flightDate2 ? dmy(a.flightDate2) : ""].filter(Boolean).join("  ") : ""),
       currency: a.currency || "INR", declC: a.declCarriage || "NVD", declCu: a.declCustoms || "NCV", insurance: a.insurance || "XXX", handling: a.handling || "", sci: a.sci || "",
-      pieces: first(f.pkgs, wt.pk) || "", unit: wt.lbs ? "L" : "K", rateClass: a.rateClass || "Q", commodityNo: a.commodityNo || "", total: wtCharge + other,
+      pieces: rateLines.length ? String(sumL("pcs")) : (first(f.pkgs, wt.pk) || ""), lines: rateLines, wtPC: a.wtval ? a.wtval === "PP" : pc, otherPC: a.otherFlag ? a.otherFlag === "PP" : pc, chgs: a.chgsCode || (pc ? "PP" : "CC"),
+      to2: a.to2 || "", by2: a.by2 || "", to3: a.to3 || "", by3: a.by3 || "", lc1: a.shipperLc || "", lc2: a.consigneeLc || "", acct1: a.shipperAccount || "", acct2: a.consigneeAccount || "", unit: wt.lbs ? "L" : "K", rateClass: a.rateClass || "Q", commodityNo: a.commodityNo || "", total: wtCharge + other,
       otherText: a.otherText || (other ? "AWB : "+fmt(other)+" /-" : ""), accounting: a.accounting || (pc ? "FREIGHT PREPAID" : "FREIGHT COLLECT"), optional: a.optional || "",
       execDate: dmy(a.execDate || bl.hblDate), execPlace: a.place || bl.place || "", executedBy: a.executedBy || "", signer: P.legal_name || co.name || "",
       issuedAddr: [P.address].filter(Boolean).join(" ") + (P.phone ? " Phone:"+P.phone : ""),
@@ -19470,17 +19558,17 @@ function makePrintFit(){
       : '<div style="display:flex;justify-content:space-between;align-items:flex-end;font-family:Arial;font-weight:800;font-size:15px;margin:0 0 3px"><span>'+esc2(M.origin)+'</span><span style="text-align:right;line-height:1.1;font-size:13px">'+L5+esc2(M.hawb)+'</span></div>';
     /* ---- left column ---- */
     const leftCol = '<div style="width:'+w+'%;border-right:'+B+'">'+
-      '<div style="position:relative;height:100px">'+cell("Shipper's Name and Address", ptxt(M.shipper), "height:100%")+acctBox(fk === "two" ? "Shipper Account Number" : "Shipper's Account Number")+(S.boxedAcct ? "" : '<div style="position:absolute;right:6px;top:2px">'+lab("Shipper's Account Number")+"</div>")+'</div>'+
-      '<div style="position:relative;height:104px;border-top:'+B+'">'+cell("Consignee's Name and Address", ptxt(M.consignee), "height:100%")+(S.boxedAcct ? '<div style="position:absolute;right:0;top:0;border-left:'+B+';border-bottom:'+B+';padding:1px 6px;'+HID+(S.grey ? "background:#d8d8d8;" : "background:#fff;")+'font-family:Arial;font-size:7.6px;font-weight:'+(fk === "two" ? 700 : 400)+'">'+(fk === "two" ? "Consignee Account Number" : "Consignee\'s Account Number")+'</div>' : '<div style="position:absolute;right:6px;top:2px">'+lab("Consignee's Account Number")+"</div>")+'</div>'+
+      '<div style="position:relative;height:100px">'+cell("Shipper's Name and Address", ptxt(M.shipper), "height:100%")+acctBox(fk === "two" ? "Shipper Account Number" : "Shipper's Account Number")+(M.acct1 || M.lc1 ? '<div style="position:absolute;right:6px;top:20px;text-align:right;max-width:46%">'+val(esc2(M.acct1)+(M.lc1 ? "<br>LC: "+esc2(M.lc1) : ""), "font-size:"+(S.vs - 0.4)+"px")+'</div>' : "")+(S.boxedAcct ? "" : '<div style="position:absolute;right:6px;top:2px">'+lab("Shipper's Account Number")+"</div>")+'</div>'+
+      '<div style="position:relative;height:104px;border-top:'+B+'">'+cell("Consignee's Name and Address", ptxt(M.consignee), "height:100%")+(S.boxedAcct ? '<div style="position:absolute;right:0;top:0;border-left:'+B+';border-bottom:'+B+';padding:1px 6px;'+HID+(S.grey ? "background:#d8d8d8;" : "background:#fff;")+'font-family:Arial;font-size:7.6px;font-weight:'+(fk === "two" ? 700 : 400)+'">'+(fk === "two" ? "Consignee Account Number" : "Consignee\'s Account Number")+'</div>' : '<div style="position:absolute;right:6px;top:2px">'+lab("Consignee's Account Number")+"</div>")+(M.acct2 || M.lc2 ? '<div style="position:absolute;right:6px;top:20px;text-align:right;max-width:46%">'+val(esc2(M.acct2)+(M.lc2 ? "<br>LC: "+esc2(M.lc2) : ""), "font-size:"+(S.vs - 0.4)+"px")+'</div>' : "")+'</div>'+
       row(74, [[1, cell("Issuing Carrier's Agent Name and City", val("<b>"+V(M.agent)+"</b><br>"+V(M.agentCity)), "height:100%")]])+
       row(34, [[62, cell("Agent's IATA Code", val("<b>"+esc2(M.iata)+"</b>"))], [38, cell("Account No.", val(esc2(M.agentAcct)))]])+
       row(30, [[1, cell("Airport of Departure (Addr. of First Carrier) and Requested Routing", val(V(M.dep)))]])+
-      row(44, [[9, cell("To", val(V(M.toCode)))], [17, cell("By First Carrier", val(V(M.carrier)))], [20, cell(S.tabs === "slant" ? slantx("Routing and Destination", 84, 12) + lab("to", "margin-top:1px") : "Routing &amp; Dest &nbsp;to", "")], [12, cell("by", "")], [12, cell("to", "")], [12, cell("by", "")]])+
+      row(44, [[9, cell("To", val(V(M.toCode)))], [17, cell("By First Carrier", val(V(M.carrier)))], [20, cell(S.tabs === "slant" ? slantx("Routing and Destination", 84, 12) + lab("to", "margin-top:1px") : "Routing &amp; Dest &nbsp;to", val(V(M.to2), "margin-top:4px"))], [12, cell("by", val(V(M.by2)))], [12, cell("to", val(V(M.to3)))], [12, cell("by", val(V(M.by3)))]])+
       row(46, [[58, cell("Airport of Destination", val("<b>"+V(M.dest)+"</b>", "text-align:center"))], [42, cell(S.tabs === "slant" ? slantx("Requested Flight/Date", 100, 12) : "Flight/Date", val(V(M.flight)))]])+
     '</div>';
     /* ---- right column ---- */
     const wv = (t)=> '<div style="'+HID+'display:flex;justify-content:space-around;font-size:6px;font-family:Arial">'+t+'</div>';
-    const wvCell = (label, on)=> cell(label, wv("<span>PPD</span><span>COLL</span>")+'<div style="display:flex;justify-content:space-around;font-family:'+S.vf+';font-weight:700;font-size:'+S.vs+'px"><span>'+(M.pc ? on : "")+'</span><span>'+(M.pc ? "" : on)+'</span></div>');
+    const wvCell = (label, on, prepaid)=> cell(label, wv("<span>PPD</span><span>COLL</span>")+'<div style="display:flex;justify-content:space-around;font-family:'+S.vf+';font-weight:700;font-size:'+S.vs+'px"><span>'+(prepaid ? on : "")+'</span><span>'+(prepaid ? "" : on)+'</span></div>');
     const logo = S.logo && M.co.logo && !PRE ? '<img src="'+M.co.logo+'" style="position:absolute;right:6px;top:4px;max-height:54px;max-width:'+(fk === "three" ? 84 : 130)+'px;object-fit:contain">' : "";
     const rightCol = '<div style="width:'+L+'%;display:flex;flex-direction:column">'+
       '<div style="position:relative;height:88px">'+cell("Not Negotiable", '<div style="font-family:Arial;font-weight:800;font-size:15px;line-height:1.1"><span style="'+HID+'">Air Waybill</span>'+(fk === "one" ? ' <span style="font-family:'+S.vf+';font-size:11px;vertical-align:2px;margin-left:8px">'+V(M.agent)+'</span>' : "")+'</div>'+lab("Issued By", "margin-top:4px")+(fk === "one" || fk === "three" ? "" : val("<b>"+V(M.agent)+"</b><br>"+V(M.issuedAddr), "font-size:"+(S.vs - 0.6)+"px;max-width:62%")), "height:100%")+logo+(fk === "three" ? '<div style="position:absolute;left:34%;right:92px;top:8px;text-align:center;font-family:Arial;font-weight:800;font-size:10.5px;line-height:1.3">'+V(M.agent)+(M.issuerCode ? "<br>"+esc2(M.issuerCode) : "")+'</div>' : "")+'</div>'+
@@ -19488,7 +19576,7 @@ function makePrintFit(){
       row(112, [[1, cell("", lab('It is agreed that the goods described herein are accepted in apparent good order and condition (except as noted) for carriage SUBJECT TO THE CONDITIONS OF CONTRACT ON THE REVERSE HEREOF. ALL GOODS MAY BE CARRIED BY ANY OTHER MEANS INCLUDING ROAD OR ANY OTHER CARRIER UNLESS SPECIFIC CONTRARY INSTRUCTIONS ARE GIVEN HEREON BY THE SHIPPER, AND SHIPPER AGREES THAT THE SHIPMENT MAY BE CARRIED VIA INTERMEDIATE STOPPING PLACES WHICH THE CARRIER DEEMS APPROPRIATE. THE SHIPPER\'S ATTENTION IS DRAWN TO THE NOTICE CONCERNING CARRIER\'S LIMITATION OF LIABILITY. Shipper may increase such limitation of liability by declaring a higher value for carriage and paying a supplemental charge if required.', "font-size:"+S.fp+"px;line-height:1.28;text-align:justify"))]])+
       row(102, [[1, cell("Accounting Information", val(nl2br(M.accounting) + (fk === "two" ? '<div style="margin-top:14px">'+L3+'<b>'+esc2(M.mawbSpaced)+'</b></div>' : "")), "height:100%")]])+
       row(28, [[38, cell("Reference Number", val(esc2(M.jobNo)))], [62, cell(S.tabs === "slant" ? slantx("Optional Shipping Information", 150, 12) : "Optional Shipping Information", val(V(M.optional || (fk === "two" ? "TERMS:DDP" : ""))))]])+
-      row(48, [[13, cell("Currency", val(V(M.currency)))], [11, cell("CHGS<br>Code", val(M.pc ? "PP" : "CC"))], [13, wvCell("WT/VAL", "X")], [13, wvCell("Other", "X")], [26, cell("Declared Value for Carriage", val(V(M.declC), "text-align:center"))], [24, cell("Declared Value for Customs", val(V(M.declCu), "text-align:center"))]])+
+      row(48, [[13, cell("Currency", val(V(M.currency)))], [11, cell("CHGS<br>Code", val(M.chgs))], [13, wvCell("WT/VAL", "X", M.wtPC)], [13, wvCell("Other", "X", M.otherPC)], [26, cell("Declared Value for Carriage", val(V(M.declC), "text-align:center"))], [24, cell("Declared Value for Customs", val(V(M.declCu), "text-align:center"))]])+
       row(36, [[36, cell("Amount of Insurance", val("<b>"+V(M.insurance)+"</b>", "text-align:center"))], [64, cell("", lab(AWB_TXT[fk].insurance, "font-size:"+(S.fp - 0.4)+"px;line-height:1.25"))]])+
     '</div>';
     const handling = '<div style="position:relative;height:60px;border-top:'+B+'">'+cell("Handling Information", val(V(M.handling).replace(/\n/g, "<br>")), "height:100%")+(M.sci ? '<div style="position:absolute;right:6px;bottom:4px;border:'+B+';padding:1px 14px;font-family:Arial;font-size:7.6px;'+HID+'">SCI '+esc2(M.sci)+'</div>' : '<div style="position:absolute;right:6px;bottom:4px;border:'+B+';padding:1px 14px;font-family:Arial;font-size:7.6px;'+HID+'">SCI</div>')+'</div>';
@@ -19499,7 +19587,9 @@ function makePrintFit(){
     const th = '<div style="display:grid;grid-template-columns:'+tw+';height:46px;border-top:'+B+'">'+cols.map(c=> c[0] === "spacer" ? '<div style="'+GR+'"></div>' : '<div style="'+HID+'padding:2px;text-align:center;font-family:'+S.lf+';font-size:'+S.ls+'px;line-height:1.15">'+c[0]+'</div>').join("")+'</div>';
     const tcell = (t, a)=> '<div style="padding:3px 4px;text-align:'+(a || "center")+';font-family:'+S.vf+';font-size:'+S.vs+'px;font-weight:'+S.vw+';line-height:1.3">'+t+'</div>';
     const sp = '<div style="'+GR+'"></div>';
-    const body = '<div style="display:grid;grid-template-columns:'+tw+';height:150px;border-top:'+B+'">'+[tcell(esc2(M.pieces)), tcell(M.gross ? fmt(M.gross) : ""), tcell(M.unit), sp, tcell(esc2(M.rateClass)), tcell(M.chargeable ? fmt(M.chargeable) : ""), sp, tcell(M.rate ? fmt(M.rate) : "AS AGREED"), sp, tcell(M.agreed(M.wtCharge)), sp, tcell(M.nature.replace(/^$/, ""), "left").replace("font-weight:"+S.vw, "font-weight:"+S.vw)].join("")+'</div>'+
+    const LC = (fn, alt)=> M.lines.length ? M.lines.map(fn).join("<br>") : alt;
+    const ag = l=> l.itemType === "As agreed";
+    const body = '<div style="display:grid;grid-template-columns:'+tw+';height:150px;border-top:'+B+'">'+[tcell(LC(l=>esc2(l.pcs), esc2(M.pieces))), tcell(LC(l=>l.gwt ? fmt(l.gwt) : "", M.gross ? fmt(M.gross) : "")), tcell(LC(l=>esc2(l.kl), M.unit)), sp, tcell(LC(l=>esc2(l.rc)+(l.itemNo ? " "+esc2(l.itemNo) : ""), esc2(M.rateClass))), tcell(LC(l=>l.chwt ? fmt(l.chwt) : "", M.chargeable ? fmt(M.chargeable) : "")), sp, tcell(LC(l=>ag(l) ? "AS AGREED" : (l.rate ? fmt(l.rate) : ""), M.rate ? fmt(M.rate) : "AS AGREED")), sp, tcell(LC(l=>ag(l) ? "AS AGREED" : fmt(l.total), M.agreed(M.wtCharge))), sp, tcell(M.nature.replace(/^$/, ""), "left").replace("font-weight:"+S.vw, "font-weight:"+S.vw)].join("")+'</div>'+
       '<div style="display:grid;grid-template-columns:'+tw+';height:26px;border-top:'+B+'">'+[tcell(esc2(M.pieces)), tcell(M.gross ? fmt(M.gross) : ""), tcell(""), sp, tcell(""), tcell(""), sp, tcell(""), sp, tcell(M.agreed(M.wtCharge)), sp, tcell("")].join("")+'</div>';
     /* ---- charges ---- */
     const t3 = (a, b, c, h)=> row(h || 32, [[1, a], [1, b], [1, c]]);
