@@ -408,10 +408,12 @@ def awb_stock(db: Session, job: Shipment, bl: dict | None, limit: int = 200) -> 
         return out
     lines = list(db.scalars(select(AirlineStockLine).where(AirlineStockLine.organization_id == job.organization_id, AirlineStockLine.airline_id == air.id, AirlineStockLine.status == "ACTIVE", AirlineStockLine.bill_type == "MASTER").order_by(AirlineStockLine.from_awb)))
     prefix = out["prefix"]
+    # a number taken by another job is closed to every other shipment, except that House (consol) jobs may share one Master AWB with each other
+    this_house = str((bl or {}).get("bookingType") or "") == "House"
     used: dict[str, str] = {}
     for row, jn in db.execute(select(JobDetail, Shipment.job_number).join(Shipment, Shipment.id == JobDetail.shipment_id).where(JobDetail.organization_id == job.organization_id, Shipment.id != job.id)):
         m = (row.bl or {}).get("mblNo")
-        if m and (row.bl or {}).get("bookingType") != "Direct":
+        if m and not (this_house and str((row.bl or {}).get("bookingType") or "") == "House"):
             used[_serial_of(prefix, m)] = jn
     out["has_stock"] = bool(lines)
     for ln in lines:

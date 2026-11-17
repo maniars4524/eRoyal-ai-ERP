@@ -17,8 +17,8 @@ def mk_air(h, direction="Export"):
     return r.json()["job_number"]
 
 
-def put_bl(h, job, mawb, airline="UL"):
-    return client.put(f"/api/jobs/{job}/details/bl", json={"data": {"bookingType": "House", "mblNo": mawb, "awb": {"airline": airline}}}, headers=h)
+def put_bl(h, job, mawb, airline="UL", bt="Direct"):
+    return client.put(f"/api/jobs/{job}/details/bl", json={"data": {"bookingType": bt, "mblNo": mawb, "awb": {"airline": airline}}}, headers=h)
 
 
 def test_master_awb_comes_from_the_air_stock_and_is_used_once(h):
@@ -42,6 +42,11 @@ def test_master_awb_comes_from_the_air_stock_and_is_used_once(h):
     r = put_bl(h, b, "603-99999999", code)
     assert r.status_code == 422 and "Air Stock" in r.text                                                 # a number outside the stock is refused
     assert put_bl(h, a, "603-60134701", code).status_code == 200                                         # saving the same number again is fine
+    # consol: House jobs may share one Master AWB with each other, but not with a Direct job
+    c1, c2 = mk_air(h), mk_air(h)
+    assert put_bl(h, c1, "603-60134703", code, "House").status_code == 200
+    assert put_bl(h, c2, "603-60134703", code, "House").status_code == 200
+    assert put_bl(h, b, "603-60134703", code).status_code == 409
     assert client.get(f"/api/jobs/{a}/awb-stock", headers=h).json()["current"] == "603-60134701"
 
 

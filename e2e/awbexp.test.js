@@ -42,7 +42,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   // 2. air export
   await openBl(job);
   check("air EXPORT: Master AWB title says Air Stock and the extra block shows", /Air Stock/i.test(await text("#jobAwbMasterTitle")) && await vis("#jobAwbExp"));
-  await setv("#jobAwb_airline", code); await sleep(1800);
+  await setv("#jobAwb_airline", "Test Air " + tag); await sleep(1800);
   const opts = await page.evaluate(() => [...document.querySelectorAll("#jobAwb_mawbPick option")].map(o => o.value).filter(Boolean));
   check("the picker offers the free numbers of the airline's Air Stock", opts.join() === ["603-60134700", "603-60134701", "603-60134702", "603-60134703", "603-60134704"].join(), opts.join());
   check("the stock summary says how many are free", /5 free of 5/.test(await text("#jobAwb_stockInfo")), await text("#jobAwb_stockInfo"));

@@ -3135,7 +3135,7 @@ tbody tr:hover{background:var(--g0)}
 <div class="fsec" style="margin-top:0">House Air Waybill (HAWB) — issued by us</div>
 <div class="fr"><div class="fg"><label class="fl">House AWB No</label><input class="fc" id="jobAwb_hawbNo" readonly placeholder="Not generated yet" style="font-family:var(--font-mono);background:var(--g0)"></div><div class="fg"><label class="fl">House AWB Date</label><input class="fc" id="jobAwb_hawbDate" type="date"></div><div class="fg" style="display:flex;align-items:flex-end"><button class="btn btn-pri btn-sm" id="jobAwb_genBtn" type="button"><svg class="ic" data-icon="refresh-cw"></svg> Generate HAWB</button></div></div>
 <div class="fsec" id="jobAwbMasterTitle">Master AWB — from the airline (manual entry)</div>
-<div class="fr"><div class="fg"><label class="fl">Master AWB No</label><input class="fc" id="jobAwb_mawb" placeholder="e.g. 020-12345678" style="font-family:var(--font-mono)"><div id="jobAwbMawbPickWrap" style="display:none;margin-top:4px"><select class="fc" id="jobAwb_mawbPick" style="font-family:var(--font-mono)"><option value="">— Pick from the Air Stock —</option></select><div id="jobAwb_stockInfo" style="font-size:11px;color:var(--g5);margin-top:3px"></div></div></div><div class="fg"><label class="fl">Master AWB Date</label><input class="fc" id="jobAwb_mawbDate" type="date"></div><div class="fg"><label class="fl">Airline / First carrier</label><input class="fc" id="jobAwb_airline" ></div></div>
+<div class="fr"><div class="fg"><label class="fl">Master AWB No</label><input class="fc" id="jobAwb_mawb" placeholder="e.g. 020-12345678" style="font-family:var(--font-mono)"><div id="jobAwbMawbPickWrap" style="display:none;margin-top:4px"><select class="fc" id="jobAwb_mawbPick" style="font-family:var(--font-mono)"><option value="">— Pick from the Air Stock —</option></select><div id="jobAwb_stockInfo" style="font-size:11px;color:var(--g5);margin-top:3px"></div></div></div><div class="fg"><label class="fl">Master AWB Date</label><input class="fc" id="jobAwb_mawbDate" type="date"></div><div class="fg"><label class="fl">Airline / First carrier</label><select class="fc" id="jobAwb_airline"><option value="">— Select airline —</option></select></div></div>
 <div class="fr"><div class="fg"><label class="fl">Routing: to (airport code)</label><input class="fc" id="jobAwb_to" ></div><div class="fg"><label class="fl">Flight No.</label><input class="fc" id="jobAwb_flight" ></div><div class="fg"><label class="fl">Flight date</label><input class="fc" id="jobAwb_flightDate" type="date"></div></div>
 <div class="fsec">Charges and declarations</div>
 <div class="fr"><div class="fg"><label class="fl">Declared value for carriage</label><input class="fc" id="jobAwb_declCarriage" value="NVD"></div><div class="fg"><label class="fl">Declared value for customs</label><input class="fc" id="jobAwb_declCustoms" value="NCV"></div><div class="fg"><label class="fl">Amount of insurance</label><input class="fc" id="jobAwb_insurance" value="NIL"></div></div>
@@ -18601,7 +18601,7 @@ function makePrintFit(){
     const typeRow = el("jobBlBookingType") && el("jobBlBookingType").closest(".fr"); if(typeRow) typeRow.style.display = "none";
     ["jobBlDirectWrap", "jobBlHouseWrap", "jobBlHbltypeWrap", "jobBlScacWrap", "jobBlBookingTypeNote", "jobBlGenericRow"].forEach(id=> show(id, false));
     const set = (id, v)=>{ const n = el(id); if(n && v != null && v !== "") n.value = v; };
-    set("jobAwb_hawbNo", b.hblNo); set("jobAwb_hawbDate", b.hblDate); set("jobAwb_mawb", b.mblNo); set("jobAwb_mawbDate", b.mblDate); set("jobAwb_airline", a.airline); set("jobAwb_to", a.routingTo); set("jobAwb_flight", a.flight); set("jobAwb_flightDate", a.flightDate);
+    set("jobAwb_hawbNo", b.hblNo); set("jobAwb_hawbDate", b.hblDate); set("jobAwb_mawb", b.mblNo); set("jobAwb_mawbDate", b.mblDate); JD.awbAirlines(a.airline).then(()=>{ set("jobAwb_airline", a.airline); JD.awbStock(); }); set("jobAwb_to", a.routingTo); set("jobAwb_flight", a.flight); set("jobAwb_flightDate", a.flightDate);
     set("jobAwb_declCarriage", a.declCarriage); set("jobAwb_declCustoms", a.declCustoms); set("jobAwb_insurance", a.insurance); set("jobAwb_rateClass", a.rateClass); set("jobAwb_rate", a.rate); { const cf = el("jobAwb_chg"); if(cf){ if(a.chargeableWt){ cf.dataset.manual = "1"; cf.value = a.chargeableWt; } else { delete cf.dataset.manual; } if(window.JobAirSync) JobAirSync(); } } set("jobAwb_payment", a.payment);
     set("jobAwb_iata", a.iata); set("jobAwb_agentAcct", a.agentAccount); set("jobAwb_shipperAcct", a.shipperAccount); set("jobAwb_consigneeAcct", a.consigneeAccount); set("jobAwb_commodityNo", a.commodityNo); set("jobAwb_otherText", a.otherText); set("jobAwb_sci", a.sci); set("jobAwb_executedBy", a.executedBy); set("jobAwb_totalMode", a.totalMode || "calc");
     set("jobAwb_other", a.otherCharges); set("jobAwb_currency", a.currency); set("jobAwb_place", a.place); set("jobAwb_execDate", a.execDate); set("jobAwb_handling", a.handling); set("jobAwb_accounting", a.accounting);
@@ -18672,6 +18672,14 @@ function makePrintFit(){
   document.addEventListener("click", e=>{ if(e.target.closest && e.target.closest("#jobAwbDimsEdit")){ const t = document.querySelector('.tbb[data-tab="jt2"]'); if(t) t.click(); } });
   /* the Master AWB number is chosen from the airline's Air Stock (MASTER ranges of the Airline Stock Line Master); a number used on another job is not offered */
   let stockTimer = null;
+  /* the airline list: the Airline master of the company; a name saved earlier that is not in the list stays selectable */
+  JD.awbAirlines = async function(cur){
+    const sel = el("jobAwb_airline"); if(!sel) return;
+    let items = []; try{ items = ((await api("GET", "/api/network/airlines?limit=500&status=ACTIVE")).items || []); }catch(e){}
+    const names = items.map(a=>a.name); if(cur && names.indexOf(cur) < 0) items.unshift({name:cur, code:""});
+    sel.innerHTML = '<option value="">— Select airline —</option>'+items.map(a=>'<option value="'+esc2(a.name)+'">'+esc2((a.code ? a.code+" - " : "")+a.name+(a.num_code ? " ("+a.num_code+")" : ""))+'</option>').join("");
+    if(!items.length) sel.innerHTML = '<option value="">No airlines: add them in the Airline master</option>';
+  };
   JD.awbStock = async function(){
     if(!isAirExp() || !JD.job) return; const pick = el("jobAwb_mawbPick"), info = el("jobAwb_stockInfo"), inp = el("jobAwb_mawb"); if(!pick || !inp) return;
     let st; try{ st = await api("GET", "/api/jobs/"+encodeURIComponent(JD.job)+"/awb-stock?airline="+encodeURIComponent((el("jobAwb_airline") || {}).value || "")); }catch(e){ return; }
@@ -18683,6 +18691,7 @@ function makePrintFit(){
   };
   document.addEventListener("change", e=>{ if(e.target && e.target.id === "jobAwb_mawbPick"){ const i = el("jobAwb_mawb"); if(i){ i.value = e.target.value; i.dispatchEvent(new Event("input", {bubbles:true})); } } });
   document.addEventListener("input", e=>{ if(e.target && e.target.id === "jobAwb_airline" && isAirExp()){ clearTimeout(stockTimer); stockTimer = setTimeout(()=>JD.awbStock(), 500); } });
+  document.addEventListener("change", e=>{ if(e.target && e.target.id === "jobAwb_airline" && isAirExp()){ const i = el("jobAwb_mawb"); if(i && !i.readOnly === false){ /* a different airline: the earlier pick no longer applies */ } JD.awbStock(); } });
   /* what the extra fields save into the waybill's data (air export only; other jobs save exactly what they did before) */
   JD.collectAwbExp = function(){
     if(!isAirExp() || !el("jobAwbExp")) return {}; const g = id=> ((el(id) || {}).value || "").trim();
@@ -19661,7 +19670,7 @@ function makePrintFit(){
   };
   /* the print options: A4 print (the chosen format), Draft print (watermark), Multiple print (every copy with its own label, each followed by the conditions page) and Pre-print (only the data, for pre-printed stationery) */
   DK.awbCopies = [["ORIGINAL 3", "FOR SHIPPER"], ["COPY 8", "FOR AGENT"], ["ORIGINAL 1", "FOR ISSUING CARRIER"], ["ORIGINAL 2", "FOR CONSIGNEE"], ["COPY 4", "DELIVERY RECEIPT"], ["COPY 5", "EXTRA COPY"], ["COPY 6", "EXTRA COPY"], ["COPY 7", "EXTRA COPY"], ["COPY 9", "EXTRA COPY"], ["COPY 10", "EXTRA COPY"]];
-  DK.awbModes = {a4:"Final print (A4)", draft:"Draft print", multiple:"Multiple print (every copy, each with the conditions page)", pre:"Pre-print (data only, for pre-printed stationery)"};
+  DK.awbModes = {a4:"A4 print", draft:"Draft print", multiple:"Multiple print (every copy, each with the conditions page)", pre:"Pre-print (data only, for pre-printed stationery)"};
   DK.awbFace = function(rd, fk, mode){
     mode = mode || "a4"; const key = fk === "std" ? "three" : fk; const wrap = pages=> pages.map(h=>'<div '+PG+'>'+h+'</div>').join("");
     if(mode === "pre") return wrap([DK.awbFaceOne(rd, key, {pre:true})]);
@@ -26706,9 +26715,10 @@ body.job-readonly #jlBanner{display:flex}
       const b = await record(id); O.prev = {id, code, variant:variant || "", b};
       const rep = O.data.reports.find(r=> r.code === code) || {name:code};
       openModal({title:esc(b.title)+' <span style="font-size:11px;font-weight:400;color:var(--g5)">version '+b.rec.version+'</span>', size:"full", expandable:true,
-        bodyHTML:(code === "hawb" ? '<div id="odHawbBar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--g2);border-radius:8px;margin-bottom:6px;background:var(--g0)"><b style="font-size:12px">Print option</b><select class="fc" id="odHawbMode" style="width:auto;min-width:170px">'+Object.keys(DK.awbModes).map(k=>'<option value="'+k+'">'+esc(DK.awbModes[k].replace(/ \(.*/, ""))+'</option>').join("")+'</select><span style="font-size:11px;color:var(--g5)">Final print is this saved version. Draft, Pre-print and Multiple are made from the job as it is now; Print, Download and Send use the option shown.</span></div>' : "")+'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
+        bodyHTML:(code === "hawb" ? '<div id="odHawbBar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--g2);border-radius:8px;margin-bottom:6px;background:var(--g0)"><b style="font-size:12px">Print option</b><select class="fc" id="odHawbMode" style="width:auto;min-width:170px">'+Object.keys(DK.awbModes).map(k=>'<option value="'+k+'">'+esc(DK.awbModes[k].replace(/ \(.*/, ""))+'</option>').join("")+'</select><span style="font-size:11px;color:var(--g5)">All options are made from the job as it is now, in the format chosen for the House Air Waybill; Print, Download and Send use the option shown.</span></div>' : "")+'<div style="overflow:auto;background:#d9dee7;padding:10px;max-height:72vh"><div class="dk-pages" style="display:flex;flex-direction:column;gap:10px;align-items:center">'+b.html+'</div></div>',
         footHTML:(/class="od-simg"/.test(b.html) ? '<span style="margin-right:12px;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">Signature:<button class="btn btn-sm btn-pri" type="button" data-od2="sig" data-v="1">With</button><button class="btn btn-sm btn-out" type="button" data-od2="sig" data-v="0">Without</button></span>' : "")+(code === "can" ? '<span style="margin-right:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--g6)">View:'+["with_rates", "without_rates"].map(v=>'<button class="btn btn-sm '+((variant || "") === v ? "btn-pri" : "btn-out")+'" type="button" data-od2="canv" data-code="can" data-var="'+v+'">'+(v === "with_rates" ? "With Charges" : "Without Charges")+'</button>').join("")+'</span>' : "")+
           '<button class="btn btn-out" type="button" data-od2="regen" data-code="'+code+'" data-var="'+(variant || "")+'">Regenerate</button><button class="btn btn-out" type="button" data-od2="mailp">Send by email</button><button class="btn btn-out" type="button" data-od2="pdfp">Download PDF</button><button class="btn btn-out" type="button" data-od2="printp">Print</button><button class="btn btn-pri" type="button" onclick="closeModal()">Close</button>'});
+      if(code === "hawb"){ try{ const html = (await DK.build("awb", {job:O.job, mode:"a4"})).html; O.prev.b = Object.assign({}, b, {html}); const box = document.querySelector("#modalBody .dk-pages"); if(box) box.innerHTML = html; }catch(e){} }
     }catch(e){ say("Could not open the report", e.message, "error"); }
   }
   const withSig = pv=> pv.nosign ? Object.assign({}, pv.b, {html:pv.b.html.replace(/<img class="od-simg"[^>]*>/g, "")}) : pv.b;     /* the choice made in the preview applies to Download and Print */
@@ -26795,8 +26805,7 @@ body.job-readonly #jlBanner{display:flex}
   /* HAWB preview: switch between the saved final print and the Draft / Pre-print / Multiple print made from the job as it is now */
   document.addEventListener("change", async e=>{
     const m = e.target.closest && e.target.closest("#odHawbMode"); if(!m || !O.prev) return;
-    if(!O.prev.orig) O.prev.orig = O.prev.b;
-    try{ const html = m.value === "a4" ? O.prev.orig.html : (await DK.build("awb", {job:O.job, mode:m.value})).html; O.prev.b = Object.assign({}, O.prev.orig, {html}); const box = document.querySelector("#modalBody .dk-pages"); if(box) box.innerHTML = html; }
+    try{ const html = (await DK.build("awb", {job:O.job, mode:m.value})).html; O.prev.b = Object.assign({}, O.prev.orig, {html}); const box = document.querySelector("#modalBody .dk-pages"); if(box) box.innerHTML = html; }
     catch(err){ say("Could not prepare the print option", err.message, "error"); }
   });
   document.addEventListener("click", async e=>{
@@ -26813,7 +26822,7 @@ body.job-readonly #jlBanner{display:flex}
     if(act === "pdfp"){ if(O.prev) download(withSig(O.prev)); return; }
     if(act === "printp"){ if(O.prev) printDoc(withSig(O.prev)); return; }
     if(act === "pdf" || act === "print" || act === "mail"){ if(!id) return; try{ let rec = await record(id);
-        if(code === "hawb"){ const mode = await DK.askAwbMode("a4"); if(!mode) return; if(mode !== "a4") rec = Object.assign({}, rec, {html:(await DK.build("awb", {job:O.job, mode})).html}); }          /* Final print is the saved version; the others are made from the job as it is now */
+        if(code === "hawb"){ const mode = await DK.askAwbMode("a4"); if(!mode) return; rec = Object.assign({}, rec, {html:(await DK.build("awb", {job:O.job, mode})).html}); }          /* always made from the job as it is now, in the chosen format */
         act === "pdf" ? download(rec) : act === "mail" ? mailDoc(rec) : printDoc(rec); }catch(err){ say("Could not open the report", err.message, "error"); } }
   });
   const closeModalIf = ()=> {};

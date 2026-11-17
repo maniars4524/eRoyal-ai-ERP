@@ -48,7 +48,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const vers2 = (await j("GET", `/api/jobs/${encodeURIComponent(job)}/outdocs`, null, token)).body.reports.find(r => r.code === "hawb").generated[""].version;
   check("Preview opens the saved version and creates nothing new", await vis("#odHawbBar") && vers2 === vers1, vers1 + " -> " + vers2);
   const opts = await page.evaluate(() => [...document.querySelectorAll("#odHawbMode option")].map(o => o.value + ":" + o.textContent).join("|"));
-  check("the preview offers Final print, Draft print, Pre print and Multiple print", opts === "a4:Final print|draft:Draft print|multiple:Multiple print|pre:Pre-print", opts);
+  check("the preview offers Final print, Draft print, Pre print and Multiple print", opts === "a4:A4 print|draft:Draft print|multiple:Multiple print|pre:Pre-print", opts);
   const pages = () => page.evaluate(() => document.querySelectorAll("#modalBody .dk-pages .pg").length);
   const n0 = await pages();
   const pick = async v => { await page.select("#odHawbMode", v); await sleep(3500); };
@@ -58,13 +58,13 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   check("Draft print shows the DRAFT mark", /DRAFT/.test(td));
   await pick("pre"); const tp = await text("#modalBody .dk-pages"); const pp = await pages();
   check("Pre-print is the data only (no labels), one page", pp === 1 && /MANITOU/i.test(tp) && !/Shipper's Name and Address|Not Negotiable/i.test(tp), pp + " | " + tp.slice(0, 100));
-  await pick("a4"); check("Final print is the saved version again", (await pages()) === n0);
+  await pick("a4"); check("A4 print is the same as when the preview opened", (await pages()) === n0);
   await page.evaluate(() => window.closeModal()); await sleep(500);
   // Print on the list asks which print option
   await page.evaluate(sel => document.querySelector(sel).click(), hawb("print")); await sleep(1200);
   const asked = await page.evaluate(() => [...document.querySelectorAll('input[name="awbMode"]')].map(r => r.value).join());
-  check("Print asks: Final / Draft / Multiple / Pre-print", asked === "a4,draft,multiple,pre", asked);
-  check("the question says Final print", /Final print/.test(await text("#modalBody")));
+  check("Print asks: A4 / Draft / Multiple / Pre-print", asked === "a4,draft,multiple,pre", asked);
+  check("the question says A4 print", /A4 print/.test(await text("#modalBody")));
   check("no script errors", errs.length === 0, errs.join(" | "));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })();

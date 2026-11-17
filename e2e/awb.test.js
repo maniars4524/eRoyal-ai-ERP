@@ -28,7 +28,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const no = q("#jobAwb_hawbNo").value;
   check("Generate HAWB issues company code + HAWB + running no + POL + POD", /^AWB.*HAWB001MAAFRA$/.test(no), no);
   const set = (id, v) => { q(id).value = v; q(id).dispatchEvent(new w.Event("input", { bubbles: true })); };
-  set("#jobAwb_mawb", "020-12345678"); set("#jobAwb_airline", "Lufthansa"); set("#jobAwb_flight", "LH 757"); set("#jobAwb_rate", "185.5"); set("#jobAwb_to", "FRA"); set("#jobAwb_handling", "Keep dry");
+  set("#jobAwb_mawb", "020-12345678"); { const o = w.document.createElement("option"); o.value = o.textContent = "Lufthansa"; q("#jobAwb_airline").appendChild(o); } set("#jobAwb_airline", "Lufthansa"); set("#jobAwb_flight", "LH 757"); set("#jobAwb_rate", "185.5"); set("#jobAwb_to", "FRA"); set("#jobAwb_handling", "Keep dry");
   q('#jt3 [data-jd-save]').click(); await sleep(1800);
   const saved = (await j("GET", `/api/jobs/${job.job_number}/details`, null, token)).body;
   check("the AWB entry is saved with the House AWB number kept", saved.bl.mblNo === "020-12345678" && saved.bl.hblNo === no && saved.bl.awb.rate === "185.5" && saved.bl.awb.airline === "Lufthansa", JSON.stringify(saved.bl).slice(0, 200));
