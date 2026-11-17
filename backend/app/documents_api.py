@@ -100,6 +100,7 @@ def _out(doc: Document, with_lines: bool = False, required: bool | None = None) 
         "paid_amount": _money(doc.paid_amount), "credited_amount": _money(doc.credited_amount), "outstanding": _money(outstanding(doc) if doc.status == "POSTED" else Decimal("0.00")), "job_numbers": sorted({l.job_number for l in doc.lines if l.job_number} | ({doc.job_number} if doc.job_number else set())),
         "posted_at": doc.posted_at, "created_at": doc.created_at, "updated_at": doc.updated_at.isoformat() if doc.updated_at else None, "proforma_required": bool(required) if doc.doc_type == "invoice" else False,
         "invoice_kind": invoice_kind([l.tax_type for l in doc.lines]) if doc.lines else "TAX",
+        "ref_doc_number": (doc.header or {}).get("ref_invoice_no") or "", "ref_doc_date": (doc.header or {}).get("ref_invoice_date") or "",
     }
     if doc.supply_type == "intra":
         half = q2(doc.tax_total / 2)
@@ -451,14 +452,17 @@ def post_document(doc_id: int, user: User = Depends(permission_required("billing
     if not doc.party_name:
         raise HTTPException(status_code=422, detail="Party name is required before posting")
     if doc.doc_type in CREDIT_TARGET:
-        if not doc.ref_document_id:
-            raise HTTPException(status_code=422, detail="A credit note must reference the document it credits")
-        ref = _load(db, org_id, doc.ref_document_id, lock=True)
-        if ref.status != "POSTED":
-            raise HTTPException(status_code=409, detail="The referenced document must be posted")
-        if doc.grand_total > outstanding(ref):
-            raise HTTPException(status_code=422, detail=f"Credit exceeds the outstanding balance of {ref.doc_number} ({outstanding(ref)})")
-        ref.credited_amount += doc.grand_total
+        job_level = doc.doc_type == "credit_note" and not doc.ref_document_id and bool(doc.job_number)        # a customer credit note can be raised against the job itself (e.g. the net CR of the job's DR / CR statement); a purchase credit note always credits a purchase invoice
+        if not doc.ref_document_id and not job_level:
+            raise HTTPException(status_code=422, detail="A credit note must reference the document it credits" if doc.doc_type == "credit_note" else "A purchase credit note must reference the purchase invoice it credits")
+        if doc.ref_document_id:
+            ref = _load(db, org_id, doc.ref_document_id, lock=True)
+            if ref.status != "POSTED":
+                raise HTTPException(status_code=409, detail="The referenced document must be posted")
+            if doc.grand_total > outstanding(ref):
+                raise HTTPException(status_code=422, detail=f"Credit exceeds the outstanding balance of {ref.doc_number} ({outstanding(ref)})")
+            ref.credited_amount += doc.grand_total
+            doc.header = {**(doc.header or {}), "ref_invoice_no": ref.doc_number, "ref_invoice_date": ref.doc_date.isoformat() if ref.doc_date else ""}          # the document it credits is written on the credit note for good
     branch_ref = (doc.header or {}).get("party_branch_id")
     if branch_ref not in (None, ""):
         br = db.scalar(select(OrgBranch).where(OrgBranch.id == int(branch_ref), OrgBranch.organization_id == org_id, OrgBranch.customer_id == doc.customer_id))

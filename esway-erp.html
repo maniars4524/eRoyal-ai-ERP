@@ -4355,6 +4355,16 @@ tbody tr:hover{background:var(--g0)}
 <div class="card" id="docViewZone" style="max-width:860px;margin:0 auto"></div>
 </div>
 
+<!-- ====== AR OUTSTANDING (from the ledgers) ====== -->
+<div id="s-ar-outstanding" class="scr">
+<div class="ph"><div><div class="pt"><svg class="ic" data-icon="alert" style="color:var(--rd)"></svg>AR Outstanding</div><div class="ps">What each customer owes, taken from the debtor ledgers (Sundry Debtors) as of today. Open a customer to see the ledger behind the figure.</div></div>
+  <div class="pa"><button class="btn btn-out btn-sm" data-go="dashboard"><svg class="ic" data-icon="arrow-left"></svg> Back</button><button class="btn btn-out btn-sm" id="arCsv"><svg class="ic" data-icon="download"></svg> Excel (CSV)</button><button class="btn btn-out btn-sm" id="arRefresh"><svg class="ic" data-icon="refresh-cw"></svg> Refresh</button></div></div>
+<div class="kpi-row" id="arCards"></div>
+<div class="card"><div class="ch"><div class="ct">Customers with an outstanding balance</div><div style="display:flex;gap:8px;align-items:center"><label style="font-size:12px"><input type="checkbox" id="arCr"> include advance / credit balances</label><input class="fc" id="arQ" placeholder="Search customer" style="width:220px"></div></div>
+<div class="tw"><table><thead><tr><th>Customer (ledger)</th><th style="text-align:right">Billed (Dr)</th><th style="text-align:right">Received / credited (Cr)</th><th style="text-align:right">Outstanding</th><th></th></tr></thead><tbody id="arBody"><tr><td colspan="5" style="text-align:center;color:var(--g5);padding:22px">Loading from the ledgers...</td></tr></tbody></table></div>
+<div id="arFoot" style="padding:8px 14px;font-size:12px;color:var(--g5)"></div></div>
+</div>
+
 <!-- ====== FREIGHT CERTIFICATE ====== -->
 <div id="s-freight-cert" class="scr">
 <div class="ph"><div><div class="pt">Freight Certificate</div><div class="ps">Produced from the job's own data</div></div><div class="pa"><button class="btn btn-out btn-sm" data-go="job-list" title="Go back"><svg class="ic" data-icon="arrow-left"></svg> Back</button></div></div>
@@ -6222,6 +6232,7 @@ const SCREEN_META = {
   "gl-reports":{title:"Ledger Reports", crumb:"eSway ERP 2.0 / Accounts / <strong>Ledger Reports</strong>", menu:"gl-reports"},
   "coa":{title:"Chart of Accounts", crumb:"eSway ERP 2.0 / <strong>COA</strong>", menu:"coa"},
   "pr-ledger":{title:"Payable / Receivable Ledger", crumb:"eSway ERP 2.0 / Accounts / <strong>Payable / Receivable Ledger</strong>", menu:"pr-ledger"},
+  "ar-outstanding":{title:"AR Outstanding", crumb:"eSway ERP 2.0 / Accounts / <strong>AR Outstanding (Ledger)</strong>", menu:"ar-outstanding"},
   "gst-report":{title:"GST Report", crumb:"eSway ERP 2.0 / Reports / <strong>GST Report</strong>", menu:"gst-report"},
   "import-air-manifest":{title:"Air Manifest", crumb:"eSway ERP 2.0 / Operations / Import / Manifest / <strong>Air Manifest</strong>", menu:"import-air-manifest"},
   "import-sea-manifest":{title:"Sea Manifest", crumb:"eSway ERP 2.0 / Operations / Import / Manifest / <strong>Sea Manifest</strong>", menu:"import-sea-manifest"},
@@ -6698,7 +6709,7 @@ const TOPNAV_MENU = [
       {label:"Day Book", icon:"book", go:"gl-reports", gltab:"day"},
       {label:"General Ledger", icon:"book", go:"gl-reports", gltab:"ledger"},
       {label:"Journal Register", icon:"file-text", go:"journal-voucher"},
-      {label:"Outstanding Receivable", icon:"user", go:"pr-ledger", prltype:"RECEIVABLE"},
+      {label:"Outstanding Receivable (Ledger)", icon:"user", go:"ar-outstanding"},
       {label:"Outstanding Payable", icon:"bank", go:"pr-ledger", prltype:"PAYABLE"},
       {label:"Ageing Report", icon:"chart-bar", go:"acc-reports"},
       {label:"Receipt Register", icon:"cash", go:"receipt-voucher"},
@@ -14984,7 +14995,14 @@ if(document.readyState !== "loading") initChatWidget();
       const month = today().slice(0,7), thisMonth = live.filter(d=>(d.doc_date||"").startsWith(month));
       const kpis = scr.querySelectorAll(".kpi"); const set = (i,v,s)=>{ const k = kpis[i]; if(!k) return; const a = k.querySelector(".kpi-val"), b = k.querySelector(".kpi-sub"); if(a) a.textContent = v; if(b) b.textContent = s||""; };
       set(0, inr(sum(d=>d.grand_total, thisMonth)), thisMonth.length+" documents"); set(1, inr(sum(d=>d.outstanding, live.filter(d=>!/credit/.test(d.doc_type)))), live.filter(d=>!/credit/.test(d.doc_type)&&Number(d.outstanding)>0).length+" open");
-      set(2, inr(sum(d=>d.paid_amount, thisMonth)), "Collected this month"); set(3, docs.filter(d=>d.status==="DRAFT").length, "Drafts");
+      const lbl = i=> ((kpis[i] && kpis[i].querySelector(".kpi-lbl")) || {textContent:""}).textContent;
+      const ar = cfg.types.some(t=>/^(invoice|debit_note|credit_note)$/.test(t));
+      let received = 0, n = 0;
+      try{ const pays = await api("GET", "/api/payments?direction="+(ar ? "RECEIPT" : "PAYMENT")+"&limit=1000"); const mine = pays.filter(p=>p.status === "POSTED" && (p.pay_date || "").startsWith(month)); received = mine.reduce((a, p)=>a + Number(p.amount), 0); n = mine.length; }catch(e){ received = sum(d=>d.paid_amount, thisMonth); }
+      set(2, inr(received), (ar ? "Received" : "Paid")+" this month"+(n ? " · "+n+" voucher"+(n === 1 ? "" : "s") : ""));
+      const open = live.filter(d=>!/credit/.test(d.doc_type) && Number(d.outstanding) > 0), age = d=> Math.max(0, Math.round((Date.now() - new Date((d.doc_date || today())+"T00:00:00").getTime()) / 86400000));
+      if(/avg/i.test(lbl(3))) set(3, open.length ? Math.round(open.reduce((a, d)=>a + age(d), 0) / open.length)+" days" : "0 days", open.length ? "average age of "+open.length+" open document"+(open.length === 1 ? "" : "s") : "nothing open");
+      else set(3, docs.filter(d=>d.status==="DRAFT").length, "Drafts");
     }catch(e){ say("Could not load documents", e.message); }
   }
   document.addEventListener("click", e=>{
@@ -16725,7 +16743,7 @@ if(document.readyState !== "loading") initChatWidget();
         kpi("operations", "Active Jobs", lockedOps ? dummy.jobs : j.active, lockedOps ? "↑ +12% vs last month" : chg(last.jobs, prev.jobs), "package", "linear-gradient(150deg,#3D9BE9,var(--bl))", "var(--bl)", mon.map(x=>x.jobs), "@jobs")+
         kpi("finance", "Revenue MTD", money(m.revenue_mtd), lockedFin ? "↑ +18% vs last month" : chg(last.revenue, prev.revenue), "rupee", "linear-gradient(150deg,#3FBF7F,var(--gr))", "var(--gr)", mon.map(x=>Number(x.revenue)), "mis")+
         kpi("finance", "Gross Profit MTD", money(m.gp_mtd), lockedFin ? "Gross Margin 75%" : (Number(m.revenue_mtd) ? "Gross Margin "+m.gp_pct+"%" : "No billing yet"), "trending-up", "linear-gradient(150deg,#B084F0,var(--pu))", "var(--pu)", null, "mis")+
-        kpi("finance", "AR Outstanding", money(m.ar_outstanding), lockedFin ? "Overdue ₹1,85,000" : (od ? "Overdue "+inr((d.alerts||{}).overdue_amount) : "Nothing overdue"), "alert", "linear-gradient(150deg,#F28B5B,var(--rd))", "var(--rd)", null, "invoice-list")+
+        kpi("finance", "AR Outstanding", money(m.ar_outstanding), lockedFin ? "Overdue ₹1,85,000" : (od ? "Overdue "+inr((d.alerts||{}).overdue_amount) : "Nothing overdue"), "alert", "linear-gradient(150deg,#F28B5B,var(--rd))", "var(--rd)", null, "ar-outstanding")+
       '</div>'+
       '<div class="dx-grid dx-r2'+(window.__dxOpen ? " dx-exp" : "")+'">'+
         '<div class="dx-card'+(window.__dxOpen ? " dx-open" : "")+'" id="dxCat" style="padding:12px 14px;overflow:visible"><h4>Active Jobs by Category <a data-dx-open="jobs">'+(window.__dxOpen ? "Close ✕" : "View Details →")+'</a></h4><div id="dxCatRow" style="display:'+(window.__dxOpen ? "none" : "grid")+';grid-template-columns:repeat(3,1fr);gap:8px">'+cat("freight", "operations", "Freight Jobs", "ship", "var(--bl)", c.freight || {})+cat("cha", "cha", "CHA Jobs", "license", "var(--pu)", c.cha || {})+cat("transport", "transport", "Transport Jobs", "truck", "var(--tl)", c.transport || {})+'</div><div id="dxFill" style="display:'+(window.__dxOpen ? "none" : "block")+'">'+lanes(j)+'</div><div id="dxCatPanel" style="display:none;margin-top:12px;border:1px solid var(--g2);border-radius:12px;overflow:hidden"></div></div>'+
@@ -16797,6 +16815,52 @@ if(document.readyState !== "loading") initChatWidget();
   /* sign-in calls dashKitLoad: in the new view that loads the new dashboard first and the classic one a moment later */
   const classicLoad = window.dashKitLoad;
   window.dashKitLoad = ()=>{ const sd = scr(); if(sd && sd.dataset.dv === "new"){ load(); setTimeout(()=>{ if(classicLoad) classicLoad(); }, 1800); } else if(classicLoad) classicLoad(); };
+})();
+</script>
+<script>
+/* ============================================================
+   AR OUTSTANDING KIT: the customers that owe money, taken from the debtor ledgers (Sundry Debtors, the same figures as the Trial Balance).
+   ============================================================ */
+(function(){
+  "use strict";
+  const U = MK.util; const {api, esc2, say} = U;
+  const inr = v=> "\u20B9" + (Number(v)||0).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  let ROWS = [], TOT = null;
+  const q = id=> document.getElementById(id);
+  function paint(){
+    const body = q("arBody"); if(!body) return;
+    const term = (q("arQ").value || "").trim().toLowerCase(), withCr = q("arCr").checked;
+    const rows = ROWS.filter(r=> (withCr ? Math.abs(Number(r.closing)) > 0.004 : Number(r.closing) > 0.004) && (!term || r.name.toLowerCase().indexOf(term) > -1)).sort((a, b)=> Number(b.closing) - Number(a.closing));
+    body.innerHTML = rows.length ? rows.map(r=>'<tr><td><b>'+esc2(r.name)+'</b><div style="font-size:10.5px;color:var(--g5)">'+esc2(r.code || "")+'</div></td><td style="text-align:right">'+inr(r.debit)+'</td><td style="text-align:right">'+inr(r.credit)+'</td><td style="text-align:right;font-weight:800;color:'+(Number(r.closing) > 0 ? "var(--rd)" : "var(--gr)")+'">'+inr(Math.abs(r.closing))+(Number(r.closing) < 0 ? " Cr" : "")+'</td><td><button class="btn btn-out btn-sm" data-ar-ledger="'+r.id+'">Ledger \u2192</button></td></tr>').join("") : '<tr><td colspan="5" style="text-align:center;color:var(--g5);padding:22px">'+(ROWS.length ? "No customer matches." : "No customer owes anything: the debtor ledgers are clear.")+'</td></tr>';
+    const owe = ROWS.reduce((a, r)=>a + Math.max(0, Number(r.closing)), 0), adv = ROWS.reduce((a, r)=>a + Math.min(0, Number(r.closing)), 0), n = ROWS.filter(r=>Number(r.closing) > 0.004).length;
+    q("arCards").innerHTML = '<div class="kpi"><div class="kpi-lbl">AR Outstanding</div><div class="kpi-val">'+inr(owe)+'</div><div class="kpi-sub">'+n+' customer'+(n === 1 ? "" : "s")+' owe money</div></div><div class="kpi"><div class="kpi-lbl">Advance / credit balances</div><div class="kpi-val">'+inr(Math.abs(adv))+'</div><div class="kpi-sub">customers in credit</div></div><div class="kpi"><div class="kpi-lbl">Net per Sundry Debtors</div><div class="kpi-val">'+inr(TOT ? TOT.closing : owe + adv)+'</div><div class="kpi-sub">as in the Trial Balance</div></div>';
+    q("arFoot").textContent = "Showing "+rows.length+" of "+ROWS.length+" debtor ledger"+(ROWS.length === 1 ? "" : "s")+". Figures come from the ledgers (invoices, debit notes, credit notes, receipts), not from the invoice list.";
+  }
+  async function load(){
+    try{
+      const tb = await api("GET", "/api/gl/trial-balance"); const g = (tb.rows || []).find(r=>r.kind === "group" && r.name === "SUNDRY DEBTORS");
+      if(!g){ ROWS = []; TOT = null; paint(); return; }
+      const d = await api("GET", "/api/gl/trial-balance?group_id="+g.id); ROWS = (d.rows || []).filter(r=>r.kind === "ledger"); TOT = g; paint();
+    }catch(e){ const b = q("arBody"); if(b) b.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--rd)">Could not read the ledgers: '+esc2(e.message || "")+'</td></tr>'; }
+  }
+  async function ledger(id){
+    let l; try{ l = await api("GET", "/api/gl/ledger?ledger_id="+id); }catch(e){ say("Could not open the ledger", e.message, "error"); return; }
+    window.openModal({title:"Ledger \u2014 "+esc2(l.ledger.name), bodyHTML:'<div style="font-size:11px;color:var(--g5);margin-bottom:6px">'+esc2(l.ledger.group)+' \u00B7 opening '+inr(l.opening)+'</div><div class="tw"><table><thead><tr><th>Date</th><th>Voucher</th><th>Job</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th style="text-align:right">Balance</th></tr></thead><tbody>'+
+      (l.entries || []).map(e=>'<tr><td>'+esc2(e.date)+'</td><td><b>'+esc2(e.number || "")+'</b><div style="font-size:10px;color:var(--g5)">'+esc2(e.voucher_label || e.voucher_type || "")+'</div></td><td>'+esc2(e.job_number || "")+'</td><td style="text-align:right">'+(Number(e.debit) ? inr(e.debit) : "")+'</td><td style="text-align:right">'+(Number(e.credit) ? inr(e.credit) : "")+'</td><td style="text-align:right;font-weight:700">'+inr(e.balance)+'</td></tr>').join("")+'</tbody></table></div><div style="margin-top:6px;font-weight:800;text-align:right">Closing '+inr(l.closing)+'</div>', footHTML:'<button class="btn btn-out" type="button" onclick="closeModal()">Close</button>'});
+  }
+  function csv(){
+    const rows = ROWS.filter(r=>Math.abs(Number(r.closing)) > 0.004).sort((a, b)=>Number(b.closing) - Number(a.closing)); const out = [["Customer", "Ledger code", "Billed (Dr)", "Received / credited (Cr)", "Outstanding (Dr) / advance (Cr)"]].concat(rows.map(r=>[r.name, r.code || "", r.debit, r.credit, r.closing]));
+    const text = out.map(r=>r.map(c=>'"'+String(c).replace(/"/g, '""')+'"').join(",")).join(String.fromCharCode(13, 10)); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type:"text/csv"})); a.download = "AR-Outstanding.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  document.addEventListener("click", e=>{
+    const l = e.target.closest && e.target.closest("[data-ar-ledger]"); if(l){ ledger(l.dataset.arLedger); return; }
+    if(e.target.closest && e.target.closest("#arRefresh")){ load(); return; }
+    if(e.target.closest && e.target.closest("#arCsv")){ csv(); }
+  });
+  document.addEventListener("input", e=>{ if(e.target.id === "arQ") paint(); });
+  document.addEventListener("change", e=>{ if(e.target.id === "arCr") paint(); });
+  const prev = MK.onScreen;
+  MK.onScreen = function(screen, opts){ prev(screen, opts); if(screen === "ar-outstanding") load(); };
 })();
 </script>
 <script>
@@ -21114,7 +21178,12 @@ function makePrintFit(){
     return t.replace(/\s+/g, " ").toLowerCase();
   }
   const dataRows = (scr, spec)=> Array.from(scr.querySelectorAll(spec.rows)).filter(tr=> !tr.querySelector("td[colspan]") && tr.children.length > 1 && !tr.closest(".dash-cards"));
-  const textOf = (tr, spec)=> cellText(spec.col !== undefined ? tr.children[spec.col] : tr);
+  /* the cell that holds the status is found by the column heading ("Status"); the fixed number is only a fallback (columns are added, moved and hidden, which made every status card read 0) */
+  function statusCol(scr, spec){
+    if(spec.col === undefined) return undefined;
+    const ths = Array.from(scr.querySelectorAll("thead th")); const i = ths.findIndex(t=> /^\s*status\s*$/i.test(t.textContent || "")); return i > -1 ? i : spec.col;
+  }
+  const textOf = (tr, spec)=> { const scr = tr.closest(".scr"); const c = scr ? statusCol(scr, spec) : spec.col; return cellText(c !== undefined ? tr.children[c] : tr); };
 
   window.dashCardsHTML = function(items){
     return '<div class="dash-cards">'+items.map(k=>'<div class="kpi kpi-rich '+(k.cls||"k-blue")+'"><div class="kic"><svg class="ic" data-icon="'+k.icon+'"></svg></div><div class="kdiv"></div><div class="ktx"><div class="kpi-lbl">'+esc2(k.label)+'</div><div class="kpi-val">'+esc2(String(k.value))+'</div><div class="kpi-sub">'+esc2(k.sub||"records")+'</div></div></div>').join("")+'</div>';
@@ -23970,7 +24039,9 @@ body.job-readonly #jlBanner{display:flex}
         const cells = Array.from(tr.children);
         if(cells.length < heads.length || (cells.length === 1 && cells[0].colSpan > 1)) return false;
         cells.forEach((c, k)=>{ if(c.dataset.lkI === undefined) c.dataset.lkI = String(k); });
-        cells.sort((a, b)=> rank(Number(a.dataset.lkI)) - rank(Number(b.dataset.lkI)) || Number(a.dataset.lkI) - Number(b.dataset.lkI)).forEach(c=>{ tr.appendChild(c); c.style.display = hide(Number(c.dataset.lkI)) ? "none" : ""; });
+        const ordered = cells.slice().sort((a, b)=> rank(Number(a.dataset.lkI)) - rank(Number(b.dataset.lkI)) || Number(a.dataset.lkI) - Number(b.dataset.lkI));
+        if(!ordered.every((c, k)=> cells[k] === c)) ordered.forEach(c=>tr.appendChild(c));                   /* touched only when the order really changes: a repeat run leaves the page alone (no endless redraw) */
+        ordered.forEach(c=>{ const d = hide(Number(c.dataset.lkI)) ? "none" : ""; if(c.style.display !== d) c.style.display = d; });
         return true;
       };
       fix(table.tHead.rows[0]);
@@ -23978,7 +24049,7 @@ body.job-readonly #jlBanner{display:flex}
       const cell = (tr, i)=> { const c = Array.from(tr.children).find(x=>Number(x.dataset.lkI) === i); return c ? (c.textContent || "").replace(/\s+/g, " ").trim() : ""; };
       const iNum = idxOf(heads, cfg.num), iDate = idxOf(heads, cfg.date), iSt = idxOf(heads, cfg.status), iCo = cfg.company.map(re=>idxOf(heads, re)).filter(i=>i > -1);
       // company / status choices come from what the list holds
-      const fill = (id, vals)=>{ const sel = document.getElementById(id); if(!sel) return; const cur = sel.value; const list = Array.from(new Set(vals.filter(Boolean))).sort((a, b)=>a.localeCompare(b)); sel.innerHTML = '<option value="">All</option>' + list.map(v=>'<option>'+esc(v)+'</option>').join(""); sel.value = list.indexOf(cur) > -1 ? cur : ""; };
+      const fill = (id, vals)=>{ const sel = document.getElementById(id); if(!sel) return; const cur = sel.value; const list = Array.from(new Set(vals.filter(Boolean))).sort((a, b)=>a.localeCompare(b)); const html = '<option value="">All</option>' + list.map(v=>'<option>'+esc(v)+'</option>').join(""); if(sel.dataset.lkHtml !== html){ sel.innerHTML = html; sel.dataset.lkHtml = html; } const want = list.indexOf(cur) > -1 ? cur : ""; if(sel.value !== want) sel.value = want; };
       fill("lk-co-"+cfg.key, [].concat(...rows.map(tr=>iCo.map(i=>cell(tr, i)))));
       fill("lk-st-"+cfg.key, rows.map(tr=>iSt > -1 ? cell(tr, iSt) : ""));
       const f = st.f, from = f.from ? new Date(f.from).getTime() : 0, to = f.to ? new Date(f.to).getTime() : 0;
@@ -23994,23 +24065,24 @@ body.job-readonly #jlBanner{display:flex}
         if(f.status && (iSt < 0 || cell(tr, iSt) !== f.status)) ok = false;
         if(f.q && (tr.textContent || "").toLowerCase().indexOf(f.q.toLowerCase()) < 0) ok = false;
         if(tr.dataset.jfHide === "1") ok = false;                      /* hidden by the Mode / Direction / Status / card filters of the page */
-        tr.dataset.lkOk = ok ? "1" : "0"; tr.style.display = ok ? "" : "none"; if(ok) shown++;
+        const okv = ok ? "1" : "0"; if(tr.dataset.lkOk !== okv) tr.dataset.lkOk = okv; const dsp = ok ? "" : "none"; if(tr.style.display !== dsp) tr.style.display = dsp; if(ok) shown++;
       });
       const key = st.sortBy === "date" ? (tr=> iDate > -1 ? parseDate(cell(tr, iDate)) : 0) : (tr=> iNum > -1 ? cell(tr, iNum) : "");
       const dir = st.dir === "asc" ? 1 : -1;
       const sorted = rows.slice().sort((a, b)=>{ const x = key(a), y = key(b); return dir * (typeof x === "number" ? x - y : String(x).localeCompare(String(y), undefined, {numeric:true})); });
-      sorted.forEach(tr=>body.appendChild(tr));
+      const now = Array.from(body.rows).filter(tr=> sorted.indexOf(tr) > -1);
+      if(!sorted.every((tr, k)=> now[k] === tr)) sorted.forEach(tr=>body.appendChild(tr));
       const vis = sorted.filter(tr=>tr.dataset.lkOk === "1");
       const size = st.size || 0, pages = size ? Math.max(1, Math.ceil(vis.length / size)) : 1;
       if(st.page > pages) st.page = pages; if(st.page < 1) st.page = 1;
       const from0 = size ? (st.page - 1) * size : 0, to0 = size ? from0 + size : vis.length;
-      vis.forEach((tr, k)=>{ tr.style.display = (k >= from0 && k < to0) ? "" : "none"; });
+      vis.forEach((tr, k)=>{ const d = (k >= from0 && k < to0) ? "" : "none"; if(tr.style.display !== d) tr.style.display = d; });
       const shownNow = Math.min(to0, vis.length) - from0;
       const text = vis.length ? "Showing " + (from0 + 1) + " to " + (from0 + shownNow) + " of " + vis.length + (vis.length !== rows.length ? " (filtered from " + rows.length + ")" : "") : (rows.length ? "No row matches the filters (" + rows.length + " in the list)" : "");
-      document.querySelectorAll('[data-lk-count="' + cfg.key + '"]').forEach(e=>{ e.textContent = text; });
-      document.querySelectorAll('[data-lk-pageinfo="' + cfg.key + '"]').forEach(e=>{ e.textContent = size && pages > 1 ? "Page " + st.page + " of " + pages : ""; });
-      document.querySelectorAll('[data-lk-prev="' + cfg.key + '"]').forEach(e=>{ e.disabled = st.page <= 1; e.style.visibility = size && pages > 1 ? "" : "hidden"; });
-      document.querySelectorAll('[data-lk-next="' + cfg.key + '"]').forEach(e=>{ e.disabled = st.page >= pages; e.style.visibility = size && pages > 1 ? "" : "hidden"; });
+      document.querySelectorAll('[data-lk-count="' + cfg.key + '"]').forEach(e=>{ if(e.textContent !== text) e.textContent = text; });
+      document.querySelectorAll('[data-lk-pageinfo="' + cfg.key + '"]').forEach(e=>{ const t = size && pages > 1 ? "Page " + st.page + " of " + pages : ""; if(e.textContent !== t) e.textContent = t; });
+      document.querySelectorAll('[data-lk-prev="' + cfg.key + '"]').forEach(e=>{ const dis = st.page <= 1, v = size && pages > 1 ? "" : "hidden"; if(e.disabled !== dis) e.disabled = dis; if(e.style.visibility !== v) e.style.visibility = v; });
+      document.querySelectorAll('[data-lk-next="' + cfg.key + '"]').forEach(e=>{ const dis = st.page >= pages, v = size && pages > 1 ? "" : "hidden"; if(e.disabled !== dis) e.disabled = dis; if(e.style.visibility !== v) e.style.visibility = v; });
     }finally{ setTimeout(()=>{ st.applying = false; }, 60); }
   }
 
