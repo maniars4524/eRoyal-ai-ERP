@@ -157,8 +157,16 @@ def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
     if doc.doc_type in ("invoice", "debit_note", "credit_note") and len({line_group(l.tax_type) for l in lines}) > 1:
         raise HTTPException(status_code=422, detail="Pure Agent (reimbursement) and RCM entries are billed on their own invoice. Keep Taxable / Non-Taxable entries together and move the Pure Agent or RCM entries to a separate invoice")
     subtotal = tax = Decimal(0)
+    entered_before = dict((doc.header or {}).get("entered_pct") or {})             # the tax % of a nil-GST export line is kept here so the user can still choose to charge it
+    entered_now: dict[str, str] = {}
     for index, line in enumerate(lines, start=1):
-        export = is_export_supply(doc.place_of_supply) and doc.doc_type in ("invoice", "debit_note", "credit_note")      # export of services: GST is nil on every line (the tax type each line carries is kept)
+        export = is_export_supply(doc.place_of_supply) and doc.doc_type in ("invoice", "debit_note", "credit_note") and not (doc.header or {}).get("charge_gst")
+        if line.tax_type == "Taxable":
+            pct_in = line.tax_pct or (Decimal(str(entered_before.get(str(index), "0"))) if (doc.header or {}).get("charge_gst") else Decimal(0))
+            if export and pct_in:
+                entered_now[str(index)] = str(pct_in)
+            if pct_in != line.tax_pct:
+                line = line.model_copy(update={"tax_pct": pct_in})      # export of services: GST is nil on every line (the tax type each line carries is kept)
         c = calc_line(line.qty, line.ccy, Decimal(1) if line.ccy == "INR" else line.exch, line.rate, line.tax_type, Decimal(0) if export else (line.tax_pct if line.tax_type == "Taxable" else Decimal(0)))
         doc.lines.append(DocumentLine(line_no=index, job_number=(line.job_number or None), charge_name=line.charge_name.strip(), description=line.description.strip(), hsn=line.hsn.strip(), uom=line.uom, qty=line.qty, ccy=line.ccy, exch=Decimal(1) if line.ccy == "INR" else line.exch, rate=line.rate, tax_type=line.tax_type, tax_pct=Decimal(0) if is_export_supply(doc.place_of_supply) and doc.doc_type in ("invoice", "debit_note", "credit_note") else (line.tax_pct if line.tax_type in ("Taxable", "RCM") else Decimal(0)),
                                    breakup=_clean_breakup(line.breakup), **c))
@@ -171,6 +179,10 @@ def _apply_lines(doc: Document, lines: list[LineIn]) -> None:
     rounding = doc.doc_type in ("invoice", "debit_note", "credit_note", "purchase_invoice", "purchase_credit_note") and not header.get("no_round_off") and not foreign_only
     round_off = (Decimal(round(total)) - total) if rounding else Decimal(0)
     header["round_off"] = str(q2(round_off))
+    if entered_now:
+        header["entered_pct"] = entered_now
+    elif "entered_pct" in header and not header.get("charge_gst"):
+        header.pop("entered_pct")
     doc.header = header
     doc.subtotal, doc.tax_total, doc.grand_total = subtotal, tax, total + round_off
 
@@ -420,7 +432,7 @@ def update_document(doc_id: int, payload: DocumentPatch, user: User = Depends(pe
     if "ref_document_id" in changes:
         _check_reference(db, org_id, doc.doc_type, changes["ref_document_id"])
     lines = payload.lines
-    kept = {k: v for k, v in (doc.header or {}).items() if k in ("proforma_no", "proforma_date")}
+    kept = {k: v for k, v in (doc.header or {}).items() if k in ("proforma_no", "proforma_date", "entered_pct")}
     for key, value in changes.items():
         if key == "lines" or (value is None and key not in ("due_date", "customer_id", "ref_document_id", "remarks", "party_gstin", "place_of_supply")):
             continue
