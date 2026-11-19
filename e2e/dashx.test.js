@@ -70,6 +70,13 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   const top = await page.evaluate(() => [...document.querySelectorAll("#topnavMenu > .tn-item > .tn-row")].map(r => r.innerText.trim()));
   const gear = await page.evaluate(() => !!document.querySelector("#settingsBtn"));
   check("Performance + Reports merged into Insights & Reports; header gear removed; Settings menu kept", top.includes("Insights & Reports") && !top.includes("Performance") && !top.includes("Reports") && top.includes("Settings") && !gear, top.join(",") + " gear=" + gear);
+  // shortcuts of the cards lead to the right screens
+  const scr = () => page.evaluate(() => (document.querySelector(".scr.on") || {}).id || "");
+  const home = async () => { await page.evaluate(() => window.go("dashboard")); await sleep(1500); };
+  const tap = async sel => { await page.evaluate(sel => { const e = document.querySelector(sel); if (e) e.click(); }, sel); await sleep(1500); };
+  await home(); await tap('#dashXBody [data-dx-go="ar-outstanding"].dx-ins'); check("Key Insights: overdue invoices opens AR Outstanding", (await scr()) === "s-ar-outstanding", await scr());
+  await home(); await tap('#dashXBody h4 a[data-dx-go="ar-outstanding"]'); check("Overdue AR Aging > View Details opens AR Outstanding (not the invoice list)", (await scr()) === "s-ar-outstanding", await scr());
+  await home(); await tap('#dashXBody h4 a[data-dx-go="job-list"]'); check("Shipment Status > View Details opens the job list", (await scr()) === "s-job-list", await scr());
   check("no script errors", errs.length === 0, errs.join(" | "));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
 })();

@@ -68,6 +68,7 @@ REGISTRY = {
     "invoice": ("Finance & Accounts", "Sales Invoice", "INV", True, False, True, "invoice", 5, "FY"),
     "debit_note": ("Finance & Accounts", "Debit Note", "DN", True, False, True, "debit_note", 5, "FY"),
     "credit_note": ("Finance & Accounts", "Credit Note", "CN", True, False, True, "credit_note", 5, "FY"),
+    "invoice_overseas": ("Finance & Accounts", "Overseas Invoice (outside India / foreign currency)", "OIN", True, False, True, None, 5, "FY"),
     "debit_note_overseas": ("Finance & Accounts", "Overseas Debit Note (foreign currency)", "ODN", True, False, True, None, 5, "FY"),
     "credit_note_overseas": ("Finance & Accounts", "Overseas Credit Note (foreign currency)", "OCN", True, False, True, None, 5, "FY"),
     "purchase_invoice": ("Finance & Accounts", "Purchase Invoice", "PI", True, False, True, "purchase_invoice", 5, "FY"),
@@ -391,7 +392,7 @@ def exists_in_business(db: Session, org_id: int, doc_type: str, number: str) -> 
         q = select(Quotation.id).where(Quotation.organization_id == org_id, Quotation.number == number)
     elif doc_type == "booking":
         q = select(Booking.id).where(Booking.organization_id == org_id, Booking.number == number)
-    elif doc_type in ("invoice", "debit_note", "credit_note", "purchase_invoice", "purchase_credit_note", "debit_note_overseas", "credit_note_overseas"):
+    elif doc_type in ("invoice", "debit_note", "credit_note", "purchase_invoice", "purchase_credit_note", "debit_note_overseas", "credit_note_overseas", "invoice_overseas"):
         q = select(Document.id).where(Document.organization_id == org_id, Document.doc_type == doc_type.replace("_overseas", ""), Document.doc_number == number)
     elif doc_type in ("receipt", "payment"):
         q = select(Payment.id).where(Payment.organization_id == org_id, Payment.pay_number == number)
