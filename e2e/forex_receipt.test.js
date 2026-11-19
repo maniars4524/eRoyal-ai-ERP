@@ -1,0 +1,41 @@
+// Receipt against a USD invoice: foreign amount x rate of the day; cash, realised forex gain / loss shown, posted to the forex ledgers
+const puppeteer = require("puppeteer-core");
+const fs = require("fs");
+const BASE = "http://127.0.0.1:8010";
+const env = Object.fromEntries(fs.readFileSync("../.env.qa", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+const j = async (method, path, body, token) => { const r = await fetch(BASE + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body ? JSON.stringify(body) : undefined }); let b = null; try { b = await r.json(); } catch (e) {} return { status: r.status, body: b }; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let failures = 0;
+const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "" : " -> " + (x || ""))); if (!ok) failures++; };
+(async () => {
+  const dev = await j("POST", "/api/auth/login", { identifier: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD, portal: "developer" });
+  const tag = Date.now().toString(36).toUpperCase().slice(-5);
+  const org = await j("POST", "/api/organizations", { code: "FX" + tag, name: "Fx " + tag, admin_email: `fx${tag}@t.test`, admin_username: "fx" + tag.toLowerCase(), admin_password: "Ui-Test-Passw0rd-1", admin_first_name: "Mani", admin_last_name: "Rs" }, dev.body.access_token);
+  const token = (await j("POST", "/api/auth/login", { identifier: "fx" + tag.toLowerCase(), password: "Ui-Test-Passw0rd-1", portal: "erp", license_number: org.body.organization.license_number })).body.access_token;
+  const party = "OVERSEAS BUYER " + tag;
+  await j("POST", "/api/customers", { code: "OB" + tag, name: party, roles: ["consignee"], data: {} }, token);
+  const line = { charge_name: "Ocean Freight", description: "", hsn: "996511", uom: "Per Shipment", qty: "1", ccy: "USD", exch: "83", rate: "1000", tax_type: "Non-Taxable", tax_pct: "0" };
+  const doc = (await j("POST", "/api/documents", { doc_type: "invoice", party_name: party, supply_type: "inter", place_of_supply: "Outside India", lines: [line] }, token)).body;
+  let r = await j("POST", `/api/documents/${doc.id}/post`, null, token); if (r.status >= 400) { await j("POST", `/api/documents/${doc.id}/confirm`, null, token); r = await j("POST", `/api/documents/${doc.id}/post`, null, token); }
+  check("USD 1,000 invoice posted at 83 = INR 83,000", r.status === 200 && Number(r.body.grand_total) === 83000, JSON.stringify(r.body).slice(0, 150));
+  const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--no-sandbox"] });
+  const page = await b.newPage(); await page.setViewport({ width: 1500, height: 1300 }); const errs = [];
+  page.on("pageerror", e => errs.push(String(e.stack || e.message).split(String.fromCharCode(10)).slice(0, 3).join(" <- ")));
+  page.on("dialog", d => d.accept());
+  await page.goto(BASE + "/erp/login", { waitUntil: "networkidle2" }); await page.evaluate(t => localStorage.setItem("esway_persistent_token", t), token); await page.reload({ waitUntil: "networkidle2" }); await sleep(3000);
+  const text = sel => page.evaluate(sel => (document.querySelector(sel) || { innerText: "" }).innerText, sel);
+  await page.evaluate(d => window.PayKit.open("RECEIPT", d), r.body); await sleep(2500);
+  check("the receipt form shows a USD settlement line with the balance and the invoice rate", /USD settlement/.test(await text("#modalBody")) && /1,000\.00/.test(await text("#modalBody")) && /83\.0000/.test(await text("#modalBody")), (await text("#modalBody")).slice(0, 400));
+  await page.evaluate(() => { const set = (s, v) => { const n = document.querySelector(s); n.value = v; n.dispatchEvent(new Event("input", { bubbles: true })); }; set("[data-pk-fxamt]", "1000"); set("[data-pk-fxrate]", "84"); });
+  await sleep(500);
+  const m = await text("#modalBody");
+  check("cash INR 84,000.00 and Forex gain 1,000.00 shown; the invoice is cleared at 83,000.00", /84,000\.00/.test(m) && /Forex gain 1,000\.00/.test(m) && await page.evaluate(() => document.querySelector("[data-pk-doc]").value === "83000.00" && document.querySelector("#pk_amount").value === "84000.00"), m.slice(-500));
+  await page.evaluate(() => { document.querySelector("#pk_ref").value = "SWIFT-FX-1"; }); await page.evaluate(() => document.querySelector("#pk_go").click()); await sleep(3500);
+  const pays = (await j("GET", "/api/payments?direction=RECEIPT", null, token)).body;
+  const p = pays.find(x => x.party_name === party);
+  check("the receipt is recorded: cash 84,000, allocation 83,000 with fx gain 1,000", !!p && Number(p.amount) === 84000 && Number(p.allocations[0].amount) === 83000 && Number(p.allocations[0].fx_gain) === 1000, JSON.stringify(p));
+  const after = (await j("GET", `/api/documents/${doc.id}`, null, token)).body;
+  check("the invoice is PAID (outstanding 0)", after.payment_status === "PAID" && Number(after.outstanding) === 0, JSON.stringify([after.payment_status, after.outstanding]));
+  check("no script errors", errs.length === 0, errs.join(" | "));
+  await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
+})();

@@ -94,6 +94,10 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
         doc = docs.get(alloc.document_id)
         if not doc:
             raise HTTPException(status_code=404, detail=f"Document {alloc.document_id} not found")
+        if alloc.fx_amount is None and alloc.fx_rate is None:
+            from . import forex
+            if forex.doc_fx(doc) and doc.doc_type in ("invoice", "purchase_invoice"):
+                raise HTTPException(status_code=422, detail=f"{doc.doc_number or doc.id} is in {forex.doc_fx(doc)['ccy']}: settle it with the foreign amount and the exchange rate of the settlement")
         if alloc.fx_amount is not None or alloc.fx_rate is not None:       # foreign currency settlement: the rupee value cleared is worked out at the invoice rate
             if alloc.fx_amount is None or alloc.fx_rate is None:
                 raise HTTPException(status_code=422, detail="A foreign currency settlement needs the foreign amount and the exchange rate")

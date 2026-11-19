@@ -20367,14 +20367,33 @@ function makePrintFit(){
       party = el("pk_party").value; const list = docs.filter(d=>d.party_name === party);
       el("pk_rows").innerHTML = list.length ? list.map(d=>'<tr><td class="mono" style="font-weight:700">'+esc2(d.doc_number)+'</td><td>'+esc2(d.job_number || "")+'</td><td>'+dmy(d.due_date)+'</td><td style="text-align:right">'+fmt(d.outstanding)+'</td>'+(recv ? '<td style="text-align:right"><input class="fc" type="number" min="0" step="0.01" style="width:90px;text-align:right" data-pk-tds="'+d.id+'" placeholder="0.00"></td>' : "")+'<td style="text-align:right"><input class="fc" type="number" min="0" step="0.01" style="width:70px;text-align:right" data-pk-ro="'+d.id+'" placeholder="0.00"></td><td style="text-align:right"><input class="fc" type="number" min="0" step="0.01" style="width:110px;text-align:right" data-pk-doc="'+d.id+'" data-max="'+d.outstanding+'"></td><td><label style="font-size:11px"><input type="checkbox" data-pk-pick="'+d.id+'"> Select</label></td></tr>').join("") : '<tr><td colspan="6" style="text-align:center;color:var(--g5);padding:12px;font-style:italic">Nothing is outstanding for this party</td></tr>';
       list.forEach(d=>{ if(doc && d.id === doc.id){ const c = document.querySelector('[data-pk-pick="'+d.id+'"]'); if(c) c.checked = true; } });
-      sync(true);
+      sync(true); loadFx(list);
     }
+    /* foreign currency documents: settle by the foreign amount and the rate of the day; the invoice rate is kept and the difference is the realised forex gain / loss */
+    PK.fx = {};
+    async function loadFx(list){
+      PK.fx = {};
+      await Promise.all(list.map(async d=>{ try{ const r = await api("GET", "/api/payments/fx/"+d.id); if(r.fx) PK.fx[d.id] = r; }catch(e){} }));
+      Object.keys(PK.fx).forEach(id=>{ const f = PK.fx[id].fx, row = document.querySelector('[data-pk-doc="'+id+'"]'); if(!row) return; const tr = row.closest("tr");
+        tr.insertAdjacentHTML("afterend", '<tr data-pk-fxrow="'+id+'"><td colspan="8" style="background:#fff8e1;font-size:12px"><b>'+esc2(f.ccy)+' settlement</b> &nbsp; balance '+esc2(f.ccy)+' '+fmt(f.fc_balance)+' at the invoice rate '+Number(f.rate).toFixed(4)+' &nbsp; | &nbsp; '+esc2(f.ccy)+' received <input class="fc" type="number" min="0" step="0.01" style="width:110px;display:inline-block;text-align:right" data-pk-fxamt="'+id+'"> &nbsp; at rate <input class="fc" type="number" min="0" step="0.0001" style="width:100px;display:inline-block;text-align:right" data-pk-fxrate="'+id+'" placeholder="today\'s rate"> &nbsp; = INR <b data-pk-fxcash="'+id+'">0.00</b> &nbsp; <b data-pk-fxgain="'+id+'"></b></td></tr>');
+        row.readOnly = true; row.placeholder = "from the "+f.ccy+" amount"; });
+    }
+    const fxInputs = id=> { const a = document.querySelector('[data-pk-fxamt="'+id+'"]'), r = document.querySelector('[data-pk-fxrate="'+id+'"]'); return {amt:Number(a && a.value) || 0, rate:Number(r && r.value) || 0}; };
+    function fxCalc(id){
+      const x = PK.fx[id]; if(!x) return null; const f = x.fx, v = fxInputs(id), row = document.querySelector('[data-pk-doc="'+id+'"]'), pick = document.querySelector('[data-pk-pick="'+id+'"]');
+      if(!(v.amt > 0 && v.rate > 0)){ row.value = ""; el_("pk_fxcash", id, ""); el_("pk_fxgain", id, ""); return null; }
+      const last = Math.abs(v.amt - Number(f.fc_balance)) < 0.005, book = last ? Number(x.outstanding) : Math.round(v.amt * Number(f.rate) * 100) / 100, cash = Math.round(v.amt * v.rate * 100) / 100, gain = recv ? cash - book : book - cash;
+      row.value = book.toFixed(2); if(pick) pick.checked = true;
+      el_("pk_fxcash", id, fmt(cash)); const g = document.querySelector('[data-pk-fxgain="'+id+'"]'); if(g){ g.textContent = Math.abs(gain) < 0.005 ? "no exchange difference" : (gain > 0 ? "Forex gain " : "Forex loss ")+fmt(Math.abs(gain)); g.style.color = gain > 0 ? "var(--gn)" : gain < 0 ? "var(--rd)" : ""; }
+      return {book, cash, gain, amt:v.amt, rate:v.rate}; }
+    const el_ = (k, id, t)=> { const n = document.querySelector('[data-'+k.replace(/_/g, "-").replace("pk-", "pk-")+'="'+id+'"]'); if(n) n.textContent = t; };
+    document.addEventListener("input", e=>{ const id = e.target && (e.target.dataset.pkFxamt || e.target.dataset.pkFxrate); if(id !== undefined && id !== null && PK.fx && PK.fx[id]){ fxCalc(id); sync(false); } });
     const tdsOf = id=> { const t = document.querySelector('[data-pk-tds="'+id+'"]'); return t ? (Number(t.value) || 0) : 0; };
     const roOf = id=> { const t = document.querySelector('[data-pk-ro="'+id+'"]'); return t ? (Number(t.value) || 0) : 0; };
     function sync(fromPick){
-      rowsOf().forEach(i=>{ const pick = document.querySelector('[data-pk-pick="'+i.dataset.pkDoc+'"]'); const max = Number(i.dataset.max), tds = tdsOf(i.dataset.pkDoc) + roOf(i.dataset.pkDoc); const t = document.querySelector('[data-pk-tds="'+i.dataset.pkDoc+'"]'); if(t && !pick.checked && fromPick === true) t.value = "";
+      rowsOf().forEach(i=>{ if(PK.fx && PK.fx[i.dataset.pkDoc]) return; const pick = document.querySelector('[data-pk-pick="'+i.dataset.pkDoc+'"]'); const max = Number(i.dataset.max), tds = tdsOf(i.dataset.pkDoc) + roOf(i.dataset.pkDoc); const t = document.querySelector('[data-pk-tds="'+i.dataset.pkDoc+'"]'); if(t && !pick.checked && fromPick === true) t.value = "";
         if(kind() === "full"){ i.value = pick.checked ? Math.max(0, max - tds).toFixed(2) : ""; i.readOnly = true; } else { i.readOnly = false; if(fromPick === true && pick.checked && !i.value) i.value = Math.max(0, max - tds).toFixed(2); if(!pick.checked && fromPick === true) i.value = ""; } });
-      el("pk_amount").value = rowsOf().reduce((a, i)=>a + (Number(i.value) || 0), 0).toFixed(2);
+      el("pk_amount").value = rowsOf().reduce((a, i)=>{ const f = PK.fx && PK.fx[i.dataset.pkDoc] ? fxCalc(i.dataset.pkDoc) : null; return a + (f ? f.cash : (Number(i.value) || 0)); }, 0).toFixed(2);
       const tds = rowsOf().reduce((a, i)=>a + tdsOf(i.dataset.pkDoc), 0), ro = rowsOf().reduce((a, i)=>a + roOf(i.dataset.pkDoc), 0); const hint = el("pk_tdsnote"); if(hint) hint.textContent = (tds > 0 || ro > 0) ? (tds > 0 ? "TDS deducted "+fmt(tds)+" + " : "")+(ro > 0 ? "round off "+fmt(ro)+" + " : "")+"received "+fmt(el("pk_amount").value)+" = settled "+fmt(tds + ro + Number(el("pk_amount").value)) : "";
     }
     function modeFields(){
@@ -20395,7 +20414,8 @@ function makePrintFit(){
     modeFields(); drawRows();
     el("pk_go").addEventListener("click", async ev=>{
       const btn = ev.target; const g = id=> ((el(id) || {}).value || "").trim(); const mode = g("pk_mode");
-      const allocations = rowsOf().filter(i=>Number(i.value) > 0).map(i=>({document_id:Number(i.dataset.pkDoc), amount:Number(i.value).toFixed(2), tds:tdsOf(i.dataset.pkDoc).toFixed(2), round_off:roOf(i.dataset.pkDoc).toFixed(2)}));
+      const allocations = rowsOf().filter(i=>Number(i.value) > 0).map(i=>{ const f = PK.fx && PK.fx[i.dataset.pkDoc] ? fxCalc(i.dataset.pkDoc) : null; return Object.assign({document_id:Number(i.dataset.pkDoc), amount:Number(i.value).toFixed(2), tds:tdsOf(i.dataset.pkDoc).toFixed(2), round_off:roOf(i.dataset.pkDoc).toFixed(2)}, f ? {fx_amount:f.amt.toFixed(2), fx_rate:String(f.rate)} : {}); });
+      const needFx = rowsOf().find(i=>PK.fx && PK.fx[i.dataset.pkDoc] && !fxCalc(i.dataset.pkDoc) && document.querySelector('[data-pk-pick="'+i.dataset.pkDoc+'"]').checked); if(needFx){ say("Enter the foreign amount and rate", "A foreign currency document is settled by the foreign amount received and the exchange rate of the day", "warn"); return; }
       if(!allocations.length){ say("Select a voucher", "Select the invoice(s) this "+(recv ? "receipt" : "payment")+" settles and the amount", "warn"); return; }
       const details = {account:g("pk_acc"), bank_name:g("pk_bank"), narration:g("pk_nar")}; let reference = g("pk_ref");
       if(mode === "Cheque" || mode === "Demand Draft"){ details.cheque_no = g("pk_chq"); details.cheque_date = g("pk_chqd"); reference = g("pk_chq"); }
