@@ -1,0 +1,167 @@
+"""Forex revaluation of open foreign currency invoices at a reporting date, and the forex reports.
+
+Revaluation: every unpaid / partly paid foreign currency invoice (AR) or purchase bill (AP) is carried at foreign balance x closing rate; the difference to the
+carrying value is an unrealised gain / loss, posted as an ordinary Journal Voucher (party ledger against the Unrealised Forex Gain / Loss ledger). The journal is
+reversed automatically the next day (so the books are back at the original value and the realised gain / loss at settlement is exact) and an invoice is never
+revalued twice for the same date."""
+from datetime import date, timedelta
+from decimal import Decimal
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from . import coa, forex, gl
+from .auth import permission_required
+from .auth_api import record_audit
+from .billing import fiscal_year, q2
+from .db import get_db
+from .models import AccEntry, AccVoucher, Customer, Document, ForexRevaluation, HblCounter, Payment, PaymentAllocation, User
+
+router = APIRouter(prefix="/api/forex", tags=["forex"])
+ZERO = Decimal(0)
+AR_TYPES, AP_TYPES = ("invoice", "debit_note"), ("purchase_invoice",)
+
+
+def _tenant(user: User) -> int:
+    if user.organization_id is None:
+        raise HTTPException(403, "Forex is tenant-scoped; Super Admin does not manage it")
+    return user.organization_id
+
+
+def _as_of_state(db: Session, doc: Document, as_of: date) -> dict | None:
+    """Foreign balance and rupee carrying value of an open foreign document on a date (payments up to that date only)."""
+    fx = forex.doc_fx(doc)
+    if not fx or doc.doc_date > as_of:
+        return None
+    rows = list(db.execute(select(PaymentAllocation).join(Payment, Payment.id == PaymentAllocation.payment_id).where(PaymentAllocation.document_id == doc.id, Payment.status == "POSTED", Payment.pay_date <= as_of)).scalars())
+    fc_paid = sum((a.fx_amount or ZERO for a in rows), ZERO)
+    book_paid = sum((a.amount + (a.tds_amount or ZERO) + (a.round_off or ZERO) for a in rows), ZERO)
+    credited = doc.credited_amount or ZERO
+    fc_bal = q2(fx["fc_total"] - fc_paid - credited / fx["rate"])
+    carrying = q2(doc.grand_total - book_paid - credited)
+    if fc_bal <= Decimal("0.005") or carrying <= 0:
+        return None
+    return {"ccy": fx["ccy"], "fc_balance": fc_bal, "carrying": carrying, "invoice_rate": fx["rate"]}
+
+
+def open_foreign(db: Session, org_id: int, as_of: date) -> list[dict]:
+    out = []
+    q = select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.status == "POSTED", Document.doc_type.in_(AR_TYPES + AP_TYPES), Document.doc_date <= as_of).order_by(Document.doc_date, Document.id)
+    for d in db.scalars(q):
+        st = _as_of_state(db, d, as_of)
+        if st:
+            out.append({"document": d, "recv": d.doc_type in AR_TYPES, **st})
+    return out
+
+
+@router.get("/open")
+def open_documents(as_of: date, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """The open foreign currency invoices / bills at a date, with the currencies that need a closing rate."""
+    org_id = _tenant(user)
+    rows = open_foreign(db, org_id, as_of)
+    done = {r.document_id for r in db.scalars(select(ForexRevaluation).where(ForexRevaluation.organization_id == org_id, ForexRevaluation.as_of == as_of, ForexRevaluation.status == "ACTIVE"))}
+    return {"as_of": as_of, "currencies": sorted({r["ccy"] for r in rows}), "items": [{"document_id": r["document"].id, "doc_number": r["document"].doc_number, "party": r["document"].party_name, "type": r["document"].doc_type, "ccy": r["ccy"], "fc_balance": str(r["fc_balance"]),
+            "carrying": str(r["carrying"]), "invoice_rate": str(round(r["invoice_rate"], 6)), "already_revalued": r["document"].id in done} for r in rows]}
+
+
+class RevalueIn(BaseModel):
+    as_of: date
+    rates: dict[str, Decimal] = Field(default_factory=dict)      # closing rate per currency: INR for 1 unit
+
+
+def _next_jv(db: Session, org_id: int, vdate: date) -> str:
+    ctr = db.scalar(select(HblCounter).where(HblCounter.organization_id == org_id, HblCounter.hbl_type == "JV").with_for_update())
+    if ctr is None:
+        ctr = HblCounter(organization_id=org_id, hbl_type="JV", last_no=0)
+        db.add(ctr)
+        db.flush()
+    ctr.last_no += 1
+    return f"JV/{fiscal_year(vdate)}/{ctr.last_no:05d}"
+
+
+@router.post("/revalue", status_code=201)
+def revalue(body: RevalueIn, user: User = Depends(permission_required("billing.create")), db: Session = Depends(get_db)):
+    org_id = _tenant(user)
+    gl.assert_open(db, org_id, body.as_of)
+    gl.assert_open(db, org_id, body.as_of + timedelta(days=1))
+    coa.ensure_tree(db, org_id)
+    items = open_foreign(db, org_id, body.as_of)
+    if not items:
+        raise HTTPException(422, "There is no open foreign currency invoice or bill on that date")
+    need = sorted({r["ccy"] for r in items} - {c.upper() for c, v in body.rates.items() if v and v > 0})
+    if need:
+        raise HTTPException(422, "Enter the closing rate of " + ", ".join(need))
+    rates = {c.upper(): v for c, v in body.rates.items()}
+    done = {r.document_id for r in db.scalars(select(ForexRevaluation).where(ForexRevaluation.organization_id == org_id, ForexRevaluation.as_of == body.as_of, ForexRevaluation.status == "ACTIVE"))}
+    g_u, l_u = coa.sys_ledger(db, org_id, "fx_gain_unreal"), coa.sys_ledger(db, org_id, "fx_loss_unreal")
+    dr_rows, cr_rows, recs, skipped = [], [], [], 0
+    for r in items:
+        d = r["document"]
+        if d.id in done:
+            skipped += 1                                                       # never revalued twice for the same date
+            continue
+        rate = rates[r["ccy"]]
+        revalued = q2(r["fc_balance"] * rate)
+        diff = q2(revalued - r["carrying"])                                    # receivable: more rupees = gain; payable: more rupees = loss
+        gain = diff if r["recv"] else -diff
+        cust = db.get(Customer, d.customer_id) if d.customer_id else None
+        party = coa.party_ledger(db, org_id, d.party_name, "debtor" if r["recv"] else "creditor", cust if cust is not None and cust.name == d.party_name else None, user.id)
+        recs.append(ForexRevaluation(organization_id=org_id, document_id=d.id, as_of=body.as_of, ccy=r["ccy"], fc_balance=r["fc_balance"], closing_rate=rate, carrying_inr=r["carrying"], revalued_inr=revalued, difference=gain, status="ACTIVE", created_by=user.id))
+        if gain == 0:
+            continue
+        n = f"Revaluation {d.doc_number or d.id} {r['fc_balance']} {r['ccy']} @ {rate}"
+        move = diff                                                            # change of the party balance in rupees
+        # receivable: Dr party for an increase; payable: Cr party for an increase
+        if r["recv"]:
+            dr_rows.append((party, move, ZERO, n, d.job_number)) if move > 0 else dr_rows.append((party, ZERO, -move, n, d.job_number))
+        else:
+            dr_rows.append((party, ZERO, move, n, d.job_number)) if move > 0 else dr_rows.append((party, -move, ZERO, n, d.job_number))
+        cr_rows.append((g_u, ZERO, gain, n, d.job_number) if gain > 0 else (l_u, -gain, ZERO, n, d.job_number))
+    if not recs:
+        raise HTTPException(409, "Those invoices are already revalued for that date")
+    for x in recs:
+        db.add(x)
+    db.flush()
+    vdate, rdate = body.as_of, body.as_of + timedelta(days=1)
+    rows = dr_rows + cr_rows
+    v = gl._voucher(db, org_id, "JOURNAL", _next_jv(db, org_id, vdate), vdate, rows, source_type="forex_reval", source_id=recs[0].id, narration=f"Forex revaluation of open foreign currency balances at {vdate.strftime('%d-%m-%Y')}", user_id=user.id) if rows else None
+    rev = gl._voucher(db, org_id, "JOURNAL", _next_jv(db, org_id, rdate), rdate, [(l, c, d_, n, j) for (l, d_, c, n, j) in rows], source_type="forex_reval_rev", source_id=recs[0].id, narration=f"Reversal of the forex revaluation of {vdate.strftime('%d-%m-%Y')}", user_id=user.id) if rows else None
+    for x in recs:
+        x.voucher_id, x.reversal_voucher_id = (v.id if v else None), (rev.id if rev else None)
+    record_audit(db, "FOREX_REVALUED", "ACCOUNTS", user, org_id, "ForexRevaluation", str(recs[0].id), {"as_of": str(vdate), "documents": len(recs), "skipped": skipped, "net": str(sum((x.difference for x in recs), ZERO))})
+    db.commit()
+    return {"as_of": vdate, "revalued": len(recs), "skipped": skipped, "unrealised_net": str(sum((x.difference for x in recs), ZERO)), "voucher": v.number if v else None, "reversal_voucher": rev.number if rev else None, "reversal_date": rdate}
+
+
+@router.delete("/revaluations/{as_of}")
+def cancel_revaluation(as_of: date, user: User = Depends(permission_required("billing.cancel")), db: Session = Depends(get_db)):
+    """Undo the revaluation of a date (its journal and the reversal), for example to run it again with another closing rate."""
+    org_id = _tenant(user)
+    gl.assert_open(db, org_id, as_of)
+    rows = list(db.scalars(select(ForexRevaluation).where(ForexRevaluation.organization_id == org_id, ForexRevaluation.as_of == as_of, ForexRevaluation.status == "ACTIVE")))
+    if not rows:
+        raise HTTPException(404, "No revaluation on that date")
+    ids = {x for r in rows for x in (r.voucher_id, r.reversal_voucher_id) if x}
+    for vid in ids:
+        v = db.get(AccVoucher, vid)
+        if v:
+            db.query(AccEntry).filter(AccEntry.voucher_id == vid).delete()
+            db.delete(v)
+    for r in rows:
+        db.delete(r)
+    record_audit(db, "FOREX_REVALUATION_CANCELLED", "ACCOUNTS", user, org_id, "ForexRevaluation", str(as_of), {"documents": len(rows)})
+    db.commit()
+    return {"cancelled": len(rows)}
+
+
+@router.get("/revaluations")
+def history(user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Revaluation history, invoice by invoice."""
+    org_id = _tenant(user)
+    out = []
+    for r in db.scalars(select(ForexRevaluation).where(ForexRevaluation.organization_id == org_id).order_by(ForexRevaluation.as_of.desc(), ForexRevaluation.id)):
+        d = db.get(Document, r.document_id)
+        out.append({"as_of": r.as_of, "document": d.doc_number if d else r.document_id, "party": d.party_name if d else "", "ccy": r.ccy, "fc_balance": str(r.fc_balance), "closing_rate": str(r.closing_rate), "carrying_inr": str(r.carrying_inr), "revalued_inr": str(r.revalued_inr), "unrealised": str(r.difference), "status": r.status})
+    return out

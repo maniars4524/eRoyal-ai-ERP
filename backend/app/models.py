@@ -726,6 +726,28 @@ class PaymentAllocation(Base):
     payment: Mapped[Payment] = relationship(back_populates="allocations")
 
 
+class ForexRevaluation(Base):
+    """Invoice-wise unrealised forex gain (+) / loss (-) of an open foreign currency invoice or bill at a reporting date."""
+    __tablename__ = "forex_revaluations"
+    __table_args__ = (UniqueConstraint("document_id", "as_of", name="uq_forex_reval_doc_date"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), index=True)
+    as_of: Mapped[date] = mapped_column(Date, index=True)
+    ccy: Mapped[str] = mapped_column(String(3))
+    fc_balance = mapped_column(Numeric(16, 2))
+    closing_rate = mapped_column(Numeric(18, 6))
+    carrying_inr = mapped_column(Numeric(16, 2))
+    revalued_inr = mapped_column(Numeric(16, 2))
+    difference = mapped_column(Numeric(16, 2), default=0, server_default="0")
+    voucher_id: Mapped[int | None] = mapped_column(Integer)
+    reversal_voucher_id: Mapped[int | None] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(12), default="ACTIVE")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Quotation(Base):
     """Sales quotation: DRAFT (editable) -> SENT (numbered, locked) -> ACCEPTED/REJECTED -> CONVERTED to a job."""
     __tablename__ = "quotations"

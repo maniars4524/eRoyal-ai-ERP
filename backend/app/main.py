@@ -142,6 +142,9 @@ app.include_router(outdocs_router)
 app.include_router(cha_invpl_router)
 app.include_router(notifications_router)
 app.include_router(sequences_router)
+from .forex_api import router as forex_router  # noqa: E402
+
+app.include_router(forex_router)
 
 
 @app.on_event("startup")
