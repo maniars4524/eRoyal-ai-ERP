@@ -70,3 +70,45 @@ def test_payable_revaluation_is_an_unrealised_loss_when_the_rate_rises(h):
     assert mv(h, "Unrealised Forex Loss", date_to=today) - loss0 == D("2500")
     assert tb(h, date_to=today)["balanced"]
     client.delete(f"/api/forex/revaluations/{today}", headers=h)
+
+
+def test_forex_reports(h):
+    name = party(h)
+    inv = doc(h, "invoice", name, "1000", kind="Non-Taxable", ccy="USD", exch="83")
+    rc = client.post("/api/payments", json={"direction": "RECEIPT", "party_name": name, "method": "Bank Transfer", "reference": "SW9", "amount": "33600",
+                                            "allocations": [{"document_id": inv["id"], "amount": "1", "fx_amount": "400", "fx_rate": "84"}]}, headers=h)
+    assert rc.status_code == 201, rc.text
+    today = date.today()
+    real = client.get("/api/forex/reports/realised", headers=h).json()
+    row = next(r for r in real["rows"] if r["document"] == inv["doc_number"])
+    assert row["invoice_rate"] == "83.0000" and row["settlement_rate"].startswith("84") and D(row["book_inr"]) == 33200 and D(row["cash_inr"]) == 33600 and D(row["gain_loss"]) == 400
+    assert D(real["net"]) >= 400
+    out = client.get("/api/forex/reports/outstanding", headers=h).json()["rows"]
+    mine = next(r for r in out if r["document"] == inv["doc_number"])
+    assert mine["kind"] == "Receivable" and mine["fc_balance"] == "600.00" and D(mine["carrying_inr"]) == 49800
+    inw = next(r for r in client.get("/api/forex/reports/invoicewise", headers=h).json()["rows"] if r["document"] == inv["doc_number"])
+    assert D(inw["realised"]) == 400 and inw["fc_settled"] == "400.00" and inw["fc_balance"] == "600.00"
+    rec = next(r for r in client.get("/api/forex/reports/reconciliation", headers=h).json()["rows"] if r["party"] == name)
+    assert rec["invoiced"] == "1000.00" and rec["settled"] == "400.00" and rec["balance"] == "600.00" and D(rec["book_inr"]) == 49800 and rec["reconciled"] is True
+    r = client.post("/api/forex/revalue", json={"as_of": str(today), "rates": {"USD": "85"}}, headers=h)
+    assert r.status_code in (201, 409), r.text
+    un = client.get("/api/forex/reports/unrealised", headers=h).json()
+    assert any(x["document"] == inv["doc_number"] and D(x["gain_loss"]) == 1200 for x in un["rows"]) or r.status_code == 409          # 600 x 85 = 51,000 against 49,800
+    client.delete(f"/api/forex/revaluations/{today}", headers=h)
+
+
+def test_forex_shows_in_profit_loss_balance_sheet_ledger_and_day_book(h):
+    name = party(h)
+    inv = doc(h, "invoice", name, "1000", kind="Non-Taxable", ccy="USD", exch="83")
+    rc = client.post("/api/payments", json={"direction": "RECEIPT", "party_name": name, "method": "Bank Transfer", "reference": "SW7", "amount": "84000",
+                                            "allocations": [{"document_id": inv["id"], "amount": "1", "fx_amount": "1000", "fx_rate": "84"}]}, headers=h)
+    assert rc.status_code == 201, rc.text
+    pl = client.get("/api/gl/profit-loss", headers=h)
+    assert pl.status_code == 200 and "Realised Forex Gain" in pl.text                                   # income side of the profit and loss
+    bs = client.get("/api/gl/balance-sheet", headers=h)
+    assert bs.status_code == 200 and bs.json() is not None
+    led = next(x for x in client.get("/api/coa/ledgers", headers=h).json() if x["name"] == "Realised Forex Gain")
+    rep = client.get(f"/api/gl/ledger?ledger_id={led['id']}", headers=h).json()
+    assert any(D(r["credit"]) == 1000 and rc.json()["pay_number"] in str(r) for r in rep["entries"])      # its ledger shows the credit against the receipt voucher
+    assert any(v["number"] == rc.json()["pay_number"] for v in client.get("/api/gl/day-book", headers=h).json()["vouchers"])
+    assert tb(h)["balanced"]

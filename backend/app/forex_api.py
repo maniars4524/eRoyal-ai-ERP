@@ -165,3 +165,97 @@ def history(user: User = Depends(permission_required("billing.read")), db: Sessi
         d = db.get(Document, r.document_id)
         out.append({"as_of": r.as_of, "document": d.doc_number if d else r.document_id, "party": d.party_name if d else "", "ccy": r.ccy, "fc_balance": str(r.fc_balance), "closing_rate": str(r.closing_rate), "carrying_inr": str(r.carrying_inr), "revalued_inr": str(r.revalued_inr), "unrealised": str(r.difference), "status": r.status})
     return out
+
+
+# ---------------------------------------------------------------- reports
+@router.get("/reports/realised")
+def report_realised(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Realised forex gain / loss: every foreign currency settlement with the invoice rate, the settlement rate and the difference."""
+    org_id = _tenant(user)
+    q = select(PaymentAllocation, Payment, Document).join(Payment, Payment.id == PaymentAllocation.payment_id).join(Document, Document.id == PaymentAllocation.document_id).where(Payment.organization_id == org_id, Payment.status == "POSTED", PaymentAllocation.fx_amount.is_not(None)).order_by(Payment.pay_date, Payment.id)
+    if date_from:
+        q = q.where(Payment.pay_date >= date_from)
+    if date_to:
+        q = q.where(Payment.pay_date <= date_to)
+    rows, gain, loss = [], ZERO, ZERO
+    for a, p, d in db.execute(q):
+        fx = forex.doc_fx(d)
+        g = a.fx_gain or ZERO
+        gain += g if g > 0 else ZERO
+        loss += -g if g < 0 else ZERO
+        rows.append({"date": p.pay_date, "voucher": p.pay_number, "kind": p.direction, "party": d.party_name, "document": d.doc_number, "ccy": fx["ccy"] if fx else "", "fx_amount": str(a.fx_amount), "invoice_rate": str(round(fx["rate"], 4)) if fx else "", "settlement_rate": str(a.fx_rate),
+                     "book_inr": str(a.amount), "cash_inr": str(a.fx_cash), "gain_loss": str(g)})
+    return {"rows": rows, "gain": str(gain), "loss": str(loss), "net": str(gain - loss)}
+
+
+@router.get("/reports/unrealised")
+def report_unrealised(date_from: date | None = None, date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Unrealised forex gain / loss of the revaluations in the period (invoice-wise)."""
+    org_id = _tenant(user)
+    q = select(ForexRevaluation).where(ForexRevaluation.organization_id == org_id, ForexRevaluation.status == "ACTIVE").order_by(ForexRevaluation.as_of, ForexRevaluation.id)
+    if date_from:
+        q = q.where(ForexRevaluation.as_of >= date_from)
+    if date_to:
+        q = q.where(ForexRevaluation.as_of <= date_to)
+    rows, gain, loss = [], ZERO, ZERO
+    for r in db.scalars(q):
+        d = db.get(Document, r.document_id)
+        gain += r.difference if r.difference > 0 else ZERO
+        loss += -r.difference if r.difference < 0 else ZERO
+        rows.append({"as_of": r.as_of, "party": d.party_name if d else "", "document": d.doc_number if d else r.document_id, "ccy": r.ccy, "fc_balance": str(r.fc_balance), "closing_rate": str(r.closing_rate), "carrying_inr": str(r.carrying_inr), "revalued_inr": str(r.revalued_inr), "gain_loss": str(r.difference)})
+    return {"rows": rows, "gain": str(gain), "loss": str(loss), "net": str(gain - loss)}
+
+
+@router.get("/reports/invoicewise")
+def report_invoicewise(date_to: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Invoice-wise exchange rate difference: the invoice rate, what was settled and the realised difference, the latest unrealised difference and the balance."""
+    org_id = _tenant(user)
+    date_to = date_to or date.today()
+    rows = []
+    for d in db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.status == "POSTED", Document.doc_type.in_(AR_TYPES + AP_TYPES), Document.doc_date <= date_to).order_by(Document.doc_date, Document.id)):
+        fx = forex.doc_fx(d)
+        if not fx:
+            continue
+        al = list(db.execute(select(PaymentAllocation).join(Payment, Payment.id == PaymentAllocation.payment_id).where(PaymentAllocation.document_id == d.id, Payment.status == "POSTED", Payment.pay_date <= date_to)).scalars())
+        realised = sum((a.fx_gain or ZERO for a in al), ZERO)
+        last = db.scalar(select(ForexRevaluation).where(ForexRevaluation.document_id == d.id, ForexRevaluation.status == "ACTIVE", ForexRevaluation.as_of <= date_to).order_by(ForexRevaluation.as_of.desc()).limit(1))
+        st = _as_of_state(db, d, date_to)
+        rows.append({"document": d.doc_number, "date": d.doc_date, "party": d.party_name, "type": d.doc_type, "ccy": fx["ccy"], "fc_total": str(fx["fc_total"]), "invoice_rate": str(round(fx["rate"], 4)), "inr_total": str(fx["inr_total"]), "fc_settled": str(sum((a.fx_amount or ZERO for a in al), ZERO)),
+                     "realised": str(realised), "unrealised": str(last.difference if last else ZERO), "fc_balance": str(st["fc_balance"] if st else ZERO)})
+    return {"rows": rows}
+
+
+@router.get("/reports/outstanding")
+def report_outstanding(as_of: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Outstanding foreign currency receivables and payables."""
+    org_id = _tenant(user)
+    as_of = as_of or date.today()
+    rows = [{"kind": "Receivable" if r["recv"] else "Payable", "party": r["document"].party_name, "document": r["document"].doc_number, "date": r["document"].doc_date, "ccy": r["ccy"], "fc_balance": str(r["fc_balance"]), "invoice_rate": str(round(r["invoice_rate"], 4)), "carrying_inr": str(r["carrying"])} for r in open_foreign(db, org_id, as_of)]
+    return {"as_of": as_of, "rows": rows}
+
+
+@router.get("/reports/reconciliation")
+def report_reconciliation(as_of: date | None = None, user: User = Depends(permission_required("billing.read")), db: Session = Depends(get_db)):
+    """Customer / vendor wise reconciliation: foreign invoiced - settled - credited = balance, and the rupee carrying value against balance x invoice rate."""
+    org_id = _tenant(user)
+    as_of = as_of or date.today()
+    agg: dict = {}
+    for d in db.scalars(select(Document).options(selectinload(Document.lines)).where(Document.organization_id == org_id, Document.status == "POSTED", Document.doc_type.in_(AR_TYPES + AP_TYPES), Document.doc_date <= as_of)):
+        fx = forex.doc_fx(d)
+        if not fx:
+            continue
+        al = list(db.execute(select(PaymentAllocation).join(Payment, Payment.id == PaymentAllocation.payment_id).where(PaymentAllocation.document_id == d.id, Payment.status == "POSTED", Payment.pay_date <= as_of)).scalars())
+        a = agg.setdefault((d.party_name, fx["ccy"], "Receivable" if d.doc_type in AR_TYPES else "Payable"), {"invoiced": ZERO, "settled": ZERO, "credited": ZERO, "inr_invoiced": ZERO, "inr_book_paid": ZERO, "inr_credited": ZERO, "realised": ZERO})
+        a["invoiced"] += fx["fc_total"]
+        a["settled"] += sum((x.fx_amount or ZERO for x in al), ZERO)
+        a["credited"] += q2((d.credited_amount or ZERO) / fx["rate"])
+        a["inr_invoiced"] += fx["inr_total"]
+        a["inr_book_paid"] += sum((x.amount + (x.tds_amount or ZERO) + (x.round_off or ZERO) for x in al), ZERO)
+        a["inr_credited"] += d.credited_amount or ZERO
+        a["realised"] += sum((x.fx_gain or ZERO for x in al), ZERO)
+    rows = []
+    for (party, ccy, kind), a in sorted(agg.items()):
+        bal = a["invoiced"] - a["settled"] - a["credited"]
+        book = a["inr_invoiced"] - a["inr_book_paid"] - a["inr_credited"]
+        rows.append({"party": party, "kind": kind, "ccy": ccy, "invoiced": str(a["invoiced"]), "settled": str(a["settled"]), "credited": str(a["credited"]), "balance": str(bal), "book_inr": str(book), "realised": str(a["realised"]), "reconciled": (abs(bal) < Decimal("0.01")) == (abs(book) < Decimal("0.05"))})            # a nil foreign balance means a nil rupee balance, and the other way round
+    return {"as_of": as_of, "rows": rows}

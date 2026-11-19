@@ -6733,6 +6733,14 @@ const TOPNAV_MENU = [
       {label:"Receipt Register", icon:"cash", go:"receipt-voucher"},
       {label:"Payment Register", icon:"cash", go:"payment-voucher"},
       {label:"Ledger Statement", icon:"book", go:"gl-reports", gltab:"ledger"},
+      {label:"Forex", icon:"cash", children:[
+        {label:"Realised Forex Gain / Loss", icon:"cash", go:"reports", report:"forex-realised"},
+        {label:"Unrealised Forex Gain / Loss", icon:"cash", go:"reports", report:"forex-unrealised"},
+        {label:"Invoice-wise Exchange Difference", icon:"cash", go:"reports", report:"forex-invoicewise"},
+        {label:"Outstanding Foreign Currency", icon:"cash", go:"reports", report:"forex-outstanding"},
+        {label:"Revaluation History / Revalue", icon:"cash", go:"reports", report:"forex-history"},
+        {label:"Customer / Vendor Forex Reconciliation", icon:"cash", go:"reports", report:"forex-recon"},
+      ]},
       {label:"Accounts Payable", icon:"bank", children:[
         {label:"A/P Customer wise OS Report", icon:"bank", go:"pr-ledger", prltype:"PAYABLE"},
         {label:"A/P Outstanding Summary", icon:"bank", go:"pr-ledger", prltype:"PAYABLE"},
@@ -21949,6 +21957,19 @@ function makePrintFit(){
       return {rows:g.sales.map(x=>[t(dmy(x.date)), t(x.number), t(x.type.replace("_", " ")), t(x.party), t(x.gstin), inr(x.taxable), inr(x.cgst), inr(x.sgst), inr(x.igst), inr(x.total)]), foot:g.sales.length ? ["Total", "", "", "", "", inr(g.sales_total.taxable), inr(g.sales_total.cgst), inr(g.sales_total.sgst), inr(g.sales_total.igst), inr(g.sales.reduce((a, x)=>a + Number(x.total), 0))] : null}; }},
     "nil-rated": gstView("Nil Rated / Exempt Supply (sales with no GST)", x=>Number(x.non_taxable) !== 0 && !foreign(x)),
     "exempt-supply": gstView("Exempt Supply (sales with no GST)", x=>Number(x.non_taxable) !== 0 && !foreign(x)),
+    "forex-realised": {title:"Realised Forex Gain / Loss", cols:["Date", "Voucher", "Party", "Invoice", "Ccy", "Foreign amount", "Invoice rate", "Settlement rate", "Book value (INR)", "Cash (INR)", "Gain / (Loss)"], load: async ()=> { const g = await api("GET", "/api/forex/reports/realised").catch(()=>null); if(!g) return {rows:[]};
+      return {rows:g.rows.map(x=>[t(dmy(x.date)), t(x.voucher), t(x.party), t(x.document), t(x.ccy), t(x.fx_amount), t(x.invoice_rate), t(x.settlement_rate), inr(x.book_inr), inr(x.cash_inr), inr(x.gain_loss)]), foot:g.rows.length ? ["Gain "+inr(g.gain)+"  Loss "+inr(g.loss), "", "", "", "", "", "", "", "", "Net", inr(g.net)] : null}; }},
+    "forex-unrealised": {title:"Unrealised Forex Gain / Loss (revaluation)", cols:["As on", "Party", "Invoice", "Ccy", "Foreign balance", "Closing rate", "Carrying (INR)", "Revalued (INR)", "Gain / (Loss)"], load: async ()=> { const g = await api("GET", "/api/forex/reports/unrealised").catch(()=>null); if(!g) return {rows:[]};
+      return {rows:g.rows.map(x=>[t(dmy(x.as_of)), t(x.party), t(x.document), t(x.ccy), t(x.fc_balance), t(x.closing_rate), inr(x.carrying_inr), inr(x.revalued_inr), inr(x.gain_loss)]), foot:g.rows.length ? ["Gain "+inr(g.gain)+"  Loss "+inr(g.loss), "", "", "", "", "", "", "Net", inr(g.net)] : null}; }},
+    "forex-invoicewise": {title:"Invoice-wise Exchange Rate Difference", cols:["Invoice", "Date", "Party", "Ccy", "Foreign total", "Invoice rate", "Total (INR)", "Foreign settled", "Realised gain / (loss)", "Unrealised (latest)", "Foreign balance"], load: async ()=> { const g = await api("GET", "/api/forex/reports/invoicewise").catch(()=>null); if(!g) return {rows:[]};
+      return {rows:g.rows.map(x=>[t(x.document), t(dmy(x.date)), t(x.party), t(x.ccy), t(x.fc_total), t(x.invoice_rate), inr(x.inr_total), t(x.fc_settled), inr(x.realised), inr(x.unrealised), t(x.fc_balance)])}; }},
+    "forex-outstanding": {title:"Outstanding Foreign Currency Receivables / Payables", cols:["Type", "Party", "Document", "Date", "Ccy", "Foreign balance", "Invoice rate", "Carrying (INR)"], load: async ()=> { const g = await api("GET", "/api/forex/reports/outstanding").catch(()=>null); if(!g) return {rows:[]};
+      return {rows:g.rows.map(x=>[t(x.kind), t(x.party), t(x.document), t(dmy(x.date)), t(x.ccy), t(x.fc_balance), t(x.invoice_rate), inr(x.carrying_inr)])}; }},
+    "forex-history": {title:"Forex Revaluation History", cols:["As on", "Party", "Invoice", "Ccy", "Foreign balance", "Closing rate", "Carrying (INR)", "Revalued (INR)", "Unrealised gain / (loss)", "Status"], load: async ()=> { const g = await api("GET", "/api/forex/revaluations").catch(()=>null); if(!g) return {rows:[]};
+      return {rows:g.map(x=>[t(dmy(x.as_of)), t(x.party), t(x.document), t(x.ccy), t(x.fc_balance), t(x.closing_rate), inr(x.carrying_inr), inr(x.revalued_inr), inr(x.unrealised), t(x.status)])}; },
+      after: card=> { const h = el("reportOutputTitle"); if(!h || el("fxRevalBtn")) return; h.insertAdjacentHTML("afterend", ' <button type="button" class="btn btn-pri btn-sm" id="fxRevalBtn">Revalue open foreign balances...</button>'); }},
+    "forex-recon": {title:"Customer / Vendor Forex Reconciliation", cols:["Party", "Type", "Ccy", "Invoiced", "Settled", "Credited", "Foreign balance", "Balance (INR)", "Realised gain / (loss)", "Reconciled"], load: async ()=> { const g = await api("GET", "/api/forex/reports/reconciliation").catch(()=>null); if(!g) return {rows:[]};
+      return {rows:g.rows.map(x=>[t(x.party), t(x.kind), t(x.ccy), t(x.invoiced), t(x.settled), t(x.credited), t(x.balance), inr(x.book_inr), inr(x.realised), t(x.reconciled ? "Yes" : "CHECK")])}; }},
     "export-without-gst": gstView("Export Without GST (Foreign Territory, code 96)", x=>foreign(x) && Number(x.igst) === 0),
     "export-with-gst": gstView("Export With GST (Foreign Territory, IGST charged)", x=>foreign(x) && Number(x.igst) !== 0),
     "place-of-supply": {title:"Place of Supply Summary (sales)", cols:["Place of supply", "Documents", "Taxable", "Tax", "Total"], load: async ()=> { const g = await api("GET", "/api/gl/gst").catch(()=>null); if(!g) return {rows:[]}; const m = {};
@@ -21997,8 +22018,23 @@ function makePrintFit(){
     el("reportOutputBody").innerHTML = r.error ? '<tr><td colspan="'+n+'" style="color:var(--rd);padding:14px">'+esc2(r.error)+'</td></tr>' :
       (r.rows.length ? r.rows.map(x=>"<tr>"+x.map(c=>"<td>"+c+"</td>").join("")+"</tr>").join("") : '<tr><td colspan="'+n+'" style="text-align:center;color:var(--g5);padding:18px;font-style:italic">No records for this report yet.</td></tr>')
       + (r.foot ? '<tr style="font-weight:700;background:var(--g0)">'+r.foot.map(c=>"<td>"+esc2(c)+"</td>").join("")+"</tr>" : "");
+    if(def.after) def.after(card);
     card.scrollIntoView({behavior:"smooth"});
   }
+  /* revalue the open foreign currency invoices / bills at a date with the closing rates (journal + automatic reversal the next day) */
+  document.addEventListener("click", async e=>{
+    if(!(e.target.closest && e.target.closest("#fxRevalBtn"))) return;
+    const iso = new Date().toISOString().slice(0, 10);
+    openModal({title:"Forex revaluation of open foreign currency balances", size:"lg", bodyHTML:'<div style="font-size:12px;color:var(--g5);margin-bottom:8px">Unpaid and part-paid foreign currency invoices and bills are valued at the closing rate. The difference is posted as an unrealised forex gain / loss in a Journal Voucher, and reversed automatically the next day. An invoice is never revalued twice for the same date.</div><div class="fr"><div class="fg"><label class="fl">Reporting date</label><input class="fc" type="date" id="fxAsOf" value="'+iso+'"></div></div><div id="fxRates" style="margin-top:6px"></div><div id="fxList" style="margin-top:8px"></div>',
+      footHTML:'<button class="btn btn-out" type="button" id="fxNo">Cancel</button><button class="btn btn-pri" type="button" id="fxPost">Post revaluation</button>'});
+    const load = async ()=>{ const d = (document.getElementById("fxAsOf") || {}).value; try{ const o = await api("GET", "/api/forex/open?as_of="+d);
+        el("fxRates").innerHTML = o.currencies.length ? o.currencies.map(c=>'<div class="fr"><div class="fg"><label class="fl">Closing rate '+esc2(c)+' (INR for 1 '+esc2(c)+')</label><input class="fc" type="number" step="0.0001" min="0" data-fxrate="'+esc2(c)+'"></div></div>').join("") : '<div class="ib ib-am">No open foreign currency invoice or bill on this date.</div>';
+        el("fxList").innerHTML = o.items.length ? '<div class="tw" style="max-height:34vh;overflow:auto"><table><thead><tr><th>Document</th><th>Party</th><th>Ccy</th><th style="text-align:right">Foreign balance</th><th style="text-align:right">Carrying (INR)</th><th></th></tr></thead><tbody>'+o.items.map(x=>'<tr><td>'+esc2(x.doc_number)+'</td><td>'+esc2(x.party)+'</td><td>'+esc2(x.ccy)+'</td><td style="text-align:right">'+esc2(x.fc_balance)+'</td><td style="text-align:right">'+esc2(x.carrying)+'</td><td>'+(x.already_revalued ? "already revalued" : "")+'</td></tr>').join("")+'</tbody></table></div>' : ""; }catch(err){ el("fxRates").innerHTML = '<div class="ib ib-am">'+esc2(err.message)+'</div>'; } };
+    await load(); document.getElementById("fxAsOf").addEventListener("change", load);
+    document.getElementById("fxNo").addEventListener("click", ()=>closeModal());
+    document.getElementById("fxPost").addEventListener("click", async ()=>{ const rates = {}; document.querySelectorAll("[data-fxrate]").forEach(i=>{ if(Number(i.value) > 0) rates[i.dataset.fxrate] = i.value; });
+      try{ const r = await api("POST", "/api/forex/revalue", {as_of:document.getElementById("fxAsOf").value, rates}); closeModal(); MK.util.say("Revaluation posted", r.revalued+" invoice(s), net unrealised "+r.unrealised_net+"; journal "+r.voucher+", reversal "+r.reversal_voucher+" on "+r.reversal_date); render("forex-history", true); }catch(err){ MK.util.say("Could not revalue", err.message, "error"); } });
+  });
   // the Report Center buttons, and menu items that carry a report key
   document.addEventListener("click", e=>{
     const b = e.target.closest && e.target.closest("[data-report]");
