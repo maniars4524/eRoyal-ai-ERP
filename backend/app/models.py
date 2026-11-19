@@ -719,6 +719,10 @@ class PaymentAllocation(Base):
     amount = mapped_column(Numeric(16, 2))
     round_off = mapped_column(Numeric(16, 2), default=0, server_default="0")   # a small remainder written off to close the document (an adjustment, never cash)
     tds_amount = mapped_column(Numeric(16, 2), default=0, server_default="0")   # tax deducted at source by the customer: settles the invoice but is not cash received
+    fx_amount = mapped_column(Numeric(16, 2))      # foreign currency settled on a foreign currency document (amount above is then the rupee value at the invoice rate)
+    fx_rate = mapped_column(Numeric(18, 6))        # the exchange rate of the settlement
+    fx_cash = mapped_column(Numeric(16, 2))        # the cash in rupees at the settlement rate
+    fx_gain = mapped_column(Numeric(16, 2), default=0, server_default="0")   # realised forex gain (+) / loss (-) of this settlement
     payment: Mapped[Payment] = relationship(back_populates="allocations")
 
 

@@ -23,6 +23,8 @@ class Allocation(BaseModel):
     amount: Decimal = Field(gt=0, max_digits=16, decimal_places=2)   # cash received / paid against the document
     tds: Decimal = Field(default=Decimal(0), ge=0, max_digits=16, decimal_places=2)   # tax deducted at source by the payer, settles the document too
     round_off: Decimal = Field(default=Decimal(0), ge=0, le=100, max_digits=16, decimal_places=2)   # a small remainder written off to close the document
+    fx_amount: Decimal | None = Field(default=None, gt=0, max_digits=16, decimal_places=2)   # foreign currency settled on a foreign currency document ...
+    fx_rate: Decimal | None = Field(default=None, gt=0, max_digits=18, decimal_places=6)      # ... at the exchange rate of the settlement (amount is then worked out)
 
 
 class PaymentIn(BaseModel):
@@ -45,11 +47,11 @@ def _tenant(user: User) -> int:
 
 
 def _out(p: Payment) -> dict:
-    allocated = sum((a.amount for a in p.allocations), Decimal(0))
+    allocated = sum(((a.fx_cash if a.fx_cash is not None else a.amount) for a in p.allocations), Decimal(0))      # the cash applied (a foreign settlement applies its rupee cash at the settlement rate)
     return {"id": p.id, "direction": p.direction, "pay_number": p.pay_number, "pay_date": p.pay_date, "party_name": p.party_name, "method": p.method, "reference": p.reference, "amount": str(p.amount), "status": p.status,
             "allocated": str(allocated), "unallocated": str(p.amount - allocated), "remarks": p.remarks, "created_at": p.created_at, "details": p.details or {},
             "tds": str(sum((a.tds_amount or Decimal(0) for a in p.allocations), Decimal(0))), "settled": str(sum((a.amount + (a.tds_amount or Decimal(0)) + (a.round_off or Decimal(0)) for a in p.allocations), Decimal(0))), "round_off": str(sum((a.round_off or Decimal(0) for a in p.allocations), Decimal(0))),
-            "allocations": [{"document_id": a.document_id, "amount": str(a.amount), "tds": str(a.tds_amount or 0), "round_off": str(a.round_off or 0)} for a in p.allocations]}
+            "allocations": [{"document_id": a.document_id, "amount": str(a.amount), "tds": str(a.tds_amount or 0), "round_off": str(a.round_off or 0), "fx_amount": None if a.fx_amount is None else str(a.fx_amount), "fx_rate": None if a.fx_rate is None else str(a.fx_rate), "fx_cash": None if a.fx_cash is None else str(a.fx_cash), "fx_gain": str(a.fx_gain or 0)} for a in p.allocations]}
 
 
 def _get(db: Session, org_id: int, payment_id: int) -> Payment:
@@ -82,18 +84,22 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
             return _out(existing)
     if len({a.document_id for a in payload.allocations}) != len(payload.allocations):
         raise HTTPException(status_code=422, detail="Each document may appear only once in the allocations")
-    total_alloc = sum((a.amount for a in payload.allocations), Decimal(0))
-    if total_alloc > payload.amount:
-        raise HTTPException(status_code=422, detail="Allocated amount exceeds the payment amount")
     docs = {}
     if payload.allocations:
         ids = sorted(a.document_id for a in payload.allocations)
         for doc in db.scalars(select(Document).where(Document.organization_id == org_id, Document.id.in_(ids)).order_by(Document.id).with_for_update()):
             docs[doc.id] = doc
+    fxs: dict[int, dict] = {}
     for alloc in payload.allocations:
         doc = docs.get(alloc.document_id)
         if not doc:
             raise HTTPException(status_code=404, detail=f"Document {alloc.document_id} not found")
+        if alloc.fx_amount is not None or alloc.fx_rate is not None:       # foreign currency settlement: the rupee value cleared is worked out at the invoice rate
+            if alloc.fx_amount is None or alloc.fx_rate is None:
+                raise HTTPException(status_code=422, detail="A foreign currency settlement needs the foreign amount and the exchange rate")
+            from . import forex
+            fxs[alloc.document_id] = forex.split(db, doc, alloc.fx_amount, alloc.fx_rate, payload.direction == "RECEIPT")
+            alloc.amount = fxs[alloc.document_id]["book"]
         if doc.status != "POSTED" or doc.doc_type not in PAYABLE_TYPES[payload.direction]:
             raise HTTPException(status_code=422, detail=f"{doc.doc_number or doc.id} cannot be settled by a {payload.direction.lower()}")
         if alloc.amount + alloc.tds + alloc.round_off > outstanding(doc):
@@ -107,6 +113,9 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
         raise HTTPException(status_code=422, detail="A demand draft needs its number")
     if payload.method in ("NEFT", "RTGS", "IMPS", "UPI", "Card") and not (payload.reference or det.get("txn_ref")):
         raise HTTPException(status_code=422, detail=f"A {payload.method} payment needs its transaction / UTR reference")
+    total_alloc = sum(((fxs[a.document_id]["cash"] if a.document_id in fxs else a.amount) for a in payload.allocations), Decimal(0))      # cash applied
+    if total_alloc > payload.amount:
+        raise HTTPException(status_code=422, detail="Allocated amount exceeds the payment amount")
     full = bool(payload.allocations) and all(a.amount + a.tds + a.round_off == outstanding(docs[a.document_id]) for a in payload.allocations) and total_alloc == payload.amount
     if payload.kind == "full" and not full:
         raise HTTPException(status_code=422, detail="A full payment settles the whole balance of every selected document. Choose part payment, or allocate the full outstanding amounts")
@@ -118,7 +127,9 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
     payment = Payment(details=det, organization_id=org_id, direction=payload.direction, pay_number=next_number(db, org_id, "receipt" if payload.direction == "RECEIPT" else "payment", PAYMENT_PREFIX[payload.direction], pay_date, user=user), pay_date=pay_date,
                       party_name=payload.party_name.strip(), method=payload.method, reference=payload.reference, amount=payload.amount, status="POSTED", idempotency_key=idempotency_key, remarks=payload.remarks, created_by=user.id)
     for alloc in payload.allocations:
-        payment.allocations.append(PaymentAllocation(document_id=alloc.document_id, amount=alloc.amount, tds_amount=alloc.tds, round_off=alloc.round_off))
+        fx = fxs.get(alloc.document_id)
+        payment.allocations.append(PaymentAllocation(document_id=alloc.document_id, amount=alloc.amount, tds_amount=alloc.tds, round_off=alloc.round_off,
+                                                     fx_amount=alloc.fx_amount if fx else None, fx_rate=alloc.fx_rate if fx else None, fx_cash=fx["cash"] if fx else None, fx_gain=fx["gain"] if fx else Decimal(0)))
         docs[alloc.document_id].paid_amount += alloc.amount + alloc.tds + alloc.round_off
     db.add(payment)
     try:
@@ -134,6 +145,18 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
                 return _out(existing)
         raise HTTPException(status_code=409, detail="Could not record the payment; please retry")
     return _out(_get(db, org_id, payment.id))
+
+
+@router.get("/fx/{document_id}")
+def document_fx(document_id: int, user: User = Depends(permission_required("payment.read")), db: Session = Depends(get_db)):
+    """The foreign currency balance of a document (None for a rupee document): what the receipt / payment screen proposes."""
+    from . import forex
+
+    org_id = _tenant(user)
+    doc = db.scalar(select(Document).options(selectinload(Document.lines)).where(Document.id == document_id, Document.organization_id == org_id))
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {"document_id": doc.id, "fx": forex.balance(db, doc), "outstanding": str(outstanding(doc))}
 
 
 @router.get("/{payment_id}")

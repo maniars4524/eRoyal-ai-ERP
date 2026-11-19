@@ -133,14 +133,20 @@ def sync_payment(db: Session, p: Payment, user_id=None, force=False) -> AccVouch
     cust = db.scalar(select(Customer).where(Customer.organization_id == org_id, Customer.name == p.party_name)) if p.party_name else None
     party = coa.party_ledger(db, org_id, p.party_name or "Unallocated", "debtor" if recv else "creditor", cust, user_id)
     job = None
+    g = sum((q2(a.fx_gain) for a in p.allocations), ZERO)            # realised forex gain (+) / loss (-): the cash at the settlement rate against the invoice rate
+    fx_rows = []
+    if g > 0:
+        fx_rows.append((coa.sys_ledger(db, org_id, "fx_gain_real"), ZERO, g, "Realised forex gain", None))
+    elif g < 0:
+        fx_rows.append((coa.sys_ledger(db, org_id, "fx_loss_real"), -g, ZERO, "Realised forex loss", None))
     if recv:
-        rows = [(bank, money, ZERO, p.reference, None), (party, ZERO, money + tds + ro, None, None)]
+        rows = [(bank, money, ZERO, p.reference, None), (party, ZERO, money + tds + ro - g, None, None)] + fx_rows
         if tds:
             rows.append((coa.sys_ledger(db, org_id, "tds_recv"), tds, ZERO, "TDS deducted by the payer", None))
         if ro:
             rows.append((coa.sys_ledger(db, org_id, "round_off"), ro, ZERO, "Written off to close the invoice", None))
     else:
-        rows = [(party, money + tds + ro, ZERO, None, None), (bank, ZERO, money, p.reference, None)]
+        rows = [(party, money + tds + ro + g, ZERO, None, None), (bank, ZERO, money, p.reference, None)] + fx_rows
         if tds:
             rows.append((coa.sys_ledger(db, org_id, "tds_pay"), ZERO, tds, "TDS deducted from the vendor", None))
         if ro:
