@@ -139,6 +139,9 @@ def create_payment(payload: PaymentIn, idempotency_key: str | None = Header(defa
     try:
         db.flush()
         gl.sync_payment(db, payment, user.id)
+        if any(a.fx_amount is not None for a in payment.allocations):
+            from . import forex_api
+            forex_api.refresh_for_documents(db, org_id, [a.document_id for a in payment.allocations], pay_date, user)
         record_audit(db, "PAYMENT_RECORDED", "BILLING", user, org_id, "Payment", str(payment.id), {"number": payment.pay_number, "direction": payment.direction, "amount": str(payment.amount), "allocations": len(payload.allocations)})
         db.commit()
     except IntegrityError:
@@ -197,6 +200,9 @@ def cancel_payment(payment_id: int, user: User = Depends(permission_required("pa
         doc.paid_amount = max(Decimal(0), doc.paid_amount - alloc.amount - (alloc.tds_amount or Decimal(0)) - (alloc.round_off or Decimal(0)))
     payment.status = "CANCELLED"
     gl.sync_payment(db, payment, user.id)
+    if any(x.fx_amount is not None for x in payment.allocations):
+        from . import forex_api
+        forex_api.refresh_for_documents(db, org_id, [x.document_id for x in payment.allocations], payment.pay_date, user)
     record_audit(db, "PAYMENT_CANCELLED", "BILLING", user, org_id, "Payment", str(payment.id), {"number": payment.pay_number})
     db.commit()
     return _out(_get(db, org_id, payment_id))

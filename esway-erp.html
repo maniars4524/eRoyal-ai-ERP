@@ -19663,7 +19663,7 @@ function makePrintFit(){
       dep: place(f.pol), toCode: a.routingTo || code3(f.pod), carrier: a.airline || f.carrier || "", dest: place(f.pod), flight: [a.flight, a.flightDate ? dmy(a.flightDate) : ""].filter(Boolean).join("  ")+(a.flight2 || a.flightDate2 ? " / "+[a.flight2, a.flightDate2 ? dmy(a.flightDate2) : ""].filter(Boolean).join("  ") : ""),
       currency: a.currency || "INR", declC: a.declCarriage || "NVD", declCu: a.declCustoms || "NCV", insurance: a.insurance || "XXX", handling: a.handling || "", sci: a.sci || "",
       pieces: rateLines.length ? String(sumL("pcs")) : (first(f.pkgs, wt.pk) || ""), lines: rateLines, wtPC: wtPC0, otherPC: otPC0, chgs: a.chgsCode || (pc ? "PP" : "CC"),
-      to2: a.to2 || "", by2: a.by2 || "", to3: a.to3 || "", by3: a.by3 || "", lc1: a.shipperLc || "", lc2: a.consigneeLc || "", acct1: a.shipperAccount || "", acct2: a.consigneeAccount || "", unit: wt.lbs ? "L" : "K", rateClass: a.rateClass || "Q", commodityNo: a.commodityNo || "", total: wtCharge + agent + carrier + valuation + tax, agentAmt: agent, carrierAmt: carrier, acMode, agentPre: agP, agentCol: agC, carrierPre: caP, carrierCol: caC, valAmt: valuation, taxAmt: tax, totPrepaid: sideSum(true), totCollect: sideSum(false),
+      to2: a.to2 || "", by2: a.by2 || "", to3: a.to3 || "", by3: a.by3 || "", lc1: a.shipperLc || "", lc2: a.consigneeLc || "", acct1: a.shipperAccount || "", acct2: a.consigneeAccount || "", unit: wt.lbs ? "L" : "K", rateClass: a.rateClass || "Q", commodityNo: a.commodityNo || "", total: wtCharge + agent + carrier + valuation + tax, agentAmt: agent, carrierAmt: carrier, agMode: AG, acMode, agentPre: agP, agentCol: agC, carrierPre: caP, carrierCol: caC, valAmt: valuation, taxAmt: tax, totPrepaid: sideSum(true), totCollect: sideSum(false),
       otherText: a.otherText || autoOther || (other ? "AWB : "+fmt(other)+" /-" : ""), accounting: a.accounting || (pc ? "FREIGHT PREPAID" : "FREIGHT COLLECT"), optional: a.optional || "",
       execDate: dmy(a.execDate || bl.hblDate), execPlace: a.place || bl.place || "", executedBy: a.executedBy || "", signer: P.legal_name || co.name || "",
       issuedAddr: [P.address].filter(Boolean).join(" ") + (P.phone ? " Phone:"+P.phone : ""),
@@ -19703,7 +19703,7 @@ function makePrintFit(){
       row(74, [[1, cell("Issuing Carrier's Agent Name and City", val("<b>"+V(M.agent)+"</b><br>"+V(M.agentCity)), "height:100%")]])+
       row(34, [[62, cell("Agent's IATA Code", val("<b>"+esc2(M.iata)+"</b>"))], [38, cell("Account No.", val(esc2(M.agentAcct)))]])+
       row(30, [[1, cell("Airport of Departure (Addr. of First Carrier) and Requested Routing", val(V(M.dep)))]])+
-      row(44, [[9, cell("To", val(V(M.toCode)))], [17, cell("By First Carrier", val(V(M.carrier)))], [20, cell(S.tabs === "slant" ? slantx("Routing and Destination", 84, 12) + lab("to", "margin-top:1px") : "Routing &amp; Dest &nbsp;to", val(V(M.to2), "margin-top:4px"))], [12, cell("by", val(V(M.by2)))], [12, cell("to", val(V(M.to3)))], [12, cell("by", val(V(M.by3)))]])+
+      row(44, [[9, cell("To", val(V(M.toCode)))], [14, cell("By First Carrier", val(V(M.carrier)))], [24, cell(S.tabs === "slant" ? slantx("Routing and Destination", 104, 12) + lab("to", "margin-top:1px") : "Routing &amp; Dest &nbsp;to", val(V(M.to2), "margin-top:4px"))], [12, cell("by", val(V(M.by2)))], [12, cell("to", val(V(M.to3)))], [12, cell("by", val(V(M.by3)))]])+
       row(46, [[58, cell("Airport of Destination", val("<b>"+V(M.dest)+"</b>", "text-align:center"))], [42, cell(S.tabs === "slant" ? slantx("Requested Flight/Date", 100, 12) : "Flight/Date", val(V(M.flight)))]])+
     '</div>';
     /* ---- right column ---- */
@@ -19739,8 +19739,8 @@ function makePrintFit(){
       row(30, [[1, '<div style="padding:3px 6px">'+lab("Prepaid")+(M.pc ? val(money(M.wtCharge), "margin-top:2px") : "")+'</div>'], [1, tabc("Weight Charge")], [1, '<div style="padding:3px 6px">'+lab("Collect")+(M.pc ? "" : val(money(M.wtCharge), "margin-top:2px"))+'</div>']])+
       row(24, [[1, '<div style="padding:2px 6px">'+(M.valAmt && M.wtPC ? val(fmt(M.valAmt)) : "")+'</div>'], [1, tabc("Valuation Charge", 110)], [1, '<div style="padding:2px 6px;text-align:right">'+(M.valAmt && !M.wtPC ? val(fmt(M.valAmt)) : "")+'</div>']])+
       row(24, [[1, '<div style="padding:2px 6px">'+(M.taxAmt && M.wtPC ? val(fmt(M.taxAmt)) : "")+'</div>'], [1, tabc("Tax", 70)], [1, '<div style="padding:2px 6px;text-align:right">'+(M.taxAmt && !M.wtPC ? val(fmt(M.taxAmt)) : "")+'</div>']])+
-      row(40, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Agent", 176)+(M.acMode ? '<div style="display:flex;justify-content:space-between">'+(M.agentPre ? val(fmt(M.agentPre)) : "<span></span>")+(M.agentCol ? val(fmt(M.agentCol)) : "")+'</div>' : M.agentAmt ? val(fmt(M.agentAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
-      row(30, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Carrier", 176)+(M.acMode ? '<div style="display:flex;justify-content:space-between">'+(M.carrierPre ? val(fmt(M.carrierPre)) : "<span></span>")+(M.carrierCol ? val(fmt(M.carrierCol)) : "")+'</div>' : M.carrierAmt ? val(fmt(M.carrierAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
+      row(40, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Agent", 176)+(M.agMode ? val("AS AGREED", "margin-top:2px") : M.acMode ? '<div style="display:flex;justify-content:space-between">'+(M.agentPre ? val(fmt(M.agentPre)) : "<span></span>")+(M.agentCol ? val(fmt(M.agentCol)) : "")+'</div>' : M.agentAmt ? val(fmt(M.agentAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
+      row(30, [[1, '<div style="padding:3px 6px">'+tabc("Total other Charges Due Carrier", 176)+(M.agMode ? val("AS AGREED", "margin-top:2px") : M.acMode ? '<div style="display:flex;justify-content:space-between">'+(M.carrierPre ? val(fmt(M.carrierPre)) : "<span></span>")+(M.carrierCol ? val(fmt(M.carrierCol)) : "")+'</div>' : M.carrierAmt ? val(fmt(M.carrierAmt), "margin-top:2px;text-align:"+(M.otherPC ? "left" : "right")) : "")+'</div>']])+
       row(44, [[1, '<div style="padding:3px 6px">'+tabc("Total Prepaid", 100)+(M.totPrepaid ? val(M.agreed(M.totPrepaid), "margin-top:2px") : (M.pc ? val("AS AGREED", "margin-top:2px") : ""))+'</div>'], [1, '<div style="padding:3px 6px">'+tabc("Total Collect", 100)+(M.totCollect ? val(M.agreed(M.totCollect), "margin-top:2px") : "")+'</div>']])+
       row(24, [[1, tabc("Currency Conversion Rates", 130)], [1, tabc("CC Charges in Dest. Currency", 140)]])+
       row(40, [[1, cell("For Carrier's Use only<br>at Destination", "")], [1, tabc("Charges at Destination", 130)], [1, tabc("Total Collect Charges", 120)]])+
@@ -19773,9 +19773,9 @@ function makePrintFit(){
     }
     return wrap([DK.awbFaceOne(rd, key, {draft:mode === "draft"})].concat(AWB_SPEC[key].cond || mode === "draft" && AWB_SPEC[key].cond ? [DK.awbConditions(rd)] : []));
   };
-  DK.awbFormats = {std:"Existing layout", one:"Format one", two:"Format two", three:"Format three"};
+  DK.awbFormats = {std:"Existing layout (as Format three)", one:"Format one", two:"Format two", three:"Format three"};
   DK.awbNames = Object.assign({}, DK.awbFormats); DK.awbDefault = "std";
-  DK.awbRender = (rd, fk, mode)=> fk === "one" || fk === "two" || fk === "three" || (mode && mode !== "a4") ? DK.awbFace(rd, fk, mode) : DK.awb(rd);
+  DK.awbRender = (rd, fk, mode)=> DK.awbFace(rd, fk, mode || "a4");          /* every format, the old "Existing layout" included, is drawn by the waybill engine (the same fields and charges everywhere) */
 
   /* ---------- RECEIPT / PAYMENT VOUCHER ---------- */
   DK.receipt = function(v, rd, partyText){

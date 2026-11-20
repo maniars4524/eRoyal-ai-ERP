@@ -38,12 +38,20 @@ def _as_of_state(db: Session, doc: Document, as_of: date) -> dict | None:
     rows = list(db.execute(select(PaymentAllocation).join(Payment, Payment.id == PaymentAllocation.payment_id).where(PaymentAllocation.document_id == doc.id, Payment.status == "POSTED", Payment.pay_date <= as_of)).scalars())
     fc_paid = sum((a.fx_amount or ZERO for a in rows), ZERO)
     book_paid = sum((a.amount + (a.tds_amount or ZERO) + (a.round_off or ZERO) for a in rows), ZERO)
-    credited = doc.credited_amount or ZERO
+    credited = _credited_by(db, doc, as_of)
     fc_bal = q2(fx["fc_total"] - fc_paid - credited / fx["rate"])
     carrying = q2(doc.grand_total - book_paid - credited)
     if fc_bal <= Decimal("0.005") or carrying <= 0:
         return None
     return {"ccy": fx["ccy"], "fc_balance": fc_bal, "carrying": carrying, "invoice_rate": fx["rate"]}
+
+
+def _credited_by(db: Session, doc: Document, as_of: date) -> Decimal:
+    """Credit notes against the document up to the date (by the date of each credit note); a document credited without a linked note keeps its recorded amount."""
+    notes = list(db.scalars(select(Document).where(Document.ref_document_id == doc.id, Document.status == "POSTED", Document.doc_type.in_(("credit_note", "purchase_credit_note")))))
+    if not notes:
+        return doc.credited_amount or ZERO
+    return sum((n.grand_total for n in notes if n.doc_date <= as_of), ZERO)
 
 
 def open_foreign(db: Session, org_id: int, as_of: date) -> list[dict]:
@@ -83,7 +91,10 @@ def _next_jv(db: Session, org_id: int, vdate: date) -> str:
 
 @router.post("/revalue", status_code=201)
 def revalue(body: RevalueIn, user: User = Depends(permission_required("billing.create")), db: Session = Depends(get_db)):
-    org_id = _tenant(user)
+    return _revalue(db, _tenant(user), body, user)
+
+
+def _revalue(db: Session, org_id: int, body: RevalueIn, user: User, commit: bool = True) -> dict:
     gl.assert_open(db, org_id, body.as_of)
     gl.assert_open(db, org_id, body.as_of + timedelta(days=1))
     coa.ensure_tree(db, org_id)
@@ -131,14 +142,37 @@ def revalue(body: RevalueIn, user: User = Depends(permission_required("billing.c
     for x in recs:
         x.voucher_id, x.reversal_voucher_id = (v.id if v else None), (rev.id if rev else None)
     record_audit(db, "FOREX_REVALUED", "ACCOUNTS", user, org_id, "ForexRevaluation", str(recs[0].id), {"as_of": str(vdate), "documents": len(recs), "skipped": skipped, "net": str(sum((x.difference for x in recs), ZERO))})
-    db.commit()
+    if commit:
+        db.commit()
     return {"as_of": vdate, "revalued": len(recs), "skipped": skipped, "unrealised_net": str(sum((x.difference for x in recs), ZERO)), "voucher": v.number if v else None, "reversal_voucher": rev.number if rev else None, "reversal_date": rdate}
 
 
 @router.delete("/revaluations/{as_of}")
 def cancel_revaluation(as_of: date, user: User = Depends(permission_required("billing.cancel")), db: Session = Depends(get_db)):
     """Undo the revaluation of a date (its journal and the reversal), for example to run it again with another closing rate."""
-    org_id = _tenant(user)
+    return _cancel(db, _tenant(user), as_of, user)
+
+
+def refresh_for_documents(db: Session, org_id: int, doc_ids: list[int], pay_date: date, user: User) -> list[date]:
+    """A receipt / payment dated on or before a revaluation date changes the balances that date was valued on: those revaluations are made again with the same closing rates."""
+    dates = sorted({r.as_of for r in db.scalars(select(ForexRevaluation).where(ForexRevaluation.organization_id == org_id, ForexRevaluation.status == "ACTIVE", ForexRevaluation.document_id.in_(doc_ids), ForexRevaluation.as_of >= pay_date))})
+    done = []
+    for d in dates:
+        rates = {r.ccy: r.closing_rate for r in db.scalars(select(ForexRevaluation).where(ForexRevaluation.organization_id == org_id, ForexRevaluation.status == "ACTIVE", ForexRevaluation.as_of == d))}
+        try:
+            _cancel(db, org_id, d, user, commit=False)
+            db.flush()
+            try:
+                _revalue(db, org_id, RevalueIn(as_of=d, rates=rates), user, commit=False)
+            except HTTPException:
+                pass                                                          # nothing is open any more on that date: the revaluation simply ends
+            done.append(d)
+        except HTTPException:
+            continue                                                          # a closed period is left as it was
+    return done
+
+
+def _cancel(db: Session, org_id: int, as_of: date, user: User, commit: bool = True) -> dict:
     gl.assert_open(db, org_id, as_of)
     rows = list(db.scalars(select(ForexRevaluation).where(ForexRevaluation.organization_id == org_id, ForexRevaluation.as_of == as_of, ForexRevaluation.status == "ACTIVE")))
     if not rows:
@@ -152,7 +186,8 @@ def cancel_revaluation(as_of: date, user: User = Depends(permission_required("bi
     for r in rows:
         db.delete(r)
     record_audit(db, "FOREX_REVALUATION_CANCELLED", "ACCOUNTS", user, org_id, "ForexRevaluation", str(as_of), {"documents": len(rows)})
-    db.commit()
+    if commit:
+        db.commit()
     return {"cancelled": len(rows)}
 
 

@@ -112,3 +112,29 @@ def test_forex_shows_in_profit_loss_balance_sheet_ledger_and_day_book(h):
     assert any(D(r["credit"]) == 1000 and rc.json()["pay_number"] in str(r) for r in rep["entries"])      # its ledger shows the credit against the receipt voucher
     assert any(v["number"] == rc.json()["pay_number"] for v in client.get("/api/gl/day-book", headers=h).json()["vouchers"])
     assert tb(h)["balanced"]
+
+
+def test_receipt_on_the_revaluation_date_refreshes_it_and_credit_notes_count_by_date(h):
+    name = party(h)
+    inv = doc(h, "invoice", name, "1000", kind="Non-Taxable", ccy="USD", exch="83")
+    today = date.today()
+    r = client.post("/api/forex/revalue", json={"as_of": str(today), "rates": {"USD": "85"}}, headers=h)
+    assert r.status_code == 201, r.text
+    row = lambda: next(x for x in client.get("/api/forex/revaluations", headers=h).json() if x["document"] == inv["doc_number"])
+    assert D(row()["unrealised"]) == 2000
+    # a receipt dated the same day, entered after the revaluation: the revaluation is made again on the new balance (USD 600 left: 600 x 85 = 51,000 against 49,800)
+    rc = client.post("/api/payments", json={"direction": "RECEIPT", "party_name": name, "method": "Bank Transfer", "reference": "SWR", "pay_date": str(today), "amount": "33600",
+                                            "allocations": [{"document_id": inv["id"], "amount": "1", "fx_amount": "400", "fx_rate": "84"}]}, headers=h)
+    assert rc.status_code == 201, rc.text
+    assert D(row()["unrealised"]) == 1200 and row()["fc_balance"] == "600.00" and D(row()["carrying_inr"]) == 49800
+    assert tb(h, date_to=today)["balanced"]
+    # cancelling the receipt brings the first valuation back
+    assert client.post(f"/api/payments/{rc.json()['id']}/cancel", headers=h).status_code == 200
+    assert D(row()["unrealised"]) == 2000 and row()["fc_balance"] == "1000.00"
+    # a credit note dated after the reporting date does not reduce that date's balance
+    client.delete(f"/api/forex/revaluations/{today}", headers=h)
+    cn = doc(h, "credit_note", name, "100", kind="Non-Taxable", ccy="USD", exch="83", ref=inv["id"])
+    openl = client.get(f"/api/forex/open?as_of={today - timedelta(days=1)}", headers=h).json()["items"]
+    assert not any(i["document_id"] == inv["id"] for i in openl)                                     # the invoice itself is not yet dated before today
+    now = next(i for i in client.get(f"/api/forex/open?as_of={today}", headers=h).json()["items"] if i["document_id"] == inv["id"])
+    assert now["fc_balance"] == "900.00" and cn["doc_number"]                                        # the credit note of USD 100 is counted from its date on

@@ -36,7 +36,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
   await openTab(air, "jt7b");
   await page.evaluate(() => document.querySelector('#odDyn [data-od2="gen"][data-code="hawb"]').click()); await sleep(6500);
   const hw = (await text("#modalBody")).replace(/\s+/g, " ");
-  check("the HAWB prints them (IATA code, shipper account, executed by, other charges) and AS AGREED for the charges", /324234/.test(hw) && /SH-001/.test(hw) && /SUB AGENT/.test(hw) && /AWB : 500/.test(hw) && (hw.match(/AS AGREED/g) || []).length >= 4, hw.slice(0, 200));
+  check("the HAWB prints them (IATA code, shipper account, executed by, other charges) and AS AGREED for the charges", /324234/.test(hw) && /SH-001/.test(hw) && /SUB AGENT/.test(hw) && /AWB : 500/.test(hw) && (hw.match(/AS AGREED/g) || []).length >= 4, "324234:" + /324234/.test(hw) + " SH:" + /SH-001/.test(hw) + " SUB:" + /SUB AGENT/.test(hw) + " AWB500:" + /AWB : 500/.test(hw) + " AGREED:" + (hw.match(/AS AGREED/g) || []).length + " :: " + hw.slice(300, 900));
   await page.evaluate(() => closeModal()); await sleep(400);
   // the Bill of Lading: pre print and multiple print
   const sea = (await j("POST", "/api/shipments", { mode: "Sea", direction: "Export", container_mode: "FCL", pol: "INMAA(CHENNAI)", pod: "SGSIN(SINGAPORE)" }, token)).body.job_number;

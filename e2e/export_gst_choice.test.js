@@ -35,6 +35,7 @@ const check = (n, ok, x) => { console.log((ok ? "PASS " : "FAIL ") + n + (ok ? "
     const t = (await text("#docViewZone")).replace(/\s+/g, " ");
     check("Template " + tpl + " prints the cost-entry description under the charge", /Detention Charges/i.test(t) && /YHVU0987654- \( 12 DAYS \)/.test(t), t.slice(0, 300));
     check("Template " + tpl + " shows the tax 180.00", /180\.00/.test(t), t.slice(0, 300));
+    check("Template " + tpl + " (draft = proforma, Outside India): titled PROFORMA INVOICE, not OVERSEAS / TAX INVOICE", /PROFORMA INVOICE/.test(t) && !/OVERSEAS INVOICE/.test(t), t.slice(0, 200));
   }
   check("no script errors", errs.length === 0, errs.join(" | "));
   await b.close(); console.log(failures ? failures + " FAILED" : "ALL PASSED"); process.exit(failures ? 1 : 0);
