@@ -145,6 +145,9 @@ app.include_router(sequences_router)
 from .forex_api import router as forex_router  # noqa: E402
 
 app.include_router(forex_router)
+from .pdf_api import router as pdf_router  # noqa: E402
+
+app.include_router(pdf_router)
 
 
 @app.on_event("startup")

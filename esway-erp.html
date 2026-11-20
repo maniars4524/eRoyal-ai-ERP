@@ -19118,9 +19118,20 @@ function makePrintFit(){
     await new Promise(r=>setTimeout(r, 120));
     return {root:d.body, done:()=>fr.remove()};
   };
+  /* the exact PDF: the server's browser prints the same pages the preview shows (null when it cannot: the screen then uses its own renderer) */
+  window.__serverPdf = window.__serverPdf || async function(html){
+    try{
+      const r = await fetch("/api/pdf", {method:"POST", headers:{Authorization:"Bearer "+sessionStorage.getItem("esway_access_token"), "Content-Type":"application/json"}, body:JSON.stringify({html})});
+      if(!r.ok) return null;
+      const blob = await r.blob(); const uri = await new Promise(ok=>{ const f = new FileReader(); f.onload = ()=>ok(f.result); f.readAsDataURL(blob); });
+      return {exact:true, save(name){ const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500); },
+              output(t){ return t === "blob" ? blob : uri; }};
+    }catch(e){ return null; }
+  };
   function loadScript(src){ return window.__loadLib(src); }
   BD.pdf = async function(){
     const b = await BD.build(jobNo());
+    { const sv = await window.__serverPdf(b.sheets); if(sv) return {pdf:sv, filename:(window.DocName ? window.DocName.fromTitle(b.title) : (b.title || "Bill-of-Lading").replace(/[^A-Za-z0-9]/g, ""))+".pdf"}; }
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const fx = await window.__pdfDoc(b.sheets, SHEET_W + 40), host = fx.root;
     try{
@@ -19668,7 +19679,7 @@ function makePrintFit(){
     two:{insurance:'INSURANCE - If Carrier offers Insurance, and such Insurance is requested in accordance with the conditions thereof, indicate amount to be insured in figures box marked "amount of insurance".', cert:"Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Registrations."},
     three:{insurance:'INSURANCE - If carrier offers insurance, and such insurance is requested in accordance with the conditions thereof, indicate amount to be insured in figures in box marked "Amount of Insurance".', cert:"Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Good Regulations."}};
   /* a slanted (\ /) label like the ones of the system sample, drawn as a small shape */
-  const slant = (t, w, h)=> '<svg width="'+w+'" height="'+(h || 15)+'" style="display:block;margin:0 auto"><polygon points="0,0 '+w+',0 '+(w - 9)+','+(h || 15)+' 9,'+(h || 15)+'" fill="#fff" stroke="#111" stroke-width="1"/><text x="'+(w / 2)+'" y="'+((h || 15) - 4)+'" text-anchor="middle" font-family="Arial" font-size="8" fill="#111">'+esc2(t)+'</text></svg>';
+  const slant = (t, w, h)=> '<svg width="'+w+'" height="'+(h || 15)+'" style="display:block;margin:0 auto"><polygon points="0,0 '+w+',0 '+(w - 9)+','+(h || 15)+' 9,'+(h || 15)+'" fill="#fff" stroke="#111" stroke-width="1"/><text x="'+(w / 2)+'" y="'+((h || 15) - 4)+'" text-anchor="middle" font-family="Arial" font-size="'+Math.min(8, Math.max(5.4, (w - 20) / (String(t).length * 0.56))).toFixed(2)+'" fill="#111">'+esc2(t)+'</text></svg>';          /* a long label shrinks to stay inside its slanted tab */
   DK.awbFaceOne = function(rd, fk, o){
     o = o || {}; const S = AWB_SPEC[fk]; const M = DK.awbModel(rd); const PRE = !!o.pre, DRAFT = !!o.draft;
     const B = PRE ? "1px solid transparent" : "1px solid #111", TH = PRE ? "1.5px solid transparent" : "1.5px solid #111", HID = PRE ? "visibility:hidden;" : "";
@@ -19687,8 +19698,8 @@ function makePrintFit(){
       : '<div style="display:flex;justify-content:space-between;align-items:flex-end;font-family:Arial;font-weight:800;font-size:15px;margin:0 0 3px"><span>'+esc2(M.mawbHead)+'</span><span style="text-align:right;line-height:1.1;font-size:13px">'+L5+esc2(M.hawb)+'</span></div>';
     /* ---- left column ---- */
     const leftCol = '<div style="width:'+w+'%;border-right:'+B+'">'+
-      '<div style="position:relative;height:100px">'+cell("Shipper's Name and Address", ptxt(M.shipper), "height:100%")+acctBox(fk === "two" ? "Shipper Account Number" : "Shipper's Account Number")+(M.acct1 || M.lc1 ? '<div style="position:absolute;right:6px;top:20px;text-align:right;max-width:46%">'+val(esc2(M.acct1)+(M.lc1 ? "<br>LC: "+esc2(M.lc1) : ""), "font-size:"+(S.vs - 0.4)+"px")+'</div>' : "")+(S.boxedAcct ? "" : '<div style="position:absolute;right:6px;top:2px">'+lab("Shipper's Account Number")+"</div>")+'</div>'+
-      '<div style="position:relative;height:104px;border-top:'+B+'">'+cell("Consignee's Name and Address", ptxt(M.consignee), "height:100%")+(S.boxedAcct ? '<div style="position:absolute;right:0;top:0;border-left:'+B+';border-bottom:'+B+';padding:1px 6px;'+HID+(S.grey ? "background:#d8d8d8;" : "background:#fff;")+'font-family:Arial;font-size:7.6px;font-weight:'+(fk === "two" ? 700 : 400)+'">'+(fk === "two" ? "Consignee Account Number" : "Consignee\'s Account Number")+'</div>' : '<div style="position:absolute;right:6px;top:2px">'+lab("Consignee's Account Number")+"</div>")+(M.acct2 || M.lc2 ? '<div style="position:absolute;right:6px;top:20px;text-align:right;max-width:46%">'+val(esc2(M.acct2)+(M.lc2 ? "<br>LC: "+esc2(M.lc2) : ""), "font-size:"+(S.vs - 0.4)+"px")+'</div>' : "")+'</div>'+
+      '<div style="position:relative;height:100px">'+cell("Shipper's Name and Address", ptxt(M.shipper), "height:100%;"+(M.acct1 || M.lc1 ? "padding-right:104px;" : ""))+acctBox(fk === "two" ? "Shipper Account Number" : "Shipper's Account Number")+(M.acct1 || M.lc1 ? '<div style="position:absolute;right:6px;top:20px;text-align:right;max-width:46%">'+val(esc2(M.acct1)+(M.lc1 ? "<br>LC: "+esc2(M.lc1) : ""), "font-size:"+(S.vs - 0.4)+"px")+'</div>' : "")+(S.boxedAcct ? "" : '<div style="position:absolute;right:6px;top:2px">'+lab("Shipper's Account Number")+"</div>")+'</div>'+
+      '<div style="position:relative;height:104px;border-top:'+B+'">'+cell("Consignee's Name and Address", ptxt(M.consignee), "height:100%;"+(M.acct2 || M.lc2 ? "padding-right:104px;" : ""))+(S.boxedAcct ? '<div style="position:absolute;right:0;top:0;border-left:'+B+';border-bottom:'+B+';padding:1px 6px;'+HID+(S.grey ? "background:#d8d8d8;" : "background:#fff;")+'font-family:Arial;font-size:7.6px;font-weight:'+(fk === "two" ? 700 : 400)+'">'+(fk === "two" ? "Consignee Account Number" : "Consignee\'s Account Number")+'</div>' : '<div style="position:absolute;right:6px;top:2px">'+lab("Consignee's Account Number")+"</div>")+(M.acct2 || M.lc2 ? '<div style="position:absolute;right:6px;top:20px;text-align:right;max-width:46%">'+val(esc2(M.acct2)+(M.lc2 ? "<br>LC: "+esc2(M.lc2) : ""), "font-size:"+(S.vs - 0.4)+"px")+'</div>' : "")+'</div>'+
       row(74, [[1, cell("Issuing Carrier's Agent Name and City", val("<b>"+V(M.agent)+"</b><br>"+V(M.agentCity)), "height:100%")]])+
       row(34, [[62, cell("Agent's IATA Code", val("<b>"+esc2(M.iata)+"</b>"))], [38, cell("Account No.", val(esc2(M.agentAcct)))]])+
       row(30, [[1, cell("Airport of Departure (Addr. of First Carrier) and Requested Routing", val(V(M.dep)))]])+
@@ -20042,6 +20053,7 @@ function makePrintFit(){
   DK.print = function(b){ const w = window.open("", "_blank"); if(!w){ say("Pop-up blocked", "Allow pop-ups for this site to print", "warn"); return; }
     w.document.write('<!doctype html><title>'+esc2(window.DocName ? window.DocName.fromTitle(b.title) : b.title)+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.pg{margin:0!important;box-shadow:none!important}</style>'+b.html); w.document.close(); w.onload = ()=>{ w.focus(); w.print(); }; setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 700); };
   DK.pdf = async function(b){
+    { const sv = await window.__serverPdf(b.html); if(sv) return {pdf:sv, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf"}; }
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const fx = await window.__pdfDoc(b.html, 900), host = fx.root;
     try{ const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4"}); const pages = host.querySelectorAll(".pg");
@@ -26862,6 +26874,7 @@ body.job-readonly #jlBanner{display:flex}
   }
   const loadJs = src=> window.__loadLib(src);
   async function pdfSheets(b){
+    { const sv = await window.__serverPdf(b.html); if(sv) return {pdf:sv, filename:(window.DocName ? window.DocName.fromTitle(b.title) : b.title.replace(/[^A-Za-z0-9]/g, ""))+".pdf"}; }
     await loadJs("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadJs("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const fx = await window.__pdfDoc(b.html, 1400), host = fx.root;
     try{ const sheets = host.querySelectorAll(".bl-sheet"), W = sheets[0].offsetWidth, Hh = sheets[0].offsetHeight; const {jsPDF} = window.jspdf; const pdf = new jsPDF({unit:"mm", format:"a4", compress:true});
@@ -27400,6 +27413,7 @@ body.job-readonly #jlBanner{display:flex}
     one("/vendor/"+url.split("/").pop(), ()=> one(url, ()=>{ delete libs[url]; no(new Error("Could not load "+url)); })); }));       // this server first, the CDN only as a fallback
   const KIND_NAME = {both:"Invoice and Packing List", packing:"Packing List", invoice:"Invoice", combined:"Invoice cum Packing List"};
   async function makePdf(rec, kind, withSign, fmt){
+    { const c0 = ctx(rec); c0.co = await company(); const sv = await window.__serverPdf(build(c0, kind, withSign, fmt)); if(sv) return sv.output("blob"); }
     await loadLib("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"); await loadLib("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
     const c = ctx(rec); c.co = await company();
     const fx = await window.__pdfDoc(build(c, kind, withSign, fmt), 840), host = fx.root;
